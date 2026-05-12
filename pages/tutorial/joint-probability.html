@@ -337,29 +337,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Reading the SCC decomposition tree map</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/sharing.ipynb</span>
-  </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">The phasic model hub</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/mpfr.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Multiple-precision arithmetic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/distributed.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Distributed computing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
       </ul>
@@ -390,6 +387,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://github.com/munch-group/phasic/issues" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Issue Tracker</span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -429,7 +432,7 @@ By carefully constructing the edge weights and using reward transformations, we 
 In our rabbit model, we might be interested in the joint distribution of two quantities: the time until the left island is depleted (either by jumping or flooding) and the time until the right island is depleted. These two times are not independent—they are coupled through the rabbits jumping between islands. Let's construct a model that tracks both times simultaneously. 
 -->
 <div id="d2b8d552" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:39.884254Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:39.884165Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:41.615943Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:41.615415Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv, <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv,</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>

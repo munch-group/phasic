@@ -380,29 +380,26 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Reading the SCC decomposition tree map</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/sharing.ipynb</span>
-  </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">The phasic model hub</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/mpfr.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Multiple-precision arithmetic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/distributed.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Distributed computing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
       </ul>
@@ -433,6 +430,12 @@ window.Quarto = {
   </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://github.com/munch-group/phasic/issues" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Issue Tracker</span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -501,7 +504,7 @@ window.Quarto = {
 <p>where <span class="math inline">\mathbf{s}</span> is a vector of ones for states with non-zero rates to absorbing states and zeros otherwise. The <span class="math inline">\theta</span> is time-homogeneous so it can only represent a global mutation rate if there are only two sequences.</p>
 <p>In the example below, we let it represetn a recombination rate in an ARG so we can compute the probability that two loci separated by a recombination distance <span class="math inline">\theta</span> are represented by the same tree in our sample. I.e., that no recombination has occurred on the branches of the tree at locus1 one at any of the positions between locus one and two.</p>
 <div id="b564a751" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:34.864898Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:34.864788Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:36.614760Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:36.614349Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>

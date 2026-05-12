@@ -337,29 +337,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Reading the SCC decomposition tree map</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/sharing.ipynb</span>
-  </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">The phasic model hub</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/mpfr.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Multiple-precision arithmetic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/distributed.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Distributed computing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
       </ul>
@@ -390,6 +387,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://github.com/munch-group/phasic/issues" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Issue Tracker</span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -438,7 +441,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Similarly the recombination rate is no longer <code>R</code> but <code>[0, 1]</code>.</p>
 <p>A parameter vector of <code>[1/N, R]</code> will then produce the appropriate edge weights.</p>
 <div id="49875faf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:59.221949Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:59.221826Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:01.469818Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:01.469280Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property, set_log_level <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property, set_log_level</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>

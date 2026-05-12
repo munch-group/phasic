@@ -61,15 +61,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../pages/tutorial/mpfr.html" rel="next">
-<link href="../../pages/tutorial/scc-decomposition.html" rel="prev">
+<link href="../../pages/topics/vscodenb.html" rel="next">
+<link href="../../pages/tutorial/distributed.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -113,9 +113,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
-
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -334,29 +331,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Reading the SCC decomposition tree map</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/sharing.ipynb</span>
-  </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">The phasic model hub</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/mpfr.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Multiple-precision arithmetic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/distributed.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Distributed computing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
       </ul>
@@ -387,6 +381,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://github.com/munch-group/phasic/issues" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Issue Tracker</span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -405,8 +405,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#verifying-a-published-model-end-to-end" id="toc-verifying-a-published-model-end-to-end" class="nav-link" data-scroll-target="#verifying-a-published-model-end-to-end">Verifying a published model end-to-end</a></li>
   <li><a href="#previewing-what-a-publish-would-look-like" id="toc-previewing-what-a-publish-would-look-like" class="nav-link" data-scroll-target="#previewing-what-a-publish-would-look-like">Previewing what a publish would look like</a></li>
-  <li><a href="#when-pull_cache-is-useful-in-practice" id="toc-when-pull_cache-is-useful-in-practice" class="nav-link" data-scroll-target="#when-pull_cache-is-useful-in-practice">When <code>pull_cache()</code> is useful in practice</a></li>
-  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-hub.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-hub.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -432,79 +430,59 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><a href="https://github.com/munch-group/phasic-traces"><code>munch-group/phasic-traces</code></a> is the public registry where pre-computed elimination artifacts are published. This notebook walks through the live registry — listing the artifacts available right now, downloading one, reusing it on a fresh local cache, and previewing what publishing a new model would look like.</p>
-<p>Unlike the <a href="sharing.ipynb">reference tutorial</a> (which uses a local mock registry so it can run offline), every cell here talks to the real GitHub repository. Re-execute the notebook to see the current state of the registry.</p>
+<p><a href="https://github.com/munch-group/phasic-traces"><code>munch-group/phasic-traces</code></a> is the public registry where pre-computed elimination artifacts are published.</p>
+<p>Every parameterised phasic graph has a deterministic content hash (<code>ptd_graph_content_hash</code>). The first time you call <code>g.expectation()</code> (or <code>g.pdf()</code> / <code>g.moments()</code>), the C side runs the symbolic elimination and writes the result to <code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code>. The next call on a structurally identical graph reuses that file — even in a different process.</p>
+<p>The sharing system lets you exchange those <code>.bin</code> files with other users via a public GitHub registry at <a href="https://github.com/munch-group/phasic-traces"><code>munch-group/phasic-traces</code></a>. Two methods on <code>Graph</code> cover the whole story:</p>
+<p>If someone published a <code>.bin</code> for this graph, you download it into the local cache using <code>g.pull_cache()</code>. To list models available at <code>phasic-traces</code> use the top-level function <code>list_computes</code> for browsing without a graph. E.g., <code>phasic.list_computes(domain='population-genetics')</code></p>
+<p>To make an elimination available to others, use <code>g.push_cache(id=..., description=...)</code> to compute it (unless already cached locally) and submit it as a pull request for the <code>phasic-traces</code> repository. This feature needs <code>git</code> and the <a href="https://cli.github.com/">GitHub CLI</a> <code>gh</code>, authenticated once with <code>gh auth login</code> in a terminal.Both are easily installed using either Pixi, Conda or Pip:</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">Pixi</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">Conda</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false" href="">Pip</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> global install git gh</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install git gh</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install git gh</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="1b6c4ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:03.682614Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:03.682524Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.227057Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.226496Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.compute_repository <span class="im">import</span> _param_compute_cache_dir</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
+<div id="1b6c4ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:03.682614Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:03.682524Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.227057Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.226496Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, list_computes</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.compute_repository <span class="im">import</span> _param_compute_cache_dir</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="whats-published-right-now" class="level2">
 <h2 class="anchored" data-anchor-id="whats-published-right-now">What’s published right now?</h2>
-<p><code>phasic.list_computes()</code> downloads <code>registry.json</code> from the hub and returns one dict per published artifact. Use the <code>domain</code>, <code>model_type</code>, and <code>tags</code> keyword arguments to filter.</p>
-<div id="09385418" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.229086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.228873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.339205Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.338594Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> phasic.list_computes():</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>entry[<span class="st">'compute_id'</span>]<span class="sc">:24s}</span><span class="ss">  "</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"vertices=</span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'vertices'</span>, <span class="st">'?'</span>)<span class="sc">:&gt;4}</span><span class="ss">  "</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"params=</span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'param_length'</span>, <span class="st">'?'</span>)<span class="sc">}</span><span class="ss">  "</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"hash=</span><span class="sc">{</span>entry[<span class="st">'graph_hash'</span>][:<span class="dv">16</span>]<span class="sc">}</span><span class="ss">..."</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>list_computes()</code> downloads <code>registry.json</code> from the hub and returns one dict per published artifact. Use the <code>domain</code>, <code>model_type</code>, and <code>tags</code> keyword arguments to filter.</p>
+<div id="09385418" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.229086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.228873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.339205Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.338594Z&quot;}}" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> list_computes():</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>entry[<span class="st">'compute_id'</span>]<span class="sc">:24s}</span><span class="ss">  "</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"vertices=</span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'vertices'</span>, <span class="st">'?'</span>)<span class="sc">:&gt;4}</span><span class="ss">  "</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"params=</span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'param_length'</span>, <span class="st">'?'</span>)<span class="sc">}</span><span class="ss">  "</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"hash=</span><span class="sc">{</span>entry[<span class="st">'graph_hash'</span>][:<span class="dv">16</span>]<span class="sc">}</span><span class="ss">..."</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>coal_n5_theta1            vertices=   6  params=1  hash=4d652ed73c66ed4a...
 coal_n10_theta1           vertices=  11  params=1  hash=2c6488c6486ae2d2...
 coal_n20_theta1           vertices=  21  params=1  hash=6f7690305bd5c9ec...</code></pre>
 </div>
 </div>
-<div id="3e962ffa" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.340695Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.340590Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.342918Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.342522Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Drill in: just the coalescent models, with their full metadata.</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> phasic.list_computes(model_type<span class="op">=</span><span class="st">'coalescent'</span>):</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(entry[<span class="st">'compute_id'</span>])</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  description:    </span><span class="sc">{</span>entry[<span class="st">'description'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  tags:           </span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'tags'</span>, [])<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  format_revision: </span><span class="sc">{</span>entry[<span class="st">'format_revision'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="3e962ffa" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.340695Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.340590Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.342918Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.342522Z&quot;}}" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Drill in: just the coalescent models, with their full metadata.</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> list_computes(model_type<span class="op">=</span><span class="st">'coalescent'</span>):</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(entry[<span class="st">'compute_id'</span>])</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  description:    </span><span class="sc">{</span>entry[<span class="st">'description'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  tags:           </span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'tags'</span>, [])<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  format_revision: </span><span class="sc">{</span>entry[<span class="st">'format_revision'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>coal_n5_theta1
   description:    Kingman coalescent for n=5 haploid samples (1 parameter)
@@ -528,18 +506,18 @@ coal_n20_theta1
 <h2 class="anchored" data-anchor-id="reusing-a-published-model">Reusing a published model</h2>
 <p>If you build a graph that’s structurally identical to one in the hub, <code>pull_cache()</code> downloads the pre-computed elimination and drops it into the local phasic cache. The next call to <code>expectation()</code>, <code>pdf()</code>, or <code>moments()</code> reads the file via the normal C-side cache lookup — no extra plumbing needed.</p>
 <p>The hub has a coalescent for n=5 published as <code>coal_n5_theta1</code>. We’ll recreate it locally and reuse the published elimination.</p>
-<div id="44258ba1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.344320Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.344223Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.347062Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.346652Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_callback(state):</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Standard Kingman coalescent: rate n(n-1)/2."""</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> state[<span class="dv">0</span>]</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> []</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [(np.array([n <span class="op">-</span> <span class="dv">1</span>]), [n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span>])]</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> phasic.Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'vertices:      </span><span class="sc">{</span>g<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'param_length:  </span><span class="sc">{</span>g<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'graph hash:    </span><span class="sc">{</span>phasic<span class="sc">.</span><span class="bu">hash</span><span class="sc">.</span>compute_graph_hash(g)<span class="sc">.</span>hash_hex[:<span class="dv">32</span>]<span class="sc">}</span><span class="ss">...'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="44258ba1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.344320Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.344223Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.347062Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.346652Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_callback(state):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Standard Kingman coalescent: rate n(n-1)/2."""</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> state[<span class="dv">0</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> []</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [(np.array([n <span class="op">-</span> <span class="dv">1</span>]), [n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span>])]</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'vertices:      </span><span class="sc">{</span>g<span class="sc">.</span>vertices_length()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'param_length:  </span><span class="sc">{</span>g<span class="sc">.</span>param_length()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'graph hash:    </span><span class="sc">{</span>phasic<span class="sc">.</span><span class="bu">hash</span><span class="sc">.</span>compute_graph_hash(g)<span class="sc">.</span>hash_hex[:<span class="dv">32</span>]<span class="sc">}</span><span class="ss">...'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>vertices:      6
 param_length:  1
@@ -547,19 +525,19 @@ graph hash:    4d652ed73c66ed4ada3dd13e0dde2051...</code></pre>
 </div>
 </div>
 <p>Wipe the local cache to simulate a fresh machine, then pull from the hub:</p>
-<div id="14e989e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.349072Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.348937Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.427994Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.427421Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>cache_dir <span class="op">=</span> _param_compute_cache_dir()</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>hash_hex <span class="op">=</span> phasic.<span class="bu">hash</span>.compute_graph_hash(g).hash_hex</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>bin_path <span class="op">=</span> cache_dir <span class="op">/</span> <span class="ss">f'</span><span class="sc">{</span>hash_hex<span class="sc">}</span><span class="ss">.bin'</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'before pull: file present = </span><span class="sc">{</span>bin_path<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g.pull_cache()</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache():           </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'after pull: file present = </span><span class="sc">{</span>bin_path<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'size: </span><span class="sc">{</span>bin_path<span class="sc">.</span>stat()<span class="sc">.</span>st_size<span class="sc">:,}</span><span class="ss"> bytes'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="14e989e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.349072Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.348937Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.427994Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.427421Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>cache_dir <span class="op">=</span> _param_compute_cache_dir()</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>hash_hex <span class="op">=</span> phasic.<span class="bu">hash</span>.compute_graph_hash(g).hash_hex</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>bin_path <span class="op">=</span> cache_dir <span class="op">/</span> <span class="ss">f'</span><span class="sc">{</span>hash_hex<span class="sc">}</span><span class="ss">.bin'</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'before pull: file present = </span><span class="sc">{</span>bin_path<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g.pull_cache()</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache():           </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'after pull: file present = </span><span class="sc">{</span>bin_path<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'size: </span><span class="sc">{</span>bin_path<span class="sc">.</span>stat()<span class="sc">.</span>st_size<span class="sc">:,}</span><span class="ss"> bytes'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>before pull: file present = False
 pull_cache():           True
@@ -568,10 +546,10 @@ size: 5,064 bytes</code></pre>
 </div>
 </div>
 <p>Now <code>expectation()</code> (and <code>pdf</code>, <code>moments</code>, etc.) reuses the downloaded elimination. The result must match what the publisher computed (1.6 = expected time to coalescence for n=5 under the standard rate):</p>
-<div id="fcc5c32a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.429519Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.429380Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.431769Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.431276Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> g.expectation()</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'expectation: </span><span class="sc">{</span>exp<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">abs</span>(exp <span class="op">-</span> <span class="fl">1.6</span>) <span class="op">&lt;</span> <span class="fl">1e-10</span>, <span class="st">'unexpected expectation value'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="fcc5c32a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.429519Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.429380Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.431769Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.431276Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> g.expectation()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'expectation: </span><span class="sc">{</span>exp<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">abs</span>(exp <span class="op">-</span> <span class="fl">1.6</span>) <span class="op">&lt;</span> <span class="fl">1e-10</span>, <span class="st">'unexpected expectation value'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>expectation: 1.6</code></pre>
 </div>
@@ -579,12 +557,12 @@ size: 5,064 bytes</code></pre>
 <section id="calling-pull_cache-on-an-unregistered-graph" class="level3">
 <h3 class="anchored" data-anchor-id="calling-pull_cache-on-an-unregistered-graph">Calling <code>pull_cache()</code> on an unregistered graph</h3>
 <p><code>pull_cache()</code> returns <code>False</code> if there’s no entry for the graph’s content hash. It doesn’t raise — you can check the return value to decide whether to run elimination locally or publish your own artifact afterwards.</p>
-<div id="60708318" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.433182Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.433068Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.435463Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.435075Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a coalescent with a non-standard sample size (n=4 is not</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># published as of this writing).</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>g_unpublished <span class="op">=</span> phasic.Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">4</span>])</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g_unpublished.pull_cache()</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache for n=4: </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="60708318" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.433182Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.433068Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.435463Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.435075Z&quot;}}" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a coalescent with a non-standard sample size (n=4 is not</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># published as of this writing).</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>g_unpublished <span class="op">=</span> Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">4</span>])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g_unpublished.pull_cache()</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache for n=4: </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pull_cache for n=4: False</code></pre>
 </div>
@@ -595,23 +573,23 @@ size: 5,064 bytes</code></pre>
 <h2 class="anchored" data-anchor-id="verifying-a-published-model-end-to-end">Verifying a published model end-to-end</h2>
 <p>One use of the hub: verify that someone else’s published expectation matches what <em>you</em> get when running the elimination locally from the same callback. This is roughly the workflow for reviewing a paper’s numerical claims.</p>
 <p>Clear the cache, recompute locally, and compare against the published artifact’s result.</p>
-<div id="23376024" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.437047Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.436935Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.519413Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.518910Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: clear local cache, compute fresh.</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>g_fresh <span class="op">=</span> phasic.Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>exp_local <span class="op">=</span> g_fresh.expectation()</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'local computation:  </span><span class="sc">{</span>exp_local<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: clear cache again, pull from hub.</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>g_hub <span class="op">=</span> phasic.Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> g_hub.pull_cache() <span class="kw">is</span> <span class="va">True</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>exp_hub <span class="op">=</span> g_hub.expectation()</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'hub artifact:       </span><span class="sc">{</span>exp_hub<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'agreement: </span><span class="sc">{</span><span class="bu">abs</span>(exp_local <span class="op">-</span> exp_hub) <span class="op">&lt;</span> <span class="fl">1e-10</span><span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="23376024" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.437047Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.436935Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.519413Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.518910Z&quot;}}" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: clear local cache, compute fresh.</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>g_fresh <span class="op">=</span> Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>exp_local <span class="op">=</span> g_fresh.expectation()</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'local computation:  </span><span class="sc">{</span>exp_local<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: clear cache again, pull from hub.</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>g_hub <span class="op">=</span> Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> g_hub.pull_cache() <span class="kw">is</span> <span class="va">True</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>exp_hub <span class="op">=</span> g_hub.expectation()</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'hub artifact:       </span><span class="sc">{</span>exp_hub<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'agreement: </span><span class="sc">{</span><span class="bu">abs</span>(exp_local <span class="op">-</span> exp_hub) <span class="op">&lt;</span> <span class="fl">1e-10</span><span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>local computation:  1.6
 hub artifact:       1.6
@@ -624,93 +602,52 @@ agreement: True</code></pre>
 <h2 class="anchored" data-anchor-id="previewing-what-a-publish-would-look-like">Previewing what a publish would look like</h2>
 <p><code>g.push_cache(..., dry_run=True)</code> builds the artifact, computes its SHA-256, and returns a JSON string of the entry that <em>would</em> be added to <code>registry.json</code>. It does not touch the network. Use this to check your metadata before opening an actual PR.</p>
 <p>We’ll preview what publishing a small custom model would generate:</p>
-<div id="cc23c203" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.520801Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.520705Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.577399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.576908Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A two-step parameterised chain (not in the hub).</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>g_demo <span class="op">=</span> phasic.Graph(<span class="dv">1</span>)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_demo.starting_vertex()</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g_demo.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>v2 <span class="op">=</span> g_demo.find_or_create_vertex([<span class="dv">2</span>])</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>v0.add_edge(v1, [<span class="fl">1.0</span>])</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>v1.add_edge(v2, [<span class="fl">1.0</span>])</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>g_demo.update_weights([<span class="fl">2.0</span>])</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>entry_json <span class="op">=</span> g_demo.push_cache(</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span><span class="op">=</span><span class="st">'demo_two_step_chain'</span>,</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">'Two-step parameterised chain (demo, not for publishing)'</span>,</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">'examples'</span>,</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="st">'chain'</span>,</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[<span class="st">'demo'</span>],</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    dry_run<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(entry_json)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">PTDBackendError</span>                           Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[10]</span><span class="ansi-green-fg">, line 10</span>
-<span class="ansi-green-fg">      7</span> v1.add_edge(v2, [<span class="ansi-green-fg">1.0</span>])
-<span class="ansi-green-fg">      8</span> g_demo.update_weights([<span class="ansi-green-fg">2.0</span>])
-<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">10</span> entry_json = <span class="ansi-yellow-bg">g_demo</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">push_cache</span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-fg">     11</span> <span class="ansi-yellow-bg">    </span><span style="color:rgb(0,135,0)" class="ansi-yellow-bg">id</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">demo_two_step_chain</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">     12</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">description</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">Two-step parameterised chain (demo, not for publishing)</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">     13</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">domain</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">examples</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">     14</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">model_type</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">chain</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">     15</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-bg">tags</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">demo</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">     16</span> <span class="ansi-yellow-bg">    </span><span style="font-style:italic;color:rgb(95,135,135)" class="ansi-yellow-bg"># dry_run=True,</span>
-<span class="ansi-green-fg">     17</span> <span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">     18</span> <span style="color:rgb(0,135,0)">print</span>(entry_json)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.11/site-packages/phasic/__init__.py:8886</span>, in <span class="ansi-cyan-fg">Graph.push_cache</span><span class="ansi-blue-fg">(self, id, description, domain, model_type, tags, license, author, registry_repo, dry_run)</span>
-<span class="ansi-green-fg">   8882</span>     metadata[<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">tags</span><span class="ansi-yellow-fg">"</span>] = <span style="color:rgb(0,135,0)">list</span>(tags)
-<span class="ansi-green-fg">   8884</span> registry = ComputeRegistry(
-<span class="ansi-green-fg">   8885</span>     registry_repo=registry_repo, auto_update=<span style="font-weight:bold;color:rgb(0,135,0)">False</span>)
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">8886</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-yellow-bg">registry</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">push</span><span class="ansi-yellow-bg">(</span><span style="color:rgb(0,135,0)" class="ansi-yellow-bg">self</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">compute_id</span><span class="ansi-yellow-bg">=</span><span style="color:rgb(0,135,0)" class="ansi-yellow-bg">id</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">metadata</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-bg">metadata</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">   8887</span> <span class="ansi-yellow-bg">                     </span><span class="ansi-yellow-bg">dry_run</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-bg">dry_run</span><span class="ansi-yellow-bg">)</span>
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.11/site-packages/phasic/compute_repository.py:608</span>, in <span class="ansi-cyan-fg">ComputeRegistry.push</span><span class="ansi-blue-fg">(self, graph, compute_id, metadata, dry_run)</span>
-<span class="ansi-green-fg">    605</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> json.dumps({compute_id: entry}, indent=<span class="ansi-green-fg">2</span>)
-<span class="ansi-green-fg">    607</span> _check_gh_ready()
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">608</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)" class="ansi-yellow-bg">self</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">_open_pr</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">compute_id</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">entry</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">parent_path</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">scc_paths</span><span class="ansi-yellow-bg">)</span>
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.11/site-packages/phasic/compute_repository.py:701</span>, in <span class="ansi-cyan-fg">ComputeRegistry._open_pr</span><span class="ansi-blue-fg">(self, compute_id, entry, parent_path, scc_paths)</span>
-<span class="ansi-green-fg">    694</span> _run([<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">git</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">commit</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">-m</span><span class="ansi-yellow-fg">"</span>,
-<span class="ansi-green-fg">    695</span>       <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Add compute artifact </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>compute_id<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span style="font-weight:bold;color:rgb(175,95,0)">\n</span><span style="font-weight:bold;color:rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">"</span>
-<span class="ansi-green-fg">    696</span>       <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">graph_hash: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>entry[<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">graph_hash</span><span class="ansi-yellow-fg">'</span>]<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span style="font-weight:bold;color:rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">"</span>
-<span class="ansi-green-fg">    697</span>       <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">format_revision: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>entry[<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">format_revision</span><span class="ansi-yellow-fg">'</span>]<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>],
-<span class="ansi-green-fg">    698</span>      cwd=clone_dir)
-<span class="ansi-green-fg">    699</span> _run([<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">git</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">push</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">-u</span><span class="ansi-yellow-fg">"</span>, <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">origin</span><span class="ansi-yellow-fg">"</span>, branch], cwd=clone_dir)
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">701</span> out = <span class="ansi-yellow-bg">_run</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">[</span>
-<span class="ansi-green-fg">    702</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">gh</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">pr</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">create</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">    703</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">--title</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">Add compute artifact: </span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">{</span><span class="ansi-yellow-bg">compute_id</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">}</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">    704</span> <span class="ansi-yellow-bg">    </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">--body</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">(</span>
-<span class="ansi-green-fg">    705</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">Adds the C-elimination compute artifact for </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    706</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">`</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">{</span><span class="ansi-yellow-bg">compute_id</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">}</span><span class="ansi-yellow-fg ansi-yellow-bg">`.</span><span style="font-weight:bold;color:rgb(175,95,0)" class="ansi-yellow-bg">\n</span><span style="font-weight:bold;color:rgb(175,95,0)" class="ansi-yellow-bg">\n</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    707</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">- graph_hash: `</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">{</span><span class="ansi-yellow-bg">entry</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">graph_hash</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">]</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">}</span><span class="ansi-yellow-fg ansi-yellow-bg">`</span><span style="font-weight:bold;color:rgb(175,95,0)" class="ansi-yellow-bg">\n</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    708</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">- format_revision: </span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">{</span><span class="ansi-yellow-bg">entry</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">format_revision</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">]</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">}</span><span style="font-weight:bold;color:rgb(175,95,0)" class="ansi-yellow-bg">\n</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    709</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-fg ansi-yellow-bg">- vertices: </span><span class="ansi-yellow-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    710</span> <span class="ansi-yellow-bg">        </span><span class="ansi-yellow-fg ansi-yellow-bg">f</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">{</span><span class="ansi-yellow-bg">entry</span><span class="ansi-yellow-bg">[</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">metadata</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">get</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">vertices</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">,</span><span style="color:rgb(188,188,188)" class="ansi-yellow-bg"> </span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-fg ansi-yellow-bg">unspecified</span><span class="ansi-yellow-fg ansi-yellow-bg">'</span><span class="ansi-yellow-bg">)</span><span style="font-weight:bold;color:rgb(175,95,135)" class="ansi-yellow-bg">}</span><span class="ansi-yellow-fg ansi-yellow-bg">"</span><span class="ansi-yellow-bg">)</span><span class="ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">    711</span> <span class="ansi-yellow-bg">]</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">cwd</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-bg">clone_dir</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">    712</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> out.strip()
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.11/site-packages/phasic/compute_repository.py:161</span>, in <span class="ansi-cyan-fg">_run</span><span class="ansi-blue-fg">(cmd, cwd, check)</span>
-<span class="ansi-green-fg">    158</span> proc = subprocess.run(
-<span class="ansi-green-fg">    159</span>     cmd, cwd=cwd, capture_output=<span style="font-weight:bold;color:rgb(0,135,0)">True</span>, text=<span style="font-weight:bold;color:rgb(0,135,0)">True</span>, timeout=<span class="ansi-green-fg">120</span>)
-<span class="ansi-green-fg">    160</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> check <span style="font-weight:bold;color:rgb(175,0,255)">and</span> proc.returncode != <span class="ansi-green-fg">0</span>:
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">161</span>     <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> PTDBackendError(
-<span class="ansi-green-fg">    162</span>         <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">command failed (exit </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>proc.returncode<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">): </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg"> </span><span class="ansi-yellow-fg">'</span>.join(cmd)<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span style="font-weight:bold;color:rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">"</span>
-<span class="ansi-green-fg">    163</span>         <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">stdout: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>proc.stdout<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span style="font-weight:bold;color:rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">"</span>
-<span class="ansi-green-fg">    164</span>         <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">stderr: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>proc.stderr<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
-<span class="ansi-green-fg">    165</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> proc.stdout
-
-<span class="ansi-red-fg">PTDBackendError</span>: command failed (exit 1): gh pr create --title Add compute artifact: demo_two_step_chain --body Adds the C-elimination compute artifact for `demo_two_step_chain`.
-
-- graph_hash: `29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c`
-- format_revision: 2
-- vertices: 3
-stdout: 
-stderr: pull request create failed: GraphQL: Resource not accessible by personal access token (createPullRequest)
-</pre>
-</div>
+<div id="cc23c203" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T19:24:06.520801Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T19:24:06.520705Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T19:24:06.577399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T19:24:06.576908Z&quot;}}" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A two-step parameterised chain (not in the hub).</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>g_demo <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_demo.starting_vertex()</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g_demo.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>v2 <span class="op">=</span> g_demo.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>v0.add_edge(v1, [<span class="fl">1.0</span>])</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>v1.add_edge(v2, [<span class="fl">1.0</span>])</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>g_demo.update_weights([<span class="fl">2.0</span>])</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>entry_json <span class="op">=</span> g_demo.push_cache(</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span><span class="op">=</span><span class="st">'demo_two_step_chain'</span>,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">'Two-step parameterised chain (demo, not for publishing)'</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">'examples'</span>,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="st">'chain'</span>,</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[<span class="st">'demo'</span>],</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    dry_run<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(entry_json)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{
+  "demo_two_step_chain": {
+    "graph_hash": "29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c",
+    "format_revision": 2,
+    "artifacts": {
+      "parent": {
+        "cid_or_path": "artifacts/29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c.bin",
+        "sha256": "c2ebeaf5cbb025a3bc67a66bc955d5cb0d489de9aadb950d59fb672081bc1209",
+        "size_bytes": 2304
+      },
+      "scc": []
+    },
+    "metadata": {
+      "description": "Two-step parameterised chain (demo, not for publishing)",
+      "author": "Kasper Munch &lt;kaspermunch@birc.au.dk&gt;",
+      "license": "MIT",
+      "vertices": 3,
+      "param_length": 1,
+      "domain": "examples",
+      "model_type": "chain",
+      "tags": [
+        "demo"
+      ]
+    }
+  }
+}</code></pre>
 </div>
 </div>
 <p>Inspect the preview before deciding whether to publish for real. A few things worth checking:</p>
@@ -722,45 +659,6 @@ stderr: pull request create failed: GraphQL: Resource not accessible by personal
 <li><strong><code>metadata.author</code></strong> comes from your local <code>git config user.name/email</code>. Override with the <code>author=</code> keyword if you want to attribute differently.</li>
 </ul>
 <p>Once the preview looks right, drop <code>dry_run=True</code> to actually open the PR (requires <code>gh auth login</code> set up first).</p>
-</section>
-<section id="when-pull_cache-is-useful-in-practice" class="level2">
-<h2 class="anchored" data-anchor-id="when-pull_cache-is-useful-in-practice">When <code>pull_cache()</code> is useful in practice</h2>
-<ul>
-<li><strong>CI pipelines</strong>: every workflow run starts with an empty cache. Without <code>pull_cache</code>, every CI job re-eliminates the same graph. With it, the first job published an artifact and all subsequent jobs share it.</li>
-<li><strong>Cluster jobs</strong>: SLURM tasks on different nodes don’t share a local <code>~/.phasic_cache/</code>. Calling <code>pull_cache()</code> at the start of the job lets each node download once instead of eliminating once.</li>
-<li><strong>Paper reproducibility</strong>: publish artifacts for the exact models in a paper, link the hub entry in the paper, readers re-compute by <code>Graph(callback); g.pull_cache(); g.expectation()</code>.</li>
-<li><strong>Group workflows</strong>: a lab member runs <code>push_cache()</code> once for a shared model; everyone else’s <code>pull_cache()</code> calls hit instantly.</li>
-</ul>
-</section>
-<section id="summary" class="level2">
-<h2 class="anchored" data-anchor-id="summary">Summary</h2>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>What</th>
-<th>API</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>What’s published?</td>
-<td><code>phasic.list_computes(...)</code></td>
-</tr>
-<tr class="even">
-<td>Reuse a published model</td>
-<td><code>g.pull_cache()</code></td>
-</tr>
-<tr class="odd">
-<td>Check before publishing</td>
-<td><code>g.push_cache(..., dry_run=True)</code></td>
-</tr>
-<tr class="even">
-<td>Publish for real</td>
-<td><code>g.push_cache(...)</code> (needs <code>gh auth login</code>)</td>
-</tr>
-</tbody>
-</table>
-<p>For the full reference, see <a href="sharing.ipynb">the sharing tutorial</a>.</p>
 
 
 </section>
@@ -1168,13 +1066,13 @@ stderr: pull request create failed: GraphQL: Resource not accessible by personal
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../pages/tutorial/scc-decomposition.html" class="pagination-link" aria-label="Reading the SCC decomposition tree map">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Reading the SCC decomposition tree map</span>
+      <a href="../../pages/tutorial/distributed.html" class="pagination-link" aria-label="Distributed computing">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Distributed computing</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../pages/tutorial/mpfr.html" class="pagination-link" aria-label="Multiple-precision arithmetic">
-        <span class="nav-page-text">Multiple-precision arithmetic</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../pages/topics/vscodenb.html" class="pagination-link" aria-label="Using vscodenb with phasic">
+        <span class="nav-page-text">Using vscodenb with phasic</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
