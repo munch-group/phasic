@@ -1,6 +1,6 @@
 profile:
   group: 
-    - [default, slides]
+    - [default, slides, manuscript]
   default: default
   
 

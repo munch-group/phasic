@@ -27,6 +27,7 @@ $teal:    #0D7D92 !default; // like numpy docs
 $cyan:    #9954bb !default;
 
 $primary:       $teal !default;
+$primary:       $teal; !default;
 $secondary:     $gray-800 !default;
 $success:       $green !default;
 $info:          $blue !default;
@@ -45,7 +46,9 @@ $body-bg: #ffffff;
 $font-size-base:          0.9rem !default;
 $toc-active-border: $secondary;
 
-$primary: $teal;           // Changes primary color throughout
+//$primary: $teal;           // Changes primary color throughout
+$primary: #0D7D92;
+
 // $link-color: $primary;        // Default link color
 // $link-hover-color: darken($link-color, 15%);
 $link-hover-color: $indigo;
@@ -133,6 +136,16 @@ $callout-color-note: $indigo;
 //         color: darken($primary, 10%);
 //     }
 // }
+
+
+/* color for navbar at notebook links */
+.quarto-notebook > header.bg-primary,
+.quarto-notebook .bg-primary[style*="position: fixed"],
+header.bg-primary {
+  --bs-primary-rgb: 248, 249, 250 !important;
+  --bslib-color-bg: #F8F9FA !important;
+  --bslib-color-fg: #0D7D93  !important;  
+}
 
 
 
