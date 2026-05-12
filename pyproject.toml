@@ -13,7 +13,7 @@ wheel.packages = ["src/phasic"]
 
 [project]
 name = "phasic"
-version = "0.28.2"
+version = "0.28.4"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Education",
@@ -158,6 +158,7 @@ pytest-cov = ">=7.1.0,<8"
 pdf2svg = ">=0.2.4,<0.3"
 slim = ">=5.2,<6"
 pyslim = ">=1.1.1,<2"
+cppimport = ">=26.4.17,<27"
 
 # [tool.pixi.pypi-dependencies]
 
