@@ -502,10 +502,12 @@ static double *ptd_compose_scc_prcs_inner(
         #pragma omp parallel for schedule(dynamic) if(l_size > 1) \
                 num_threads(omp_threads)
 #endif
-        /* MSVC's OpenMP only supports OpenMP 2.0, which requires a
-         * signed integer loop variable. Use ptrdiff_t (signed) here
-         * and cast back inside the body. */
-        for (ptrdiff_t li_s = 0; li_s < (ptrdiff_t)l_size; ++li_s) {
+        /* MSVC's OpenMP only supports OpenMP 2.0, which requires the
+         * loop variable to be a plain signed integer type in canonical
+         * form (typedefs like ptrdiff_t are rejected). Use int here
+         * and cast back inside the body. A single SCC level will not
+         * exceed INT_MAX vertices in any realistic model. */
+        for (int li_s = 0; li_s < (int)l_size; ++li_s) {
             size_t li = (size_t)li_s;
             size_t i = level_indices[l_start + li];
             char *err_msg = err_msgs + li * sizeof_ptd_err;
