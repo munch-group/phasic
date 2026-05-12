@@ -316,7 +316,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></span></a>
   </div>
 </li>
       </ul>
@@ -512,6 +512,7 @@ window.Quarto = {
 <p>This file formalizes the content-addressable hashing scheme used by phasic to identify graph structures for trace caching. When the trace system ([11]) records an elimination trace for a parameterized graph, the trace is stored on disk indexed by a hash of the graph’s structure. On subsequent runs with a structurally identical graph (but possibly different parameter values), the cached trace is loaded directly, avoiding the <span class="math inline">O(|V|^3)</span> recording cost.</p>
 <p>The hashing algorithm must satisfy two properties: (1) structurally identical graphs must produce the same hash (determinism), and (2) structurally different graphs should produce different hashes with overwhelming probability (collision resistance). The algorithm achieves this by combining a modified Weisfeiler-Lehman (WL) vertex refinement <span class="citation" data-cites="weisfeiler1968">(<a href="28_references.html#ref-weisfeiler1968" role="doc-biblioref">Weisfeiler and Leman 1968</a>)</span> — which captures the local neighborhood structure of each vertex — with SHA-256 <span class="citation" data-cites="fips180">(<a href="28_references.html#ref-fips180" role="doc-biblioref">National Institute of Standards and Technology 2015</a>)</span> finalization for cryptographic collision resistance.</p>
 <p>The hash depends on the graph’s topology (which vertices connect to which), edge coefficient vectors (the parameterization pattern), vertex state vectors, and graph metadata (state dimension, parameter dimension, discrete/continuous flag). It is explicitly independent of concrete edge weights, which are determined by the parameter vector <span class="math inline">\boldsymbol{\theta}</span> and change between evaluations.</p>
+<p>The same content hash <span class="math inline">H(G)</span> is reused as the cache key by three on-disk caches in phasic: (i) the Python <code>EliminationTrace</code> JSON cache from [11] at <code>~/.phasic_cache/traces/&lt;hash&gt;.json</code>, (ii) the C-level parameterized reward-compute graph (PRC) binary cache at <code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code> consumed by <code>ptd_expected_waiting_time</code> ([15]), and (iii) the per-SCC PRC binary cache at <code>~/.phasic_cache/parameterized_reward_compute/scc_&lt;hash&gt;.bin</code> consumed by the hierarchical composer ([13]). Theta-independence of <span class="math inline">H(G)</span> is what allows all three to be reused across SVGD/MCMC iterations.</p>
 <p><strong>Prerequisites:</strong> [01], [02]</p>
 <p><strong>Source files:</strong> - <code>src/c/phasic_hash.c</code> (functions: <code>ptd_graph_content_hash</code>, <code>hash_vertex_structure</code>, <code>compare_edges</code>, <code>ptd_hash_equal</code>, <code>ptd_hash_from_hex</code>) - <code>api/c/phasic_hash.h</code> (types: <code>ptd_hash_result</code>; functions: <code>ptd_graph_content_hash</code>, <code>ptd_hash_equal</code>, <code>ptd_hash_destroy</code>, <code>ptd_hash_from_hex</code>)</p>
 </section>
@@ -804,6 +805,7 @@ Algorithm&nbsp;14.1: <strong>Correctness.</strong> Follows from <a href="#thm-12
 <li>The <code>ptd_hash_equal</code> function performs a two-stage comparison: first comparing the 64-bit truncated hashes (fast path), then falling back to a full 32-byte <code>memcmp</code> if the 64-bit hashes match. This optimizes the common case of non-equal hashes.</li>
 <li>The <code>ptd_graph_hash_from_json</code> function is declared but returns NULL in the current implementation; JSON-based hashing is handled at the Python level instead.</li>
 <li>Edges with NULL coefficient arrays are treated as having weight-only edges (no parameterization), and only the target index is hashed for such edges.</li>
+<li>The 64-bit truncation <span class="math inline">H_{64}(G)</span> is also embedded in the header of each binary PRC cache file as the <code>graph_hash_truncated</code> field of <code>ptd_pcg_disk_header</code> (<code>src/c/phasic.c</code>, struct definition immediately after the <code>PTD_PCG_MAGIC</code> macro at L2871). On cache load, the loader compares <code>graph_hash_truncated</code> against the live graph’s <span class="math inline">H_{64}</span> as a fast reject before any payload deserialisation. A mismatch is treated as a cache miss (silent rebuild), not an error, so stale cache files from before a graph structural change are correctly invalidated.</li>
 </ul>
 </section>
 <section id="symbol-index" class="level2 unnumbered">
@@ -1289,8 +1291,8 @@ Weisfeiler, Boris, and Andrei Leman. 1968. <span>“A Reduction of a Graph to a 
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./13_scc_trace_stitching.html" class="pagination-link" aria-label="SCC-Based Trace Decomposition and Stitching">
-        <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./13_scc_trace_stitching.html" class="pagination-link" aria-label="Hierarchical SCC Elimination and Composition">
+        <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

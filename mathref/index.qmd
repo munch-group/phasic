@@ -29,7 +29,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
  │    │    │    │    ├── 10 Symbolic Graph Elimination ← 09
  │    │    │    │    ├── 11 Trace System ← 09
  │    │    │    │    │    ├── 12 Graph Hashing
- │    │    │    │    │    └── 13 SCC Trace Stitching ← 04
+ │    │    │    │    │    └── 13 Hierarchical SCC Elimination ← 04, 02
  │    │    │    │    └── 14 Distribution Computation
  │    │    │    │         ├── 15 Moment Computation
  │    │    │    │         ├── 16 PDF Gradients
@@ -72,7 +72,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
 | @alg-11-trace-recording | Trace Recording | `record_elimination_trace` |
 | @alg-11-trace-evaluation | Trace Evaluation | `evaluate_trace` |
 | @alg-12-graph-hash | Graph Content Hash | `ptd_hash_graph` |
-| @alg-13-scc-trace-stitching | SCC-Based Trace Decomposition and Stitching | `hierarchical_trace_cache.py` |
+| @alg-13-scc-trace-stitching | Hierarchical SCC Elimination and Composition | `ptd_compose_scc_prcs` (`src/c/scc_compose.c`) |
 | @alg-14-dph-forward-step | DPH Forward Step | `ptd_dph_probability_distribution_step` |
 | @alg-14-cph-uniformization | CPH PDF via Uniformization | `ptd_probability_distribution_context_create` |
 | @alg-15-kth-moment | k-th Moment Computation | `ptd_expected_waiting_time` |

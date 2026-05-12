@@ -316,7 +316,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></span></a>
   </div>
 </li>
       </ul>
@@ -514,7 +514,7 @@ window.Quarto = {
 <p>The first moment (expected absorption time) is computed by <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> with unit rewards. Higher moments are obtained by an iterated procedure: the <span class="math inline">n</span>-th moment requires <span class="math inline">n</span> successive replays, where each replay uses a reward vector derived from the previous replay’s output. Cross-moments for MPH distributions are computed by two replays with two different reward vectors and then combining the results.</p>
 <p>These moment computations operate on the elimination commands (the acyclic representation) and do not require the original graph. This is a fundamental advantage of the graph-based approach: once the <span class="math inline">O(|V|^2)</span> elimination commands are computed, each moment evaluation costs only <span class="math inline">O(|V|^2)</span> (or <span class="math inline">O(|V| \cdot k)</span> for a subset of <span class="math inline">k</span> target states), regardless of the complexity of the original graph structure.</p>
 <p><strong>Prerequisites:</strong> [01], [06]</p>
-<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_expected_waiting_time</code>, <code>ptd_expected_sojourn_time</code>, <code>ptd_expected_sojourn_time_subset</code>)</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_expected_waiting_time</code>, <code>ptd_expected_sojourn_time</code>, <code>ptd_expected_sojourn_time_subset</code>, <code>ptd_precompute_reward_compute_graph</code>) - <code>src/c/scc_compose.c</code> (function: <code>ptd_compose_scc_prcs</code>) and <code>src/c/scc_synthetic.c</code> (functions: <code>ptd_scc_get_or_compute_prc</code>, <code>ptd_synth_get_or_compute_prc</code>) — only when the hierarchical path of [13] is enabled via <code>PHASIC_HIERAR_ELIMINATION=1</code>. - <code>src/phasic/cache.py</code> (Python introspection: <code>param_compute_cache_info</code>, <code>clear_param_compute_cache</code>).</p>
 </section>
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
@@ -804,6 +804,15 @@ Algorithm&nbsp;17.2: <strong>Correctness.</strong> The full sojourn time computa
 </section>
 <section id="implementation-notes" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). <em>The reward compute graph <span class="math inline">C = (c_0, \ldots, c_{N-1})</span> is the cached elimination-command sequence produced by the elimination algorithms of [06]. The C implementation distinguishes two variants: a <strong>concrete</strong> reward compute graph (multipliers are <code>double</code>) and a <strong>parameterised</strong> reward compute graph (PRC) whose multipliers are pointers to parameter-dependent values.</em></p>
+</blockquote>
+<p>In phasic, the parameterised PRC is materialised on demand and cached on disk under <code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code> (keyed by the graph content hash from [12]). The cache file format has magic <code>PTDPRMC1</code>, a <code>format_revision</code> field (1 for monolithic, 2 when channel-indexed <code>PTD_PCG_PTR_EXTERNAL</code> placeholders appear), and a 64-bit truncated graph hash used as a fast-reject check on load. Atomic write-then-rename guarantees correctness under concurrent processes. Both load and save paths honour <code>PHASIC_DISABLE_CACHE=1</code>.</p>
+<p><strong>Two C entry points for moment computation:</strong></p>
+<ol type="1">
+<li><p><strong>Monolithic path (default).</strong> <code>ptd_expected_waiting_time(graph, rewards)</code> (src/c/phasic.c L8517+) calls <code>ptd_precompute_reward_compute_graph(graph)</code> (L1852–L1985) which either loads the PRC from disk or builds it via <code>ptd_graph_ex_absorbation_time_comp_graph_parameterized</code> (L7190+) and saves it. Replay of the PRC then evaluates the moment in <span class="math inline">O(N)</span>. This path is used unconditionally when <code>rewards != NULL</code> (reward-transformed moments).</p></li>
+<li><p><strong>Hierarchical path (opt-in).</strong> When <code>PHASIC_HIERAR_ELIMINATION=1</code> is set in the environment, the graph is parameterised, <code>rewards == NULL</code>, and the call is not re-entrant (<code>!ptd_scc_compose_in_progress</code>), the gate at src/c/phasic.c L8576–L8615 routes through <code>ptd_compose_scc_prcs(parent, scc_graph, theta, theta_len)</code> (<code>api/c/phasic.h</code> L1378). The composer decomposes the graph into SCCs, builds or loads a per-SCC PRC for each (cached at <code>scc_&lt;hash&gt;.bin</code>), composes the per-SCC results in sink-first level order (with OpenMP parallelism inside each level, capped by <code>PHASIC_MAX_PARALLEL_SCCS</code>), and returns a result vector numerically equivalent to the monolithic path by <a href="13_scc_trace_stitching.html#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>. On compose failure the gate clears <code>ptd_err</code> and falls through to the monolithic path. The full procedure is formalised in [13].</p></li>
+</ol>
 <p><strong>Source code mapping:</strong></p>
 <table class="caption-top table">
 <colgroup>
@@ -825,7 +834,19 @@ Algorithm&nbsp;17.2: <strong>Correctness.</strong> The full sojourn time computa
 <td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (<span class="math inline">k=1</span>)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_expected_waiting_time</code></td>
-<td>L6118–L6265</td>
+<td>L8517+</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (<span class="math inline">k=1</span>, monolithic replay)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_precompute_reward_compute_graph</code></td>
+<td>L1852–L1985</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (<span class="math inline">k=1</span>, hierarchical)</td>
+<td><code>src/c/scc_compose.c</code></td>
+<td><code>ptd_compose_scc_prcs</code></td>
+<td>L547–L570</td>
 </tr>
 <tr class="even">
 <td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>17.2</span></a> (full)</td>
@@ -847,6 +868,9 @@ Algorithm&nbsp;17.2: <strong>Correctness.</strong> The full sojourn time computa
 <li>The full sojourn time algorithm (<code>ptd_expected_sojourn_time</code>) initializes the results matrix as the identity matrix (one-hot vectors), whereas the pseudocode uses “initialized to <span class="math inline">\mathbf{I}_n</span>”. This is equivalent but worth noting: the identity initialization means each “reward vector” is a standard basis vector.</li>
 <li>The subset variant (<code>ptd_expected_sojourn_time_subset</code>) validates that all requested indices are within bounds (<code>&lt; n</code>), returning NULL on out-of-bounds errors.</li>
 <li>The full variant uses Kahan compensated summation via a parallel array of <code>kahan_sum</code> structs, while the subset variant uses plain double accumulation. This is a deliberate trade-off: the subset variant is intended for fast, moderately-sized computations where the additional memory and time cost of Kahan summation is not justified.</li>
+<li><strong>Reward-transformed moments use the monolithic path only.</strong> The hierarchical gate explicitly checks <code>rewards == NULL</code>. For reward-transformed absorption times (<span class="math inline">\tilde{\tau} = \int_0^\tau r(X_t)\,dt</span> with <span class="math inline">\mathbf{r} \neq \mathbf{e}</span>) the call falls through to <code>ptd_precompute_reward_compute_graph</code> regardless of <code>PHASIC_HIERAR_ELIMINATION</code>. This is because the synthetic-graph construction of [13] absorbs the SCC’s reward state into the synthetic absorber and does not currently propagate a per-vertex reward vector across the SCC boundary.</li>
+<li><strong>MPFR fallback applies only to the monolithic path.</strong> When <code>ptd_expected_waiting_time</code> detects an ill-conditioned command sequence it delegates to <code>ptd_expected_waiting_time_mpfr</code>, which replays the same monolithic PRC at arbitrary precision (see [06] Numerical Considerations). The hierarchical composer does not currently have an MPFR variant; an ill-conditioned per-SCC PRC produces a NaN, which the composer surfaces as a failure and triggers the monolithic fall-through.</li>
+<li><strong>Cache observability.</strong> From Python, <code>phasic.cache.param_compute_cache_info()</code> returns the directory, file count and total size of the parameterised PRC cache. After a run with <code>PHASIC_HIERAR_ELIMINATION=1</code> the directory contains both top-level <code>&lt;hash&gt;.bin</code> entries (one per distinct graph that ran the monolithic path) and <code>scc_&lt;hash&gt;.bin</code> entries (one per distinct SCC that was cached, subject to <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>).</li>
 </ul>
 </section>
 <section id="symbol-index" class="level2 unnumbered">

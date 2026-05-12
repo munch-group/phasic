@@ -588,14 +588,14 @@ table {
 </div>
 </div>
 </div>
-<section id="save-to-file" class="level2">
-<h2 class="anchored" data-anchor-id="save-to-file">Save to file</h2>
-<div id="3fde5020" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.svg"</span>)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.pdf"</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.png"</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.jpg"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="21">
+<div id="1239ee80" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>graph.plot(size<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">5</span>), </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>           fontsize<span class="op">=</span><span class="dv">20</span>, rainbow<span class="op">=</span><span class="va">False</span>, label_fmt<span class="op">=</span><span class="va">False</span>, taillabel<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>           rate_fmt<span class="op">=</span><span class="kw">lambda</span> rate: <span class="ss">f'''&lt; &lt;table bgcolor="white" border="0"&gt;&lt;tr&gt;&lt;td&gt;</span><span class="sc">{</span>rate<span class="sc">}</span><span class="ss">&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; &gt;'''</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>           edge_attr<span class="op">=</span><span class="bu">dict</span>(penwidth<span class="op">=</span><span class="dv">3</span>, labelfontcolor<span class="op">=</span><span class="st">'blue'</span>, labeldistance<span class="op">=</span><span class="dv">3</span>, labelangle<span class="op">=</span><span class="dv">0</span>),</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>           node_attr<span class="op">=</span><span class="bu">dict</span>(shape<span class="op">=</span><span class="st">'circle'</span>, fillcolor<span class="op">=</span><span class="st">'white'</span>, penwidth<span class="op">=</span><span class="fl">2.5</span>, fixedsize<span class="op">=</span><span class="va">True</span>, width<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>           )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
 <div>
 <figure class="figure">
 <p><a href="visualize_files/figure-html/cell-8-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="visualize_files/figure-html/cell-8-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -603,34 +603,28 @@ table {
 </div>
 </div>
 </div>
+<section id="save-to-file" class="level2">
+<h2 class="anchored" data-anchor-id="save-to-file">Save to file</h2>
+<div id="3fde5020" class="cell" data-tags="[&quot;skip-execution&quot;]">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.svg"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.pdf"</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.png"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>graph.plot(filename<span class="op">=</span><span class="st">"graph_output.jpg"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 </section>
 <section id="subgraphs" class="level2">
 <h2 class="anchored" data-anchor-id="subgraphs">Subgraphs</h2>
-<div id="22c88832" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:20.644284Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:20.644176Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:20.819938Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:20.819232Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun(state):</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'First index</span><span class="ch">\n</span><span class="ss">value: </span><span class="sc">{</span>state[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>graph.plot(by_state<span class="op">=</span>fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="7">
-<div>
-<figure class="figure">
-<p><a href="visualize_files/figure-html/cell-9-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7"><img src="visualize_files/figure-html/cell-9-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="4c7ee5b5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:20.821754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:20.821638Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:20.979559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:20.978352Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun(index):</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"</span><span class="sc">{</span><span class="st">'Uneven'</span> <span class="cf">if</span> index <span class="op">%</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'Even'</span><span class="sc">}</span><span class="ch">\n</span><span class="ss">vertex index"</span></span>
+<div id="22c88832" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:20.644284Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:20.644176Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:20.819938Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:20.819232Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun(state):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'First index</span><span class="ch">\n</span><span class="ss">value: </span><span class="sc">{</span>state[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">'</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>graph.plot(by_index<span class="op">=</span>fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<div>
-<figure class="figure">
-<p><a href="visualize_files/figure-html/cell-10-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="visualize_files/figure-html/cell-10-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>graph.plot(by_state<span class="op">=</span>fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</div>
+<div id="4c7ee5b5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:20.821754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:20.821638Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:20.979559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:20.978352Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fun(index):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"</span><span class="sc">{</span><span class="st">'Uneven'</span> <span class="cf">if</span> index <span class="op">%</span> <span class="dv">2</span> <span class="cf">else</span> <span class="st">'Even'</span><span class="sc">}</span><span class="ch">\n</span><span class="ss">vertex index"</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>graph.plot(by_index<span class="op">=</span>fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 

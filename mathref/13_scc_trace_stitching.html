@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>15&nbsp; SCC-Based Trace Decomposition and Stitching – Mathematical Reference </title>
+<title>15&nbsp; Hierarchical SCC Elimination and Composition – Mathematical Reference </title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,26 +23,7 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for citations */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-}
-.hanging-indent div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}</style>
+</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -186,7 +167,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -316,7 +297,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></span></a>
   </div>
 </li>
       </ul>
@@ -480,6 +461,7 @@ window.Quarto = {
   <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
   <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
   <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
   <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
   <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
   </ul>
@@ -488,9 +470,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></h1>
+<h1 class="title"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Hierarchical SCC Elimination and Composition</span></h1>
 </div>
 
 
@@ -509,127 +491,131 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the hierarchical approach to trace recording that exploits the strongly connected component (SCC) decomposition of a graph (<a href="04_scc_and_topological_sort.html#def-04-scc" class="quarto-xref">Definition&nbsp;<span>5.1</span></a>) to decompose the <span class="math inline">O(|V|^3)</span> trace recording problem into smaller, independently cacheable subproblems. For large parameterized graphs with repeated structural motifs, many SCCs are structurally identical (they share the same content hash from [12]). By recording a trace for each unique SCC and then stitching the results together in topological order, phasic avoids redundant computation and enables parallel trace recording.</p>
-<p>The stitching algorithm composes SCC-local traces into a full-graph trace by (1) appending each SCC’s operation sequence to a merged trace, (2) remapping operation indices to account for the offset, and (3) merging “sister vertices” — vertices that appear at the boundary between SCCs and are present in multiple SCC-local traces. The result is a single <code>EliminationTrace</code> (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>) that is functionally equivalent to recording the trace on the full graph directly.</p>
-<p>This decomposition is the key to scaling the trace system of phasic <span class="citation" data-cites="roikjer2022">(<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">Røikjer et al. 2022</a>)</span> to graphs with hundreds of thousands of vertices, where direct trace recording would be prohibitively expensive.</p>
-<p><strong>Prerequisites:</strong> [01], [04], [06], [11]</p>
-<p><strong>Source files:</strong> - <code>src/phasic/hierarchical_trace_cache.py</code> (functions: <code>get_scc_graphs</code>, <code>record_enhanced_scc_traces</code>, <code>stitch_scc_traces</code>, <code>collect_missing_traces_batch</code>, <code>compute_missing_traces_parallel</code>) - <code>src/c/phasic.c</code> (functions related to SCC subgraph extraction and trace stitching comments, L1938, L2306–L2309) - <code>src/cpp/phasic_pybind.cpp</code> (method: <code>scc_decomposition</code>)</p>
+<p>This file formalizes the hierarchical strongly-connected-component (SCC) elimination procedure that phasic uses to keep parameterized moment computation tractable on graphs with hundreds of thousands of vertices. Where the monolithic elimination of [06] builds a single parameterized reward-compute graph (PRC) at cost <span class="math inline">O(|V|^3)</span>, the hierarchical procedure builds one PRC per SCC — each on a small <em>synthetic SCC subgraph</em> with just two extra vertices — and composes the per-SCC results in sink-first level order. When SCCs are small (the typical regime for spatial coalescent and queuing models), the total elimination cost drops from <span class="math inline">O(|V|^3)</span> to <span class="math inline">\sum_i O((n_i + 2)^3)</span>, often with a large additional reduction from hash-deduplicated caching when many SCCs are structurally identical.</p>
+<p>The synthetic-graph construction wraps each SCC <span class="math inline">C_i</span> with a single synthetic source vertex <span class="math inline">s_i^\dagger</span> (which feeds the SCC’s external inputs as channel-indexed placeholders) and a single synthetic absorbing vertex <span class="math inline">a_i^\dagger</span> (onto which all edges leaving the SCC are collapsed, again as channel-indexed placeholders). The per-SCC PRC — the elimination-command sequence of [06] applied to this synthetic graph — is the unit of caching and the unit of parallel work. Composition binds the placeholder edges to (i) the parent graph’s actual edge weights for inputs and (ii) the already-computed downstream-SCC result values for outputs, then replays the per-SCC PRC and writes its internal-vertex results into the parent-wide result vector.</p>
+<p>The hierarchical path is opt-in: it activates only when the environment variable <code>PHASIC_HIERAR_ELIMINATION=1</code> is set, the graph is parameterised, and no reward vector is supplied. Reward-transformed moments (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>) always fall through to the monolithic path of [06]. The output is numerically equivalent to monolithic elimination at the same <span class="math inline">\boldsymbol{\theta}</span> by <a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>; the composition is exact, not approximate.</p>
+<p>A separate Python module <code>src/phasic/hierarchical_trace_cache.py</code> implements an <em>alternative</em> hierarchical pipeline based on Python <code>EliminationTrace</code> stitching (the path consumed by JAX trace replay). That alternative is independent of the C composer formalized here and is not invoked when <code>ptd_compose_scc_prcs</code> runs; it is documented only as an Implementation Note at the end of this file.</p>
+<p><strong>Prerequisites:</strong> [01], [02], [04], [06], [11], [12]</p>
+<p><strong>Source files:</strong></p>
+<ul>
+<li><code>src/c/scc_compose.c</code> (functions: <code>ptd_compose_scc_prcs</code>, <code>ptd_compose_scc_prcs_inner</code>, <code>ptd_compose_scc_one</code>)</li>
+<li><code>src/c/scc_synthetic.c</code> (functions: <code>ptd_scc_build_synthetic_graph</code>, <code>ptd_scc_get_or_compute_prc</code>, <code>ptd_synth_get_or_compute_prc</code>)</li>
+<li><code>src/c/phasic.c</code> (the hierarchical gate inside <code>ptd_expected_waiting_time</code>, L8576–L8615; the parameterised PRC serializer used by both monolithic and per-SCC caches, L2871–L3700)</li>
+<li><code>api/c/phasic.h</code> (public API: <code>ptd_compose_scc_prcs</code>, <code>ptd_scc_get_or_compute_prc</code>, <code>ptd_synth_get_or_compute_prc</code>, telemetry struct <code>ptd_scc_compose_stats</code>)</li>
+<li><code>src/phasic/cache.py</code> (Python introspection: <code>param_compute_cache_info</code>, <code>clear_param_compute_cache</code>)</li>
+</ul>
 </section>
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
 <blockquote class="blockquote">
-<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-scc" class="quarto-xref">Definition&nbsp;<span>5.1</span></a>). <em>A strongly connected component (SCC) of <span class="math inline">G</span> is a maximal subset <span class="math inline">C \subseteq V</span> such that for every pair of vertices <span class="math inline">u, v \in C</span>, there exists a directed path from <span class="math inline">u</span> to <span class="math inline">v</span> and from <span class="math inline">v</span> to <span class="math inline">u</span>.</em></p>
+<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-scc" class="quarto-xref">Definition&nbsp;<span>5.1</span></a>). <em>A strongly connected component (SCC) of <span class="math inline">G</span> is a maximal subset <span class="math inline">C \subseteq V</span> such that for every pair of vertices <span class="math inline">u, v \in C</span> there exists a directed path from <span class="math inline">u</span> to <span class="math inline">v</span> and from <span class="math inline">v</span> to <span class="math inline">u</span>.</em></p>
 </blockquote>
 <blockquote class="blockquote">
-<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-condensation" class="quarto-xref">Definition&nbsp;<span>5.2</span></a>). <em>The condensation of <span class="math inline">G</span> is the DAG <span class="math inline">G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})</span> whose meta-vertices are the SCCs and whose edges represent inter-component transitions.</em></p>
+<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-condensation" class="quarto-xref">Definition&nbsp;<span>5.2</span></a>). <em>The condensation of <span class="math inline">G</span> is the DAG <span class="math inline">G^{\mathrm{SCC}} = (V^{\mathrm{SCC}}, E^{\mathrm{SCC}})</span> whose meta-vertices are the SCCs and whose edges represent inter-component transitions in <span class="math inline">G</span>.</em></p>
 </blockquote>
 <blockquote class="blockquote">
-<p><strong>Recall</strong> (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>). <em>An elimination trace <span class="math inline">\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)</span> is an ordered sequence of operations with mappings that identify which operations compute vertex scalars and edge probabilities.</em></p>
+<p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). <em>The reward compute graph is a cached sequence of <span class="math inline">N</span> commands <span class="math inline">C = (c_0, c_1, \ldots, c_{N-1})</span>, each of the form <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span> representing <span class="math inline">\mathrm{result}[\text{from}] \mathrel{+}= \mathrm{result}[\text{to}] \times \text{multiplier}</span>. For parameterised graphs, the multiplier slot is a pointer to a parameter-dependent value rather than a concrete double; we call the resulting object the parameterised reward-compute graph (PRC).</em></p>
 </blockquote>
-<div id="def-13-enhanced-subgraph" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.1 (Enhanced SCC subgraph)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with SCC decomposition <span class="math inline">C_1, \ldots, C_m</span> in topological order (<a href="04_scc_and_topological_sort.html#def-04-topological-ordering" class="quarto-xref">Definition&nbsp;<span>5.3</span></a>). The enhanced subgraph for component <span class="math inline">C_i</span> is a graph <span class="math inline">G_i^+ = (V_i^+, E_i^+, W_i^+)</span> constructed as follows:</em></p>
+<div id="def-13-synthetic-subgraph" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 15.1 (Synthetic SCC subgraph)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a parameterised phase-type graph and let <span class="math inline">C_i \subseteq V</span> be an SCC of <span class="math inline">G</span> with <span class="math inline">n_i = |C_i|</span>. The synthetic SCC subgraph for <span class="math inline">C_i</span> is the parameterised phase-type graph <span class="math inline">\widehat{G}_i = (\widehat{V}_i, \widehat{E}_i, \widehat{W}_i)</span> defined as follows.</em></p>
 <ul>
-<li><em><span class="math inline">V_i^{\text{up}} = \{v \in V \setminus C_i : \exists\, z \in C_i \text{ with } (v \to z) \in E\}</span> is the set of upstream vertices (parents from earlier SCCs),</em></li>
-<li><em><span class="math inline">V_i^{\text{down}} = \{z \in V \setminus C_i : \exists\, v \in C_i \text{ with } (v \to z) \in E\}</span> is the set of downstream vertices (children in later SCCs),</em></li>
-<li><em><span class="math inline">V_i^+ = V_i^{\text{up}} \cup C_i \cup V_i^{\text{down}}</span>,</em></li>
-<li><em><span class="math inline">E_i^+</span> includes all edges of <span class="math inline">G</span> whose source and target are both in <span class="math inline">V_i^+</span>,</em></li>
-<li><em><span class="math inline">W_i^+</span> restricts <span class="math inline">W</span> to <span class="math inline">E_i^+</span>.</em></li>
+<li><p><em>Vertices: <span class="math inline">\widehat{V}_i = C_i \cup \{s_i^\dagger, a_i^\dagger\}</span>, where <span class="math inline">s_i^\dagger</span> is the synthetic source (the starting vertex of <span class="math inline">\widehat{G}_i</span>) and <span class="math inline">a_i^\dagger</span> is the synthetic absorber.</em></p></li>
+<li><p><em>Internal edges: for every edge <span class="math inline">(u \to v) \in E</span> with <span class="math inline">u, v \in C_i</span>, the edge <span class="math inline">(u \to v) \in \widehat{E}_i</span> carries the same coefficient vector <span class="math inline">\mathbf{c}_{u\to v}</span> as in <span class="math inline">G</span>.</em></p></li>
+<li><p><em>Input edges: every vertex <span class="math inline">v \in C_i</span> that receives at least one edge from <span class="math inline">V \setminus C_i</span> in <span class="math inline">G</span> gets a single input edge <span class="math inline">(s_i^\dagger \to v) \in \widehat{E}_i</span>. This input edge is a <strong>channel-indexed placeholder</strong>: it carries the special marker <code>PTD_PCG_PTR_EXTERNAL</code> with channel index equal to the position of <span class="math inline">v</span> in the canonically ordered list of input vertices of <span class="math inline">C_i</span>. The placeholder’s value is bound at composition time to the sum of the parent’s external-to-<span class="math inline">v</span> edge weights at the current <span class="math inline">\boldsymbol{\theta}</span>.</em></p></li>
+<li><p><em>Output edges: every edge <span class="math inline">(v \to z) \in E</span> with <span class="math inline">v \in C_i</span> and <span class="math inline">z \notin C_i</span> contributes one channel-indexed placeholder edge <span class="math inline">(v \to a_i^\dagger) \in \widehat{E}_i</span>. The channel index is the position of <span class="math inline">(v \to z)</span> in the canonically ordered list of outgoing-from-<span class="math inline">C_i</span> edges of <span class="math inline">G</span>. The placeholder’s value is bound at composition time to the parent’s edge weight times the downstream-SCC result <span class="math inline">r_z</span> already computed.</em></p></li>
 </ul>
-<p><em>A vertex <span class="math inline">v \in V_i^{\text{up}} \cup V_i^{\text{down}}</span> is called a boundary vertex of <span class="math inline">C_i</span>. A vertex that appears as a boundary vertex in multiple enhanced subgraphs is called a sister vertex.</em></p>
+<p><em>Canonical ordering: input and output channels are assigned indices by sorting lexicographically first by the state vector of the in-<span class="math inline">C_i</span> endpoint, then by the (state vector, channel) pair of the out-of-<span class="math inline">C_i</span> endpoint. This ensures <span class="math inline">\widehat{G}_i</span>’s structural signature (<a href="12_graph_hashing.html#def-12-structural-signature" class="quarto-xref">Definition&nbsp;<span>14.1</span></a>) depends only on <span class="math inline">C_i</span>’s shape in <span class="math inline">G</span>, not on the absolute vertex indices of <span class="math inline">G</span>.</em></p>
 </div>
 <details>
 <summary>
 Intuition
 </summary>
-The enhanced subgraph contains the SCC itself plus a one-hop fringe of upstream and downstream vertices. The upstream vertices provide the incoming probability flow that the SCC receives from earlier components. The downstream vertices serve as absorbing targets for outgoing edges. Including this fringe ensures that the elimination within <span class="math inline">C_i</span> correctly accounts for the edge probabilities entering and leaving the component. Without the fringe, the trace would miss the normalization effects of inter-component edges.
+The synthetic subgraph is the smallest self-contained parameterised phase-type graph whose elimination yields, after appropriate boundary binding, the same per-vertex moment values for the internal vertices of <span class="math inline">C_i</span> as the monolithic elimination on <span class="math inline">G</span> would yield. The two synthetic vertices play distinct roles: <span class="math inline">s_i^\dagger</span> is a <em>source</em> that injects probability mass from upstream SCCs, while <span class="math inline">a_i^\dagger</span> is an <em>absorber</em> that captures all outflow to downstream SCCs in one place. The placeholders are the “ports” of the SCC — they store <em>which</em> external edge each channel corresponds to, without committing to a value until composition.
 </details>
 <details>
 <summary>
 Example
 </summary>
-In a spatial coalescent model on a hexagonal grid, the graph decomposes into SCCs corresponding to migration loops between adjacent cells. Each loop SCC shares boundary vertices with its geographic neighbors. An SCC for cells <span class="math inline">\{A, B, C\}</span> in a migration triangle would have upstream vertices from cells that feed lineages into the triangle and downstream vertices representing cells that receive lineages from it.
+Consider a 3-vertex SCC <span class="math inline">C_i = \{u_1, u_2, u_3\}</span> in a larger graph <span class="math inline">G</span>, with one external incoming edge <span class="math inline">w \to u_2</span> from outside and two external outgoing edges <span class="math inline">u_1 \to z_1</span>, <span class="math inline">u_3 \to z_2</span>. The synthetic subgraph <span class="math inline">\widehat{G}_i</span> has 5 vertices: <span class="math inline">\{s_i^\dagger, u_1, u_2, u_3, a_i^\dagger\}</span>. It carries the three internal edges of <span class="math inline">C_i</span> (e.g.&nbsp;<span class="math inline">u_1 \to u_2</span>, <span class="math inline">u_2 \to u_3</span>, <span class="math inline">u_3 \to u_1</span> if <span class="math inline">C_i</span> is a 3-cycle), plus one input placeholder <span class="math inline">s_i^\dagger \to u_2</span> (channel 0) and two output placeholders <span class="math inline">u_1 \to a_i^\dagger</span> (channel 0) and <span class="math inline">u_3 \to a_i^\dagger</span> (channel 1).
 </details>
-<div id="def-13-scc-local-trace" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.2 (SCC-local trace)</strong></span> <em>An SCC-local trace for component <span class="math inline">C_i</span> is an elimination trace <span class="math inline">\mathcal{T}_i = (\boldsymbol{\omega}_i, \mathbf{m}_{\text{rate}}^{(i)}, \mathbf{m}_{\text{prob}}^{(i)}, \mathbf{m}_{\text{tgt}}^{(i)}, \Sigma_i, i_0^{(i)})</span> recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>13.1</span></a> to the enhanced subgraph <span class="math inline">G_i^+</span>.</em></p>
-<p><em>The SCC-local trace is indexed by the content hash <span class="math inline">H(G_i^+)</span> (<a href="12_graph_hashing.html#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>14.3</span></a>) for cache lookup. Two SCCs with the same hash share the same trace.</em></p>
+<div id="def-13-per-scc-prc" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 15.2 (Per-SCC parameterised reward-compute graph (per-SCC PRC))</strong></span> <em>The per-SCC PRC for component <span class="math inline">C_i</span> is the parameterised reward-compute graph <span class="math inline">\widehat{P}_i = (\widehat{c}_0, \widehat{c}_1, \ldots, \widehat{c}_{N_i - 1})</span> obtained by applying the parameterised elimination algorithm of [06] (<code>ptd_graph_ex_absorbation_time_comp_graph_parameterized</code>) to the synthetic subgraph <span class="math inline">\widehat{G}_i</span>.</em></p>
+<p><em>Because <span class="math inline">\widehat{G}_i</span>’s structural signature is determined by <span class="math inline">C_i</span>’s internal shape and the number and identity of its input/output channels (and not by the absolute vertex indices of <span class="math inline">G</span>), the graph content hash <span class="math inline">H(\widehat{G}_i)</span> from [12] depends only on the canonical structure of <span class="math inline">C_i</span>. Two structurally identical SCCs anywhere in the same graph, or across different parent graphs, yield the same hash and therefore share the same on-disk PRC.</em></p>
+<p><em>The per-SCC PRC is cached on disk at <code>~/.phasic_cache/parameterized_reward_compute/scc_&lt;hash&gt;.bin</code>, with the magic <code>PTDPRMC1</code>, <code>format_revision = 2</code> (required for the <code>PTD_PCG_PTR_EXTERNAL</code> operand kind), and atomic write-then-rename semantics. Caching is gated by a size threshold: SCCs with <span class="math inline">n_i &lt; \tau_{\mathrm{cache}}</span> (where <span class="math inline">\tau_{\mathrm{cache}}</span> is read from the environment variable <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>, default 4) skip both load and save and are rebuilt every call. Both load and save honour <code>PHASIC_DISABLE_CACHE=1</code>.</em></p>
 </div>
 <details>
 <summary>
 Intuition
 </summary>
-Each SCC-local trace is a self-contained arithmetic program that can be evaluated independently. Because it was recorded on the enhanced subgraph (which includes boundary vertices), it correctly computes the elimination result for the internal vertices of the SCC, given the edge probabilities from upstream vertices.
+The per-SCC PRC is the symbolic version of the SCC’s contribution to the parent’s moment computation. Because it is parameterised, it does not commit to a concrete <span class="math inline">\boldsymbol{\theta}</span> at build time — the same PRC is replayed across all SVGD/MCMC iterations. Caching it on disk amortises the <span class="math inline">O(n_i^3)</span> build cost across processes (notebook restarts, SLURM workers, CLI runs) for any model that contains a structurally identical SCC.
 </details>
-<div id="def-13-trace-stitching" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.3 (Trace stitching)</strong></span> <em>Let <span class="math inline">\mathcal{T}_1, \ldots, \mathcal{T}_m</span> be SCC-local traces for the SCCs <span class="math inline">C_1, \ldots, C_m</span> in topological order. The stitched trace <span class="math inline">\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)</span> is constructed by:</em></p>
+<details>
+<summary>
+Example
+</summary>
+In a hexagonal spatial coalescent with <span class="math inline">K</span> cells, each cell’s local lineage-merger dynamics forms an SCC. All <span class="math inline">K</span> cells share the same canonical SCC structure — they differ only in their parent-graph vertex indices and in <em>which</em> external edges they connect to. The per-SCC PRC is built once (or loaded once from disk) and reused <span class="math inline">K</span> times per moment evaluation.
+</details>
+<div id="def-13-scc-level" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 15.3 (SCC level and level scheduling)</strong></span> <em>Let <span class="math inline">G^{\mathrm{SCC}}</span> be the condensation of <span class="math inline">G</span>. The level <span class="math inline">\ell\colon V^{\mathrm{SCC}} \to \mathbb{N}</span> of an SCC is defined recursively as the longest directed path from that SCC to a sink in <span class="math inline">G^{\mathrm{SCC}}</span>:</em></p>
+<p><span id="eq-13-level"><span class="math display">\ell(C_i) = \begin{cases} 0 &amp; \text{if } C_i \text{ has no outgoing edges in } G^{\mathrm{SCC}}, \\ 1 + \max\{ \ell(C_j) : (C_i \to C_j) \in E^{\mathrm{SCC}} \} &amp; \text{otherwise.} \end{cases} \tag{15.1}</span></span></p>
+<p><em>The level scheduling of <span class="math inline">G</span> partitions <span class="math inline">V^{\mathrm{SCC}}</span> into level sets <span class="math inline">\mathcal{L}_l = \{C_i : \ell(C_i) = l\}</span> for <span class="math inline">l = 0, 1, \ldots, L</span> where <span class="math inline">L = \max_i \ell(C_i)</span>. Within any single level <span class="math inline">\mathcal{L}_l</span> there are no inter-SCC edges in <span class="math inline">G^{\mathrm{SCC}}</span>.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+Levels group SCCs that can be processed independently. By construction, all of <span class="math inline">C_i</span>’s downstream SCCs — the SCCs whose result vectors are needed to bind <span class="math inline">C_i</span>’s output-edge placeholders — are at strictly lower levels. Processing levels in order <span class="math inline">0, 1, \ldots, L</span> guarantees that by the time level <span class="math inline">l</span> runs, every SCC at every lower level is finished and its results are available. Within a level, SCCs are independent and can run in parallel without synchronisation.
+</details>
+<div id="def-13-scc-composition" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 15.4 (SCC composition)</strong></span> <em>Let <span class="math inline">G</span> be a parameterised phase-type graph with SCC decomposition <span class="math inline">\{C_1, \ldots, C_m\}</span>, per-SCC PRCs <span class="math inline">\{\widehat{P}_1, \ldots, \widehat{P}_m\}</span>, and level scheduling <span class="math inline">\mathcal{L}_0, \ldots, \mathcal{L}_L</span>. Let <span class="math inline">\boldsymbol{\theta} \in \mathbb{R}^k</span> be a parameter vector. The SCC composition of <span class="math inline">\{\widehat{P}_i\}</span> at <span class="math inline">\boldsymbol{\theta}</span> produces a parent-wide result vector <span class="math inline">\mathbf{r} \in \mathbb{R}^{|V|}</span> as follows.</em></p>
+<p><em>Initialize <span class="math inline">\mathbf{r} \leftarrow \mathbf{0}</span> and update the parent’s edge weights from <span class="math inline">\boldsymbol{\theta}</span> via <code>ptd_graph_update_weights</code>. Then for <span class="math inline">l = 0, 1, \ldots, L</span>, process every <span class="math inline">C_i \in \mathcal{L}_l</span> (in parallel within the level) by:</em></p>
 <ol type="1">
-<li><p><em>Initialize <span class="math inline">\mathcal{T}^*</span> with the operations and mappings of <span class="math inline">\mathcal{T}_1</span>.</em></p></li>
-<li><p><em>For <span class="math inline">i = 2, \ldots, m</span>:</em></p>
-<ul>
-<li><em>Let <span class="math inline">\Delta = |\boldsymbol{\omega}^*|</span> be the current operation count of <span class="math inline">\mathcal{T}^*</span> (the offset for remapping).</em></li>
-<li><em>Append all operations of <span class="math inline">\boldsymbol{\omega}_i</span> to <span class="math inline">\boldsymbol{\omega}^*</span>, remapping each operand index <span class="math inline">a_j</span> to <span class="math inline">a_j + \Delta</span>.</em></li>
-<li><em>For each vertex <span class="math inline">v</span> in <span class="math inline">C_i</span> (the internal vertices):</em>
-<ul>
-<li><em>If <span class="math inline">v</span> is a sister vertex (already in <span class="math inline">\mathcal{T}^*</span> from an earlier SCC):</em>
-<ul>
-<li><em>The sister vertex in <span class="math inline">\mathcal{T}^*</span> (the upstream copy) retains its rate mapping.</em></li>
-<li><em>The outgoing edges of the downstream copy (from <span class="math inline">\mathcal{T}_i</span>) are attached to the upstream copy by updating <span class="math inline">\mathbf{m}_{\text{prob}}^*</span> and <span class="math inline">\mathbf{m}_{\text{tgt}}^*</span> for the upstream vertex.</em></li>
-</ul></li>
-<li><em>Otherwise: add the vertex to <span class="math inline">\mathcal{T}^*</span> with remapped rate and edge mappings.</em></li>
-</ul></li>
-<li><em>For each boundary vertex in <span class="math inline">V_i^{\text{down}}</span> that is not a sister vertex: add it to <span class="math inline">\mathcal{T}^*</span> with remapped mappings.</em></li>
-</ul></li>
-<li><p><em>The stitched trace <span class="math inline">\mathcal{T}^*</span> has the same structure as an elimination trace (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>).</em></p></li>
+<li><em>Build or load <span class="math inline">\widehat{G}_i</span> and <span class="math inline">\widehat{P}_i</span> via <code>ptd_scc_get_or_compute_prc</code>.</em></li>
+<li><em>Bind input-channel placeholders: for each input vertex <span class="math inline">v \in C_i</span>, set channel <span class="math inline">j_v^{\mathrm{in}}</span>’s placeholder value to <span class="math inline">\sum_{u \notin C_i,\,(u\to v) \in E} w(u \to v; \boldsymbol{\theta})</span> (the parent’s accumulated external inflow to <span class="math inline">v</span>).</em></li>
+<li><em>Bind output-channel placeholders: for each external edge <span class="math inline">(v \to z) \in E</span> with <span class="math inline">v \in C_i</span>, <span class="math inline">z \notin C_i</span>, set channel <span class="math inline">j_{v\to z}^{\mathrm{out}}</span>’s placeholder value to <span class="math inline">w(v \to z; \boldsymbol{\theta}) \cdot r_z</span> where <span class="math inline">r_z</span> is the already-computed result at the downstream vertex <span class="math inline">z</span>.</em></li>
+<li><em>Replay <span class="math inline">\widehat{P}_i</span> to obtain a synthetic-graph result vector <span class="math inline">\widehat{\mathbf{r}}_i \in \mathbb{R}^{n_i + 2}</span>.</em></li>
+<li><em>Copy each internal-vertex result back to the parent: for every <span class="math inline">v \in C_i</span>, set <span class="math inline">r_{\mathrm{idx}(v)} \leftarrow \widehat{r}_{i,\mathrm{idx}_i(v)}</span> where <span class="math inline">\mathrm{idx}</span> and <span class="math inline">\mathrm{idx}_i</span> are the parent-graph and synthetic-graph vertex indices of <span class="math inline">v</span>.</em></li>
 </ol>
+<p><em>The output of composition is the resulting <span class="math inline">\mathbf{r}</span>.</em></p>
 </div>
 <details>
 <summary>
 Intuition
 </summary>
-Stitching concatenates the arithmetic programs of each SCC trace, adjusting the “line numbers” (operand indices) so that references remain valid in the merged program. Sister vertices — vertices that appear in multiple SCC traces because they sit at SCC boundaries — are merged by keeping one copy and redirecting edges. The topological processing order ensures that when we process SCC <span class="math inline">C_i</span>, all upstream SCCs (which provide incoming edges to <span class="math inline">C_i</span>) have already been merged.
-</details>
-<details>
-<summary>
-Example
-</summary>
-If SCC <span class="math inline">C_1</span> has 100 operations and SCC <span class="math inline">C_2</span> has 80 operations, with vertex <span class="math inline">v_5</span> as a sister vertex appearing in both, the stitched trace has at most 180 operations. All operand indices in <span class="math inline">\mathcal{T}_2</span> are shifted by 100 (the offset). Vertex <span class="math inline">v_5</span>’s rate comes from <span class="math inline">\mathcal{T}_1</span>, but its outgoing edges to vertices in <span class="math inline">C_2</span> come from <span class="math inline">\mathcal{T}_2</span> (with remapped indices).
+Steps 2 and 3 are the only places where parent-graph <span class="math inline">\boldsymbol{\theta}</span>-dependent weights cross the SCC boundary. By binding them as concrete values into the placeholders, the per-SCC PRC — which knows nothing about the parent graph beyond its own input/output channel signatures — can replay autonomously. Step 4 is a constant-time table lookup (the PRC is precomputed), and step 5 is a vector copy.
 </details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
-<div id="thm-13-stitched-correctness" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 15.1 (Stitched trace correctness)</strong></span> <em>Let <span class="math inline">G</span> be a parameterized phase-type graph with SCC decomposition <span class="math inline">C_1, \ldots, C_m</span> in topological order. Let <span class="math inline">\mathcal{T}_{\text{full}}</span> be the trace recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>13.1</span></a> directly to <span class="math inline">G</span>, and let <span class="math inline">\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)</span> be the stitched trace. For any parameter vector <span class="math inline">\boldsymbol{\theta}</span> such that all vertex rates are positive, evaluating <span class="math inline">\mathcal{T}^*</span> with <span class="math inline">\boldsymbol{\theta}</span> produces the same vertex scalars and edge probabilities as evaluating <span class="math inline">\mathcal{T}_{\text{full}}</span> with <span class="math inline">\boldsymbol{\theta}</span>.</em></p>
+<div id="thm-13-synthetic-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 15.1 (Synthetic-graph correctness)</strong></span> <em>Let <span class="math inline">G</span> be a parameterised phase-type graph, <span class="math inline">C_i</span> an SCC of <span class="math inline">G</span>, and <span class="math inline">\boldsymbol{\theta}</span> a parameter vector at which the monolithic elimination of [06] applied to <span class="math inline">G</span> produces a finite result <span class="math inline">\mathbf{r}^{\mathrm{mono}} \in \mathbb{R}^{|V|}</span>. Let <span class="math inline">\mathbf{r}^{\mathrm{comp}}</span> be the vector produced by the composition of <a href="#def-13-scc-composition" class="quarto-xref">Definition&nbsp;<span>15.4</span></a> with downstream results already correctly computed (i.e.&nbsp;<span class="math inline">r^{\mathrm{comp}}_z = r^{\mathrm{mono}}_z</span> for every <span class="math inline">z \notin C_i</span> with <span class="math inline">\ell(\mathrm{SCC}(z)) &lt; \ell(C_i)</span>). Then for every <span class="math inline">v \in C_i</span>, <span class="math inline">r^{\mathrm{comp}}_{\mathrm{idx}(v)} = r^{\mathrm{mono}}_{\mathrm{idx}(v)}</span>.</em></p>
 </div>
 <div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span>We establish correctness in three steps.</p>
-<p><strong>Step 1: SCC independence of elimination.</strong> Graph elimination (<a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) processes vertices in an order guided by SCC topological sort. Within each SCC, vertices are eliminated in arbitrary order, but vertices in <span class="math inline">C_i</span> are eliminated before vertices in <span class="math inline">C_j</span> when <span class="math inline">i &lt; j</span> in topological order. Critically, when eliminating a vertex <span class="math inline">v \in C_i</span>, the bypass edges created involve only parents and children of <span class="math inline">v</span>. Since <span class="math inline">G^{\text{SCC}}</span> is a DAG, no vertex in an earlier SCC <span class="math inline">C_j</span> (<span class="math inline">j &lt; i</span>) is a child of <span class="math inline">v</span>, so the elimination of <span class="math inline">v</span> does not modify edges within <span class="math inline">C_j</span>. This means the elimination of vertices within <span class="math inline">C_i</span> depends only on:</p>
-<ul>
-<li>The initial edge weights within <span class="math inline">C_i</span>,</li>
-<li>The edge weights from upstream vertices (in earlier SCCs) to vertices in <span class="math inline">C_i</span>,</li>
-<li>The edge targets to downstream vertices (in later SCCs).</li>
-</ul>
-<p>These are precisely the edges present in the enhanced subgraph <span class="math inline">G_i^+</span> (<a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>).</p>
-<p><strong>Step 2: SCC-local trace captures local elimination.</strong> By <a href="11_trace_system.html#thm-11-trace-correctness" class="quarto-xref">Theorem&nbsp;<span>13.1</span></a>, the SCC-local trace <span class="math inline">\mathcal{T}_i</span> recorded on <span class="math inline">G_i^+</span> produces correct vertex scalars and edge probabilities for all vertices in <span class="math inline">G_i^+</span> when evaluated with <span class="math inline">\boldsymbol{\theta}</span>. In particular, for the internal vertices <span class="math inline">C_i</span>, the vertex scalars and edge probabilities match those that would be produced by eliminating <span class="math inline">C_i</span>’s vertices within the full graph <span class="math inline">G</span>.</p>
-<p><strong>Step 3: Stitching preserves correctness.</strong> The stitching operation (<a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>15.3</span></a>) concatenates the operation sequences and remaps indices by adding the offset <span class="math inline">\Delta</span>. We verify that this preserves evaluation semantics:</p>
-<ul>
-<li><p><strong>Index remapping:</strong> Each operation <span class="math inline">\omega_j^{(i)}</span> in <span class="math inline">\mathcal{T}_i</span> with operands <span class="math inline">(a_1, \ldots, a_m)</span> becomes an operation with operands <span class="math inline">(a_1 + \Delta, \ldots, a_m + \Delta)</span>. Since the value array <span class="math inline">\mathbf{y}^*</span> of the stitched trace is the concatenation of the individual value arrays (with the offset), <span class="math inline">y^*[a_j + \Delta] = y_i[a_j]</span>, so the operation computes the same result.</p></li>
-<li><p><strong>Sister vertex merging:</strong> When a vertex <span class="math inline">v</span> appears in both <span class="math inline">\mathcal{T}_j</span> (upstream) and <span class="math inline">\mathcal{T}_i</span> (downstream), the stitching keeps the rate from <span class="math inline">\mathcal{T}_j</span> (which correctly accounts for <span class="math inline">v</span>’s position in the upstream SCC) and attaches the downstream outgoing edges from <span class="math inline">\mathcal{T}_i</span>. This is correct because the rate of <span class="math inline">v</span> is determined by <span class="math inline">v</span>’s outgoing edges in the full graph, which are the same regardless of which SCC we compute from. The outgoing edges from <span class="math inline">\mathcal{T}_i</span> capture the edges to vertices in <span class="math inline">C_i</span> and later SCCs, which are not present in <span class="math inline">\mathcal{T}_j</span>.</p></li>
-</ul>
-<p>Combining Steps 1–3, the stitched trace evaluation produces the same results as direct trace recording and evaluation on the full graph. <span class="math inline">\square</span></p>
+<p><span class="proof-title"><em>Proof</em>. </span>The monolithic moment computation of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> satisfies, for every vertex <span class="math inline">v</span>, <span class="math display">r^{\mathrm{mono}}_v = \mathbb{E}_v[\tilde{\tau}] = x_v + \sum_{(v \to u) \in E} w'(v \to u; \boldsymbol{\theta}) \cdot r^{\mathrm{mono}}_u,</span> where <span class="math inline">w'</span> denotes the normalised edge weight (i.e.&nbsp;weight divided by total outgoing rate at <span class="math inline">v</span>) and <span class="math inline">x_v</span> is the vertex scalar from [06]. Splitting the sum at the SCC boundary: <span class="math display">r^{\mathrm{mono}}_v = x_v + \sum_{u \in C_i,\,(v \to u) \in E} w'(v \to u) r^{\mathrm{mono}}_u + \sum_{z \notin C_i,\,(v \to z) \in E} w'(v \to z) r^{\mathrm{mono}}_z.</span></p>
+<p>Now consider the synthetic graph <span class="math inline">\widehat{G}_i</span>. Its internal edges are exactly the within-<span class="math inline">C_i</span> edges of <span class="math inline">G</span>; its <span class="math inline">s_i^\dagger \to v</span> placeholder edges contribute zero rate to any <span class="math inline">v \in C_i</span> during <em>that vertex’s</em> elimination (because <span class="math inline">s_i^\dagger</span> is the source, not a child, of <span class="math inline">v</span>); and its <span class="math inline">v \to a_i^\dagger</span> placeholder edges, once bound by composition step 3 to <span class="math inline">w(v \to z; \boldsymbol{\theta}) \cdot r^{\mathrm{mono}}_z</span> for each external <span class="math inline">(v \to z)</span>, contribute exactly <span class="math inline">\sum_{z \notin C_i} w(v \to z) r^{\mathrm{mono}}_z</span> to vertex <span class="math inline">v</span>’s outflow. Dividing by the same denominator (the total outgoing rate at <span class="math inline">v</span>, which is identical in <span class="math inline">G</span> and <span class="math inline">\widehat{G}_i</span> at any vertex in <span class="math inline">C_i</span>, because <span class="math inline">\widehat{G}_i</span> duplicates every outgoing edge of every <span class="math inline">v \in C_i</span> — internal edges directly and external edges collapsed onto <span class="math inline">a_i^\dagger</span>), the normalised-weight equation for <span class="math inline">v</span> in <span class="math inline">\widehat{G}_i</span> is identical to the split form above.</p>
+<p>The within-<span class="math inline">C_i</span> self-consistency equations (the first two terms of the split) form a closed linear system on <span class="math inline">\{r^{\mathrm{comp}}_v\}_{v \in C_i}</span>, with the third term (the boundary contribution) appearing as a constant once the downstream results have been bound. By the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> on <span class="math inline">\widehat{G}_i</span>, replaying <span class="math inline">\widehat{P}_i</span> at <span class="math inline">\boldsymbol{\theta}</span> solves this system exactly. The hypothesis <span class="math inline">r^{\mathrm{comp}}_z = r^{\mathrm{mono}}_z</span> for <span class="math inline">z \notin C_i</span> ensures the constants are correct, so the unique solution agrees with <span class="math inline">r^{\mathrm{mono}}</span> on <span class="math inline">C_i</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-13-level-scheduling" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 15.2 (Level-scheduling correctness)</strong></span> <em>Composition in sink-first level order (<a href="#def-13-scc-level" class="quarto-xref">Definition&nbsp;<span>15.3</span></a>, <a href="#def-13-scc-composition" class="quarto-xref">Definition&nbsp;<span>15.4</span></a>) produces <span class="math inline">\mathbf{r}^{\mathrm{comp}} = \mathbf{r}^{\mathrm{mono}}</span> at every vertex, independently of the order in which SCCs within the same level are processed.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We induct on the level. Base case (<span class="math inline">l = 0</span>): SCCs in <span class="math inline">\mathcal{L}_0</span> are sinks of <span class="math inline">G^{\mathrm{SCC}}</span>, hence have no outgoing inter-SCC edges; every <span class="math inline">z \notin C_i</span> that is a child of some <span class="math inline">v \in C_i</span> in <span class="math inline">G</span> is itself absorbing in <span class="math inline">G</span> (because absorbing vertices of <span class="math inline">G</span> are their own SCCs and become sinks of <span class="math inline">G^{\mathrm{SCC}}</span>). By convention, <span class="math inline">r^{\mathrm{mono}}_z = r^{\mathrm{comp}}_z = 0</span> at every absorbing vertex of <span class="math inline">G</span> (or whatever boundary value the moment computation specifies; for <span class="math inline">\mathbb{E}[\tau]</span> this is 0). The hypothesis of <a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a> is satisfied, so each <span class="math inline">C_i \in \mathcal{L}_0</span> produces correct internal results. Since SCCs in <span class="math inline">\mathcal{L}_0</span> have no inter-SCC edges between them, they read disjoint slots of <span class="math inline">\mathbf{r}^{\mathrm{comp}}</span> and write disjoint slots, so the order of processing within <span class="math inline">\mathcal{L}_0</span> is immaterial.</p>
+<p>Inductive step: assume <span class="math inline">r^{\mathrm{comp}}_v = r^{\mathrm{mono}}_v</span> for every <span class="math inline">v</span> in an SCC of level <span class="math inline">&lt; l</span>. Consider any <span class="math inline">C_i \in \mathcal{L}_l</span>. Every downstream SCC <span class="math inline">C_j</span> in <span class="math inline">G^{\mathrm{SCC}}</span> (i.e.&nbsp;<span class="math inline">C_j</span> such that some <span class="math inline">v \in C_i</span> has an edge to some <span class="math inline">z \in C_j</span>) satisfies <span class="math inline">\ell(C_j) &lt; l = \ell(C_i)</span> by definition of <span class="math inline">\ell</span>. By the inductive hypothesis, <span class="math inline">r^{\mathrm{comp}}_z = r^{\mathrm{mono}}_z</span> for every such <span class="math inline">z</span>. The hypothesis of <a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a> is satisfied, so <span class="math inline">C_i</span>’s composition produces correct internal results. Within <span class="math inline">\mathcal{L}_l</span> there are no inter-SCC edges, so simultaneous processing is safe. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-13-complexity" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 15.2 (Complexity of SCC-based trace recording)</strong></span> <em>Let <span class="math inline">G</span> be a phase-type graph with SCCs <span class="math inline">C_1, \ldots, C_m</span> of sizes <span class="math inline">n_1, \ldots, n_m</span> (where <span class="math inline">\sum_i n_i = |V|</span>). Let <span class="math inline">b_i = |V_i^{\text{up}}| + |V_i^{\text{down}}|</span> be the boundary size of <span class="math inline">C_i</span>. Then:</em></p>
+<p><span class="theorem-title"><strong>Theorem 15.3 (Composition complexity)</strong></span> <em>Let <span class="math inline">G</span> be a parameterised phase-type graph with SCC decomposition <span class="math inline">\{C_1, \ldots, C_m\}</span> of sizes <span class="math inline">n_1, \ldots, n_m</span> and per-SCC PRC lengths <span class="math inline">N_1, \ldots, N_m</span>. Let <span class="math inline">u</span> be the number of distinct content hashes among <span class="math inline">\{H(\widehat{G}_i)\}_{i=1}^m</span>. Then:</em></p>
 <ol type="1">
-<li><em>The total trace recording cost is <span class="math inline">O\!\left(\sum_{i=1}^{m} (n_i + b_i)^3\right)</span>, which is at most <span class="math inline">O(|V|^3)</span> and can be significantly less when SCCs are small.</em></li>
-<li><em>With hash-based deduplication, if <span class="math inline">u</span> unique SCC structures exist among the <span class="math inline">m</span> components, the recording cost is <span class="math inline">O\!\left(\sum_{j=1}^{u} (n_j + b_j)^3\right)</span> where each unique structure is recorded only once.</em></li>
-<li><em>The stitching cost is <span class="math inline">O\!\left(\sum_{i=1}^{m} N_i\right)</span> where <span class="math inline">N_i</span> is the trace length of <span class="math inline">\mathcal{T}_i</span>.</em></li>
+<li><em>The cost of building the per-SCC PRCs from scratch is <span class="math inline">O\!\big(\sum_{i=1}^{m} (n_i + 2)^3\big)</span>, which simplifies in the hash-deduplicated case to <span class="math inline">O\!\big(\sum_{j=1}^{u} (n_j + 2)^3\big)</span> when SCCs with the same hash share their PRC.</em></li>
+<li><em>The cost of composition (steps 2–5 of <a href="#def-13-scc-composition" class="quarto-xref">Definition&nbsp;<span>15.4</span></a> for all SCCs) is <span class="math inline">\Theta\!\big(\sum_{i=1}^{m} N_i\big)</span>.</em></li>
+<li><em>The wall-clock cost benefits from intra-level parallelism: at level <span class="math inline">l</span> with <span class="math inline">|\mathcal{L}_l|</span> SCCs and <span class="math inline">T</span> available threads, the level’s wall time is <span class="math inline">\Theta\!\big(\max_{C_i \in \mathcal{L}_l} N_i\big) \cdot \lceil |\mathcal{L}_l|/T \rceil</span> rather than <span class="math inline">\sum_{C_i \in \mathcal{L}_l} N_i</span>.</em></li>
 </ol>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span></p>
 <ol type="1">
-<li><p>Each SCC-local trace is recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>13.1</span></a> to <span class="math inline">G_i^+</span>, which has <span class="math inline">n_i + b_i</span> vertices. By <a href="11_trace_system.html#thm-11-trace-complexity" class="quarto-xref">Theorem&nbsp;<span>13.2</span></a>, this costs <span class="math inline">O((n_i + b_i)^3)</span>. Summing over all SCCs gives the total. Since <span class="math inline">\sum_i n_i = |V|</span> and <span class="math inline">b_i \leq |V|</span>, the worst case (one SCC containing all vertices) is <span class="math inline">O(|V|^3)</span>. When SCCs are small (e.g., <span class="math inline">n_i = O(1)</span>), the total is <span class="math inline">O(|V|)</span>.</p></li>
-<li><p>Hash-based deduplication uses the content hash from [12] to identify structurally identical enhanced subgraphs. Each unique subgraph is recorded once. If <span class="math inline">u</span> unique structures exist with sizes <span class="math inline">(n_j + b_j)</span>, the recording cost is <span class="math inline">\sum_{j=1}^{u} O((n_j + b_j)^3)</span>.</p></li>
-<li><p>Stitching (<a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>15.3</span></a>) processes each SCC-local trace once, appending its operations to the merged trace and remapping indices. For <span class="math inline">\mathcal{T}_i</span> with <span class="math inline">N_i</span> operations, this takes <span class="math inline">O(N_i)</span> time. The total stitching cost is <span class="math inline">\sum_{i=1}^{m} O(N_i) = O(N^*)</span> where <span class="math inline">N^*</span> is the stitched trace length. <span class="math inline">\square</span></p></li>
+<li><p>The parameterised elimination of [06] runs in <span class="math inline">O(|\widehat{V}_i|^3) = O((n_i + 2)^3)</span> time and produces a PRC of size <span class="math inline">O((n_i + 2)^2)</span>. Summing over all SCCs gives the first bound. With hash deduplication, each distinct <span class="math inline">\widehat{G}_i</span> is built once, replacing <span class="math inline">m</span> by <span class="math inline">u</span> in the sum.</p></li>
+<li><p>Composition for <span class="math inline">C_i</span> performs: at most <span class="math inline">|\widehat{V}_i|</span> placeholder bindings (steps 2–3), one PRC replay of cost <span class="math inline">\Theta(N_i)</span> (step 4), and <span class="math inline">n_i</span> result copies (step 5). Steps 2–3 and 5 are dominated by step 4 because <span class="math inline">N_i \geq |\widehat{V}_i|</span> (every vertex has at least one elimination command). Summing <span class="math inline">\Theta(N_i)</span> over all SCCs gives the bound.</p></li>
+<li><p>Within level <span class="math inline">l</span>, the SCC compositions are independent (no shared memory writes by <a href="#def-13-scc-level" class="quarto-xref">Definition&nbsp;<span>15.3</span></a>), so a parallel-for over <span class="math inline">|\mathcal{L}_l|</span> tasks each costing <span class="math inline">\Theta(N_i)</span> has wall time <span class="math inline">\Theta(\max_{C_i \in \mathcal{L}_l} N_i \cdot \lceil |\mathcal{L}_l|/T \rceil)</span> on <span class="math inline">T</span> threads with perfect load balancing. The C implementation realises this via OpenMP <code>parallel for schedule(dynamic)</code>, capped by <code>PHASIC_MAX_PARALLEL_SCCS</code> to bound contention with nested OMP regions inside the per-SCC eliminator. <span class="math inline">\square</span></p></li>
 </ol>
 </div>
 </section>
@@ -637,74 +623,71 @@ If SCC <span class="math inline">C_1</span> has 100 operations and SCC <span cla
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-13-scc-trace-stitching" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="scc-based-trace-decomposition-and-stitching" class="level4" aria-describedby="alg-13-scc-trace-stitching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="15.0.0.1">
-<h4 data-number="15.0.0.1" class="anchored" data-anchor-id="scc-based-trace-decomposition-and-stitching"><span class="header-section-number">15.0.0.1</span> SCC-Based Trace Decomposition and Stitching</h4>
-<p><em>Description.</em> This algorithm records an elimination trace for a large parameterized graph by decomposing it into SCCs, recording a trace for each unique SCC (with caching), and stitching the results together. The algorithm has four stages: (1) decompose the graph into SCCs and compute content hashes; (2) for each unique SCC hash, check the cache and record the trace if missing; (3) stitch the SCC-local traces in topological order; (4) return the merged trace.</p>
-<pre><code>SCC-Based Trace Decomposition and Stitching
-1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
-2:
-3: function HierarchicalTraceRecord(G, k)
-4:   ▷ Stage 1: SCC decomposition
-5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Tarjan SCC [@tarjan1972]
-6:   Sort SCCs in topological order                    ▷ Topological Sort
-7:
-8:   ▷ Stage 2: Record SCC-local traces (with caching)
-9:   trace_dict ← empty map from hash to trace
-10:  for i ← 1 to m do
-11:    G_i^+ ← BuildEnhancedSubgraph(G, C_i)         ▷ Definition 13.1
-12:    h_i ← GraphContentHash(G_i^+)                  ▷ Graph Hash
-13:    if h_i ∈ disk cache then
-14:      trace_dict[h_i] ← LoadTraceFromCache(h_i)
-15:    else if h_i ∈ trace_dict then
-16:      skip                                          ▷ Duplicate SCC, already recorded
-17:    else
-18:      T_i ← RecordEliminationTrace(G_i^+, k)      ▷ Trace Recording
-19:      trace_dict[h_i] ← T_i
-20:      SaveTraceToCache(h_i, T_i)
-21:    end if
-22:  end for
-23:
-24:  ▷ Stage 3: Stitch traces in topological order
-25:  T* ← copy of trace_dict[h_1]                     ▷ Initialize with first SCC
-26:  vertex_map ← mapping from vertex states to indices in T*
-27:
-28:  for i ← 2 to m do
-29:    T_i ← trace_dict[h_i]
-30:    Δ ← |ω*|                                       ▷ Operation offset
-31:
-32:    ▷ Append operations with remapped indices
-33:    for each operation ω_j in T_i do
-34:      ω'_j ← RemapOperands(ω_j, Δ)
-35:      Append ω'_j to ω*
-36:    end for
-37:
-38:    ▷ Merge vertices
-39:    for each vertex v in G_i^+ do
-40:      if v is a sister vertex (already in T*) then
-41:        ▷ Attach downstream edges from T_i to existing vertex in T*
-42:        upstream_idx ← vertex_map[σ(v)]
-43:        for each new outgoing edge of v in T_i do
-44:          Append remapped edge prob to m_prob*[upstream_idx]
-45:          Append remapped target to m_tgt*[upstream_idx]
-46:        end for
-47:      else
-48:        ▷ Add new vertex with remapped mappings
-49:        new_idx ← next available vertex index in T*
-50:        m_rate*[new_idx] ← m_rate^(i)[local_idx] + Δ
-51:        m_prob*[new_idx] ← remap(m_prob^(i)[local_idx], Δ)
-52:        m_tgt*[new_idx] ← remap(m_tgt^(i)[local_idx], vertex_map)
-53:        vertex_map[σ(v)] ← new_idx
-54:      end if
-55:    end for
-56:  end for
-57:
-58:  return T*
-59: end function
-60:
-61: function RemapOperands(ω, Δ)
-62:  Let ω = (τ, d, (a_1, ..., a_m))
-63:  return (τ, d, (a_1 + Δ, ..., a_m + Δ))
-64: end function</code></pre>
+<section id="hierarchical-scc-elimination-and-composition" class="level4" aria-describedby="alg-13-scc-trace-stitching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="15.0.0.1">
+<h4 data-number="15.0.0.1" class="anchored" data-anchor-id="hierarchical-scc-elimination-and-composition"><span class="header-section-number">15.0.0.1</span> Hierarchical SCC Elimination and Composition</h4>
+<p><em>Description.</em> This algorithm computes the parameterised reward-compute result vector <span class="math inline">\mathbf{r}(\boldsymbol{\theta}) \in \mathbb{R}^{|V|}</span> on a parent graph <span class="math inline">G</span> by decomposing <span class="math inline">G</span> into SCCs, building (or loading from disk) a per-SCC PRC for each SCC’s synthetic subgraph, and composing the results in sink-first level order. The output is numerically equivalent to the monolithic elimination of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> at the same <span class="math inline">\boldsymbol{\theta}</span> by <a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>, but the work is decomposed into smaller, cacheable, and parallel pieces.</p>
+<pre><code>Hierarchical SCC Elimination and Composition
+ 1: Let G = (V, E, W) be a parameterised phase-type graph
+ 2: Let θ ∈ R^k be a parameter vector
+ 3:
+ 4: function HierarchicalCompose(G, θ)
+ 5:   ▷ Stage 1: SCC decomposition and level scheduling
+ 6:   S = (C_1, ..., C_m) ← StronglyConnectedComponents(G)        ▷ @alg-04-tarjan-scc
+ 7:   G^SCC ← Condensation(G, S)
+ 8:   topo ← KahnTopologicalSort(G^SCC)                            ▷ forward-topological
+ 9:   for each C_i in topo reversed do
+10:     ℓ[C_i] ← max(0, 1 + max{ℓ[C_j] : (C_i → C_j) ∈ E^SCC})    ▷ @def-13-scc-level
+11:   end for
+12:   L ← max ℓ
+13:   levels ← partition of S by ℓ                                 ▷ levels[l] = {C : ℓ(C) = l}
+14:
+15:   ▷ Stage 2: parent edge weights from θ
+16:   UpdateGraphWeights(G, θ)                                     ▷ ptd_graph_update_weights
+17:   r ← 0 ∈ R^|V|                                                ▷ parent-wide result vector
+18:
+19:   ▷ Stage 3: level-by-level composition (sink-first)
+20:   for l ← 0 to L do
+21:     parallel for each C_i ∈ levels[l] do
+22:       (Ĝ_i, P̂_i, meta_i) ← GetOrComputePRC(S, i)               ▷ @def-13-per-scc-prc
+23:       ▷ Bind input-channel placeholders from parent edges
+24:       for each input channel j in meta_i.in do
+25:         v ← meta_i.in[j].target_vertex_in_C_i
+26:         Ĝ_i.input_placeholder[j] ← Σ_{u∉C_i, (u→v)∈E} w(u→v; θ)
+27:       end for
+28:       ▷ Bind output-channel placeholders from downstream results
+29:       for each output channel j in meta_i.out do
+30:         (v, z) ← meta_i.out[j].external_edge                   ▷ v ∈ C_i, z ∉ C_i
+31:         Ĝ_i.output_placeholder[j] ← w(v→z; θ) · r[idx(z)]
+32:       end for
+33:       ▷ Replay the per-SCC PRC
+34:       r̂_i ← ReplayPRC(P̂_i, θ)
+35:       ▷ Write internal-vertex results back into parent
+36:       for each v in C_i do
+37:         r[idx(v)] ← r̂_i[idx_i(v)]
+38:       end for
+39:     end parallel for
+40:   end for
+41:
+42:   return r
+43: end function
+44:
+45: function GetOrComputePRC(S, i)
+46:   Ĝ_i ← BuildSyntheticSubgraph(S, i)                            ▷ @def-13-synthetic-subgraph
+47:   meta_i ← canonical input/output channel tables of Ĝ_i
+48:   if n_i &lt; τ_cache then                                         ▷ PHASIC_MIN_SCC_SIZE_TO_CACHE
+49:     P̂_i ← ParameterizedEliminate(Ĝ_i)                          ▷ no cache load/save
+50:     return (Ĝ_i, P̂_i, meta_i)
+51:   end if
+52:   h_i ← GraphContentHash(Ĝ_i)                                   ▷ @alg-12-graph-hash
+53:   path ← phasic_cache_dir / "parameterized_reward_compute" / ("scc_" ++ hex(h_i) ++ ".bin")
+54:   if FileExists(path) and not PHASIC_DISABLE_CACHE then
+55:     P̂_i ← LoadPRCFromDisk(path, Ĝ_i)                            ▷ may return NULL on rev mismatch
+56:     if P̂_i ≠ NULL then return (Ĝ_i, P̂_i, meta_i) end if
+57:   end if
+58:   P̂_i ← ParameterizedEliminate(Ĝ_i)                            ▷ ptd_graph_ex_absorbation_time_comp_graph_parameterized
+59:   if not PHASIC_DISABLE_CACHE then SavePRCToDisk(path, Ĝ_i, P̂_i) end if
+60:   return (Ĝ_i, P̂_i, meta_i)
+61: end function</code></pre>
 <p><strong>Correspondence table:</strong></p>
 <table class="caption-top table">
 <colgroup>
@@ -722,73 +705,108 @@ If SCC <span class="math inline">C_1</span> has 100 operations and SCC <span cla
 <tbody>
 <tr class="odd">
 <td><span class="math inline">G</span></td>
-<td><span class="math inline">G = (V, E, W)</span></td>
-<td><code>graph</code> (<code>hierarchical_trace_cache.py:hierarchical_trace_record</code>)</td>
+<td><span class="math inline">G</span></td>
+<td><code>parent</code> (<code>scc_compose.c:ptd_compose_scc_prcs_inner</code>)</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">(C_1, \ldots, C_m)</span></td>
-<td>SCC decomposition</td>
-<td><code>scc_decomp</code> / <code>scc_list</code></td>
+<td><span class="math inline">S</span></td>
+<td><span class="math inline">\{C_1,\ldots,C_m\}</span></td>
+<td><code>scc_graph</code> (<code>api/c/phasic.h: struct ptd_scc_graph</code>)</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">G_i^+</span></td>
-<td>enhanced subgraph</td>
-<td><code>enhanced_subgraph</code> (<code>_build_scc_subgraph</code>)</td>
+<td><span class="math inline">G^{\mathrm{SCC}}</span></td>
+<td>condensation</td>
+<td>implicit in <code>scc_graph-&gt;vertices[k]-&gt;edges</code></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">h_i</span></td>
-<td><span class="math inline">H(G_i^+)</span></td>
-<td><code>scc_hash</code></td>
+<td>topo</td>
+<td>Kahn’s forward-topological order</td>
+<td><code>topo_order</code> (<code>scc_compose.c:316--375</code>)</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\mathcal{T}_i</span></td>
-<td>SCC-local trace</td>
-<td><code>scc_trace</code> / <code>scc_trace_dict[scc_hash]</code></td>
+<td><span class="math inline">\ell</span></td>
+<td>level (longest path to sink)</td>
+<td><code>level_of[k]</code> (<code>scc_compose.c:392--410</code>)</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\mathcal{T}^*</span></td>
-<td>stitched trace</td>
-<td><code>merged</code> (<code>stitch_scc_traces</code>)</td>
+<td>levels[<span class="math inline">l</span>]</td>
+<td><span class="math inline">\mathcal{L}_l</span></td>
+<td><code>level_indices[level_offsets[l] \ldots level_offsets[l+1]]</code></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\Delta</span></td>
-<td>operation offset</td>
-<td><code>op_offset</code> (<code>stitch_scc_traces</code>)</td>
+<td><span class="math inline">\mathbf{r}</span></td>
+<td>parent result vector</td>
+<td><code>parent_result</code> (<code>scc_compose.c:282</code>)</td>
 </tr>
 <tr class="even">
-<td>trace_dict</td>
-<td>hash-to-trace map</td>
-<td><code>scc_trace_dict</code></td>
+<td><span class="math inline">\widehat{G}_i</span></td>
+<td>synthetic subgraph</td>
+<td><code>synth</code> (<code>scc_synthetic.c:ptd_scc_build_synthetic_graph</code>)</td>
 </tr>
 <tr class="odd">
-<td>vertex_map</td>
-<td>state-to-index map</td>
-<td>implicit in <code>stitch_scc_traces</code></td>
+<td><span class="math inline">\widehat{P}_i</span></td>
+<td>per-SCC PRC</td>
+<td>return value of <code>ptd_synth_get_or_compute_prc</code></td>
 </tr>
 <tr class="even">
-<td>RemapOperands</td>
-<td>index remapping</td>
-<td><code>remap_operation</code> (<code>hierarchical_trace_cache.py</code>)</td>
+<td>meta_<span class="math inline">i</span></td>
+<td>channel tables</td>
+<td><code>metadata</code> (<code>scc_synthetic.c: struct ptd_scc_synthetic_metadata</code>)</td>
 </tr>
 <tr class="odd">
-<td>LoadTraceFromCache</td>
-<td>disk cache load</td>
-<td><code>load_trace_from_cache</code> (<code>trace_cache.c</code>)</td>
+<td>ReplayPRC</td>
+<td>parameterised PRC replay</td>
+<td>inner loop of <code>ptd_compose_scc_one</code> (<code>scc_compose.c:138+</code>)</td>
 </tr>
 <tr class="even">
-<td>SaveTraceToCache</td>
-<td>disk cache save</td>
-<td><code>save_trace_to_cache</code> (<code>trace_cache.c</code>)</td>
+<td>BuildSyntheticSubgraph</td>
+<td><span class="math inline">\widehat{G}_i</span> constructor</td>
+<td><code>ptd_scc_build_synthetic_graph</code> (<code>scc_synthetic.c:509+</code>)</td>
+</tr>
+<tr class="odd">
+<td>GetOrComputePRC</td>
+<td>cache-or-compute factory</td>
+<td><code>ptd_scc_get_or_compute_prc</code> (<code>scc_synthetic.c:1195+</code>)</td>
+</tr>
+<tr class="even">
+<td>ParameterizedEliminate</td>
+<td>parameterised PRC build</td>
+<td><code>ptd_graph_ex_absorbation_time_comp_graph_parameterized</code> (<code>src/c/phasic.c:7190+</code>)</td>
+</tr>
+<tr class="odd">
+<td>LoadPRCFromDisk</td>
+<td>binary cache load</td>
+<td><code>ptd_load_parameterized_reward_compute_graph</code> (<code>src/c/phasic.c:3672+</code>)</td>
+</tr>
+<tr class="even">
+<td>SavePRCToDisk</td>
+<td>binary cache save</td>
+<td><code>ptd_save_parameterized_reward_compute_graph</code> (<code>src/c/phasic.c:3603+</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\tau_{\mathrm{cache}}</span></td>
+<td>min SCC size to cache</td>
+<td><code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code> (<code>scc_synthetic.c:60--80</code>)</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Complexity.</strong> Time: <span class="math inline">O\!\left(\sum_{j=1}^{u} (n_j + b_j)^3 + \sum_{i=1}^{m} N_i\right)</span> where <span class="math inline">u</span> is the number of unique SCC hashes, <span class="math inline">(n_j + b_j)</span> is the size of each unique enhanced subgraph, and <span class="math inline">N_i</span> is the trace length of <span class="math inline">\mathcal{T}_i</span>. Space: <span class="math inline">O\!\left(\sum_{i=1}^{m} N_i\right)</span> for the stitched trace.</p>
+<p><strong>Complexity.</strong> Time (sequential): <span class="math inline">O\!\big(\sum_{j=1}^{u} (n_j + 2)^3\big) + \Theta\!\big(\sum_{i=1}^{m} N_i\big)</span>. Time (with <span class="math inline">T</span> threads at level <span class="math inline">l</span>): <span class="math inline">\Theta\!\big(\max_{C_i \in \mathcal{L}_l} N_i \cdot \lceil |\mathcal{L}_l|/T \rceil\big)</span> per level, <span class="math inline">T \leq</span> <code>PHASIC_MAX_PARALLEL_SCCS</code>. Space: <span class="math inline">O(|V| + \sum_i (n_i + 2)^2)</span> for the parent result vector plus per-SCC PRCs held simultaneously.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-13-scc-trace-stitching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-13-stitched-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>. The SCC decomposition ensures that each component can be eliminated independently (Step 1 of the proof), the SCC-local traces capture the correct local elimination (Step 2), and the stitching with index remapping preserves evaluation semantics (Step 3).
+Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a> (per-SCC) and <a href="#thm-13-level-scheduling" class="quarto-xref">Theorem&nbsp;<span>15.2</span></a> (level scheduling). The cache layer is correctness-preserving because the on-disk format includes the truncated content hash from [12] in its header; a stale cache file is silently rejected and triggers a rebuild rather than returning stale data.
 </figcaption>
 </figure>
 </div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Re-entrancy guard.</strong> The composer sets a thread-local flag <code>ptd_scc_compose_in_progress</code> (declared in <code>api/c/phasic.h</code>, defined in <code>scc_compose.c</code>) before entering the level loop and clears it on exit. The hierarchical gate inside <code>ptd_expected_waiting_time</code> (src/c/phasic.c L8576–L8615) checks this flag and falls through to the monolithic path whenever it is set, so inner moment calls on synthetic graphs use monolithic elimination directly. Without this guard, the composer would recurse infinitely on the synthetic graph’s own SCC decomposition.</p>
+<p><strong>Cache format revision.</strong> Per-SCC PRCs require <code>format_revision = 2</code> of the on-disk format because the channel-indexed placeholders are encoded with the operand kind <code>PTD_PCG_PTR_EXTERNAL</code> (<code>src/c/phasic.c</code> L2871–L2879). When a load encounters <code>format_revision &lt; 2</code> it is treated as a cache miss and the file is silently overwritten on save. Top-level (non-SCC) PRCs continue to use <code>format_revision = 1</code> because they contain no external placeholders.</p>
+<p><strong>Compose-failure fall-through.</strong> If <code>ptd_compose_scc_prcs</code> fails for any reason (OOM, a per-SCC build error, a cycle in the condensation indicating a corrupted SCC decomposition), the gate clears <code>ptd_err</code> and falls through to the monolithic path. The user sees a slightly slower run, never a NaN or a missing result.</p>
+<p><strong>Reward-vector restriction.</strong> The gate explicitly requires <code>rewards == NULL</code>. For reward-transformed moments the synthetic-graph construction would need to propagate per-vertex reward state across the SCC boundary, which is not implemented. Reward-transformed calls always use the monolithic path, regardless of <code>PHASIC_HIERAR_ELIMINATION</code>.</p>
+<p><strong>MPFR fallback.</strong> The MPFR arbitrary-precision fallback of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> operates only on the monolithic path. Per-SCC PRCs do not currently have an MPFR variant; an ill-conditioned per-SCC PRC produces NaN, which the composer surfaces as a failure (triggering the monolithic fall-through above).</p>
+<p><strong>Numerical equivalence to monolithic.</strong> Composition is exact in exact arithmetic. In floating-point it differs from monolithic elimination only by the order of summation in the boundary bindings (step 2 of <a href="#def-13-scc-composition" class="quarto-xref">Definition&nbsp;<span>15.4</span></a>), which sums external inflows in canonical channel order rather than parent edge-iteration order. Empirically the per-vertex relative difference is below <span class="math inline">10^{-12}</span> on well-conditioned graphs; ill-conditioned graphs that produce different values between the two paths are exactly the ones where the monolithic path triggers MPFR fall-back.</p>
+<p><strong>Cache observability.</strong> Process-wide telemetry counters (<code>struct ptd_scc_compose_stats</code>, <code>api/c/phasic.h</code> L1429+) track cache hits, cache misses, total compose calls, total wall time, and cache-bypassed SCCs (those below <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>). Retrieve them with <code>ptd_scc_compose_stats_get(&amp;stats)</code> and reset with <code>ptd_scc_compose_stats_reset()</code>. From Python, <code>phasic.cache.param_compute_cache_info()</code> reports the disk footprint of all parameterised PRC files (both monolithic <code>&lt;hash&gt;.bin</code> and per-SCC <code>scc_&lt;hash&gt;.bin</code>).</p>
 </section>
 <section id="implementation-notes" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
@@ -810,52 +828,83 @@ Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-13
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (decomposition)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>get_scc_graphs</code></td>
-<td>L102–L154</td>
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (public entry)</td>
+<td><code>src/c/scc_compose.c</code></td>
+<td><code>ptd_compose_scc_prcs</code></td>
+<td>L547–L570</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (SCC trace recording)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>record_enhanced_scc_traces</code></td>
-<td>L1565–L1616</td>
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (core body)</td>
+<td><code>src/c/scc_compose.c</code></td>
+<td><code>ptd_compose_scc_prcs_inner</code></td>
+<td>L265–L540</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (stitching)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>stitch_scc_traces</code></td>
-<td>L1619–L2000</td>
+<td>Per-SCC worker (steps 22–38)</td>
+<td><code>src/c/scc_compose.c</code></td>
+<td><code>ptd_compose_scc_one</code></td>
+<td>L138–L260</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> (full pipeline)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>hierarchical_trace_record</code> (approximate)</td>
-<td>L2030–L2195</td>
+<td>Cache-or-compute factory</td>
+<td><code>src/c/scc_synthetic.c</code></td>
+<td><code>ptd_scc_get_or_compute_prc</code></td>
+<td>L1195–L1229</td>
 </tr>
 <tr class="odd">
-<td>Enhanced subgraph (first SCC)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>_build_first_scc_subgraph</code></td>
-<td>(internal)</td>
+<td>Synthetic graph construction (<a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>)</td>
+<td><code>src/c/scc_synthetic.c</code></td>
+<td><code>ptd_scc_build_synthetic_graph</code></td>
+<td>L509–L1110</td>
 </tr>
 <tr class="even">
-<td>Enhanced subgraph (other SCCs)</td>
-<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
-<td><code>_build_scc_subgraph</code></td>
-<td>(internal)</td>
+<td>Synth-only cache wrapper</td>
+<td><code>src/c/scc_synthetic.c</code></td>
+<td><code>ptd_synth_get_or_compute_prc</code></td>
+<td>L1128–L1190</td>
+</tr>
+<tr class="odd">
+<td>Hierarchical gate (in <code>ptd_expected_waiting_time</code>)</td>
+<td><code>src/c/phasic.c</code></td>
+<td>gate block</td>
+<td>L8576–L8615</td>
+</tr>
+<tr class="even">
+<td>Binary PRC cache (load)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_load_parameterized_reward_compute_graph</code></td>
+<td>L3672+</td>
+</tr>
+<tr class="odd">
+<td>Binary PRC cache (save)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_save_parameterized_reward_compute_graph</code></td>
+<td>L3603+</td>
+</tr>
+<tr class="even">
+<td>Telemetry struct</td>
+<td><code>api/c/phasic.h</code></td>
+<td><code>struct ptd_scc_compose_stats</code></td>
+<td>L1429–L1442</td>
+</tr>
+<tr class="odd">
+<td>Python cache introspection</td>
+<td><code>src/phasic/cache.py</code></td>
+<td><code>param_compute_cache_info</code>, <code>clear_param_compute_cache</code></td>
+<td>(module top)</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Deviations from pseudocode:</strong></p>
 <ul>
-<li>The implementation distinguishes the first SCC (which contains the starting vertex <span class="math inline">v_0</span>) from subsequent SCCs. The first SCC uses <code>_build_first_scc_subgraph</code>, which includes the starting vertex and its outgoing edges as the “upstream” context. Subsequent SCCs use <code>_build_scc_subgraph</code>, which identifies upstream vertices from edges crossing SCC boundaries.</li>
-<li>Sister vertex identification in the implementation uses vertex state vectors as keys rather than vertex identity. This is because different SCC subgraphs create independent vertex objects for the same logical vertex, so pointer equality is not available. State tuple matching handles this correctly for graphs without duplicate states. For graphs with duplicate states, vertex indices (<code>vertex_indices</code> in the trace) are used for disambiguation.</li>
-<li>The <code>min_size</code> parameter (default 50) allows small SCCs to be merged with neighboring SCCs rather than traced independently. This avoids the overhead of trace recording, caching, and stitching for trivially small components. The pseudocode does not model this optimization.</li>
-<li>Parallel trace recording is supported via <code>compute_missing_traces_parallel</code>, which uses Python multiprocessing (with spawn context to avoid JAX fork deadlocks) to record traces for independent SCCs concurrently. The pseudocode shows sequential recording.</li>
-<li>The implementation includes progress bars (via <code>tqdm</code>) for both trace recording and stitching stages, controlled by the <code>verbose</code> parameter.</li>
-<li>The stitching implementation handles edge cases where an SCC trace is missing from the cache (e.g., below <code>min_size</code> threshold) by skipping that SCC. This is not modeled in the pseudocode, which assumes all SCCs have traces.</li>
+<li>The composer splits into a thin public wrapper <code>ptd_compose_scc_prcs</code> (which handles telemetry counters and call timing) and a body <code>ptd_compose_scc_prcs_inner</code> (which contains the level loop). The split is to ensure every early-return path contributes to <code>total_compose_ns</code> and <code>compose_calls</code> even when the body fails.</li>
+<li>Level computation uses Kahn’s algorithm to obtain a forward-topological order first, then walks that order in reverse to compute longest-path-to-sink levels. The forward sort is necessary because the SCC decomposition stored by <code>ptd_isolate_starting_vertex_scc</code> is not in general a valid topological order; line 8 of the pseudocode glosses over this.</li>
+<li>Within each level, the parallel-for is <code>schedule(dynamic)</code> with the iteration count clamped to the level size and the thread count capped by <code>PHASIC_MAX_PARALLEL_SCCS</code> (when set). The cap applies only to the SCC-level parallel-for; nested OpenMP regions inside the per-SCC eliminator still see the full <code>OMP_NUM_THREADS</code>. This lets users limit SCC-level fan-out to keep memory bounded while still parallelising whatever the inner eliminator does.</li>
+<li>The <code>parent-&gt;edges</code> array is mutated by <code>ptd_graph_update_weights</code> to reflect the current <span class="math inline">\boldsymbol{\theta}</span> before composition begins. The composer assumes the caller wants this side effect (which matches the contract of <code>ptd_expected_waiting_time</code>’s monolithic path); the public API documentation in <code>api/c/phasic.h</code> makes this explicit.</li>
+<li>Step 26 of the pseudocode glosses over the fact that the parent’s external inflow to a vertex is the <em>sum</em> of all external edge weights at the current <span class="math inline">\boldsymbol{\theta}</span>, not a single edge weight. The C implementation accumulates this sum inside <code>ptd_compose_scc_one</code> (L138–L220) using a temporary buffer indexed by input-channel index from <code>meta_i</code>.</li>
 </ul>
+<p><strong>Relationship to the Python <code>EliminationTrace</code> hierarchical pipeline:</strong> A separate Python module <code>src/phasic/hierarchical_trace_cache.py</code> implements an <em>alternative</em> hierarchical pipeline based on Python <code>EliminationTrace</code> (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>) stitching, recording one trace per SCC on an <em>enhanced subgraph</em> (the SCC plus a one-hop fringe of upstream and downstream vertices) and concatenating the per-SCC traces into a single global trace. That pipeline is consumed by JAX trace-replay workflows for autodiff and <code>jit</code>/<code>vmap</code> integration. The two pipelines are independent: the C composer formalised in this file is not invoked when the Python pipeline runs, and vice versa. The C composer and the Python pipeline can share their on-disk caches indirectly through the graph content hash from [12]: a top-level trace cache hit short-circuits the Python pipeline entirely, while a per-SCC PRC cache hit short-circuits an inner build of the C composer. They do not share cache <em>files</em>.</p>
+<p><strong>Python adapter:</strong> <code>src/phasic/cache.py</code> exposes <code>param_compute_cache_info()</code> and <code>clear_param_compute_cache()</code> for introspection and maintenance of both the top-level and per-SCC PRC caches (they live in the same directory). There is no Python-level handle to <code>ptd_compose_scc_prcs</code> itself; the composer is invoked transparently through <code>ptd_expected_waiting_time</code> when the environment is configured.</p>
 </section>
 <section id="symbol-index" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
@@ -874,69 +923,74 @@ Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-13
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">b_i</span></td>
-<td>Boundary size of SCC <span class="math inline">C_i</span></td>
-<td><a href="#thm-13-complexity" class="quarto-xref">Theorem&nbsp;<span>15.2</span></a></td>
+<td><span class="math inline">a_i^\dagger</span></td>
+<td>Synthetic absorbing vertex of SCC <span class="math inline">C_i</span></td>
+<td><a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\Delta</span></td>
-<td>Operation offset for index remapping</td>
-<td><a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
+<td><span class="math inline">\widehat{G}_i</span></td>
+<td>Synthetic subgraph for SCC <span class="math inline">C_i</span></td>
+<td><a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">E_i^+</span></td>
-<td>Edges of enhanced subgraph</td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">\mathcal{L}_l</span></td>
+<td>Set of SCCs at level <span class="math inline">l</span></td>
+<td><a href="#def-13-scc-level" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">G_i^+</span></td>
-<td>Enhanced subgraph for SCC <span class="math inline">C_i</span></td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">L</span></td>
+<td>Maximum SCC level in <span class="math inline">G^{\mathrm{SCC}}</span></td>
+<td><a href="#def-13-scc-level" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\mathcal{T}^*</span></td>
-<td>Stitched trace</td>
-<td><a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
+<td><span class="math inline">\ell(C_i)</span></td>
+<td>Level of SCC <span class="math inline">C_i</span> (longest path to sink)</td>
+<td><a href="#def-13-scc-level" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\mathcal{T}_i</span></td>
-<td>SCC-local trace for component <span class="math inline">C_i</span></td>
-<td><a href="#def-13-scc-local-trace" class="quarto-xref">Definition&nbsp;<span>15.2</span></a></td>
+<td><span class="math inline">n_i</span></td>
+<td>Number of vertices in SCC <span class="math inline">C_i</span></td>
+<td><a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">u</span></td>
-<td>Number of unique SCC structures</td>
-<td><a href="#thm-13-complexity" class="quarto-xref">Theorem&nbsp;<span>15.2</span></a></td>
+<td><span class="math inline">N_i</span></td>
+<td>Length of per-SCC PRC <span class="math inline">\widehat{P}_i</span></td>
+<td><a href="#thm-13-complexity" class="quarto-xref">Theorem&nbsp;<span>15.3</span></a></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">V_i^+</span></td>
-<td>Vertices of enhanced subgraph</td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">\widehat{P}_i</span></td>
+<td>Per-SCC parameterised reward-compute graph</td>
+<td><a href="#def-13-per-scc-prc" class="quarto-xref">Definition&nbsp;<span>15.2</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">V_i^{\text{down}}</span></td>
-<td>Downstream boundary vertices</td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">\mathbf{r}^{\mathrm{comp}}</span></td>
+<td>Composition result vector</td>
+<td><a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">V_i^{\text{up}}</span></td>
-<td>Upstream boundary vertices</td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">\mathbf{r}^{\mathrm{mono}}</span></td>
+<td>Monolithic-elimination result vector</td>
+<td><a href="#thm-13-synthetic-correctness" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">W_i^+</span></td>
-<td>Weights of enhanced subgraph</td>
-<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><span class="math inline">s_i^\dagger</span></td>
+<td>Synthetic source vertex of SCC <span class="math inline">C_i</span></td>
+<td><a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\tau_{\mathrm{cache}}</span></td>
+<td>Min SCC size to cache (<code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>)</td>
+<td><a href="#def-13-per-scc-prc" class="quarto-xref">Definition&nbsp;<span>15.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\widehat{V}_i</span></td>
+<td>Vertex set of <span class="math inline">\widehat{G}_i</span></td>
+<td><a href="#def-13-synthetic-subgraph" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
-<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
-<div id="ref-roikjer2022" class="csl-entry" role="listitem">
-Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022. <span>“Graph-Based Algorithms for Phase-Type Distributions.”</span> <em>Statistics and Computing</em> 32 (6): 85. <a href="https://doi.org/10.1007/s11222-022-10155-6">https://doi.org/10.1007/s11222-022-10155-6</a>.
-</div>
-</div>
 </section>
 
 </main> <!-- /main -->

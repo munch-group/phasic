@@ -4,7 +4,7 @@
     "href": "pages/tutorial/visualize.html",
     "title": "Visualizing state space",
     "section": "",
-    "text": "from phasic import Graph, with_ipv # ALWAYS import phasic first\nimport sys\nimport numpy as np\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n_pytest = \"pytest\" in sys.modules\n@with_ipv([1, 1])\ndef mesh(state, max_val=2):\n    transitions = []\n    for i in range(state.size):\n        if state[i] &lt;= max_val:\n            child = state.copy()\n            child[i] += 1\n            trans = [child, state.sum()]\n            transitions.append(trans)\n    return transitions\n\ngraph = Graph(mesh)\ngraph.plot()\nChange node separation from the default of 1:\ngraph.plot(nodesep=0.5)\nAlso change the separation of nodes with different rank from the default of 1:\ngraph.plot(nodesep=0.5, ranksep=0.5)\nPlot node rank top to bottom (TB) rather than default left to right (LR):\ngraph.plot(rankdir=\"TB\", ranksep=0.3)\nWidth of edges, size of font, unicolor, and size of figure:\ngraph.plot(size=(7, 5), fontsize=30, rainbow=False, penwidth=5)",
+    "text": "from phasic import Graph, with_ipv # ALWAYS import phasic first\nimport sys\nimport numpy as np\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n_pytest = \"pytest\" in sys.modules\n@with_ipv([1, 1])\ndef mesh(state, max_val=2):\n    transitions = []\n    for i in range(state.size):\n        if state[i] &lt;= max_val:\n            child = state.copy()\n            child[i] += 1\n            trans = [child, state.sum()]\n            transitions.append(trans)\n    return transitions\n\ngraph = Graph(mesh)\ngraph.plot()\nChange node separation from the default of 1:\ngraph.plot(nodesep=0.5)\nAlso change the separation of nodes with different rank from the default of 1:\ngraph.plot(nodesep=0.5, ranksep=0.5)\nPlot node rank top to bottom (TB) rather than default left to right (LR):\ngraph.plot(rankdir=\"TB\", ranksep=0.3)\nWidth of edges, size of font, unicolor, and size of figure:\ngraph.plot(size=(7, 5), fontsize=30, rainbow=False, penwidth=5)\ngraph.plot(size=(7, 5), \n           fontsize=20, rainbow=False, label_fmt=False, taillabel=True,\n           rate_fmt=lambda rate: f'''&lt; &lt;table bgcolor=\"white\" border=\"0\"&gt;&lt;tr&gt;&lt;td&gt;{rate}&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; &gt;''',\n           edge_attr=dict(penwidth=3, labelfontcolor='blue', labeldistance=3, labelangle=0),\n           node_attr=dict(shape='circle', fillcolor='white', penwidth=2.5, fixedsize=True, width=1)\n           )",
     "crumbs": [
       "Documentation",
       "Modeling",
@@ -28,7 +28,7 @@
     "href": "pages/tutorial/visualize.html#subgraphs",
     "title": "Visualizing state space",
     "section": "Subgraphs",
-    "text": "Subgraphs\n\ndef fun(state):\n    return f'First index\\nvalue: {state[0]}'\n\ngraph.plot(by_state=fun)\n\n\n\n\n\n\n\n\n\ndef fun(index):\n    return f\"{'Uneven' if index % 2 else 'Even'}\\nvertex index\"\n\ngraph.plot(by_index=fun)",
+    "text": "Subgraphs\n\ndef fun(state):\n    return f'First index\\nvalue: {state[0]}'\n\ngraph.plot(by_state=fun)\n\n\ndef fun(index):\n    return f\"{'Uneven' if index % 2 else 'Even'}\\nvertex index\"\n\ngraph.plot(by_index=fun)",
     "crumbs": [
       "Documentation",
       "Modeling",
