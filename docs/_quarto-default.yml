@@ -124,12 +124,10 @@ website:
             - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/laplace.ipynb
             - pages/tutorial/finite-markov-chains.ipynb
-            # - pages/tutorial/hex-grid.ipynb          
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
-            # - pages/tutorial/trace-and-jax-caching.ipynb
             - pages/tutorial/trace-and-jax-caching-c-path.ipynb
             - pages/tutorial/method-of-moments.ipynb
             - pages/tutorial/svgd-basics.ipynb
@@ -140,48 +138,18 @@ website:
         - section: "Computation"
           contents:
             - pages/tutorial/configuration.ipynb
-            - pages/tutorial/scc-decomposition.ipynb
-            - pages/tutorial/sharing.ipynb
-            - pages/tutorial/model-hub.ipynb
             - pages/tutorial/mpfr.ipynb
+            - pages/tutorial/scc-decomposition.ipynb
             - pages/tutorial/distributed.ipynb
+            - pages/tutorial/model-hub.ipynb
         - section: "Deep dives"
           contents:
             - pages/topics/vscodenb.ipynb
             - pages/topics/caching_guide.qmd
             - pages/topics/state-indexer.ipynb
-            # - pages/tutorials/somecode.ipynb
-
-        # - section: "Popgen models"
-        #   contents:
-        #     - pages/popgen/python/demography/coalescent-epochs.ipynb
-
-        # - section: "Internals"
-        #   contents:
-        #     - pages/background/math_and_alg.qmd
-
-        #     - pages/internals/architecture.qmd
-        #     - pages/internals/call_tree.qmd
-            
-        #     - pages/internals/MPFR_FINAL_STATUS.md
-            
-        #     - pages/internals/caching_architecture.md
-        #     - pages/internals/caching.qmd
-
-        #     - pages/internals/python_cpp_bridge_jax_integration.md
-        #     - pages/internals/ffi_and_openmp.qmd
-
-        # #     - pages/internals/trace_ipfs.ipynb
-        # #     - pages/internals/trace_elimination_retracing.md
-
-        # #     - pages/internals/svgd.ipynb
-        # #     - pages/internals/svgd_trace_eval.qmd
-        # #     - pages/internals/preconditioning.md
-        # #     - pages/internals/svgd_step_sizes.qmd
-        # #     - pages/internals/svgd_learning_rate.qmd
-
-        #     - href: https://github.com/munch-group/phasic/issues
-        #       text: Issue Tracker
+      
+        - href: https://github.com/munch-group/phasic/issues
+          text: Issue Tracker
 
 
 lightbox: true

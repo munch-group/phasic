@@ -3,7 +3,7 @@ Tests XXXX
 """
 
 
-from phasic import Graph, with_ipv # ALWAYS import phasic first to set jax backend correctly
+from phasic import Graph, with_ipv
 import numpy as np
 from pytest import approx, raises
 
