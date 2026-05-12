@@ -319,144 +319,13 @@ def configure_jax_for_environment(env_info: EnvironmentInfo, enable_x64: bool = 
     return config
 
 
-# ============================================================================
-# Module-level state (will be managed by __init__.py)
-# ============================================================================
-
-_global_parallel_config: ParallelConfig | None = None
-
-
-def get_parallel_config() -> ParallelConfig | None:
-    """
-    Get current parallel configuration.
-
-    Returns
-    -------
-    ParallelConfig or None
-        Current configuration, or None if not initialized
-    """
-    return _global_parallel_config
-
-
-def set_parallel_config(config: ParallelConfig | None) -> None:
-    """
-    Set global parallel configuration (internal use).
-
-    Parameters
-    ----------
-    config : ParallelConfig or None
-        Configuration to set
-    """
-    global _global_parallel_config
-    _global_parallel_config = config
-
-
-# ============================================================================
-# Context Managers for Temporary Configuration
-# ============================================================================
-
-class parallel_config:
-    """
-    Context manager for temporary parallel configuration changes.
-
-    Allows users to temporarily override parallel configuration for a code block,
-    then restore the previous configuration on exit.
-
-    Parameters
-    ----------
-    strategy : str, optional
-        Parallelization strategy: 'pmap', 'vmap', or 'none'
-    device_count : int, optional
-        Number of devices to use
-
-    Examples
-    --------
-    >>> import phasic as pta
-    >>>
-    >>> # Initialize with default configuration
-    >>> pta.init_parallel()
-    >>>
-    >>> # Temporarily disable parallelization for debugging
-    >>> with pta.parallel_config(strategy='none'):
-    ...     result = g.pdf_batch(times)  # Runs serially
-    >>>
-    >>> # Back to parallel execution
-    >>> result = g.pdf_batch(times)  # Uses original config
-
-    >>> # Temporarily use more aggressive parallelization
-    >>> with pta.parallel_config(strategy='pmap', device_count=8):
-    ...     result = g.pdf_batch(large_batch)
-    """
-
-    def __init__(self, strategy: str | None = None, device_count: int | None = None) -> None:
-        self.new_strategy = strategy
-        self.new_device_count = device_count
-        self.previous_config: ParallelConfig | None = None
-
-    def __enter__(self) -> ParallelConfig:
-        # Save current config
-        self.previous_config = get_parallel_config()
-
-        # Create new config based on previous or defaults
-        if self.previous_config:
-            new_config = ParallelConfig(
-                device_count=self.new_device_count if self.new_device_count is not None else self.previous_config.device_count,
-                local_device_count=self.previous_config.local_device_count,
-                strategy=self.new_strategy if self.new_strategy is not None else self.previous_config.strategy,
-                env_info=self.previous_config.env_info,
-                devices=self.previous_config.devices
-            )
-        else:
-            # No previous config - create minimal config
-            new_config = ParallelConfig(
-                device_count=self.new_device_count if self.new_device_count is not None else 1,
-                local_device_count=1,
-                strategy=self.new_strategy if self.new_strategy is not None else 'none',
-                env_info=None,
-                devices=[]
-            )
-
-        # Set new config
-        set_parallel_config(new_config)
-        return new_config
-
-    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: Any) -> bool:
-        # Restore previous config
-        set_parallel_config(self.previous_config)
-        return False
-
-
-class disable_parallel:
-    """
-    Context manager to temporarily disable parallelization.
-
-    Convenience wrapper around parallel_config(strategy='none').
-    Useful for debugging or when you need predictable serial execution.
-
-    Examples
-    --------
-    >>> import phasic as pta
-    >>>
-    >>> # Initialize with parallel configuration
-    >>> pta.init_parallel()
-    >>>
-    >>> # Temporarily disable for debugging
-    >>> with pta.disable_parallel():
-    ...     result = g.pdf_batch(times)  # Runs serially
-    ...     print(f"Result: {result}")
-    >>>
-    >>> # Back to parallel execution
-    >>> result = g.pdf_batch(times)  # Uses parallel config
-    """
-
-    def __init__(self) -> None:
-        self.ctx = parallel_config(strategy='none')
-
-    def __enter__(self) -> ParallelConfig:
-        return self.ctx.__enter__()
-
-    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: Any) -> bool:
-        return self.ctx.__exit__(exc_type, exc_val, exc_tb)
+# Note: the previous parallel_config / disable_parallel context
+# managers, and the _global_parallel_config / get_parallel_config /
+# set_parallel_config helpers, were removed in the config
+# refactor. The SVGD particle strategy is now configured via
+# phasic.configure(svgd_strategy='auto'|'pmap'|'vmap'|'none'), and
+# the same `with configure(...)` block provides the
+# temporary-override semantics the old context managers offered.
 
 
 __all__ = [
@@ -464,8 +333,4 @@ __all__ = [
     'ParallelConfig',
     'detect_environment',
     'configure_jax_for_environment',
-    'get_parallel_config',
-    'set_parallel_config',
-    'parallel_config',
-    'disable_parallel',
 ]

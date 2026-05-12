@@ -177,7 +177,14 @@ struct ptd_graph {
     enum ptd_edge_mode edge_mode;  // Locked after first non-IPV edge added
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
-    struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // MPFR version (cached)
+    /* DEPRECATED (MPFR-A-WP-3): the MPFR-precision compute
+     * graph. Used only when PHASIC_USE_MPFR_LEGACY=1 selects
+     * the old re-elimination path. The default (and recommended)
+     * path is now the MPFR-A consumer that operates on the
+     * regular reward_compute_graph at high precision. This
+     * field will be removed once the legacy opt-in is no
+     * longer needed. */
+    struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // DEPRECATED: see MPFR-A
     bool was_dph;
 
     /* Elimination ordering strategy */
@@ -473,6 +480,32 @@ void ptd_parameterized_reward_compute_graph_destroy(
 );
 
 /**
+ * Resolve the on-disk cache root directory.
+ *
+ * Honours the ``PHASIC_CACHE_DIR`` environment variable: if set,
+ * its value is used verbatim as the cache root. Otherwise the
+ * default ``$HOME/.phasic_cache`` is used.
+ *
+ * The resolved path is written into ``buf``. The directory is
+ * NOT created — callers that need to write into it should ensure
+ * the directory exists themselves.
+ *
+ * On SLURM-style clusters, set ``PHASIC_CACHE_DIR`` to a path on
+ * a shared filesystem (e.g. ``$WORK/.phasic_cache``) so workers
+ * and the orchestrator share cache entries. The shared filesystem
+ * must support POSIX ``rename(2)`` semantics for the atomic
+ * write-then-rename used by ``ptd_save_parameterized_reward_compute_graph``
+ * to be reliable. NFSv3+, Lustre, and ext4 are fine; some GPFS
+ * configurations are not.
+ *
+ * @param buf Output buffer (should be at least ``PATH_MAX`` bytes).
+ * @param buf_len Length of ``buf``.
+ * @return 0 on success, -1 on error (sets ``ptd_err`` —
+ *         typically because the resolved path is too long).
+ */
+int ptd_cache_root_dir(char *buf, size_t buf_len);
+
+/**
  * Serialise a parameterised reward compute graph to disk.
  *
  * Walks the commands, encodes each pointer (fromT, toT, multiplierptr)
@@ -518,6 +551,66 @@ struct ptd_desc_reward_compute_parameterized *
 ptd_load_parameterized_reward_compute_graph(
         const char *path,
         const struct ptd_graph *graph);
+
+/**
+ * v2 save: write a parameterised reward compute graph with
+ * EXTERNAL pointer support.
+ *
+ * Like ptd_save_parameterized_reward_compute_graph, but takes an
+ * additional list of external anchors. Any pointer in ``compute``
+ * that matches an entry in ``external_anchors`` is encoded as
+ * PTD_PCG_PTR_EXTERNAL with the matching index. All other
+ * pointers are encoded as MEM/EDGE/NULL as in v1.
+ *
+ * The on-disk file is written as format revision 2 if
+ * ``n_external > 0``, or as revision 1 (v1-equivalent) otherwise.
+ *
+ * @param path Destination cache file.
+ * @param compute Symbolic compute graph to save.
+ * @param graph The graph from which compute was built (typically
+ *              the synthetic graph). Used to resolve EDGE pointers.
+ * @param external_anchors Array of double* pointers; pointers in
+ *              compute matching one of these get encoded as
+ *              EXTERNAL with the matching array index. May be
+ *              NULL if n_external == 0.
+ * @param n_external Length of external_anchors.
+ * @return 0 on success, -1 on error (sets ptd_err).
+ */
+int ptd_save_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external);
+
+/**
+ * v2 load: read a parameterised reward compute graph with
+ * EXTERNAL pointer support.
+ *
+ * Accepts both rev-1 and rev-2 files. Rev-2 files containing
+ * EXTERNAL pointers require external_table to be non-NULL with
+ * sufficient n_external; otherwise the load fails.
+ *
+ * @param path Cache file path.
+ * @param graph The graph to bind EDGE pointers against (typically
+ *              a freshly-rebuilt synthetic graph at load time).
+ * @param external_table Array of doubles. EXTERNAL pointers in
+ *              the file resolve to &external_table[index]. May be
+ *              NULL if n_external == 0 and the file contains no
+ *              EXTERNAL pointers. Caller owns; must outlive the
+ *              returned compute graph.
+ * @param n_external Length of external_table.
+ * @return Newly allocated compute graph (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy), or
+ *         NULL on cache miss / corrupt file / version mismatch /
+ *         missing external_table for a rev-2 file.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external);
 
 // ============================================================================
 // Symbolic Expression System for Efficient Parameter Evaluation
@@ -976,6 +1069,384 @@ struct ptd_scc_graph *ptd_find_strongly_connected_components(struct ptd_graph *g
 struct ptd_scc_vertex **ptd_scc_graph_topological_sort(struct ptd_scc_graph *graph);
 
 void ptd_scc_graph_destroy(struct ptd_scc_graph *scc_graph);
+
+/**
+ * Reference to a parent-graph edge that crosses the boundary of an SCC.
+ *
+ * Used by ptd_scc_synthetic_metadata to record where the parent's
+ * external edges live so the composer (WP-5) can wire them to the
+ * synthetic graph's placeholder edges.
+ */
+struct ptd_scc_external_edge_ref {
+    size_t parent_vertex_idx;  /* original-graph vertex index */
+    size_t parent_edge_idx;    /* index into that vertex's edges[] */
+};
+
+/**
+ * Per-channel info for one external out-edge from a downstream-
+ * connecting vertex of an SCC.
+ *
+ * One channel = one parent-graph edge from a downstream-connecting
+ * vertex `d_j` of the SCC to a parent vertex `w` outside the SCC.
+ * Each channel gets its own synthetic absorbing vertex (the
+ * "per-channel s_abs"), with two synthetic edges:
+ *
+ *   - Type C: ``d_j_synth → s_abs_for_channel`` with the parent's
+ *     external edge weight as its (live) weight. The parent edge
+ *     weight is set on the synthetic graph's edge slot before each
+ *     compose run.
+ *
+ *   - Phantom: ``s_abs_for_channel → phantom_absorbing`` with a
+ *     weight that the composer sets to ``1 / result[w_in_parent]``
+ *     so that the per-SCC elimination produces
+ *     ``result[s_abs_for_channel] = result[w_in_parent]``. This
+ *     injects the downstream value into this SCC's elimination
+ *     via the standard phase-type identity
+ *     ``result[v] = 1/rate(v) + Σ prob·result[child]``.
+ */
+struct ptd_scc_channel_info {
+    /* Parent-graph edge that this channel represents. */
+    size_t parent_vertex_idx;     /* the d_j vertex in the parent */
+    size_t parent_edge_idx;       /* index into d_j's edges[] */
+
+    /* Synthetic-graph vertex indices for this channel. */
+    size_t d_j_synth_idx;         /* the downstream-connecting vertex */
+    size_t s_abs_synth_idx;       /* the per-channel absorbing vertex */
+
+    /* Synthetic-graph edge indices (into the from-vertex's
+     * edges[]) for the Type C edge and the phantom edge.
+     * The composer reads/writes weights at these slots. */
+    size_t type_c_edge_idx;       /* d_j_synth → s_abs_for_channel */
+    size_t phantom_edge_idx;      /* s_abs_for_channel → phantom (always 0; only one out-edge) */
+};
+
+/**
+ * Vertex categorisation and parent-mapping for a synthetic SCC graph.
+ *
+ * The synthetic graph contains, in canonical layout:
+ *   index 0:                            synthetic source vertex
+ *   indices [1, 1+n_upstream_connecting):
+ *                                       upstream-connecting vertices
+ *   indices [1+n_upstream_connecting,
+ *            1+n_upstream_connecting+n_internal_only):
+ *                                       pure-internal vertices
+ *   indices [1+n_upstream_connecting+n_internal_only,
+ *            1+n_uc+n_io+n_dc):         downstream-connecting vertices
+ *   indices [1+n_uc+n_io+n_dc,
+ *            1+n_uc+n_io+n_dc+n_channels):
+ *                                       per-channel absorbing vertices
+ *                                       (one per external out-edge)
+ *   index n_vertices - 1:               phantom absorbing vertex
+ *                                       (only true absorbing in graph)
+ *
+ * `parent_indices[k]` is the original-graph vertex index of the
+ * synthetic-graph vertex at synthetic-graph index k, or SIZE_MAX
+ * for the synthetic source, per-channel absorbing vertices, and
+ * the phantom absorbing vertex (none have parent counterparts).
+ *
+ * The per-channel absorbing layout — one synthetic vertex per
+ * external out-edge — is what makes downstream-result injection
+ * work without breaking cross-parent reuse. Two parents with
+ * identical SCC internals AND identical external fan-out shape
+ * (same `(d_j, channel-position)` count per d_j) produce
+ * identical synthetic graphs.
+ */
+struct ptd_scc_synthetic_metadata {
+    /* The source SCC's index in the parent's SCC decomposition. */
+    size_t scc_index;
+
+    /* Total number of vertices in the synthetic graph. Equals
+     * 1 + n_upstream_connecting + n_internal_only +
+     * n_downstream_connecting + n_channels + 1
+     * (source + internals + per-channel absorbings + phantom). */
+    size_t n_vertices;
+
+    /* Per-category counts. */
+    size_t n_upstream_connecting;
+    size_t n_internal_only;
+    size_t n_downstream_connecting;
+
+    /* Number of external out-channels (sum over all
+     * downstream-connecting vertices of their external out-edge
+     * counts). One per-channel absorbing vertex per channel. */
+    size_t n_channels;
+
+    /* Mapping from synthetic-graph vertex index to parent-graph
+     * vertex index. Length == n_vertices. SIZE_MAX for synthetic
+     * source, per-channel absorbing vertices, and phantom. */
+    size_t *parent_indices;
+
+    /* Per-synthetic-vertex external edge references.
+     *
+     * Both arrays are indexed by synthetic-graph vertex index
+     * (length n_vertices).
+     *
+     * external_in_edges[v_synth] lists every parent-graph edge
+     * whose target is the parent-vertex corresponding to
+     * v_synth and whose source is OUTSIDE the SCC. Non-empty
+     * exactly for upstream-connecting vertices.
+     *
+     * external_out_edges[v_synth] lists every parent-graph edge
+     * whose source is the parent-vertex corresponding to v_synth
+     * and whose target is OUTSIDE the SCC. Non-empty exactly for
+     * downstream-connecting vertices.
+     */
+    struct ptd_scc_external_edge_ref **external_in_edges;
+    size_t *external_in_edges_lengths;  /* length: n_vertices */
+    struct ptd_scc_external_edge_ref **external_out_edges;
+    size_t *external_out_edges_lengths;  /* length: n_vertices */
+
+    /* Per-channel info — one entry per external out-channel.
+     * Length == n_channels. The composer iterates this array,
+     * setting Type C edge weights from parent values and
+     * phantom edge weights from downstream results.
+     *
+     * Channels are ordered in the same order they were
+     * encountered while walking downstream-connecting vertices
+     * (in canonical synthetic order) and their external_out_edges
+     * lists. */
+    struct ptd_scc_channel_info *channels;
+};
+
+/**
+ * Build a self-contained synthetic graph for one SCC of a parent.
+ *
+ * Output topology (per ``ptd_scc_synthetic_metadata``):
+ *   - Synthetic source vertex.
+ *   - All internal vertices of the SCC (state vectors copied,
+ *     internal edges copied verbatim including aux-style
+ *     coefficients_length==0 edges).
+ *   - One synthetic absorbing vertex per external out-channel
+ *     (i.e. per parent-graph edge ``d_j -> w`` where ``d_j`` is
+ *     in the SCC and ``w`` is outside).
+ *   - One phantom absorbing vertex (the only true absorbing
+ *     vertex in the graph; result == 0 by structural fact).
+ *
+ * Edge structure:
+ *   - Synthetic source -> upstream-connecting (Type A): placeholder
+ *     coefficient (length param_length, first slot 1.0).
+ *   - Internal -> internal: copied verbatim from parent.
+ *   - Downstream-connecting -> per-channel absorbing (Type C):
+ *     placeholder coefficient (length param_length, first slot
+ *     1.0). The Type C edge weight slot is what the composer
+ *     overwrites with the parent's actual external edge weight
+ *     before each compose run.
+ *   - Per-channel absorbing -> phantom (one outgoing edge each):
+ *     placeholder coefficient. The composer overwrites this
+ *     edge's weight slot with ``1/result[w_in_parent]`` so
+ *     ``result[s_abs_for_channel] = result[w_in_parent]`` (the
+ *     phase-type identity ``result[v] = 1/rate(v)`` for an
+ *     absorbing-with-one-child vertex).
+ *
+ * Cross-parent invariance: synthetic-graph topology depends only
+ * on the SCC's intrinsic content (internal structure + per-d_j
+ * external out-edge count). Two parents matching on those
+ * properties produce identical synthetic graphs and identical
+ * content hashes. The parent-specific values (Type C weights,
+ * phantom weights) flow through edge weight slots at compose
+ * time, not through the cached PRC structure.
+ *
+ * Vertex ordering is canonical (lexicographic state vector,
+ * out-edge-signature tiebreak for duplicates). The returned
+ * graph can be passed to
+ * ptd_graph_ex_absorbation_time_comp_graph_parameterized without
+ * modification.
+ *
+ * @param scc_graph     SCC decomposition of the parent graph.
+ * @param scc_index     Index of the SCC to wrap. Must be < scc_graph->vertices_length.
+ * @param metadata_out  Receives a newly allocated metadata struct.
+ *                      Caller owns; destroy via
+ *                      ptd_scc_synthetic_metadata_destroy. NULL on error.
+ * @return Newly allocated synthetic graph (caller owns; destroy
+ *         via ptd_graph_destroy), or NULL on error (sets ptd_err).
+ */
+struct ptd_graph *ptd_scc_build_synthetic_graph(
+        const struct ptd_scc_graph *scc_graph,
+        size_t scc_index,
+        struct ptd_scc_synthetic_metadata **metadata_out);
+
+/**
+ * Free a metadata struct produced by ptd_scc_build_synthetic_graph.
+ * Safe to call with NULL.
+ */
+void ptd_scc_synthetic_metadata_destroy(
+        struct ptd_scc_synthetic_metadata *metadata);
+
+/**
+ * Collect external-anchor pointers for a synthetic graph.
+ *
+ * Walks the synthetic graph and produces a flat array of
+ * (double *) pointers: one per Type A edge (synthetic source ->
+ * upstream-connecting) and one per Type C edge (downstream-
+ * connecting -> synthetic absorbing). Each pointer is the address
+ * of the placeholder edge's coefficients[0] slot.
+ *
+ * The returned array is suitable for passing as ``external_anchors``
+ * to ptd_save_parameterized_reward_compute_graph_ex.
+ *
+ * Anchor ordering (deterministic):
+ *   1. Type A edges first, in synthetic-source-edge order.
+ *   2. Type C edges next, in the order encountered while walking
+ *      vertex synthetic-indices 1..n-2 and collecting edges that
+ *      target the synthetic absorbing vertex (last index).
+ *
+ * @param synth Synthetic graph produced by
+ *              ptd_scc_build_synthetic_graph.
+ * @param meta  Metadata for the synthetic graph (used to identify
+ *              the synthetic absorbing vertex's index). May be
+ *              NULL; if NULL, the absorbing vertex is taken to
+ *              be at index synth->vertices_length - 1.
+ * @param n_anchors_out Receives the number of anchors written.
+ * @return Newly allocated array of double* (caller must free()),
+ *         or NULL if the graph is empty / on OOM (with ptd_err
+ *         set on OOM).
+ */
+double **ptd_scc_collect_external_anchors(
+        const struct ptd_graph *synth,
+        const struct ptd_scc_synthetic_metadata *meta,
+        size_t *n_anchors_out);
+
+/**
+ * Get-or-compute the per-SCC PRC, with disk caching.
+ *
+ * For the SCC at ``scc_index`` of ``scc_graph``, returns the
+ * parameterised reward compute graph for the SCC's synthetic
+ * graph (built via ptd_scc_build_synthetic_graph). The result is
+ * cached on disk under
+ * ``~/.phasic_cache/parameterized_reward_compute/scc_<hash>.bin``,
+ * where <hash> is ptd_graph_content_hash of the synthetic graph.
+ *
+ * On cold cache, builds the synthetic graph, eliminates it, saves
+ * the PRC. On warm cache, loads from disk. Either way, returns
+ * the synthetic graph (caller owns; destroy via
+ * ptd_graph_destroy) and the metadata (caller owns; destroy via
+ * ptd_scc_synthetic_metadata_destroy) so the composer can
+ * resolve the PRC's pointer references.
+ *
+ * Set PHASIC_DISABLE_CACHE=1 to skip both load and save.
+ *
+ * @param scc_graph     SCC decomposition of the parent graph.
+ * @param scc_index     Index of the SCC. Must be < scc_graph->vertices_length.
+ * @param synth_out     Receives the synthetic graph (caller owns).
+ *                      The returned PRC's pointers reference this
+ *                      graph's edge weights, so synth_out must
+ *                      outlive the PRC.
+ * @param metadata_out  Receives the synthetic-graph metadata
+ *                      (caller owns).
+ * @return Newly allocated PRC (caller destroys via
+ *         ptd_parameterized_reward_compute_graph_destroy), or
+ *         NULL on error. On NULL, *synth_out and *metadata_out
+ *         are also NULL.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_scc_get_or_compute_prc(
+        const struct ptd_scc_graph *scc_graph,
+        size_t scc_index,
+        struct ptd_graph **synth_out,
+        struct ptd_scc_synthetic_metadata **metadata_out);
+
+/**
+ * WP-5: SCC composition. Compute the parent-level expected
+ * waiting time vector by composing per-SCC PRCs.
+ *
+ * Walks SCCs in reverse-topological order (sink-first). For
+ * each SCC: builds (or retrieves cached) the synthetic graph
+ * + PRC, sets per-channel placeholder edge weights based on
+ * the parent's external edge weights and downstream-SCC results
+ * already computed, runs the per-SCC elimination, copies the
+ * results into the parent-wide result vector.
+ *
+ * The result is numerically equivalent to running the
+ * monolithic eliminator on the parent graph at the same theta.
+ *
+ * The parent graph's edges are updated to reflect ``theta``
+ * (via ``ptd_graph_update_weights``) before composition, so
+ * the parent's ``edge->weight`` slots can be read for Type C
+ * bindings.
+ *
+ * @param parent     Parent graph. Must be parameterised.
+ *                   ``parent->edges`` are mutated to reflect
+ *                   theta after the call.
+ * @param scc_graph  Parent's SCC decomposition.
+ * @param theta      Parameter vector. Length must equal
+ *                   ``parent->param_length``.
+ * @param theta_len  Length of theta.
+ * @return Newly allocated result vector of length
+ *         ``parent->vertices_length`` (caller frees), or NULL
+ *         on error (sets ptd_err).
+ */
+double *ptd_compose_scc_prcs(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph,
+        const double *theta,
+        size_t theta_len);
+
+/* SLURM-WP-4: synth-only cache-or-compute.
+ *
+ * Operates on an already-built synthetic SCC graph (from
+ * ptd_scc_build_synthetic_graph, or from JSON deserialisation
+ * in a distributed worker). Builds the cache path from the
+ * synth's content hash, tries to load, and on miss runs the
+ * parameterised eliminator and saves the result.
+ *
+ * Used by ptd_scc_get_or_compute_prc (after the synth-build
+ * step) and intended for direct use by the standalone worker
+ * CLI in SLURM distributed mode (SLURM-WP-3).
+ *
+ * @param synth Synthetic SCC graph. Must be non-NULL.
+ * @return PRC on success (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy unless
+ *         installed on a graph), NULL on error (sets ptd_err).
+ *         The synth itself is NOT freed by this function.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_synth_get_or_compute_prc(struct ptd_graph *synth);
+
+/* Thread-local re-entrancy guard for the composer. While
+ * ptd_compose_scc_prcs is running on the current thread, inner
+ * ptd_expected_waiting_time calls on synthetic SCC subgraphs
+ * must NOT take the hierarchical path themselves. Defined in
+ * scc_compose.c. */
+#if defined(__APPLE__) || defined(__linux__)
+#define PTD_SCC_TLS __thread
+#else
+#define PTD_SCC_TLS
+#endif
+extern PTD_SCC_TLS int ptd_scc_compose_in_progress;
+
+/* WP-8: telemetry for the SCC composer.
+ *
+ * The composer maintains process-wide counters of cache hits,
+ * cache misses, total compose calls, and cumulative wall time
+ * spent inside ptd_compose_scc_prcs. Counters are atomic and
+ * safe to read concurrently with composer activity.
+ *
+ * Cache hits are counted when ptd_scc_get_or_compute_prc loads
+ * a per-SCC PRC from disk; misses are counted when it falls
+ * through to recompute. Counters reset on
+ * ptd_scc_compose_stats_reset().
+ */
+struct ptd_scc_compose_stats {
+    uint64_t cache_hits;
+    uint64_t cache_misses;
+    uint64_t compose_calls;
+    uint64_t total_compose_ns;
+    /* SCCs whose synth was below PHASIC_MIN_SCC_SIZE_TO_CACHE
+     * and so bypassed the cache entirely (no load attempt, no
+     * save). These are NOT counted as hits or misses. */
+    uint64_t cache_bypassed;
+};
+
+void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out);
+void ptd_scc_compose_stats_reset(void);
+
+/* Internal helpers used by ptd_scc_get_or_compute_prc and
+ * ptd_compose_scc_prcs to bump counters. Exposed so they can
+ * be linked across translation units. Not part of the stable
+ * public API. */
+void ptd_scc_compose_stats_record_hit(void);
+void ptd_scc_compose_stats_record_miss(void);
+void ptd_scc_compose_stats_record_bypass(void);
 
 struct ptd_phase_type_distribution {
     size_t length;

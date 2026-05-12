@@ -4178,22 +4178,32 @@ class SVGD:
 
         # Validate JIT parameter against config
         if jit is None:
-            jit = config.jit  # Use config default
-        elif jit and not config.jax:
+            jit = config._use_jit  # Use config default
+        elif jit and not config._use_jax:
             raise PTDConfigError(
                 "jit=True requires JAX.\n"
-                "  Current config: jax=False\n"
-                "  Fix: phasic.configure(jax=True)"
+                "  Current config: JAX disabled (compute='cpu')\n"
+                "  Fix: phasic.configure(compute='jax-cpu')"
             )
 
-        # Validate parallel parameter
+        # Validate parallel parameter.
         if parallel is None:
-            # Default: use pmap if multiple devices, vmap otherwise
-            # This enables multi-core parallelization on single machines
-            # For multi-node SLURM: call initialize_distributed() + set parallel='pmap' explicitly
-            parallel = 'pmap' if len(jax.devices()) > 1 else 'vmap'
+            # Default: read from PhasicConfig.svgd_strategy. 'auto'
+            # picks pmap when multiple JAX devices exist, else vmap.
+            # Users who want to override globally can call
+            # phasic.configure(svgd_strategy='vmap' | 'pmap' | 'none')
+            # or temporarily via the `with configure(...)` form.
+            # For multi-node SLURM: call initialize_distributed()
+            # then pass parallel='pmap' explicitly here.
+            strategy = config.svgd_strategy
+            if strategy == 'auto':
+                parallel = 'pmap' if len(jax.devices()) > 1 else 'vmap'
+            else:
+                parallel = strategy
             if verbose:
-                print(f"Auto-selected parallel='{parallel}' ({len(jax.devices())} devices available)")
+                print(f"Auto-selected parallel='{parallel}' "
+                      f"(svgd_strategy={strategy!r}, "
+                      f"{len(jax.devices())} devices)")
         elif parallel not in ['vmap', 'pmap', 'none']:
             raise ValueError(
                 f"parallel must be 'vmap', 'pmap', or 'none', got: {parallel}"

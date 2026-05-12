@@ -389,22 +389,16 @@ static int stack_empty(struct ptd_stack *stack) {
  * @return 0 on success, -1 on error
  */
 static int get_cache_dir(char *buffer, size_t buffer_size) {
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        sprintf((char*)ptd_err, "HOME environment variable not set");
-        return -1;
+    char parent_dir[PATH_MAX];
+    if (ptd_cache_root_dir(parent_dir, sizeof(parent_dir)) != 0) {
+        return -1;  /* ptd_err set by helper */
     }
-
-    // Build path: ~/.phasic_cache/traces
-    int ret = snprintf(buffer, buffer_size, "%s/.phasic_cache/traces", home);
+    // Build path: <root>/traces
+    int ret = snprintf(buffer, buffer_size, "%s/traces", parent_dir);
     if (ret < 0 || (size_t)ret >= buffer_size) {
         sprintf((char*)ptd_err, "Cache directory path too long");
         return -1;
     }
-
-    // Create directory if it doesn't exist (mkdir -p)
-    char parent_dir[PATH_MAX];
-    snprintf(parent_dir, sizeof(parent_dir), "%s/.phasic_cache", home);
 
     // Create parent directory
     struct stat st = {0};
@@ -2876,12 +2870,19 @@ void ptd_parameterized_reward_compute_graph_destroy(
 
 #define PTD_PCG_MAGIC "PTDPRMC1"
 #define PTD_PCG_VERSION 1u
-#define PTD_PCG_FORMAT_REVISION 1u
+/* Format revision history:
+ *   1 — original Stage A2 format. Pointers are NULL/MEM/EDGE.
+ *   2 — adds PTD_PCG_PTR_EXTERNAL for per-SCC PRCs that resolve
+ *       placeholder edges against a parent-supplied external
+ *       table at composition time. v2 readers handle v1 files
+ *       (strict superset); v1 readers refuse v2 files. */
+#define PTD_PCG_FORMAT_REVISION 2u
 
 enum ptd_pcg_ptr_kind {
     PTD_PCG_PTR_NULL = 0,
-    PTD_PCG_PTR_MEM = 1,   // payload: doubles offset into flat mem buffer
-    PTD_PCG_PTR_EDGE = 2,  // payload: (vertex_idx, edge_idx, byte_offset)
+    PTD_PCG_PTR_MEM = 1,       // payload: doubles offset into flat mem buffer
+    PTD_PCG_PTR_EDGE = 2,      // payload: (vertex_idx, edge_idx, byte_offset)
+    PTD_PCG_PTR_EXTERNAL = 3,  // payload: vertex_idx == external_table index (rev 2+)
 };
 
 #pragma pack(push, 1)
@@ -2943,17 +2944,40 @@ static int ptd_pcg_anchor_cmp(const void *a, const void *b) {
 static int64_t ptd_pcg_chain_offset_of(
         const struct ll_of_a *head, const double *ptr);
 
-static void ptd_pcg_encode_ptr(
+// Internal encoder that supports both v1 (NULL/MEM/EDGE) and v2
+// (additionally EXTERNAL) pointer kinds. external_anchors is a
+// caller-provided array of double* pointers; any encode-target
+// matching one of these is encoded as PTD_PCG_PTR_EXTERNAL with
+// the matching index. Pass external_anchors=NULL, n_external=0
+// for v1 behaviour.
+static void ptd_pcg_encode_ptr_impl(
         const double *ptr,
         const struct ll_of_a *mem_chain,
         const struct ptd_pcg_edge_anchor *anchors,
         size_t n_anchors,
+        const double *const *external_anchors,
+        size_t n_external,
         struct ptd_pcg_disk_ptr *out)
 {
     memset(out, 0, sizeof(*out));
     if (ptr == NULL) {
         out->kind = PTD_PCG_PTR_NULL;
         return;
+    }
+    // External-anchor fast path: cheap O(n_external) scan, since
+    // n_external is bounded by the number of synthetic placeholder
+    // edges (small in practice). Checked first so a placeholder
+    // coefficient sitting in a malloc'd block doesn't accidentally
+    // match a different vertex's edge anchor by sheer pointer
+    // proximity.
+    if (external_anchors != NULL && n_external > 0) {
+        for (size_t i = 0; i < n_external; ++i) {
+            if (ptr == external_anchors[i]) {
+                out->kind = PTD_PCG_PTR_EXTERNAL;
+                out->vertex_idx = (uint32_t)i;
+                return;
+            }
+        }
     }
     // Mem-pointer fast path: walk the linked-list chain looking for
     // a node whose mem buffer contains ptr. The `mem` allocations
@@ -3007,12 +3031,30 @@ static void ptd_pcg_encode_ptr(
     out->doubles_offset = -1;       // marker for "encoding failed"
 }
 
-// Decode an encoded pointer back to a live address against the
-// loaded mem buffer and the supplied graph.
-static double *ptd_pcg_decode_ptr(
+// v1 encoder: thin wrapper preserving the original signature.
+static void ptd_pcg_encode_ptr(
+        const double *ptr,
+        const struct ll_of_a *mem_chain,
+        const struct ptd_pcg_edge_anchor *anchors,
+        size_t n_anchors,
+        struct ptd_pcg_disk_ptr *out)
+{
+    ptd_pcg_encode_ptr_impl(ptr, mem_chain, anchors, n_anchors,
+                            NULL, 0, out);
+}
+
+// Internal decoder supporting both v1 (NULL/MEM/EDGE) and v2
+// (additionally EXTERNAL) pointer kinds. external_table is a
+// caller-provided array of doubles; EXTERNAL pointers resolve to
+// &external_table[vertex_idx]. Pass external_table=NULL,
+// n_external=0 for v1 behaviour (encountering an EXTERNAL pointer
+// then yields NULL, indicating corruption / version mismatch).
+static double *ptd_pcg_decode_ptr_impl(
         const struct ptd_pcg_disk_ptr *enc,
         double *mem_base,
-        const struct ptd_graph *graph)
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
 {
     if (enc->kind == PTD_PCG_PTR_NULL) {
         return NULL;
@@ -3031,7 +3073,26 @@ static double *ptd_pcg_decode_ptr(
         char *base = (char *)&v->edges[enc->edge_idx]->weight;
         return (double *)(base + enc->byte_offset_from_edge_weight);
     }
+    if (enc->kind == PTD_PCG_PTR_EXTERNAL) {
+        if (external_table == NULL || enc->vertex_idx >= n_external) {
+            return NULL;  // corrupt or v1 loader on v2 file
+        }
+        // The cast drops const because the replay loop expects
+        // double* (it never writes through these pointers when
+        // they're EXTERNAL — those pointers appear only as
+        // multiplierptr, which the replay reads but doesn't write).
+        return (double *)&external_table[enc->vertex_idx];
+    }
     return NULL;
+}
+
+// v1 decoder: thin wrapper preserving the original signature.
+static double *ptd_pcg_decode_ptr(
+        const struct ptd_pcg_disk_ptr *enc,
+        double *mem_base,
+        const struct ptd_graph *graph)
+{
+    return ptd_pcg_decode_ptr_impl(enc, mem_base, graph, NULL, 0);
 }
 
 // Build a sorted anchor table from a graph: one entry per
@@ -3178,31 +3239,59 @@ static int ptd_pcg_cache_disabled(void) {
 //
 // Returns 0 on success, -1 on error (sets ptd_err). The bin file
 // itself is NOT created.
-static int ptd_pcg_build_cache_path(
-        const struct ptd_graph *graph, char *buf, size_t buf_len)
+/* SLURM-WP-1: resolve the cache root directory.
+ *
+ * Honours PHASIC_CACHE_DIR env var; falls back to $HOME/.phasic_cache.
+ * Public-API helper declared in api/c/phasic.h. */
+int ptd_cache_root_dir(char *buf, size_t buf_len)
 {
+    const char *override = getenv("PHASIC_CACHE_DIR");
+    if (override != NULL && override[0] != '\0') {
+        int n = snprintf(buf, buf_len, "%s", override);
+        if (n < 0 || (size_t)n >= buf_len) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_cache_root_dir: PHASIC_CACHE_DIR path too long");
+            return -1;
+        }
+        return 0;
+    }
     const char *home = getenv("HOME");
     if (home == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
-                 "ptd_pcg: HOME not set");
+                 "ptd_cache_root_dir: HOME not set and "
+                 "PHASIC_CACHE_DIR not set");
         return -1;
+    }
+    int n = snprintf(buf, buf_len, "%s/.phasic_cache", home);
+    if (n < 0 || (size_t)n >= buf_len) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_cache_root_dir: $HOME/.phasic_cache too long");
+        return -1;
+    }
+    return 0;
+}
+
+static int ptd_pcg_build_cache_path(
+        const struct ptd_graph *graph, char *buf, size_t buf_len)
+{
+    char root[PATH_MAX];
+    if (ptd_cache_root_dir(root, sizeof(root)) != 0) {
+        return -1;  /* ptd_err set by helper */
     }
     char dir[PATH_MAX];
     int n = snprintf(dir, sizeof(dir),
-                     "%s/.phasic_cache/parameterized_reward_compute", home);
+                     "%s/parameterized_reward_compute", root);
     if (n < 0 || (size_t)n >= sizeof(dir)) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
                  "ptd_pcg: cache dir path too long");
         return -1;
     }
     // Best-effort mkdir of each parent. Ignore EEXIST.
-    char parent[PATH_MAX];
-    snprintf(parent, sizeof(parent), "%s/.phasic_cache", home);
     struct stat st;
-    if (stat(parent, &st) != 0) {
-        if (mkdir(parent, 0755) != 0 && errno != EEXIST) {
+    if (stat(root, &st) != 0) {
+        if (mkdir(root, 0755) != 0 && errno != EEXIST) {
             snprintf((char *)ptd_err, sizeof(ptd_err),
-                     "ptd_pcg: cannot create %s: %s", parent, strerror(errno));
+                     "ptd_pcg: cannot create %s: %s", root, strerror(errno));
             return -1;
         }
     }
@@ -3229,10 +3318,18 @@ static int ptd_pcg_build_cache_path(
     return 0;
 }
 
-int ptd_save_parameterized_reward_compute_graph(
+// Shared implementation for the v1 and v2 save entry points. Pass
+// external_anchors=NULL, n_external=0 to write a v1 file (no
+// EXTERNAL pointers; format_revision is forced to 1 in that case
+// for max compatibility with v1 readers). Pass non-NULL/non-zero
+// to enable EXTERNAL pointer encoding; format_revision is then
+// written as 2.
+static int ptd_save_parameterized_reward_compute_graph_impl(
         const char *path,
         const struct ptd_desc_reward_compute_parameterized *compute,
-        const struct ptd_graph *graph)
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external)
 {
     if (path == NULL || compute == NULL || graph == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
@@ -3262,7 +3359,10 @@ int ptd_save_parameterized_reward_compute_graph(
     memset(&header, 0, sizeof(header));
     memcpy(header.magic, PTD_PCG_MAGIC, 8);
     header.version = PTD_PCG_VERSION;
-    header.format_revision = PTD_PCG_FORMAT_REVISION;
+    // Write rev 1 when no EXTERNAL anchors are in play, so v1 readers
+    // accept the file. Write rev 2 only when EXTERNAL pointers might
+    // appear in the encoded commands.
+    header.format_revision = (n_external > 0) ? 2u : 1u;
     header.graph_hash_truncated = hash_truncated;
     header.commands_length = (uint64_t)compute->length;
     header.mem_total_doubles = (uint64_t)mem_total;
@@ -3315,23 +3415,29 @@ int ptd_save_parameterized_reward_compute_graph(
         }
 
         if (live_fromT) {
-            ptd_pcg_encode_ptr(cmd->fromT,
+            ptd_pcg_encode_ptr_impl(cmd->fromT,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].fromT);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].fromT);
         } else {
             encoded_cmds[i].fromT.kind = PTD_PCG_PTR_NULL;
         }
         if (live_toT) {
-            ptd_pcg_encode_ptr(cmd->toT,
+            ptd_pcg_encode_ptr_impl(cmd->toT,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].toT);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].toT);
         } else {
             encoded_cmds[i].toT.kind = PTD_PCG_PTR_NULL;
         }
         if (live_multptr) {
-            ptd_pcg_encode_ptr(cmd->multiplierptr,
+            ptd_pcg_encode_ptr_impl(cmd->multiplierptr,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].multiplierptr);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].multiplierptr);
         } else {
             encoded_cmds[i].multiplierptr.kind = PTD_PCG_PTR_NULL;
         }
@@ -3491,10 +3597,47 @@ int ptd_save_parameterized_reward_compute_graph(
     return 0;
 }
 
-struct ptd_desc_reward_compute_parameterized *
-ptd_load_parameterized_reward_compute_graph(
+// v1 entry point: writes a format-revision-1 file with no
+// EXTERNAL pointers. Backward-compatible signature; existing
+// callers (Stage A2 cache write in ptd_precompute_reward_compute_graph)
+// keep working unchanged.
+int ptd_save_parameterized_reward_compute_graph(
         const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
         const struct ptd_graph *graph)
+{
+    return ptd_save_parameterized_reward_compute_graph_impl(
+            path, compute, graph, NULL, 0);
+}
+
+// v2 entry point: writes a format-revision-2 file with EXTERNAL
+// pointer support. Pointers in compute that match an entry in
+// external_anchors are encoded as PTD_PCG_PTR_EXTERNAL with the
+// matching index. Pass n_external > 0 to actually use this path;
+// passing 0 yields v1-equivalent behaviour and writes a rev-1 file.
+int ptd_save_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external)
+{
+    return ptd_save_parameterized_reward_compute_graph_impl(
+            path, compute, graph, external_anchors, n_external);
+}
+
+// Shared implementation for the v1 and v2 load entry points. The
+// loader accepts both rev-1 and rev-2 files; the choice of which
+// version to write happens at save time (based on whether
+// EXTERNAL anchors were passed). external_table may be NULL with
+// n_external == 0; if a rev-2 file contains EXTERNAL pointers and
+// no table is supplied, the load fails with a clear error.
+static struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_impl(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
 {
     if (path == NULL || graph == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
@@ -3523,12 +3666,16 @@ ptd_load_parameterized_reward_compute_graph(
         fclose(fp);
         return NULL;
     }
+    // Accept both rev 1 and rev 2 files. The decoder handles
+    // EXTERNAL pointers only if external_table is non-NULL; rev 1
+    // files won't contain any.
     if (memcmp(header.magic, PTD_PCG_MAGIC, 8) != 0
             || header.version != PTD_PCG_VERSION
-            || header.format_revision != PTD_PCG_FORMAT_REVISION) {
+            || header.format_revision < 1u
+            || header.format_revision > PTD_PCG_FORMAT_REVISION) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
                  "ptd_load: %s has wrong magic/version "
-                 "(got %.8s v%u r%u; expected %s v%u r%u). "
+                 "(got %.8s v%u r%u; expected %s v%u r1..%u). "
                  "Treat as cache miss and rebuild.",
                  path, header.magic, header.version, header.format_revision,
                  PTD_PCG_MAGIC, PTD_PCG_VERSION, PTD_PCG_FORMAT_REVISION);
@@ -3649,12 +3796,37 @@ ptd_load_parameterized_reward_compute_graph(
             commands[i].from = (size_t)encoded_cmds[i].from;
             commands[i].to = (size_t)encoded_cmds[i].to;
             commands[i].multiplier = encoded_cmds[i].multiplier;
-            commands[i].fromT = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].fromT, flat_mem, graph);
-            commands[i].toT = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].toT, flat_mem, graph);
-            commands[i].multiplierptr = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].multiplierptr, flat_mem, graph);
+            commands[i].fromT = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].fromT, flat_mem, graph,
+                    external_table, n_external);
+            commands[i].toT = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].toT, flat_mem, graph,
+                    external_table, n_external);
+            commands[i].multiplierptr = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].multiplierptr, flat_mem, graph,
+                    external_table, n_external);
+            // Detect EXTERNAL pointers in a rev-2 file when no
+            // external_table was supplied. v1 callers loading v2
+            // files would otherwise silently get NULL pointers in
+            // commands they need.
+            if (header.format_revision >= 2u && external_table == NULL) {
+                if (encoded_cmds[i].fromT.kind == PTD_PCG_PTR_EXTERNAL ||
+                    encoded_cmds[i].toT.kind == PTD_PCG_PTR_EXTERNAL ||
+                    encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_EXTERNAL) {
+                    snprintf((char *)ptd_err, sizeof(ptd_err),
+                             "ptd_load: %s is rev 2 with EXTERNAL "
+                             "pointers but no external_table was "
+                             "supplied. Use ptd_load_parameterized_"
+                             "reward_compute_graph_ex().", path);
+                    free(commands);
+                    free(encoded_cmds);
+                    free(memr_offsets);
+                    // mem_node owns flat_mem; free both via the node.
+                    free(flat_mem);
+                    free(mem_node);
+                    return NULL;
+                }
+            }
         }
     }
     free(encoded_cmds);
@@ -3694,6 +3866,37 @@ ptd_load_parameterized_reward_compute_graph(
     res->mem = mem_node;
     res->memr = memr;
     return res;
+}
+
+// v1 entry point: backward-compatible signature. Loads a rev-1
+// file. If passed a rev-2 file, this function succeeds only if
+// the file contains no EXTERNAL pointers (e.g. an SCC with no
+// external boundary); otherwise it returns NULL with ptd_err
+// describing the mismatch. Existing callers (Stage A2 cache
+// load in ptd_precompute_reward_compute_graph) keep working
+// unchanged for rev-1 files.
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_graph *graph)
+{
+    return ptd_load_parameterized_reward_compute_graph_impl(
+            path, graph, NULL, 0);
+}
+
+// v2 entry point: loads either rev-1 or rev-2 files. EXTERNAL
+// pointers in the file are resolved to &external_table[index].
+// Caller owns external_table; it must outlive the returned
+// compute graph.
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
+{
+    return ptd_load_parameterized_reward_compute_graph_impl(
+            path, graph, external_table, n_external);
 }
 
 void ptd_graph_destroy(struct ptd_graph *graph) {
@@ -6483,6 +6686,12 @@ struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(str
 }
 
 #ifdef HAVE_MPFR
+/* DEPRECATED (MPFR-A-WP-3): builds a separate MPFR-precision
+ * compute graph by re-eliminating from scratch. The default
+ * MPFR path (MPFR-A) reads the regular reward_compute_graph
+ * directly, avoiding this re-elimination cost. This builder
+ * is now reachable only via PHASIC_USE_MPFR_LEGACY=1 and will
+ * be removed once the legacy opt-in is no longer needed. */
 static struct ptd_desc_reward_compute_mpfr *ptd_graph_ex_absorbation_time_comp_graph_mpfr(
     struct ptd_graph *graph,
     size_t precision
@@ -8121,6 +8330,10 @@ struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_p
  * @param precision MPFR precision in bits
  * @return Result vector (double precision) or NULL on error
  */
+/* DEPRECATED (MPFR-A-WP-3): consumes reward_compute_graph_mpfr.
+ * Reachable only via PHASIC_USE_MPFR_LEGACY=1. Use
+ * ptd_expected_waiting_time_mpfr_from_double_pcg instead, which
+ * skips the MPFR re-elimination step. */
 static double *ptd_expected_waiting_time_mpfr(
     struct ptd_graph *graph,
     double *rewards,
@@ -8241,10 +8454,166 @@ cleanup_error:
     free(result);
     return NULL;
 }
+
+/* MPFR-A-WP-1: high-precision consumer over the double-precision
+ * reward_compute_graph.
+ *
+ * Reads graph->reward_compute_graph (concrete double multipliers,
+ * already θ-bound) and performs the multiply-accumulate sweep at
+ * MPFR precision. Avoids the cost of building a separate
+ * reward_compute_graph_mpfr — we already have the symbolic
+ * elimination encoded in reward_compute_graph; we just want the
+ * arithmetic at higher precision.
+ *
+ * This is the cheap, high-value path: most workloads need
+ * higher-precision *consumption* (to avoid catastrophic
+ * cancellation in the multiply-accumulate sum) but not
+ * higher-precision *elimination*. The cost saved is the entire
+ * MPFR re-elimination — typically the dominant cost when the
+ * MPFR path triggers.
+ *
+ * Returns a newly-allocated double-precision result vector
+ * (caller frees) on success, NULL on failure (sets ptd_err).
+ */
+static double *ptd_expected_waiting_time_mpfr_from_double_pcg(
+    struct ptd_graph *graph,
+    double *rewards,
+    size_t precision
+) {
+    if (graph->reward_compute_graph == NULL) {
+        PTD_LOG_ERROR("MPFR-A: reward_compute_graph is NULL");
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "MPFR-A: reward_compute_graph not built");
+        return NULL;
+    }
+
+    size_t n = graph->vertices_length;
+    struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
+
+    mpfr_t *result = (mpfr_t *)malloc(n * sizeof(mpfr_t));
+    if (result == NULL) {
+        PTD_LOG_ERROR("MPFR-A: failed to allocate result array");
+        return NULL;
+    }
+    for (size_t i = 0; i < n; i++) {
+        mpfr_init2(result[i], precision);
+        if (rewards != NULL) {
+            mpfr_set_d(result[i], rewards[i], MPFR_RNDN);
+        } else {
+            mpfr_set_d(result[i], 1.0, MPFR_RNDN);
+        }
+    }
+
+    mpfr_t multiplier, product;
+    mpfr_init2(multiplier, precision);
+    mpfr_init2(product, precision);
+
+    for (size_t j = 0; j < compute->length; j++) {
+        struct ptd_reward_increase cmd = compute->commands[j];
+
+        /* Skip the NaN sentinel that the regular consumer treats
+         * as a terminator. */
+        if (isnan(cmd.multiplier)) {
+            break;
+        }
+        if (cmd.multiplier == 0.0) {
+            continue;
+        }
+        if (isinf(cmd.multiplier) && mpfr_zero_p(result[cmd.to])) {
+            continue;
+        }
+
+        mpfr_set_d(multiplier, cmd.multiplier, MPFR_RNDN);
+        mpfr_mul(product, result[cmd.to], multiplier, MPFR_RNDN);
+        mpfr_add(result[cmd.from], result[cmd.from], product, MPFR_RNDN);
+    }
+
+    double *final_result = (double *)calloc(n, sizeof(double));
+    if (final_result == NULL) {
+        PTD_LOG_ERROR("MPFR-A: failed to allocate final result");
+        goto cleanup_error;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        if (mpfr_inf_p(result[i])) {
+            final_result[i] = INFINITY;
+        } else {
+            final_result[i] = mpfr_get_d(result[i], MPFR_RNDN);
+            if (isnan(final_result[i])) {
+                PTD_LOG_ERROR("MPFR-A: NaN at vertex %zu", i);
+                snprintf((char *)ptd_err, sizeof(ptd_err),
+                         "MPFR-A: NaN at vertex %zu", i);
+                goto cleanup_error;
+            }
+        }
+    }
+
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+
+    PTD_LOG_DEBUG("MPFR-A: completed with %zu-bit precision over double PRC", precision);
+    return final_result;
+
+cleanup_error:
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+    return NULL;
+}
 #endif  // HAVE_MPFR
 
 
 double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
+    /* WP-7: hierarchical SCC pipeline opt-in via env var.
+     *
+     * When PHASIC_HIERAR_ELIMINATION=1 and the graph is
+     * parameterised and no reward vector is supplied, route
+     * through ptd_compose_scc_prcs instead of the monolithic
+     * eliminator. The composer reads the parent's current edge
+     * weights (already set by ptd_graph_update_weights), so we
+     * pass those weights as theta rather than re-deriving from
+     * coefficients. Reward-transformed cases (rewards != NULL)
+     * fall through to the monolithic path.
+     *
+     * Re-entrancy: the composer itself calls
+     * ptd_expected_waiting_time recursively on synthetic SCC
+     * subgraphs. Those inner calls must NOT take the
+     * hierarchical path (they should just monolithically
+     * eliminate the synth graph, which is itself the unit of
+     * caching). The composer sets ptd_scc_compose_in_progress
+     * to suppress recursion. */
+    const char *hierar_env = getenv("PHASIC_HIERAR_ELIMINATION");
+    bool use_hierarchical = (hierar_env != NULL
+                             && hierar_env[0] == '1'
+                             && hierar_env[1] == '\0'
+                             && !ptd_scc_compose_in_progress);
+    if (use_hierarchical && graph->parameterized && rewards == NULL
+        && graph->current_params != NULL && graph->param_length > 0) {
+        struct ptd_scc_graph *scc_graph =
+                ptd_find_strongly_connected_components(graph);
+        if (scc_graph == NULL) {
+            /* Fall through to monolithic on SCC failure. */
+            ptd_err[0] = '\0';
+        } else {
+            double *result = ptd_compose_scc_prcs(
+                    graph, scc_graph,
+                    graph->current_params, graph->param_length);
+            ptd_scc_graph_destroy(scc_graph);
+            if (result != NULL) {
+                return result;
+            }
+            /* On compose failure, clear error and fall through. */
+            ptd_err[0] = '\0';
+        }
+    }
+
     if (ptd_precompute_reward_compute_graph(graph)) {
         return NULL;
     }
@@ -8308,16 +8677,31 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         if (mpfr_precision < 128) mpfr_precision = 128;
         if (mpfr_precision > 1024) mpfr_precision = 1024;
 
-        // Compute MPFR graph if not cached
-        if (graph->reward_compute_graph_mpfr == NULL) {
-            PTD_LOG_INFO("Computing MPFR graph with %zu-bit precision", mpfr_precision);
-            graph->reward_compute_graph_mpfr = ptd_graph_ex_absorbation_time_comp_graph_mpfr(
-                graph, mpfr_precision
-            );
+        /* MPFR-A: prefer the new consumer that reads the
+         * existing double reward_compute_graph and does MPFR
+         * arithmetic on top — avoids the cost of building a
+         * separate MPFR compute graph. PHASIC_USE_MPFR_LEGACY=1
+         * opts back into the old MPFR-builder path for
+         * comparison / safety-net during transition. */
+        const char *legacy = getenv("PHASIC_USE_MPFR_LEGACY");
+        bool use_legacy = (legacy != NULL && legacy[0] == '1' && legacy[1] == '\0');
+
+        double *mpfr_result = NULL;
+        if (!use_legacy) {
+            PTD_LOG_INFO("MPFR-A: consuming double PRC at %zu-bit precision", mpfr_precision);
+            mpfr_result = ptd_expected_waiting_time_mpfr_from_double_pcg(
+                    graph, rewards, mpfr_precision);
+        } else {
+            // Legacy: build separate MPFR PRC and consume that.
+            if (graph->reward_compute_graph_mpfr == NULL) {
+                PTD_LOG_INFO("Computing MPFR graph with %zu-bit precision (legacy)", mpfr_precision);
+                graph->reward_compute_graph_mpfr = ptd_graph_ex_absorbation_time_comp_graph_mpfr(
+                    graph, mpfr_precision
+                );
+            }
+            mpfr_result = ptd_expected_waiting_time_mpfr(graph, rewards, mpfr_precision);
         }
 
-        // Call MPFR execution function
-        double *mpfr_result = ptd_expected_waiting_time_mpfr(graph, rewards, mpfr_precision);
         if (mpfr_result != NULL) {
             PTD_LOG_INFO("MPFR computation successful - returning high-precision results");
             return mpfr_result;

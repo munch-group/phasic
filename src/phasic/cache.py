@@ -53,10 +53,25 @@ __all__ = [
 ]
 
 
+def _cache_root() -> Path:
+    """Return the cache root directory.
+
+    Honours ``PHASIC_CACHE_DIR``: if set, used verbatim. Otherwise
+    falls back to ``$HOME/.phasic_cache``. This mirrors the C-side
+    ``ptd_cache_root_dir`` helper so Python tools (cache_info,
+    clear_cache) operate on the same directory the C cache reads
+    and writes.
+    """
+    override = os.environ.get("PHASIC_CACHE_DIR")
+    if override:
+        return Path(override)
+    return Path.home() / ".phasic_cache"
+
+
 def _param_compute_cache_dir() -> Path:
     """Return the path to the parameterised compute graph cache
     directory. Does not create it."""
-    return Path.home() / ".phasic_cache" / "parameterized_reward_compute"
+    return _cache_root() / "parameterized_reward_compute"
 
 
 def clear_param_compute_cache() -> int:
@@ -109,6 +124,18 @@ def clear_param_compute_cache() -> int:
 def param_compute_cache_info() -> dict[str, Any]:
     """Return a summary of the parameterised compute graph cache.
 
+    The cache directory holds two kinds of entries:
+
+    - ``<hash>.bin``: parent-graph-level Stage A2 entries
+      (populated by ``ptd_precompute_reward_compute_graph``).
+    - ``scc_<hash>.bin``: per-SCC entries from the hierarchical
+      pipeline (populated by ``ptd_scc_get_or_compute_prc``,
+      WP-4 of the ``hierar-elimin-cache`` branch).
+
+    Both kinds live in the same directory because they share the
+    same on-disk format (with WP-3's revision-2 extension for SCC
+    entries that need EXTERNAL pointers).
+
     Returns
     -------
     dict
@@ -116,23 +143,31 @@ def param_compute_cache_info() -> dict[str, Any]:
 
         - ``cache_dir`` (str or None): absolute path to the cache
           directory, or None if HOME is unset.
-        - ``n_files`` (int): number of ``*.bin`` files in the
-          directory.
-        - ``total_size`` (int): total size in bytes.
-        - ``disabled`` (bool): whether ``PHASIC_DISABLE_CACHE=1`` is
-          set.
+        - ``n_files`` (int): total number of ``*.bin`` files.
+        - ``n_parent_files`` (int): count of parent-level entries
+          (filenames not starting with ``scc_``).
+        - ``n_scc_files`` (int): count of per-SCC entries
+          (filenames starting with ``scc_``).
+        - ``total_size`` (int): total size in bytes across all
+          files.
+        - ``disabled`` (bool): whether ``PHASIC_DISABLE_CACHE=1``
+          is set.
 
     Examples
     --------
     >>> info = param_compute_cache_info()
-    >>> info['n_files']
+    >>> info['n_files']                  # doctest: +SKIP
+    7
+    >>> info['n_parent_files']           # doctest: +SKIP
     3
-    >>> info['disabled']
-    False
+    >>> info['n_scc_files']              # doctest: +SKIP
+    4
     """
     info: dict[str, Any] = {
         "cache_dir": None,
         "n_files": 0,
+        "n_parent_files": 0,
+        "n_scc_files": 0,
         "total_size": 0,
         "disabled": is_cache_disabled(),
     }
@@ -147,6 +182,10 @@ def param_compute_cache_info() -> dict[str, Any]:
         try:
             info["n_files"] += 1
             info["total_size"] += cache_file.stat().st_size
+            if cache_file.name.startswith("scc_"):
+                info["n_scc_files"] += 1
+            else:
+                info["n_parent_files"] += 1
         except OSError:
             # File disappeared mid-scan (concurrent clear or unlink).
             # Skip silently — the count is informational anyway.
@@ -232,3 +271,57 @@ def clear_all_caches() -> dict[str, int]:
         "param_compute": clear_param_compute_cache(),
         "traces": clear_trace_cache(),
     }
+
+
+def scc_compose_stats() -> dict[str, Any]:
+    """Return SCC composer telemetry counters.
+
+    Counters are process-wide and reflect activity since process
+    start (or the last call to :func:`reset_scc_compose_stats`).
+    They are only populated when the hierarchical compose path is
+    actually invoked — that is, when ``PHASIC_HIERAR_ELIMINATION=1``
+    is set, the graph is parameterised, and ``rewards is None``.
+
+    Returns
+    -------
+    dict
+        A dict with the following keys, all integers:
+
+        - ``cache_hits``: number of times the per-SCC PRC was
+          loaded from disk
+        - ``cache_misses``: number of times the per-SCC PRC was
+          recomputed (and saved on first miss)
+        - ``cache_bypassed``: number of SCCs whose synth was
+          smaller than ``PHASIC_MIN_SCC_SIZE_TO_CACHE`` and so
+          skipped the cache entirely (no load attempt, no save).
+          NOT counted as a hit or miss.
+        - ``compose_calls``: number of ``ptd_compose_scc_prcs``
+          invocations (one per top-level
+          ``Graph.expected_waiting_time`` taking the hierarchical
+          path)
+        - ``total_compose_ns``: cumulative wall-clock time spent
+          inside ``ptd_compose_scc_prcs`` (nanoseconds, monotonic
+          clock)
+
+    Examples
+    --------
+    >>> import os, phasic.cache as cache
+    >>> os.environ["PHASIC_HIERAR_ELIMINATION"] = "1"
+    >>> cache.reset_scc_compose_stats()
+    >>> # ... run some hierarchical computations ...
+    >>> stats = cache.scc_compose_stats()
+    >>> hit_rate = stats["cache_hits"] / max(
+    ...     stats["cache_hits"] + stats["cache_misses"], 1)
+    """
+    from phasic.phasic_pybind import _scc_compose_stats_get
+    return _scc_compose_stats_get()
+
+
+def reset_scc_compose_stats() -> None:
+    """Reset SCC composer telemetry counters to zero.
+
+    Useful at the start of a benchmark or test that wants to
+    measure cache behaviour for a specific block of work.
+    """
+    from phasic.phasic_pybind import _scc_compose_stats_reset
+    _scc_compose_stats_reset()

@@ -682,6 +682,22 @@ bool is_number(const py::object& obj) {
 }
 
 
+// SCC synthetic-graph metadata wrapper. Owns a
+// ptd_scc_synthetic_metadata*; the destructor frees the C struct.
+// Defined at file scope so it can be referenced from any pybind
+// lambda (otherwise lambdas defined before the SCCVertex binding
+// block can't see it).
+struct SccSyntheticMetadataPy {
+    struct ptd_scc_synthetic_metadata *meta;
+    SccSyntheticMetadataPy() : meta(nullptr) {}
+    ~SccSyntheticMetadataPy() {
+        if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+    }
+    SccSyntheticMetadataPy(const SccSyntheticMetadataPy&) = delete;
+    SccSyntheticMetadataPy& operator=(const SccSyntheticMetadataPy&) = delete;
+};
+
+
 PYBIND11_MODULE(phasic_pybind, m) {
 
   ///////////////////////////////////////////////////////
@@ -1138,6 +1154,199 @@ str
       Test-only: load a saved parameterized_reward_compute_graph from
       a file and install it on this graph. Stage A2 verification only;
       not part of the public API.
+      )delim")
+
+    .def("_dump_param_compute_commands",
+      [](phasic::Graph &g) {
+          // WP-5 experiment helper: dump the symbolic command list
+          // as a list of dicts, one per command. Returns enough
+          // information to compare command streams across
+          // monolithic vs per-SCC eliminations.
+          py::list result;
+          struct ptd_desc_reward_compute_parameterized *prc =
+              g.c_graph()->parameterized_reward_compute_graph;
+          if (prc == NULL) {
+              return result;
+          }
+          for (size_t i = 0; i < prc->length; ++i) {
+              const struct ptd_comp_graph_parameterized *cmd = &prc->commands[i];
+              py::dict d;
+              d["i"] = i;
+              d["type"] = cmd->type;
+              d["from"] = cmd->from;
+              d["to"] = cmd->to;
+              d["multiplier"] = cmd->multiplier;
+              d["fromT_is_null"] = (cmd->fromT == NULL);
+              d["toT_is_null"] = (cmd->toT == NULL);
+              d["multiplierptr_is_null"] = (cmd->multiplierptr == NULL);
+              // Distinguish whether a non-null pointer points into
+              // the mem buffer or to a vertex edge weight. We can't
+              // give exact addresses across the C/Python boundary,
+              // but we can give "is it a known edge weight" by
+              // scanning the graph's edges.
+              auto classify = [&](double *p) -> std::string {
+                  if (p == NULL) return "null";
+                  for (size_t v = 0; v < g.c_graph()->vertices_length; ++v) {
+                      struct ptd_vertex *vert = g.c_graph()->vertices[v];
+                      for (size_t e = 0; e < vert->edges_length; ++e) {
+                          if (p == &vert->edges[e]->weight) {
+                              return "edge_v" + std::to_string(v)
+                                   + "_e" + std::to_string(e);
+                          }
+                      }
+                  }
+                  return "mem";
+              };
+              d["fromT_kind"] = classify(cmd->fromT);
+              d["toT_kind"] = classify(cmd->toT);
+              d["multiplierptr_kind"] = classify(cmd->multiplierptr);
+              result.append(d);
+          }
+          return result;
+      }, R"delim(
+      WP-5 experiment helper: dump the parameterised PRC's
+      command list as a list of dicts. Each dict has type, from,
+      to, multiplier, and pointer-classification info. Used to
+      compare monolithic vs per-SCC command streams.
+      )delim")
+
+    .def("_save_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path,
+         std::vector<size_t> external_anchor_offsets) {
+          // Test-only WP-3 helper: save the graph's
+          // parameterized_reward_compute_graph (already populated by
+          // a prior elimination call) as a rev-2 file. The anchor
+          // identification here is intentionally indirect — callers
+          // pass a list of doubles-offsets into the internal mem
+          // chain; we resolve those to live double* and pass them
+          // as external_anchors. This avoids exposing raw double*
+          // pointers across the C/Python boundary.
+          //
+          // For the typical WP-3 test path (synthetic graph + its
+          // anchors collected via ptd_scc_collect_external_anchors),
+          // a higher-level Python helper builds the synthetic graph
+          // and passes its placeholder coefficient slots through
+          // _save_synthetic_param_compute_graph below.
+          (void)g; (void)path; (void)external_anchor_offsets;
+          throw std::runtime_error(
+                  "_save_param_compute_graph_ex: use "
+                  "_save_synthetic_param_compute_graph instead "
+                  "(needs the synthetic graph for anchor collection)");
+      }, R"delim(
+      Test-only stub. Use _save_synthetic_param_compute_graph
+      (defined separately on the SCCVertex) for the WP-3 path.
+      )delim")
+
+    .def("_save_synthetic_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path,
+         py::object meta_obj) {
+          // Save the graph's parameterized_reward_compute_graph as
+          // a rev-2 file, treating placeholder edges (Type A,
+          // Type C, and phantom) as EXTERNAL anchors. Used by
+          // WP-3 tests on a synthetic graph.
+          //
+          // Caller passes the SCCSyntheticMetadata so we can
+          // identify per-channel placeholder slots; pass None to
+          // save without EXTERNAL anchors (only useful for
+          // structures that have none, e.g. SCC0 with no
+          // upstream-connecting / downstream-connecting).
+          if (g.c_graph()->parameterized_reward_compute_graph == NULL) {
+              throw std::runtime_error(
+                      "no parameterized_reward_compute_graph; call "
+                      "expected_waiting_time first");
+          }
+          const struct ptd_scc_synthetic_metadata *meta_c = nullptr;
+          if (!meta_obj.is_none()) {
+              const auto& wrap = meta_obj.cast<const SccSyntheticMetadataPy&>();
+              meta_c = wrap.meta;
+          }
+          size_t n_anchors = 0;
+          double **anchors = ptd_scc_collect_external_anchors(
+                  g.c_graph(), meta_c, &n_anchors);
+          if (n_anchors == 0) {
+              // No EXTERNAL anchors — just write a rev-1 file.
+              int rc = ptd_save_parameterized_reward_compute_graph(
+                      path.c_str(),
+                      g.c_graph()->parameterized_reward_compute_graph,
+                      g.c_graph());
+              free(anchors);
+              if (rc != 0) {
+                  throw std::runtime_error(
+                          std::string("save failed: ") + (const char *)ptd_err);
+              }
+              return n_anchors;
+          }
+          int rc = ptd_save_parameterized_reward_compute_graph_ex(
+                  path.c_str(),
+                  g.c_graph()->parameterized_reward_compute_graph,
+                  g.c_graph(),
+                  (const double *const *)anchors,
+                  n_anchors);
+          free(anchors);
+          if (rc != 0) {
+              throw std::runtime_error(
+                      std::string("save_ex failed: ") + (const char *)ptd_err);
+          }
+          return n_anchors;
+      }, py::arg("path"), py::arg("meta") = py::none(), R"delim(
+      WP-3 test helper: save this synthetic graph's
+      parameterized_reward_compute_graph as a rev-2 file with
+      EXTERNAL pointers anchoring the placeholder edges. Pass the
+      SCCSyntheticMetadata so per-channel anchors can be located;
+      pass None to save without EXTERNAL anchors. Returns the
+      number of anchors written.
+      )delim")
+
+    .def("_load_synthetic_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path,
+         std::vector<double> external_table) {
+          // Load a rev-2 file and install it on this graph,
+          // resolving EXTERNAL pointers against external_table.
+          //
+          // Note: external_table is copied here and held by the
+          // returned compute graph for as long as it lives. To
+          // satisfy this with a Python-managed std::vector, we
+          // allocate a heap copy keyed off the graph identity and
+          // leak it for now (test-only helper; real composition
+          // path in WP-5 will manage the table lifetime properly).
+          double *table_copy = NULL;
+          if (!external_table.empty()) {
+              table_copy = (double *)malloc(external_table.size() * sizeof(double));
+              if (table_copy == NULL) {
+                  throw std::runtime_error("oom for external_table copy");
+              }
+              memcpy(table_copy, external_table.data(),
+                     external_table.size() * sizeof(double));
+          }
+          struct ptd_desc_reward_compute_parameterized *loaded =
+                  ptd_load_parameterized_reward_compute_graph_ex(
+                          path.c_str(), g.c_graph(),
+                          table_copy, external_table.size());
+          if (loaded == NULL) {
+              std::string msg((const char *)ptd_err);
+              ptd_err[0] = '\0';
+              free(table_copy);
+              throw std::runtime_error(
+                      std::string("load_ex failed or cache miss: ") + msg);
+          }
+          // Replace any existing cache.
+          if (g.c_graph()->parameterized_reward_compute_graph != NULL) {
+              ptd_parameterized_reward_compute_graph_destroy(
+                      g.c_graph()->parameterized_reward_compute_graph);
+          }
+          g.c_graph()->parameterized_reward_compute_graph = loaded;
+          // table_copy is leaked deliberately for this test helper;
+          // real WP-5 composer manages the lifetime properly.
+          if (g.c_graph()->reward_compute_graph != NULL) {
+              free(g.c_graph()->reward_compute_graph->commands);
+              free(g.c_graph()->reward_compute_graph);
+              g.c_graph()->reward_compute_graph = NULL;
+          }
+      }, R"delim(
+      WP-3 test helper: load a rev-2 file and install it on this
+      graph, resolving EXTERNAL pointers against the supplied
+      external_table list. table_copy is leaked deliberately; this
+      is a test-only helper.
       )delim")
 
     .def("is_parameterized",
@@ -3059,9 +3268,105 @@ str
     ;
 
   // =========================================================================
+  // SCC synthetic-graph metadata wrapper (struct defined at file
+  // scope so it can be referenced from any pybind lambda).
+  // =========================================================================
+  py::class_<SccSyntheticMetadataPy>(m, "SCCSyntheticMetadata",
+      "Vertex categorisation and parent-mapping metadata for a "
+      "synthetic SCC graph produced by SCCVertex.as_synthetic_graph().")
+      .def_property_readonly("scc_index", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->scc_index;
+      }, "Index of the source SCC in the parent decomposition.")
+      .def_property_readonly("n_vertices", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_vertices;
+      }, "Total number of vertices in the synthetic graph.")
+      .def_property_readonly("n_upstream_connecting", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_upstream_connecting;
+      })
+      .def_property_readonly("n_internal_only", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_internal_only;
+      })
+      .def_property_readonly("n_downstream_connecting", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_downstream_connecting;
+      })
+      .def_property_readonly("n_channels", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_channels;
+      })
+      .def_property_readonly("channels", [](const SccSyntheticMetadataPy& m) {
+          // Returns list[dict], one entry per external out-channel.
+          // Each dict has keys: parent_vertex_idx, parent_edge_idx,
+          // d_j_synth_idx, s_abs_synth_idx, type_c_edge_idx, phantom_edge_idx.
+          py::list result;
+          if (m.meta->channels == nullptr) return result;
+          for (size_t k = 0; k < m.meta->n_channels; ++k) {
+              const struct ptd_scc_channel_info *ch = &m.meta->channels[k];
+              py::dict d;
+              d["parent_vertex_idx"] = ch->parent_vertex_idx;
+              d["parent_edge_idx"] = ch->parent_edge_idx;
+              d["d_j_synth_idx"] = ch->d_j_synth_idx;
+              d["s_abs_synth_idx"] = ch->s_abs_synth_idx;
+              d["type_c_edge_idx"] = ch->type_c_edge_idx;
+              d["phantom_edge_idx"] = ch->phantom_edge_idx;
+              result.append(d);
+          }
+          return result;
+      })
+      .def_property_readonly("parent_indices", [](const SccSyntheticMetadataPy& m) {
+          // Returns list of int (SIZE_MAX represented as -1 for
+          // synthetic source/absorbing).
+          py::list result;
+          for (size_t i = 0; i < m.meta->n_vertices; ++i) {
+              size_t pi = m.meta->parent_indices[i];
+              if (pi == SIZE_MAX) {
+                  result.append(py::int_(-1));
+              } else {
+                  result.append(py::int_(pi));
+              }
+          }
+          return result;
+      }, "List mapping synthetic-graph index to parent-graph index "
+         "(-1 for synthetic source and absorbing).")
+      .def_property_readonly("external_in_edges", [](const SccSyntheticMetadataPy& m) {
+          // Returns list[list[tuple[int, int]]] of length n_vertices.
+          // For synthetic-graph vertex v_synth, the entry is the
+          // list of (parent_vertex_idx, parent_edge_idx) for parent
+          // edges that flow INTO the corresponding parent vertex
+          // from outside the SCC. Empty for source, absorbing,
+          // and pure-internal-only vertices.
+          py::list result;
+          for (size_t v = 0; v < m.meta->n_vertices; ++v) {
+              py::list inner;
+              size_t n = m.meta->external_in_edges_lengths[v];
+              for (size_t i = 0; i < n; ++i) {
+                  inner.append(py::make_tuple(
+                      m.meta->external_in_edges[v][i].parent_vertex_idx,
+                      m.meta->external_in_edges[v][i].parent_edge_idx));
+              }
+              result.append(inner);
+          }
+          return result;
+      })
+      .def_property_readonly("external_out_edges", [](const SccSyntheticMetadataPy& m) {
+          // Symmetric: per synthetic-graph vertex, list of parent
+          // edges that flow OUT to outside the SCC.
+          py::list result;
+          for (size_t v = 0; v < m.meta->n_vertices; ++v) {
+              py::list inner;
+              size_t n = m.meta->external_out_edges_lengths[v];
+              for (size_t i = 0; i < n; ++i) {
+                  inner.append(py::make_tuple(
+                      m.meta->external_out_edges[v][i].parent_vertex_idx,
+                      m.meta->external_out_edges[v][i].parent_edge_idx));
+              }
+              result.append(inner);
+          }
+          return result;
+      });
+
+  // =========================================================================
   // SCCVertex bindings
   // =========================================================================
-  py::class_<phasic::SCCVertex>(m, "SCCVertex",
+  py::class_<phasic::SCCVertex>(m, "SCCVertex", py::dynamic_attr(),
       "Strongly connected component vertex (one SCC in condensation graph)")
       .def("size", &phasic::SCCVertex::size,
            "Number of vertices in this SCC")
@@ -3069,6 +3374,100 @@ str
            "Index of this SCC in parent graph")
       .def("as_graph", &phasic::SCCVertex::as_graph,
            "Extract this SCC as a standalone Graph object")
+      .def("as_synthetic_graph", [](const phasic::SCCVertex& self) {
+          auto meta_holder = std::make_unique<SccSyntheticMetadataPy>();
+          phasic::Graph synth = self.as_synthetic_graph(&meta_holder->meta);
+          return py::make_tuple(std::move(synth), std::move(meta_holder));
+      },
+      "Build a synthetic-wrapped graph for this SCC.\n\n"
+      "Returns a (Graph, SCCSyntheticMetadata) tuple. The graph has\n"
+      "a synthetic source vertex at index 0 and a synthetic absorbing\n"
+      "vertex at the last index, with placeholder edges to/from the\n"
+      "SCC's upstream/downstream-connecting vertices. The metadata\n"
+      "carries vertex categorisation and parent-edge references for\n"
+      "later composition.")
+      .def("get_or_compute_prc",
+           [](const phasic::SCCVertex& self) {
+               // WP-4: trigger the per-SCC PRC compute/cache path.
+               // Returns (synth_graph, metadata, n_external_anchors)
+               // for tests. The PRC itself is destroyed here — its
+               // pointer fields are bound to synth_graph's edge
+               // weight slots, so transferring it across the
+               // C/Python boundary is unsafe.
+               struct ptd_graph *synth_c = NULL;
+               struct ptd_scc_synthetic_metadata *meta = NULL;
+               struct ptd_desc_reward_compute_parameterized *prc =
+                   ptd_scc_get_or_compute_prc(
+                       self.parent_scc_graph()->c_ptr(),
+                       self.index(), &synth_c, &meta);
+               if (prc == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   if (synth_c) ptd_graph_destroy(synth_c);
+                   if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+                   throw std::runtime_error(
+                       std::string("get_or_compute_prc failed: ") + err);
+               }
+               // Compute n_external_anchors via the helper so tests
+               // can confirm the count.
+               size_t n_anchors = 0;
+               double **anchors = ptd_scc_collect_external_anchors(
+                   synth_c, meta, &n_anchors);
+               free(anchors);
+               // Wrap synth in an owning Python Graph; transfer
+               // metadata to a Python wrapper that owns the C
+               // struct.
+               phasic::Graph synth_cpp(synth_c);
+               auto meta_holder = std::make_unique<SccSyntheticMetadataPy>();
+               meta_holder->meta = meta;
+               // Destroy the PRC. The persistent state we care
+               // about is (a) the cache file written to disk
+               // (observable via stat), (b) the synthetic graph
+               // (returned), (c) the metadata (returned).
+               ptd_parameterized_reward_compute_graph_destroy(prc);
+               return py::make_tuple(std::move(synth_cpp),
+                                     std::move(meta_holder),
+                                     n_anchors);
+           },
+           "WP-4: trigger per-SCC PRC compute with disk caching.\n"
+           "Returns (synth_graph, metadata, n_external_anchors).")
+      .def("cache_file_path",
+           [](const phasic::SCCVertex& self) -> py::object {
+               // Compute the per-SCC cache path. Useful for tests
+               // that want to stat the cache file. Builds the
+               // synthetic graph internally to compute its hash.
+               struct ptd_graph *synth_c = NULL;
+               struct ptd_scc_synthetic_metadata *meta = NULL;
+               synth_c = ptd_scc_build_synthetic_graph(
+                   self.parent_scc_graph()->c_ptr(),
+                   self.index(), &meta);
+               if (synth_c == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   throw std::runtime_error(
+                       std::string("cache_file_path build failed: ") + err);
+               }
+               struct ptd_hash_result *hash =
+                   ptd_graph_content_hash(synth_c);
+               ptd_graph_destroy(synth_c);
+               ptd_scc_synthetic_metadata_destroy(meta);
+               if (hash == NULL) {
+                   throw std::runtime_error(
+                       "cache_file_path: hash computation failed");
+               }
+               const char *home = getenv("HOME");
+               std::string path;
+               if (home != NULL) {
+                   path = std::string(home) +
+                          "/.phasic_cache/parameterized_reward_compute/scc_" +
+                          hash->hash_hex + ".bin";
+               }
+               ptd_hash_destroy(hash);
+               return py::cast(path);
+           },
+           "Return the absolute path of this SCC's cache file.\n"
+           "The file may not exist yet (compute hasn't run, or\n"
+           "PHASIC_DISABLE_CACHE=1).")
       .def("internal_vertex_indices", &phasic::SCCVertex::internal_vertex_indices,
            "Get indices of internal vertices in original graph")
       .def("hash", &phasic::SCCVertex::hash,
@@ -3091,8 +3490,29 @@ str
       .def("scc_at", &phasic::SCCGraph::scc_at,
            py::return_value_policy::reference_internal,
            "Get SCC vertex by index")
-      .def("sccs_in_topo_order", &phasic::SCCGraph::sccs_in_topo_order,
-           "Get all SCCs in topological order")
+      .def("sccs_in_topo_order", [](py::object self_obj) {
+              // Wrap each SCCVertex copy in a Python object that
+              // explicitly keeps a reference to the parent SCCGraph,
+              // so the parent's C struct outlives any SCCVertex
+              // copy returned. Without the parent reference, code
+              // like:
+              //   scc = g.scc_decomposition().sccs_in_topo_order()[0]
+              // would dangle the parent at end-of-expression.
+              const auto& self = self_obj.cast<const phasic::SCCGraph&>();
+              auto sccs = self.sccs_in_topo_order();
+              py::list result;
+              for (auto& scc : sccs) {
+                  py::object py_scc = py::cast(std::move(scc));
+                  // Bind the parent's lifetime to this SCCVertex
+                  // via Python attribute. py::keep_alive<>() doesn't
+                  // work for list-of-handle returns; this is the
+                  // pybind11-recommended workaround for that case.
+                  py_scc.attr("_parent_ref") = self_obj;
+                  result.append(py_scc);
+              }
+              return result;
+          },
+          "Get all SCCs in topological order")
       .def("scc_sizes", &phasic::SCCGraph::scc_sizes,
            "Get sizes (vertex counts) of all SCCs")
       .def("original_graph", &phasic::SCCGraph::original_graph,
@@ -3100,12 +3520,94 @@ str
            "Get reference to original graph")
       .def("scc_hashes", &phasic::SCCGraph::scc_hashes,
            "Compute content hashes for all SCCs")
+      .def("compose",
+           [](const phasic::SCCGraph& self,
+              phasic::Graph& parent,
+              std::vector<double> theta) {
+               // WP-5: compose per-SCC PRCs into a parent-level
+               // expected_waiting_time vector.
+               double *result = ptd_compose_scc_prcs(
+                       parent.c_graph(),
+                       self.c_ptr(),
+                       theta.data(),
+                       theta.size());
+               if (result == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   throw std::runtime_error(
+                       std::string("compose failed: ") + err);
+               }
+               size_t n = parent.c_graph()->vertices_length;
+               std::vector<double> py_result(result, result + n);
+               free(result);
+               return py_result;
+           },
+           py::arg("parent"), py::arg("theta"),
+           "WP-5: compose per-SCC PRCs to compute parent-level "
+           "expected_waiting_time. Returns a list of doubles, one "
+           "per parent vertex.")
       .def("__len__", &phasic::SCCGraph::n_sccs)
       .def("__getitem__", &phasic::SCCGraph::scc_at,
            py::return_value_policy::reference_internal)
       .def("__repr__", [](const phasic::SCCGraph& g) {
           return "<SCCGraph n_sccs=" + std::to_string(g.n_sccs()) + ">";
       });
+
+  // =========================================================================
+  // SLURM-WP-4: synth-only cache-or-compute
+  // =========================================================================
+  m.def("_synth_get_or_compute_prc",
+        [](phasic::Graph& synth) {
+            // Cache-or-compute the PRC for an arbitrary synthetic
+            // graph. Returns a dict with cache outcome metadata.
+            // Used by the distributed worker CLI to populate the
+            // shared SCC PRC cache without needing the full parent
+            // graph.
+            //
+            // Internally calls ptd_synth_get_or_compute_prc, which
+            // bumps the WP-8 cache hit/miss counters. Callers can
+            // observe the outcome via scc_compose_stats() before
+            // and after.
+            ptd_err[0] = '\0';
+            struct ptd_desc_reward_compute_parameterized *prc =
+                    ptd_synth_get_or_compute_prc(synth.c_graph());
+            if (prc == NULL) {
+                std::string err((const char *)ptd_err);
+                ptd_err[0] = '\0';
+                throw std::runtime_error(
+                        std::string("synth_get_or_compute_prc failed: ") + err);
+            }
+            // We don't return the PRC to Python — workers don't
+            // need it; the side effect (cache file written) is
+            // the contract. Free it here.
+            ptd_parameterized_reward_compute_graph_destroy(prc);
+            return py::none();
+        },
+        py::arg("synth"),
+        "SLURM-WP-4: cache-or-compute the PRC for a synthetic "
+        "SCC graph. Side effect: writes ~/.phasic_cache/.../scc_<hash>.bin "
+        "if not already present. Used by the distributed worker.");
+
+  // =========================================================================
+  // WP-8: SCC composer telemetry
+  // =========================================================================
+  m.def("_scc_compose_stats_get",
+        []() {
+            struct ptd_scc_compose_stats s;
+            ptd_scc_compose_stats_get(&s);
+            py::dict d;
+            d["cache_hits"] = s.cache_hits;
+            d["cache_misses"] = s.cache_misses;
+            d["compose_calls"] = s.compose_calls;
+            d["total_compose_ns"] = s.total_compose_ns;
+            d["cache_bypassed"] = s.cache_bypassed;
+            return d;
+        },
+        "Return SCC composer telemetry counters as a dict.");
+
+  m.def("_scc_compose_stats_reset",
+        []() { ptd_scc_compose_stats_reset(); },
+        "Reset SCC composer telemetry counters to zero.");
 
   // =========================================================================
   // Trace Cache Functions

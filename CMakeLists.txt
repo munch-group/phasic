@@ -22,7 +22,7 @@ include(FetchContent)
 
 # NOTE: phasic_symbolic.c commented out due to missing function implementations
 # Symbolic elimination is obsolete - use trace-based elimination instead
-add_library(libphasic SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic_log.c src/c/phasic_log.h)
+add_library(libphasic SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic_log.c src/c/phasic_log.h src/c/scc_synthetic.c src/c/scc_compose.c)
 
 set_target_properties(libphasic PROPERTIES
         VERSION ${PROJECT_VERSION}
@@ -47,7 +47,7 @@ install(FILES api/c/phasic.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         
 # NOTE: phasic_symbolic.c commented out due to missing function implementations
-add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic_log.c src/c/phasic.h src/c/phasic_log.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h api/cpp/scc_graph.cpp api/cpp/scc_graph.h src/cpp/phasiccpp.h)
+add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic_log.c src/c/phasic.h src/c/phasic_log.h src/c/scc_synthetic.c src/c/scc_compose.c src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h api/cpp/scc_graph.cpp api/cpp/scc_graph.h src/cpp/phasiccpp.h)
 set_target_properties(libphasiccpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -193,6 +193,18 @@ endif()
 
 find_package(OpenMP)
 
+# WP-6: link OpenMP into libphasic and libphasiccpp so the
+# composer (src/c/scc_compose.c) can parallelise per-SCC
+# compute via #pragma omp parallel for.
+if(OpenMP_C_FOUND)
+    target_link_libraries(libphasic PUBLIC OpenMP::OpenMP_C)
+    target_compile_definitions(libphasic PRIVATE PHASIC_HAVE_OPENMP)
+endif()
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(libphasiccpp PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(libphasiccpp PRIVATE PHASIC_HAVE_OPENMP)
+endif()
+
 # Get XLA FFI include directory from environment, jaxlib, or local install
 message(STATUS "========================================")
 message(STATUS "Detecting XLA FFI headers for JAX integration...")
@@ -261,6 +273,8 @@ set(PYBIND_SOURCES
     # src/c/phasic_symbolic.c  # DISABLED - use trace-based elimination instead
     src/c/phasic_hash.c
     src/c/phasic_log.c
+    src/c/scc_synthetic.c
+    src/c/scc_compose.c
     src/c/phasic.h
     src/c/phasic_log.h
     src/cpp/phasiccpp.cpp
@@ -301,11 +315,26 @@ if(XLA_FFI_RESULT EQUAL 0)
 endif()
 
 # Add OpenMP support for multi-core parallelization in FFI handlers
+# and the WP-6 SCC composer. We link BOTH the C and C++ OpenMP
+# imports because PYBIND_SOURCES contains a mix of .c and .cpp
+# files: src/c/scc_compose.c (the parallel SCC composer) is a
+# C file and needs the C compiler flag (-Xpreprocessor -fopenmp
+# on macOS / -fopenmp on Linux); without it the
+# `#pragma omp parallel for` is silently dropped during
+# preprocessing and the loop runs single-threaded.
+if(OpenMP_C_FOUND)
+    target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_C)
+endif()
 if(OpenMP_CXX_FOUND)
     target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_CXX)
-    message(STATUS "OpenMP enabled for multi-core parallelization")
+endif()
+if(OpenMP_C_FOUND OR OpenMP_CXX_FOUND)
+    target_compile_definitions(phasic_pybind PRIVATE PHASIC_HAVE_OPENMP)
+    message(STATUS "OpenMP enabled for multi-core parallelization "
+                   "(C_FOUND=${OpenMP_C_FOUND} CXX_FOUND=${OpenMP_CXX_FOUND})")
 else()
-    message(WARNING "OpenMP not found - FFI will run sequentially")
+    message(WARNING "OpenMP not found - FFI and SCC composer "
+                    "will run sequentially")
 endif()
 
 install(TARGETS phasic_pybind DESTINATION phasic)

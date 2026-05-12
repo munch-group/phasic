@@ -77,10 +77,21 @@ class PTDJAXError(PTDAlgorithmsError):
     pass
 
 
+class PTDFormatError(PTDAlgorithmsError):
+    """On-disk artifact format mismatch.
+
+    Raised when a cached or downloaded artifact has a format version
+    that the local phasic build cannot read (e.g. a newer
+    ``PTD_PCG_FORMAT_REVISION`` than the local binary supports).
+    """
+    pass
+
+
 __all__ = [
     'PTDAlgorithmsError',
     'PTDConfigError',
     'PTDBackendError',
     'PTDFeatureError',
     'PTDJAXError',
+    'PTDFormatError',
 ]

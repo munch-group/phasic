@@ -181,7 +181,7 @@ def _register_ffi_targets() -> bool:
 
     # Check if FFI backend is requested
     config = get_config()
-    if not config.ffi:
+    if not config._use_ffi:
         raise PTDConfigError(
             "FFI backend is disabled in configuration.\n"
             "  FFI is required for multi-core parallelization with vmap.\n"
