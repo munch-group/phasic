@@ -813,7 +813,7 @@ Tip
 <section id="temporary-settings-with-context-manager" class="level2">
 <h2 class="anchored" data-anchor-id="temporary-settings-with-context-manager">Temporary settings with context manager</h2>
 <p><code>configure(...)</code> returns a context-manager-shaped object. Using it with a <code>with</code> block applies the settings on entry and rolls them back at the end of the block — useful when you want to switch behavior for a single computation without leaking the change to the rest of the script.</p>
-<p>The rollback is comprehensive: every field touched by the <code>configure()</code> call, and every phasic-tracked environment variable, is restored to whatever value it held just before the <code>with</code> statement. If the block raises, the rollback still happens.</p>
+<p>The rollback is comprehensive: every field touched by the <code>configure()</code> call, and every phasic-tracked environment variable, is restored to whatever value it held just before the <code>with</code> statement. If the block raises, the rollback still happens. Conflict checking fires at the <code>with</code> statement, not inside the body. If the settings disagree with the shell environment, <code>configure()</code> raises before the block runs and no rollback is needed.</p>
 <div id="6922204a" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: parallel_elimination is False.</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination)</span>
@@ -841,7 +841,6 @@ outside: False env = None</code></pre>
 <pre><code>inside the block: mode='always', bits=256</code></pre>
 </div>
 </div>
-<p>Nesting <code>with</code> blocks is allowed; each block restores the state it saw on entry, so an outer block survives an inner block’s rollback:</p>
 <div id="efc34fa7" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> configure(cpu_threads<span class="op">=</span><span class="dv">4</span>):</span>
@@ -855,19 +854,6 @@ outside: False env = None</code></pre>
 <pre><code>inner: True 4
 outer: True 10
 after: False 10</code></pre>
-</div>
-</div>
-<div class="callout callout-style-default callout-tip no-icon callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon no-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Conflict checking fires at the <code>with</code> statement, not inside the body. If the settings disagree with the shell environment, <code>configure()</code> raises before the block runs and no rollback is needed.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
