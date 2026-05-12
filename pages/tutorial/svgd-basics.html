@@ -385,11 +385,8 @@ window.Quarto = {
   </div>
 </li>
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/sharing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Sharing compute artifacts</span></a>
-  </div>
-</li>
+ <span class="menu-text">pages/tutorial/sharing.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
@@ -477,7 +474,7 @@ window.Quarto = {
 <section id="bayesian-inference-with-svgd-stein-variational-gradient-descent" class="level2">
 <h2 class="anchored" data-anchor-id="bayesian-inference-with-svgd-stein-variational-gradient-descent">Bayesian Inference with SVGD (Stein Variational Gradient Descent)</h2>
 <p>To estimate model parameters and their confidence intervals, Phasic used uses Stein Variational Gradient Descent (SVGD), which represents the posterior with a set of particles (parameter vectors) and combines ideas from optimization, kernel methods, and functional analysis in a deterministic algorithm that updates these particles iteratively to move them toward the posterior distribution. SVGD exploits the PDF for gradient computation and moments for regularization. It begins with an initial set of particles (typically drawn from the prior or from a simple distribution) and iteratively transport these particles toward the posterior using gradient information. Each particle interacts with all other particles through a kernel function, with the interaction strength depending on the distance between particles. This interaction ensures that particles spread out to cover the posterior distribution, allowing extraction of not only the most likely parameter value (MAP estimate) but also a confidence interval of the estimate.</p>
-<p>Such inference is not possible in the standard matrix formulation of phase-type distributions where the large number of likelihood computations required would each be <span class="math inline">O(n^3)</span>. In Phasic, the algorithm of the gaussian elimination on the graph fully exploits the sparseness of state spaces bringing the complexity closer to <span class="math inline">n^2</span>. Because Phasic records and caches the elimination trace, this computation is only done once, removing a dimension of complexity for all subsequent likelihood evaluations. For an expose of these tricks and innovations see <a href="../../mathref/index.qmd">Math and Algorithms</a>, <a href="../internals/architecture.qmd">Architecture</a>, <a href="./trace-and-jax-caching.ipynb">Caching</a> and <a href="../../pages/tutorial/sharing.html">Sharing</a>.</p>
+<p>Such inference is not possible in the standard matrix formulation of phase-type distributions where the large number of likelihood computations required would each be <span class="math inline">O(n^3)</span>. In Phasic, the algorithm of the gaussian elimination on the graph fully exploits the sparseness of state spaces bringing the complexity closer to <span class="math inline">n^2</span>. Because Phasic records and caches the elimination trace, this computation is only done once, removing a dimension of complexity for all subsequent likelihood evaluations. For an expose of these tricks and innovations see <a href="../../mathref/index.qmd">Math and Algorithms</a>, <a href="../internals/architecture.qmd">Architecture</a>, <a href="./trace-and-jax-caching.ipynb">Caching</a> and <a href="./sharing.ipynb">Sharing</a>.</p>
 <div id="1a345d01" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:43.063065Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:43.062981Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:45.409901Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:45.409485Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior,</span>
