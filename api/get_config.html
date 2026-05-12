@@ -169,11 +169,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#phasic.get_config" id="toc-phasic.get_config" class="nav-link active" data-scroll-target="#phasic.get_config">get_config</a>
-  <ul class="collapse">
-  <li><a href="#returns" id="toc-returns" class="nav-link" data-scroll-target="#returns">Returns</a></li>
-  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
-  </ul></li>
+  <li><a href="#phasic.get_config" id="toc-phasic.get_config" class="nav-link active" data-scroll-target="#phasic.get_config">get_config</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/api/get_config.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/api/get_config.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -186,25 +182,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="phasic.get_config" class="level1">
 <h1>get_config</h1>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>phasic.get_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Get current global configuration.</p>
-<section id="returns" class="level2 doc-section doc-section-returns">
-<h2 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h2>
-<dl>
-<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>PTDAlgorithmsConfig</code></span></code></dt>
-<dd>
-<p>Current configuration (creates default if none exists)</p>
-</dd>
-</dl>
-</section>
-<section id="examples" class="level2 doc-section doc-section-examples">
-<h2 class="doc-section doc-section-examples anchored" data-anchor-id="examples">Examples</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">import</span> phasic <span class="im">as</span> ptd</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> config <span class="op">=</span> ptd.get_config()</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(config.jax, config.jit, config.backend)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="va">True</span> <span class="va">True</span> jax</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Return the current global configuration.</p>
+<p>On first call, reads the relevant phasic env vars (<code>PHASIC_HIERAR_ELIMINATION</code>, <code>PHASIC_DISABLE_CACHE</code>, <code>PHASIC_CACHE_DIR</code>, <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>, <code>PHASIC_MAX_PARALLEL_SCCS</code>, <code>OMP_NUM_THREADS</code>) and seeds the config so its fields agree with the environment that the C layer will observe.</p>
+<p>Subsequent calls return the cached config object.</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->

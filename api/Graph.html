@@ -206,6 +206,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#phasic.Graph.normalize" id="toc-phasic.Graph.normalize" class="nav-link" data-scroll-target="#phasic.Graph.normalize">normalize</a></li>
   <li><a href="#phasic.Graph.pdf" id="toc-phasic.Graph.pdf" class="nav-link" data-scroll-target="#phasic.Graph.pdf">pdf</a></li>
   <li><a href="#phasic.Graph.plot" id="toc-phasic.Graph.plot" class="nav-link" data-scroll-target="#phasic.Graph.plot">plot</a></li>
+  <li><a href="#phasic.Graph.plot_scc_decomposition" id="toc-phasic.Graph.plot_scc_decomposition" class="nav-link" data-scroll-target="#phasic.Graph.plot_scc_decomposition">plot_scc_decomposition</a></li>
   <li><a href="#phasic.Graph.pmf_and_moments_from_graph" id="toc-phasic.Graph.pmf_and_moments_from_graph" class="nav-link" data-scroll-target="#phasic.Graph.pmf_and_moments_from_graph">pmf_and_moments_from_graph</a></li>
   <li><a href="#phasic.Graph.pmf_and_moments_from_graph_multivariate" id="toc-phasic.Graph.pmf_and_moments_from_graph_multivariate" class="nav-link" data-scroll-target="#phasic.Graph.pmf_and_moments_from_graph_multivariate">pmf_and_moments_from_graph_multivariate</a></li>
   <li><a href="#phasic.Graph.pmf_from_cpp" id="toc-phasic.Graph.pmf_from_cpp" class="nav-link" data-scroll-target="#phasic.Graph.pmf_from_cpp">pmf_from_cpp</a></li>
@@ -220,6 +221,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#phasic.Graph.pmf_from_graph_joint_index" id="toc-phasic.Graph.pmf_from_graph_joint_index" class="nav-link" data-scroll-target="#phasic.Graph.pmf_from_graph_joint_index">pmf_from_graph_joint_index</a></li>
   <li><a href="#phasic.Graph.pmf_from_graph_parameterized" id="toc-phasic.Graph.pmf_from_graph_parameterized" class="nav-link" data-scroll-target="#phasic.Graph.pmf_from_graph_parameterized">pmf_from_graph_parameterized</a></li>
   <li><a href="#phasic.Graph.probability_matching" id="toc-phasic.Graph.probability_matching" class="nav-link" data-scroll-target="#phasic.Graph.probability_matching">probability_matching</a></li>
+  <li><a href="#phasic.Graph.pull_cache" id="toc-phasic.Graph.pull_cache" class="nav-link" data-scroll-target="#phasic.Graph.pull_cache">pull_cache</a></li>
+  <li><a href="#phasic.Graph.push_cache" id="toc-phasic.Graph.push_cache" class="nav-link" data-scroll-target="#phasic.Graph.push_cache">push_cache</a></li>
   <li><a href="#phasic.Graph.reward_transform" id="toc-phasic.Graph.reward_transform" class="nav-link" data-scroll-target="#phasic.Graph.reward_transform">reward_transform</a></li>
   <li><a href="#phasic.Graph.reward_transform_discrete" id="toc-phasic.Graph.reward_transform_discrete" class="nav-link" data-scroll-target="#phasic.Graph.reward_transform_discrete">reward_transform_discrete</a></li>
   <li><a href="#phasic.Graph.sample" id="toc-phasic.Graph.sample" class="nav-link" data-scroll-target="#phasic.Graph.sample">sample</a></li>
@@ -421,78 +424,90 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Plot a graph using graphviz.</td>
 </tr>
 <tr class="odd">
+<td><a href="#phasic.Graph.plot_scc_decomposition">plot_scc_decomposition</a></td>
+<td>Visualise the SCC decomposition of this graph as a</td>
+</tr>
+<tr class="even">
 <td><a href="#phasic.Graph.pmf_and_moments_from_graph">pmf_and_moments_from_graph</a></td>
 <td>Convert a parameterized Graph to a function that computes both PMF/PDF and moments.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.pmf_and_moments_from_graph_multivariate">pmf_and_moments_from_graph_multivariate</a></td>
 <td>Create a multivariate phase-type model that handles 2D observations and rewards.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.pmf_from_cpp">pmf_from_cpp</a></td>
 <td>Load a phase-type model from a user’s C++ file and return a JAX-compatible function.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.pmf_from_graph">pmf_from_graph</a></td>
 <td>Convert a Python-built Graph to a JAX-compatible function with full gradient support.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.pmf_from_graph_joint_index">pmf_from_graph_joint_index</a></td>
 <td>Create a JAX-compatible model for joint index distributions.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.pmf_from_graph_parameterized">pmf_from_graph_parameterized</a></td>
 <td>Convert a parameterized Python graph builder to a JAX-compatible function.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.probability_matching">probability_matching</a></td>
 <td>Find parameter estimates by matching model probabilities to empirical probabilities.</td>
 </tr>
+<tr class="odd">
+<td><a href="#phasic.Graph.pull_cache">pull_cache</a></td>
+<td>Download the published compute artifact for this graph if available.</td>
+</tr>
 <tr class="even">
+<td><a href="#phasic.Graph.push_cache">push_cache</a></td>
+<td>Publish this graph’s compute artifact to the phasic-traces registry.</td>
+</tr>
+<tr class="odd">
 <td><a href="#phasic.Graph.reward_transform">reward_transform</a></td>
 <td>Apply reward transformation to create a new graph with modified rewards.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.reward_transform_discrete">reward_transform_discrete</a></td>
 <td>Apply reward transformation for discrete-time distributions.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.sample">sample</a></td>
 <td>Generate random samples from the phase-type distribution.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.sample_path">sample_path</a></td>
 <td>Sample complete path(s) through the Markov chain.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.sample_path_conditioned">sample_path_conditioned</a></td>
 <td>Sample path(s) conditioned on reaching a target terminal state.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.serialize">serialize</a></td>
 <td>Serialize graph to array representation for efficient computation.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.state_probability">state_probability</a></td>
 <td>Compute probability of being in each state at a given time.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.stop_probability">stop_probability</a></td>
 <td>Compute probability of being in each state at a given time.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.svgd">svgd</a></td>
 <td>Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.update_ipv">update_ipv</a></td>
 <td>Set the initial probability vector after construction.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.Graph.update_weights">update_weights</a></td>
 <td>Update parameterized edge weights with given parameters.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.Graph.variance">variance</a></td>
 <td>Compute variance of the phase-type distribution.</td>
 </tr>
@@ -1712,7 +1727,7 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.pdf" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pdf">pdf</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pdf(time, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pdf(time, granularity<span class="op">=</span><span class="dv">0</span>, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Compute probability density/mass function using forward algorithm.</p>
 <section id="parameters-23" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-23">Parameters</h4>
@@ -1721,9 +1736,9 @@ subject to  theta &gt; 0</code></pre>
 <dd>
 <p>Time point(s) at which to evaluate the PDF/PMF.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>granularity</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span></code></dt>
+<dt><code><span class="parameter-name"><strong>granularity</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0</span></code></dt>
 <dd>
-<p>Granularity for uniformization (default: auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.</p>
+<p>Granularity for uniformization (default: 0, auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.</p>
 </dd>
 <dt><code><span class="parameter-name">****kwargs**</span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>dict</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">{}</span></code></dt>
 <dd>
@@ -1857,19 +1872,84 @@ subject to  theta &gt; 0</code></pre>
 </dl>
 </section>
 </section>
-<section id="phasic.Graph.pmf_and_moments_from_graph" class="level3">
-<h3 class="anchored" data-anchor-id="phasic.Graph.pmf_and_moments_from_graph">pmf_and_moments_from_graph</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_and_moments_from_graph(</span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Convert a parameterized Graph to a function that computes both PMF/PDF and moments.</p>
-<p>This is more efficient than calling <code>pmf_from_graph()</code> and <code>moments_from_graph()</code> separately because it builds the graph once and computes both quantities.</p>
+<section id="phasic.Graph.plot_scc_decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.Graph.plot_scc_decomposition">plot_scc_decomposition</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.plot_scc_decomposition(</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="fl">10.0</span>, <span class="fl">6.0</span>),</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>    cmap<span class="op">=</span><span class="st">'viridis'</span>,</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    show_indices<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>    annotate_sizes<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    title<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Visualise the SCC decomposition of this graph as a level-wise treemap.</p>
+<p>Rows correspond to the levels of the SCC condensation. The source-side (start vertex, where the chain enters) is drawn at the <strong>top</strong> of the figure; the sink-side (absorbing state) is at the <strong>bottom</strong> — time flows downward.</p>
+<p>Within a row, each tile is one SCC, with width proportional to the SCC’s vertex count, drawn at a common absolute scale shared across all rows. So a narrow row really has fewer total vertices than a wide one. SCCs at the same level are eliminated independently when <code>parallel_elimination=True</code> is enabled, so wide rows signal good parallelism potential and narrow rows are elimination bottlenecks.</p>
+<p>Level labels on the left margin look like <code>L7 (16)</code> — the level number followed by the count of parallel SCCs at that level. Note that the C-side composer processes levels in the opposite of the plot’s vertical order (sink-first, bottom-up), but that detail does not affect interpretation: parallelism is per-row in either direction.</p>
+<p>This is a structural visualisation only — it does not depend on any runtime telemetry. To assess actual cache hit/miss behaviour after a compose, use <code>phasic.cache.scc_compose_stats()</code>.</p>
 <section id="parameters-25" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-25">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>figsize</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">tuple of float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">(10.0, 6.0)</span></code></dt>
+<dd>
+<p>Matplotlib figure size in inches. Ignored if <code>ax</code> is provided.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>cmap</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'viridis'</span></code></dt>
+<dd>
+<p>Matplotlib colormap name. Tiles are coloured by SCC index to make adjacent SCCs visually distinct.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>show_indices</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>Print the SCC index inside each tile when the tile is wide enough.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>annotate_sizes</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>Print the vertex count alongside the index.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>title</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code> or None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Plot title. Defaults to a one-line summary of the decomposition (number of SCCs, levels, widest row).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>ax</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>matplotlib</code>.<code>axes</code>.<code>Axes</code> or None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Existing axes to draw into. If <code>None</code>, a new figure is created.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-30" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-30">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>matplotlib</code>.<code>axes</code>.<code>Axes</code></span></code></dt>
+<dd>
+<p>The axes the treemap was drawn into.</p>
+</dd>
+</dl>
+</section>
+<section id="examples-11" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-11">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">import</span> phasic</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> phasic.Graph(my_callback)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ax <span class="op">=</span> g.plot_scc_decomposition()</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ax.figure.savefig(<span class="st">'scc.pdf'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="see-also-3" class="level4 doc-section doc-section-see-also">
+<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also-3">See Also</h4>
+<p>scc_decomposition : underlying SCC structure phasic.distributed_scc.compute_scc_levels : level grouping used by this plot</p>
+</section>
+</section>
+<section id="phasic.Graph.pmf_and_moments_from_graph" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.Graph.pmf_and_moments_from_graph">pmf_and_moments_from_graph</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_and_moments_from_graph(</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Convert a parameterized Graph to a function that computes both PMF/PDF and moments.</p>
+<p>This is more efficient than calling <code>pmf_from_graph()</code> and <code>moments_from_graph()</code> separately because it builds the graph once and computes both quantities.</p>
+<section id="parameters-26" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-26">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>graph</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
@@ -1893,8 +1973,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-30" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-30">Returns</h4>
+<section id="returns-31" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-31">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -1902,28 +1982,28 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-11" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-11">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Create parameterized model</span></span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> Graph(coalescent, nr_samples<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Compute both PMF and moments</span></span>
-<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">0.5</span>])</span>
-<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
-<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times)</span>
-<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"PMF at times: </span><span class="sc">{</span>pmf_vals<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Moments: </span><span class="sc">{</span>moments<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># [E[T], E[T^2]]</span></span>
-<span id="cb52-12"><a href="#cb52-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb52-13"><a href="#cb52-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Compute reward-transformed moments</span></span>
-<span id="cb52-14"><a href="#cb52-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>])  <span class="co"># One per vertex</span></span>
-<span id="cb52-15"><a href="#cb52-15" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, reward_moments <span class="op">=</span> model(theta, times, rewards<span class="op">=</span>rewards)</span>
-<span id="cb52-16"><a href="#cb52-16" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Reward moments: </span><span class="sc">{</span>reward_moments<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># [E[R·T], E[R·T^2]]</span></span>
-<span id="cb52-17"><a href="#cb52-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb52-18"><a href="#cb52-18" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Use in SVGD with moment regularization</span></span>
-<span id="cb52-19"><a href="#cb52-19" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_pmf, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb52-20"><a href="#cb52-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.fit_regularized(observed_times<span class="op">=</span>data, nr_moments<span class="op">=</span><span class="dv">2</span>, regularization<span class="op">=</span><span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-12" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-12">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Create parameterized model</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> Graph(coalescent, nr_samples<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Compute both PMF and moments</span></span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">0.5</span>])</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times)</span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"PMF at times: </span><span class="sc">{</span>pmf_vals<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Moments: </span><span class="sc">{</span>moments<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># [E[T], E[T^2]]</span></span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Compute reward-transformed moments</span></span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>])  <span class="co"># One per vertex</span></span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, reward_moments <span class="op">=</span> model(theta, times, rewards<span class="op">=</span>rewards)</span>
+<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Reward moments: </span><span class="sc">{</span>reward_moments<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># [E[R·T], E[R·T^2]]</span></span>
+<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb54-18"><a href="#cb54-18" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Use in SVGD with moment regularization</span></span>
+<span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_pmf, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.fit_regularized(observed_times<span class="op">=</span>data, nr_moments<span class="op">=</span><span class="dv">2</span>, regularization<span class="op">=</span><span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="notes-15" class="level4 doc-section doc-section-notes">
 <h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-15">Notes</h4>
@@ -1936,17 +2016,17 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.pmf_and_moments_from_graph_multivariate" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pmf_and_moments_from_graph_multivariate">pmf_and_moments_from_graph_multivariate</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_and_moments_from_graph_multivariate(</span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_and_moments_from_graph_multivariate(</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Create a multivariate phase-type model that handles 2D observations and rewards.</p>
 <p>This wrapper enables computing joint likelihoods for multivariate phase-type distributions where each feature dimension has its own reward vector defining the marginal distribution.</p>
-<section id="parameters-26" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-26">Parameters</h4>
+<section id="parameters-27" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-27">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>graph</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
@@ -1970,8 +2050,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-31" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-31">Returns</h4>
+<section id="returns-32" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-32">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -1979,35 +2059,35 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-12" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-12">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Create parameterized model</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> Graph(coalescent, nr_samples<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># 1D case (backward compatible)</span></span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">0.5</span>])</span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards_1d <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>])  <span class="co"># (n_vertices,)</span></span>
-<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times, rewards_1d)</span>
-<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(pmf_vals.shape)  <span class="co"># (3,)</span></span>
-<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(moments.shape)   <span class="co"># (2,)</span></span>
-<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># 2D case (multivariate)</span></span>
-<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards_2d <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>],   <span class="co"># Feature 1 reward vector</span></span>
-<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a>...                          [<span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.8</span>]])  <span class="co"># Feature 2 reward vector</span></span>
-<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a>...                                                  <span class="co"># (n_features, n_vertices)</span></span>
-<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times_2d <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>, <span class="fl">1.5</span>],</span>
-<span id="cb54-18"><a href="#cb54-18" aria-hidden="true" tabindex="-1"></a>...                        [<span class="fl">2.0</span>, <span class="fl">2.5</span>],</span>
-<span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a>...                        [<span class="fl">3.0</span>, <span class="fl">3.5</span>]])  <span class="co"># (n_times, n_features)</span></span>
-<span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times_2d, rewards_2d)</span>
-<span id="cb54-21"><a href="#cb54-21" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(pmf_vals.shape)  <span class="co"># (3, 2)</span></span>
-<span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(moments.shape)   <span class="co"># (2, 2)</span></span>
-<span id="cb54-23"><a href="#cb54-23" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb54-24"><a href="#cb54-24" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Use in SVGD with 2D observations</span></span>
-<span id="cb54-25"><a href="#cb54-25" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> observed_data <span class="op">=</span> jnp.array([[<span class="fl">1.5</span>, <span class="fl">2.1</span>], [<span class="fl">0.8</span>, <span class="fl">1.2</span>], [<span class="fl">2.3</span>, <span class="fl">3.1</span>]])</span>
-<span id="cb54-26"><a href="#cb54-26" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, rewards<span class="op">=</span>rewards_2d)</span>
-<span id="cb54-27"><a href="#cb54-27" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> results <span class="op">=</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-13" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-13">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Create parameterized model</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> Graph(coalescent, nr_samples<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># 1D case (backward compatible)</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">0.5</span>])</span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards_1d <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>])  <span class="co"># (n_vertices,)</span></span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times, rewards_1d)</span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(pmf_vals.shape)  <span class="co"># (3,)</span></span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(moments.shape)   <span class="co"># (2,)</span></span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># 2D case (multivariate)</span></span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> rewards_2d <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.5</span>, <span class="fl">1.5</span>],   <span class="co"># Feature 1 reward vector</span></span>
+<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>...                          [<span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">0.8</span>]])  <span class="co"># Feature 2 reward vector</span></span>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a>...                                                  <span class="co"># (n_features, n_vertices)</span></span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times_2d <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>, <span class="fl">1.5</span>],</span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>...                        [<span class="fl">2.0</span>, <span class="fl">2.5</span>],</span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>...                        [<span class="fl">3.0</span>, <span class="fl">3.5</span>]])  <span class="co"># (n_times, n_features)</span></span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_vals, moments <span class="op">=</span> model(theta, times_2d, rewards_2d)</span>
+<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(pmf_vals.shape)  <span class="co"># (3, 2)</span></span>
+<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(moments.shape)   <span class="co"># (2, 2)</span></span>
+<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Use in SVGD with 2D observations</span></span>
+<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> observed_data <span class="op">=</span> jnp.array([[<span class="fl">1.5</span>, <span class="fl">2.1</span>], [<span class="fl">0.8</span>, <span class="fl">1.2</span>], [<span class="fl">2.3</span>, <span class="fl">3.1</span>]])</span>
+<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, rewards<span class="op">=</span>rewards_2d)</span>
+<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> results <span class="op">=</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="notes-16" class="level4 doc-section doc-section-notes">
 <h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-16">Notes</h4>
@@ -2020,13 +2100,13 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.pmf_from_cpp" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pmf_from_cpp">pmf_from_cpp</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_cpp(cpp_file, discrete<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_cpp(cpp_file, discrete<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Load a phase-type model from a user’s C++ file and return a JAX-compatible function.</p>
 <p>The C++ file should include ‘user_model.h’ and implement:</p>
 <p>phasic::Graph build_model(const double* theta, int n_params) { // Build and return Graph instance }</p>
 <p>For efficient repeated evaluations with the same parameters without JAX overhead, use load_cpp_builder() instead to get a builder function that creates Graph objects.</p>
-<section id="parameters-27" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-27">Parameters</h4>
+<section id="parameters-28" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-28">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>cpp_file</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code> or <code>pathlib</code>.<code>Path</code></span></code></dt>
 <dd>
@@ -2051,8 +2131,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-32" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-32">Returns</h4>
+<section id="returns-33" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-33">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -2060,34 +2140,34 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-13" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-13">Examples</h4>
+<section id="examples-14" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-14">Examples</h4>
 <p>JAX-compatible approach (default - for SVGD, gradients, optimization):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_cpp(<span class="st">"my_model.cpp"</span>)</span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>])</span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">100</span>)</span>
-<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf <span class="op">=</span> model(theta, times)</span>
-<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> gradient <span class="op">=</span> jax.grad(<span class="kw">lambda</span> p: jnp.<span class="bu">sum</span>(model(p, times)))(theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_cpp(<span class="st">"my_model.cpp"</span>)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>])</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">100</span>)</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf <span class="op">=</span> model(theta, times)</span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> gradient <span class="op">=</span> jax.grad(<span class="kw">lambda</span> p: jnp.<span class="bu">sum</span>(model(p, times)))(theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Discrete phase-type distribution:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_cpp(<span class="st">"my_model.cpp"</span>, discrete<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>])</span>
-<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jumps <span class="op">=</span> jnp.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>])</span>
-<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> dph_pmf <span class="op">=</span> model(theta, jumps)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_cpp(<span class="st">"my_model.cpp"</span>, discrete<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>])</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jumps <span class="op">=</span> jnp.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>])</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> dph_pmf <span class="op">=</span> model(theta, jumps)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For direct C++ access without JAX (faster for repeated evaluations):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> builder <span class="op">=</span> load_cpp_builder(<span class="st">"my_model.cpp"</span>)</span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> builder(np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>]))  <span class="co"># Build graph once</span></span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf1 <span class="op">=</span> graph.pdf(<span class="fl">1.0</span>)  <span class="co"># Use many times</span></span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf2 <span class="op">=</span> graph.pdf(<span class="fl">2.0</span>)  <span class="co"># No rebuild needed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> builder <span class="op">=</span> load_cpp_builder(<span class="st">"my_model.cpp"</span>)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> graph <span class="op">=</span> builder(np.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>]))  <span class="co"># Build graph once</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf1 <span class="op">=</span> graph.pdf(<span class="fl">1.0</span>)  <span class="co"># Use many times</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf2 <span class="op">=</span> graph.pdf(<span class="fl">2.0</span>)  <span class="co"># No rebuild needed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="phasic.Graph.pmf_from_graph" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pmf_from_graph">pmf_from_graph</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph(</span>
-<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
-<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>    use_cache<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph(</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>    use_cache<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Convert a Python-built Graph to a JAX-compatible function with full gradient support.</p>
 <p>This method automatically detects if the graph has parameterized edges (edges with state vectors) and generates optimized C++ code to enable full JAX transformations including gradients, vmap, and jit compilation.</p>
 <p>For direct C++ access without JAX wrapping, use the Graph object’s methods directly: graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.</p>
@@ -2100,8 +2180,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="parameters-28" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-28">Parameters</h4>
+<section id="parameters-29" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-29">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>graph</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
@@ -2117,8 +2197,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-33" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-33">Returns</h4>
+<section id="returns-34" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-34">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -2126,71 +2206,71 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-14" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-14">Examples</h4>
+<section id="examples-15" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-15">Examples</h4>
 </section>
 </section>
 </section>
 </section>
 <section id="non-parameterized-graph-regular-edges-only" class="level1">
 <h1>Non-parameterized graph (regular edges only)</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
-<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start <span class="op">=</span> g.starting_vertex()</span>
-<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
-<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start.add_edge(v0, <span class="fl">1.0</span>)</span>
-<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0.add_edge(v1, <span class="fl">2.0</span>)  <span class="co"># fixed weight</span></span>
-<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g)</span>
-<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
-<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(times)  <span class="co"># No theta needed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start.add_edge(v0, <span class="fl">1.0</span>)</span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0.add_edge(v1, <span class="fl">2.0</span>)  <span class="co"># fixed weight</span></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g)</span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(times)  <span class="co"># No theta needed</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="parameterized-graph-with-edge-states-for-gradient-support" class="level1">
 <h1>Parameterized graph (with edge states for gradient support)</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
-<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start <span class="op">=</span> g.starting_vertex()</span>
-<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
-<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start.add_edge(v0, <span class="fl">1.0</span>)</span>
-<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0.add_edge_parameterized(v1, <span class="fl">0.0</span>, [<span class="fl">2.0</span>, <span class="fl">0.5</span>])  <span class="co"># weight = 2.0*theta[0] + 0.5*theta[1]</span></span>
-<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g)</span>
-<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">3.0</span>])</span>
-<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(theta, times)  <span class="co"># weight becomes 2.0*1.0 + 0.5*3.0 = 3.5</span></span>
-<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Full JAX support for parameterized graphs</span></span>
-<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> grad_fn <span class="op">=</span> jax.grad(<span class="kw">lambda</span> t: jnp.<span class="bu">sum</span>(model(t, times)))</span>
-<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> gradient <span class="op">=</span> grad_fn(theta)  <span class="co"># Gradients work!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> start.add_edge(v0, <span class="fl">1.0</span>)</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> v0.add_edge_parameterized(v1, <span class="fl">0.0</span>, [<span class="fl">2.0</span>, <span class="fl">0.5</span>])  <span class="co"># weight = 2.0*theta[0] + 0.5*theta[1]</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g)</span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(theta, times)  <span class="co"># weight becomes 2.0*1.0 + 0.5*3.0 = 3.5</span></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Full JAX support for parameterized graphs</span></span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> grad_fn <span class="op">=</span> jax.grad(<span class="kw">lambda</span> t: jnp.<span class="bu">sum</span>(model(t, times)))</span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> gradient <span class="op">=</span> grad_fn(theta)  <span class="co"># Gradients work!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="for-direct-c-access-no-jax-overhead-use-graph-methods" class="level1">
 <h1>For direct C++ access (no JAX overhead), use graph methods:</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf_value <span class="op">=</span> g.pdf(<span class="fl">1.5</span>)  <span class="co"># Direct C++ call</span></span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_value <span class="op">=</span> g.dph_pmf(<span class="dv">3</span>)  <span class="co"># Direct C++ call</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf_value <span class="op">=</span> g.pdf(<span class="fl">1.5</span>)  <span class="co"># Direct C++ call</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pmf_value <span class="op">=</span> g.dph_pmf(<span class="dv">3</span>)  <span class="co"># Direct C++ call</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="with-symbolic-dag-caching-default" class="level1">
 <h1>With symbolic DAG caching (default)</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g, use_cache<span class="op">=</span><span class="va">True</span>)  <span class="co"># First call: computes and caches</span></span>
-<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model2 <span class="op">=</span> Graph.pmf_from_graph(g, use_cache<span class="op">=</span><span class="va">True</span>)  <span class="co"># Subsequent: instant from cache!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g, use_cache<span class="op">=</span><span class="va">True</span>)  <span class="co"># First call: computes and caches</span></span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model2 <span class="op">=</span> Graph.pmf_from_graph(g, use_cache<span class="op">=</span><span class="va">True</span>)  <span class="co"># Subsequent: instant from cache!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="phasic.Graph.pmf_from_graph_joint_index" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pmf_from_graph_joint_index">pmf_from_graph_joint_index</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph_joint_index(</span>
-<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
-<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>    fixed_mask<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    exclude_vertices<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph_joint_index(</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>    graph,</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>    fixed_mask<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>    exclude_vertices<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Create a JAX-compatible model for joint index distributions.</p>
 <p>In joint index mode, likelihood is computed from exact expected sojourn times rather than PDF/PMF values. The observed_data should contain vertex indices (integers) instead of time values.</p>
 <p>This is used for joint index distributions in population genetics models where the observed data represents which states (vertices) were visited.</p>
 <p>Uses the fast expected_sojourn_time() method which computes exact sojourn times for all states in a single pass through the elimination trace.</p>
-<section id="parameters-29" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-29">Parameters</h4>
+<section id="parameters-30" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-30">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>graph</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
 <p>Parameterized graph built using the Python API with parameterized edges.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>param_length</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span></code></dt>
+<dt><code><span class="parameter-name"><strong>theta_dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>Number of parameters for parameterized edges. If not provided, will be auto-detected from the graph.</p>
 </dd>
@@ -2204,8 +2284,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-34" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-34">Returns</h4>
+<section id="returns-35" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-35">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -2225,11 +2305,11 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.pmf_from_graph_parameterized" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.pmf_from_graph_parameterized">pmf_from_graph_parameterized</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph_parameterized(graph_builder, discrete<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pmf_from_graph_parameterized(graph_builder, discrete<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Convert a parameterized Python graph builder to a JAX-compatible function.</p>
 <p>This allows users to define parameterized models where the graph structure or edge weights depend on parameters.</p>
-<section id="parameters-30" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-30">Parameters</h4>
+<section id="parameters-31" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-31">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>graph_builder</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -2241,8 +2321,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-35" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-35">Returns</h4>
+<section id="returns-36" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-36">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span></code></dt>
 <dd>
@@ -2250,38 +2330,38 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-15" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-15">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="kw">def</span> build_exponential(rate):</span>
-<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>...     g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
-<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>...     start <span class="op">=</span> g.starting_vertex()</span>
-<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>...     v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
-<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>...     v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>...     start.add_edge(v0, <span class="fl">1.0</span>)</span>
-<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>...     v0.add_edge(v1, <span class="bu">float</span>(rate))</span>
-<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">return</span> g</span>
-<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph_parameterized(build_exponential)</span>
-<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.5</span>])</span>
-<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
-<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(theta, times)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-16" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-16">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="kw">def</span> build_exponential(rate):</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>...     g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>...     start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>...     v0 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">0</span>])</span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>...     v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>...     start.add_edge(v0, <span class="fl">1.0</span>)</span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>...     v0.add_edge(v1, <span class="bu">float</span>(rate))</span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">return</span> g</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph_parameterized(build_exponential)</span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> theta <span class="op">=</span> jnp.array([<span class="fl">1.5</span>])</span>
+<span id="cb68-12"><a href="#cb68-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
+<span id="cb68-13"><a href="#cb68-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> pdf <span class="op">=</span> model(theta, times)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="phasic.Graph.probability_matching" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.probability_matching">probability_matching</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.probability_matching(</span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>    theta_init<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>    std_multiplier<span class="op">=</span><span class="fl">2.0</span>,</span>
-<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.probability_matching(</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>    theta_init<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>    std_multiplier<span class="op">=</span><span class="fl">2.0</span>,</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Find parameter estimates by matching model probabilities to empirical probabilities.</p>
 <p>For joint probability graphs (created via :meth:<code>joint_prob_graph</code>), observations are feature-count tuples and the model outputs a probability table. This method minimises the squared difference between model and empirical probabilities.</p>
 <p>The returned <code>ProbMatchResult.prior</code> list can be passed directly to :meth:<code>Graph.svgd</code> as the <code>prior</code> argument.</p>
-<section id="parameters-31" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-31">Parameters</h4>
+<section id="parameters-32" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-32">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>observed_data</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of tuples</span></code></dt>
 <dd>
@@ -2309,8 +2389,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-36" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-36">Returns</h4>
+<section id="returns-37" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-37">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>ProbMatchResult</code></span></code></dt>
 <dd>
@@ -2327,21 +2407,162 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-16" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-16">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jg <span class="op">=</span> graph.joint_prob_graph(indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jg.update_weights([<span class="fl">1.0</span>, <span class="fl">0.5</span>])</span>
-<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> obs <span class="op">=</span> [<span class="bu">tuple</span>(row) <span class="cf">for</span> row <span class="kw">in</span> jg.joint_prob_table().iloc[:, :<span class="op">-</span><span class="dv">1</span>].values]</span>
-<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> result <span class="op">=</span> jg.probability_matching(obs, fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="fl">0.5</span>)])</span>
-<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> jg.svgd(obs, prior<span class="op">=</span>result.prior, fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="fl">0.5</span>)])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-17" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-17">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jg <span class="op">=</span> graph.joint_prob_graph(indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> jg.update_weights([<span class="fl">1.0</span>, <span class="fl">0.5</span>])</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> obs <span class="op">=</span> [<span class="bu">tuple</span>(row) <span class="cf">for</span> row <span class="kw">in</span> jg.joint_prob_table().iloc[:, :<span class="op">-</span><span class="dv">1</span>].values]</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> result <span class="op">=</span> jg.probability_matching(obs, fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="fl">0.5</span>)])</span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> jg.svgd(obs, prior<span class="op">=</span>result.prior, fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="fl">0.5</span>)])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="phasic.Graph.pull_cache" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.Graph.pull_cache">pull_cache</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.pull_cache(force<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Download the published compute artifact for this graph if available.</p>
+<p>Looks up this graph’s content hash in the <code>munch-group/phasic-traces</code> registry. On a hit, downloads the parent <code>.bin</code> (and any per-SCC files) to <code>~/.phasic_cache/parameterized_reward_compute/</code> so the next call to :meth:<code>expectation</code> / :meth:<code>pdf</code> / :meth:<code>moments</code> reuses the published elimination instead of recomputing.</p>
+<p>No git, gh, or daemon required for the consumer side — fetches are plain HTTPS to <code>raw.githubusercontent.com</code>.</p>
+<section id="parameters-33" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-33">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>force</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dd>
+<p>If True, re-download even when a local cache file already exists.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-38" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-38">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span></code></dt>
+<dd>
+<p>True if a fresh download succeeded or a local cache file was already present. False if no registry entry matches this graph’s content hash.</p>
+</dd>
+</dl>
+</section>
+<section id="raises-8" class="level4 doc-section doc-section-raises">
+<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-8">Raises</h4>
+<dl>
+<dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>phasic</code>.<code>exceptions</code>.<code>PTDBackendError</code></span></code></dt>
+<dd>
+<p>On network failure or SHA-256 mismatch.</p>
+</dd>
+<dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>phasic</code>.<code>exceptions</code>.<code>PTDFormatError</code></span></code></dt>
+<dd>
+<p>If the artifact’s <code>format_revision</code> exceeds what this phasic build supports.</p>
+</dd>
+</dl>
+</section>
+<section id="examples-18" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-18">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> phasic.Graph(my_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="cf">if</span> g.pull_cache():</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>...     <span class="bu">print</span>(<span class="st">'reusing published elimination'</span>)</span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> e <span class="op">=</span> g.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="phasic.Graph.push_cache" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.Graph.push_cache">push_cache</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.push_cache(</span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span>,</span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>    description,</span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb73-7"><a href="#cb73-7" aria-hidden="true" tabindex="-1"></a>    license<span class="op">=</span><span class="st">'MIT'</span>,</span>
+<span id="cb73-8"><a href="#cb73-8" aria-hidden="true" tabindex="-1"></a>    author<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb73-9"><a href="#cb73-9" aria-hidden="true" tabindex="-1"></a>    registry_repo<span class="op">=</span><span class="st">'munch-group/phasic-traces'</span>,</span>
+<span id="cb73-10"><a href="#cb73-10" aria-hidden="true" tabindex="-1"></a>    dry_run<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb73-11"><a href="#cb73-11" aria-hidden="true" tabindex="-1"></a>    overwrite_branch<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb73-12"><a href="#cb73-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Publish this graph’s compute artifact to the phasic-traces registry.</p>
+<p>Populates the C-side elimination cache if necessary (calls :meth:<code>expectation</code>), saves the parent <code>.bin</code> and any per-SCC files, clones the registry repo to a temporary directory, splices in a new entry, pushes a feature branch, and opens a pull request via <code>gh</code>.</p>
+<section id="parameters-34" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-34">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>id</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span></code></dt>
+<dd>
+<p>Human-readable identifier for the registry entry (e.g.&nbsp;<code>'coal_n5_theta1'</code>). Must be unique within the registry.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>description</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span></code></dt>
+<dd>
+<p>One-line free-form description of the model.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>domain</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Filtering keys stored in the entry’s metadata.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>model_type</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Filtering keys stored in the entry’s metadata.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>tags</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>list</code>[<code>str</code>]</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Tags stored in the entry’s metadata.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>license</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'MIT'</span></code></dt>
+<dd>
+<p>SPDX license identifier.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>author</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Override; default is <code>"Name &lt;email&gt;"</code> from <code>git config user.{name,email}</code>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>registry_repo</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'munch-group/phasic-traces'</span></code></dt>
+<dd>
+<p>GitHub <code>owner/name</code> of the registry repository.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>dry_run</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dd>
+<p>If True, build the artifacts and return a JSON string of the would-be entry without cloning or pushing.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>overwrite_branch</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dd>
+<p>If a stale <code>phasic-publish/&lt;id&gt;</code> branch already exists on the remote (e.g.&nbsp;from an earlier failed push) the call refuses unless this is <code>True</code>. With <code>True</code>, the push uses <code>--force-with-lease</code>: it overwrites the stale branch but still refuses if a third party has pushed concurrently.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-39" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-39">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span></code></dt>
+<dd>
+<p>URL of the opened PR (or, if <code>dry_run=True</code>, a JSON string).</p>
+</dd>
+</dl>
+</section>
+<section id="raises-9" class="level4 doc-section doc-section-raises">
+<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-9">Raises</h4>
+<dl>
+<dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>phasic</code>.<code>exceptions</code>.<code>PTDBackendError</code></span></code></dt>
+<dd>
+<p>If <code>gh</code> is missing or unauthenticated, the entry id already exists in <code>registry.json</code>, the feature branch already exists on the remote (without <code>overwrite_branch=True</code>), or git/gh fails.</p>
+</dd>
+</dl>
+</section>
+<section id="notes-18" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-18">Notes</h4>
+<p>Running <code>gh auth login</code> once in a terminal sets up authentication for all future <code>push_cache()</code> calls. <code>push_cache</code> does not prompt inside the notebook.</p>
+</section>
+<section id="examples-19" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-19">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> phasic.Graph(my_callback, ipv<span class="op">=</span>[<span class="dv">5</span>])</span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g.expectation()  <span class="co"># populate C-side cache (optional; push_cache does this)</span></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> entry_json <span class="op">=</span> g.push_cache(</span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>...     <span class="bu">id</span><span class="op">=</span><span class="st">'my_model_v1'</span>,</span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a>...     description<span class="op">=</span><span class="st">'Kingman coalescent for n=5'</span>,</span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a>...     domain<span class="op">=</span><span class="st">'population-genetics'</span>,</span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a>...     model_type<span class="op">=</span><span class="st">'coalescent'</span>,</span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a>...     dry_run<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb74-9"><a href="#cb74-9" aria-hidden="true" tabindex="-1"></a>... )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="phasic.Graph.reward_transform" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.reward_transform">reward_transform</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.reward_transform(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.reward_transform(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Apply reward transformation to create a new graph with modified rewards.</p>
-<section id="parameters-32" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-32">Parameters</h4>
+<section id="parameters-35" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-35">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>rewards</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
 <dd>
@@ -2349,8 +2570,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-37" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-37">Returns</h4>
+<section id="returns-40" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-40">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
@@ -2358,23 +2579,23 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-18" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-18">Notes</h4>
+<section id="notes-19" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-19">Notes</h4>
 <p>Reward transformation is used to compute moments and expectations for different reward structures. The transformation modifies the graph to compute E[∑ rewards[i] * time_in_state_i] instead of E[T].</p>
 <p>For continuous distributions: Uses continuous reward transformation. For discrete distributions: Uses discrete reward transformation.</p>
 <p>The returned graph is a new Graph object (not modified in-place).</p>
 </section>
-<section id="see-also-3" class="level4 doc-section doc-section-see-also">
-<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also-3">See Also</h4>
+<section id="see-also-4" class="level4 doc-section doc-section-see-also">
+<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also-4">See Also</h4>
 <p>moments : Compute moments with optional reward vector expectation : Compute expectation with optional reward vector</p>
 </section>
 </section>
 <section id="phasic.Graph.reward_transform_discrete" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.reward_transform_discrete">reward_transform_discrete</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.reward_transform_discrete(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.reward_transform_discrete(rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Apply reward transformation for discrete-time distributions.</p>
-<section id="parameters-33" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-33">Parameters</h4>
+<section id="parameters-36" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-36">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>rewards</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
 <dd>
@@ -2382,8 +2603,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-38" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-38">Returns</h4>
+<section id="returns-41" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-41">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Graph</code></span></code></dt>
 <dd>
@@ -2391,21 +2612,21 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-19" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-19">Notes</h4>
+<section id="notes-20" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-20">Notes</h4>
 <p>This method is specific to discrete-time phase-type (DPH) distributions. For automatic dispatch, use reward_transform() instead.</p>
 </section>
-<section id="see-also-4" class="level4 doc-section doc-section-see-also">
-<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also-4">See Also</h4>
+<section id="see-also-5" class="level4 doc-section doc-section-see-also">
+<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also-5">See Also</h4>
 <p>reward_transform : General reward transformation (dispatches to this for discrete graphs)</p>
 </section>
 </section>
 <section id="phasic.Graph.sample" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.sample">sample</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample(n, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb77"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample(n, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Generate random samples from the phase-type distribution.</p>
-<section id="parameters-34" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-34">Parameters</h4>
+<section id="parameters-37" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-37">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span></code></dt>
 <dd>
@@ -2417,8 +2638,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-39" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-39">Returns</h4>
+<section id="returns-42" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-42">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
 <dd>
@@ -2426,18 +2647,18 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-20" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-20">Notes</h4>
+<section id="notes-21" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-21">Notes</h4>
 <p>Sampling is done by simulating the underlying Markov chain until absorption. For more efficient repeated sampling, first create a distribution context using distribution_context().</p>
 </section>
 </section>
 <section id="phasic.Graph.sample_path" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.sample_path">sample_path</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample_path(n<span class="op">=</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample_path(n<span class="op">=</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Sample complete path(s) through the Markov chain.</p>
 <p>Simulates the underlying Markov chain from the starting vertex until absorption, recording every vertex visited and the cumulative time at which each vertex was entered.</p>
-<section id="parameters-35" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-35">Parameters</h4>
+<section id="parameters-38" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-38">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
@@ -2445,8 +2666,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-40" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-40">Returns</h4>
+<section id="returns-43" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-43">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">dict or list of dict</span></code></dt>
 <dd>
@@ -2454,26 +2675,26 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-21" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-21">Notes</h4>
+<section id="notes-22" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-22">Notes</h4>
 <p>The first entry is always the starting vertex with entry_time=0. The last entry is the absorbing vertex. Sojourn times can be computed as the differences between consecutive entry times.</p>
 </section>
-<section id="examples-17" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-17">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(...)  <span class="co"># build graph</span></span>
-<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path <span class="op">=</span> g.sample_path()</span>
-<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path[<span class="st">'vertex_indices'</span>]  <span class="co"># array of visited vertex indices</span></span>
-<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path[<span class="st">'entry_times'</span>]     <span class="co"># cumulative times</span></span>
-<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> sojourn_times <span class="op">=</span> np.diff(path[<span class="st">'entry_times'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-20" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-20">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb79"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph(...)  <span class="co"># build graph</span></span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path <span class="op">=</span> g.sample_path()</span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path[<span class="st">'vertex_indices'</span>]  <span class="co"># array of visited vertex indices</span></span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> path[<span class="st">'entry_times'</span>]     <span class="co"># cumulative times</span></span>
+<span id="cb79-5"><a href="#cb79-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> sojourn_times <span class="op">=</span> np.diff(path[<span class="st">'entry_times'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="phasic.Graph.sample_path_conditioned" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.sample_path_conditioned">sample_path_conditioned</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample_path_conditioned(target_vertices, n<span class="op">=</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.sample_path_conditioned(target_vertices, n<span class="op">=</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Sample path(s) conditioned on reaching a target terminal state.</p>
 <p>Uses guided forward sampling: at each step, the next state is chosen proportional to <code>edge_weight * h(next_state)</code> where <code>h</code> is the backward probability of reaching the target. This ensures every sampled path ends at one of the target vertices.</p>
-<section id="parameters-36" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-36">Parameters</h4>
+<section id="parameters-39" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-39">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>target_vertices</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of int</span></code></dt>
 <dd>
@@ -2485,8 +2706,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-41" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-41">Returns</h4>
+<section id="returns-44" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-44">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">dict or list of dict</span></code></dt>
 <dd>
@@ -2497,10 +2718,10 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.serialize" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.serialize">serialize</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb75"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.serialize(theta_dim<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb81"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.serialize(theta_dim<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Serialize graph to array representation for efficient computation.</p>
-<section id="parameters-37" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-37">Parameters</h4>
+<section id="parameters-40" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-40">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>theta_dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -2508,8 +2729,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-42" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-42">Returns</h4>
+<section id="returns-45" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-45">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>dict</code></span></code></dt>
 <dd>
@@ -2520,10 +2741,10 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.state_probability" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.state_probability">state_probability</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.state_probability(time, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb82"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.state_probability(time, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Compute probability of being in each state at a given time.</p>
-<section id="parameters-38" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-38">Parameters</h4>
+<section id="parameters-41" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-41">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>time</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code> or <code>int</code></span></code></dt>
 <dd>
@@ -2535,39 +2756,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-43" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-43">Returns</h4>
-<dl>
-<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
-<dd>
-<p>Probability of being in each state at the specified time.</p>
-</dd>
-</dl>
-</section>
-<section id="notes-22" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-22">Notes</h4>
-<p>For continuous distributions: probability vector at time t For discrete distributions: probability vector after n jumps Computed via matrix exponentiation or uniformization.</p>
-</section>
-</section>
-<section id="phasic.Graph.stop_probability" class="level3">
-<h3 class="anchored" data-anchor-id="phasic.Graph.stop_probability">stop_probability</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb77"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.stop_probability(time, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Compute probability of being in each state at a given time.</p>
-<section id="parameters-39" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-39">Parameters</h4>
-<dl>
-<dt><code><span class="parameter-name"><strong>time</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code> or <code>int</code></span></code></dt>
-<dd>
-<p>Time point (continuous) or jump number (discrete) at which to evaluate state probabilities.</p>
-</dd>
-<dt><code><span class="parameter-name">****kwargs**</span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>dict</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">{}</span></code></dt>
-<dd>
-<p>Additional keyword arguments passed to C++ implementation.</p>
-</dd>
-</dl>
-</section>
-<section id="returns-44" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-44">Returns</h4>
+<section id="returns-46" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-46">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
 <dd>
@@ -2580,46 +2770,77 @@ subject to  theta &gt; 0</code></pre>
 <p>For continuous distributions: probability vector at time t For discrete distributions: probability vector after n jumps Computed via matrix exponentiation or uniformization.</p>
 </section>
 </section>
+<section id="phasic.Graph.stop_probability" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.Graph.stop_probability">stop_probability</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb83"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.stop_probability(time, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Compute probability of being in each state at a given time.</p>
+<section id="parameters-42" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-42">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>time</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code> or <code>int</code></span></code></dt>
+<dd>
+<p>Time point (continuous) or jump number (discrete) at which to evaluate state probabilities.</p>
+</dd>
+<dt><code><span class="parameter-name">****kwargs**</span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>dict</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">{}</span></code></dt>
+<dd>
+<p>Additional keyword arguments passed to C++ implementation.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-47" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-47">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span></code></dt>
+<dd>
+<p>Probability of being in each state at the specified time.</p>
+</dd>
+</dl>
+</section>
+<section id="notes-24" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-24">Notes</h4>
+<p>For continuous distributions: probability vector at time t For discrete distributions: probability vector after n jumps Computed via matrix exponentiation or uniformization.</p>
+</section>
+</section>
 <section id="phasic.Graph.svgd" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.svgd">svgd</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.svgd(</span>
-<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
-<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-9"><a href="#cb78-9" aria-hidden="true" tabindex="-1"></a>    bandwidth<span class="op">=</span><span class="st">'median_per_dim'</span>,</span>
-<span id="cb78-10"><a href="#cb78-10" aria-hidden="true" tabindex="-1"></a>    theta_init<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-11"><a href="#cb78-11" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-12"><a href="#cb78-12" aria-hidden="true" tabindex="-1"></a>    return_history<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb78-13"><a href="#cb78-13" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-14"><a href="#cb78-14" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb78-15"><a href="#cb78-15" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb78-16"><a href="#cb78-16" aria-hidden="true" tabindex="-1"></a>    jit<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-17"><a href="#cb78-17" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-18"><a href="#cb78-18" aria-hidden="true" tabindex="-1"></a>    n_devices<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-19"><a href="#cb78-19" aria-hidden="true" tabindex="-1"></a>    precompile<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb78-20"><a href="#cb78-20" aria-hidden="true" tabindex="-1"></a>    compilation_config<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-21"><a href="#cb78-21" aria-hidden="true" tabindex="-1"></a>    regularization<span class="op">=</span><span class="fl">0.0</span>,</span>
-<span id="cb78-22"><a href="#cb78-22" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb78-23"><a href="#cb78-23" aria-hidden="true" tabindex="-1"></a>    positive_params<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb78-24"><a href="#cb78-24" aria-hidden="true" tabindex="-1"></a>    param_transform<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-25"><a href="#cb78-25" aria-hidden="true" tabindex="-1"></a>    joint_index<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb78-26"><a href="#cb78-26" aria-hidden="true" tabindex="-1"></a>    rewards<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-27"><a href="#cb78-27" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-28"><a href="#cb78-28" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'auto'</span>,</span>
-<span id="cb78-29"><a href="#cb78-29" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-30"><a href="#cb78-30" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-31"><a href="#cb78-31" aria-hidden="true" tabindex="-1"></a>    daisy_chain_granularity<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb78-32"><a href="#cb78-32" aria-hidden="true" tabindex="-1"></a>    daisy_chain_probe_theta<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb78-33"><a href="#cb78-33" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval_tol<span class="op">=</span><span class="fl">0.001</span>,</span>
-<span id="cb78-34"><a href="#cb78-34" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb84"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.svgd(</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb84-7"><a href="#cb84-7" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-8"><a href="#cb84-8" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a>    bandwidth<span class="op">=</span><span class="st">'median_per_dim'</span>,</span>
+<span id="cb84-10"><a href="#cb84-10" aria-hidden="true" tabindex="-1"></a>    theta_init<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-11"><a href="#cb84-11" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-12"><a href="#cb84-12" aria-hidden="true" tabindex="-1"></a>    return_history<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb84-13"><a href="#cb84-13" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-14"><a href="#cb84-14" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb84-15"><a href="#cb84-15" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb84-16"><a href="#cb84-16" aria-hidden="true" tabindex="-1"></a>    jit<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-17"><a href="#cb84-17" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-18"><a href="#cb84-18" aria-hidden="true" tabindex="-1"></a>    n_devices<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-19"><a href="#cb84-19" aria-hidden="true" tabindex="-1"></a>    precompile<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb84-20"><a href="#cb84-20" aria-hidden="true" tabindex="-1"></a>    compilation_config<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-21"><a href="#cb84-21" aria-hidden="true" tabindex="-1"></a>    regularization<span class="op">=</span><span class="fl">0.0</span>,</span>
+<span id="cb84-22"><a href="#cb84-22" aria-hidden="true" tabindex="-1"></a>    nr_moments<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb84-23"><a href="#cb84-23" aria-hidden="true" tabindex="-1"></a>    positive_params<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb84-24"><a href="#cb84-24" aria-hidden="true" tabindex="-1"></a>    param_transform<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-25"><a href="#cb84-25" aria-hidden="true" tabindex="-1"></a>    joint_index<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb84-26"><a href="#cb84-26" aria-hidden="true" tabindex="-1"></a>    rewards<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-27"><a href="#cb84-27" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-28"><a href="#cb84-28" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'auto'</span>,</span>
+<span id="cb84-29"><a href="#cb84-29" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-30"><a href="#cb84-30" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-31"><a href="#cb84-31" aria-hidden="true" tabindex="-1"></a>    daisy_chain_granularity<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb84-32"><a href="#cb84-32" aria-hidden="true" tabindex="-1"></a>    daisy_chain_probe_theta<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb84-33"><a href="#cb84-33" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval_tol<span class="op">=</span><span class="fl">0.001</span>,</span>
+<span id="cb84-34"><a href="#cb84-34" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.</p>
 <p>SVGD finds the posterior distribution p(theta | data) by optimizing a set of particles to approximate the posterior. This method works with parameterized models created by pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, times).</p>
-<section id="parameters-40" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-40">Parameters</h4>
+<section id="parameters-43" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-43">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>observed_data</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>array</code> or <code>SparseObservations</code></span></code></dt>
 <dd>
@@ -2735,8 +2956,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-45" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-45">Returns</h4>
+<section id="returns-48" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-48">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>dict</code></span></code></dt>
 <dd>
@@ -2744,8 +2965,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="raises-8" class="level4 doc-section doc-section-raises">
-<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-8">Raises</h4>
+<section id="raises-10" class="level4 doc-section doc-section-raises">
+<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-10">Raises</h4>
 <dl>
 <dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>ImportError</code></span></code></dt>
 <dd>
@@ -2757,44 +2978,44 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="examples-18" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-18">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb79"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Build parameterized coalescent model</span></span>
-<span id="cb79-5"><a href="#cb79-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="kw">def</span> coalescent_callback(state, nr_samples<span class="op">=</span><span class="dv">3</span>):</span>
-<span id="cb79-6"><a href="#cb79-6" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">if</span> <span class="bu">len</span>(state) <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb79-7"><a href="#cb79-7" aria-hidden="true" tabindex="-1"></a>...         <span class="cf">return</span> [(np.array([nr_samples]), <span class="fl">1.0</span>, [<span class="fl">1.0</span>])]</span>
-<span id="cb79-8"><a href="#cb79-8" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">if</span> state[<span class="dv">0</span>] <span class="op">&gt;</span> <span class="dv">1</span>:</span>
-<span id="cb79-9"><a href="#cb79-9" aria-hidden="true" tabindex="-1"></a>...         n <span class="op">=</span> state[<span class="dv">0</span>]</span>
-<span id="cb79-10"><a href="#cb79-10" aria-hidden="true" tabindex="-1"></a>...         rate <span class="op">=</span> n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb79-11"><a href="#cb79-11" aria-hidden="true" tabindex="-1"></a>...         <span class="cf">return</span> [(np.array([n <span class="op">-</span> <span class="dv">1</span>]), <span class="fl">0.0</span>, [rate])]</span>
-<span id="cb79-12"><a href="#cb79-12" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">return</span> []</span>
-<span id="cb79-13"><a href="#cb79-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb79-14"><a href="#cb79-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph.from_callback_parameterized(coalescent_callback, nr_samples<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb79-15"><a href="#cb79-15" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g, discrete<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb79-16"><a href="#cb79-16" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb79-17"><a href="#cb79-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Generate synthetic observed data</span></span>
-<span id="cb79-18"><a href="#cb79-18" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> true_theta <span class="op">=</span> jnp.array([<span class="fl">2.0</span>])</span>
-<span id="cb79-19"><a href="#cb79-19" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="fl">0.1</span>, <span class="fl">3.0</span>, <span class="dv">15</span>)</span>
-<span id="cb79-20"><a href="#cb79-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> observed_pdf <span class="op">=</span> model(true_theta, times)</span>
-<span id="cb79-21"><a href="#cb79-21" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb79-22"><a href="#cb79-22" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Run SVGD inference</span></span>
-<span id="cb79-23"><a href="#cb79-23" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> results <span class="op">=</span> Graph.svgd(</span>
-<span id="cb79-24"><a href="#cb79-24" aria-hidden="true" tabindex="-1"></a>...     observed_data<span class="op">=</span>observed_pdf,</span>
-<span id="cb79-25"><a href="#cb79-25" aria-hidden="true" tabindex="-1"></a>...     theta_dim<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb79-26"><a href="#cb79-26" aria-hidden="true" tabindex="-1"></a>...     n_particles<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb79-27"><a href="#cb79-27" aria-hidden="true" tabindex="-1"></a>...     n_iterations<span class="op">=</span><span class="dv">500</span>,</span>
-<span id="cb79-28"><a href="#cb79-28" aria-hidden="true" tabindex="-1"></a>...     learning_rate<span class="op">=</span><span class="fl">0.01</span></span>
-<span id="cb79-29"><a href="#cb79-29" aria-hidden="true" tabindex="-1"></a>... )</span>
-<span id="cb79-30"><a href="#cb79-30" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
-<span id="cb79-31"><a href="#cb79-31" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"True theta: </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb79-32"><a href="#cb79-32" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Posterior mean: </span><span class="sc">{</span>results[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb79-33"><a href="#cb79-33" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Posterior std: </span><span class="sc">{</span>results[<span class="st">'theta_std'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-21" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-21">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb85"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Build parameterized coalescent model</span></span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="kw">def</span> coalescent_callback(state, nr_samples<span class="op">=</span><span class="dv">3</span>):</span>
+<span id="cb85-6"><a href="#cb85-6" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">if</span> <span class="bu">len</span>(state) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a>...         <span class="cf">return</span> [(np.array([nr_samples]), <span class="fl">1.0</span>, [<span class="fl">1.0</span>])]</span>
+<span id="cb85-8"><a href="#cb85-8" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">if</span> state[<span class="dv">0</span>] <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb85-9"><a href="#cb85-9" aria-hidden="true" tabindex="-1"></a>...         n <span class="op">=</span> state[<span class="dv">0</span>]</span>
+<span id="cb85-10"><a href="#cb85-10" aria-hidden="true" tabindex="-1"></a>...         rate <span class="op">=</span> n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb85-11"><a href="#cb85-11" aria-hidden="true" tabindex="-1"></a>...         <span class="cf">return</span> [(np.array([n <span class="op">-</span> <span class="dv">1</span>]), <span class="fl">0.0</span>, [rate])]</span>
+<span id="cb85-12"><a href="#cb85-12" aria-hidden="true" tabindex="-1"></a>...     <span class="cf">return</span> []</span>
+<span id="cb85-13"><a href="#cb85-13" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb85-14"><a href="#cb85-14" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> g <span class="op">=</span> Graph.from_callback_parameterized(coalescent_callback, nr_samples<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb85-15"><a href="#cb85-15" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_from_graph(g, discrete<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb85-16"><a href="#cb85-16" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb85-17"><a href="#cb85-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Generate synthetic observed data</span></span>
+<span id="cb85-18"><a href="#cb85-18" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> true_theta <span class="op">=</span> jnp.array([<span class="fl">2.0</span>])</span>
+<span id="cb85-19"><a href="#cb85-19" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> times <span class="op">=</span> jnp.linspace(<span class="fl">0.1</span>, <span class="fl">3.0</span>, <span class="dv">15</span>)</span>
+<span id="cb85-20"><a href="#cb85-20" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> observed_pdf <span class="op">=</span> model(true_theta, times)</span>
+<span id="cb85-21"><a href="#cb85-21" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb85-22"><a href="#cb85-22" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Run SVGD inference</span></span>
+<span id="cb85-23"><a href="#cb85-23" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> results <span class="op">=</span> Graph.svgd(</span>
+<span id="cb85-24"><a href="#cb85-24" aria-hidden="true" tabindex="-1"></a>...     observed_data<span class="op">=</span>observed_pdf,</span>
+<span id="cb85-25"><a href="#cb85-25" aria-hidden="true" tabindex="-1"></a>...     theta_dim<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb85-26"><a href="#cb85-26" aria-hidden="true" tabindex="-1"></a>...     n_particles<span class="op">=</span><span class="dv">30</span>,</span>
+<span id="cb85-27"><a href="#cb85-27" aria-hidden="true" tabindex="-1"></a>...     n_iterations<span class="op">=</span><span class="dv">500</span>,</span>
+<span id="cb85-28"><a href="#cb85-28" aria-hidden="true" tabindex="-1"></a>...     learning_rate<span class="op">=</span><span class="fl">0.01</span></span>
+<span id="cb85-29"><a href="#cb85-29" aria-hidden="true" tabindex="-1"></a>... )</span>
+<span id="cb85-30"><a href="#cb85-30" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span></span>
+<span id="cb85-31"><a href="#cb85-31" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"True theta: </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb85-32"><a href="#cb85-32" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Posterior mean: </span><span class="sc">{</span>results[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb85-33"><a href="#cb85-33" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="bu">print</span>(<span class="ss">f"Posterior std: </span><span class="sc">{</span>results[<span class="st">'theta_std'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="notes-24" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-24">Notes</h4>
+<section id="notes-25" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-25">Notes</h4>
 <ul>
 <li>SVGD requires a parameterized model. Non-parameterized models (signature: model(times)) cannot be used for inference as there are no parameters to estimate.</li>
 <li>The likelihood is computed as sum(log(model(theta, observed_data)))</li>
@@ -2805,10 +3026,10 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.update_ipv" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.update_ipv">update_ipv</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_ipv(ipv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb86"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_ipv(ipv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Set the initial probability vector after construction.</p>
-<section id="parameters-41" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-41">Parameters</h4>
+<section id="parameters-44" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-44">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>ipv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">(<code>array</code> - <code>like</code>, <code>shape</code>(<code>n_ipv_edges</code>))</span></code></dt>
 <dd>
@@ -2816,8 +3037,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-25" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-25">Notes</h4>
+<section id="notes-26" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-26">Notes</h4>
 <p>IPV is a property of the model, not an inference parameter. Use this method to:</p>
 <ul>
 <li>set the IPV after constructing the graph if your callback does not bake one in;</li>
@@ -2830,11 +3051,11 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.update_weights" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.update_weights">update_weights</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb81"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_weights(theta, callback<span class="op">=</span><span class="va">None</span>, log<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb87"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_weights(theta, callback<span class="op">=</span><span class="va">None</span>, log<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Update parameterized edge weights with given parameters.</p>
 <p>This method wraps the C++ implementation to cache theta for use with trace-based computation.</p>
-<section id="parameters-42" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-42">Parameters</h4>
+<section id="parameters-45" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-45">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>theta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>ArrayLike</code></span></code></dt>
 <dd>
@@ -2850,18 +3071,18 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-26" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-26">Notes</h4>
+<section id="notes-27" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-27">Notes</h4>
 <p>This updates edge weights on the live Graph object (C++ side). It does NOT invalidate the cached trace since it only changes parameter values, not graph structure.</p>
 <p>For the JAX/FFI/SVGD pipeline, use <code>graph.weight_mode</code> instead. That property controls how <code>pmf_from_graph()</code> and <code>pmf_and_moments_from_graph()</code> compute edge weights from theta.</p>
 </section>
 </section>
 <section id="phasic.Graph.variance" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.variance">variance</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb82"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.variance(rewards<span class="op">=</span>[], <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb88"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.variance(rewards<span class="op">=</span>[], <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Compute variance of the phase-type distribution.</p>
-<section id="parameters-43" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-43">Parameters</h4>
+<section id="parameters-46" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-46">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>rewards</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>ArrayLike</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">[]</span></code></dt>
 <dd>
@@ -2873,8 +3094,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="returns-46" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-46">Returns</h4>
+<section id="returns-49" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-49">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code></span></code></dt>
 <dd>
@@ -2882,8 +3103,8 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 </dl>
 </section>
-<section id="notes-27" class="level4 doc-section doc-section-notes">
-<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-27">Notes</h4>
+<section id="notes-28" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes-28">Notes</h4>
 <p>For parameterized graphs, this method uses trace-based computation which requires O(n) memory instead of O(n²) for the matrix-based approach. Set cache_trace=True when creating the graph to cache the trace for faster repeated evaluations.</p>
 <p>Computed as Var(T) = E[T^2] - E[T]^2 using moments.</p>
 
