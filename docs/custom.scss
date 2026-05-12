@@ -26,8 +26,8 @@ $teal:    #0D7D92 !default; // like numpy docs
 // $teal:    #01886f !default;
 $cyan:    #9954bb !default;
 
-$primary:       $teal !default;
-$primary:       $teal; !default;
+// $primary:       $teal !default;
+$primary:       $teal;
 $secondary:     $gray-800 !default;
 $success:       $green !default;
 $info:          $blue !default;
