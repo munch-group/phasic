@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-31d43b141a46dfc464e79fb3fb10cf88.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-1e0616402f4b8aa822879c8063986d56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -111,9 +111,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
-
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -173,22 +170,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#graph-cache" id="toc-graph-cache" class="nav-link active" data-scroll-target="#graph-cache">Graph cache</a></li>
-  <li><a href="#trace-cache" id="toc-trace-cache" class="nav-link" data-scroll-target="#trace-cache">Trace cache</a></li>
+  <li><a href="#parameterised-reward-compute-cache" id="toc-parameterised-reward-compute-cache" class="nav-link" data-scroll-target="#parameterised-reward-compute-cache">Parameterised reward-compute cache</a></li>
+  <li><a href="#hierarchical-scc-composer-cache" id="toc-hierarchical-scc-composer-cache" class="nav-link" data-scroll-target="#hierarchical-scc-composer-cache">Hierarchical SCC composer cache</a>
+  <ul class="collapse">
+  <li><a href="#composer-controls" id="toc-composer-controls" class="nav-link" data-scroll-target="#composer-controls">Composer controls</a></li>
+  </ul></li>
   <li><a href="#jax-compilation-cache" id="toc-jax-compilation-cache" class="nav-link" data-scroll-target="#jax-compilation-cache">JAX compilation cache</a>
   <ul class="collapse">
   <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
   </ul></li>
   <li><a href="#inspecting-caches" id="toc-inspecting-caches" class="nav-link" data-scroll-target="#inspecting-caches">Inspecting caches</a>
   <ul class="collapse">
-  <li><a href="#overview-of-all-caches" id="toc-overview-of-all-caches" class="nav-link" data-scroll-target="#overview-of-all-caches">Overview of all caches</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">Overview</a></li>
   <li><a href="#individual-cache-layers" id="toc-individual-cache-layers" class="nav-link" data-scroll-target="#individual-cache-layers">Individual cache layers</a></li>
-  <li><a href="#programmatic-access" id="toc-programmatic-access" class="nav-link" data-scroll-target="#programmatic-access">Programmatic access</a></li>
-  <li><a href="#listing-individual-trace-entries" id="toc-listing-individual-trace-entries" class="nav-link" data-scroll-target="#listing-individual-trace-entries">Listing individual trace entries</a></li>
   </ul></li>
-  <li><a href="#clearing-caches" id="toc-clearing-caches" class="nav-link" data-scroll-target="#clearing-caches">Clearing caches</a>
-  <ul class="collapse">
-  <li><a href="#selective-cleanup" id="toc-selective-cleanup" class="nav-link" data-scroll-target="#selective-cleanup">Selective cleanup</a></li>
-  </ul></li>
+  <li><a href="#clearing-caches" id="toc-clearing-caches" class="nav-link" data-scroll-target="#clearing-caches">Clearing caches</a></li>
   <li><a href="#caching-with-composed-graphs" id="toc-caching-with-composed-graphs" class="nav-link" data-scroll-target="#caching-with-composed-graphs">Caching with composed graphs</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/python_trace-and-jax-caching.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/python_trace-and-jax-caching.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -215,20 +211,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Phasic uses a three-layer caching system to avoid repeating expensive computations. Each layer targets a different bottleneck in the pipeline from model definition to inference:</p>
+<p>Phasic uses a four-layer caching system to avoid repeating expensive computations. Each layer targets a different bottleneck in the pipeline from model definition to inference:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 16%">
-<col style="width: 35%">
-<col style="width: 23%">
-<col style="width: 23%">
+<col style="width: 14%">
+<col style="width: 31%">
+<col style="width: 21%">
+<col style="width: 31%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Layer</th>
 <th>What is cached</th>
 <th>Location</th>
-<th>Speedup</th>
+<th>When it helps</th>
 </tr>
 </thead>
 <tbody>
@@ -239,12 +235,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Avoids callback-based construction</td>
 </tr>
 <tr class="even">
-<td><strong>Trace cache</strong></td>
-<td>Elimination traces from Gaussian elimination</td>
-<td><code>~/.phasic_cache/traces/</code></td>
-<td>Avoids O(n³) elimination</td>
+<td><strong>Parameterised reward-compute cache</strong></td>
+<td>Symbolic elimination output, theta-independent</td>
+<td><code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code></td>
+<td>Skips the O(n³) Gaussian elimination across processes</td>
 </tr>
 <tr class="odd">
+<td><strong>Hierarchical SCC composer cache</strong></td>
+<td>Per-SCC parameterised reward-compute artefacts</td>
+<td><code>~/.phasic_cache/parameterized_reward_compute/scc_&lt;hash&gt;.bin</code></td>
+<td>Parallel SCC elimination, cross-graph SCC reuse</td>
+</tr>
+<tr class="even">
 <td><strong>JAX compilation cache</strong></td>
 <td>JIT-compiled XLA code</td>
 <td><code>~/.jax_cache/</code></td>
@@ -252,16 +254,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>All three caches are <strong>persistent</strong> — they survive across Python sessions and restarts. Cache correctness is ensured by SHA-256 content hashing: the same graph structure always produces the same hash, and any structural change automatically invalidates the entry.</p>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:45.664161Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:45.664066Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:47.573276Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:47.572842Z&quot;}}">
+<p>All caches are <strong>persistent</strong> — they survive across Python sessions and restarts. Cache correctness is ensured by SHA-256 content hashing: the same graph structure always produces the same hash, and any structural change automatically invalidates the entry. The parameterised reward-compute and SCC composer caches are <strong>theta-independent</strong> — re-running the same parameterised model with new theta values does not produce new cache entries.</p>
+<div id="imports" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, Property, StateIndexer, set_log_level,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    clear_caches, clear_model_cache,</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    cache_info, get_all_cache_stats, print_all_cache_info,</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    get_graph_cache_stats, print_graph_cache_info,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    get_trace_cache_stats, print_trace_cache_info,    </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    configure,</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_cache <span class="im">import</span> list_cached_traces, cleanup_old_traces</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic.cache <span class="im">as</span> cache</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
@@ -269,93 +271,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
-<div class="cell-output cell-output-display">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
-</div>
 </div>
 <p>We use the ARG with two parameters as example model. I have added a <code>dummy</code> keyword arg (that does nothing) for demonstration purposes:</p>
-<div id="b58bd6a3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:47.575134Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:47.574955Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:47.580085Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:47.579638Z&quot;}}" data-execution_count="2">
+<div id="b58bd6a3" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -377,12 +295,12 @@ table {
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, indexer.state_length):</span>
 <span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            pj <span class="op">=</span> indexer.index_to_props(j)</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            </span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
 <span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
 <span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
 <span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>            child[j] <span class="op">-=</span> <span class="dv">1</span></span>
@@ -390,27 +308,21 @@ table {
 <span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            loc2 <span class="op">=</span> pi.descendants.loc2 <span class="op">+</span> pj.descendants.loc2</span>
 <span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> loc1 <span class="op">&lt;=</span> nr_samples <span class="kw">and</span> loc2 <span class="op">&lt;=</span> nr_samples:</span>
 <span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>                child[indexer.props_to_index(loc1<span class="op">=</span>loc1, loc2<span class="op">=</span>loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                transitions.append([child, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]]) </span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                transitions.append([child, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same), <span class="dv">0</span>]])</span>
 <span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> pi.descendants.loc1 <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> pi.descendants.loc2 <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
 <span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
 <span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>            child[indexer.props_to_index(loc1<span class="op">=</span>pi.descendants.loc1, loc2<span class="op">=</span><span class="dv">0</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
 <span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>            child[indexer.props_to_index(loc1<span class="op">=</span><span class="dv">0</span>, loc2<span class="op">=</span>pi.descendants.loc2)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, [<span class="dv">0</span>, <span class="dv">1</span>]])                                </span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, [<span class="dv">0</span>, <span class="dv">1</span>]])</span>
 <span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Start from a clean slate and enable info logging so the examples below show cache misses and hits clearly:</p>
-<div id="clean-caches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:47.581650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:47.581550Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:47.588400Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:47.588007Z&quot;}}" data-execution_count="3">
+<div id="clean-caches" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'INFO'</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>clear_caches(verbose<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Cleared 0 cached graphs</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  Removed 15 file(s), preserved directory structure</code></pre>
-</div>
 </div>
 <section id="graph-cache" class="level2">
 <h2 class="anchored" data-anchor-id="graph-cache">Graph cache</h2>
@@ -421,138 +333,131 @@ table {
 <li>All construction parameters (<code>ipv</code>, <code>nr_samples</code>, keyword arguments)</li>
 </ul>
 <p>Enable the graph cache by passing <code>graph_cache=True</code> to <code>Graph()</code>. First build constructs graph from callback and saves to cache:</p>
-<div id="graph-cache-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:47.589632Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:47.589553Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:51.322256Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:51.321729Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time </span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Saved graph to cache: 7d8de78485fc9b6b... (1044 vertices)
-[INFO] phasic: Saved graph to cache: 1044 vertices</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 3.7 s, sys: 40.9 ms, total: 3.74 s
-Wall time: 3.73 s</code></pre>
-</div>
+<div id="graph-cache-example" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Second build is loaded from cache:</p>
-<div id="7aeb0877" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:51.323724Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:51.323616Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:55.121440Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:55.120852Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>, dummy<span class="op">=</span><span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Saved graph to cache: 1c6b4850af250c3a... (1044 vertices)
-[INFO] phasic: Saved graph to cache: 1044 vertices</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 3.75 s, sys: 31.3 ms, total: 3.79 s
-Wall time: 3.8 s</code></pre>
-</div>
+<div id="7aeb0877" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>, dummy<span class="op">=</span><span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If you modify the callback function or pass different parameters, the cache misses and the graph is rebuilt. Even though our <code>dummy</code> keyword arg does nothing, passing a new value triggers a rebuild of the graph:</p>
-<div id="3d08379d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:55.122810Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:55.122701Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:58.833861Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:58.833274Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>, dummy<span class="op">=</span><span class="dv">99</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Saved graph to cache: d3cee6407f2ba48f... (1044 vertices)
-[INFO] phasic: Saved graph to cache: 1044 vertices</code></pre>
+<div id="3d08379d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>, dummy<span class="op">=</span><span class="dv">99</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 3.69 s, sys: 37.1 ms, total: 3.73 s
-Wall time: 3.71 s</code></pre>
-</div>
-</div>
-<div id="a9242d36" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:58.835479Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:58.835360Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:18:58.839873Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:18:58.839431Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>clear_caches(verbose<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Cleared 0 cached graphs</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  Removed 3 file(s), preserved directory structure</code></pre>
-</div>
+<div id="a9242d36" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>clear_caches(verbose<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="trace-cache" class="level2">
-<h2 class="anchored" data-anchor-id="trace-cache">Trace cache</h2>
-<p>When computing moments or running SVGD inference, phasic performs <strong>Gaussian elimination</strong> on the graph to record an <em>elimination trace</em> — a linear sequence of operations that can be replayed cheaply with different parameter values. Recording the trace is O(n³) and is the most expensive step for large models.</p>
-<p>The trace cache stores these elimination traces on disk, keyed by a SHA-256 hash of the graph <em>structure</em> (vertices, edges, rates — but not the specific parameter values). Enable trace caching by passing <code>cache_trace=True</code> to <code>Graph()</code>. Build graph with trace caching enabled:</p>
-<div id="0f13abce" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:18:58.841196Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:18:58.841115Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:07.278947Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:07.278440Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>graph_w_trace <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    cache_trace<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>graph_w_trace.update_weights([<span class="dv">2</span>, <span class="dv">5</span>])</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>graph_w_trace.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.hierarchical_trace_cache: Using hierarchical SCC subdivision (graph=1044 vertices, min_size=50)
-[INFO] phasic.hierarchical_trace_cache: SCC grouping: 0 large SCCs (≥50 vertices), 123 small SCCs (&lt;50 vertices, 1044 total vertices)
-[INFO] phasic.hierarchical_trace_cache: All SCCs are below min_size=50, recording full graph directly (no subdivision)
-[INFO] phasic.hierarchical_trace_cache: Parallelization: Auto-selected 'vmap' (multiprocessing with 10 CPUs)
-[INFO] phasic.hierarchical_trace_cache: VMAP: Using multiprocessing with 1 workers over 1 work units
-[INFO] phasic.trace_elimination: Trace recording complete: 1044 vertices, 469891 operations, phase 2, param_length=2, reward_length=0
-[INFO] phasic.hierarchical_trace_cache:   SCC 1/1: 1044 vertices, 469891 operations, param_length=2
-[INFO] phasic.hierarchical_trace_cache: ✓ Hierarchical trace computation complete (no stitching)
-[INFO] phasic.c: Auto-activating MPFR for moment computation (condition 8.61e+12 &gt; threshold 1.00e+12)
-[INFO] phasic.c: Computing MPFR graph with 128-bit precision
-[INFO] phasic.c: MPFR computation successful - returning high-precision results</code></pre>
+<section id="parameterised-reward-compute-cache" class="level2">
+<h2 class="anchored" data-anchor-id="parameterised-reward-compute-cache">Parameterised reward-compute cache</h2>
+<p>When computing moments (expectation, variance, etc.) on a parameterised graph, phasic performs <strong>Gaussian elimination</strong> on the graph to produce a symbolic compute graph — the <em>parameterised reward compute graph</em> (PRC). The elimination is O(n³) and is the most expensive step. The output is theta-independent: the same parameterised model always produces the same PRC, regardless of the parameter values it is later evaluated with.</p>
+<p>The PRC cache is <strong>automatic and process-wide</strong>. There is no opt-in keyword: when phasic builds a PRC during a <code>moments()</code> / <code>expectation()</code> / <code>variance()</code> call, it consults the cache; on a hit it loads from disk, on a miss it eliminates and writes the result for next time.</p>
+<div id="prc-cache-first" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># First call: cache miss, runs the eliminator.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>time graph.update_weights([<span class="dv">2</span>, <span class="dv">5</span>])<span class="op">;</span> m1 <span class="op">=</span> graph.expectation()</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>m1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>0.6872139668331487</code></pre>
+<p>A second call within the same process is free (in-memory) — no log line, no disk I/O. But once you restart Python and rebuild the same parameterised model, the disk cache lets the new process skip the elimination:</p>
+<div id="prc-cache-second" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Second call inside the same process: in-memory hit.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>time m2 <span class="op">=</span> graph.expectation()</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>m2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Inspect the on-disk cache state:</p>
+<div id="prc-cache-inspect" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>cache.param_compute_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="8408f621" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:07.280465Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:07.280360Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:11.011745Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:11.011261Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer,</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    cache_trace<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">2</span>, <span class="dv">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>You can disable the cache entirely with <code>PHASIC_DISABLE_CACHE=1</code> or by <code>phasic.configure(cache_enabled=False)</code>. The cache directory is controlled by <code>PHASIC_CACHE_DIR</code> (or <code>phasic.configure(cache_dir=...)</code>), which is useful on cluster filesystems where home directories are not shared.</p>
+</section>
+<section id="hierarchical-scc-composer-cache" class="level2">
+<h2 class="anchored" data-anchor-id="hierarchical-scc-composer-cache">Hierarchical SCC composer cache</h2>
+<p>For very large graphs the monolithic elimination dominates time and memory even when its output is cached. Phasic offers an opt-in <strong>hierarchical SCC composer</strong> that decomposes the graph into its strongly-connected components (SCCs), eliminates each SCC independently, and composes the per-SCC results into a parent-level answer. The wins are:</p>
+<ul>
+<li><strong>Parallelism.</strong> Sibling SCCs in the same level can be eliminated concurrently (<code>OMP_NUM_THREADS</code> and <code>PHASIC_MAX_PARALLEL_SCCS</code> control this).</li>
+<li><strong>Cross-graph reuse.</strong> Per-SCC artefacts are content-hashed, so two parents that share an SCC structurally share its cache entry.</li>
+<li><strong>Smaller cache files.</strong> Each entry is one SCC’s elimination, not the whole graph.</li>
+</ul>
+<p>Enable via env var or via <code>configure()</code>:</p>
+<div id="scc-enable" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Either:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   export PHASIC_HIERAR_ELIMINATION=1</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Or programmatically:</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The trace is computed lazily when first needed and cached:</p>
-<div id="6e779962" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:11.013414Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:11.013303Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:11.015689Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:11.015271Z&quot;}}" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
-<pre><code>1044</code></pre>
+<p>Re-run the expectation; the composer takes the hierarchical path. Per-SCC cache files are written under the same <code>parameterized_reward_compute/</code> directory with an <code>scc_</code> prefix:</p>
+<div id="scc-run" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>cache.reset_scc_compose_stats()</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">2</span>, <span class="dv">5</span>])</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>m_hier <span class="op">=</span> graph.expectation()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>stats <span class="op">=</span> cache.scc_compose_stats()</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"compose_calls:   </span><span class="sc">{</span>stats[<span class="st">'compose_calls'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"cache_hits:      </span><span class="sc">{</span>stats[<span class="st">'cache_hits'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"cache_misses:    </span><span class="sc">{</span>stats[<span class="st">'cache_misses'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"cache_bypassed:  </span><span class="sc">{</span>stats[<span class="st">'cache_bypassed'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"compose time:    </span><span class="sc">{</span>stats[<span class="st">'total_compose_ns'</span>] <span class="op">/</span> <span class="fl">1e6</span><span class="sc">:.2f}</span><span class="ss"> ms"</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>m_hier</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><code>cache_hits</code> and <code>cache_misses</code> cover the on-disk PRC cache for each SCC. <code>cache_bypassed</code> counts SCCs whose synthetic graph fell below the size threshold (default 4 vertices) and skipped the cache entirely — small SCCs eliminate trivially and the disk I/O would dominate.</p>
+<p>A second call on a parameter update is satisfied entirely from cache hits:</p>
+<div id="scc-second" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>cache.reset_scc_compose_stats()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">3</span>, <span class="dv">7</span>])  <span class="co"># different theta, same structure</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>m_hier_2 <span class="op">=</span> graph.expectation()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>cache.scc_compose_stats()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="bce48412" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:11.016913Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:11.016816Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.224912Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.224401Z&quot;}}" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.hierarchical_trace_cache: ✓ Full graph cache HIT: returning cached trace
-[INFO] phasic.c: Auto-activating MPFR for moment computation (condition 8.61e+12 &gt; threshold 1.00e+12)
-[INFO] phasic.c: Computing MPFR graph with 128-bit precision
-[INFO] phasic.c: MPFR computation successful - returning high-precision results</code></pre>
+<section id="composer-controls" class="level3">
+<h3 class="anchored" data-anchor-id="composer-controls">Composer controls</h3>
+<p>The composer exposes two knobs in addition to the on/off switch:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Control</th>
+<th>configure() field</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Min SCC size to cache</td>
+<td><code>parallel_elimination_min_subgraph</code></td>
+<td><code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code></td>
+<td>4</td>
+<td>SCCs whose synth has fewer vertices skip the cache entirely. Set 0 to cache everything.</td>
+</tr>
+<tr class="even">
+<td>Max parallel SCCs per level</td>
+<td><code>parallel_elimination_max_concurrent</code></td>
+<td><code>PHASIC_MAX_PARALLEL_SCCS</code></td>
+<td>unset (OpenMP default)</td>
+<td>Caps SCC-level fan-out. Independent of <code>OMP_NUM_THREADS</code> — useful when you want OpenMP for each SCC’s eliminator but limit the per-level memory footprint.</td>
+</tr>
+</tbody>
+</table>
+<p><code>configure()</code> overrides existing env vars. Fields left at <code>None</code> preserve any pre-existing env vars (so SLURM job scripts can layer settings on top of <code>configure()</code> calls).</p>
+<div id="scc-controls-example" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>configure(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_min_subgraph<span class="op">=</span><span class="dv">8</span>,   <span class="co"># only cache SCCs with synth &gt;= 8 vertices</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>,       <span class="co"># cap simultaneous SCC computes at 4</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>0.6872139668331487</code></pre>
-</div>
-</div>
-<p>From now on the trace is read from cache:</p>
-<div id="42073f48" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.226436Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.226329Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.855198Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.854640Z&quot;}}" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>graph.variance()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.c: Auto-activating MPFR for moment computation (condition 8.61e+12 &gt; threshold 1.00e+12)
-[INFO] phasic.c: Computing MPFR graph with 128-bit precision
-[INFO] phasic.c: MPFR computation successful - returning high-precision results
-[INFO] phasic.c: Auto-activating MPFR for moment computation (condition 8.61e+12 &gt; threshold 1.00e+12)
-[INFO] phasic.c: MPFR computation successful - returning high-precision results</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 620 ms, sys: 6.6 ms, total: 626 ms
-Wall time: 626 ms</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>0.2403942575637451</code></pre>
-</div>
-</div>
-<p>If needed you can compute/cache the trace directly like this:</p>
-<div id="4909c7b5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.856726Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.856621Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.858195Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.857869Z&quot;}}" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>trace <span class="op">=</span> graph.compute_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>You can check if a trace is cached for the graph an if this is still valid (graph did not change since trace was computed):</p>
-<div id="8aee8390" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.859703Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.859613Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.862187Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.861615Z&quot;}}" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>graph.cache_trace, graph.trace_valid </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
-<pre><code>(True, True)</code></pre>
-</div>
-</div>
-<p>Because the trace cache is persistent on disk (<code>~/.phasic_cache/traces/</code>), the cached trace is available even if you restart Python and construct the same graph structure again. This makes the trace cache especially valuable for iterative development and parameter exploration.</p>
+</section>
 </section>
 <section id="jax-compilation-cache" class="level2">
 <h2 class="anchored" data-anchor-id="jax-compilation-cache">JAX compilation cache</h2>
@@ -561,121 +466,57 @@ Wall time: 626 ms</code></pre>
 <section id="configuration" class="level3">
 <h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
 <p>The default cache directory is <code>~/.jax_cache/</code>. You can change it via environment variable <em>before</em> importing JAX:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_COMPILATION_CACHE_DIR</span><span class="op">=</span>/fast/ssd/jax_cache</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_COMPILATION_CACHE_DIR</span><span class="op">=</span>/fast/ssd/jax_cache</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Or programmatically with the <code>CompilationConfig</code> class:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> CompilationConfig</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.balanced()   <span class="co"># sensible defaults</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="co"># ## JAX Compilation Cache</span></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">###</span><span class="co"> What It Caches</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX caches compiled XLA code based on:</span></span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a><span class="co"># - Function structure (HLO graph)</span></span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="co"># - Input shapes</span></span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="co"># - Device configuration</span></span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">###</span><span class="co"> Basic Configuration</span></span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.jax_config <span class="im">import</span> CompilationConfig</span>
-<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Balanced preset (default)</span></span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.balanced()</span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Maximum performance</span></span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.max_performance()</span>
-<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
-<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-31"><a href="#cb35-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast compilation (for development)</span></span>
-<span id="cb35-32"><a href="#cb35-32" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.fast_compile()</span>
-<span id="cb35-33"><a href="#cb35-33" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
-<span id="cb35-34"><a href="#cb35-34" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.jax_config <span class="im">import</span> CompilationConfig</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.balanced()      <span class="co"># sensible defaults</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.max_performance()</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.fast_compile()  <span class="co"># for development</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="inspecting-caches" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-caches">Inspecting caches</h2>
-<p>Phasic provides a unified API for inspecting all three cache layers.</p>
-<section id="overview-of-all-caches" class="level3">
-<h3 class="anchored" data-anchor-id="overview-of-all-caches">Overview of all caches</h3>
-<div id="inspect-all-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.863905Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.863797Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.866994Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.866518Z&quot;}}" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>print_all_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Cache directory: /Users/kmt/.jax_cache
-Cached compilations: 0
-Total size: 0.0 MB
-
-Cache directory: /Users/kmt/.phasic_cache/graphs
-Status: No cached graphs
-
-Cache directory: /Users/kmt/.phasic_cache/traces
-Status: No cached traces</code></pre>
-</div>
+<p>Phasic provides a unified API for inspecting the cache layers.</p>
+<section id="overview" class="level3">
+<h3 class="anchored" data-anchor-id="overview">Overview</h3>
+<div id="inspect-all-code" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>print_all_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="individual-cache-layers" class="level3">
 <h3 class="anchored" data-anchor-id="individual-cache-layers">Individual cache layers</h3>
 <p>Each layer has its own inspection functions:</p>
-<div id="inspect-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.868167Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.868085Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.870071Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.869666Z&quot;}}" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Graph cache</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>print_graph_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Cache directory: /Users/kmt/.phasic_cache/graphs
-Status: No cached graphs</code></pre>
+<div id="inspect-graph" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Graph cache.</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>print_graph_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div id="inspect-prc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameterised reward-compute cache (monolithic + per-SCC entries).</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>cache.param_compute_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="inspect-trace" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.871195Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.871119Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.873063Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.872670Z&quot;}}" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Trace cache</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>print_trace_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Cache directory: /Users/kmt/.phasic_cache/traces
-Status: No cached traces</code></pre>
+<div id="inspect-scc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Hierarchical SCC composer telemetry — counters of cache</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># hits/misses/bypasses and cumulative compose time since the</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># last reset.</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>cache.scc_compose_stats()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</div>
-<div id="inspect-jax" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.874319Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.874229Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.876563Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.876143Z&quot;}}" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX compilation cache</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>jax_info <span class="op">=</span> cache_info()</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"JAX cache: </span><span class="sc">{</span>jax_info[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss"> files, </span><span class="sc">{</span>jax_info[<span class="st">'total_size_mb'</span>]<span class="sc">:.1f}</span><span class="ss"> MB"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>JAX cache: 0 files, 0.0 MB</code></pre>
-</div>
-</div>
-</section>
-<section id="programmatic-access" class="level3">
-<h3 class="anchored" data-anchor-id="programmatic-access">Programmatic access</h3>
-<p>For scripting, <code>get_all_cache_stats()</code> returns a dictionary with statistics for each layer:</p>
-<div id="inspect-stats" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.877895Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.877809Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.880239Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.879855Z&quot;}}" data-execution_count="19">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>stats <span class="op">=</span> get_all_cache_stats()</span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, layer_stats <span class="kw">in</span> stats.items():</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>layer_stats<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>jax: {'exists': True, 'path': '/Users/kmt/.jax_cache', 'num_files': 0, 'total_size_mb': 0.0, 'files': []}
-graph: {'num_graphs': 0, 'total_size_mb': 0.0, 'cache_dir': '/Users/kmt/.phasic_cache/graphs'}
-trace: {'total_files': 0, 'total_bytes': 0, 'total_mb': 0.0, 'cache_dir': '/Users/kmt/.phasic_cache/traces'}</code></pre>
-</div>
-</div>
-</section>
-<section id="listing-individual-trace-entries" class="level3">
-<h3 class="anchored" data-anchor-id="listing-individual-trace-entries">Listing individual trace entries</h3>
-<p>You can list the cached traces with metadata about each entry:</p>
-<div id="trace-list" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.881483Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.881407Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.883455Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.883028Z&quot;}}" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> list_cached_traces():</span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Hash: </span><span class="sc">{</span>entry[<span class="st">'hash'</span>][:<span class="dv">16</span>]<span class="sc">}</span><span class="ss">...  "</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"Size: </span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'size_kb'</span>, <span class="dv">0</span>)<span class="sc">:.1f}</span><span class="ss"> KB  "</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"Vertices: </span><span class="sc">{</span>entry<span class="sc">.</span>get(<span class="st">'n_vertices'</span>, <span class="st">'N/A'</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="inspect-jax" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX compilation cache.</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>jax_info <span class="op">=</span> cache_info()</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"JAX cache: </span><span class="sc">{</span>jax_info[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss"> files, "</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"</span><span class="sc">{</span>jax_info[<span class="st">'total_size_mb'</span>]<span class="sc">:.1f}</span><span class="ss"> MB"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 </section>
 <section id="clearing-caches" class="level2">
 <h2 class="anchored" data-anchor-id="clearing-caches">Clearing caches</h2>
-<p>Phasic provides several functions for clearing caches at different granularities:</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 40%">
+<col style="width: 60%">
+</colgroup>
 <thead>
 <tr class="header">
 <th>Function</th>
@@ -685,73 +526,49 @@ trace: {'total_files': 0, 'total_bytes': 0, 'total_mb': 0.0, 'cache_dir': '/User
 <tbody>
 <tr class="odd">
 <td><code>clear_caches()</code></td>
-<td>All three cache layers</td>
+<td>All cache layers</td>
 </tr>
 <tr class="even">
 <td><code>clear_model_cache()</code></td>
-<td>Graph cache + trace cache</td>
+<td>Graph cache + trace cache (legacy)</td>
 </tr>
 <tr class="odd">
 <td><code>clear_jax_cache()</code></td>
 <td>JAX compilation cache only</td>
 </tr>
+<tr class="even">
+<td><code>phasic.cache.clear_param_compute_cache()</code></td>
+<td>Parameterised reward-compute cache (monolithic + per-SCC entries)</td>
+</tr>
 </tbody>
 </table>
-<div id="clearing-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.884707Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.884618Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.893059Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.892559Z&quot;}}" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear only model-related caches (graph + trace)</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>clear_model_cache(verbose<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify they are empty</span></span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Graph cache: </span><span class="sc">{</span>get_graph_cache_stats()[<span class="st">'num_graphs'</span>]<span class="sc">}</span><span class="ss"> graphs"</span>)</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Trace cache: </span><span class="sc">{</span>get_trace_cache_stats()[<span class="st">'total_files'</span>]<span class="sc">}</span><span class="ss"> files"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic.graph_cache: Cleared 0 cached graphs</code></pre>
+<p>The parameterised reward-compute cache and the SCC composer cache share a directory; clearing one clears both.</p>
+<div id="clearing-example" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear only the parameterised reward-compute cache (does not</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># touch the graph cache or JAX cache).</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>n_removed <span class="op">=</span> cache.clear_param_compute_cache()</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Removed </span><span class="sc">{</span>n_removed<span class="sc">}</span><span class="ss"> parameterised reward-compute entries"</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>cache.param_compute_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  Removed 1 file(s), preserved directory structure
-
-Graph cache: 0 graphs
-Trace cache: 0 files</code></pre>
-</div>
-</div>
-<section id="selective-cleanup" class="level3">
-<h3 class="anchored" data-anchor-id="selective-cleanup">Selective cleanup</h3>
-<p>For production environments where caches grow over time, you can prune old or oversized entries from the trace cache:</p>
-<div id="cleanup-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-02T21:19:14.894332Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-02T21:19:14.894227Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-02T21:19:14.896388Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-02T21:19:14.896004Z&quot;}}" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove traces older than 30 days or enforce a 100 MB size limit</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>removed <span class="op">=</span> cleanup_old_traces(max_size_mb<span class="op">=</span><span class="fl">100.0</span>, max_age_days<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Removed </span><span class="sc">{</span>removed<span class="sc">}</span><span class="ss"> old trace entries"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Removed 0 old trace entries</code></pre>
-</div>
-</div>
-<p>You can also remove a specific trace by hash:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_cache <span class="im">import</span> remove_cached_trace</span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>removed <span class="op">=</span> remove_cached_trace(<span class="st">"abc123def456..."</span>)  <span class="co"># Returns True/False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Or clear everything from the command line:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb53"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear all phasic caches</span></span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-rf</span> ~/.phasic_cache/ ~/.jax_cache/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
 </section>
 <section id="caching-with-composed-graphs" class="level2">
 <h2 class="anchored" data-anchor-id="caching-with-composed-graphs">Caching with composed graphs</h2>
-<p>Graphs built through composition methods — <code>add_epoch()</code>, <code>discretize()</code>, <code>laplace_transform()</code>, and <code>joint_prob_graph()</code> — fully support trace caching. The hash system is structure-based (SHA-256 over vertices, edges, and coefficients), so it works identically regardless of how the graph was constructed.</p>
-<p>The same composition pipeline always produces the same hash, enabling cache hits across sessions:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Session 1: builds and caches the trace</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span>N0])</span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>g1 <span class="op">=</span> graph.add_epoch(t1)</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>g1.update_weights([<span class="dv">1</span><span class="op">/</span>N0, <span class="dv">1</span><span class="op">/</span>N1, <span class="dv">1</span>])</span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>g2 <span class="op">=</span> g1.add_epoch(t2)</span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>g2.compute_trace()  <span class="co"># Records and caches trace</span></span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Session 2: same pipeline, cache hit</span></span>
-<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span>N0])</span>
-<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a>g1 <span class="op">=</span> graph.add_epoch(t1)</span>
-<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a>g1.update_weights([<span class="dv">1</span><span class="op">/</span>N0, <span class="dv">1</span><span class="op">/</span>N1, <span class="dv">1</span>])</span>
-<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a>g2 <span class="op">=</span> g1.add_epoch(t2)</span>
-<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a>g2.compute_trace()  <span class="co"># Cache hit — instant</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Graphs built through composition methods — <code>add_epoch()</code>, <code>discretize()</code>, <code>laplace_transform()</code>, <code>joint_prob_graph()</code> — fully support the parameterised reward-compute cache. The hash is structure-based (SHA-256 over vertices, edges, and coefficients), so the cache works identically regardless of how the graph was constructed. The same composition pipeline always produces the same hash, enabling cache hits across sessions:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Session 1: builds and caches the PRC.</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span>N0])</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>g1 <span class="op">=</span> graph.add_epoch(t1)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>g1.update_weights([<span class="dv">1</span><span class="op">/</span>N0, <span class="dv">1</span><span class="op">/</span>N1, <span class="dv">1</span>])</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>g2 <span class="op">=</span> g1.add_epoch(t2)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>g2.expectation()  <span class="co"># Records and caches the PRC</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Session 2: same pipeline, cache hit.</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span>N0])</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>g1 <span class="op">=</span> graph.add_epoch(t1)</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>g1.update_weights([<span class="dv">1</span><span class="op">/</span>N0, <span class="dv">1</span><span class="op">/</span>N1, <span class="dv">1</span>])</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>g2 <span class="op">=</span> g1.add_epoch(t2)</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>g2.expectation()  <span class="co"># Cache hit</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This works because the resulting graph structure (vertices, edges, coefficient layout) is deterministic for a given composition sequence.</p>
 
 

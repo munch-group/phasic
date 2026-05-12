@@ -69,7 +69,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
 <link href="../../pages/tutorial/distributed.html" rel="next">
-<link href="../../pages/tutorial/sharing.html" rel="prev">
+<link href="../../pages/tutorial/model-hub.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -79,7 +79,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-31d43b141a46dfc464e79fb3fb10cf88.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-1e0616402f4b8aa822879c8063986d56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -169,7 +169,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/mpfr.html">Multiple-precision arithmetic</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/configuration.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/mpfr.html">Multiple-precision arithmetic</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -328,8 +328,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/sharing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model sharing</span></a>
+ <span class="menu-text">Sharing compute artifacts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -393,7 +411,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/mpfr.html">Multiple-precision arithmetic</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/configuration.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/mpfr.html">Multiple-precision arithmetic</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Multiple-precision arithmetic</h1>
 </div>
@@ -418,8 +436,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ol type="1">
 <li>Pre-scans the elimination graph to find the largest and smallest multiplier magnitudes.</li>
 <li>Computes the condition number as their ratio: <code>max(|multiplier|) / min(|multiplier|)</code>.</li>
-<li>Checks whether <code>force_high_precision</code> is set or the condition number exceeds <code>condition_threshold</code>.</li>
-<li>If MPFR is needed, determines precision either from <code>mpfr_precision_bits</code> or automatically as <code>log₂(condition) + 64</code> bits (clamped to [128, 1024]).</li>
+<li>Checks whether <code>high_precision_mode='always'</code> is set or the condition number exceeds <code>ill_condition_threshold</code>.</li>
+<li>If MPFR is needed, determines precision either from <code>high_precision_bits</code> or automatically as <code>log₂(condition) + 64</code> bits (clamped to [128, 1024]).</li>
 <li>Re-executes the elimination using MPFR arithmetic at the chosen precision.</li>
 <li>Converts the result back to double-precision for return to Python.</li>
 </ol>
@@ -591,22 +609,22 @@ Expected waiting time: 1.800000</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>force_high_precision</code></td>
+<td><code>high_precision_mode='always'</code></td>
 <td><code>False</code></td>
 <td>Force MPFR for <em>all</em> moment computations regardless of condition number</td>
 </tr>
 <tr class="even">
-<td><code>mpfr_precision_bits</code></td>
+<td><code>high_precision_bits</code></td>
 <td><code>0</code></td>
 <td>Precision in bits. <code>0</code> means auto-determine from condition number</td>
 </tr>
 <tr class="odd">
-<td><code>condition_threshold</code></td>
+<td><code>ill_condition_threshold</code></td>
 <td><code>1e12</code></td>
 <td>Condition number above which MPFR auto-activates</td>
 </tr>
 <tr class="even">
-<td><code>enable_condition_warnings</code></td>
+<td><code>warn_on_ill_conditioning</code></td>
 <td><code>True</code></td>
 <td>Show warnings when ill-conditioning is detected</td>
 </tr>
@@ -614,27 +632,27 @@ Expected waiting time: 1.800000</code></pre>
 </table>
 <p>If you want maximum accuracy for all moment computations regardless of conditioning:</p>
 <div id="force-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.347793Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.347671Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.352921Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.352427Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>configure(force_high_precision<span class="op">=</span><span class="va">True</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ewt <span class="op">=</span> graph.expected_waiting_time()</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Expected waiting time (MPFR forced): </span><span class="sc">{</span>ewt[<span class="dv">0</span>]<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to default</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>configure(force_high_precision<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Expected waiting time (MPFR forced): 1.800000</code></pre>
 </div>
 </div>
-<p>When <code>mpfr_precision_bits=0</code> (the default), the precision is determined automatically as <code>log₂(condition_number) + 64</code> bits, clamped to the range [128, 1024]. You can override this with a specific value:</p>
+<p>When <code>high_precision_bits=0</code> (the default), the precision is determined automatically as <code>log₂(condition_number) + 64</code> bits, clamped to the range [128, 1024]. You can override this with a specific value:</p>
 <div id="precision-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.354237Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.354145Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.356448Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.356070Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use 256-bit precision explicitly</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>configure(force_high_precision<span class="op">=</span><span class="va">True</span>, mpfr_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>ewt <span class="op">=</span> graph.expected_waiting_time()</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Expected waiting time (256-bit): </span><span class="sc">{</span>ewt[<span class="dv">0</span>]<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>configure(force_high_precision<span class="op">=</span><span class="va">False</span>, mpfr_precision_bits<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>, high_precision_bits<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Expected waiting time (256-bit): 1.800000</code></pre>
 </div>
@@ -642,31 +660,31 @@ Expected waiting time: 1.800000</code></pre>
 <p>The condition threshold controls when MPFR auto-activates. A lower threshold is more conservative (activates MPFR more often), while a higher threshold tolerates more ill-conditioning before switching.</p>
 <div id="threshold-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.357760Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.357661Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.359950Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.359489Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># More conservative: activate MPFR at lower condition numbers</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>configure(condition_threshold<span class="op">=</span><span class="fl">1e8</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e8</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Less conservative: only activate for severely ill-conditioned graphs</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>configure(condition_threshold<span class="op">=</span><span class="fl">1e15</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e15</span>)</span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable auto-activation entirely (only manual force_high_precision works)</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>configure(condition_threshold<span class="op">=</span><span class="bu">float</span>(<span class="st">'inf'</span>))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable auto-activation entirely (only manual high_precision_mode='always' works)</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="bu">float</span>(<span class="st">'inf'</span>))</span>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to default</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>configure(condition_threshold<span class="op">=</span><span class="fl">1e12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If MPFR is not available and a graph is ill-conditioned, phasic logs a warning suggesting you rebuild with MPFR. To silence these:</p>
 <div id="warnings-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.361218Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.361092Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.363300Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.362704Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>configure(enable_condition_warnings<span class="op">=</span><span class="va">False</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">False</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>configure(enable_condition_warnings<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>You can read back the active MPFR settings at any time:</p>
 <div id="inspect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.364489Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.364387Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.366389Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.365965Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_config()</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Force MPFR:          </span><span class="sc">{</span>config<span class="sc">.</span>force_high_precision<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Precision bits:      </span><span class="sc">{</span>config<span class="sc">.</span>mpfr_precision_bits<span class="sc">}</span><span class="ss"> (0 = auto)"</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition threshold: </span><span class="sc">{</span>config<span class="sc">.</span>condition_threshold<span class="sc">:.0e}</span><span class="ss">"</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition warnings:  </span><span class="sc">{</span>config<span class="sc">.</span>enable_condition_warnings<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Force MPFR:          </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_mode<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Precision bits:      </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss"> (0 = auto)"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition threshold: </span><span class="sc">{</span>config<span class="sc">.</span>ill_condition_threshold<span class="sc">:.0e}</span><span class="ss">"</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition warnings:  </span><span class="sc">{</span>config<span class="sc">.</span>warn_on_ill_conditioning<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Force MPFR:          False
 Precision bits:      0 (0 = auto)
@@ -692,19 +710,19 @@ Condition warnings:  True</code></pre>
 <tbody>
 <tr class="odd">
 <td><code>PHASIC_FORCE_MPFR=1</code></td>
-<td><code>force_high_precision=True</code></td>
+<td><code>high_precision_mode='always'</code></td>
 </tr>
 <tr class="even">
 <td><code>PHASIC_MPFR_BITS=256</code></td>
-<td><code>mpfr_precision_bits=256</code></td>
+<td><code>high_precision_bits=256</code></td>
 </tr>
 <tr class="odd">
 <td><code>PHASIC_CONDITION_THRESHOLD=1e15</code></td>
-<td><code>condition_threshold=1e15</code></td>
+<td><code>ill_condition_threshold=1e15</code></td>
 </tr>
 <tr class="even">
 <td><code>PHASIC_DISABLE_CONDITION_WARNINGS=1</code></td>
-<td><code>enable_condition_warnings=False</code></td>
+<td><code>warn_on_ill_conditioning=False</code></td>
 </tr>
 </tbody>
 </table>
@@ -718,8 +736,8 @@ Condition warnings:  True</code></pre>
 <ol type="1">
 <li><strong>Pre-scans</strong> the elimination graph to find the largest and smallest multiplier magnitudes.</li>
 <li><strong>Computes the condition number</strong> as their ratio: <code>max(|multiplier|) / min(|multiplier|)</code>.</li>
-<li><strong>Checks</strong> whether <code>force_high_precision</code> is set or the condition number exceeds <code>condition_threshold</code>.</li>
-<li>If MPFR is needed, <strong>determines precision</strong> either from <code>mpfr_precision_bits</code> or automatically as <code>log₂(condition) + 64</code> bits (clamped to [128, 1024]).</li>
+<li><strong>Checks</strong> whether <code>high_precision_mode='always'</code> is set or the condition number exceeds <code>ill_condition_threshold</code>.</li>
+<li>If MPFR is needed, <strong>determines precision</strong> either from <code>high_precision_bits</code> or automatically as <code>log₂(condition) + 64</code> bits (clamped to [128, 1024]).</li>
 <li><strong>Re-executes</strong> the elimination using MPFR arithmetic at the chosen precision.</li>
 <li><strong>Converts</strong> the result back to double-precision for return to Python.</li>
 </ol>
@@ -1184,8 +1202,8 @@ Condition warnings:  True</code></pre>
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../pages/tutorial/sharing.html" class="pagination-link" aria-label="Model sharing">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Model sharing</span>
+      <a href="../../pages/tutorial/model-hub.html" class="pagination-link" aria-label="The phasic model hub">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">The phasic model hub</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">

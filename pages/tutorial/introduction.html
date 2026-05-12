@@ -79,7 +79,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-31d43b141a46dfc464e79fb3fb10cf88.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-1e0616402f4b8aa822879c8063986d56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -331,8 +331,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/sharing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model sharing</span></a>
+ <span class="menu-text">Sharing compute artifacts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -405,13 +423,66 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="d49a9fe5" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="2">
+<div id="d49a9fe5" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># #| echo: false</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># #| column: margin</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic.utils import download_link</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download_link(__vsc_ipynb_file__) </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.</p>
+<div id="0bd99048" class="cell" data-execution_count="25">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.utils <span class="im">import</span> tree_illustration</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+        <style>
+        .cell-output-ipywidget-background {
+            background-color: transparent !important;
+        }
+       .jp-OutputArea-output {
+           background-color: transparent;
+        }  
+        /*
+        :root {
+            --jp-widgets-color: var(--vscode-editor-foreground);
+            --jp-widgets-font-size: var(--vscode-editor-font-size);
+        }  
+        */
+        /* tqdm styling: */
+        .widget-label,
+        .widget-html,
+        .widget-button,
+        .widget-dropdown,
+        .widget-text,
+        .widget-textarea {
+            font-size: 10px !important;      /* Font size */
+        }
+        div.widget-html-content > progress { /* Outer container */
+            height: 10px !important;
+        
+        }
+        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+            height: 5px !important;
+        }
+        div.progress { /* Jupyter Notebook (classic) */
+            height: 5px !important;
+            min-height: 5px !important;
+            margin-top: 12px !important;    
+        }
+        div.progress-bar { /* inner bar */
+            height: 5px !important;
+            min-height: 5px !important;
+            line-height: 5px !important;
+            color: 'white' !important;
+            padding-bottom: 0px !important;    
+        }
+        </style>                          
+        
+</div>
+</div>
 <!-- 
 
 **Introduction:** The coalescent process as an example of a Markov jump process.
@@ -463,84 +534,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 **Finite Markov chains:** Distribution of steps spent in states and runs of particular states.
  -->
-<p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages because mutations occuring on those branches produce a singleton mutation in our sample. Similarly with doubletons trippletons and so on.</p>
-<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:37.640568Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:37.640465Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:40.093026Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:40.092618Z&quot;}}" data-execution_count="16">
-<div id="fig-coalescent-intro" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="16" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:37.640568Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:37.640465Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:40.093026Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:40.092618Z&quot;}}">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-coalescent-intro-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div id="fig-coalescent-intro-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-coalescent-intro-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-coalescent-intro-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) Mutations on branches with a single descendant produce singleton variants in the sample.
-</figcaption>
-</figure>
-</div>
+<p>The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.</p>
+<p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages because mutations occurring on those branches produce a singleton mutation in our sample. Similarly with doubletons tripleton and so on.</p>
+<div id="cell-fig-coalescent-intro-branches" class="cell" data-execution_count="27">
 <div class="cell-output cell-output-display">
-<div id="fig-coalescent-intro-2" class="quarto-float quarto-figure quarto-figure-center anchored" width="590" height="387">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-coalescent-intro-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="introduction_files/figure-html/fig-coalescent-intro-output-2.png" class="lightbox" data-gallery="fig-coalescent-intro" title="Figure&nbsp;1&nbsp;(b): "><img src="introduction_files/figure-html/fig-coalescent-intro-output-2.png" id="fig-coalescent-intro-2" data-ref-parent="fig-coalescent-intro" width="590" height="387" class="figure-img"></a>
+<div id="fig-coalescent-intro-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample."><img src="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" width="674" height="328" class="figure-img"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-coalescent-intro-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b)
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-coalescent-intro-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1
-</figcaption>
-</figure>
-</div>
-</div>
-<p>We can encode the states of this Markov chain as vectors enumerating the number of of 1’tons, 2’tons, 3’tons, and 4’tons as depicted in <a href="#fig-coalescent-graph" class="quarto-xref">Figure&nbsp;2</a>. With four samples, the Coalescent jumps with four singletons and terminates with a single quadrupleton (4’ton).</p>
+<p>We can encode the states of this Markov chain as vectors enumerating the number of live 1’tons, 2’tons, 3’tons, and 4’tons branches (<a href="#fig-coalescent-intro-branches" class="quarto-xref">Figure&nbsp;1</a>). With four samples, the Coalescent jumps starts with a state of four singletons and terminates/absorbs at the state with a single 4’ton (<a href="#fig-coalescent-graph" class="quarto-xref">Figure&nbsp;2</a>).</p>
 <div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:40.100531Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:40.100446Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:40.327666Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:40.327149Z&quot;}}" data-execution_count="5">
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center anchored">

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Model sharing</title>
+<title>Sharing compute artifacts</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -68,8 +68,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../pages/tutorial/mpfr.html" rel="next">
-<link href="../../pages/tutorial/svgd-joint-prob.html" rel="prev">
+<link href="../../pages/tutorial/model-hub.html" rel="next">
+<link href="../../pages/tutorial/scc-decomposition.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -79,7 +79,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-31d43b141a46dfc464e79fb3fb10cf88.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-1e0616402f4b8aa822879c8063986d56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -169,7 +169,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Model sharing</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/configuration.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Sharing compute artifacts</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -328,8 +328,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/scc-decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Reading the SCC decomposition tree map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/sharing.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Model sharing</span></a>
+ <span class="menu-text">Sharing compute artifacts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/model-hub.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">The phasic model hub</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -383,19 +401,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a></li>
-  <li><a href="#checking-backend-status" id="toc-checking-backend-status" class="nav-link" data-scroll-target="#checking-backend-status">Checking backend status</a></li>
-  <li><a href="#browsing-the-trace-registry" id="toc-browsing-the-trace-registry" class="nav-link" data-scroll-target="#browsing-the-trace-registry">Browsing the trace registry</a></li>
-  <li><a href="#downloading-a-trace" id="toc-downloading-a-trace" class="nav-link" data-scroll-target="#downloading-a-trace">Downloading a trace</a></li>
-  <li><a href="#inspecting-the-source-of-a-trace" id="toc-inspecting-the-source-of-a-trace" class="nav-link" data-scroll-target="#inspecting-the-source-of-a-trace">Inspecting the source of a trace</a></li>
-  <li><a href="#pinning-a-model-for-sharing" id="toc-pinning-a-model-for-sharing" class="nav-link" data-scroll-target="#pinning-a-model-for-sharing">Pinning a model for sharing</a></li>
-  <li><a href="#unpinning" id="toc-unpinning" class="nav-link" data-scroll-target="#unpinning">Unpinning</a>
-  <ul class="collapse">
-  <li><a href="#live-demo-requires-ipfs-daemon" id="toc-live-demo-requires-ipfs-daemon" class="nav-link" data-scroll-target="#live-demo-requires-ipfs-daemon">Live demo (requires IPFS daemon)</a></li>
-  </ul></li>
-  <li><a href="#publishing-a-trace" id="toc-publishing-a-trace" class="nav-link" data-scroll-target="#publishing-a-trace">Publishing a trace</a></li>
-  <li><a href="#retracting-a-faulty-model" id="toc-retracting-a-faulty-model" class="nav-link" data-scroll-target="#retracting-a-faulty-model">Retracting a faulty model</a></li>
-  <li><a href="#cache-management" id="toc-cache-management" class="nav-link" data-scroll-target="#cache-management">Cache management</a></li>
-  <li><a href="#using-a-custom-transport-backend" id="toc-using-a-custom-transport-backend" class="nav-link" data-scroll-target="#using-a-custom-transport-backend">Using a custom transport backend</a></li>
+  <li><a href="#browsing-the-registry" id="toc-browsing-the-registry" class="nav-link" data-scroll-target="#browsing-the-registry">Browsing the registry</a></li>
+  <li><a href="#pull-reusing-someone-elses-elimination" id="toc-pull-reusing-someone-elses-elimination" class="nav-link" data-scroll-target="#pull-reusing-someone-elses-elimination">Pull: reusing someone else’s elimination</a></li>
+  <li><a href="#push-publishing-your-own-elimination" id="toc-push-publishing-your-own-elimination" class="nav-link" data-scroll-target="#push-publishing-your-own-elimination">Push: publishing your own elimination</a></li>
+  <li><a href="#what-happens-during-expectation" id="toc-what-happens-during-expectation" class="nav-link" data-scroll-target="#what-happens-during-expectation">What happens during <code>expectation()</code></a></li>
+  <li><a href="#when-to-publish" id="toc-when-to-publish" class="nav-link" data-scroll-target="#when-to-publish">When to publish</a></li>
   <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/sharing.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/sharing.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -403,9 +413,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Model sharing</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/configuration.html">Computation</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/sharing.html">Sharing compute artifacts</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Model sharing</h1>
+<h1 class="title">Sharing compute artifacts</h1>
 </div>
 
 
@@ -422,64 +432,42 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div class="callout callout-style-default callout-warning no-icon callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon no-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Under Construction
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>This notebook is under development</p>
-</div>
-</div>
-<p>Once you have recorded an elimination trace for a model, you may want to share it with collaborators or the wider research community. The <code>trace_repository</code> module provides a decentralized sharing system built on <a href="https://ipfs.tech/">IPFS</a> (InterPlanetary File System) — a content-addressed peer-to-peer network. Content is identified by cryptographic hashes (CIDs), not by server URLs, so traces remain available as long as <em>any</em> node pins them.</p>
-<p>The system uses <strong>progressive enhancement</strong>:</p>
+<p>Every parameterised phasic graph has a deterministic content hash (<code>ptd_graph_content_hash</code>). The first time you call <code>g.expectation()</code> (or <code>g.pdf()</code> / <code>g.moments()</code>), the C side runs the symbolic elimination and writes the result to <code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code>. The next call on a structurally identical graph reuses that file — even in a different process.</p>
+<p>The sharing system lets you exchange those <code>.bin</code> files with other users via a public GitHub registry at <a href="https://github.com/munch-group/phasic-traces"><code>munch-group/phasic-traces</code></a>. Two methods on <code>Graph</code> cover the whole story:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 13%">
-<col style="width: 31%">
-<col style="width: 54%">
+<col style="width: 36%">
+<col style="width: 63%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Tier</th>
-<th>Configuration</th>
-<th>How traces are fetched</th>
+<th>Method</th>
+<th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>1 — Zero config</td>
-<td>Nothing installed</td>
-<td>Public HTTP gateways (<code>dweb.link</code>, <code>ipfs.io</code>, …)</td>
+<td><code>g.pull_cache()</code></td>
+<td>If someone has published a <code>.bin</code> for this graph, download it into the local cache. Plain HTTPS — no auth, no daemons.</td>
 </tr>
 <tr class="even">
-<td>2 — Auto-start</td>
-<td>IPFS binary installed</td>
-<td>Python auto-starts the daemon; faster, peer-to-peer</td>
-</tr>
-<tr class="odd">
-<td>3 — Optimal</td>
-<td>IPFS running as a system service</td>
-<td>Instant access, you also seed content for others</td>
+<td><code>g.push_cache(id=..., description=...)</code></td>
+<td>Compute the elimination if not already cached, then open a pull request adding the <code>.bin</code> and a registry entry to <code>phasic-traces</code>.</td>
 </tr>
 </tbody>
 </table>
-<p>This tutorial walks through the full sharing workflow: checking backend status, downloading traces, pinning and unpinning content, inspecting where a trace is loaded from, and retracting faulty models.</p>
+<p>Plus one top-level function for browsing without a graph:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>phasic.list_computes(domain<span class="op">=</span><span class="st">'population-genetics'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The consumer side requires only Python + <code>requests</code>. The publisher side additionally needs <code>git</code> and the <a href="https://cli.github.com/">GitHub CLI</a> <code>gh</code>, authenticated once with <code>gh auth login</code> in a terminal.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="setup-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:15.343955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:15.343851Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.355402Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.354873Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> (</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    IPFSBackend,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    TraceRegistry,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    TransportBackend,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="8d2606f5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:50.571419Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:50.571292Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.903116Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.902429Z&quot;}}" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile, shutil, hashlib</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError, PTDFormatError</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -520,488 +508,373 @@ table {
 </div>
 </div>
 </section>
-<section id="checking-backend-status" class="level2">
-<h2 class="anchored" data-anchor-id="checking-backend-status">Checking backend status</h2>
-<p>Before sharing anything, it helps to know the state of your local IPFS environment. The <code>IPFSBackend.status()</code> method returns a dictionary summarising the connection:</p>
-<div id="backend-status" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.357262Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.357076Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.397677Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.397354Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>backend <span class="op">=</span> IPFSBackend()</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>status <span class="op">=</span> backend.status()</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"IPFS Backend Status"</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">40</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"IPFS installed:    </span><span class="sc">{</span>status[<span class="st">'ipfs_installed'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Daemon running:    </span><span class="sc">{</span>status[<span class="st">'daemon'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Daemon version:    </span><span class="sc">{</span>status[<span class="st">'daemon_version'</span>] <span class="kw">or</span> <span class="st">'N/A'</span><span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"HTTP gateways:     </span><span class="sc">{</span><span class="bu">len</span>(status[<span class="st">'gateways'</span>])<span class="sc">}</span><span class="ss"> configured"</span>)</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> gw <span class="kw">in</span> status[<span class="st">'gateways'</span>]:</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  - </span><span class="sc">{</span>gw<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="browsing-the-registry" class="level2">
+<h2 class="anchored" data-anchor-id="browsing-the-registry">Browsing the registry</h2>
+<p><code>phasic.list_computes()</code> reads the latest <code>registry.json</code> from the public GitHub repo and returns one dict per published artifact. Filter by <code>domain</code>, <code>model_type</code>, or <code>tags</code> to narrow the list.</p>
+<div id="50609b03" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.905112Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.904909Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.907139Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.906646Z&quot;}}" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># In a connected environment this fetches the live registry from</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># github.com/munch-group/phasic-traces.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment the next two lines to try it:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># for e in phasic.list_computes():</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#     print(f"{e['compute_id']:25s}  vertices={e.get('vertices', '?')}")</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'(network fetch skipped in tutorial run)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>IPFS Backend Status
-========================================
-IPFS installed:    True
-Daemon running:    True
-Daemon version:    0.38.1
-HTTP gateways:     4 configured
-  - https://ipfs.io
-  - https://cloudflare-ipfs.com
-  - https://dweb.link
-  - https://gateway.pinata.cloud</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.11/site-packages/ipfshttpclient/client/__init__.py:75: VersionMismatch: Unsupported daemon version '0.38.1' (not in range: 0.5.0 ≤ … &lt; 0.9.0)
-  warnings.warn(exceptions.VersionMismatch(version, minimum, maximum))</code></pre>
+<pre><code>(network fetch skipped in tutorial run)</code></pre>
 </div>
 </div>
-<p>If <code>daemon</code> is <code>False</code>, the backend falls back to HTTP gateways automatically. If IPFS is installed but the daemon is not running, <code>IPFSBackend</code> will attempt to start it for you (unless you pass <code>auto_start=False</code>).</p>
-<p>To start the daemon manually from a terminal:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ipfs</span> daemon <span class="kw">&amp;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Or, for a system-wide service on Linux:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl enable ipfs</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl start ipfs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="browsing-the-trace-registry" class="level2">
-<h2 class="anchored" data-anchor-id="browsing-the-trace-registry">Browsing the trace registry</h2>
-<p>The <code>TraceRegistry</code> maintains a JSON index of all published traces hosted on GitHub. It is downloaded (and cached locally) the first time you create a registry instance.</p>
-<div id="registry-list" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.399239Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.399144Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.673341Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.672911Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> TraceRegistry()</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># List all available traces</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>traces <span class="op">=</span> registry.list_traces()</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total traces available: </span><span class="sc">{</span><span class="bu">len</span>(traces)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> traces[:<span class="dv">5</span>]:  <span class="co"># show first 5</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>t[<span class="st">'trace_id'</span>]<span class="sc">:30s}</span><span class="ss">  </span><span class="sc">{</span>t<span class="sc">.</span>get(<span class="st">'description'</span>, <span class="st">''</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="pull-reusing-someone-elses-elimination" class="level2">
+<h2 class="anchored" data-anchor-id="pull-reusing-someone-elses-elimination">Pull: reusing someone else’s elimination</h2>
+<p>When you build a parameterised graph that’s structurally identical to one that someone has published, <code>g.pull_cache()</code> downloads the pre-computed <code>.bin</code> so the next <code>g.expectation()</code> skips the O(n^3) elimination.</p>
+<p>To make this tutorial self-contained we set up a tiny local registry and tell phasic to read from a <code>file://</code> URL instead of GitHub. In real use you just call <code>g.pull_cache()</code> — no setup.</p>
+<div id="63f909f1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.908589Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.908479Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.914412Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.913900Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>demo_root  <span class="op">=</span> Path(tempfile.mkdtemp(prefix<span class="op">=</span><span class="st">'phasic_share_demo_'</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>fake_origin <span class="op">=</span> demo_root <span class="op">/</span> <span class="st">'origin'</span><span class="op">;</span> fake_origin.mkdir()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>reg_cache   <span class="op">=</span> demo_root <span class="op">/</span> <span class="st">'registry_cache'</span><span class="op">;</span> reg_cache.mkdir()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Build a small parameterised graph and run elimination locally.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#    This populates ~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>g_publisher <span class="op">=</span> phasic.Graph(<span class="dv">1</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_publisher.starting_vertex()</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g_publisher.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>v2 <span class="op">=</span> g_publisher.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>v0.add_edge(v1, [<span class="fl">1.0</span>])</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>v1.add_edge(v2, [<span class="fl">1.0</span>])</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>g_publisher.update_weights([<span class="fl">2.0</span>])</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'publisher expectation: </span><span class="sc">{</span>g_publisher<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. The graph's content hash is what identifies the artifact.</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>hash_hex <span class="op">=</span> phasic.<span class="bu">hash</span>.compute_graph_hash(g_publisher).hash_hex</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'graph hash: </span><span class="sc">{</span>hash_hex[:<span class="dv">24</span>]<span class="sc">}</span><span class="ss">...'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Total traces available: 5
-  coalescent_n10_theta1           Standard Kingman coalescent for n=10 haploid samples with theta parameter
-  coalescent_n15_theta1           Standard Kingman coalescent for n=15 haploid samples with theta parameter
-  coalescent_n20_theta1           Standard Kingman coalescent for n=20 haploid samples with theta parameter
-  coalescent_n3_theta1            Standard Kingman coalescent for n=3 haploid samples with theta parameter
-  coalescent_n5_theta1            Standard Kingman coalescent for n=5 haploid samples with theta parameter</code></pre>
+<pre><code>publisher expectation: 0.5
+graph hash: 29dc136099b6cf8de1d9180a...</code></pre>
 </div>
 </div>
-<div id="registry-filter" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.674690Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.674586Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.676883Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.676396Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter by domain and model type</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>popgen <span class="op">=</span> registry.list_traces(</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">"population-genetics"</span>,</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="st">"coalescent"</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Population-genetics coalescent traces: </span><span class="sc">{</span><span class="bu">len</span>(popgen)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> popgen:</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>t[<span class="st">'trace_id'</span>]<span class="sc">:30s}</span><span class="ss">  vertices=</span><span class="sc">{</span>t<span class="sc">.</span>get(<span class="st">'vertices'</span>, <span class="st">'?'</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="597ead16" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.915795Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.915692Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.925249Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.924729Z&quot;}}" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Stage the .bin in our fake-origin directory (simulates a</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#    publish). In a real publish, push_cache() does this AND opens</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#    a PR for you.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.compute_repository <span class="im">import</span> _param_compute_cache_dir</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>local_bin <span class="op">=</span> _param_compute_cache_dir() <span class="op">/</span> <span class="ss">f'</span><span class="sc">{</span>hash_hex<span class="sc">}</span><span class="ss">.bin'</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>published <span class="op">=</span> fake_origin <span class="op">/</span> <span class="ss">f'</span><span class="sc">{</span>hash_hex<span class="sc">}</span><span class="ss">.bin'</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>shutil.copy2(local_bin, published)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>sha <span class="op">=</span> hashlib.sha256(published.read_bytes()).hexdigest()</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'staged: </span><span class="sc">{</span>published<span class="sc">.</span>name<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>published<span class="sc">.</span>stat()<span class="sc">.</span>st_size<span class="sc">:,}</span><span class="ss"> bytes)'</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'sha256: </span><span class="sc">{</span>sha[:<span class="dv">32</span>]<span class="sc">}</span><span class="ss">...'</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Hand-write a minimal registry.json pointing at the file.</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>registry_data <span class="op">=</span> {</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'version'</span>: <span class="st">'2.0'</span>, <span class="st">'format'</span>: <span class="st">'ptd_pcg'</span>,</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'computes'</span>: {</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'demo_chain'</span>: {</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">'graph_hash'</span>:      hash_hex,</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">'format_revision'</span>: <span class="dv">2</span>,</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">'artifacts'</span>: {</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                <span class="st">'parent'</span>: {</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'cid_or_path'</span>: <span class="ss">f'file://</span><span class="sc">{</span>published<span class="sc">}</span><span class="ss">'</span>,</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'sha256'</span>:      sha,</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>                    <span class="st">'size_bytes'</span>:  published.stat().st_size,</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>                },</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">'scc'</span>: [],</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>            },</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>            <span class="st">'metadata'</span>: {</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>                <span class="st">'description'</span>: <span class="st">'Two-step parameterised chain (demo)'</span>,</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>                <span class="st">'domain'</span>:      <span class="st">'demo'</span>,</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>                <span class="st">'model_type'</span>:  <span class="st">'chain'</span>,</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>                <span class="st">'vertices'</span>:    g_publisher.vertices_length(),</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>                <span class="st">'param_length'</span>: <span class="dv">1</span>,</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>                <span class="st">'tags'</span>:        [<span class="st">'demo'</span>, <span class="st">'tutorial'</span>],</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>            },</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>(reg_cache <span class="op">/</span> <span class="st">'registry.json'</span>).write_text(json.dumps(registry_data))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Population-genetics coalescent traces: 5
-  coalescent_n10_theta1           vertices=10
-  coalescent_n15_theta1           vertices=15
-  coalescent_n20_theta1           vertices=20
-  coalescent_n3_theta1            vertices=3
-  coalescent_n5_theta1            vertices=5</code></pre>
+<pre><code>staged: 29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c.bin (2,304 bytes)
+sha256: 7077b684810fc7f8de111dcde1b3175c...</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>659</code></pre>
 </div>
 </div>
-</section>
-<section id="downloading-a-trace" class="level2">
-<h2 class="anchored" data-anchor-id="downloading-a-trace">Downloading a trace</h2>
-<p>Use <code>get_trace()</code> to download and deserialise a trace. If the trace is already in your local cache it is loaded instantly.</p>
-<div id="download-trace" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.678279Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.678164Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.680267Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.679772Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download by ID (cached automatically)</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># trace = registry.get_trace("coalescent_n5_theta1")</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"Loaded trace: {trace.n_vertices} vertices, {len(trace.operations)} operations")</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use the convenience function:</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic import get_trace_by_hash</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># trace = get_trace_by_hash("coalescent_n5_theta1")</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"(Uncomment the lines above when the registry is populated with traces.)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="4396d394" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.926788Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.926641Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.929617Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.929171Z&quot;}}" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Tell phasic to read the registry from our local mock.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.compute_repository <span class="im">import</span> ComputeRegistry, _get_default_registry</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic.compute_repository <span class="im">as</span> cr</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset the module-level default so it picks up our mock.</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>cr._default_registry <span class="op">=</span> ComputeRegistry(</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    registry_repo<span class="op">=</span><span class="st">'demo/demo'</span>, cache_dir<span class="op">=</span>reg_cache, auto_update<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Sanity: list what's available.</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> e <span class="kw">in</span> phasic.list_computes():</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>e[<span class="st">'compute_id'</span>]<span class="sc">:15s}</span><span class="ss">  hash=</span><span class="sc">{</span>e[<span class="st">'graph_hash'</span>][:<span class="dv">12</span>]<span class="sc">}</span><span class="ss">... "</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"vertices=</span><span class="sc">{</span>e<span class="sc">.</span>get(<span class="st">'vertices'</span>, <span class="st">'?'</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>(Uncomment the lines above when the registry is populated with traces.)</code></pre>
+<pre><code>demo_chain       hash=29dc136099b6... vertices=3</code></pre>
 </div>
 </div>
-</section>
-<section id="inspecting-the-source-of-a-trace" class="level2">
-<h2 class="anchored" data-anchor-id="inspecting-the-source-of-a-trace">Inspecting the source of a trace</h2>
-<p>When working with shared models, it is useful to know <em>where</em> a trace would be loaded from — local cache, the IPFS daemon, or a public HTTP gateway. The <code>trace_source()</code> method tells you without actually downloading anything.</p>
-<div id="trace-source" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.681879Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.681774Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:17.692532Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:17.692077Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Demonstrate trace_source() using a mock registry</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a temporary registry with one trace</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>tmp <span class="op">=</span> Path(tempfile.mkdtemp())</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>demo_registry <span class="op">=</span> {</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"version"</span>: <span class="st">"1.0.0"</span>,</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"traces"</span>: {</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"coalescent_n5"</span>: {</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">"cid"</span>: <span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG"</span>,</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">"description"</span>: <span class="st">"Coalescent model, n=5"</span>,</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"metadata"</span>: {<span class="st">"domain"</span>: <span class="st">"population-genetics"</span>, <span class="st">"model_type"</span>: <span class="st">"coalescent"</span>}</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>(tmp <span class="op">/</span> <span class="st">"registry.json"</span>).write_text(json.dumps(demo_registry))</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>reg <span class="op">=</span> TraceRegistry(cache_dir<span class="op">=</span>tmp, auto_update<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>info <span class="op">=</span> reg.trace_source(<span class="st">"coalescent_n5"</span>)</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Trace source info"</span>)</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"="</span> <span class="op">*</span> <span class="dv">40</span>)</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> key, val <span class="kw">in</span> info.items():</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>key<span class="sc">:15s}</span><span class="ss">: </span><span class="sc">{</span>val<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Now simulate a fresh consumer: a different process that happens to build the same graph and wants to skip the elimination.</p>
+<div id="9d87fdb6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.931179Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.931062Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.937417Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.936943Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear the local cache to simulate 'fresh machine'.</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> local_bin.exists():</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    local_bin.unlink()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the structurally identical graph.</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>g_consumer <span class="op">=</span> phasic.Graph(<span class="dv">1</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>w0 <span class="op">=</span> g_consumer.starting_vertex()</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>w1 <span class="op">=</span> g_consumer.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>w2 <span class="op">=</span> g_consumer.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>w0.add_edge(w1, [<span class="fl">1.0</span>])</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>w1.add_edge(w2, [<span class="fl">1.0</span>])</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>g_consumer.update_weights([<span class="fl">2.0</span>])</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co"># The whole sharing UI:</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g_consumer.pull_cache()</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache returned: </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'cache file present: </span><span class="sc">{</span>local_bin<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># The next call uses the downloaded elimination.</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'consumer expectation: </span><span class="sc">{</span>g_consumer<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Trace source info
-========================================
-  trace_id       : coalescent_n5
-  cid            : QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG
-  cache_path     : /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/tmp9y1y_lyn/traces/coalescent_n5/trace.json.gz
-  cached         : False
-  backend        : ipfs
-  private_network: False
-  source         : ipfs_daemon</code></pre>
+<pre><code>pull_cache returned: True
+cache file present: True
+consumer expectation: 0.5</code></pre>
 </div>
 </div>
-<p>The <code>source</code> field tells you where the next <code>get_trace()</code> call will fetch data from:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 55%">
-<col style="width: 44%">
-</colgroup>
-<thead>
-<tr class="header">
-<th><code>source</code></th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>local_cache</code></td>
-<td>Already downloaded; loaded from <code>~/.phasic_cache/</code></td>
-</tr>
-<tr class="even">
-<td><code>ipfs_daemon</code></td>
-<td>Will be fetched from the local IPFS daemon (fast, peer-to-peer)</td>
-</tr>
-<tr class="odd">
-<td><code>http_gateway</code></td>
-<td>Will be fetched from a public HTTP gateway (slower, but zero-config)</td>
-</tr>
-</tbody>
-</table>
-<p>If you are using a custom <code>TransportBackend</code> (e.g.&nbsp;S3 or GCS), the source will be the backend’s <code>name</code> property.</p>
-</section>
-<section id="pinning-a-model-for-sharing" class="level2">
-<h2 class="anchored" data-anchor-id="pinning-a-model-for-sharing">Pinning a model for sharing</h2>
-<p>On IPFS, content is <strong>garbage-collected</strong> unless someone explicitly <em>pins</em> it. Pinning tells your local IPFS node to keep the data permanently, and — because IPFS is peer-to-peer — anyone who requests the same CID can fetch it from your node.</p>
-<p>In other words: <strong>pinning a model = hosting it for the community.</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>backend <span class="op">=</span> IPFSBackend()  <span class="co"># requires running daemon</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>cid <span class="op">=</span> <span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG"</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Pin a CID so it persists on your node</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>backend.pin(cid)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Pinned: </span><span class="sc">{</span>cid<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Check pinning status</span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Is pinned? </span><span class="sc">{</span>backend<span class="sc">.</span>is_pinned(cid)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>To pin all traces from the registry at once you could write:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> registry.list_traces():</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    backend.pin(t[<span class="st">'cid'</span>])</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Pinned </span><span class="sc">{</span>t[<span class="st">'trace_id'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This makes your machine a mirror for the entire model library.</p>
-</section>
-<section id="unpinning" class="level2">
-<h2 class="anchored" data-anchor-id="unpinning">Unpinning</h2>
-<p>If you no longer want to host a particular trace, <em>unpin</em> it. After unpinning the IPFS garbage collector may reclaim the disk space.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>backend.unpin(cid)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Unpinned: </span><span class="sc">{</span>cid<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Is pinned? </span><span class="sc">{</span>backend<span class="sc">.</span>is_pinned(cid)<span class="sc">}</span><span class="ss">"</span>)  <span class="co"># -&gt; False</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Unpinning only affects <strong>your</strong> node. If other nodes also pin the same CID, the trace remains available on the network.</p>
-<section id="live-demo-requires-ipfs-daemon" class="level3">
-<h3 class="anchored" data-anchor-id="live-demo-requires-ipfs-daemon">Live demo (requires IPFS daemon)</h3>
-<p>The cell below demonstrates the full pin/unpin cycle. It will only succeed if you have the IPFS daemon running. If the daemon is not available the cell prints an explanation instead.</p>
-<div id="pinning-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:17.694290Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:17.694191Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:22.707712Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:22.707235Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>backend <span class="op">=</span> IPFSBackend()</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>cid <span class="op">=</span> <span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG"</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> backend.status()[<span class="st">"daemon"</span>]:</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># --- Full pin / unpin cycle ---</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Daemon is running — demonstrating pin/unpin cycle:</span><span class="ch">\n</span><span class="st">"</span>)</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        backend.pin(cid)</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"1. Pinned  </span><span class="sc">{</span>cid[:<span class="dv">20</span>]<span class="sc">}</span><span class="ss">..."</span>)</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"   is_pinned = </span><span class="sc">{</span>backend<span class="sc">.</span>is_pinned(cid)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        backend.unpin(cid)</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">2. Unpinned </span><span class="sc">{</span>cid[:<span class="dv">20</span>]<span class="sc">}</span><span class="ss">..."</span>)</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"   is_pinned = </span><span class="sc">{</span>backend<span class="sc">.</span>is_pinned(cid)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Pin/unpin failed (CID may not exist on the network yet):</span><span class="ch">\n</span><span class="ss">  </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">This is expected if the CID has not been published."</span>)</span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"With a real published trace, pin() and unpin() work instantly."</span>)</span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"No IPFS daemon detected."</span>)</span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"To try this demo, start the daemon with:"</span>)</span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"  ipfs daemon &amp;"</span>)</span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Without a daemon, traces are still available via HTTP gateways."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>If no one has published the graph, <code>pull_cache()</code> returns <code>False</code> and the cache is untouched.</p>
+<div id="1c1e1653" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.938874Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.938757Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:52.941816Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:52.941337Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A different graph that isn't in the registry.</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>g_other <span class="op">=</span> phasic.Graph(<span class="dv">1</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> g_other.starting_vertex()</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>x1 <span class="op">=</span> g_other.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>x2 <span class="op">=</span> g_other.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>x3 <span class="op">=</span> g_other.find_or_create_vertex([<span class="dv">3</span>])</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>x0.add_edge(x1, [<span class="fl">1.0</span>])</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>x1.add_edge(x2, [<span class="fl">1.0</span>])</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>x2.add_edge(x3, [<span class="fl">1.0</span>])</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>x3.add_edge(x0, [<span class="fl">0.0</span>])  <span class="co"># dummy parameter slot</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>g_other.update_weights([<span class="fl">2.0</span>])</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>hit <span class="op">=</span> g_other.pull_cache()</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'pull_cache returned: </span><span class="sc">{</span>hit<span class="sc">}</span><span class="ss">'</span>)   <span class="co"># False — no entry for this hash</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Daemon is running — demonstrating pin/unpin cycle:
-
-Pin/unpin failed (CID may not exist on the network yet):
-  Failed to pin QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG: ReadTimeout: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=5)
-
-This is expected if the CID has not been published.
-With a real published trace, pin() and unpin() work instantly.</code></pre>
+<pre><code>pull_cache returned: False</code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="publishing-a-trace" class="level2">
-<h2 class="anchored" data-anchor-id="publishing-a-trace">Publishing a trace</h2>
-<p>To share a trace you have recorded, use <code>publish_trace()</code>. This uploads the trace to IPFS and optionally submits a pull request to the registry repository so that others can discover it.</p>
-<div id="publish-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:22.709277Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:22.709168Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:22.711354Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:22.710908Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example publish workflow (requires IPFS daemon)</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic.trace_elimination import record_elimination_trace</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># # 1. Build a model and record a trace</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># graph = Graph(my_callback, theta_dim=2)</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co"># trace = record_elimination_trace(graph, theta_dim=2)</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># # 2. Publish to IPFS + registry</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># cid = registry.publish_trace(</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co">#     trace=trace,</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co">#     trace_id="my_model_v1",</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co">#     metadata={</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co">#         "description": "Population genetics model with migration",</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co">#         "domain": "population-genetics",</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co">#         "model_type": "structured-coalescent",</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="co">#         "param_length": 2,</span></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="co">#         "vertices": trace.n_vertices,</span></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="co">#         "tags": ["migration", "two-population"]</span></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="co">#     },</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="co">#     submit_pr=True   # opens a GitHub PR to add the trace to the registry</span></span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="co"># )</span></span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"Published with CID: {cid}")</span></span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="co"># # 3. Pin so your node serves it</span></span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a><span class="co"># backend.pin(cid)</span></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"(Uncomment the code above to publish a real trace.)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="push-publishing-your-own-elimination" class="level2">
+<h2 class="anchored" data-anchor-id="push-publishing-your-own-elimination">Push: publishing your own elimination</h2>
+<p><code>g.push_cache(id=..., description=...)</code> packages the local <code>.bin</code>, opens a pull request against <code>phasic-traces</code>, and returns the PR URL. The maintainer reviews and merges it; from that moment, anyone who calls <code>pull_cache()</code> on the same graph gets your published artifact.</p>
+<p><strong>Prerequisite (one-time):</strong> install <a href="https://cli.github.com/"><code>gh</code></a> and run <code>gh auth login</code> in a terminal. <code>push_cache()</code> does not prompt inside the notebook; it just raises a clear <code>PTDBackendError</code> if <code>gh</code> is missing or unauthenticated.</p>
+<p>Use <code>dry_run=True</code> to inspect what the published entry would look like without actually opening a PR. This works offline.</p>
+<div id="16aa324c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:52.943071Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:52.942972Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:53.006457Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:53.005704Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>entry_json <span class="op">=</span> g_publisher.push_cache(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span><span class="op">=</span><span class="st">'demo_chain_v1'</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">'Two-step parameterised chain (demo)'</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">'demo'</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="st">'chain'</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[<span class="st">'demo'</span>, <span class="st">'tutorial'</span>],</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    dry_run<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(entry_json)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>(Uncomment the code above to publish a real trace.)</code></pre>
+<pre><code>{
+  "demo_chain_v1": {
+    "graph_hash": "29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c",
+    "format_revision": 2,
+    "artifacts": {
+      "parent": {
+        "cid_or_path": "artifacts/29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c.bin",
+        "sha256": "27a7021dba42413895f99f633c7aadee75b5c95c0b1c7c6bb588f00b815cdbb3",
+        "size_bytes": 2304
+      },
+      "scc": [
+        {
+          "cid_or_path": "artifacts/scc_6a6d87a7e303d7fb422f4eece14a59aa03a8cdaaaa5d374cd71096944a948486.bin",
+          "scc_hash": "6a6d87a7e303d7fb422f4eece14a59aa03a8cdaaaa5d374cd71096944a948486",
+          "sha256": "b487cef8fb806dd41404d448ebfd3a101543bd6fdee836d999d27c014f69d7ed",
+          "size_bytes": 8056
+        },
+        {
+          "cid_or_path": "artifacts/scc_ddc3218c9ae13954225efba2a3f16068214f18901364b150fb4bea51c9d4708a.bin",
+          "scc_hash": "ddc3218c9ae13954225efba2a3f16068214f18901364b150fb4bea51c9d4708a",
+          "sha256": "b8e9372a0aa80c28eb8d0329dbf7ec3a469f6c8a70c4c5d57e213891d5a0f9dc",
+          "size_bytes": 3744
+        },
+        {
+          "cid_or_path": "artifacts/scc_dc4737527ff38f1a4693a7495fe390945a2d266a3ac3c2926cf9c3d6f284aba7.bin",
+          "scc_hash": "dc4737527ff38f1a4693a7495fe390945a2d266a3ac3c2926cf9c3d6f284aba7",
+          "sha256": "1195c79b6d82f9df28067fa470535d5244b770e35dc675db71e9dd89f099ecfc",
+          "size_bytes": 5184
+        },
+        {
+          "cid_or_path": "artifacts/scc_f9e7f129fd385b3f7c45586a91d121d2009e6cf21f7928e18c798628a6991a1c.bin",
+          "scc_hash": "f9e7f129fd385b3f7c45586a91d121d2009e6cf21f7928e18c798628a6991a1c",
+          "sha256": "0aa8540abc166bddd777aa196a504093b421301abb52d17c60ad1edf87c203f1",
+          "size_bytes": 8056
+        },
+        {
+          "cid_or_path": "artifacts/scc_75bdc3a196d3f59533e643cd25eeb8e34f458ee1bcf0c769232f2fa755007a61.bin",
+          "scc_hash": "75bdc3a196d3f59533e643cd25eeb8e34f458ee1bcf0c769232f2fa755007a61",
+          "sha256": "9b1eeb59d542c7ac27b958c456e7a368e4fd0ad1107b366112d53a84ba4efc33",
+          "size_bytes": 3224
+        },
+        {
+          "cid_or_path": "artifacts/scc_dde94e4db261e4f084abff85bb1601eaea402a1a96c0582e310d2a16ac6096d8.bin",
+          "scc_hash": "dde94e4db261e4f084abff85bb1601eaea402a1a96c0582e310d2a16ac6096d8",
+          "sha256": "5f85d8ce35ee13badc9026610c259fe2ec369767e1f5df1843989bdc615c7d7b",
+          "size_bytes": 3224
+        },
+        {
+          "cid_or_path": "artifacts/scc_4a6301b792070eaa336c95ef91474a703b11af94f005bb858b1a7813452dfc90.bin",
+          "scc_hash": "4a6301b792070eaa336c95ef91474a703b11af94f005bb858b1a7813452dfc90",
+          "sha256": "0f6a5923803426424130db6d1fcf9ffac584ec080c9c4c0fa6b9c4cd33f0adc3",
+          "size_bytes": 2304
+        },
+        {
+          "cid_or_path": "artifacts/scc_33a4bb1ae7c1732921140f4a76ef62c107bf9af6edb7ad97b43654bfaa630ffd.bin",
+          "scc_hash": "33a4bb1ae7c1732921140f4a76ef62c107bf9af6edb7ad97b43654bfaa630ffd",
+          "sha256": "dad49e6d88f874abde921e66722dcd61e44ddd93d5496e0ea0578fb8e6e82251",
+          "size_bytes": 8056
+        },
+        {
+          "cid_or_path": "artifacts/scc_28081a8cab9fa59a9faa8714b371fd1b217742519e823aa678048315e33be210.bin",
+          "scc_hash": "28081a8cab9fa59a9faa8714b371fd1b217742519e823aa678048315e33be210",
+          "sha256": "993b3ead7c8a0c1ed657119835071a2161748334c5bb5c8a3e3967bd5eb9123a",
+          "size_bytes": 1784
+        },
+        {
+          "cid_or_path": "artifacts/scc_ac36eec0c31dbbc1ae3090cb7c2e23cafe5ba89ff4140ec80dcd22e0aa1d2dc2.bin",
+          "scc_hash": "ac36eec0c31dbbc1ae3090cb7c2e23cafe5ba89ff4140ec80dcd22e0aa1d2dc2",
+          "sha256": "90ccb848826daa942b3b92a9d2fbad479de94ef6b089dbe1941fc00a02c9801a",
+          "size_bytes": 8576
+        },
+        {
+          "cid_or_path": "artifacts/scc_1b431aacbfcd4e32ae36a443f4e82329f07707557f96e562314b358ff00807a6.bin",
+          "scc_hash": "1b431aacbfcd4e32ae36a443f4e82329f07707557f96e562314b358ff00807a6",
+          "sha256": "0f2d7a7e08200f8e24748401c175a0b5a136a2d090d2d7f34e13b0f832d59bff",
+          "size_bytes": 11312
+        }
+      ]
+    },
+    "metadata": {
+      "description": "Two-step parameterised chain (demo)",
+      "author": "Kasper Munch &lt;kaspermunch@birc.au.dk&gt;",
+      "license": "MIT",
+      "vertices": 3,
+      "param_length": 1,
+      "domain": "demo",
+      "model_type": "chain",
+      "tags": [
+        "demo",
+        "tutorial"
+      ]
+    }
+  }
+}</code></pre>
 </div>
 </div>
+<p>To open the PR for real, drop <code>dry_run=True</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>pr_url <span class="op">=</span> g_publisher.push_cache(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">id</span><span class="op">=</span><span class="st">'demo_chain_v1'</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">'Two-step parameterised chain (demo)'</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">'demo'</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    model_type<span class="op">=</span><span class="st">'chain'</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[<span class="st">'demo'</span>, <span class="st">'tutorial'</span>],</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pr_url)   <span class="co"># https://github.com/munch-group/phasic-traces/pull/N</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The CLI workflow:</p>
+<ol type="1">
+<li><code>push_cache</code> clones <code>phasic-traces</code> to a temporary directory.</li>
+<li>Saves the <code>.bin</code> to <code>artifacts/&lt;hash&gt;.bin</code> and any per-SCC files.</li>
+<li>Splices a new entry into <code>registry.json</code>.</li>
+<li>Commits to a feature branch <code>phasic-publish/&lt;id&gt;</code>.</li>
+<li>Pushes the branch to your fork.</li>
+<li>Runs <code>gh pr create</code> and prints the PR URL.</li>
+</ol>
+<p>All of this is bookkeeping — the artifact itself is the <code>.bin</code> you can also share with collaborators by other means (email, Slack, etc.) for ad-hoc use.</p>
 </section>
-<section id="retracting-a-faulty-model" class="level2">
-<h2 class="anchored" data-anchor-id="retracting-a-faulty-model">Retracting a faulty model</h2>
-<p>Mistakes happen — a trace might be built from a buggy callback, the wrong number of samples, or a corrupted graph. The <code>retract_trace()</code> method marks a trace as retracted in your <strong>local</strong> registry cache. After retraction:</p>
+<section id="what-happens-during-expectation" class="level2">
+<h2 class="anchored" data-anchor-id="what-happens-during-expectation">What happens during <code>expectation()</code></h2>
+<p>After <code>pull_cache()</code> has populated the local cache, the next <code>g.expectation()</code> call goes through the normal C path:</p>
+<ol type="1">
+<li>The C side computes <code>ptd_graph_content_hash(graph)</code>.</li>
+<li>It looks for <code>~/.phasic_cache/parameterized_reward_compute/&lt;hash&gt;.bin</code>.</li>
+<li>If present, it loads the symbolic elimination from the file and applies the current <code>theta</code> to get a concrete result.</li>
+<li>If absent, it runs the O(n^3) elimination and writes a new <code>.bin</code>.</li>
+</ol>
+<p><code>pull_cache()</code> just ensures step 2 succeeds. It does not load the compute graph into memory itself; the C side does that on the next call.</p>
+</section>
+<section id="when-to-publish" class="level2">
+<h2 class="anchored" data-anchor-id="when-to-publish">When to publish</h2>
+<p>Publish when:</p>
 <ul>
-<li><code>list_traces()</code> <strong>skips</strong> retracted entries</li>
-<li><code>get_trace()</code> <strong>raises an error</strong> with the retraction reason</li>
-<li>The cached trace file is <strong>deleted</strong> to prevent accidental use</li>
+<li>The elimination is expensive (seconds to minutes) and several people in your group will run the same model.</li>
+<li>You want to make a published-paper model trivially reproducible — anyone with phasic installed can verify your results without re-running the eliminations.</li>
+<li>You’re building a workflow that runs on many machines (CI, clusters) and you don’t want every machine to re-eliminate.</li>
 </ul>
-<p>To retract a trace <strong>globally</strong> (for all users), submit a PR to the registry repository that adds <code>"retracted": true</code> to the trace entry in <code>registry.json</code>.</p>
-<div id="retraction-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:22.712908Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:22.712798Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:22.717196Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:22.716738Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up a demo registry with two traces</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>tmp <span class="op">=</span> Path(tempfile.mkdtemp())</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>demo_reg <span class="op">=</span> {</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"version"</span>: <span class="st">"1.0.0"</span>,</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"traces"</span>: {</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"good_model"</span>: {</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>            <span class="st">"cid"</span>: <span class="st">"QmGoodCID"</span>,</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>            <span class="st">"description"</span>: <span class="st">"Well-tested coalescent model"</span>,</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"metadata"</span>: {<span class="st">"domain"</span>: <span class="st">"population-genetics"</span>}</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"buggy_model"</span>: {</span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>            <span class="st">"cid"</span>: <span class="st">"QmBuggyCID"</span>,</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>            <span class="st">"description"</span>: <span class="st">"Model with incorrect rate calculation"</span>,</span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">"metadata"</span>: {<span class="st">"domain"</span>: <span class="st">"population-genetics"</span>}</span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>(tmp <span class="op">/</span> <span class="st">"registry.json"</span>).write_text(json.dumps(demo_reg))</span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>reg <span class="op">=</span> TraceRegistry(cache_dir<span class="op">=</span>tmp, auto_update<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Before retraction</span></span>
-<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Before retraction:"</span>)</span>
-<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> reg.list_traces():</span>
-<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>t[<span class="st">'trace_id'</span>]<span class="sc">:20s}</span><span class="ss"> </span><span class="sc">{</span>t[<span class="st">'description'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Retract the buggy model</span></span>
-<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>reg.retract_trace(<span class="st">"buggy_model"</span>, reason<span class="op">=</span><span class="st">"Incorrect coalescent rate: n*(n-1) instead of n*(n-1)/2"</span>)</span>
-<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Retracted 'buggy_model'."</span>)</span>
-<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a><span class="co"># After retraction: list_traces() skips it</span></span>
-<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">After retraction:"</span>)</span>
-<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> reg.list_traces():</span>
-<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  </span><span class="sc">{</span>t[<span class="st">'trace_id'</span>]<span class="sc">:20s}</span><span class="ss"> </span><span class="sc">{</span>t[<span class="st">'description'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a><span class="co"># get_trace() raises with the reason</span></span>
-<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>    reg.get_trace(<span class="st">"buggy_model"</span>)</span>
-<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
-<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">get_trace() error:</span><span class="ch">\n</span><span class="ss">  </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Before retraction:
-  good_model           Well-tested coalescent model
-  buggy_model          Model with incorrect rate calculation
-
-Retracted 'buggy_model'.
-
-After retraction:
-  good_model           Well-tested coalescent model
-
-get_trace() error:
-  Trace 'buggy_model' has been retracted: Incorrect coalescent rate: n*(n-1) instead of n*(n-1)/2
-  This trace is no longer available for download.</code></pre>
-</div>
-</div>
-</section>
-<section id="cache-management" class="level2">
-<h2 class="anchored" data-anchor-id="cache-management">Cache management</h2>
-<p>Downloaded traces are cached in <code>~/.phasic_cache/</code> by default. You can inspect and clear the cache with <code>clear_cache()</code>.</p>
-<div id="cache-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:22.718490Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:22.718405Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:22.724245Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:22.723819Z&quot;}}" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, gzip, tempfile</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up a cache with two fake traces</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>tmp <span class="op">=</span> Path(tempfile.mkdtemp())</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>demo_reg <span class="op">=</span> {</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"version"</span>: <span class="st">"1.0.0"</span>,</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"traces"</span>: {</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"trace_a"</span>: {<span class="st">"cid"</span>: <span class="st">"QmA"</span>, <span class="st">"description"</span>: <span class="st">"Trace A"</span>, <span class="st">"metadata"</span>: {}},</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"trace_b"</span>: {<span class="st">"cid"</span>: <span class="st">"QmB"</span>, <span class="st">"description"</span>: <span class="st">"Trace B"</span>, <span class="st">"metadata"</span>: {}},</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>(tmp <span class="op">/</span> <span class="st">"registry.json"</span>).write_text(json.dumps(demo_reg))</span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate cached files</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tid <span class="kw">in</span> (<span class="st">"trace_a"</span>, <span class="st">"trace_b"</span>):</span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    d <span class="op">=</span> tmp <span class="op">/</span> <span class="st">"traces"</span> <span class="op">/</span> tid</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    d.mkdir(parents<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> gzip.<span class="bu">open</span>(d <span class="op">/</span> <span class="st">"trace.json.gz"</span>, <span class="st">"wt"</span>) <span class="im">as</span> f:</span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>        json.dump({<span class="st">"placeholder"</span>: <span class="va">True</span>}, f)</span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>reg <span class="op">=</span> TraceRegistry(cache_dir<span class="op">=</span>tmp, auto_update<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear a single trace</span></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> reg.clear_cache(<span class="st">"trace_a"</span>)</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cleared </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> cache entry (trace_a)"</span>)</span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear everything</span></span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> reg.clear_cache()</span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cleared </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> remaining cache entries"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Cleared 1 cache entry (trace_a)
-Cleared 1 remaining cache entries</code></pre>
-</div>
-</div>
-</section>
-<section id="using-a-custom-transport-backend" class="level2">
-<h2 class="anchored" data-anchor-id="using-a-custom-transport-backend">Using a custom transport backend</h2>
-<p>If IPFS is not suitable for your environment, you can implement your own <code>TransportBackend</code>. For example, an S3 backend:</p>
-<div id="custom-backend" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:34:22.725512Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:34:22.725414Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:34:22.729380Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:34:22.728943Z&quot;}}" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TransportBackend</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> S3Backend(TransportBackend):</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Example backend that stores traces in an S3 bucket."""</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> name(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"s3"</span></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> get(<span class="va">self</span>, cid, output_path<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># In a real implementation you would call boto3 here</span></span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  S3Backend.get(</span><span class="sc">{</span>cid<span class="sc">!r}</span><span class="ss">)"</span>)</span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>        content <span class="op">=</span> <span class="st">b"(placeholder content)"</span></span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> output_path <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>            <span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>            Path(output_path).write_bytes(content)</span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">None</span></span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> content</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> add(<span class="va">self</span>, path):</span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  S3Backend.add(</span><span class="sc">{</span>path<span class="sc">!r}</span><span class="ss">)"</span>)</span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"s3://my-bucket/traces/example"</span></span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Plug it into the registry</span></span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile</span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>tmp <span class="op">=</span> Path(tempfile.mkdtemp())</span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>reg_data <span class="op">=</span> {<span class="st">"version"</span>: <span class="st">"1.0.0"</span>, <span class="st">"traces"</span>: {}}</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>(tmp <span class="op">/</span> <span class="st">"registry.json"</span>).write_text(json.dumps(reg_data))</span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>reg <span class="op">=</span> TraceRegistry(cache_dir<span class="op">=</span>tmp, auto_update<span class="op">=</span><span class="va">False</span>, backend<span class="op">=</span>S3Backend())</span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Registry backend: </span><span class="sc">{</span>reg<span class="sc">.</span>backend<span class="sc">.</span>name<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Registry backend: s3</code></pre>
-</div>
-</div>
+<p>Don’t publish:</p>
+<ul>
+<li>Toy or one-off graphs.</li>
+<li>Models whose structure you’re still iterating on. The hash depends on topology + coefficients, so any structural change creates a new hash anyway.</li>
+</ul>
 </section>
 <section id="summary" class="level2">
 <h2 class="anchored" data-anchor-id="summary">Summary</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 42%">
-<col style="width: 57%">
+<col style="width: 54%">
+<col style="width: 45%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Task</th>
-<th>Method</th>
+<th>API</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Check IPFS status</td>
-<td><code>IPFSBackend().status()</code></td>
+<td>Browse registry</td>
+<td><code>phasic.list_computes(domain=..., model_type=..., tags=...)</code></td>
 </tr>
 <tr class="even">
-<td>List traces</td>
-<td><code>registry.list_traces(domain=..., model_type=..., tags=...)</code></td>
+<td>Download elimination</td>
+<td><code>g.pull_cache()</code> — returns <code>True</code>/<code>False</code></td>
 </tr>
 <tr class="odd">
-<td>Download a trace</td>
-<td><code>registry.get_trace(trace_id)</code></td>
+<td>Force re-download</td>
+<td><code>g.pull_cache(force=True)</code></td>
 </tr>
 <tr class="even">
-<td>Check where a trace comes from</td>
-<td><code>registry.trace_source(trace_id)</code></td>
+<td>Publish elimination</td>
+<td><code>g.push_cache(id=..., description=...)</code></td>
 </tr>
 <tr class="odd">
-<td>Pin a model for sharing</td>
-<td><code>backend.pin(cid)</code></td>
+<td>Inspect before publishing</td>
+<td><code>g.push_cache(..., dry_run=True)</code></td>
 </tr>
 <tr class="even">
-<td>Unpin a model</td>
-<td><code>backend.unpin(cid)</code></td>
-</tr>
-<tr class="odd">
-<td>Publish a new trace</td>
-<td><code>registry.publish_trace(trace, trace_id, metadata)</code></td>
-</tr>
-<tr class="even">
-<td>Retract a faulty model</td>
-<td><code>registry.retract_trace(trace_id, reason)</code></td>
-</tr>
-<tr class="odd">
-<td>Clear local cache</td>
-<td><code>registry.clear_cache()</code> or <code>registry.clear_cache(trace_id)</code></td>
-</tr>
-<tr class="even">
-<td>Use a different backend</td>
-<td><code>TraceRegistry(backend=MyBackend())</code></td>
+<td>One-time auth</td>
+<td><code>gh auth login</code> in a terminal</td>
 </tr>
 </tbody>
 </table>
+<div id="d09f4399" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-11T18:53:53.008585Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-11T18:53:53.008428Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-11T18:53:53.011698Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-11T18:53:53.011267Z&quot;}}" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cleanup</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>shutil.rmtree(demo_root, ignore_errors<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> local_bin.exists():</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    local_bin.unlink()</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore the default registry so subsequent cells aren't affected</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>cr._default_registry <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'done'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>done</code></pre>
+</div>
+</div>
 
 
 </section>
@@ -1409,13 +1282,13 @@ Cleared 1 remaining cache entries</code></pre>
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../pages/tutorial/svgd-joint-prob.html" class="pagination-link" aria-label="Joint probability inference">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Joint probability inference</span>
+      <a href="../../pages/tutorial/scc-decomposition.html" class="pagination-link" aria-label="Reading the SCC decomposition tree map">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Reading the SCC decomposition tree map</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../pages/tutorial/mpfr.html" class="pagination-link" aria-label="Multiple-precision arithmetic">
-        <span class="nav-page-text">Multiple-precision arithmetic</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../pages/tutorial/model-hub.html" class="pagination-link" aria-label="The phasic model hub">
+        <span class="nav-page-text">The phasic model hub</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
