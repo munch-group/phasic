@@ -33,7 +33,13 @@ PTD_SCC_TLS int ptd_scc_compose_in_progress = 0;
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <time.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 #include "../../api/c/phasic.h"
 
@@ -86,9 +92,19 @@ void ptd_scc_compose_stats_reset(void)
 
 static uint64_t monotonic_ns(void)
 {
+#ifdef _WIN32
+    static LARGE_INTEGER freq = {0};
+    LARGE_INTEGER counter;
+    if (freq.QuadPart == 0) {
+        QueryPerformanceFrequency(&freq);
+    }
+    QueryPerformanceCounter(&counter);
+    return (uint64_t)((counter.QuadPart * 1000000000ull) / freq.QuadPart);
+#else
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+#endif
 }
 
 /* Read PHASIC_MAX_PARALLEL_SCCS: cap on simultaneous per-SCC
@@ -486,7 +502,11 @@ static double *ptd_compose_scc_prcs_inner(
         #pragma omp parallel for schedule(dynamic) if(l_size > 1) \
                 num_threads(omp_threads)
 #endif
-        for (size_t li = 0; li < l_size; ++li) {
+        /* MSVC's OpenMP only supports OpenMP 2.0, which requires a
+         * signed integer loop variable. Use ptrdiff_t (signed) here
+         * and cast back inside the body. */
+        for (ptrdiff_t li_s = 0; li_s < (ptrdiff_t)l_size; ++li_s) {
+            size_t li = (size_t)li_s;
             size_t i = level_indices[l_start + li];
             char *err_msg = err_msgs + li * sizeof_ptd_err;
             iter_status[li] = ptd_compose_scc_one(

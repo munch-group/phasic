@@ -4126,8 +4126,8 @@ struct ptd_edge *ptd_graph_add_edge(
             snprintf((char*)ptd_err, sizeof(ptd_err),
                 "Edge has too few coefficients: graph expects at least %zu, got %zu. "
                 "Edges must have coefficients_length >= param_length.",
-                (unsigned long)from->graph->param_length,
-                (unsigned long)coefficients_length);
+                (size_t)from->graph->param_length,
+                (size_t)coefficients_length);
             return NULL;
         }
     } else if (from->index != from->graph->starting_vertex->index) {
@@ -4312,7 +4312,7 @@ void ptd_graph_set_param_length(
         snprintf((char*)ptd_err, sizeof(ptd_err),
             "Cannot set param_length: graph already has edges added (param_length=%zu). "
             "Call ptd_graph_set_param_length() before adding any non-IPV edges.",
-            (unsigned long)graph->param_length);
+            (size_t)graph->param_length);
         return;
     }
 
@@ -4376,8 +4376,8 @@ void ptd_graph_update_weights(
         if (params_length != graph->param_length) {
             snprintf((char*)ptd_err, sizeof(ptd_err),
                 "Parameter length mismatch: graph expects %zu parameters, got %zu",
-                (unsigned long)graph->param_length,
-                (unsigned long)params_length);
+                (size_t)graph->param_length,
+                (size_t)params_length);
             return;
         }
 
@@ -4446,7 +4446,7 @@ void ptd_graph_update_weights(
                     "Coefficient length mismatch: edge has %zu coefficients but theta has %zu parameters. "
                     "In non-callback mode, they must match exactly. "
                     "To use extra coefficients, call update_weights(theta, callback) with a custom callback function.",
-                    (unsigned long)edge->coefficients_length, (unsigned long)theta_len);
+                    (size_t)edge->coefficients_length, (size_t)theta_len);
                 if (need_free) {
                     free(theta);
                 }
@@ -4615,7 +4615,7 @@ void ptd_graph_update_ipv(
         snprintf((char*)ptd_err, sizeof(ptd_err),
             "ptd_graph_update_ipv: ipv length %zu does not match number of "
             "starting-vertex edges %zu",
-            (unsigned long)ipv_length, (unsigned long)start->edges_length);
+            (size_t)ipv_length, (size_t)start->edges_length);
         return;
     }
 
@@ -4624,12 +4624,12 @@ void ptd_graph_update_ipv(
     for (size_t k = 0; k < ipv_length; k++) {
         if (isnan(ipv[k])) {
             snprintf((char*)ptd_err, sizeof(ptd_err),
-                "ptd_graph_update_ipv: ipv[%zu] is NaN", (unsigned long)k);
+                "ptd_graph_update_ipv: ipv[%zu] is NaN", (size_t)k);
             return;
         }
         if (isinf(ipv[k])) {
             snprintf((char*)ptd_err, sizeof(ptd_err),
-                "ptd_graph_update_ipv: ipv[%zu] is Inf", (unsigned long)k);
+                "ptd_graph_update_ipv: ipv[%zu] is Inf", (size_t)k);
             return;
         }
     }
