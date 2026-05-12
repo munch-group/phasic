@@ -139,10 +139,10 @@ Configuration and Logging.
 | | |
 | --- | --- |
 | [clear_caches](clear_caches.qmd#phasic.clear_caches) | Clear all caching. |
-| [configure](configure.qmd#phasic.configure) | Configure phasic globally. |
-| [get_config](get_config.qmd#phasic.get_config) | Get current global configuration. |
-| [get_available_options](get_available_options.qmd#phasic.get_available_options) | Get dictionary of available options on this system. |
-| [PTDAlgorithmsConfig](PTDAlgorithmsConfig.qmd#phasic.PTDAlgorithmsConfig) | Global configuration for phasic behavior. |
-| [reset_config](reset_config.qmd#phasic.reset_config) | Reset configuration to default. |
+| [configure](configure.qmd#phasic.configure) | Configure phasic globally — or temporarily, as a context manager. |
+| [get_config](get_config.qmd#phasic.get_config) | Return the current global configuration. |
+| [get_available_options](get_available_options.qmd#phasic.get_available_options) | Return what's available on this system (independent of config). |
+| [PhasicConfig](PhasicConfig.qmd#phasic.PhasicConfig) | Public configuration for phasic. All fields describe USER INTENT. |
+| [reset_config](reset_config.qmd#phasic.reset_config) | Reset the global configuration to defaults. |
 | [set_log_level](set_log_level.qmd#phasic.set_log_level) | Context manager and callable for changing the phasic logging level at runtime. |
 | [get_logger](get_logger.qmd#phasic.get_logger) | Get a logger for the specified module. |

@@ -1,0 +1,152 @@
+# PhasicConfig { #phasic.PhasicConfig }
+
+```python
+phasic.PhasicConfig(
+    compute='auto',
+    cpu_threads=None,
+    parallel_elimination=False,
+    parallel_elimination_min_subgraph=None,
+    parallel_elimination_max_concurrent=None,
+    svgd_strategy='auto',
+    high_precision_mode='auto',
+    high_precision_bits=None,
+    ill_condition_threshold=1000000000000.0,
+    warn_on_ill_conditioning=True,
+    cache_enabled=True,
+    cache_dir=None,
+    strict=True,
+    verbose=False,
+)
+```
+
+Public configuration for phasic. All fields describe USER INTENT.
+Implementation choices (JAX/MPFR/OpenMP/FFI/SCC) are derived.
+
+Conflicting settings raise PTDConfigError; no silent coercion.
+
+## Public fields {.doc-section .doc-section-public-fields}
+
+compute : 'auto' | 'cpu' | 'jax-cpu' | 'jax-gpu', default 'auto'
+    Single source of truth for the compute backend.
+    - 'auto'    : JAX if importable, else pure C++.
+    - 'cpu'     : pure C++ pipeline; no JAX, no JIT, no FFI.
+    - 'jax-cpu' : JAX path on the CPU device.
+    - 'jax-gpu' : JAX path on a GPU device. Raises if no GPU.
+
+cpu_threads : int or None, default None
+    OpenMP thread count. None = use auto-detected value
+    (SLURM_CPUS_PER_TASK / SLURM_CPUS_ON_NODE / sched_getaffinity
+    / os.cpu_count()). Backs OMP_NUM_THREADS.
+
+parallel_elimination : bool, default False
+    Run Gaussian elimination in parallel across strongly-connected
+    components of the graph. Backs PHASIC_HIERAR_ELIMINATION.
+
+parallel_elimination_min_subgraph : int or None, default None
+    Skip the on-disk cache for SCCs smaller than this many
+    vertices (None = use the C default of 4). Backs
+    PHASIC_MIN_SCC_SIZE_TO_CACHE.
+
+parallel_elimination_max_concurrent : int or None, default None
+    Cap on simultaneous per-SCC eliminations within one level
+    of the SCC condensation. None = no cap (use all OMP threads).
+    Backs PHASIC_MAX_PARALLEL_SCCS.
+
+high_precision_mode : 'auto' | 'always' | 'never', default 'auto'
+    When to engage high-precision arithmetic (MPFR).
+    - 'auto'   : activate when the condition number exceeds
+                 ill_condition_threshold.
+    - 'always' : force high precision for every moment computation.
+    - 'never'  : double precision only, even for ill-conditioned
+                 problems (warnings still surface).
+    Requires the library to be built with MPFR for 'always'.
+    Backs PHASIC_FORCE_MPFR.
+
+high_precision_bits : int or None, default None
+    Precision in bits when high-precision mode is active.
+    None = auto-pick based on the condition number. Must be
+    >= 53 if specified. Backs PHASIC_MPFR_BITS.
+
+ill_condition_threshold : float, default 1e12
+    Condition-number threshold above which high-precision mode
+    is engaged automatically. Backs PHASIC_CONDITION_THRESHOLD.
+
+warn_on_ill_conditioning : bool, default True
+    Emit log warnings when the condition number is high.
+    Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).
+
+cache_enabled : bool, default True
+    Use the on-disk caches under cache_dir. Backs
+    PHASIC_DISABLE_CACHE (inverted).
+
+cache_dir : str or None, default None
+    Override the cache root. None = $HOME/.phasic_cache. Backs
+    PHASIC_CACHE_DIR.
+
+strict : bool, default True
+    Raise on missing-feature warnings (e.g. JAX requested but
+    not installed) instead of logging a warning. Does NOT
+    affect conflict checking — conflicts always raise.
+
+verbose : bool, default False
+    Print configuration details and informational logs.
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [cache_dir](#phasic.PhasicConfig.cache_dir) | The type of the None singleton. |
+| [cache_enabled](#phasic.PhasicConfig.cache_enabled) | Returns True when the argument is true, False otherwise. |
+| [compute](#phasic.PhasicConfig.compute) | str(object='') -> str |
+| [cpu_threads](#phasic.PhasicConfig.cpu_threads) | The type of the None singleton. |
+| [ffi](#phasic.PhasicConfig.ffi) | Whether the FFI backend is enabled. Derived from `compute`. |
+| [high_precision_bits](#phasic.PhasicConfig.high_precision_bits) | The type of the None singleton. |
+| [high_precision_mode](#phasic.PhasicConfig.high_precision_mode) | str(object='') -> str |
+| [ill_condition_threshold](#phasic.PhasicConfig.ill_condition_threshold) | Convert a string or number to a floating-point number, if possible. |
+| [jax](#phasic.PhasicConfig.jax) | Whether JAX is enabled. Derived from `compute`. |
+| [jit](#phasic.PhasicConfig.jit) | Whether JIT is enabled. Derived from `compute`. |
+| [parallel_elimination](#phasic.PhasicConfig.parallel_elimination) | Returns True when the argument is true, False otherwise. |
+| [parallel_elimination_max_concurrent](#phasic.PhasicConfig.parallel_elimination_max_concurrent) | The type of the None singleton. |
+| [parallel_elimination_min_subgraph](#phasic.PhasicConfig.parallel_elimination_min_subgraph) | The type of the None singleton. |
+| [strict](#phasic.PhasicConfig.strict) | Returns True when the argument is true, False otherwise. |
+| [svgd_strategy](#phasic.PhasicConfig.svgd_strategy) | str(object='') -> str |
+| [verbose](#phasic.PhasicConfig.verbose) | Returns True when the argument is true, False otherwise. |
+| [warn_on_ill_conditioning](#phasic.PhasicConfig.warn_on_ill_conditioning) | Returns True when the argument is true, False otherwise. |
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [effective](#phasic.PhasicConfig.effective) | Snapshot of current configuration and its environment. |
+| [validate](#phasic.PhasicConfig.validate) | Validate the configuration, sync to env vars, raise on conflicts. |
+
+### effective { #phasic.PhasicConfig.effective }
+
+```python
+phasic.PhasicConfig.effective()
+```
+
+Snapshot of current configuration and its environment.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   A dict with three sections:  - 'fields': every public field and its current value. - 'environment': every env var phasic uses, and its current   value in os.environ (None if unset). - 'derived': useful answers about runtime state:   jax_active, mpfr_active, cpu_threads_source,   cache_dir_resolved, compute_resolved.
+
+### validate { #phasic.PhasicConfig.validate }
+
+```python
+phasic.PhasicConfig.validate()
+```
+
+Validate the configuration, sync to env vars, raise on conflicts.
+
+Rules:
+  1. Env-var single-source-of-truth: each non-default field is
+     written into its env var.
+  2. No silent rewrites: validate() does not mutate user-set fields.
+  3. Conflicts raise: incompatible field combinations, or
+     configure() vs pre-existing env var disagreement.
+  4. `strict` only governs missing-feature warnings; conflicts
+     always raise regardless of strict.

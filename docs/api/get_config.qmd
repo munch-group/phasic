@@ -4,19 +4,13 @@
 phasic.get_config()
 ```
 
-Get current global configuration.
+Return the current global configuration.
 
-## Returns {.doc-section .doc-section-returns}
+On first call, reads the relevant phasic env vars
+(`PHASIC_HIERAR_ELIMINATION`, `PHASIC_DISABLE_CACHE`,
+`PHASIC_CACHE_DIR`, `PHASIC_MIN_SCC_SIZE_TO_CACHE`,
+`PHASIC_MAX_PARALLEL_SCCS`, `OMP_NUM_THREADS`) and seeds the
+config so its fields agree with the environment that the C
+layer will observe.
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[PTDAlgorithmsConfig](`phasic.config.PTDAlgorithmsConfig`)]{.parameter-annotation}</code>
-
-:   Current configuration (creates default if none exists)
-
-## Examples {.doc-section .doc-section-examples}
-
-```python
->>> import phasic as ptd
->>> config = ptd.get_config()
->>> print(config.jax, config.jit, config.backend)
-True True jax
-```
+Subsequent calls return the cached config object.

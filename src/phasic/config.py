@@ -813,13 +813,15 @@ class PhasicConfig:
 
         Returns
         -------
-        dict with three sections:
-          - 'fields':      every public field and its current value.
-          - 'environment': every env var phasic uses, and its current
-                           value in os.environ (None if unset).
-          - 'derived':     useful answers about runtime state:
-                           jax_active, mpfr_active, cpu_threads_source,
-                           cache_dir_resolved, compute_resolved.
+        dict
+            A dict with three sections:
+
+            - 'fields': every public field and its current value.
+            - 'environment': every env var phasic uses, and its current
+              value in os.environ (None if unset).
+            - 'derived': useful answers about runtime state:
+              jax_active, mpfr_active, cpu_threads_source,
+              cache_dir_resolved, compute_resolved.
         """
         fields = {
             'compute': self.compute,

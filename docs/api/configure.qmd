@@ -4,48 +4,59 @@
 phasic.configure(**kwargs)
 ```
 
-Configure phasic globally.
+Configure phasic globally — or temporarily, as a context manager.
 
-## Parameters {.doc-section .doc-section-parameters}
+All fields describe USER INTENT, not which library implements
+the feature. See PhasicConfig for the full list and per-field
+docstrings.
 
-<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+Field summary:
+  - compute: 'auto' | 'cpu' | 'jax-cpu' | 'jax-gpu'
+  - cpu_threads: int or None (None = auto-detect)
+  - parallel_elimination: bool
+  - parallel_elimination_min_subgraph: int or None
+  - parallel_elimination_max_concurrent: int or None
+  - svgd_strategy: 'auto' | 'pmap' | 'vmap' | 'none'
+  - high_precision_mode: 'auto' | 'always' | 'never'
+  - high_precision_bits: int or None
+  - ill_condition_threshold: float
+  - warn_on_ill_conditioning: bool
+  - cache_enabled: bool
+  - cache_dir: str or None
+  - strict: bool
+  - verbose: bool
 
-:   Configuration options (see PTDAlgorithmsConfig for details) Valid options: jax, jit, ffi, openmp, strict, platform, backend, verbose
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[_ConfigureContext](`phasic.config._ConfigureContext`)]{.parameter-annotation}</code>
+
+:   A context-manager-shaped object. When used as a regular call (``configure(...)``) the settings are applied immediately and persist until further changes. When used as ``with configure(...): ...`` the settings are applied on entry and rolled back to their previous values on exit (including all phasic-tracked env vars).
 
 ## Raises {.doc-section .doc-section-raises}
 
 <code>[:]{.parameter-annotation-sep} [[PTDConfigError](`phasic.exceptions.PTDConfigError`)]{.parameter-annotation}</code>
 
-:   If strict=True and configuration is invalid
+:   On unknown kwargs, invalid values, or conflicts between configure() arguments and pre-existing env vars.
 
 ## Examples {.doc-section .doc-section-examples}
 
 ```python
->>> import phasic as ptd
+>>> import phasic
+>>> # Persistent: settings stay applied.
+>>> phasic.configure(compute='jax-cpu', cpu_threads=4)
 ```
 
 ```python
->>> # Standard configuration (FFI+OpenMP enabled by default)
->>> ptd.configure(jax=True, jit=True, ffi=True, openmp=True)
+>>> # Temporary: rolled back at the end of the block.
+>>> with phasic.configure(parallel_elimination=True,
+...                       parallel_elimination_max_concurrent=8):
+...     # graph.expectation() runs with parallel elimination
+...     ...
+>>> # Outside the block, parallel_elimination is back to False
 ```
 
 ```python
->>> # Disable FFI/OpenMP if build issues (slower, single-core only)
->>> ptd.configure(ffi=False, openmp=False)
-```
-
-```python
->>> # Permissive (warnings not errors)
->>> ptd.configure(jax=True, strict=False)
-```
-
-```python
->>> # Pure C++ (no JAX)
->>> ptd.configure(jax=False, jit=False, backend='cpp')
-```
-
-```python
->>> # Check what's available first
->>> print(ptd.get_available_options())
->>> ptd.configure(jax=True, jit=True)
+>>> # Capture the live config inside the block:
+>>> with phasic.configure(high_precision_mode='always') as cfg:
+...     print(cfg.high_precision_bits)
 ```

@@ -64,7 +64,7 @@ Called at the start of optimization to initialize the Optax state.
 
 :   Shape of particles array (n_particles, theta_dim).
 
-<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`phasic.jax`).[Array](`phasic.jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Initial parameter values. If provided, used for optimizers that need current params (e.g., adamw for weight decay).
 
@@ -78,20 +78,20 @@ Compute update using Optax optimizer.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`phasic.jax`).[Array](`phasic.jax.Array`)]{.parameter-annotation}</code>
 
 :   SVGD gradient direction of shape ``(n_particles, theta_dim)``: ``(K @ grad_log_p + sum(grad_K)) / n_particles``.
 
-<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`phasic.jax`).[Array](`phasic.jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Current parameter values. Required for optimizers with weight decay (e.g., adamw). If not provided, uses internally tracked params.
 
-<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`phasic.jax`).[Array](`phasic.jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Alias for params, for compatibility with phasic optimizer interface.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`phasic.jax`).[Array](`phasic.jax.Array`)]{.parameter-annotation}</code>
 
 :   Scaled update of shape ``(n_particles, theta_dim)`` to add to particles.

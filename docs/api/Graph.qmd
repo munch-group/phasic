@@ -53,6 +53,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [normalize](#phasic.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
 | [pdf](#phasic.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
 | [plot](#phasic.Graph.plot) | Plot a graph using graphviz. |
+| [plot_scc_decomposition](#phasic.Graph.plot_scc_decomposition) | Visualise the SCC decomposition of this graph as a |
 | [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_and_moments_from_graph_multivariate](#phasic.Graph.pmf_and_moments_from_graph_multivariate) | Create a multivariate phase-type model that handles 2D observations and rewards. |
 | [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
@@ -60,6 +61,8 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [pmf_from_graph_joint_index](#phasic.Graph.pmf_from_graph_joint_index) | Create a JAX-compatible model for joint index distributions. |
 | [pmf_from_graph_parameterized](#phasic.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
 | [probability_matching](#phasic.Graph.probability_matching) | Find parameter estimates by matching model probabilities to empirical probabilities. |
+| [pull_cache](#phasic.Graph.pull_cache) | Download the published compute artifact for this graph if available. |
+| [push_cache](#phasic.Graph.push_cache) | Publish this graph's compute artifact to the phasic-traces registry. |
 | [reward_transform](#phasic.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
 | [reward_transform_discrete](#phasic.Graph.reward_transform_discrete) | Apply reward transformation for discrete-time distributions. |
 | [sample](#phasic.Graph.sample) | Generate random samples from the phase-type distribution. |
@@ -563,7 +566,7 @@ residual-mass probe, use
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([jax](`jax`).[Array](`jax.Array`), [shape](`shape`)([n_t_vertices](`n_t_vertices`)))]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([jax](`phasic.jax`).[Array](`phasic.jax.Array`), [shape](`shape`)([n_t_vertices](`n_t_vertices`)))]{.parameter-annotation}</code>
 
 :   Joint-probs at the t-states, in the order of ``self._t_vertex_indices``.
 
@@ -1068,7 +1071,7 @@ random-walk Metropolis-Hastings with multiple independent chains.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`SparseObservations`)]{.parameter-annotation}</code>
 
 :   Observed data. A plain 1-D array for univariate models. For multivariate models use ``SparseObservations``.
 
@@ -1142,7 +1145,7 @@ random-walk Metropolis-Hastings with multiple independent chains.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMC](`phasic.mcmc.MCMC`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMC](`MCMC`)]{.parameter-annotation}</code>
 
 :   MCMC object with results accessible via get_results() and summary().
 
@@ -1186,7 +1189,7 @@ priors centred on the method-of-moments estimates.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`SparseObservations`)]{.parameter-annotation}</code>
 
 :   Observed data.  A plain 1-D array is accepted for univariate models (must not contain NaN).  For multivariate models use ``SparseObservations`` (see ``dense_to_sparse()``), in which case ``rewards`` must also be provided.
 
@@ -1385,7 +1388,7 @@ transition matrix satisfy the requirements for a valid phase-type distribution.
 ### pdf { #phasic.Graph.pdf }
 
 ```python
-phasic.Graph.pdf(time, **kwargs)
+phasic.Graph.pdf(time, granularity=0, **kwargs)
 ```
 
 Compute probability density/mass function using forward algorithm.
@@ -1396,9 +1399,9 @@ Compute probability density/mass function using forward algorithm.
 
 :   Time point(s) at which to evaluate the PDF/PMF.
 
-<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
 
-:   Granularity for uniformization (default: auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.
+:   Granularity for uniformization (default: 0, auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -1525,6 +1528,97 @@ Plot a graph using graphviz.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[graphviz](`graphviz`).[Digraph](`graphviz.Digraph`) \| None]{.parameter-annotation}</code>
 
 :   Graphviz Digraph object for display in Jupyter notebooks, or ``None`` if the graph exceeds ``max_nodes``.
+
+### plot_scc_decomposition { #phasic.Graph.plot_scc_decomposition }
+
+```python
+phasic.Graph.plot_scc_decomposition(
+    figsize=(10.0, 6.0),
+    cmap='viridis',
+    show_indices=True,
+    annotate_sizes=True,
+    title=None,
+    ax=None,
+)
+```
+
+Visualise the SCC decomposition of this graph as a
+level-wise treemap.
+
+Rows correspond to the levels of the SCC condensation.
+The source-side (start vertex, where the chain enters) is
+drawn at the **top** of the figure; the sink-side
+(absorbing state) is at the **bottom** — time flows
+downward.
+
+Within a row, each tile is one SCC, with width
+proportional to the SCC's vertex count, drawn at a
+common absolute scale shared across all rows. So a
+narrow row really has fewer total vertices than a wide
+one. SCCs at the same level are eliminated independently
+when ``parallel_elimination=True`` is enabled, so wide
+rows signal good parallelism potential and narrow rows
+are elimination bottlenecks.
+
+Level labels on the left margin look like ``L7 (16)`` —
+the level number followed by the count of parallel SCCs
+at that level. Note that the C-side composer processes
+levels in the opposite of the plot's vertical order
+(sink-first, bottom-up), but that detail does not
+affect interpretation: parallelism is per-row in either
+direction.
+
+This is a structural visualisation only — it does not
+depend on any runtime telemetry. To assess actual cache
+hit/miss behaviour after a compose, use
+``phasic.cache.scc_compose_stats()``.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of float]{.parameter-annotation} [ = ]{.parameter-default-sep} [(10.0, 6.0)]{.parameter-default}</code>
+
+:   Matplotlib figure size in inches. Ignored if ``ax`` is provided.
+
+<code>[**cmap**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'viridis\']{.parameter-default}</code>
+
+:   Matplotlib colormap name. Tiles are coloured by SCC index to make adjacent SCCs visually distinct.
+
+<code>[**show_indices**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print the SCC index inside each tile when the tile is wide enough.
+
+<code>[**annotate_sizes**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print the vertex count alongside the index.
+
+<code>[**title**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Plot title. Defaults to a one-line summary of the decomposition (number of SCCs, levels, widest row).
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Existing axes to draw into. If ``None``, a new figure is created.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation}</code>
+
+:   The axes the treemap was drawn into.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic
+>>> g = phasic.Graph(my_callback)
+>>> ax = g.plot_scc_decomposition()
+>>> ax.figure.savefig('scc.pdf')
+```
+
+#### See Also {.doc-section .doc-section-see-also}
+
+scc_decomposition : underlying SCC structure
+phasic.distributed_scc.compute_scc_levels : level grouping
+    used by this plot
 
 ### pmf_and_moments_from_graph { #phasic.Graph.pmf_and_moments_from_graph }
 
@@ -1884,11 +1978,11 @@ times for all states in a single pass through the elimination trace.
 
 :   Parameterized graph built using the Python API with parameterized edges.
 
-<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Number of parameters for parameterized edges. If not provided, will be auto-detected from the graph.
 
-<code>[**fixed_mask**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**fixed_mask**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`phasic.jnp`).[ndarray](`phasic.jnp.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Binary mask indicating which parameters are fixed (1=fixed, 0=learnable). If provided, gradients for fixed dimensions will be zero in the custom VJP. This is used to skip finite difference computation for fixed parameters.
 
@@ -2023,6 +2117,153 @@ to :meth:`Graph.svgd` as the ``prior`` argument.
 >>> obs = [tuple(row) for row in jg.joint_prob_table().iloc[:, :-1].values]
 >>> result = jg.probability_matching(obs, fixed=[(1, 0.5)])
 >>> svgd = jg.svgd(obs, prior=result.prior, fixed=[(1, 0.5)])
+```
+
+### pull_cache { #phasic.Graph.pull_cache }
+
+```python
+phasic.Graph.pull_cache(force=False)
+```
+
+Download the published compute artifact for this graph if available.
+
+Looks up this graph's content hash in the ``munch-group/phasic-traces``
+registry. On a hit, downloads the parent ``.bin`` (and any per-SCC
+files) to ``~/.phasic_cache/parameterized_reward_compute/`` so the
+next call to :meth:`expectation` / :meth:`pdf` / :meth:`moments`
+reuses the published elimination instead of recomputing.
+
+No git, gh, or daemon required for the consumer side — fetches are
+plain HTTPS to ``raw.githubusercontent.com``.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**force**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, re-download even when a local cache file already exists.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   True if a fresh download succeeded or a local cache file was already present. False if no registry entry matches this graph's content hash.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[phasic](`phasic`).[exceptions](`phasic.exceptions`).[PTDBackendError](`phasic.exceptions.PTDBackendError`)]{.parameter-annotation}</code>
+
+:   On network failure or SHA-256 mismatch.
+
+<code>[:]{.parameter-annotation-sep} [[phasic](`phasic`).[exceptions](`phasic.exceptions`).[PTDFormatError](`phasic.exceptions.PTDFormatError`)]{.parameter-annotation}</code>
+
+:   If the artifact's ``format_revision`` exceeds what this phasic build supports.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = phasic.Graph(my_callback, ipv=[5])
+>>> if g.pull_cache():
+...     print('reusing published elimination')
+>>> e = g.expectation()
+```
+
+### push_cache { #phasic.Graph.push_cache }
+
+```python
+phasic.Graph.push_cache(
+    id,
+    description,
+    domain=None,
+    model_type=None,
+    tags=None,
+    license='MIT',
+    author=None,
+    registry_repo='munch-group/phasic-traces',
+    dry_run=False,
+    overwrite_branch=False,
+)
+```
+
+Publish this graph's compute artifact to the phasic-traces registry.
+
+Populates the C-side elimination cache if necessary (calls
+:meth:`expectation`), saves the parent ``.bin`` and any per-SCC
+files, clones the registry repo to a temporary directory, splices
+in a new entry, pushes a feature branch, and opens a pull request
+via ``gh``.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**id**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Human-readable identifier for the registry entry (e.g. ``'coal_n5_theta1'``). Must be unique within the registry.
+
+<code>[**description**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   One-line free-form description of the model.
+
+<code>[**domain**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Filtering keys stored in the entry's metadata.
+
+<code>[**model_type**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Filtering keys stored in the entry's metadata.
+
+<code>[**tags**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[str](`str`)\]]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Tags stored in the entry's metadata.
+
+<code>[**license**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'MIT\']{.parameter-default}</code>
+
+:   SPDX license identifier.
+
+<code>[**author**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Override; default is ``"Name <email>"`` from ``git config user.{name,email}``.
+
+<code>[**registry_repo**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'munch-group/phasic-traces\']{.parameter-default}</code>
+
+:   GitHub ``owner/name`` of the registry repository.
+
+<code>[**dry_run**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, build the artifacts and return a JSON string of the would-be entry without cloning or pushing.
+
+<code>[**overwrite_branch**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If a stale ``phasic-publish/<id>`` branch already exists on the remote (e.g. from an earlier failed push) the call refuses unless this is ``True``. With ``True``, the push uses ``--force-with-lease``: it overwrites the stale branch but still refuses if a third party has pushed concurrently.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   URL of the opened PR (or, if ``dry_run=True``, a JSON string).
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[phasic](`phasic`).[exceptions](`phasic.exceptions`).[PTDBackendError](`phasic.exceptions.PTDBackendError`)]{.parameter-annotation}</code>
+
+:   If ``gh`` is missing or unauthenticated, the entry id already exists in ``registry.json``, the feature branch already exists on the remote (without ``overwrite_branch=True``), or git/gh fails.
+
+#### Notes {.doc-section .doc-section-notes}
+
+Running ``gh auth login`` once in a terminal sets up authentication
+for all future ``push_cache()`` calls. ``push_cache`` does not
+prompt inside the notebook.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = phasic.Graph(my_callback, ipv=[5])
+>>> g.expectation()  # populate C-side cache (optional; push_cache does this)
+>>> entry_json = g.push_cache(
+...     id='my_model_v1',
+...     description='Kingman coalescent for n=5',
+...     domain='population-genetics',
+...     model_type='coalescent',
+...     dry_run=True,
+... )
 ```
 
 ### reward_transform { #phasic.Graph.reward_transform }
@@ -2316,7 +2557,7 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`SparseObservations`)]{.parameter-annotation}</code>
 
 :   Observed data.  A plain 1-D array is accepted for univariate models (must not contain NaN).  For multivariate models use ``SparseObservations`` (see ``dense_to_sparse()``), in which case ``rewards`` must also be provided.
 

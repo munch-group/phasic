@@ -4,13 +4,8 @@
 phasic.reset_config()
 ```
 
-Reset configuration to default.
+Reset the global configuration to defaults.
 
-## Examples {.doc-section .doc-section-examples}
-
-```python
->>> import phasic as ptd
->>> ptd.configure(jax=False, backend='cpp')
->>> ptd.reset_config()  # Back to defaults
->>> assert ptd.get_config().jax == True
-```
+Mainly used by tests. Note: does NOT roll back env vars that
+a previous configure() call wrote. If you need a clean env,
+unset PHASIC_* / OMP_NUM_THREADS in os.environ manually.

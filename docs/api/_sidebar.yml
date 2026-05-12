@@ -71,7 +71,7 @@ website:
       - api/configure.qmd
       - api/get_config.qmd
       - api/get_available_options.qmd
-      - api/PTDAlgorithmsConfig.qmd
+      - api/PhasicConfig.qmd
       - api/reset_config.qmd
       - api/set_log_level.qmd
       - api/get_logger.qmd

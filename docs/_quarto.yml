@@ -178,7 +178,7 @@ quartodoc:
         - configure
         - get_config
         - get_available_options
-        - PTDAlgorithmsConfig
+        - PhasicConfig
         - reset_config
         - set_log_level
         - get_logger

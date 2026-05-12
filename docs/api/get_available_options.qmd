@@ -4,21 +4,10 @@
 phasic.get_available_options()
 ```
 
-Get dictionary of available options on this system.
+Return what's available on this system (independent of config).
 
-## Returns {.doc-section .doc-section-returns}
+Useful for branching code in scripts:
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
-
-:   Available features and backends
-
-## Examples {.doc-section .doc-section-examples}
-
-```python
->>> import phasic as ptd
->>> opts = ptd.get_available_options()
->>> if opts['jax']:
-...     ptd.configure(jax=True, jit=True)
-... else:
-...     ptd.configure(jax=False, backend='cpp')
-```
+>>> import phasic
+>>> if phasic.get_available_options()['mpfr']:
+...     phasic.configure(high_precision_mode='always')

@@ -2528,7 +2528,7 @@ class Graph(_Graph):
         else:
             return super().covariance(rewards1=rewards1, rewards2=rewards2, **kwargs)
 
-    def pdf(self, time: float | ArrayLike, **kwargs: Any) -> float | np.ndarray:
+    def pdf(self, time: float | ArrayLike, granularity: int = 0, **kwargs: Any) -> float | np.ndarray:
         """
         Compute probability density/mass function using forward algorithm.
 
@@ -2537,7 +2537,7 @@ class Graph(_Graph):
         time : float or ArrayLike
             Time point(s) at which to evaluate the PDF/PMF.
         granularity : int, optional
-            Granularity for uniformization (default: auto-detected as 2*max_rate).
+            Granularity for uniformization (default: 0, auto-detected as 2*max_rate).
             Higher values improve accuracy but increase computation time.
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
@@ -2560,7 +2560,6 @@ class Graph(_Graph):
             raise ValueError("time contains NaN values")
         if np.any(time_arr < 0):
             raise ValueError("time must be non-negative")
-        granularity = kwargs.get('granularity', 0)
         if not isinstance(granularity, (int, np.integer)):
             raise TypeError(f"granularity must be an integer, got {type(granularity).__name__}")
         if granularity < 0:
@@ -2569,7 +2568,7 @@ class Graph(_Graph):
         if self.is_discrete:
             return super().pdf_discrete(time, **kwargs)
         else:
-            return super().pdf(time, **kwargs)
+            return super().pdf(time, granularity=granularity, **kwargs)
 
     def cdf(self, time: float | ArrayLike, **kwargs: Any) -> float | np.ndarray:
         """
@@ -6462,7 +6461,7 @@ extern "C" {{
         ----------
         graph : Graph
             Parameterized graph built using the Python API with parameterized edges.
-        param_length : int, optional
+        theta_dim : int, optional
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected from the graph.
         fixed_mask : jnp.ndarray, optional
