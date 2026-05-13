@@ -537,6 +537,57 @@ def test_multivariate_obs_seqlen_length_check_uses_n_segments():
         )
 
 
+def test_graph_svgd_forwards_obs_seqlen_to_svgd():
+    """Graph.svgd should forward obs_seqlen and mu_index to the SVGD
+    constructor, so the wrapper is applied and theta_mean comes from
+    optimisation under the correction."""
+    g = _build_two_param_exponential()
+    rng = np.random.default_rng(20)
+    r_true = 4.0
+    n_samples = 80
+    data = jnp.asarray(rng.exponential(scale=1.0 / r_true, size=n_samples))
+    L = 2.0
+
+    # Call Graph.svgd: verifies the kwargs make it through.
+    result = g.svgd(
+        observed_data=data,
+        prior=_flat_prior,
+        theta_dim=2,
+        n_particles=20,
+        n_iterations=80,
+        learning_rate=0.05,
+        seed=20,
+        verbose=False,
+        progress=False,
+        obs_seqlen=L,
+        mu_index=0,
+    )
+    # Graph.svgd returns the SVGD instance with optimisation results.
+    assert result.obs_seqlen is not None
+    assert int(result.mu_index) == 0
+    # Sanity check on rate direction (loose tolerance — short run).
+    inferred_rate = float(jax.nn.softplus(result.theta_mean[0]))
+    expected_rate = r_true / L
+    assert abs(inferred_rate - expected_rate) / expected_rate < 0.6
+
+
+def test_graph_svgd_validation_propagates():
+    """Graph.svgd should propagate the same validation errors as
+    SVGD.__init__ when obs_seqlen / mu_index are misused."""
+    g = _build_two_param_exponential()
+    data = np.array([0.5, 1.0, 1.5])
+    with pytest.raises(ValueError, match=r"mu_index must be provided"):
+        g.svgd(
+            observed_data=data,
+            theta_dim=2,
+            n_particles=4,
+            n_iterations=1,
+            verbose=False,
+            progress=False,
+            obs_seqlen=2.0,
+        )
+
+
 def test_validation_sparse_observations_rejected():
     model = _make_model_two_param()
     sparse = SparseObservations(

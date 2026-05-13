@@ -208,6 +208,32 @@ print(f"Posterior mean: {results['theta_mean']}")
 print(f"Posterior std: {results['theta_std']}")
 ```
 
+### Per-Observation Sequence-Length Correction (`obs_seqlen` / `mu_index`)
+
+Coalescent-with-mutation models fitted to genomic segments of different
+lengths must account for the fact that segments accumulate mutations
+proportionally to *both* the per-base mutation rate `mu` and the
+segment length `L_i` (in bases). Use `obs_seqlen` to declare a per-
+observation length, and `mu_index` to name which `theta` dimension is
+the per-base mutation rate:
+
+```python
+result = graph.svgd(
+    observed_data=count_vectors,         # (n_segments,) or (n_segments, n_features)
+    theta_dim=2,
+    obs_seqlen=seqlens,                  # scalar or 1D of length n_segments
+    mu_index=0,                          # theta[0] is per-base mu
+    n_particles=40, n_iterations=400,
+)
+```
+
+Each observation `i` is evaluated against `theta` with `theta[mu_index]`
+replaced by `theta[mu_index] * L_i`. Long segments inform the posterior
+more strongly than short ones, as they should. `obs_seqlen=None` (the
+default) reproduces existing behaviour exactly. Sparse observations
+(`SparseObservations`) are not supported with this kwarg — they carry
+no segment identity; convert to dense first.
+
 ### Multivariate Phase-Type Models (2D Observations & Rewards)
 
 **New in v0.21.4**: Support for multivariate phase-type distributions where each feature dimension has its own reward vector.

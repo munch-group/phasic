@@ -5092,6 +5092,8 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
+             obs_seqlen: ArrayLike | float | None = None,
+             mu_index: int | None = None,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5262,6 +5264,26 @@ extern "C" {{
             ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
         daisy_chain_t_eval_tol : float, default=1e-3
             Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
+        obs_seqlen : float, array-like, or None, default=None
+            Per-observation sequence-length correction. When set, observation
+            ``i`` is evaluated against ``theta`` with ``theta[mu_index]``
+            replaced by ``theta[mu_index] * L_i``. Use this for
+            coalescent-with-mutation models fitted to genomic segments of
+            different lengths: the effective per-segment mutation rate is
+            ``mu * L_i`` and segments inform ``theta`` proportionally to
+            their length.
+
+            - ``None`` (default): no correction; existing behaviour.
+            - scalar: same ``L`` applied to every observation.
+            - 1D array of length ``n_segments``: one ``L`` per segment. For
+              dense 2D ``observed_data`` of shape ``(n_segments, n_features)``,
+              the same ``L_i`` is shared across all features of segment ``i``.
+
+            Requires ``mu_index`` to be set. Not supported for
+            ``SparseObservations`` (raises ``NotImplementedError``).
+        mu_index : int or None, default=None
+            Index of the mutation-rate component in ``theta``. Required when
+            ``obs_seqlen`` is set. Must be in ``[0, theta_dim)``.
 
         Returns
         -------
@@ -5332,7 +5354,7 @@ extern "C" {{
                 "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
             ) from e
 
-        from .svgd import SVGD
+        from .svgd import SVGD, StepSizeSchedule, RegularizationSchedule
 
         # Validate SVGD parameters
         if n_particles is not None and n_particles < 1:
@@ -5343,7 +5365,7 @@ extern "C" {{
 
         if learning_rate is not None and not isinstance(learning_rate, StepSizeSchedule) and isinstance(learning_rate, (int, float, np.integer, np.floating)) and learning_rate <= 0:
             raise ValueError(f"learning_rate must be positive, got {learning_rate}")
-        
+
         if not isinstance(regularization, RegularizationSchedule) and regularization < 0:
             raise ValueError(f"regularization must be >= 0, got {regularization}")
         if nr_moments < 1:
@@ -5530,7 +5552,9 @@ extern "C" {{
             rewards=rewards,
             fixed=fixed,
             optimizer=optimizer,
-            preconditioner=preconditioner
+            preconditioner=preconditioner,
+            obs_seqlen=obs_seqlen,
+            mu_index=mu_index,
         )
 
         # Run inference

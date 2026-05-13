@@ -4120,6 +4120,26 @@ class SVGD:
             >>> # Explicit optimizer
             >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
 
+    obs_seqlen : float, array-like, or None, default=None
+        Per-observation sequence-length correction. When set, observation
+        ``i`` is evaluated against ``theta`` with ``theta[mu_index]``
+        replaced by ``theta[mu_index] * L_i``. Use for coalescent-with-
+        mutation models fitted to genomic segments of different lengths,
+        where the effective per-segment mutation rate is ``mu * L_i``
+        and segments inform ``theta`` proportionally to their length.
+
+        - ``None`` (default): no correction; existing behaviour.
+        - scalar: same ``L`` applied to every observation.
+        - 1D array of length ``n_segments``: per-segment ``L``. For dense
+          2D ``observed_data`` of shape ``(n_segments, n_features)`` the
+          same ``L_i`` is shared across all features of segment ``i``.
+
+        Requires ``mu_index``. Rejected for ``SparseObservations`` (raises
+        ``NotImplementedError``).
+    mu_index : int or None, default=None
+        Index of the mutation-rate component in ``theta``. Required when
+        ``obs_seqlen`` is set. Must be in ``[0, theta_dim)``.
+
     Attributes
     ----------
     particles : array
