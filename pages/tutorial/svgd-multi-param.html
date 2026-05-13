@@ -536,7 +536,7 @@ table {
 <pre><code>&lt;phasic.logging_config.set_log_level at 0x121f295d0&gt;</code></pre>
 </div>
 </div>
-<div id="92592fc4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:40.613131Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:40.612964Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:41.198318Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:41.197691Z&quot;}}" data-execution_count="2">
+<div id="92592fc4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:40.613131Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:40.612964Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:41.198318Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:41.197691Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
@@ -617,8 +617,7 @@ table {
 <span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>graph.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>, ranksep<span class="op">=</span><span class="dv">2</span>,</span>
 <span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>                      wrap<span class="op">=</span><span class="dv">10</span>, </span>
-<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>                    <span class="co">#   label_fmt=False, </span></span>
-<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>                      by_state<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>                      by_state<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <div>
 <figure class="figure">
@@ -627,7 +626,7 @@ table {
 </div>
 </div>
 </div>
-<div id="1ffef57f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:41.199909Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:41.199785Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:41.569783Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:41.569197Z&quot;}}" data-execution_count="3">
+<div id="1ffef57f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:41.199909Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:41.199785Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:41.569783Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:41.569197Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.2e-4</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>joint_prob_graph <span class="op">=</span> graph.joint_prob_graph(indexer, </span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                                          reward_only<span class="op">=</span>[<span class="st">'pop1'</span>, <span class="st">'pop2'</span>],</span>
@@ -636,7 +635,7 @@ table {
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.plot(rankdir<span class="op">=</span><span class="st">'LR'</span>, nodesep<span class="op">=</span><span class="fl">0.3</span>, ranksep<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                      wrap<span class="op">=</span><span class="dv">10</span>, label_fmt<span class="op">=</span><span class="va">False</span>, by_state<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                      wrap<span class="op">=</span><span class="dv">10</span>, label_fmt<span class="op">=</span><span class="kw">lambda</span> vertex: <span class="bu">str</span>(vertex.index()), by_state<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div>
 <figure class="figure">
