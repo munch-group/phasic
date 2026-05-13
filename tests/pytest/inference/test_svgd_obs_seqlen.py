@@ -393,6 +393,150 @@ def test_validation_2d_obs_seqlen_rejected():
         )
 
 
+def test_multivariate_obs_seqlen_one_no_change():
+    """Multivariate 2D observations: obs_seqlen=1 must reproduce the
+    unwrapped multivariate model exactly."""
+    g = _build_two_param_exponential()
+    model_mv = Graph.pmf_and_moments_from_graph_multivariate(
+        g, nr_moments=2, discrete=False
+    )
+
+    rng = np.random.default_rng(10)
+    data = jnp.asarray(rng.exponential(scale=0.5, size=(6, 2)))
+    n_vertices = 3
+    rewards_2d = jnp.array(
+        [[1.0, 1.0, 0.0],
+         [1.0, 0.5, 0.0]],
+        dtype=jnp.float64,
+    )
+    # Provide positive theta_init so the model-validation block doesn't
+    # try to evaluate at negative theta (which would create negative
+    # edge weights). The math comparison happens at a fixed theta below.
+    theta_init = jnp.array([[2.0, 1.0]] * 4, dtype=jnp.float64)
+    n_particles = theta_init.shape[0]
+
+    svgd_baseline = SVGD(
+        model=model_mv,
+        observed_data=data,
+        prior=_flat_prior,
+        theta_init=theta_init,
+        theta_dim=2,
+        n_particles=n_particles,
+        n_iterations=1,
+        learning_rate=0.01,
+        seed=10,
+        verbose=False,
+        positive_params=False,
+        rewards=rewards_2d,
+    )
+    svgd_scaled = SVGD(
+        model=model_mv,
+        observed_data=data,
+        prior=_flat_prior,
+        theta_init=theta_init,
+        theta_dim=2,
+        n_particles=n_particles,
+        n_iterations=1,
+        learning_rate=0.01,
+        seed=10,
+        verbose=False,
+        positive_params=False,
+        rewards=rewards_2d,
+        obs_seqlen=1.0,
+        mu_index=0,
+    )
+
+    theta = jnp.array([2.0, 1.0])
+    lp_base = svgd_baseline._log_prob_unified(theta, rewards=rewards_2d)
+    lp_scaled = svgd_scaled._log_prob_unified(theta, rewards=rewards_2d)
+    np.testing.assert_allclose(lp_base, lp_scaled, rtol=1e-10, atol=1e-10)
+
+
+def test_multivariate_obs_seqlen_per_segment_matches_manual():
+    """Multivariate with per-segment L: wrapped log-likelihood must
+    equal a manual per-segment per-feature computation using
+    theta-rescaled PMFs."""
+    g = _build_two_param_exponential()
+    model_mv = Graph.pmf_and_moments_from_graph_multivariate(
+        g, nr_moments=2, discrete=False
+    )
+
+    rng = np.random.default_rng(11)
+    n_segments = 5
+    n_features = 2
+    data = jnp.asarray(rng.exponential(scale=0.5, size=(n_segments, n_features)))
+    L = jnp.asarray(rng.uniform(0.7, 2.5, size=n_segments))
+    n_vertices = 3
+    rewards_2d = jnp.array(
+        [[1.0, 1.0, 0.0],
+         [1.0, 0.5, 0.0]],
+        dtype=jnp.float64,
+    )
+
+    theta_init = jnp.array([[2.0, 1.0]] * 4, dtype=jnp.float64)
+    n_particles = theta_init.shape[0]
+    svgd = SVGD(
+        model=model_mv,
+        observed_data=data,
+        prior=_flat_prior,
+        theta_init=theta_init,
+        theta_dim=2,
+        n_particles=n_particles,
+        n_iterations=1,
+        learning_rate=0.01,
+        seed=11,
+        verbose=False,
+        positive_params=False,
+        rewards=rewards_2d,
+        obs_seqlen=L,
+        mu_index=0,
+    )
+
+    theta = jnp.array([2.0, 1.0])
+    lp_scaled = svgd._log_prob_unified(theta, rewards=rewards_2d)
+
+    # Manual: per-segment PMF with theta_eff = theta.at[0].multiply(L_i),
+    # evaluated on the segment row.
+    pmf_per_seg = []
+    for i in range(n_segments):
+        theta_eff = theta.at[0].multiply(L[i])
+        pmf_i, _ = model_mv(theta_eff, data[i:i+1, :], rewards=rewards_2d)
+        pmf_per_seg.append(pmf_i[0])
+    pmf_per_seg = jnp.stack(pmf_per_seg)  # (n_segments, n_features)
+    manual_log_lik = jnp.sum(jnp.log(pmf_per_seg + 1e-10))
+    manual_log_prob = manual_log_lik + _flat_prior(theta)
+
+    np.testing.assert_allclose(lp_scaled, manual_log_prob, rtol=1e-9, atol=1e-9)
+
+
+def test_multivariate_obs_seqlen_length_check_uses_n_segments():
+    """For 2D observed_data, obs_seqlen must align with axis 0
+    (segments), not the total number of elements."""
+    g = _build_two_param_exponential()
+    model_mv = Graph.pmf_and_moments_from_graph_multivariate(
+        g, nr_moments=2, discrete=False
+    )
+    data = jnp.asarray(np.array([[0.5, 1.0], [0.7, 1.2], [0.9, 1.4]]))
+    n_vertices = 3
+    rewards_2d = jnp.array(
+        [[1.0, 1.0, 0.0], [1.0, 0.5, 0.0]], dtype=jnp.float64
+    )
+    # Length-6 (= n_segments * n_features) is wrong; must be length-3.
+    with pytest.raises(ValueError, match=r"obs_seqlen length \(6\) does not match"):
+        SVGD(
+            model=model_mv,
+            observed_data=data,
+            theta_dim=2,
+            n_particles=4,
+            n_iterations=1,
+            verbose=False,
+            positive_params=False,
+            rewards=rewards_2d,
+            obs_seqlen=np.ones(6),
+            mu_index=0,
+        )
+
+
 def test_validation_sparse_observations_rejected():
     model = _make_model_two_param()
     sparse = SparseObservations(
