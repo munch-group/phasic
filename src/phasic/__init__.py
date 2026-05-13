@@ -1837,6 +1837,15 @@ class Graph(_Graph):
             raise ValueError("Vertex at index does not exist")
         return super().vertex_at(idx)
 
+
+    def __iter__(self):
+        yield from (self.vertex_at(i) for i in range(self.vertices_length()))
+
+
+    def __len__(self):
+        return self.vertices_length()
+
+
     @_invalidates_trace
     def find_or_create_vertex(self, state: ArrayLike) -> Vertex:
         """Find or create a vertex with the given state.
@@ -8807,8 +8816,8 @@ extern "C" {{
 
     def joint_prob_table(self) -> pd.DataFrame:
 
-        if not self._joint_prob_base_graph_indexer:
-            raise ValueError("Graph is not a joint probability representation.")
+        if not (self._joint_prob_base_graph_indexer and self.is_discrete):
+            raise ValueError("Graph must be discrete and a joint probability representation.")
 
         outcomes, probs, t_vertex_indices = self._get_joint_probs()
 
