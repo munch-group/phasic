@@ -248,6 +248,66 @@ def is_sparse_observations(data: object) -> bool:
     return isinstance(data, SparseObservations)
 
 
+def _wrap_model_with_obs_seqlen(model: Callable, obs_seqlen: jnp.ndarray,
+                                 mu_index: int) -> Callable:
+    """Wrap a PMF/moments model to rescale theta[mu_index] per-observation.
+
+    For coalescent-with-mutation models fitted to segments of different
+    sequence lengths ``L_i``, the effective per-segment mutation rate is
+    ``mu * L_i``. This wrapper evaluates the model with theta rescaled
+    per observation so that long segments inform theta proportionally.
+
+    For each observation ``i``, the wrapped model evaluates PMF and
+    moments at ``theta_i`` where ``theta_i[mu_index] = theta[mu_index] * L_i``.
+
+    Parameters
+    ----------
+    model : callable
+        Base model with signature ``model(theta, times, rewards=None)
+        -> (pmf, moments)`` where ``pmf`` has shape ``times.shape`` and
+        ``moments`` has shape ``(nr_moments,)``.
+    obs_seqlen : jnp.ndarray
+        Validated 1D array of positive sequence lengths, shape ``(n_obs,)``.
+    mu_index : int
+        Index of the mutation-rate component in ``theta``.
+
+    Returns
+    -------
+    callable
+        Wrapped model with the same signature. PMF output is 1D
+        ``(n_obs,)``; moments are averaged across observations to
+        produce shape ``(nr_moments,)``.
+    """
+    L = jnp.asarray(obs_seqlen, dtype=jnp.float64)
+
+    def wrapped(theta, times, rewards=None):
+        # Build per-obs effective theta by multiplying the mu_index
+        # component by L_i for each observation.
+        # Shape: (n_obs, theta_dim)
+        theta_batch = jnp.broadcast_to(theta[None, :], (L.shape[0], theta.shape[0]))
+        theta_batch = theta_batch.at[:, mu_index].multiply(L)
+
+        # Evaluate the base model once per observation. Each call uses
+        # a single-element times array so the model's PMF output shape
+        # contract (times.shape) is preserved. lax.map runs the body
+        # sequentially under JIT — this matches the underlying model's
+        # pure_callback / FFI batching contract, which does not support
+        # paired (theta_i, time_i) batching.
+        def per_obs(carry):
+            theta_i, time_i = carry
+            pmf_i, moments_i = model(theta_i, time_i[None], rewards=rewards)
+            return pmf_i[0], moments_i
+
+        pmf_per_obs, moments_per_obs = jax.lax.map(per_obs, (theta_batch, times))
+        # Aggregate moments across observations (mean) so the downstream
+        # regulariser sees the expected shape (nr_moments,) or
+        # (n_features, nr_moments) for the multivariate case.
+        moments = jnp.mean(moments_per_obs, axis=0)
+        return pmf_per_obs, moments
+
+    return wrapped
+
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -4165,7 +4225,9 @@ class SVGD:
                  rewards: jnp.ndarray | None = None,
                  fixed: dict | None = None,
                  optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
-                 preconditioner: str | _PreconditionerBase = 'auto') -> None:
+                 preconditioner: str | _PreconditionerBase = 'auto',
+                 obs_seqlen: jnp.ndarray | float | None = None,
+                 mu_index: int | None = None) -> None:
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -4316,8 +4378,6 @@ class SVGD:
                 if verbose:
                     print(f"Warning: Could not parse compilation_config, using defaults")
 
-        self.model = model
-
         # Handle sparse vs dense observation format
         if is_sparse_observations(observed_data):
             self.observed_data = observed_data  # Keep as SparseObservations
@@ -4329,6 +4389,88 @@ class SVGD:
             self.observed_data = jnp.array(observed_data)
             self._sparse_format = False
             n_observations = float(self.observed_data.shape[0])
+
+        # Validate and apply per-observation sequence-length correction.
+        # Rescales theta[mu_index] by L_i for each observation so that
+        # segments of different lengths inform theta proportionally.
+        # See _wrap_model_with_obs_seqlen for math.
+        if obs_seqlen is None and mu_index is not None:
+            raise ValueError(
+                "mu_index was provided but obs_seqlen is None. "
+                "Pass obs_seqlen (scalar or per-observation 1D vector) "
+                "alongside mu_index, or pass neither."
+            )
+        if obs_seqlen is not None:
+            if self._sparse_format:
+                raise NotImplementedError(
+                    "obs_seqlen is not supported with SparseObservations. "
+                    "Sparse observations do not carry segment identity "
+                    "(values are flattened across features). Convert to "
+                    "dense format or pass obs_seqlen=None."
+                )
+            if mu_index is None:
+                raise ValueError(
+                    "mu_index must be provided when obs_seqlen is set. "
+                    "Pass the integer index of the mutation-rate dimension "
+                    "in theta."
+                )
+            n_obs_dense = int(self.observed_data.shape[0])
+            seqlen_np = np.asarray(obs_seqlen)
+            if seqlen_np.ndim == 0:
+                # Scalar: broadcast to (n_obs,)
+                if not (seqlen_np.item() > 0):
+                    raise ValueError(
+                        f"obs_seqlen must be strictly positive, got {seqlen_np.item()}."
+                    )
+                seqlen_arr = jnp.full((n_obs_dense,), float(seqlen_np), dtype=jnp.float64)
+            elif seqlen_np.ndim == 1:
+                if seqlen_np.shape[0] != n_obs_dense:
+                    raise ValueError(
+                        f"obs_seqlen length ({seqlen_np.shape[0]}) does not "
+                        f"match number of observations ({n_obs_dense}). "
+                        f"Pass a scalar to broadcast, or a 1D vector indexed "
+                        f"by segment."
+                    )
+                if not bool(np.all(seqlen_np > 0)):
+                    raise ValueError(
+                        f"obs_seqlen must contain strictly positive values "
+                        f"(L > 0 in bases). Got min={float(np.min(seqlen_np))}."
+                    )
+                seqlen_arr = jnp.asarray(seqlen_np, dtype=jnp.float64)
+            else:
+                raise ValueError(
+                    f"obs_seqlen must be None, a scalar, or a 1D array. "
+                    f"Got shape {seqlen_np.shape}."
+                )
+
+            if not isinstance(mu_index, (int, np.integer)):
+                raise TypeError(
+                    f"mu_index must be an integer, got {type(mu_index).__name__}."
+                )
+            mu_index = int(mu_index)
+            if theta_dim is not None and not (0 <= mu_index < theta_dim):
+                raise ValueError(
+                    f"mu_index={mu_index} is out of range for theta_dim={theta_dim}."
+                )
+            if theta_init is not None:
+                init_theta_dim = jnp.asarray(theta_init).shape[-1]
+                if not (0 <= mu_index < init_theta_dim):
+                    raise ValueError(
+                        f"mu_index={mu_index} is out of range for theta_init "
+                        f"with theta_dim={init_theta_dim}."
+                    )
+
+            self.obs_seqlen = seqlen_arr
+            self.mu_index = mu_index
+        else:
+            self.obs_seqlen = None
+            self.mu_index = None
+
+        # Assign the un-wrapped model so the downstream model-validation
+        # block can probe it with a small test slice of observed_data.
+        # The wrapper is applied at the end of __init__ once validation
+        # has succeeded — see "Apply per-observation rescaling wrapper".
+        self.model = model
 
         self.prior = prior
         # Detect per-parameter priors (list/tuple of Prior objects)
@@ -4767,6 +4909,17 @@ class SVGD:
             raise ValueError(
                 f"Model validation failed. Error: {e}\n"
                 "Ensure model has signature: model(theta, times, rewards=None) -> (pmf, moments)"
+            )
+
+        # Apply per-observation rescaling wrapper.
+        # Wrapping happens after model validation so the validation
+        # block can probe the unwrapped model with a small test slice
+        # of observed_data without tripping the wrapper's per-obs
+        # vmap shape contract (which requires times to align with
+        # the full obs_seqlen vector).
+        if self.obs_seqlen is not None:
+            self.model = _wrap_model_with_obs_seqlen(
+                self.model, self.obs_seqlen, self.mu_index
             )
 
         # Results (initialized after fit())
