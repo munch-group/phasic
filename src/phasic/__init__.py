@@ -90,6 +90,17 @@ if "OMP_NUM_THREADS" not in os.environ:
     from .config import _phasic_assigned_env as _phasic_assigned_env_set
     _phasic_assigned_env_set.add("OMP_NUM_THREADS")
 
+# Force JAX 64-bit precision for everything that flows through the
+# FFI. The C handlers require F64 buffers; without this default a
+# downstream `import jax` (in a notebook, in a sibling library,
+# anywhere) leaves jax_enable_x64 disabled and the FFI crashes
+# with "Wrong buffer dtype: expected F64 but got F32". Setting
+# the env var here — before any jax import can occur — makes the
+# guarantee transparent. `_ensure_jax_active()` below also calls
+# `jax.config.update('jax_enable_x64', True)` defensively for the
+# case where jax was already imported before phasic loaded.
+os.environ.setdefault("JAX_ENABLE_X64", "1")
+
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
 # from .vscode_theme import set_theme # backwards compatibility
@@ -170,13 +181,40 @@ def _ensure_jax_active() -> None:
 
     import sys
     if 'jax' in sys.modules:
-        # JAX was imported by something else (e.g. the import-time
-        # block above). Just pick up the references.
+        # JAX was imported by something else (e.g. directly in the
+        # user's notebook, or by another library). Pick up the
+        # references — and CRITICALLY also enable x64. The env var
+        # JAX_ENABLE_X64=1 (set at phasic import time) covers the
+        # case where jax is imported *after* phasic, but if jax was
+        # imported *before* phasic loaded, only `jax.config.update`
+        # can flip the flag now. Skipping this is the root cause of
+        # the FFI "expected F64 but got F32" crashes.
         import jax as _jax_mod
+        was_off = not bool(_jax_mod.config.jax_enable_x64)
+        _jax_mod.config.update('jax_enable_x64', True)
         import jax.numpy as _jnp_mod
         jax = _jax_mod
         jnp = _jnp_mod
         HAS_JAX = True
+        if was_off:
+            # Any JAX arrays created before this flip are still
+            # float32. Operations on them will mix dtypes and may
+            # crash the FFI later. Tell the user once.
+            import warnings
+            warnings.warn(
+                "phasic enabled jax_enable_x64 after JAX was already "
+                "imported. Any JAX arrays created before importing "
+                "phasic are still float32 and may trip FFI dtype "
+                "checks. Restart the kernel (or recreate arrays) if "
+                "you see 'expected F64 but got F32' errors.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        try:
+            cfg = get_config()
+            cfg._jax_imported = True
+        except Exception:
+            pass
         return
 
     from .jax_config import get_default_config

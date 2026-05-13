@@ -15,22 +15,17 @@ Tests cover:
 import numpy as np
 import pytest
 
-# Enable JAX x64 before importing jax.numpy. The library's deferred
-# JAX init (phasic._ensure_jax_active) only enables x64 when phasic
-# is the first to import jax, which is fragile under pytest. Setting
-# the env var here is reliable.
-import os
-os.environ['JAX_ENABLE_X64'] = '1'
-
-import jax
-jax.config.update('jax_enable_x64', True)
-import jax.numpy as jnp
-
+# Import phasic first — it sets JAX_ENABLE_X64=1 and calls
+# jax.config.update('jax_enable_x64', True) whether or not jax was
+# already imported elsewhere in the session.
 from phasic import Graph, SVGD
 from phasic.svgd import (
     _wrap_model_with_obs_seqlen,
     SparseObservations,
 )
+
+import jax
+import jax.numpy as jnp
 
 
 @pytest.fixture(autouse=True)
