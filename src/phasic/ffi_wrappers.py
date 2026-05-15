@@ -1168,11 +1168,19 @@ def compute_daisy_chain_joint_probs_ffi(
     theta = jnp.asarray(theta, dtype=jnp.float64)
     initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
 
-    if theta.ndim != 1:
-        raise ValueError(f"theta must be 1D, got shape {theta.shape}")
-    if initial_ipv.ndim != 1:
+    # 1D theta = single-particle daisy chain (legacy path).
+    # 2D theta = batched daisy chain with shape (batch_size, n_epochs * param_length).
+    # The C++ handler at graph_builder_ffi.cpp:1120-1135 already accepts
+    # both 1D and 2D theta/ipv buffers. We allow either here so callers
+    # (notably _daisy_chain_svgd_model with exposure) can dispatch one
+    # batched FFI call instead of a Python-side lax.map fan-out.
+    if theta.ndim not in (1, 2):
         raise ValueError(
-            f"initial_ipv must be 1D, got shape {initial_ipv.shape}"
+            f"theta must be 1D or 2D, got shape {theta.shape}"
+        )
+    if initial_ipv.ndim not in (1, 2):
+        raise ValueError(
+            f"initial_ipv must be 1D or 2D, got shape {initial_ipv.shape}"
         )
 
     # Output shape: (n_t_vertices,). We need to extract n_t_vertices from
@@ -1187,7 +1195,12 @@ def compute_daisy_chain_joint_probs_ffi(
         )
     n_t = len(parsed["_daisy_chain"]["t_vertex_indices"])
 
-    result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+    if theta.ndim == 2 or initial_ipv.ndim == 2:
+        batch_size = theta.shape[0] if theta.ndim == 2 else initial_ipv.shape[0]
+        result_shape = jax.ShapeDtypeStruct((batch_size, n_t), jnp.float64)
+    else:
+        result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+
     ffi_fn = jax.ffi.ffi_call(
         "ptd_daisy_chain_joint_probs",
         result_shape,

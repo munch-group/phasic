@@ -248,17 +248,22 @@ def is_sparse_observations(data: object) -> bool:
     return isinstance(data, SparseObservations)
 
 
-def _wrap_model_with_obs_seqlen(model: Callable, obs_seqlen: jnp.ndarray,
-                                 mu_index: int) -> Callable:
-    """Wrap a PMF/moments model to rescale theta[mu_index] per-observation.
+def _wrap_model_with_exposure(model: Callable, exposure: jnp.ndarray,
+                                exposure_param_index: int) -> Callable:
+    """Wrap a PMF/moments model to apply per-observation exposure.
 
-    For coalescent-with-mutation models fitted to segments of different
-    sequence lengths ``L_i``, the effective per-segment mutation rate is
-    ``mu * L_i``. This wrapper evaluates the model with theta rescaled
-    per observation so that long segments inform theta proportionally.
+    Per-observation **exposure** is the GLM construct of a known
+    multiplicative scaling :math:`\\alpha_i` on a rate-typed component
+    :math:`\\theta_k` of the parameter vector. For each observation
+    ``i`` the wrapped model evaluates PMF and moments at
+    :math:`\\boldsymbol{\\theta}^{(i)}` where
+    :math:`\\theta^{(i)}_j = \\theta_j` for :math:`j \\neq k` and
+    :math:`\\theta^{(i)}_k = \\theta_k \\cdot \\alpha_i`,
+    with :math:`k` = ``exposure_param_index``.
 
-    For each observation ``i``, the wrapped model evaluates PMF and
-    moments at ``theta_i`` where ``theta_i[mu_index] = theta[mu_index] * L_i``.
+    Concrete instances of the abstraction: segment length in
+    coalescent-with-mutation, time-at-risk in survival / failure-time
+    models, area or volume in spatial Poisson regression.
 
     Parameters
     ----------
@@ -266,10 +271,12 @@ def _wrap_model_with_obs_seqlen(model: Callable, obs_seqlen: jnp.ndarray,
         Base model with signature ``model(theta, times, rewards=None)
         -> (pmf, moments)`` where ``pmf`` has shape ``times.shape`` and
         ``moments`` has shape ``(nr_moments,)``.
-    obs_seqlen : jnp.ndarray
-        Validated 1D array of positive sequence lengths, shape ``(n_obs,)``.
-    mu_index : int
-        Index of the mutation-rate component in ``theta``.
+    exposure : jnp.ndarray
+        Validated 1D array of strictly-positive per-observation
+        exposures, shape ``(n_obs,)``.
+    exposure_param_index : int
+        Index of the rate-typed parameter in ``theta`` that exposure
+        scales.
 
     Returns
     -------
@@ -278,14 +285,14 @@ def _wrap_model_with_obs_seqlen(model: Callable, obs_seqlen: jnp.ndarray,
         ``(n_obs,)``; moments are averaged across observations to
         produce shape ``(nr_moments,)``.
     """
-    L = jnp.asarray(obs_seqlen, dtype=jnp.float64)
+    alpha = jnp.asarray(exposure, dtype=jnp.float64)
 
     def wrapped(theta, times, rewards=None):
-        # Build per-obs effective theta by multiplying the mu_index
-        # component by L_i for each observation.
+        # Build per-obs effective theta by multiplying the
+        # exposure_param_index component by alpha_i for each observation.
         # Shape: (n_obs, theta_dim)
-        theta_batch = jnp.broadcast_to(theta[None, :], (L.shape[0], theta.shape[0]))
-        theta_batch = theta_batch.at[:, mu_index].multiply(L)
+        theta_batch = jnp.broadcast_to(theta[None, :], (alpha.shape[0], theta.shape[0]))
+        theta_batch = theta_batch.at[:, exposure_param_index].multiply(alpha)
 
         # Evaluate the base model once per observation. Each call uses
         # a single-element times array so the model's PMF output shape
@@ -4120,25 +4127,50 @@ class SVGD:
             >>> # Explicit optimizer
             >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
 
-    obs_seqlen : float, array-like, or None, default=None
-        Per-observation sequence-length correction. When set, observation
-        ``i`` is evaluated against ``theta`` with ``theta[mu_index]``
-        replaced by ``theta[mu_index] * L_i``. Use for coalescent-with-
-        mutation models fitted to genomic segments of different lengths,
-        where the effective per-segment mutation rate is ``mu * L_i``
-        and segments inform ``theta`` proportionally to their length.
+    exposure : float, array-like, or None, default=None
+        Per-observation **exposure** :math:`\alpha_i` — a known
+        multiplicative scaling on a rate-typed component of
+        :math:`\boldsymbol{\theta}`. For observation ``i`` the model is
+        evaluated at :math:`\boldsymbol{\theta}^{(i)}` where
+        :math:`\theta^{(i)}_j = \theta_j` for :math:`j \neq k` and
+        :math:`\theta^{(i)}_k = \theta_k \cdot \alpha_i`, with
+        :math:`k` = ``exposure_param_index``. The exposed rate parameter
+        and :math:`\alpha_i` jointly determine each observation's
+        expected event count (or hazard, or PMF, depending on the
+        model).
 
-        - ``None`` (default): no correction; existing behaviour.
-        - scalar: same ``L`` applied to every observation.
-        - 1D array of length ``n_segments``: per-segment ``L``. For dense
-          2D ``observed_data`` of shape ``(n_segments, n_features)`` the
-          same ``L_i`` is shared across all features of segment ``i``.
+        This is the GLM "exposure" / "offset" construct: it linearises
+        the relationship between a rate parameter and an
+        observation-specific outcome that scales with a known quantity.
+        Concrete instances:
 
-        Requires ``mu_index``. Rejected for ``SparseObservations`` (raises
-        ``NotImplementedError``).
-    mu_index : int or None, default=None
-        Index of the mutation-rate component in ``theta``. Required when
-        ``obs_seqlen`` is set. Must be in ``[0, theta_dim)``.
+        - **Coalescent-with-mutation**: :math:`\alpha_i` = segment length
+          :math:`L_i` in bases; :math:`\theta_k` is the per-base mutation
+          rate.
+        - **Survival / failure-time**: :math:`\alpha_i` = time-at-risk
+          for unit :math:`i`; :math:`\theta_k` is the hazard rate.
+        - **Spatial Poisson**: :math:`\alpha_i` = area or volume of
+          region :math:`i`; :math:`\theta_k` is the intensity per unit
+          area.
+
+        - ``None`` (default): no exposure correction; existing behaviour.
+        - scalar: same :math:`\alpha` applied to every observation.
+        - 1D array of length ``n_observations``: per-observation
+          :math:`\alpha`. For dense 2D ``observed_data`` of shape
+          ``(n_observations, n_features)`` the same :math:`\alpha_i` is
+          shared across all features of observation :math:`i`.
+
+        Requires ``exposure_param_index``. Rejected for
+        ``SparseObservations`` (raises ``NotImplementedError``).
+    exposure_param_index : int or None, default=None
+        Index :math:`k` of the rate-typed parameter in
+        :math:`\boldsymbol{\theta}` that ``exposure`` scales. Required
+        when ``exposure`` is set. Must be in ``[0, param_length)``.
+
+        Under daisy-chain (``epoch_starts=[…]``), :math:`\boldsymbol{\theta}`
+        has flat layout ``(n_epochs * param_length,)``;
+        ``exposure_param_index`` remains the *local* per-epoch index and
+        is broadcast across every epoch internally.
 
     Attributes
     ----------
@@ -4246,8 +4278,8 @@ class SVGD:
                  fixed: dict | None = None,
                  optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
                  preconditioner: str | _PreconditionerBase = 'auto',
-                 obs_seqlen: jnp.ndarray | float | None = None,
-                 mu_index: int | None = None) -> None:
+                 exposure: jnp.ndarray | float | None = None,
+                 exposure_param_index: int | None = None) -> None:
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -4410,81 +4442,87 @@ class SVGD:
             self._sparse_format = False
             n_observations = float(self.observed_data.shape[0])
 
-        # Validate and apply per-observation sequence-length correction.
-        # Rescales theta[mu_index] by L_i for each observation so that
-        # segments of different lengths inform theta proportionally.
-        # See _wrap_model_with_obs_seqlen for math.
-        if obs_seqlen is None and mu_index is not None:
+        # Validate and apply per-observation exposure (GLM-style
+        # multiplicative scaling of theta[exposure_param_index] by
+        # alpha_i for each observation). See _wrap_model_with_exposure
+        # for the math and the surface concept.
+        if exposure is None and exposure_param_index is not None:
             raise ValueError(
-                "mu_index was provided but obs_seqlen is None. "
-                "Pass obs_seqlen (scalar or per-observation 1D vector) "
-                "alongside mu_index, or pass neither."
+                "exposure_param_index was provided but exposure is None. "
+                "Pass exposure (scalar or per-observation 1D vector) "
+                "alongside exposure_param_index, or pass neither."
             )
-        if obs_seqlen is not None:
+        if exposure is not None:
             if self._sparse_format:
                 raise NotImplementedError(
-                    "obs_seqlen is not supported with SparseObservations. "
-                    "Sparse observations do not carry segment identity "
-                    "(values are flattened across features). Convert to "
-                    "dense format or pass obs_seqlen=None."
+                    "exposure is not supported with SparseObservations. "
+                    "Sparse observations do not carry per-observation "
+                    "identity (values are flattened across features). "
+                    "Convert to dense format or pass exposure=None."
                 )
-            if mu_index is None:
+            if exposure_param_index is None:
                 raise ValueError(
-                    "mu_index must be provided when obs_seqlen is set. "
-                    "Pass the integer index of the mutation-rate dimension "
-                    "in theta."
+                    "exposure_param_index must be provided when exposure "
+                    "is set. Pass the integer index of the rate-typed "
+                    "parameter in theta that exposure scales."
                 )
             n_obs_dense = int(self.observed_data.shape[0])
-            seqlen_np = np.asarray(obs_seqlen)
-            if seqlen_np.ndim == 0:
+            exposure_np = np.asarray(exposure)
+            if exposure_np.ndim == 0:
                 # Scalar: broadcast to (n_obs,)
-                if not (seqlen_np.item() > 0):
+                if not (exposure_np.item() > 0):
                     raise ValueError(
-                        f"obs_seqlen must be strictly positive, got {seqlen_np.item()}."
+                        f"exposure must be strictly positive, got "
+                        f"{exposure_np.item()}."
                     )
-                seqlen_arr = jnp.full((n_obs_dense,), float(seqlen_np), dtype=jnp.float64)
-            elif seqlen_np.ndim == 1:
-                if seqlen_np.shape[0] != n_obs_dense:
+                exposure_arr = jnp.full(
+                    (n_obs_dense,), float(exposure_np), dtype=jnp.float64
+                )
+            elif exposure_np.ndim == 1:
+                if exposure_np.shape[0] != n_obs_dense:
                     raise ValueError(
-                        f"obs_seqlen length ({seqlen_np.shape[0]}) does not "
+                        f"exposure length ({exposure_np.shape[0]}) does not "
                         f"match number of observations ({n_obs_dense}). "
-                        f"Pass a scalar to broadcast, or a 1D vector indexed "
-                        f"by segment."
+                        f"Pass a scalar to broadcast, or a 1D vector "
+                        f"aligned with observed_data."
                     )
-                if not bool(np.all(seqlen_np > 0)):
+                if not bool(np.all(exposure_np > 0)):
                     raise ValueError(
-                        f"obs_seqlen must contain strictly positive values "
-                        f"(L > 0 in bases). Got min={float(np.min(seqlen_np))}."
+                        f"exposure must contain strictly positive values "
+                        f"(alpha > 0). Got min={float(np.min(exposure_np))}."
                     )
-                seqlen_arr = jnp.asarray(seqlen_np, dtype=jnp.float64)
+                exposure_arr = jnp.asarray(exposure_np, dtype=jnp.float64)
             else:
                 raise ValueError(
-                    f"obs_seqlen must be None, a scalar, or a 1D array. "
-                    f"Got shape {seqlen_np.shape}."
+                    f"exposure must be None, a scalar, or a 1D array. "
+                    f"Got shape {exposure_np.shape}."
                 )
 
-            if not isinstance(mu_index, (int, np.integer)):
+            if not isinstance(exposure_param_index, (int, np.integer)):
                 raise TypeError(
-                    f"mu_index must be an integer, got {type(mu_index).__name__}."
+                    f"exposure_param_index must be an integer, got "
+                    f"{type(exposure_param_index).__name__}."
                 )
-            mu_index = int(mu_index)
-            if theta_dim is not None and not (0 <= mu_index < theta_dim):
+            exposure_param_index = int(exposure_param_index)
+            if theta_dim is not None and not (0 <= exposure_param_index < theta_dim):
                 raise ValueError(
-                    f"mu_index={mu_index} is out of range for theta_dim={theta_dim}."
+                    f"exposure_param_index={exposure_param_index} is out "
+                    f"of range for theta_dim={theta_dim}."
                 )
             if theta_init is not None:
                 init_theta_dim = jnp.asarray(theta_init).shape[-1]
-                if not (0 <= mu_index < init_theta_dim):
+                if not (0 <= exposure_param_index < init_theta_dim):
                     raise ValueError(
-                        f"mu_index={mu_index} is out of range for theta_init "
-                        f"with theta_dim={init_theta_dim}."
+                        f"exposure_param_index={exposure_param_index} is "
+                        f"out of range for theta_init with "
+                        f"theta_dim={init_theta_dim}."
                     )
 
-            self.obs_seqlen = seqlen_arr
-            self.mu_index = mu_index
+            self.exposure = exposure_arr
+            self.exposure_param_index = exposure_param_index
         else:
-            self.obs_seqlen = None
-            self.mu_index = None
+            self.exposure = None
+            self.exposure_param_index = None
 
         # Assign the un-wrapped model so the downstream model-validation
         # block can probe it with a small test slice of observed_data.
@@ -4931,15 +4969,42 @@ class SVGD:
                 "Ensure model has signature: model(theta, times, rewards=None) -> (pmf, moments)"
             )
 
-        # Apply per-observation rescaling wrapper.
+        # Apply per-observation exposure wrapper.
         # Wrapping happens after model validation so the validation
         # block can probe the unwrapped model with a small test slice
         # of observed_data without tripping the wrapper's per-obs
         # vmap shape contract (which requires times to align with
-        # the full obs_seqlen vector).
-        if self.obs_seqlen is not None:
-            self.model = _wrap_model_with_obs_seqlen(
-                self.model, self.obs_seqlen, self.mu_index
+        # the full exposure vector).
+        #
+        # Models that already handle exposure internally (currently:
+        # the daisy-chain joint-prob model from
+        # _daisy_chain_svgd_model with exposure_arr=...) tag
+        # themselves with _handles_exposure_internally=True so we
+        # skip the outer wrapper. Without this skip the wrapper's
+        # jax.lax.map over n_obs would compose with the model's own
+        # per-obs FFI batching and reintroduce the JIT-compile cliff
+        # the per-obs model exists to avoid.
+        #
+        # Models that additionally handle particle-batching natively
+        # via a jax.experimental.custom_batching.custom_vmap rule tag
+        # themselves with _handles_particle_vmap=True; for those the
+        # user's parallel_mode='vmap' choice is honoured (the rule
+        # fuses the particle batch with the model's internal FFI
+        # batch into one fat call).
+        if getattr(self.model, '_handles_exposure_internally', False):
+            if not getattr(self.model, '_handles_particle_vmap', False):
+                # Legacy internal-exposure models without a custom_vmap
+                # rule would otherwise inject a third leading axis on
+                # the FFI buffer, which the C handler rejects (it
+                # accepts 1D or 2D only). Force parallel_mode='none'
+                # so SVGD iterates particles in a Python loop. The C
+                # handler still parallelises over n_obs internally
+                # via OpenMP.
+                if self.parallel_mode != 'none':
+                    self.parallel_mode = 'none'
+        elif self.exposure is not None:
+            self.model = _wrap_model_with_exposure(
+                self.model, self.exposure, self.exposure_param_index
             )
 
         # Results (initialized after fit())

@@ -58,6 +58,22 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
             edges_.push_back(edge);
         }
 
+        // Parse coefficient-less constant edges (optional; older
+        // serialised graphs do not have this field). These are rebuilt
+        // via direct struct manipulation in build() so they bypass the
+        // EDGE_MODE lock and coexist with parameterised edges.
+        if (j.contains("constant_edges")) {
+            auto const_edges_json = j.at("constant_edges");
+            constant_edges_.reserve(const_edges_json.size());
+            for (const auto& edge_arr : const_edges_json) {
+                RegularEdge edge;
+                edge.from_idx = edge_arr[0].get<int>();
+                edge.to_idx = edge_arr[1].get<int>();
+                edge.weight = edge_arr[2].get<double>();
+                constant_edges_.push_back(edge);
+            }
+        }
+
         // Parse starting vertex edges
         auto start_edges_json = j.at("start_edges");
         start_edges_.reserve(start_edges_json.size());
@@ -196,6 +212,45 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
         Vertex* to_v = vertices[edge.to_idx];
         double initial_weight = compute_weight(edge.coefficients, theta);
         from_v->add_edge_parameterized(*to_v, initial_weight, edge.coefficients);
+    }
+
+    // Add coefficient-less constant edges via direct ptd_edge struct
+    // manipulation, bypassing the EDGE_MODE lock. This mirrors the
+    // construction path used by Vertex::add_aux_vertex_constant in
+    // phasiccpp.cpp. update_weights skips edges with
+    // coefficients_length == 0 (see src/c/phasic.c around L4435), so
+    // their weights remain at the constant value below regardless of
+    // any later theta updates.
+    for (const auto& edge : constant_edges_) {
+        Vertex* from_v = vertices[edge.from_idx];
+        Vertex* to_v = vertices[edge.to_idx];
+        struct ptd_edge *new_edge =
+            (struct ptd_edge *)malloc(sizeof(*new_edge));
+        if (new_edge == NULL) {
+            throw std::runtime_error(
+                "GraphBuilder: failed to allocate constant edge"
+            );
+        }
+        new_edge->to = to_v->c_vertex();
+        new_edge->weight = edge.weight;
+        new_edge->coefficients_length = 0;
+        new_edge->coefficients = NULL;
+        new_edge->should_free_coefficients = false;
+
+        struct ptd_vertex *src = from_v->c_vertex();
+        struct ptd_edge **new_edges_arr = (struct ptd_edge **)realloc(
+            src->edges,
+            (src->edges_length + 1) * sizeof(struct ptd_edge *)
+        );
+        if (new_edges_arr == NULL) {
+            free(new_edge);
+            throw std::runtime_error(
+                "GraphBuilder: failed to grow constant-edge array"
+            );
+        }
+        src->edges = new_edges_arr;
+        src->edges[src->edges_length] = new_edge;
+        src->edges_length++;
     }
 
     // Starting-vertex (IPV) edges are always treated as constants by

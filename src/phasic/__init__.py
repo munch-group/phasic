@@ -3626,8 +3626,18 @@ class Graph(_Graph):
             param_edge_pairs.add((from_idx, to_idx))
 
         # Extract regular edges between vertices (excluding starting vertex)
-        # Skip edges that have parameterized versions
+        # Skip edges that have parameterized versions.
+        #
+        # Coefficient-less edges (constant edges with
+        # coefficients_length == 0, created by add_aux_vertex_constant)
+        # are emitted into a separate ``constant_edges`` list. The
+        # GraphBuilder reads them and constructs them via direct
+        # ptd_edge struct manipulation, bypassing the EDGE_MODE lock so
+        # they can coexist with parameterised edges on the same graph.
+        # This is the round-trip path for the t-aux trapping loops in
+        # joint_stop_prob_graph().
         edges_list = []
+        constant_edges_list = []
         start_vertex_idx = start.index()
         for i, v in enumerate(vertices_list):
             # Skip starting vertex edges (they're handled separately)
@@ -3643,9 +3653,19 @@ class Graph(_Graph):
                     # Skip if this edge also has a parameterized version
                     if (from_idx, to_idx) not in param_edge_pairs:
                         weight = edge.weight()
-                        edges_list.append([from_idx, to_idx, weight])
+                        # Route coefficient-less constant edges to a
+                        # dedicated list so the deserialiser can rebuild
+                        # them without triggering the EDGE_MODE lock.
+                        if edge.coefficients_length() == 0:
+                            constant_edges_list.append([from_idx, to_idx, weight])
+                        else:
+                            edges_list.append([from_idx, to_idx, weight])
 
         edges = np.array(edges_list, dtype=np.float64) if edges_list else np.empty((0, 3), dtype=np.float64)
+        constant_edges = (
+            np.array(constant_edges_list, dtype=np.float64)
+            if constant_edges_list else np.empty((0, 3), dtype=np.float64)
+        )
 
         # Extract starting vertex regular edges (skip those with parameterized versions)
         start_edges_list = []
@@ -3664,6 +3684,7 @@ class Graph(_Graph):
             'states': states,
             'vertex_indices': vertex_indices,
             'edges': edges,
+            'constant_edges': constant_edges,
             'start_edges': start_edges,
             'param_edges': param_edges,
             'start_param_edges': start_param_edges,
@@ -4810,6 +4831,8 @@ extern "C" {{
         sd: float = 5.0,
         verbose: bool = False,
         granularity: int = 0,
+        exposure_arr=None,
+        exposure_param_index: int | None = None,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4993,18 +5016,231 @@ extern "C" {{
                     )
             fixed_indices = [idx for idx, _v in broadcast_fixed]
 
-        def model(theta, _observed_arg=None, rewards=None):
-            theta_arr = jnp.atleast_1d(theta)
-            joint_probs = jsp.daisy_chain_joint_probs(
-                epoch_thetas=theta_arr.reshape(n_epochs, param_length),
-                epoch_dts=epoch_dts,
-                initial_ipv=initial_ipv,
-                t_eval=t_eval,
-                fixed_indices=fixed_indices,
-                granularity=granularity,
+        # Two model variants:
+        #   (a) no exposure — one daisy-chain FFI call, then per-obs
+        #       indexing into the (n_t,) result vector.
+        #   (b) exposure + exposure_param_index — per-obs theta_batch
+        #       with the exposure_param_index slot broadcast across all
+        #       epochs; ONE batched FFI call of shape (n_obs, n_t)
+        #       (the C++ handler parallelises over the batch with
+        #       OpenMP). No Python-side lax.map fan-out.
+        if exposure_arr is None:
+            def model(theta, _observed_arg=None, rewards=None):
+                theta_arr = jnp.atleast_1d(theta)
+                joint_probs = jsp.daisy_chain_joint_probs(
+                    epoch_thetas=theta_arr.reshape(n_epochs, param_length),
+                    epoch_dts=epoch_dts,
+                    initial_ipv=initial_ipv,
+                    t_eval=t_eval,
+                    fixed_indices=fixed_indices,
+                    granularity=granularity,
+                )
+                per_obs = joint_probs[observed_pos_jnp]
+                return per_obs, jnp.zeros(2)
+        else:
+            # Validate per-obs inputs.
+            if exposure_param_index is None:
+                raise ValueError(
+                    "_daisy_chain_svgd_model: exposure_param_index must "
+                    "be set when exposure_arr is set."
+                )
+            alpha_arr = jnp.asarray(exposure_arr, dtype=jnp.float64)
+            if alpha_arr.ndim != 1:
+                raise ValueError(
+                    f"exposure_arr must be 1D, got shape {alpha_arr.shape}."
+                )
+            n_obs = int(alpha_arr.shape[0])
+            n_obs_observed = int(observed_pos_jnp.shape[0])
+            if n_obs != n_obs_observed:
+                raise ValueError(
+                    f"exposure_arr length ({n_obs}) does not match the "
+                    f"number of observations ({n_obs_observed})."
+                )
+
+            # Auto-dedup of identical exposure values: identical alpha_i
+            # produces an identical theta row, which the FFI handler
+            # would otherwise compute redundantly. We dedup once at
+            # model-build time so every subsequent forward call (and
+            # every FD-backward perturbation) runs only the unique
+            # rows; results are scattered back per-obs via inverse_idx.
+            # This is bit-exact: same alpha → identical FFI output.
+            # Users can amplify the benefit by pre-rounding their
+            # exposures (e.g. np.round(tree_spans, -3)) before calling
+            # svgd; n_obs=312 with K=30 unique rounded values runs ~10×
+            # fewer chains.
+            _alpha_np = np.asarray(alpha_arr)
+            _unique_alphas_np, _inverse_idx_np = np.unique(
+                _alpha_np, return_inverse=True
             )
-            per_obs = joint_probs[observed_pos_jnp]
-            return per_obs, jnp.zeros(2)
+            unique_alpha_arr = jnp.asarray(_unique_alphas_np, dtype=jnp.float64)
+            inverse_idx_jnp = jnp.asarray(_inverse_idx_np, dtype=jnp.int32)
+            n_unique = int(unique_alpha_arr.shape[0])
+
+            # Flat-theta indices that should be scaled per observation:
+            # one per epoch, all pointing to the local
+            # exposure_param_index slot.
+            flat_exposure_indices = jnp.asarray(
+                [epoch * param_length + exposure_param_index
+                 for epoch in range(n_epochs)],
+                dtype=jnp.int32,
+            )
+
+            # Build the structure_json + initial_ipv_batched once outside
+            # the model so the batched FFI call sees them as static
+            # closures. Mirrors the structure-build path inside
+            # daisy_chain_joint_probs.
+            from .ffi_wrappers import (
+                _make_json_serializable,
+                compute_daisy_chain_joint_probs_ffi,
+            )
+            import json as _json_mod_local
+            theta_dim_local = self.param_length()  # = param_length here
+            n_ipv_local = len(jsp._ipv_target_indices)
+            initial_ipv_arr_local = jnp.asarray(initial_ipv, dtype=jnp.float64)
+            # Initial IPV with leading batch axis = 1. The FFI handler
+            # at graph_builder_ffi.cpp:1261-1266 broadcasts
+            # ipv_batch_size=1 against any theta_batch_size>=1, so this
+            # single row serves both the single-particle (B=1) and the
+            # vmapped multi-particle (B=P*K) paths.
+            initial_ipv_one = initial_ipv_arr_local[None, :]
+            t_eval_resolved = (
+                t_eval if t_eval is not None
+                else max(float(sum(epoch_dts)) * 4.0, 10.0)
+            )
+            structure_local = _make_json_serializable(
+                jsp.serialize(theta_dim=theta_dim_local)
+            )
+            structure_local["_daisy_chain"] = {
+                "n_epochs": int(n_epochs),
+                "param_length": int(theta_dim_local),
+                "t_eval": float(t_eval_resolved),
+                "granularity": int(granularity),
+                "epoch_dts": [float(x) for x in epoch_dts],
+                "ipv_target_indices": [int(x) for x in jsp._ipv_target_indices],
+                "t_aux_keys": [int(k) for k in jsp._t_aux_map.keys()],
+                "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
+                "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
+            }
+            structure_json_local = _json_mod_local.dumps(structure_local)
+
+            # Per-obs forward + custom_vjp (FD) wrapping a SINGLE batched
+            # FFI call. eps matches the legacy daisy_chain_joint_probs
+            # FD pattern.
+            eps_local = 1e-7
+            fixed_set_local = set(fixed_indices) if fixed_indices is not None else set()
+
+            # Precomputed scale matrix: shape (n_unique, theta_dim), 1.0
+            # everywhere except in the flat_exposure_indices columns,
+            # which hold the per-unique alpha values. Lifted out of the
+            # forward function so it's a JIT-time constant (all inputs
+            # are concrete at model-build time).
+            scale_per_unique = (
+                jnp.ones(
+                    (n_unique, n_epochs * param_length), dtype=jnp.float64
+                )
+                .at[:, flat_exposure_indices]
+                .multiply(unique_alpha_arr[:, None])
+            )
+
+            from jax import custom_batching as _cb_local
+
+            # Core per-particle forward, wrapped with custom_vmap so that
+            # under ANY vmap composition (vmap(f), vmap(grad(f)), etc.)
+            # the batched call is intercepted by our rule and dispatched
+            # as a single fat FFI call of shape (P*n_unique, theta_dim).
+            # Without this rule, the FFI call inside the body would get
+            # auto-batched by JAX's default expand_dims rule, producing
+            # a 3D theta buffer that the C++ handler rejects.
+            @_cb_local.custom_vmap
+            def _per_obs_core(theta_flat):
+                # 1D input path: theta_flat shape (theta_dim,). Build a
+                # (n_unique, theta_dim) batch and call FFI once.
+                theta_pk = theta_flat[None, :] * scale_per_unique
+                joint = compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local,
+                    theta_pk,
+                    initial_ipv_one,
+                )  # (n_unique, n_t)
+                # Scatter to per-obs positions via inverse_idx_jnp and
+                # pick each obs's own t-vertex. Two paired integer
+                # arrays of equal length -> (n_obs,).
+                return joint[inverse_idx_jnp, observed_pos_jnp]
+
+            @_per_obs_core.def_vmap
+            def _per_obs_core_vmap_rule(axis_size, in_batched, theta_flat):
+                # theta_flat has been lifted to (axis_size, theta_dim)
+                # by vmap. Fuse the leading axis with our internal
+                # n_unique batch into one fat FFI call.
+                del in_batched
+                P = axis_size
+                # (P, 1, theta_dim) * (1, n_unique, theta_dim) ->
+                # (P, n_unique, theta_dim), reshape to (P*K, theta_dim).
+                theta_pk = (
+                    theta_flat[:, None, :] * scale_per_unique[None, :, :]
+                ).reshape(P * n_unique, n_epochs * param_length)
+                joint = compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local,
+                    theta_pk,
+                    initial_ipv_one,
+                )  # (P*n_unique, n_t)
+                joint = joint.reshape(P, n_unique, -1)  # (P, n_unique, n_t)
+                per_obs_2d = joint[:, inverse_idx_jnp, observed_pos_jnp]
+                # out is batched along axis 0.
+                return per_obs_2d, True
+
+            # custom_vjp wraps _per_obs_core to provide the FD backward.
+            # The custom_vmap rule on _per_obs_core ensures that even
+            # the bwd's internal calls to _per_obs_core (which would
+            # otherwise be auto-batched by vmap) go through our explicit
+            # rule, producing a 2D FFI call instead of a rejected 3D one.
+            @jax.custom_vjp
+            def _per_obs_autodiff(theta_flat):
+                return _per_obs_core(theta_flat)
+
+            def _per_obs_fwd(theta_flat):
+                return _per_obs_core(theta_flat), theta_flat
+
+            def _per_obs_bwd(theta_flat, cotangent):
+                """Central-difference VJP.
+
+                theta_flat is 1D (theta_dim,) at the autodiff boundary
+                — vmap composes with custom_vjp by tracing this bwd
+                with a hidden batch axis. Operations inside the body
+                are vmap'd transparently, but our _per_obs_core's
+                custom_vmap rule intercepts the FFI call so the batch
+                stays 2D, never 3D.
+                """
+                n_params = theta_flat.shape[0]
+                grads = []
+                for i in range(n_params):
+                    if i in fixed_set_local:
+                        grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                        continue
+                    tp = theta_flat.at[i].add(eps_local)
+                    tm = theta_flat.at[i].add(-eps_local)
+                    jp = _per_obs_core(tp)
+                    jm = _per_obs_core(tm)
+                    grads.append(
+                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                    )
+                return (jnp.stack(grads),)
+
+            _per_obs_autodiff.defvjp(_per_obs_fwd, _per_obs_bwd)
+
+            def model(theta, _observed_arg=None, rewards=None):
+                theta_arr = jnp.atleast_1d(theta)
+                per_obs = _per_obs_autodiff(theta_arr)
+                return per_obs, jnp.zeros(2)
+
+            # Tags the model so SVGD.__init__ knows:
+            #   _handles_exposure_internally: do NOT apply the outer
+            #     _wrap_model_with_exposure wrapper (the per-obs scaling
+            #     is already inside the FFI).
+            #   _handles_particle_vmap: do NOT force parallel_mode='none';
+            #     the custom_vmap rule above batches particles natively
+            #     so vmap-over-particles fuses with the internal batch.
+            model._handles_exposure_internally = True
+            model._handles_particle_vmap = True
 
         # broadcast_fixed already built above (alongside fixed_indices)
         # so we could pass fixed_indices into the model's custom_vjp.
@@ -5130,8 +5366,8 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
-             obs_seqlen: ArrayLike | float | None = None,
-             mu_index: int | None = None,
+             exposure: ArrayLike | float | None = None,
+             exposure_param_index: int | None = None,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5302,26 +5538,58 @@ extern "C" {{
             ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
         daisy_chain_t_eval_tol : float, default=1e-3
             Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
-        obs_seqlen : float, array-like, or None, default=None
-            Per-observation sequence-length correction. When set, observation
-            ``i`` is evaluated against ``theta`` with ``theta[mu_index]``
-            replaced by ``theta[mu_index] * L_i``. Use this for
-            coalescent-with-mutation models fitted to genomic segments of
-            different lengths: the effective per-segment mutation rate is
-            ``mu * L_i`` and segments inform ``theta`` proportionally to
-            their length.
+        exposure : float, array-like, or None, default=None
+            Per-observation **exposure** :math:`\\alpha_i` — a known
+            multiplicative scaling on a rate-typed component of
+            :math:`\\boldsymbol{\\theta}`. For observation ``i`` the
+            model is evaluated at :math:`\\boldsymbol{\\theta}^{(i)}`
+            where :math:`\\theta^{(i)}_j = \\theta_j` for
+            :math:`j \\neq k` and
+            :math:`\\theta^{(i)}_k = \\theta_k \\cdot \\alpha_i`,
+            with :math:`k` = ``exposure_param_index``. The exposed
+            rate parameter and :math:`\\alpha_i` jointly determine
+            each observation's expected event count (or hazard, or
+            PMF, depending on the model).
 
-            - ``None`` (default): no correction; existing behaviour.
-            - scalar: same ``L`` applied to every observation.
-            - 1D array of length ``n_segments``: one ``L`` per segment. For
-              dense 2D ``observed_data`` of shape ``(n_segments, n_features)``,
-              the same ``L_i`` is shared across all features of segment ``i``.
+            This is the GLM "exposure" / "offset" construct: it
+            linearises the relationship between a rate parameter and an
+            observation-specific outcome that scales with a known
+            quantity. Concrete instances:
 
-            Requires ``mu_index`` to be set. Not supported for
-            ``SparseObservations`` (raises ``NotImplementedError``).
-        mu_index : int or None, default=None
-            Index of the mutation-rate component in ``theta``. Required when
-            ``obs_seqlen`` is set. Must be in ``[0, theta_dim)``.
+            - **Coalescent-with-mutation**: :math:`\\alpha_i` = segment
+              length :math:`L_i` in bases; :math:`\\theta_k` is the
+              per-base mutation rate.
+            - **Survival / failure-time**: :math:`\\alpha_i` =
+              time-at-risk for unit :math:`i`; :math:`\\theta_k` is the
+              hazard rate.
+            - **Spatial Poisson**: :math:`\\alpha_i` = area or volume
+              of region :math:`i`; :math:`\\theta_k` is the intensity
+              per unit area.
+
+            Forms:
+
+            - ``None`` (default): no exposure correction; existing
+              behaviour.
+            - scalar: same :math:`\\alpha` applied to every observation.
+            - 1D array of length ``n_observations``: per-observation
+              :math:`\\alpha`. For dense 2D ``observed_data`` of shape
+              ``(n_observations, n_features)`` the same
+              :math:`\\alpha_i` is shared across all features of
+              observation :math:`i`.
+
+            Requires ``exposure_param_index`` to be set. Not supported
+            for ``SparseObservations`` (raises ``NotImplementedError``).
+        exposure_param_index : int or None, default=None
+            Index :math:`k` of the rate-typed parameter in
+            :math:`\\boldsymbol{\\theta}` that ``exposure`` scales.
+            Required when ``exposure`` is set. Must be in
+            ``[0, param_length)``.
+
+            Under daisy-chain (``epoch_starts=[…]``),
+            :math:`\\boldsymbol{\\theta}` has flat layout
+            ``(n_epochs * param_length,)``;
+            ``exposure_param_index`` remains the *local* per-epoch
+            index and is broadcast across every epoch internally.
 
         Returns
         -------
@@ -5409,6 +5677,34 @@ extern "C" {{
         if nr_moments < 1:
             raise ValueError(f"nr_moments must be >= 1, got {nr_moments}")
 
+        # Centralised combinational validation. Catches invalid combos
+        # (graph kind × continuous/discrete × observation shape × rewards
+        # × epochs × fixed × exposure × ...) before any model is
+        # constructed; see src/phasic/svgd_config.py for the rule list.
+        from .svgd_config import from_svgd_call as _svgd_from_call, validate as _svgd_validate
+        # Probe the regularization at the *current* schedule position (or
+        # use the scalar). The validator only needs to know whether
+        # regularization is positive at any point during the run.
+        _reg_probe = (
+            float(regularization(0)) if isinstance(regularization, RegularizationSchedule)
+            else float(regularization)
+        )
+        _svgd_validate(_svgd_from_call(
+            self,
+            observed_data,
+            rewards=rewards,
+            fixed=fixed,
+            epoch_starts=epoch_starts,
+            exposure=exposure,
+            exposure_param_index=exposure_param_index,
+            param_transform=param_transform,
+            positive_params=positive_params,
+            preconditioner=preconditioner,
+            regularization=_reg_probe,
+            nr_moments=nr_moments,
+            joint_index=joint_index,
+        ))
+
         # Validate observed_data: must be 1-D array or SparseObservations
         # (skip for joint probability graphs — they accept lists of tuples)
         _is_joint_graph = self._joint_prob_base_graph_indexer is not None
@@ -5490,8 +5786,7 @@ extern "C" {{
             if regularization > 0:
                 print("Warning: Moment regularization is not implemented with joint_index=True")
                 raise NotImplementedError(
-                    "Moment regularization is not supported with joint_index=True. "
-                    "Set regularization=0 or use joint_index=False."
+                    "Moment regularization is not supported with joint probability models."
                 )
             if rewards is not None:
                 print("Warning: Reward transformation is not supported with joint_index=True")
@@ -5514,6 +5809,25 @@ extern "C" {{
                     granularity=daisy_chain_granularity,
                     verbose=verbose,
                 )
+                # When exposure is set, push the per-observation rate
+                # scaling INTO the daisy-chain model: it builds a per-
+                # obs theta_batch and dispatches one batched FFI call.
+                # The outer SVGD wrapper sees the model's
+                # _handles_exposure_internally tag and does NOT apply
+                # _wrap_model_with_exposure on top.
+                _daisy_exposure = (
+                    np.asarray(exposure, dtype=np.float64).ravel()
+                    if exposure is not None else None
+                )
+                # Scalar exposure broadcasts to one entry per
+                # observation; the validator already enforces the
+                # length constraint.
+                if _daisy_exposure is not None and _daisy_exposure.size == 1:
+                    _daisy_exposure = np.full(
+                        (len(observed_data),),
+                        float(_daisy_exposure.item()),
+                        dtype=np.float64,
+                    )
                 model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
                     observed_indices=observed_data,
                     epoch_starts=epoch_starts,
@@ -5523,6 +5837,8 @@ extern "C" {{
                     sd=5.0,
                     verbose=verbose,
                     granularity=daisy_chain_granularity,
+                    exposure_arr=_daisy_exposure,
+                    exposure_param_index=exposure_param_index,
                 )
             else:
                 # Parse fixed to get mask for joint_index model
@@ -5591,8 +5907,8 @@ extern "C" {{
             fixed=fixed,
             optimizer=optimizer,
             preconditioner=preconditioner,
-            obs_seqlen=obs_seqlen,
-            mu_index=mu_index,
+            exposure=exposure,
+            exposure_param_index=exposure_param_index,
         )
 
         # Run inference
