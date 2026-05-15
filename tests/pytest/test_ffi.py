@@ -82,7 +82,7 @@ class TestMultivariateFFI:
 
         # 2. Compute using FFI
         pdf_ffi = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -125,7 +125,7 @@ class TestMultivariateFFI:
 
         # 2. New multivariate FFI (2D with length-1)
         pdf_multivariate = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -167,7 +167,7 @@ class TestMultivariateFFI:
         rewards_2d = jnp.ones((n_vertices, 2))
 
         pdf = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -227,12 +227,12 @@ class TestMultivariateFFI:
 
         # Compute separately
         pdf_1 = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times, rewards_1,
+            structure_dict, theta, times, rewards_1.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
         pdf_2 = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times, rewards_2,
+            structure_dict, theta, times, rewards_2.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -241,7 +241,7 @@ class TestMultivariateFFI:
         rewards_2feat = jnp.concatenate([rewards_1, rewards_2], axis=1)
 
         pdf_combined = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2feat, rewards_2feat,
+            structure_dict, theta, times_2feat, rewards_2feat.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -299,7 +299,7 @@ class TestMultivariateFFI:
         # Create batched function
         batched_fn = vmap(
             lambda theta: compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=100, compute_joint=False
             )
         )
@@ -316,7 +316,7 @@ class TestMultivariateFFI:
         print("\nComparing batched vs individual computation:")
         for i, theta in enumerate(theta_values):
             pdf_individual = compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=100, compute_joint=False
             )
 
@@ -361,7 +361,7 @@ class TestMultivariateFFI:
 
             # Compute using FFI (use auto granularity for best accuracy)
             pdf_ffi = compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=0, compute_joint=False
             )
 
@@ -652,7 +652,7 @@ class TestFFISojournBasic:
 
         # 2. Compute using FFI
         pdf_ffi = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -695,7 +695,7 @@ class TestFFISojournBasic:
 
         # 2. New multivariate FFI (2D with length-1)
         pdf_multivariate = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -737,7 +737,7 @@ class TestFFISojournBasic:
         rewards_2d = jnp.ones((n_vertices, 2))
 
         pdf = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2d, rewards_2d,
+            structure_dict, theta, times_2d, rewards_2d.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -797,12 +797,12 @@ class TestFFISojournBasic:
 
         # Compute separately
         pdf_1 = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times, rewards_1,
+            structure_dict, theta, times, rewards_1.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
         pdf_2 = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times, rewards_2,
+            structure_dict, theta, times, rewards_2.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -811,7 +811,7 @@ class TestFFISojournBasic:
         rewards_2feat = jnp.concatenate([rewards_1, rewards_2], axis=1)
 
         pdf_combined = compute_pmf_multivariate_ffi(
-            structure_dict, theta, times_2feat, rewards_2feat,
+            structure_dict, theta, times_2feat, rewards_2feat.T,
             discrete=False, granularity=100, compute_joint=False
         )
 
@@ -869,7 +869,7 @@ class TestFFISojournBasic:
         # Create batched function
         batched_fn = vmap(
             lambda theta: compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=100, compute_joint=False
             )
         )
@@ -886,7 +886,7 @@ class TestFFISojournBasic:
         print("\nComparing batched vs individual computation:")
         for i, theta in enumerate(theta_values):
             pdf_individual = compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=100, compute_joint=False
             )
 
@@ -931,7 +931,7 @@ class TestFFISojournBasic:
 
             # Compute using FFI (use auto granularity for best accuracy)
             pdf_ffi = compute_pmf_multivariate_ffi(
-                structure_dict, theta, times, rewards,
+                structure_dict, theta, times, rewards.T,
                 discrete=False, granularity=0, compute_joint=False
             )
 

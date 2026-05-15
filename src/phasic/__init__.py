@@ -2670,7 +2670,13 @@ class Graph(_Graph):
         else:
             return super().distribution_context(*args, **kwargs)
 
-    def sample(self, n: int, **kwargs: Any) -> np.ndarray:
+    def sample(
+        self,
+        n: int,
+        *,
+        validate_rewards: bool = True,
+        **kwargs: Any,
+    ) -> np.ndarray:
         """
         Generate random samples from the phase-type distribution.
 
@@ -2678,8 +2684,16 @@ class Graph(_Graph):
         ----------
         n : int
             Number of samples to generate.
+        validate_rewards : bool, default True
+            If True and ``rewards=`` is provided in ``kwargs``, validate
+            that the reward vector has shape ``(n_vertices,)`` and that
+            every absorbing trajectory accumulates positive reward. The
+            latter check prevents silent zero-samples for trajectories
+            that don't visit any rewarded vertex (which would otherwise
+            bias likelihood inference downstream).
         **kwargs : dict
-            Additional keyword arguments passed to C++ implementation.
+            Additional keyword arguments passed to C++ implementation,
+            notably ``rewards=`` (a per-vertex reward vector).
 
         Returns
         -------
@@ -2692,6 +2706,10 @@ class Graph(_Graph):
         absorption. For more efficient repeated sampling, first create a
         distribution context using distribution_context().
         """
+        if "rewards" in kwargs and validate_rewards:
+            kwargs["rewards"] = self._validate_rewards(
+                kwargs["rewards"], allow_2d=False, context="rewards",
+            )
         if self.is_discrete:
             return np.array(super().sample_discrete(n, **kwargs))
         else:
@@ -3326,7 +3344,12 @@ class Graph(_Graph):
 
         return new_graph
 
-    def reward_transform(self, rewards:np.ndarray) -> Self:
+    def reward_transform(
+        self,
+        rewards: np.ndarray,
+        *,
+        validate_rewards: bool = True,
+    ) -> Self:
         """
         Apply reward transformation to create a new graph with modified rewards.
 
@@ -3335,6 +3358,15 @@ class Graph(_Graph):
         rewards : np.ndarray
             Reward vector of length n_vertices. Each element specifies the
             reward associated with visiting the corresponding vertex.
+        validate_rewards : bool, default True
+            If True, validate the reward vector's shape and emit a
+            ``UserWarning`` if not every absorbing trajectory accumulates
+            positive reward (which would make the returned graph
+            sub-stochastic). The warning is informational — the
+            transformation still proceeds — because sub-stochastic
+            reward-transformed graphs are legitimate for Laplace
+            transforms and conditional-expectation computations. Set
+            ``False`` to silence the warning.
 
         Returns
         -------
@@ -3360,10 +3392,31 @@ class Graph(_Graph):
         rewards_arr = np.asarray(rewards, dtype=np.float64)
         if np.any(np.isnan(rewards_arr)):
             raise ValueError("rewards contains NaN values")
-        if rewards_arr.ndim == 1:
-            if len(rewards_arr) != self.vertices_length():
-                raise ValueError(
-                    f"rewards length ({len(rewards_arr)}) must equal number of vertices ({self.vertices_length()})"
+        if validate_rewards:
+            # Shape errors always raise (wrong-length rewards is a bug).
+            self._validate_rewards(
+                rewards_arr,
+                allow_2d=False,
+                check_coverage=False,
+                context="rewards",
+            )
+            # Coverage failure only warns - reward_transform has
+            # legitimate sub-stochastic uses (Laplace transforms,
+            # conditional expectations).
+            try:
+                self._validate_reward_coverage(rewards_arr, context="rewards")
+            except ValueError as exc:
+                import warnings
+                first_line = exc.args[0].splitlines()[0]
+                warnings.warn(
+                    f"reward_transform: {first_line} The resulting "
+                    "reward-transformed graph will be sub-stochastic. "
+                    "This is fine for Laplace transforms and conditional "
+                    "expectations; for likelihood inference, use a "
+                    "covering reward vector or pass "
+                    "validate_rewards=False to silence this warning.",
+                    UserWarning,
+                    stacklevel=2,
                 )
 
         if self.is_discrete:
@@ -3492,6 +3545,203 @@ class Graph(_Graph):
                     rewards[i] = 1.0
                     break
         return rewards
+
+    def _starting_vertex_indices(self) -> list[int]:
+        """Indices of vertices with positive initial probability mass.
+
+        Reads the synthetic start vertex's outgoing edges; each edge's
+        ``weight()`` is the IPV per-target (cf. line 4944 in this file).
+        """
+        sv = self.starting_vertex()
+        return [int(e.to().index()) for e in sv.edges() if e.weight() > 0.0]
+
+    def _absorbing_vertex_indices(self) -> list[int]:
+        """Indices of vertices with no outgoing edges (absorbing)."""
+        n = self.vertices_length()
+        return [i for i in range(n) if self.vertex_at(i).edges_length() == 0]
+
+    def _validate_reward_coverage(
+        self, rewards_1d: np.ndarray, *, context: str,
+    ) -> None:
+        """Raise ValueError unless every absorbing trajectory accumulates positive reward.
+
+        Assumes ``rewards_1d`` is already shape-validated (1D, length
+        n_vertices). Called from ``_validate_rewards``.
+
+        Algorithm: BFS in the subgraph that excludes all rewarded
+        vertices. If any absorbing vertex is reachable from any
+        starting vertex in the reduced subgraph, a trajectory exists
+        that skips every reward — INVALID. O(V + E).
+        """
+        from collections import deque
+        rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
+
+        rewarded = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
+        starts = set(int(v) for v in self._starting_vertex_indices())
+        absorbing = set(int(v) for v in self._absorbing_vertex_indices())
+
+        # BFS over the subgraph excluding rewarded vertices.
+        parent: dict[int, int | None] = {v: None for v in starts}
+        queue: deque[int] = deque(starts - rewarded)
+        visited: set[int] = set(starts - rewarded)
+        bad_absorbing: int | None = None
+        while queue:
+            v = queue.popleft()
+            if v in absorbing:
+                bad_absorbing = v
+                break
+            for edge in self.vertex_at(v).edges():
+                to_idx = int(edge.to().index())
+                if to_idx in rewarded or to_idx in visited:
+                    continue
+                visited.add(to_idx)
+                parent[to_idx] = v
+                queue.append(to_idx)
+
+        if bad_absorbing is None:
+            return  # every trajectory hits at least one rewarded vertex.
+
+        # Witness path reconstruction (parent chain back to a start).
+        path = [bad_absorbing]
+        cur = bad_absorbing
+        while parent.get(cur) is not None:
+            cur = parent[cur]
+            path.append(cur)
+        path.reverse()
+        path_str = " -> ".join(str(v) for v in path)
+
+        def _trunc(s: set[int], k: int = 10) -> str:
+            ss = sorted(s)
+            return f"{ss[:k]}{'...' if len(ss) > k else ''}"
+
+        raise ValueError(
+            f"{context}: not all trajectories accumulate positive reward.\n"
+            "\n"
+            "Every trajectory from a starting vertex to absorption must\n"
+            "visit at least one vertex with reward > 0. Otherwise the\n"
+            "reward-transformed PDF is sub-probability and likelihood\n"
+            "inference is biased upward.\n"
+            "\n"
+            f"  Rewarded vertices (count: {len(rewarded)}): {_trunc(rewarded)}\n"
+            f"  Starting vertices: {_trunc(starts)}\n"
+            f"  Absorbing vertices: {_trunc(absorbing)}\n"
+            f"  Witness path skipping all rewards:\n"
+            f"    {path_str}\n"
+            "\n"
+            "Fix one of:\n"
+            "  (1) Include more states in the reward decomposition so\n"
+            "      every trajectory hits at least one rewarded state.\n"
+            "  (2) Use graph.states().T (full transpose, NO [:-1] slice)\n"
+            "      as your reward matrix - covers every state.\n"
+            "  (3) Merge this reward vector with another so the combined\n"
+            "      vector covers all trajectories.\n"
+            "\n"
+            "If you knowingly want a sub-stochastic likelihood (rare),\n"
+            "pass validate_rewards=False to opt out and accept the bias."
+        )
+
+    def _validate_rewards(
+        self,
+        rewards,
+        *,
+        allow_2d: bool = True,
+        check_coverage: bool = True,
+        context: str = "rewards",
+    ) -> np.ndarray:
+        """Unified validator for reward arrays (shape + coverage).
+
+        Parameters
+        ----------
+        rewards : array-like
+            1D ``(n_vertices,)`` or 2D ``(n_features, n_vertices)``.
+        allow_2d : bool
+            If False, reject 2D arrays (e.g. when called from
+            ``Graph.expectation``, ``Graph.moments``, or any 1D-only
+            entry point).
+        check_coverage : bool
+            If True, also run the coverage check (every absorbing
+            trajectory must accumulate positive reward). Set False
+            from ``reward_transform`` (which warns rather than raises
+            on coverage failure).
+        context : str
+            Used to label the error message (e.g. "rewards",
+            "feature 2 rewards").
+
+        Returns
+        -------
+        np.ndarray
+            The same rewards as a float64 np.ndarray (caller can use
+            it directly without re-converting).
+
+        Raises
+        ------
+        ValueError
+            On shape mismatch (always) or coverage failure (when
+            ``check_coverage=True``).
+        """
+        arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+
+        # ---- Shape check (O(1), always runs) -----------------------
+        if arr.ndim == 1:
+            if arr.shape[0] != n_v:
+                raise ValueError(
+                    f"{context}: 1D rewards must have shape "
+                    f"(n_vertices={n_v},), got shape {arr.shape}."
+                )
+        elif arr.ndim == 2:
+            if not allow_2d:
+                raise ValueError(
+                    f"{context}: 2D rewards not accepted here (this "
+                    f"entry point requires 1D, shape "
+                    f"(n_vertices={n_v},))."
+                )
+            if arr.shape[1] != n_v:
+                # Friendly transpose suggestion if the user clearly has
+                # it backwards: (n_vertices, n_features) instead of
+                # (n_features, n_vertices).
+                transpose_hint = ""
+                if arr.shape[0] == n_v:
+                    transpose_hint = (
+                        "\n  Hint: you appear to have a "
+                        f"(n_vertices={n_v}, n_features={arr.shape[1]}) "
+                        "array. Transpose it: rewards = rewards.T."
+                    )
+                raise ValueError(
+                    f"{context}: 2D rewards must have shape "
+                    f"(n_features, n_vertices={n_v}), got shape "
+                    f"{arr.shape}.{transpose_hint}"
+                )
+        else:
+            raise ValueError(
+                f"{context}: must be 1D (n_vertices={n_v},) or "
+                f"2D (n_features, n_vertices={n_v}); "
+                f"got shape {arr.shape}."
+            )
+
+        # ---- Coverage check (O(V+E) per feature, gated) ------------
+        if check_coverage:
+            if arr.ndim == 1:
+                self._validate_reward_coverage(arr, context=context)
+            else:
+                offenders: list[int] = []
+                messages: list[str] = []
+                for j in range(arr.shape[0]):
+                    try:
+                        self._validate_reward_coverage(
+                            arr[j], context=f"{context}[feature {j}]"
+                        )
+                    except ValueError as exc:
+                        offenders.append(j)
+                        messages.append(exc.args[0])
+                if offenders:
+                    joined = "\n\n---\n\n".join(messages)
+                    raise ValueError(
+                        f"{context}: invalid rewards for features "
+                        f"{offenders} (of {arr.shape[0]}).\n\n{joined}"
+                    )
+
+        return arr
 
     def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         """
@@ -5368,6 +5618,7 @@ extern "C" {{
              daisy_chain_t_eval_tol: float = 1e-3,
              exposure: ArrayLike | float | None = None,
              exposure_param_index: int | None = None,
+             validate_rewards: bool = True,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5704,6 +5955,14 @@ extern "C" {{
             nr_moments=nr_moments,
             joint_index=joint_index,
         ))
+
+        # Reward-vector structural validation (shape + coverage).
+        # Skipped when joint_index is active (rewards then encode joint
+        # observation indices, not vertex-level reward weights).
+        if rewards is not None and validate_rewards and not joint_index:
+            rewards = self._validate_rewards(
+                rewards, allow_2d=True, context="rewards",
+            )
 
         # Validate observed_data: must be 1-D array or SparseObservations
         # (skip for joint probability graphs — they accept lists of tuples)

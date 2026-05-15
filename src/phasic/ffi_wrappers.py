@@ -772,7 +772,7 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     Compute multivariate PMF/PDF using JAX FFI.
 
     Supports multivariate observations where each observation is a vector of features.
-    Each feature dimension has its own reward vector (column in rewards matrix).
+    Each feature dimension has its own reward vector (row in rewards matrix).
 
     Modes:
     - Sparse mode (compute_joint=False): Independent PDF per feature, zeros for missing obs
@@ -788,8 +788,11 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         Time points or jump counts, shape (n_times, n_features)
         Zero entries are treated as "no observation" in sparse mode
     rewards : jax.Array
-        Reward matrix, shape (n_vertices, n_features)
-        Each column defines the reward vector for one feature dimension
+        Reward matrix, shape ``(n_features, n_vertices)``.
+        Each ROW defines the reward vector for one feature dimension.
+        This orientation matches ``Graph.pmf_and_moments_from_graph_multivariate``
+        and the convention documented in CLAUDE.md ("Shape Convention v0.22.22"):
+        vertices are always the trailing axis.
     discrete : bool, default=False
         If True, compute DPH (discrete phase-type)
         If False, compute PDF (continuous phase-type)
@@ -814,6 +817,7 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         If FFI is enabled but not available (build issue)
     ValueError
         If compute_joint=True (not yet implemented)
+        If rewards shape is not ``(n_features, n_vertices)``.
 
     Notes
     -----
@@ -821,6 +825,10 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     - GIL is released during C++ computation
     - Supports batching via vmap with OpenMP multi-threading
     - Differentiable with custom VJP rules
+    - The C++ handler still expects ``(n_vertices, n_features)``;
+      this wrapper transposes the input internally before dispatch.
+      Callers must use the documented ``(n_features, n_vertices)``
+      orientation.
 
     Examples
     --------
@@ -834,16 +842,16 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     ... ])  # Shape: (3, 2)
     >>> n_vertices = graph.vertices_length()
     >>> rewards = jnp.array([
-    ...     [1.0, 0.5],  # Vertex 0 rewards for features 0, 1
-    ...     [2.0, 1.0]   # Vertex 1 rewards for features 0, 1
-    ... ])  # Shape: (n_vertices, 2)
+    ...     [1.0, 2.0],  # Feature 0: reward at each vertex
+    ...     [0.5, 1.0],  # Feature 1: reward at each vertex
+    ... ])  # Shape: (n_features=2, n_vertices)
     >>> pdf = compute_pmf_multivariate_ffi(
     ...     structure_dict, theta, times, rewards, discrete=False
     ... )
     >>> # pdf.shape = (3, 2)
-    >>> # pdf[0,0] = PDF(t=1.5, rewards[:,0]), pdf[0,1] = 0.0
-    >>> # pdf[1,0] = 0.0,                      pdf[1,1] = PDF(t=2.1, rewards[:,1])
-    >>> # pdf[2,0] = PDF(t=1.2, rewards[:,0]), pdf[2,1] = PDF(t=1.8, rewards[:,1])
+    >>> # pdf[0,0] = PDF(t=1.5, rewards[0, :]), pdf[0,1] = 0.0
+    >>> # pdf[1,0] = 0.0,                       pdf[1,1] = PDF(t=2.1, rewards[1, :])
+    >>> # pdf[2,0] = PDF(t=1.2, rewards[0, :]), pdf[2,1] = PDF(t=1.8, rewards[1, :])
     >>>
     >>> # JIT compilation
     >>> jit_fn = jax.jit(compute_pmf_multivariate_ffi, static_argnums=(0, 4, 5, 6))
@@ -871,12 +879,22 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     if len(times.shape) != 2:
         raise ValueError(f"times must be 2D (n_times, n_features), got shape {times.shape}")
     if len(rewards.shape) != 2:
-        raise ValueError(f"rewards must be 2D (n_vertices, n_features), got shape {rewards.shape}")
-    if times.shape[1] != rewards.shape[1]:
         raise ValueError(
-            f"times and rewards must have same number of features: "
-            f"times.shape[1]={times.shape[1]}, rewards.shape[1]={rewards.shape[1]}"
+            f"rewards must be 2D (n_features, n_vertices), got shape {rewards.shape}"
         )
+    # User-facing convention: (n_features, n_vertices). The C++ handler
+    # at graph_builder_ffi.cpp:574-580 still expects
+    # (n_vertices, n_features), so transpose internally before dispatch.
+    n_features = rewards.shape[0]
+    if times.shape[1] != n_features:
+        raise ValueError(
+            f"times.shape[1] (n_features={times.shape[1]}) must equal "
+            f"rewards.shape[0] (n_features={n_features}). Note: rewards "
+            f"must have shape (n_features, n_vertices) — if you are "
+            f"passing (n_vertices, n_features), transpose it: "
+            f"rewards = rewards.T."
+        )
+    rewards_for_ffi = jnp.swapaxes(rewards, 0, 1)  # -> (n_vertices, n_features)
 
     # Output shape matches times shape
     result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
@@ -890,9 +908,9 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         vmap_method="expand_dims"  # Batch dim added, handler processes all at once with OpenMP
     )
     result = ffi_fn(
-        theta,       # Arg 1: theta buffer (BATCHED by vmap)
-        times,       # Arg 2: times buffer (BATCHED by vmap, 2D or 3D after batch)
-        rewards,     # Arg 3: rewards buffer (BATCHED by vmap, 2D or 3D after batch)
+        theta,           # Arg 1: theta buffer (BATCHED by vmap)
+        times,           # Arg 2: times buffer (BATCHED by vmap, 2D or 3D after batch)
+        rewards_for_ffi, # Arg 3: rewards buffer in C++ orientation
         structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
         granularity=np.int32(granularity),      # Attr: granularity
         discrete=bool(discrete),                # Attr: discrete (bool for JAX PRED type)
