@@ -8692,12 +8692,21 @@ extern "C" {{
             nv = vmap[v.index()]
 
             if v.index() in t_vertex_old_indices:
-                t_aux_vertex = new.create_vertex([0] * self.state_length())
-                # Unit-weight parameterised edges in both directions; using
-                # the modern list-based add_edge to avoid the
-                # add_edge_parameterized deprecation warning.
-                nv.add_edge(t_aux_vertex, [1.0] * param_length)
-                t_aux_vertex.add_edge(nv, [1.0] * param_length)
+                # Install the trapping loop as bidirectional
+                # COEFFICIENT-LESS constant-weight edges. The previous
+                # implementation used parameterised edges with
+                # coefficient ``[1.0] * param_length``, but linear-mode
+                # weight evaluation gives ``Σ 1.0 · θ_k = θ_0 + θ_1 + …``,
+                # which (a) couples the trapping rate to theta and (b)
+                # under per-observation exposure scaling lets the
+                # mu-slot-times-alpha term inflate every t-aux edge in
+                # the JSP graph, blowing up λ_max and the
+                # uniformization auto-granularity. Using
+                # ``add_aux_vertex_constant`` makes both directions
+                # coefficient-less so ``ptd_graph_update_weights``
+                # skips them; the trapping rate stays at exactly 1.0
+                # regardless of theta or exposure.
+                t_aux_vertex = nv.add_aux_vertex_constant(1.0)
                 t_aux_map[nv.index()] = t_aux_vertex.index()
                 continue
 
@@ -8819,6 +8828,7 @@ extern "C" {{
                 "joint_stop_prob_graph()."
             )
 
+        _ensure_jax_active()
         epoch_thetas_arr = jnp.asarray(epoch_thetas)
         if epoch_thetas_arr.ndim != 2:
             raise ValueError(
@@ -8891,11 +8901,38 @@ extern "C" {{
         # custom_vjp wrapper differentiates only theta_flat (initial_ipv
         # is closed over and treated as fixed). Single FFI call replaces
         # the per-epoch pure_callback chain.
+        #
+        # _forward is also wrapped in custom_vmap so that under
+        # vmap(grad(loss))(particles), each FD perturbation in the
+        # backward dispatches ONE fat (P, theta_dim) FFI call instead
+        # of P separate expand_dims-batched calls. Without this rule
+        # the per-perturbation FFI dispatch would fan out per particle,
+        # multiplying dispatch overhead by P per gradient.
+        from jax import custom_batching as _cb_local
+
+        @_cb_local.custom_vmap
         def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
             return compute_daisy_chain_joint_probs_ffi(
                 structure_json_str,
                 theta_flat,
                 initial_ipv_arr,
+            )
+
+        @_forward.def_vmap
+        def _forward_vmap_rule(axis_size, in_batched, theta_flat):
+            # theta_flat: (axis_size, n_epochs * param_length).
+            # Dispatch as one fat 2D FFI call. initial_ipv is broadcast
+            # against the leading axis (the C++ handler supports
+            # ipv_batch_size=1 against any theta_batch_size — see
+            # graph_builder_ffi.cpp:1261-1266).
+            del axis_size, in_batched
+            return (
+                compute_daisy_chain_joint_probs_ffi(
+                    structure_json_str,
+                    theta_flat,
+                    initial_ipv_arr[None, :],  # (1, n_ipv)
+                ),
+                True,  # output is batched along axis 0
             )
 
         # Wrap the forward in a custom_vjp so jax.grad works via finite
@@ -9194,7 +9231,7 @@ extern "C" {{
 
     def joint_prob_table(self) -> pd.DataFrame:
 
-        if not (self._joint_prob_base_graph_indexer and self.is_discrete):
+        if not (self._joint_prob_base_graph_indexer):
             raise ValueError("Graph must be discrete and a joint probability representation.")
 
         outcomes, probs, t_vertex_indices = self._get_joint_probs()

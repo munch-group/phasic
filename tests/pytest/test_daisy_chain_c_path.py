@@ -98,11 +98,14 @@ class TestJointStopProbGraphStructure:
         assert set(jsp._t_aux_map.keys()) == set(jsp._t_vertex_indices)
 
     def test_t_vertex_aux_loop_structure(self):
-        # Each t-vertex must have its outgoing edges replaced by a single
-        # unit-weight parameterised edge to the aux; the aux must have a
-        # single unit-weight parameterised edge back.
+        # Each t-vertex's outgoing edges are replaced by a single
+        # COEFFICIENT-LESS constant-weight edge to the aux; the aux has
+        # a single coefficient-less constant-weight edge back. Both
+        # directions are skipped by ptd_graph_update_weights, so the
+        # trapping rate is decoupled from theta. This is what allows
+        # per-observation exposure scaling not to inflate lambda_max
+        # via the t-aux loop weights.
         jsp = _build_jsp_graph()
-        param_length = jsp.param_length()
         for t_idx, aux_idx in jsp._t_aux_map.items():
             t_v = jsp.vertex_at(t_idx)
             aux_v = jsp.vertex_at(aux_idx)
@@ -110,13 +113,13 @@ class TestJointStopProbGraphStructure:
             assert aux_v.edges_length() == 1
             assert t_v.edges()[0].to().index() == aux_idx
             assert aux_v.edges()[0].to().index() == t_idx
-            # Coefficients are all 1 in both directions (parameterised view).
-            t_param_edges = t_v.parameterized_edges()
-            aux_param_edges = aux_v.parameterized_edges()
-            assert len(t_param_edges) == 1
-            assert len(aux_param_edges) == 1
-            assert list(t_param_edges[0].edge_state(param_length)) == [1.0] * param_length
-            assert list(aux_param_edges[0].edge_state(param_length)) == [1.0] * param_length
+            assert t_v.edges()[0].weight() == 1.0
+            assert aux_v.edges()[0].weight() == 1.0
+            # Both edges are coefficient-less: they do not appear in
+            # parameterized_edges() and update_weights() leaves them
+            # untouched.
+            assert len(t_v.parameterized_edges()) == 0
+            assert len(aux_v.parameterized_edges()) == 0
 
     def test_t_vertices_do_not_route_to_absorption(self):
         # The JSP graph traps mass at t-vertices via the aux loop. So a
@@ -570,3 +573,240 @@ class TestPerEpochFixed:
             for epoch in range(n_epochs)
         ]
         assert broadcast_fixed == expected
+
+
+# ---------------------------------------------------------------------------
+# Particle-vmap fusion tests (plan: radiant-giggling-wigderson, path A).
+# Verify that `vmap(grad(loss))(particles)` on Graph.daisy_chain_joint_probs
+# dispatches ONE fat (P, theta_dim) FFI call per FD perturbation instead of
+# P separate expand_dims-batched calls. The keystone change is the
+# jax.custom_batching.custom_vmap rule on _forward inside the function.
+# ---------------------------------------------------------------------------
+
+
+class TestDaisyChainParticleVmapFusion:
+    """`vmap(grad(daisy_chain_joint_probs))` fusion regression suite.
+
+    Mirrors the just-shipped per-obs exposure-path fusion. Tests are
+    written so they fail loudly if the rule does not fire under
+    `vmap(grad(...))`.
+    """
+
+    @staticmethod
+    def _build_model_and_loss(n_epochs=2):
+        """Build a small JSP graph and a (model, loss, theta_init) tuple.
+        ``param_length`` is determined by the graph itself (3 for the
+        small coalescent fixture defined in this module).
+        """
+        import jax
+        import jax.numpy as jnp
+
+        jsp = _build_jsp_graph()
+        param_length = jsp.param_length()
+        n_ipv = jsp.starting_vertex().edges_length()
+        initial_ipv = np.full(n_ipv, 1.0 / n_ipv)
+        # epoch_dts: length n_epochs - 1
+        epoch_dts = [0.4] * (n_epochs - 1)
+
+        def model(theta_flat):
+            return jsp.daisy_chain_joint_probs(
+                epoch_thetas=theta_flat.reshape(n_epochs, param_length),
+                epoch_dts=epoch_dts,
+                initial_ipv=initial_ipv,
+                t_eval=10.0,
+            )
+
+        def loss(theta_flat):
+            return jnp.sum(model(theta_flat))
+
+        theta_init = jnp.full(
+            n_epochs * param_length, 1.0, dtype=jnp.float64,
+        )
+        return jsp, model, loss, theta_init
+
+    def test_forward_vmap_unchanged(self):
+        """Forward vmap path produces (P, n_t) and matches per-particle
+        outputs — the new rule must not break the FORWARD path."""
+        import jax
+        import jax.numpy as jnp
+
+        _jsp, model, _loss, theta_init = self._build_model_and_loss()
+        particles = jnp.stack([
+            theta_init,
+            theta_init * 1.1,
+            theta_init * 0.9,
+        ])
+        out_vmap = jax.vmap(model)(particles)
+        out_loop = jnp.stack([model(p) for p in particles])
+        assert out_vmap.shape == out_loop.shape
+        np.testing.assert_allclose(
+            np.asarray(out_vmap), np.asarray(out_loop),
+            rtol=0, atol=1e-12,
+        )
+
+    def test_vmap_grad_matches_loop_grad(self):
+        """`vmap(grad(loss))(particles)` matches per-particle grads to
+        bit precision — the same FFI inputs flow through both paths,
+        just dispatched in different batch shapes."""
+        import jax
+        import jax.numpy as jnp
+
+        _jsp, _model, loss, theta_init = self._build_model_and_loss()
+        particles = jnp.stack([
+            theta_init,
+            theta_init * 1.1,
+            theta_init * 0.9,
+            theta_init + 0.05,
+        ])
+        g_vmap = jax.vmap(jax.grad(loss))(particles)
+        g_loop = jnp.stack([jax.grad(loss)(p) for p in particles])
+        assert g_vmap.shape == (4, theta_init.shape[0])
+        np.testing.assert_allclose(
+            np.asarray(g_vmap), np.asarray(g_loop),
+            rtol=0, atol=1e-8,
+        )
+
+    def test_vmap_fuses_into_one_ffi_call(self):
+        """CANARY: under vmap(grad(loss)), the FFI handler must be
+        invoked with theta of shape (P, theta_dim) — fused — not as
+        P separate (theta_dim,) calls with expand_dims. If this fails,
+        the custom_vmap rule did not intercept and the perf win is lost.
+        """
+        import jax
+        import jax.numpy as jnp
+        from phasic import ffi_wrappers
+
+        original_fn = ffi_wrappers.compute_daisy_chain_joint_probs_ffi
+        captured = []
+
+        def traced(structure_json, theta, ipv):
+            captured.append(tuple(theta.shape))
+            return original_fn(structure_json, theta, ipv)
+
+        ffi_wrappers.compute_daisy_chain_joint_probs_ffi = traced
+        try:
+            _jsp, _model, loss, theta_init = self._build_model_and_loss(
+                n_epochs=2,
+            )
+            n_params = int(theta_init.shape[0])
+            P = 3
+            particles = jnp.stack([
+                theta_init * (1.0 + 0.1 * k)
+                for k in range(P)
+            ])
+            captured.clear()
+            _ = jax.vmap(jax.grad(loss))(particles)
+        finally:
+            ffi_wrappers.compute_daisy_chain_joint_probs_ffi = original_fn
+
+        assert len(captured) >= 1, "FFI was not invoked under vmap(grad)"
+
+        # Categorise captured calls by rank.
+        ranks = [len(shape) for shape in captured]
+        n_3d = sum(1 for r in ranks if r == 3)
+        # The rule's dispatch produces 2D theta of shape (P, theta_dim);
+        # without the rule, expand_dims would add a third axis and the
+        # FFI would receive 3D buffers (which the C handler rejects),
+        # OR JAX would loop the custom_vjp per-particle and fire P
+        # separate 1D FFI calls instead of one fat 2D call.
+        assert n_3d == 0, (
+            f"FFI received 3D theta in {n_3d}/{len(captured)} calls — "
+            f"the rule failed and JAX added an extra axis. Shapes: "
+            f"{captured}"
+        )
+
+        # Count calls by leading axis among 2D calls. We expect the
+        # vast majority to have leading axis == P (the rule's dispatch).
+        # Some 1D probes are tolerated (they come from JAX's tracing
+        # pass, which evaluates the un-vmapped path once).
+        two_d_leading = [shape[0] for shape in captured if len(shape) == 2]
+        n_fused = sum(1 for x in two_d_leading if x == P)
+        assert n_fused >= 1, (
+            f"No FFI call had leading axis P={P}; got 2D leading axes "
+            f"{two_d_leading} and ranks {ranks}. The custom_vmap rule "
+            f"did not fire — vmap(grad) is fanning out per particle "
+            f"instead of fusing."
+        )
+        # And: the number of fused (P, theta_dim) calls should be
+        # 1 (one forward in fwd rule) + 2*n_params (FD perturbations).
+        # That's the expected dispatch count when the rule fires
+        # correctly.
+        expected_fused = 1 + 2 * n_params
+        assert n_fused >= expected_fused - 1, (
+            f"Expected ~{expected_fused} fused (P, theta_dim) calls "
+            f"(1 fwd + 2*n_params FD perturbations); got {n_fused}. "
+            f"Captured shapes: {captured}"
+        )
+
+    def test_vmap_perf_smoke(self):
+        """Perf smoke: under vmap(grad), 8 particles must take much less
+        than 8× single-particle time. Skipped on hosts with <4 OMP
+        threads (CI often has 1).
+        """
+        import os
+        omp_threads = int(
+            os.environ.get('OMP_NUM_THREADS', '0')
+            or os.cpu_count()
+            or 1
+        )
+        if omp_threads < 4:
+            pytest.skip(f"Need >=4 OMP threads; got {omp_threads}")
+
+        import time
+        import jax
+        import jax.numpy as jnp
+
+        _jsp, _model, loss, theta_init = self._build_model_and_loss()
+        # Warm-up JIT for both paths.
+        _ = jax.grad(loss)(theta_init).block_until_ready()
+        warmup_particles = jnp.tile(theta_init[None, :], (8, 1))
+        _ = jax.vmap(jax.grad(loss))(warmup_particles).block_until_ready()
+
+        # Single-particle.
+        t0 = time.perf_counter()
+        for _ in range(2):
+            _ = jax.grad(loss)(theta_init).block_until_ready()
+        t_single = (time.perf_counter() - t0) / 2.0
+
+        # 8 particles via vmap.
+        particles = jnp.tile(theta_init[None, :], (8, 1)) + 0.01 * jnp.arange(8)[:, None]
+        t0 = time.perf_counter()
+        for _ in range(2):
+            _ = jax.vmap(jax.grad(loss))(particles).block_until_ready()
+        t_vmap8 = (time.perf_counter() - t0) / 2.0
+
+        ratio = t_vmap8 / max(t_single, 1e-6)
+        print(
+            f"\n  t_single={t_single*1e3:.1f}ms  "
+            f"t_vmap8={t_vmap8*1e3:.1f}ms  ratio={ratio:.2f}"
+        )
+        assert ratio <= 5.0, (
+            f"vmap(grad) over 8 particles took {ratio:.1f}× the "
+            f"single-particle time — fusion likely broken. "
+            f"Expected <= 5× (ideal is ~1×)."
+        )
+
+    def test_pmap_vmap_composition(self):
+        """`pmap(vmap(grad(loss)))` composition must produce per-particle
+        grads identical to the sequential path. Skipped when only one
+        local device is available."""
+        import jax
+        import jax.numpy as jnp
+
+        if jax.local_device_count() < 2:
+            pytest.skip("needs >=2 local devices")
+
+        _jsp, _model, loss, theta_init = self._build_model_and_loss()
+        # 4 particles, 2 devices -> 2 particles per device.
+        particles = jnp.tile(theta_init[None, :], (4, 1)) + 0.01 * jnp.arange(4)[:, None]
+        particles_sharded = particles.reshape(2, 2, -1)
+        pmapped = jax.pmap(jax.vmap(jax.grad(loss)), axis_name='batch')
+        g = pmapped(particles_sharded)
+        assert g.shape == (2, 2, theta_init.shape[0])
+
+        g_seq = jnp.stack([jax.grad(loss)(p) for p in particles]).reshape(
+            2, 2, theta_init.shape[0]
+        )
+        np.testing.assert_allclose(
+            np.asarray(g), np.asarray(g_seq), rtol=0, atol=1e-8,
+        )
