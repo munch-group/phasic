@@ -3,6 +3,8 @@ project:
   output-dir: _build
   pre-render: 
     - quarto render mathref/ 
+  post-render: 
+    - quarto render slides/ 
 
   # resources:
   # - objects.txt
