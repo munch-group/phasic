@@ -1,0 +1,339 @@
+"""Unit tests for ``phasic.svgd_config`` rules R1..R15.
+
+Each rule has a dedicated test that constructs the smallest possible
+config triggering the rule and asserts the right exception (or warning)
+fires with a recognisable message substring.
+
+For graph-aware rules (R1..R5, R9, R12, R13) we build a tiny coalescent
+model so ``from_svgd_call`` has a real graph to introspect.
+"""
+from __future__ import annotations
+
+import warnings
+from itertools import combinations_with_replacement
+
+import numpy as np
+import pytest
+
+from phasic import Graph, StateIndexer, Property, with_ipv
+from phasic.exceptions import SvgdConfigError
+from phasic.svgd_config import (
+    SvgdConfig, from_svgd_call, validate,
+)
+
+
+# ---------------------------------------------------------------------------
+# Tiny model fixtures (N=2 coalescent: smallest non-trivial parameterised
+# graph). Reused across rule tests where a real graph is needed.
+# ---------------------------------------------------------------------------
+
+
+def _make_n2_indexer() -> StateIndexer:
+    return StateIndexer(
+        lineages=[Property('descendants', min_value=1, max_value=2)],
+    )
+
+
+def _make_n2_base_graph() -> Graph:
+    indexer = _make_n2_indexer()
+    ipv = [0] * indexer.state_length
+    ipv[indexer.lineages.props_to_index(descendants=1)] = 2
+
+    @with_ipv(ipv)
+    def cb(state, indexer=None):
+        out = []
+        for i, j in combinations_with_replacement(range(indexer.lineages.state_length), 2):
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue
+            new = state.copy()
+            new[i] -= 1
+            new[j] -= 1
+            new[min(i + j + 1, state.size - 1)] += 1
+            pair = state[i] * (state[j] - same) / (1 + same)
+            out.append([new, [pair]])
+        return out
+
+    g = Graph(cb, indexer=indexer)
+    return g
+
+
+def _make_joint_prob_graph(*, discrete: bool = False) -> Graph:
+    base = _make_n2_base_graph()
+    return base.joint_prob_graph(
+        mutation_rate=1.0, tot_reward_limit=10, discrete=discrete,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Rule tests — one per rule.
+# ---------------------------------------------------------------------------
+
+
+class TestR1_EpochRequiresContinuousJointProb:
+    """epoch_starts requires a joint-probability graph in continuous mode."""
+
+    def test_rejects_standard_graph(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"joint-probability graph"):
+            validate(from_svgd_call(g, [1.0, 2.0], epoch_starts=[0.0, 1.0]))
+
+    def test_rejects_discrete_joint_prob(self):
+        g = _make_joint_prob_graph(discrete=True)
+        with pytest.raises(SvgdConfigError, match=r"continuous-time joint-prob"):
+            validate(from_svgd_call(g, [(0, 0)], epoch_starts=[0.0, 1.0]))
+
+    def test_accepts_continuous_joint_prob(self):
+        g = _make_joint_prob_graph(discrete=False)
+        validate(from_svgd_call(g, [(0, 0)], epoch_starts=[0.0, 1.0]))
+
+
+class TestR2_JointIndexRequiresJointProb:
+    def test_rejects_standard_graph_with_joint_index(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"joint_index=True requires"):
+            validate(from_svgd_call(g, [1.0], joint_index=True))
+
+
+class TestR3_RewardsIncompatibleWithJointProb:
+    def test_rejects_rewards_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        rewards = np.ones(g.vertices_length())
+        with pytest.raises(SvgdConfigError, match=r"Reward transformation is not supported"):
+            validate(from_svgd_call(g, [(0, 0)], rewards=rewards))
+
+    def test_accepts_rewards_on_standard_graph(self):
+        g = _make_n2_base_graph()
+        rewards = np.ones(g.vertices_length())
+        validate(from_svgd_call(g, [1.0], rewards=rewards))
+
+
+class TestR4_RegularizationIncompatibleWithJointProb:
+    def test_rejects_regularization_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"Moment regularization"):
+            validate(from_svgd_call(g, [(0, 0)], regularization=0.5))
+
+    def test_accepts_zero_regularization(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(g, [(0, 0)], regularization=0.0))
+
+
+class TestR5_SparseObservationsRequireRewards:
+    def test_rejects_sparse_without_rewards(self):
+        from phasic.svgd import SparseObservations
+        sparse = SparseObservations(
+            values=np.array([1.0, 2.0]),
+            features=np.array([0, 0]),
+            n_features=1,
+            slices=((0, 1), (1, 2)),
+        )
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"SparseObservations require explicit rewards"):
+            validate(from_svgd_call(g, sparse, rewards=None))
+
+
+class TestR6_SparseObservationsIncompatibleWithExposure:
+    def test_rejects_sparse_with_exposure(self):
+        from phasic.svgd import SparseObservations
+        sparse = SparseObservations(
+            values=np.array([1.0, 2.0]),
+            features=np.array([0, 0]),
+            n_features=1,
+            slices=((0, 1), (1, 2)),
+        )
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"exposure is not supported with SparseObservations"):
+            validate(from_svgd_call(
+                g, sparse, rewards=np.ones((1, g.vertices_length())),
+                exposure=[1.0, 1.0], exposure_param_index=0,
+            ))
+
+
+class TestR7_ExposureAndParamIndexPaired:
+    def test_exposure_without_param_index(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"exposure_param_index must be provided"):
+            validate(from_svgd_call(g, [1.0, 2.0], exposure=[1.0, 1.0]))
+
+    def test_param_index_without_exposure(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"exposure is None"):
+            validate(from_svgd_call(g, [1.0, 2.0], exposure_param_index=0))
+
+
+class TestR8_ExposureParamIndexInParamLengthRange:
+    def test_param_index_too_large(self):
+        g = _make_n2_base_graph()
+        # Standard graph: param_length=1. exposure_param_index=5 is out of range.
+        # Note R7 paired-check fires first if exposure is missing.
+        with pytest.raises(SvgdConfigError, match=r"exposure_param_index=5 is out of range"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0], exposure=[1.0, 1.0], exposure_param_index=5,
+            ))
+
+    def test_param_index_negative(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"out of range"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0], exposure=[1.0, 1.0], exposure_param_index=-1,
+            ))
+
+
+class TestR9_ExposureWithVanillaJointProbUnsupported:
+    def test_rejects_exposure_without_epoch_starts(self):
+        g = _make_joint_prob_graph()
+        # joint-prob graph param_length is 2 (coal_rate + mu);
+        # exposure_param_index=1 in range.
+        with pytest.raises(SvgdConfigError, match=r"vanilla joint-prob"):
+            validate(from_svgd_call(
+                g, [(0, 0), (0, 0)],
+                exposure=[1.0, 1.0], exposure_param_index=1,
+            ))
+
+    def test_accepts_exposure_with_epoch_starts(self):
+        g = _make_joint_prob_graph()
+        # Should pass (R9 only fires when epoch_starts is None).
+        validate(from_svgd_call(
+            g, [(0, 0), (0, 0)],
+            epoch_starts=[0.0, 1.0],
+            exposure=[1.0, 1.0], exposure_param_index=1,
+        ))
+
+
+class TestR10_ExposureLengthMatchesNObservations:
+    def test_rejects_length_mismatch(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"exposure length"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0, 3.0],
+                exposure=[1.0, 2.0],  # length 2 vs 3 obs
+                exposure_param_index=0,
+            ))
+
+    def test_accepts_scalar_broadcast(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0, 3.0], exposure=1.5, exposure_param_index=0,
+        ))
+
+    def test_accepts_matching_length(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0, 3.0],
+            exposure=[1.0, 2.0, 3.0], exposure_param_index=0,
+        ))
+
+
+class TestR11_ExposureWith2DRewardsWarns:
+    def test_warns_for_2d_rewards(self):
+        g = _make_n2_base_graph()
+        rewards = np.ones((2, g.vertices_length()))
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            validate(from_svgd_call(
+                g, [[1.0, 1.0], [2.0, 2.0]],
+                rewards=rewards,
+                exposure=[1.0, 1.0], exposure_param_index=0,
+            ))
+        assert any('multivariate' in str(ww.message) for ww in w)
+
+
+class TestR12_ParamTransformIncompatibleWithJointProb:
+    def test_rejects_param_transform_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"param_transform is not supported"):
+            validate(from_svgd_call(
+                g, [(0, 0)],
+                param_transform=lambda x: x,
+                positive_params=False,  # avoid R15 firing first
+            ))
+
+
+class TestR13_PreconditionerWithJointProbWarns:
+    def test_warns_for_preconditioner(self):
+        g = _make_joint_prob_graph()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            validate(from_svgd_call(
+                g, [(0, 0)],
+                preconditioner='auto',  # default
+            ))
+        assert any('preconditioner' in str(ww.message) for ww in w)
+
+
+class TestR14_FixedWithEpochStartsLocalIndices:
+    def test_rejects_out_of_range_local_index(self):
+        g = _make_joint_prob_graph()
+        # joint-prob param_length is 2, so local index 5 is out of range.
+        with pytest.raises(SvgdConfigError, match=r"local.*per-epoch indices"):
+            validate(from_svgd_call(
+                g, [(0, 0), (0, 0)],
+                epoch_starts=[0.0, 1.0],
+                fixed=[(5, 0.5)],
+            ))
+
+    def test_accepts_in_range_local_index(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0), (0, 0)],
+            epoch_starts=[0.0, 1.0],
+            fixed=[(1, 1e-8)],
+        ))
+
+
+class TestR15_PositiveParamsXorParamTransform:
+    def test_rejects_both(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"mutually exclusive"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0],
+                positive_params=True,
+                param_transform=lambda x: x,
+            ))
+
+    def test_accepts_param_transform_alone(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0],
+            positive_params=False,
+            param_transform=lambda x: x,
+        ))
+
+
+# ---------------------------------------------------------------------------
+# Positive smoke tests — valid combinations should validate cleanly.
+# ---------------------------------------------------------------------------
+
+
+class TestValidCombinations:
+    def test_standard_graph_1d_times(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0, 3.0]))
+
+    def test_standard_graph_with_exposure(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0, 3.0],
+            exposure=[100.0, 200.0, 150.0], exposure_param_index=0,
+        ))
+
+    def test_joint_prob_outcomes(self):
+        g = _make_joint_prob_graph()
+        # joint-prob param_length=2 (coal + mu); fixed mu slot.
+        validate(from_svgd_call(
+            g, [(0, 0), (1, 0)],
+            fixed=[(1, 1e-8)],
+        ))
+
+    def test_daisy_chain_joint_prob_with_exposure(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0)] * 3,
+            epoch_starts=[0.0, 1.0, 2.0],
+            exposure=[100.0, 200.0, 150.0],
+            exposure_param_index=1,
+            fixed=[(1, 1e-8)],
+        ))

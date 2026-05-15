@@ -87,6 +87,23 @@ class PTDFormatError(PTDAlgorithmsError):
     pass
 
 
+class SvgdConfigError(PTDConfigError, ValueError):
+    """Invalid combination of arguments to ``Graph.svgd(...)``.
+
+    Raised eagerly by ``phasic.svgd_config.validate`` before any model
+    or particle construction so the user gets a clear, actionable error
+    instead of a silent hang or a wrong-shape downstream failure.
+
+    Each message names the offending combination, why it is invalid,
+    and what to do instead.
+
+    Inherits from both ``PTDConfigError`` (the phasic-internal base)
+    and the standard ``ValueError`` so existing user code that catches
+    ``ValueError`` for SVGD argument problems continues to work.
+    """
+    pass
+
+
 __all__ = [
     'PTDAlgorithmsError',
     'PTDConfigError',
@@ -94,4 +111,5 @@ __all__ = [
     'PTDFeatureError',
     'PTDJAXError',
     'PTDFormatError',
+    'SvgdConfigError',
 ]

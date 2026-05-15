@@ -208,31 +208,98 @@ print(f"Posterior mean: {results['theta_mean']}")
 print(f"Posterior std: {results['theta_std']}")
 ```
 
-### Per-Observation Sequence-Length Correction (`obs_seqlen` / `mu_index`)
+### Per-Observation Exposure (`exposure` / `exposure_param_index`)
 
-Coalescent-with-mutation models fitted to genomic segments of different
-lengths must account for the fact that segments accumulate mutations
-proportionally to *both* the per-base mutation rate `mu` and the
-segment length `L_i` (in bases). Use `obs_seqlen` to declare a per-
-observation length, and `mu_index` to name which `theta` dimension is
-the per-base mutation rate:
+Many phase-type inference problems have an observation-specific known
+quantity that multiplies a rate parameter — what GLM literature calls
+**exposure** (or "offset" in log-domain). For each observation $i$ the
+model is evaluated at $\boldsymbol{\theta}^{(i)}$ where
+$\theta^{(i)}_j = \theta_j$ for $j \neq k$ and
+$\theta^{(i)}_k = \theta_k \cdot \alpha_i$, with
+$k$ = `exposure_param_index` and $\alpha_i$ = `exposure[i]`. Use this
+construct whenever the model's likelihood depends on a known
+per-observation scaling of one rate-typed component of $\boldsymbol{\theta}$:
+
+- **Coalescent-with-mutation**: $\alpha_i$ = segment length $L_i$ in
+  bases; $\theta_k$ is the per-base mutation rate.
+- **Survival / failure-time**: $\alpha_i$ = time-at-risk for unit
+  $i$; $\theta_k$ is the hazard rate.
+- **Spatial Poisson**: $\alpha_i$ = area or volume of region $i$;
+  $\theta_k$ is the intensity per unit area.
 
 ```python
 result = graph.svgd(
-    observed_data=count_vectors,         # (n_segments,) or (n_segments, n_features)
+    observed_data=count_vectors,         # (n_observations,) or (n_observations, n_features)
     theta_dim=2,
-    obs_seqlen=seqlens,                  # scalar or 1D of length n_segments
-    mu_index=0,                          # theta[0] is per-base mu
+    exposure=alphas,                     # scalar or 1D of length n_observations
+    exposure_param_index=0,              # theta[0] is the rate parameter
     n_particles=40, n_iterations=400,
 )
 ```
 
-Each observation `i` is evaluated against `theta` with `theta[mu_index]`
-replaced by `theta[mu_index] * L_i`. Long segments inform the posterior
-more strongly than short ones, as they should. `obs_seqlen=None` (the
-default) reproduces existing behaviour exactly. Sparse observations
-(`SparseObservations`) are not supported with this kwarg — they carry
-no segment identity; convert to dense first.
+`exposure=None` (the default) reproduces existing behaviour exactly.
+Sparse observations (`SparseObservations`) are not supported — they
+carry no per-observation identity; convert to dense first.
+
+#### Coverage matrix
+
+| Combination | Status | Notes |
+|---|---|---|
+| Standard PMF (`rewards=None`) | ✅ | `_wrap_model_with_exposure` wraps the model; one model call per obs via `lax.map`. |
+| 1D rewards | ✅ | Same wrapper path. |
+| 2D rewards (multivariate) | ⚠️ | Wrapper applied; not benchmarked. R11 emits a warning. |
+| `SparseObservations` | ❌ | Rejected by R6 — sparse format has no per-observation identity. |
+| Vanilla joint-prob (`epoch_starts=None`) | ❌ | Rejected by R9 — wrapper would fan out to one full graph elimination per observation. Use a single-epoch daisy chain instead: `epoch_starts=[0.0]`. |
+| Daisy-chain joint-prob (`epoch_starts=[…]`) | ✅ | Per-obs scaling pushed inside the daisy-chain FFI as a single batched call (`(n_obs, n_epochs * param_length)` theta). `parallel_mode` is forced to `'none'` to avoid stacking vmap on top of the FFI's own batch dimension. |
+
+#### `exposure_param_index` semantics under daisy-chain
+
+Under daisy chain (`epoch_starts=[…]`), the SVGD theta is flat with
+shape `(n_epochs * param_length,)`. **`exposure_param_index` remains
+the *local* per-epoch index** in `[0, param_length)`; the validator
+broadcasts it across all epochs internally as
+`[exposure_param_index, param_length + exposure_param_index, …, (n_epochs-1)*param_length + exposure_param_index]`.
+This keeps the user-facing API uniform whether or not `epoch_starts`
+is set. R8 enforces the local-index range; R14 enforces the same range
+for `fixed=[(local_idx, value), …]` entries.
+
+All combinations are checked once at construction time by
+`phasic.svgd_config.validate(...)` (rules R1..R15). On a violation the
+call raises `phasic.exceptions.SvgdConfigError` with a message that
+names the offending combination, why it is invalid, and what to do
+instead.
+
+#### Performance: forward cost scales with *unique* exposure values
+
+Under daisy chain, each observation's effective theta is the SVGD
+particle with `exposure_param_index` slot scaled by `exposure[i]`.
+Internally phasic deduplicates identical theta rows before calling
+the C++ FFI, so **the forward computation cost scales with the number
+of unique exposure values, not with `n_obs`**.
+
+If your exposures are continuous (e.g. genomic segment lengths, time-
+at-risk durations), rounding them to a coarser scale before passing
+to `svgd` can dramatically reduce wall time without losing accuracy
+of the SVGD posterior:
+
+```python
+# 312 continuous exposure values → 312 unique rows → 312 chains per FFI call
+svgd_slow = graph.svgd(observations, exposure=tree_spans,
+                       exposure_param_index=1, epoch_starts=[0, ...])
+
+# Round to nearest 1000 → ~30 unique rows → ~30 chains per FFI call (~10× faster)
+svgd_fast = graph.svgd(observations,
+                       exposure=np.round(tree_spans, -3),
+                       exposure_param_index=1, epoch_starts=[0, ...])
+```
+
+This is **not an approximation introduced by phasic** — identical
+theta rows produce bit-identical FFI output, and the per-obs results
+are scattered back via `inverse_idx`. The approximation comes from
+your rounding choice, which you control. The daisy-chain joint-prob
+distribution is smooth in `α`, so coarse rounding (e.g. nearest 1000
+on segment lengths in the 1e3–1e6 range) typically gives <1% error
+in the posterior.
 
 ### Multivariate Phase-Type Models (2D Observations & Rewards)
 
