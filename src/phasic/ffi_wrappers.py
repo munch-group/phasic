@@ -40,6 +40,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import functools
+
 import jax
 import jax.numpy as jnp
 from jax import ffi
@@ -772,7 +774,7 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     Compute multivariate PMF/PDF using JAX FFI.
 
     Supports multivariate observations where each observation is a vector of features.
-    Each feature dimension has its own reward vector (column in rewards matrix).
+    Each feature dimension has its own reward vector (row in rewards matrix).
 
     Modes:
     - Sparse mode (compute_joint=False): Independent PDF per feature, zeros for missing obs
@@ -788,8 +790,11 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         Time points or jump counts, shape (n_times, n_features)
         Zero entries are treated as "no observation" in sparse mode
     rewards : jax.Array
-        Reward matrix, shape (n_vertices, n_features)
-        Each column defines the reward vector for one feature dimension
+        Reward matrix, shape ``(n_features, n_vertices)``.
+        Each ROW defines the reward vector for one feature dimension.
+        This orientation matches ``Graph.pmf_and_moments_from_graph_multivariate``
+        and the convention documented in CLAUDE.md ("Shape Convention v0.22.22"):
+        vertices are always the trailing axis.
     discrete : bool, default=False
         If True, compute DPH (discrete phase-type)
         If False, compute PDF (continuous phase-type)
@@ -814,6 +819,7 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         If FFI is enabled but not available (build issue)
     ValueError
         If compute_joint=True (not yet implemented)
+        If rewards shape is not ``(n_features, n_vertices)``.
 
     Notes
     -----
@@ -821,6 +827,10 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     - GIL is released during C++ computation
     - Supports batching via vmap with OpenMP multi-threading
     - Differentiable with custom VJP rules
+    - The C++ handler still expects ``(n_vertices, n_features)``;
+      this wrapper transposes the input internally before dispatch.
+      Callers must use the documented ``(n_features, n_vertices)``
+      orientation.
 
     Examples
     --------
@@ -834,16 +844,16 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     ... ])  # Shape: (3, 2)
     >>> n_vertices = graph.vertices_length()
     >>> rewards = jnp.array([
-    ...     [1.0, 0.5],  # Vertex 0 rewards for features 0, 1
-    ...     [2.0, 1.0]   # Vertex 1 rewards for features 0, 1
-    ... ])  # Shape: (n_vertices, 2)
+    ...     [1.0, 2.0],  # Feature 0: reward at each vertex
+    ...     [0.5, 1.0],  # Feature 1: reward at each vertex
+    ... ])  # Shape: (n_features=2, n_vertices)
     >>> pdf = compute_pmf_multivariate_ffi(
     ...     structure_dict, theta, times, rewards, discrete=False
     ... )
     >>> # pdf.shape = (3, 2)
-    >>> # pdf[0,0] = PDF(t=1.5, rewards[:,0]), pdf[0,1] = 0.0
-    >>> # pdf[1,0] = 0.0,                      pdf[1,1] = PDF(t=2.1, rewards[:,1])
-    >>> # pdf[2,0] = PDF(t=1.2, rewards[:,0]), pdf[2,1] = PDF(t=1.8, rewards[:,1])
+    >>> # pdf[0,0] = PDF(t=1.5, rewards[0, :]), pdf[0,1] = 0.0
+    >>> # pdf[1,0] = 0.0,                       pdf[1,1] = PDF(t=2.1, rewards[1, :])
+    >>> # pdf[2,0] = PDF(t=1.2, rewards[0, :]), pdf[2,1] = PDF(t=1.8, rewards[1, :])
     >>>
     >>> # JIT compilation
     >>> jit_fn = jax.jit(compute_pmf_multivariate_ffi, static_argnums=(0, 4, 5, 6))
@@ -871,12 +881,22 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
     if len(times.shape) != 2:
         raise ValueError(f"times must be 2D (n_times, n_features), got shape {times.shape}")
     if len(rewards.shape) != 2:
-        raise ValueError(f"rewards must be 2D (n_vertices, n_features), got shape {rewards.shape}")
-    if times.shape[1] != rewards.shape[1]:
         raise ValueError(
-            f"times and rewards must have same number of features: "
-            f"times.shape[1]={times.shape[1]}, rewards.shape[1]={rewards.shape[1]}"
+            f"rewards must be 2D (n_features, n_vertices), got shape {rewards.shape}"
         )
+    # User-facing convention: (n_features, n_vertices). The C++ handler
+    # at graph_builder_ffi.cpp:574-580 still expects
+    # (n_vertices, n_features), so transpose internally before dispatch.
+    n_features = rewards.shape[0]
+    if times.shape[1] != n_features:
+        raise ValueError(
+            f"times.shape[1] (n_features={times.shape[1]}) must equal "
+            f"rewards.shape[0] (n_features={n_features}). Note: rewards "
+            f"must have shape (n_features, n_vertices) — if you are "
+            f"passing (n_vertices, n_features), transpose it: "
+            f"rewards = rewards.T."
+        )
+    rewards_for_ffi = jnp.swapaxes(rewards, 0, 1)  # -> (n_vertices, n_features)
 
     # Output shape matches times shape
     result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
@@ -890,9 +910,9 @@ def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
         vmap_method="expand_dims"  # Batch dim added, handler processes all at once with OpenMP
     )
     result = ffi_fn(
-        theta,       # Arg 1: theta buffer (BATCHED by vmap)
-        times,       # Arg 2: times buffer (BATCHED by vmap, 2D or 3D after batch)
-        rewards,     # Arg 3: rewards buffer (BATCHED by vmap, 2D or 3D after batch)
+        theta,           # Arg 1: theta buffer (BATCHED by vmap)
+        times,           # Arg 2: times buffer (BATCHED by vmap, 2D or 3D after batch)
+        rewards_for_ffi, # Arg 3: rewards buffer in C++ orientation
         structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
         granularity=np.int32(granularity),      # Attr: granularity
         discrete=bool(discrete),                # Attr: discrete (bool for JAX PRED type)
@@ -1109,6 +1129,163 @@ def backward_probabilities_ffi(
     )
 
 
+def compute_reward_visit_probability_ffi(
+    structure_json: 'str | dict',
+    theta: 'jax.Array',
+    target_vertices: 'jax.Array',
+    initial_ipv: 'jax.Array',
+) -> 'jax.Array':
+    """Probability of visiting any target vertex before absorption.
+
+    Returns the scalar phase-type quantity
+
+        p(theta) = sum_v alpha_v * h_v(theta)
+
+    where ``h_v(theta) = P(reach target_vertices | start at v)`` is
+    computed via the underlying C handler ``ptd_backward_probabilities``
+    (NOT the FFI wrapper, which lacks batched-theta support). We route
+    through ``jax.pure_callback`` with ``vmap_method='sequential'`` so
+    vmap-over-particles dispatches one C call per particle. The
+    function is JAX-differentiable via a ``custom_vjp`` with central
+    finite differences.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Serialized graph structure.
+    theta : jax.Array
+        Parameter vector, shape (n_params,).
+    target_vertices : jax.Array
+        Indices of vertices treated as the reachable target set,
+        shape (n_targets,), int32. Typically the set of vertices with
+        positive reward.
+    initial_ipv : jax.Array
+        Initial probability vector alpha, shape (n_vertices,).
+        Nonzero only at the graph's starting vertices.
+
+    Returns
+    -------
+    jax.Array, shape ()
+        Scalar p(theta) in [0, 1].
+    """
+    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
+    target_vertices = jnp.asarray(target_vertices, dtype=jnp.int32)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    return _reward_visit_probability_autodiff(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+
+
+def _reward_visit_probability_callback(
+    structure_json_str: str,
+    theta_np: np.ndarray,
+    target_vertices_np: np.ndarray,
+    initial_ipv_np: np.ndarray,
+) -> np.ndarray:
+    """Concrete-Python helper: compute p(theta) without JAX.
+
+    Builds a temporary Graph with the given theta, runs the C
+    backward_probabilities helper, then takes the inner product
+    against the IPV. Always returns a 0-D float64 scalar.
+    """
+    import phasic
+    from phasic import Graph
+    # Rebuild a Graph from the serialized JSON. Cache the parsed
+    # builder on the structure_json_str to avoid repeated parsing.
+    builder = _get_pybind_builder(structure_json_str)
+    theta_np = np.asarray(theta_np, dtype=np.float64).ravel()
+    targets = [int(x) for x in np.asarray(target_vertices_np).ravel()]
+    # Build a concrete Graph at the given theta and use its
+    # backward_probabilities Python wrapper.
+    concrete = Graph(builder.build(theta_np))
+    h = np.asarray(concrete.backward_probabilities(targets), dtype=np.float64)
+    alpha = np.asarray(initial_ipv_np, dtype=np.float64)
+    return np.array(float(np.dot(alpha, h)), dtype=np.float64)
+
+
+def _get_pybind_builder(structure_json_str: str):
+    """Thread-local cache for pybind GraphBuilder by structure JSON.
+
+    Avoids reparsing the JSON on every callback invocation.
+    """
+    import phasic as _phasic
+    cache = getattr(_get_pybind_builder, "_cache", None)
+    if cache is None:
+        cache = {}
+        _get_pybind_builder._cache = cache
+    if structure_json_str not in cache:
+        cache[structure_json_str] = (
+            _phasic.parameterized.GraphBuilder(structure_json_str)
+        )
+    return cache[structure_json_str]
+
+
+def _reward_visit_probability_forward(
+    structure_json, theta, target_vertices, initial_ipv,
+):
+    """JAX-side forward via pure_callback so vmap iterates per particle."""
+    structure_str = _ensure_json_string(structure_json)
+    result_shape = jax.ShapeDtypeStruct((), jnp.float64)
+
+    def _cb(theta_jax, target_jax, ipv_jax):
+        return _reward_visit_probability_callback(
+            structure_str,
+            np.asarray(theta_jax),
+            np.asarray(target_jax),
+            np.asarray(ipv_jax),
+        )
+
+    return jax.pure_callback(
+        _cb,
+        result_shape,
+        theta,
+        target_vertices,
+        initial_ipv,
+        vmap_method='sequential',
+    )
+
+
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0,))
+def _reward_visit_probability_autodiff(
+    structure_json, theta, target_vertices, initial_ipv,
+):
+    return _reward_visit_probability_forward(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+
+
+def _rvp_fwd(structure_json, theta, target_vertices, initial_ipv):
+    out = _reward_visit_probability_forward(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+    return out, (theta, target_vertices, initial_ipv)
+
+
+def _rvp_bwd(structure_json, res, cotangent):
+    theta, target_vertices, initial_ipv = res
+    eps = 1e-7
+    n_params = int(theta.shape[-1])
+    grads = []
+    for i in range(n_params):
+        tp = theta.at[i].add(eps)
+        tm = theta.at[i].add(-eps)
+        fp = _reward_visit_probability_forward(
+            structure_json, tp, target_vertices, initial_ipv,
+        )
+        fm = _reward_visit_probability_forward(
+            structure_json, tm, target_vertices, initial_ipv,
+        )
+        grads.append(cotangent * (fp - fm) / (2.0 * eps))
+    return (
+        jnp.stack(grads),
+        jnp.zeros_like(target_vertices, dtype=jnp.float64),
+        jnp.zeros_like(initial_ipv),
+    )
+
+
+_reward_visit_probability_autodiff.defvjp(_rvp_fwd, _rvp_bwd)
+
+
 # ============================================================================
 # Module Initialization
 # ============================================================================
@@ -1168,11 +1345,19 @@ def compute_daisy_chain_joint_probs_ffi(
     theta = jnp.asarray(theta, dtype=jnp.float64)
     initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
 
-    if theta.ndim != 1:
-        raise ValueError(f"theta must be 1D, got shape {theta.shape}")
-    if initial_ipv.ndim != 1:
+    # 1D theta = single-particle daisy chain (legacy path).
+    # 2D theta = batched daisy chain with shape (batch_size, n_epochs * param_length).
+    # The C++ handler at graph_builder_ffi.cpp:1120-1135 already accepts
+    # both 1D and 2D theta/ipv buffers. We allow either here so callers
+    # (notably _daisy_chain_svgd_model with exposure) can dispatch one
+    # batched FFI call instead of a Python-side lax.map fan-out.
+    if theta.ndim not in (1, 2):
         raise ValueError(
-            f"initial_ipv must be 1D, got shape {initial_ipv.shape}"
+            f"theta must be 1D or 2D, got shape {theta.shape}"
+        )
+    if initial_ipv.ndim not in (1, 2):
+        raise ValueError(
+            f"initial_ipv must be 1D or 2D, got shape {initial_ipv.shape}"
         )
 
     # Output shape: (n_t_vertices,). We need to extract n_t_vertices from
@@ -1187,7 +1372,12 @@ def compute_daisy_chain_joint_probs_ffi(
         )
     n_t = len(parsed["_daisy_chain"]["t_vertex_indices"])
 
-    result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+    if theta.ndim == 2 or initial_ipv.ndim == 2:
+        batch_size = theta.shape[0] if theta.ndim == 2 else initial_ipv.shape[0]
+        result_shape = jax.ShapeDtypeStruct((batch_size, n_t), jnp.float64)
+    else:
+        result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+
     ffi_fn = jax.ffi.ffi_call(
         "ptd_daisy_chain_joint_probs",
         result_shape,
@@ -1207,4 +1397,6 @@ __all__ = [
     'compute_pmf_multivariate_ffi',
     'compute_sojourn_times_ffi',
     'compute_daisy_chain_joint_probs_ffi',
+    'backward_probabilities_ffi',
+    'compute_reward_visit_probability_ffi',
 ]

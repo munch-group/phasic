@@ -1039,6 +1039,15 @@ namespace phasic {
 
         Vertex add_aux_vertex(std::vector<double> rate_coeffs);
 
+        // Like add_aux_vertex(rate), but creates BOTH directions as
+        // coefficient-less constant edges. Works on any graph
+        // (parameterised or not). The trapping loop's rate is fixed
+        // and independent of theta, so per-observation theta scaling
+        // (e.g. exposure) does not affect it. Used by
+        // joint_stop_prob_graph() to install trapping loops on
+        // parameterised JSP graphs without inflating lambda_max.
+        Vertex add_aux_vertex_constant(double weight);
+
         std::vector<int> state();
 
         std::vector<Edge> edges();

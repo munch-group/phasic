@@ -90,6 +90,17 @@ if "OMP_NUM_THREADS" not in os.environ:
     from .config import _phasic_assigned_env as _phasic_assigned_env_set
     _phasic_assigned_env_set.add("OMP_NUM_THREADS")
 
+# Force JAX 64-bit precision for everything that flows through the
+# FFI. The C handlers require F64 buffers; without this default a
+# downstream `import jax` (in a notebook, in a sibling library,
+# anywhere) leaves jax_enable_x64 disabled and the FFI crashes
+# with "Wrong buffer dtype: expected F64 but got F32". Setting
+# the env var here — before any jax import can occur — makes the
+# guarantee transparent. `_ensure_jax_active()` below also calls
+# `jax.config.update('jax_enable_x64', True)` defensively for the
+# case where jax was already imported before phasic loaded.
+os.environ.setdefault("JAX_ENABLE_X64", "1")
+
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
 # from .vscode_theme import set_theme # backwards compatibility
@@ -170,13 +181,40 @@ def _ensure_jax_active() -> None:
 
     import sys
     if 'jax' in sys.modules:
-        # JAX was imported by something else (e.g. the import-time
-        # block above). Just pick up the references.
+        # JAX was imported by something else (e.g. directly in the
+        # user's notebook, or by another library). Pick up the
+        # references — and CRITICALLY also enable x64. The env var
+        # JAX_ENABLE_X64=1 (set at phasic import time) covers the
+        # case where jax is imported *after* phasic, but if jax was
+        # imported *before* phasic loaded, only `jax.config.update`
+        # can flip the flag now. Skipping this is the root cause of
+        # the FFI "expected F64 but got F32" crashes.
         import jax as _jax_mod
+        was_off = not bool(_jax_mod.config.jax_enable_x64)
+        _jax_mod.config.update('jax_enable_x64', True)
         import jax.numpy as _jnp_mod
         jax = _jax_mod
         jnp = _jnp_mod
         HAS_JAX = True
+        if was_off:
+            # Any JAX arrays created before this flip are still
+            # float32. Operations on them will mix dtypes and may
+            # crash the FFI later. Tell the user once.
+            import warnings
+            warnings.warn(
+                "phasic enabled jax_enable_x64 after JAX was already "
+                "imported. Any JAX arrays created before importing "
+                "phasic are still float32 and may trip FFI dtype "
+                "checks. Restart the kernel (or recreate arrays) if "
+                "you see 'expected F64 but got F32' errors.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        try:
+            cfg = get_config()
+            cfg._jax_imported = True
+        except Exception:
+            pass
         return
 
     from .jax_config import get_default_config
@@ -2638,7 +2676,13 @@ class Graph(_Graph):
         else:
             return super().distribution_context(*args, **kwargs)
 
-    def sample(self, n: int, **kwargs: Any) -> np.ndarray:
+    def sample(
+        self,
+        n: int,
+        *,
+        validate_rewards: bool = True,
+        **kwargs: Any,
+    ) -> np.ndarray:
         """
         Generate random samples from the phase-type distribution.
 
@@ -2646,8 +2690,16 @@ class Graph(_Graph):
         ----------
         n : int
             Number of samples to generate.
+        validate_rewards : bool, default True
+            If True and ``rewards=`` is provided in ``kwargs``, validate
+            that the reward vector has shape ``(n_vertices,)`` and that
+            every absorbing trajectory accumulates positive reward. The
+            latter check prevents silent zero-samples for trajectories
+            that don't visit any rewarded vertex (which would otherwise
+            bias likelihood inference downstream).
         **kwargs : dict
-            Additional keyword arguments passed to C++ implementation.
+            Additional keyword arguments passed to C++ implementation,
+            notably ``rewards=`` (a per-vertex reward vector).
 
         Returns
         -------
@@ -2660,6 +2712,19 @@ class Graph(_Graph):
         absorption. For more efficient repeated sampling, first create a
         distribution context using distribution_context().
         """
+        if "rewards" in kwargs and validate_rewards:
+            # Use coverage_mode="warn": partial-coverage reward
+            # vectors are legal here (the C++ sampler naturally
+            # returns 0 for trajectories that don't visit any
+            # rewarded vertex; the resulting samples are a mixture
+            # of point-mass-at-0 and a continuous part). Warn so the
+            # user knows what shape their data has.
+            kwargs["rewards"] = self._validate_rewards(
+                kwargs["rewards"],
+                allow_2d=False,
+                coverage_mode="warn",
+                context="rewards",
+            )
         if self.is_discrete:
             return np.array(super().sample_discrete(n, **kwargs))
         else:
@@ -3294,7 +3359,12 @@ class Graph(_Graph):
 
         return new_graph
 
-    def reward_transform(self, rewards:np.ndarray) -> Self:
+    def reward_transform(
+        self,
+        rewards: np.ndarray,
+        *,
+        validate_rewards: bool = True,
+    ) -> Self:
         """
         Apply reward transformation to create a new graph with modified rewards.
 
@@ -3303,6 +3373,15 @@ class Graph(_Graph):
         rewards : np.ndarray
             Reward vector of length n_vertices. Each element specifies the
             reward associated with visiting the corresponding vertex.
+        validate_rewards : bool, default True
+            If True, validate the reward vector's shape and emit a
+            ``UserWarning`` if not every absorbing trajectory accumulates
+            positive reward (which would make the returned graph
+            sub-stochastic). The warning is informational — the
+            transformation still proceeds — because sub-stochastic
+            reward-transformed graphs are legitimate for Laplace
+            transforms and conditional-expectation computations. Set
+            ``False`` to silence the warning.
 
         Returns
         -------
@@ -3328,11 +3407,18 @@ class Graph(_Graph):
         rewards_arr = np.asarray(rewards, dtype=np.float64)
         if np.any(np.isnan(rewards_arr)):
             raise ValueError("rewards contains NaN values")
-        if rewards_arr.ndim == 1:
-            if len(rewards_arr) != self.vertices_length():
-                raise ValueError(
-                    f"rewards length ({len(rewards_arr)}) must equal number of vertices ({self.vertices_length()})"
-                )
+        if validate_rewards:
+            # Shape errors always raise (wrong-length rewards is a
+            # bug). Coverage failures warn but do not raise, since
+            # reward_transform has legitimate sub-stochastic uses
+            # (Laplace transforms, conditional expectations).
+            self._validate_rewards(
+                rewards_arr,
+                allow_2d=False,
+                check_coverage=True,
+                coverage_mode="warn",
+                context="rewards",
+            )
 
         if self.is_discrete:
             return Graph(super().reward_transform_discrete(rewards))
@@ -3460,6 +3546,560 @@ class Graph(_Graph):
                     rewards[i] = 1.0
                     break
         return rewards
+
+    def _starting_vertex_indices(self) -> list[int]:
+        """Indices of vertices with positive initial probability mass.
+
+        Reads the synthetic start vertex's outgoing edges; each edge's
+        ``weight()`` is the IPV per-target (cf. line 4944 in this file).
+        """
+        sv = self.starting_vertex()
+        return [int(e.to().index()) for e in sv.edges() if e.weight() > 0.0]
+
+    def _absorbing_vertex_indices(self) -> list[int]:
+        """Indices of vertices with no outgoing edges (absorbing)."""
+        n = self.vertices_length()
+        return [i for i in range(n) if self.vertex_at(i).edges_length() == 0]
+
+    def _validate_no_absorbing_reward(
+        self, rewards_1d: np.ndarray, *, context: str,
+    ) -> None:
+        """Raise ValueError if rewards has nonzero weight on absorbing vertices.
+
+        Absorbing vertices have zero sojourn time by definition (the
+        chain stops there). Rewarding them contributes a point mass
+        of zero observations that carries no likelihood information
+        but biases the estimator (the continuous-density evaluation
+        at r = 0 is a spurious finite value, not the true atomic
+        mass).
+
+        Assumes ``rewards_1d`` is already shape-validated. Called
+        from ``_validate_rewards`` before the coverage check.
+        """
+        rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
+        absorbing = set(self._absorbing_vertex_indices())
+        nonzero = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
+        bad = sorted(absorbing & nonzero)
+        if not bad:
+            return
+
+        raise ValueError(
+            f"{context}: rewards have nonzero weight on absorbing "
+            f"vertices {bad}.\n"
+            "\n"
+            "Absorbing vertices have zero sojourn time by definition "
+            "(the trajectory absorbs and stops), so rewarding them\n"
+            "produces an identically-zero sample that carries no "
+            "likelihood information about theta. The continuous-\n"
+            "density evaluation at r = 0 is a spurious finite value "
+            "that biases the estimator upward.\n"
+            "\n"
+            "Fix: set rewards[v] = 0 for every absorbing vertex v, "
+            "or build your reward matrix from the non-absorbing\n"
+            "state decomposition. Common idiom:\n"
+            "\n"
+            "    rewards = graph.states().T[:-1]   # drop the row "
+            "indexing the absorbing state\n"
+            "\n"
+            "If you intentionally want to model an atom at r = 0 "
+            "(rare; mathematically degenerate), pass\n"
+            "validate_rewards=False to skip this check."
+        )
+
+    def _validate_reward_coverage(
+        self, rewards_1d: np.ndarray, *, context: str,
+    ) -> None:
+        """Raise ValueError unless every absorbing trajectory accumulates positive reward.
+
+        Assumes ``rewards_1d`` is already shape-validated (1D, length
+        n_vertices). Called from ``_validate_rewards``.
+
+        Algorithm: BFS in the subgraph that excludes all rewarded
+        vertices. If any absorbing vertex is reachable from any
+        starting vertex in the reduced subgraph, a trajectory exists
+        that skips every reward — INVALID. O(V + E).
+        """
+        from collections import deque
+        rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
+
+        rewarded = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
+        starts = set(int(v) for v in self._starting_vertex_indices())
+        absorbing = set(int(v) for v in self._absorbing_vertex_indices())
+
+        # BFS over the subgraph excluding rewarded vertices.
+        parent: dict[int, int | None] = {v: None for v in starts}
+        queue: deque[int] = deque(starts - rewarded)
+        visited: set[int] = set(starts - rewarded)
+        bad_absorbing: int | None = None
+        while queue:
+            v = queue.popleft()
+            if v in absorbing:
+                bad_absorbing = v
+                break
+            for edge in self.vertex_at(v).edges():
+                to_idx = int(edge.to().index())
+                if to_idx in rewarded or to_idx in visited:
+                    continue
+                visited.add(to_idx)
+                parent[to_idx] = v
+                queue.append(to_idx)
+
+        if bad_absorbing is None:
+            return  # every trajectory hits at least one rewarded vertex.
+
+        # Witness path reconstruction (parent chain back to a start).
+        path = [bad_absorbing]
+        cur = bad_absorbing
+        while parent.get(cur) is not None:
+            cur = parent[cur]
+            path.append(cur)
+        path.reverse()
+        path_str = " -> ".join(str(v) for v in path)
+
+        def _trunc(s: set[int], k: int = 10) -> str:
+            ss = sorted(s)
+            return f"{ss[:k]}{'...' if len(ss) > k else ''}"
+
+        raise ValueError(
+            f"{context}: not all trajectories accumulate positive reward.\n"
+            "\n"
+            "Every trajectory from a starting vertex to absorption must\n"
+            "visit at least one vertex with reward > 0. Otherwise the\n"
+            "reward-transformed PDF is sub-probability and likelihood\n"
+            "inference is biased upward.\n"
+            "\n"
+            f"  Rewarded vertices (count: {len(rewarded)}): {_trunc(rewarded)}\n"
+            f"  Starting vertices: {_trunc(starts)}\n"
+            f"  Absorbing vertices: {_trunc(absorbing)}\n"
+            f"  Witness path skipping all rewards:\n"
+            f"    {path_str}\n"
+            "\n"
+            "Fix one of:\n"
+            "  (1) Include more states in the reward decomposition so\n"
+            "      every trajectory hits at least one rewarded state.\n"
+            "  (2) Use graph.states().T (full transpose, NO [:-1] slice)\n"
+            "      as your reward matrix - covers every state.\n"
+            "  (3) Merge this reward vector with another so the combined\n"
+            "      vector covers all trajectories.\n"
+            "\n"
+            "If you knowingly want a sub-stochastic likelihood (rare),\n"
+            "pass validate_rewards=False to opt out and accept the bias."
+        )
+
+    def _validate_rewards(
+        self,
+        rewards,
+        *,
+        allow_2d: bool = True,
+        check_coverage: bool = True,
+        coverage_mode: str = "raise",
+        context: str = "rewards",
+    ) -> np.ndarray:
+        """Unified validator for reward arrays (shape + coverage).
+
+        Parameters
+        ----------
+        rewards : array-like
+            1D ``(n_vertices,)`` or 2D ``(n_features, n_vertices)``.
+        allow_2d : bool
+            If False, reject 2D arrays (e.g. when called from
+            ``Graph.expectation``, ``Graph.moments``, or any 1D-only
+            entry point).
+        check_coverage : bool
+            If True, also run the coverage check (every absorbing
+            trajectory must accumulate positive reward). Set False
+            from ``reward_transform`` (which warns rather than raises
+            on coverage failure).
+        coverage_mode : {"raise", "report", "warn"}, default "raise"
+            How to handle coverage failures:
+
+            - ``"raise"`` (default, backwards-compat): raise
+              ``ValueError`` with a witness-path diagnostic.
+            - ``"report"``: never raise; caller inspects the returned
+              array and uses ``_partial_coverage_features`` to decide
+              what to do. Used by ``Graph.svgd`` to switch to a
+              zero-inflated likelihood automatically.
+            - ``"warn"``: emit one ``UserWarning`` per offending
+              feature; no raise. Used by ``Graph.sample`` (which
+              returns mixture samples naturally) and
+              ``Graph.reward_transform`` (Laplace-transform users).
+        context : str
+            Used to label error / warning messages (e.g. "rewards",
+            "feature 2 rewards").
+
+        Returns
+        -------
+        np.ndarray
+            The same rewards as a float64 np.ndarray (caller can use
+            it directly without re-converting).
+
+        Raises
+        ------
+        ValueError
+            On shape mismatch (always) or coverage failure (only when
+            ``check_coverage=True`` and ``coverage_mode="raise"``).
+        """
+        arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+
+        # ---- Shape check (O(1), always runs) -----------------------
+        if arr.ndim == 1:
+            if arr.shape[0] != n_v:
+                raise ValueError(
+                    f"{context}: 1D rewards must have shape "
+                    f"(n_vertices={n_v},), got shape {arr.shape}."
+                )
+        elif arr.ndim == 2:
+            if not allow_2d:
+                raise ValueError(
+                    f"{context}: 2D rewards not accepted here (this "
+                    f"entry point requires 1D, shape "
+                    f"(n_vertices={n_v},))."
+                )
+            if arr.shape[1] != n_v:
+                # Friendly transpose suggestion if the user clearly has
+                # it backwards: (n_vertices, n_features) instead of
+                # (n_features, n_vertices).
+                transpose_hint = ""
+                if arr.shape[0] == n_v:
+                    transpose_hint = (
+                        "\n  Hint: you appear to have a "
+                        f"(n_vertices={n_v}, n_features={arr.shape[1]}) "
+                        "array. Transpose it: rewards = rewards.T."
+                    )
+                raise ValueError(
+                    f"{context}: 2D rewards must have shape "
+                    f"(n_features, n_vertices={n_v}), got shape "
+                    f"{arr.shape}.{transpose_hint}"
+                )
+        else:
+            raise ValueError(
+                f"{context}: must be 1D (n_vertices={n_v},) or "
+                f"2D (n_features, n_vertices={n_v}); "
+                f"got shape {arr.shape}."
+            )
+
+        # ---- Absorbing-vertex check (O(V), always raises) ----------
+        # Rewards on absorbing vertices are a feature-engineering bug
+        # (the trajectory absorbs and stops, contributing 0 sojourn
+        # time to any reward there). This check fires before the
+        # coverage check regardless of coverage_mode, because it's
+        # not a modelling choice — it's invalid input.
+        if check_coverage:
+            if arr.ndim == 1:
+                self._validate_no_absorbing_reward(arr, context=context)
+            else:
+                for j in range(arr.shape[0]):
+                    self._validate_no_absorbing_reward(
+                        arr[j], context=f"{context}[feature {j}]"
+                    )
+
+        # ---- Coverage check (O(V+E) per feature, gated) ------------
+        if not check_coverage:
+            return arr
+
+        if coverage_mode not in ("raise", "report", "warn"):
+            raise ValueError(
+                f"coverage_mode must be one of "
+                f"'raise' | 'report' | 'warn'; got {coverage_mode!r}."
+            )
+
+        if arr.ndim == 1:
+            offenders: list[int] = []
+            messages: list[str] = []
+            try:
+                self._validate_reward_coverage(arr, context=context)
+            except ValueError as exc:
+                offenders.append(0)
+                messages.append(exc.args[0])
+        else:
+            offenders = []
+            messages = []
+            for j in range(arr.shape[0]):
+                try:
+                    self._validate_reward_coverage(
+                        arr[j], context=f"{context}[feature {j}]"
+                    )
+                except ValueError as exc:
+                    offenders.append(j)
+                    messages.append(exc.args[0])
+
+        if not offenders:
+            return arr
+
+        if coverage_mode == "raise":
+            if arr.ndim == 1:
+                raise ValueError(messages[0])
+            joined = "\n\n---\n\n".join(messages)
+            raise ValueError(
+                f"{context}: invalid rewards for features "
+                f"{offenders} (of {arr.shape[0]}).\n\n{joined}"
+            )
+        if coverage_mode == "warn":
+            import warnings
+            for msg in messages:
+                first_line = msg.splitlines()[0]
+                warnings.warn(
+                    f"{first_line} The resulting reward-transformed "
+                    "distribution is sub-stochastic; if you are using "
+                    "it for likelihood inference, Graph.svgd handles "
+                    "this automatically via a zero-inflated likelihood.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+        # mode == "report": silent; caller inspects via
+        # _partial_coverage_features to act on offenders.
+
+        return arr
+
+    def _initial_probability_vector(self) -> np.ndarray:
+        """Return the IPV as a length-n_vertices np.float64 array.
+
+        Reads the synthetic start vertex's outgoing edges; the
+        ``weight()`` of each edge is the initial probability mass
+        placed on the target vertex. Same convention used by
+        ``_starting_vertex_indices`` and ``absorbing_state_rewards``.
+        """
+        n_v = self.vertices_length()
+        alpha = np.zeros(n_v, dtype=np.float64)
+        for e in self.starting_vertex().edges():
+            w = float(e.weight())
+            if w > 0.0:
+                alpha[int(e.to().index())] = w
+        return alpha
+
+    def reward_visit_probability(
+        self,
+        rewards,
+        theta=None,
+    ):
+        """Probability of visiting any rewarded vertex before absorption.
+
+        For a 1D reward vector ``rewards`` and (parameterized) graph at
+        parameter ``theta``, returns the scalar probability that a
+        trajectory absorbed from the starting vertex visits at least
+        one vertex with reward > 0 before being absorbed. This is the
+        phase-type quantity
+
+            p(theta) = sum_{v in starts} alpha_v * h_v(theta)
+
+        where ``h_v(theta) = P(reach a rewarded vertex | start at v)``
+        and ``alpha`` is the IPV. ``h`` is computed via
+        ``Graph.backward_probabilities`` using the rewarded vertices
+        as the target set; the result depends only on graph topology,
+        IPV, and theta — NOT on observed reward times.
+
+        Parameters
+        ----------
+        rewards : array-like, shape (n_vertices,)
+            Per-vertex reward; only the nonzero pattern is used.
+        theta : array-like, optional
+            Parameter vector. If None, uses the graph's current
+            parameter setting. If a JAX tracer is passed, the
+            JAX-differentiable FFI path is used and the return is a
+            jax.Array. Otherwise the result is a Python float.
+
+        Returns
+        -------
+        float or jax.Array, shape ()
+            Probability p(theta) in [0, 1].
+
+        Notes
+        -----
+        When p < 1, some absorbing trajectories accumulate zero
+        cumulative reward. The induced reward distribution is then a
+        mixture (point mass at 0 + continuous part for r > 0); use
+        ``Graph.svgd(..., rewards=...)`` to fit it with a
+        zero-inflated likelihood automatically.
+        """
+        rewards_arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+        if rewards_arr.shape != (n_v,):
+            raise ValueError(
+                f"rewards must have shape (n_vertices={n_v},); "
+                f"got shape {rewards_arr.shape}."
+            )
+
+        rewarded = [int(v) for v in np.where(rewards_arr > 0.0)[0]]
+        if not rewarded:
+            # No rewarded vertices: p is trivially zero.
+            try:
+                import jax
+                if isinstance(theta, (jax.Array, jax.core.Tracer)):
+                    import jax.numpy as jnp
+                    return jnp.asarray(0.0, dtype=jnp.float64)
+            except ImportError:
+                pass
+            return 0.0
+
+        # JAX-traced theta routes through the FFI path.
+        try:
+            import jax
+            import jax.numpy as jnp
+            if isinstance(theta, (jax.Array, jax.core.Tracer)):
+                from .ffi_wrappers import compute_reward_visit_probability_ffi
+                structure_json = self.serialize()
+                alpha = jnp.asarray(
+                    self._initial_probability_vector(), dtype=jnp.float64,
+                )
+                return compute_reward_visit_probability_ffi(
+                    structure_json,
+                    theta,
+                    jnp.asarray(rewarded, dtype=jnp.int32),
+                    alpha,
+                )
+        except ImportError:
+            pass
+
+        # Concrete-theta path. Uses the graph's current parameter
+        # setting if theta is None; otherwise temporarily updates
+        # weights to compute h then restores them.
+        if theta is not None:
+            self.update_weights(np.asarray(theta, dtype=np.float64))
+
+        h = self.backward_probabilities(rewarded)
+        alpha = self._initial_probability_vector()
+        return float(np.sum(alpha * h))
+
+    def _partial_coverage_features(self, rewards) -> list[int]:
+        """Return indices of features (rows) that fail the coverage check.
+
+        For 1D rewards returns ``[0]`` if the single vector fails,
+        otherwise ``[]``. For 2D rewards ``(n_features, n_vertices)``
+        returns the list of offending feature indices. Reuses the
+        existing ``_validate_reward_coverage`` BFS — just catches the
+        ValueError instead of letting it propagate.
+        """
+        arr = np.asarray(rewards, dtype=np.float64)
+        if arr.ndim == 1:
+            try:
+                self._validate_reward_coverage(arr, context="rewards")
+                return []
+            except ValueError:
+                return [0]
+        assert arr.ndim == 2, "expected 1D or 2D rewards after shape check"
+        offenders: list[int] = []
+        for j in range(arr.shape[0]):
+            try:
+                self._validate_reward_coverage(
+                    arr[j], context=f"rewards[feature {j}]"
+                )
+            except ValueError:
+                offenders.append(j)
+        return offenders
+
+    def _attach_zero_inflated_term(
+        self,
+        model,
+        *,
+        rewards,
+        offenders: list[int],
+        observed_data,
+    ) -> None:
+        """Wire the zero-inflated likelihood term onto an SVGD model.
+
+        Attaches two attributes to ``model``:
+
+        - ``_zero_inflated_p_fn`` : callable ``theta -> jax.Array``,
+          returning a vector of ``p_j(theta) = P(visit a rewarded
+          vertex in feature j | theta)`` for the offending features
+          (length ``len(offenders)``). JAX-differentiable.
+        - ``_n_zero_per_feature`` : np.int64 array of shape
+          ``(len(offenders),)`` counting zero-valued observations per
+          offending feature. Computed once at attach time from the
+          user's ``observed_data``.
+
+        ``SVGD._log_prob_unified`` reads these to add the
+        ``Σ_j n_zero_j * log(1 - p_j(theta))`` term to the
+        log-likelihood.
+        """
+        import jax.numpy as jnp
+        from .svgd import SparseObservations, is_sparse_observations
+
+        arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+        if arr.ndim == 1:
+            offender_reward_rows = [arr]
+        else:
+            offender_reward_rows = [arr[j] for j in offenders]
+
+        # Per-feature zero counts from observed_data.
+        n_zero_per_feature = np.zeros(len(offenders), dtype=np.int64)
+        if is_sparse_observations(observed_data):
+            values = np.asarray(observed_data.values)
+            feat_idx = np.asarray(observed_data.features)
+            for k, j in enumerate(offenders):
+                mask = feat_idx == j
+                if not np.any(mask):
+                    n_zero_per_feature[k] = 0
+                    continue
+                vals_j = values[mask]
+                n_zero_per_feature[k] = int(
+                    np.sum((vals_j == 0.0) & ~np.isnan(vals_j))
+                )
+        else:
+            obs = np.asarray(observed_data)
+            if obs.ndim == 1:
+                # 1D path: rewards must be 1D, single offender == feature 0.
+                n_zero_per_feature[0] = int(np.sum(obs == 0.0))
+            elif obs.ndim == 2:
+                # 2D dense (NaN-padded) observations.
+                for k, j in enumerate(offenders):
+                    col = obs[:, j]
+                    n_zero_per_feature[k] = int(
+                        np.sum((col == 0.0) & ~np.isnan(col))
+                    )
+            else:
+                raise ValueError(
+                    "_attach_zero_inflated_term: observed_data must be "
+                    "1D, 2D, or SparseObservations; got ndim "
+                    f"{obs.ndim}."
+                )
+
+        # Skip the wiring entirely when there are NO zero observations
+        # for any offending feature. The math then contributes nothing
+        # (n_zero * log(1 - p) == 0) and we save the runtime cost of
+        # the extra FFI call. The legacy path is correct in that case.
+        if not np.any(n_zero_per_feature > 0):
+            return
+
+        # Precompute the (concrete) rewarded-vertex index arrays once
+        # so the JAX-traced p(theta) function can use static-sized
+        # int32 arrays inside the FFI call.
+        rewarded_per_feature: list[np.ndarray] = []
+        for row in offender_reward_rows:
+            rewarded = np.where(row > 0.0)[0].astype(np.int32)
+            rewarded_per_feature.append(rewarded)
+
+        alpha = self._initial_probability_vector()
+        structure_json = self.serialize()
+
+        from .ffi_wrappers import compute_reward_visit_probability_ffi
+
+        def _zero_inflated_p_fn(theta):
+            """Return p_j(theta) for each offending feature j.
+
+            Uses ``compute_reward_visit_probability_ffi`` which is
+            built on ``pure_callback`` with ``vmap_method='sequential'``
+            — so under vmap-over-particles the underlying C handler
+            is invoked once per particle (the C handler does not
+            natively support batched theta).
+            """
+            alpha_j = jnp.asarray(alpha, dtype=jnp.float64)
+            ps = []
+            for rewarded in rewarded_per_feature:
+                rewarded_j = jnp.asarray(rewarded, dtype=jnp.int32)
+                ps.append(
+                    compute_reward_visit_probability_ffi(
+                        structure_json, theta, rewarded_j, alpha_j,
+                    )
+                )
+            return jnp.stack(ps)
+
+        model._zero_inflated_p_fn = _zero_inflated_p_fn
+        model._n_zero_per_feature = jnp.asarray(
+            n_zero_per_feature, dtype=jnp.float64,
+        )
 
     def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         """
@@ -3594,8 +4234,18 @@ class Graph(_Graph):
             param_edge_pairs.add((from_idx, to_idx))
 
         # Extract regular edges between vertices (excluding starting vertex)
-        # Skip edges that have parameterized versions
+        # Skip edges that have parameterized versions.
+        #
+        # Coefficient-less edges (constant edges with
+        # coefficients_length == 0, created by add_aux_vertex_constant)
+        # are emitted into a separate ``constant_edges`` list. The
+        # GraphBuilder reads them and constructs them via direct
+        # ptd_edge struct manipulation, bypassing the EDGE_MODE lock so
+        # they can coexist with parameterised edges on the same graph.
+        # This is the round-trip path for the t-aux trapping loops in
+        # joint_stop_prob_graph().
         edges_list = []
+        constant_edges_list = []
         start_vertex_idx = start.index()
         for i, v in enumerate(vertices_list):
             # Skip starting vertex edges (they're handled separately)
@@ -3611,9 +4261,19 @@ class Graph(_Graph):
                     # Skip if this edge also has a parameterized version
                     if (from_idx, to_idx) not in param_edge_pairs:
                         weight = edge.weight()
-                        edges_list.append([from_idx, to_idx, weight])
+                        # Route coefficient-less constant edges to a
+                        # dedicated list so the deserialiser can rebuild
+                        # them without triggering the EDGE_MODE lock.
+                        if edge.coefficients_length() == 0:
+                            constant_edges_list.append([from_idx, to_idx, weight])
+                        else:
+                            edges_list.append([from_idx, to_idx, weight])
 
         edges = np.array(edges_list, dtype=np.float64) if edges_list else np.empty((0, 3), dtype=np.float64)
+        constant_edges = (
+            np.array(constant_edges_list, dtype=np.float64)
+            if constant_edges_list else np.empty((0, 3), dtype=np.float64)
+        )
 
         # Extract starting vertex regular edges (skip those with parameterized versions)
         start_edges_list = []
@@ -3632,6 +4292,7 @@ class Graph(_Graph):
             'states': states,
             'vertex_indices': vertex_indices,
             'edges': edges,
+            'constant_edges': constant_edges,
             'start_edges': start_edges,
             'param_edges': param_edges,
             'start_param_edges': start_param_edges,
@@ -4778,6 +5439,8 @@ extern "C" {{
         sd: float = 5.0,
         verbose: bool = False,
         granularity: int = 0,
+        exposure_arr=None,
+        exposure_param_index: int | None = None,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4961,18 +5624,231 @@ extern "C" {{
                     )
             fixed_indices = [idx for idx, _v in broadcast_fixed]
 
-        def model(theta, _observed_arg=None, rewards=None):
-            theta_arr = jnp.atleast_1d(theta)
-            joint_probs = jsp.daisy_chain_joint_probs(
-                epoch_thetas=theta_arr.reshape(n_epochs, param_length),
-                epoch_dts=epoch_dts,
-                initial_ipv=initial_ipv,
-                t_eval=t_eval,
-                fixed_indices=fixed_indices,
-                granularity=granularity,
+        # Two model variants:
+        #   (a) no exposure — one daisy-chain FFI call, then per-obs
+        #       indexing into the (n_t,) result vector.
+        #   (b) exposure + exposure_param_index — per-obs theta_batch
+        #       with the exposure_param_index slot broadcast across all
+        #       epochs; ONE batched FFI call of shape (n_obs, n_t)
+        #       (the C++ handler parallelises over the batch with
+        #       OpenMP). No Python-side lax.map fan-out.
+        if exposure_arr is None:
+            def model(theta, _observed_arg=None, rewards=None):
+                theta_arr = jnp.atleast_1d(theta)
+                joint_probs = jsp.daisy_chain_joint_probs(
+                    epoch_thetas=theta_arr.reshape(n_epochs, param_length),
+                    epoch_dts=epoch_dts,
+                    initial_ipv=initial_ipv,
+                    t_eval=t_eval,
+                    fixed_indices=fixed_indices,
+                    granularity=granularity,
+                )
+                per_obs = joint_probs[observed_pos_jnp]
+                return per_obs, jnp.zeros(2)
+        else:
+            # Validate per-obs inputs.
+            if exposure_param_index is None:
+                raise ValueError(
+                    "_daisy_chain_svgd_model: exposure_param_index must "
+                    "be set when exposure_arr is set."
+                )
+            alpha_arr = jnp.asarray(exposure_arr, dtype=jnp.float64)
+            if alpha_arr.ndim != 1:
+                raise ValueError(
+                    f"exposure_arr must be 1D, got shape {alpha_arr.shape}."
+                )
+            n_obs = int(alpha_arr.shape[0])
+            n_obs_observed = int(observed_pos_jnp.shape[0])
+            if n_obs != n_obs_observed:
+                raise ValueError(
+                    f"exposure_arr length ({n_obs}) does not match the "
+                    f"number of observations ({n_obs_observed})."
+                )
+
+            # Auto-dedup of identical exposure values: identical alpha_i
+            # produces an identical theta row, which the FFI handler
+            # would otherwise compute redundantly. We dedup once at
+            # model-build time so every subsequent forward call (and
+            # every FD-backward perturbation) runs only the unique
+            # rows; results are scattered back per-obs via inverse_idx.
+            # This is bit-exact: same alpha → identical FFI output.
+            # Users can amplify the benefit by pre-rounding their
+            # exposures (e.g. np.round(tree_spans, -3)) before calling
+            # svgd; n_obs=312 with K=30 unique rounded values runs ~10×
+            # fewer chains.
+            _alpha_np = np.asarray(alpha_arr)
+            _unique_alphas_np, _inverse_idx_np = np.unique(
+                _alpha_np, return_inverse=True
             )
-            per_obs = joint_probs[observed_pos_jnp]
-            return per_obs, jnp.zeros(2)
+            unique_alpha_arr = jnp.asarray(_unique_alphas_np, dtype=jnp.float64)
+            inverse_idx_jnp = jnp.asarray(_inverse_idx_np, dtype=jnp.int32)
+            n_unique = int(unique_alpha_arr.shape[0])
+
+            # Flat-theta indices that should be scaled per observation:
+            # one per epoch, all pointing to the local
+            # exposure_param_index slot.
+            flat_exposure_indices = jnp.asarray(
+                [epoch * param_length + exposure_param_index
+                 for epoch in range(n_epochs)],
+                dtype=jnp.int32,
+            )
+
+            # Build the structure_json + initial_ipv_batched once outside
+            # the model so the batched FFI call sees them as static
+            # closures. Mirrors the structure-build path inside
+            # daisy_chain_joint_probs.
+            from .ffi_wrappers import (
+                _make_json_serializable,
+                compute_daisy_chain_joint_probs_ffi,
+            )
+            import json as _json_mod_local
+            theta_dim_local = self.param_length()  # = param_length here
+            n_ipv_local = len(jsp._ipv_target_indices)
+            initial_ipv_arr_local = jnp.asarray(initial_ipv, dtype=jnp.float64)
+            # Initial IPV with leading batch axis = 1. The FFI handler
+            # at graph_builder_ffi.cpp:1261-1266 broadcasts
+            # ipv_batch_size=1 against any theta_batch_size>=1, so this
+            # single row serves both the single-particle (B=1) and the
+            # vmapped multi-particle (B=P*K) paths.
+            initial_ipv_one = initial_ipv_arr_local[None, :]
+            t_eval_resolved = (
+                t_eval if t_eval is not None
+                else max(float(sum(epoch_dts)) * 4.0, 10.0)
+            )
+            structure_local = _make_json_serializable(
+                jsp.serialize(theta_dim=theta_dim_local)
+            )
+            structure_local["_daisy_chain"] = {
+                "n_epochs": int(n_epochs),
+                "param_length": int(theta_dim_local),
+                "t_eval": float(t_eval_resolved),
+                "granularity": int(granularity),
+                "epoch_dts": [float(x) for x in epoch_dts],
+                "ipv_target_indices": [int(x) for x in jsp._ipv_target_indices],
+                "t_aux_keys": [int(k) for k in jsp._t_aux_map.keys()],
+                "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
+                "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
+            }
+            structure_json_local = _json_mod_local.dumps(structure_local)
+
+            # Per-obs forward + custom_vjp (FD) wrapping a SINGLE batched
+            # FFI call. eps matches the legacy daisy_chain_joint_probs
+            # FD pattern.
+            eps_local = 1e-7
+            fixed_set_local = set(fixed_indices) if fixed_indices is not None else set()
+
+            # Precomputed scale matrix: shape (n_unique, theta_dim), 1.0
+            # everywhere except in the flat_exposure_indices columns,
+            # which hold the per-unique alpha values. Lifted out of the
+            # forward function so it's a JIT-time constant (all inputs
+            # are concrete at model-build time).
+            scale_per_unique = (
+                jnp.ones(
+                    (n_unique, n_epochs * param_length), dtype=jnp.float64
+                )
+                .at[:, flat_exposure_indices]
+                .multiply(unique_alpha_arr[:, None])
+            )
+
+            from jax import custom_batching as _cb_local
+
+            # Core per-particle forward, wrapped with custom_vmap so that
+            # under ANY vmap composition (vmap(f), vmap(grad(f)), etc.)
+            # the batched call is intercepted by our rule and dispatched
+            # as a single fat FFI call of shape (P*n_unique, theta_dim).
+            # Without this rule, the FFI call inside the body would get
+            # auto-batched by JAX's default expand_dims rule, producing
+            # a 3D theta buffer that the C++ handler rejects.
+            @_cb_local.custom_vmap
+            def _per_obs_core(theta_flat):
+                # 1D input path: theta_flat shape (theta_dim,). Build a
+                # (n_unique, theta_dim) batch and call FFI once.
+                theta_pk = theta_flat[None, :] * scale_per_unique
+                joint = compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local,
+                    theta_pk,
+                    initial_ipv_one,
+                )  # (n_unique, n_t)
+                # Scatter to per-obs positions via inverse_idx_jnp and
+                # pick each obs's own t-vertex. Two paired integer
+                # arrays of equal length -> (n_obs,).
+                return joint[inverse_idx_jnp, observed_pos_jnp]
+
+            @_per_obs_core.def_vmap
+            def _per_obs_core_vmap_rule(axis_size, in_batched, theta_flat):
+                # theta_flat has been lifted to (axis_size, theta_dim)
+                # by vmap. Fuse the leading axis with our internal
+                # n_unique batch into one fat FFI call.
+                del in_batched
+                P = axis_size
+                # (P, 1, theta_dim) * (1, n_unique, theta_dim) ->
+                # (P, n_unique, theta_dim), reshape to (P*K, theta_dim).
+                theta_pk = (
+                    theta_flat[:, None, :] * scale_per_unique[None, :, :]
+                ).reshape(P * n_unique, n_epochs * param_length)
+                joint = compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local,
+                    theta_pk,
+                    initial_ipv_one,
+                )  # (P*n_unique, n_t)
+                joint = joint.reshape(P, n_unique, -1)  # (P, n_unique, n_t)
+                per_obs_2d = joint[:, inverse_idx_jnp, observed_pos_jnp]
+                # out is batched along axis 0.
+                return per_obs_2d, True
+
+            # custom_vjp wraps _per_obs_core to provide the FD backward.
+            # The custom_vmap rule on _per_obs_core ensures that even
+            # the bwd's internal calls to _per_obs_core (which would
+            # otherwise be auto-batched by vmap) go through our explicit
+            # rule, producing a 2D FFI call instead of a rejected 3D one.
+            @jax.custom_vjp
+            def _per_obs_autodiff(theta_flat):
+                return _per_obs_core(theta_flat)
+
+            def _per_obs_fwd(theta_flat):
+                return _per_obs_core(theta_flat), theta_flat
+
+            def _per_obs_bwd(theta_flat, cotangent):
+                """Central-difference VJP.
+
+                theta_flat is 1D (theta_dim,) at the autodiff boundary
+                — vmap composes with custom_vjp by tracing this bwd
+                with a hidden batch axis. Operations inside the body
+                are vmap'd transparently, but our _per_obs_core's
+                custom_vmap rule intercepts the FFI call so the batch
+                stays 2D, never 3D.
+                """
+                n_params = theta_flat.shape[0]
+                grads = []
+                for i in range(n_params):
+                    if i in fixed_set_local:
+                        grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                        continue
+                    tp = theta_flat.at[i].add(eps_local)
+                    tm = theta_flat.at[i].add(-eps_local)
+                    jp = _per_obs_core(tp)
+                    jm = _per_obs_core(tm)
+                    grads.append(
+                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                    )
+                return (jnp.stack(grads),)
+
+            _per_obs_autodiff.defvjp(_per_obs_fwd, _per_obs_bwd)
+
+            def model(theta, _observed_arg=None, rewards=None):
+                theta_arr = jnp.atleast_1d(theta)
+                per_obs = _per_obs_autodiff(theta_arr)
+                return per_obs, jnp.zeros(2)
+
+            # Tags the model so SVGD.__init__ knows:
+            #   _handles_exposure_internally: do NOT apply the outer
+            #     _wrap_model_with_exposure wrapper (the per-obs scaling
+            #     is already inside the FFI).
+            #   _handles_particle_vmap: do NOT force parallel_mode='none';
+            #     the custom_vmap rule above batches particles natively
+            #     so vmap-over-particles fuses with the internal batch.
+            model._handles_exposure_internally = True
+            model._handles_particle_vmap = True
 
         # broadcast_fixed already built above (alongside fixed_indices)
         # so we could pass fixed_indices into the model's custom_vjp.
@@ -5098,6 +5974,9 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
+             exposure: ArrayLike | float | None = None,
+             exposure_param_index: int | None = None,
+             validate_rewards: bool = True,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5268,6 +6147,58 @@ extern "C" {{
             ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
         daisy_chain_t_eval_tol : float, default=1e-3
             Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
+        exposure : float, array-like, or None, default=None
+            Per-observation **exposure** :math:`\\alpha_i` — a known
+            multiplicative scaling on a rate-typed component of
+            :math:`\\boldsymbol{\\theta}`. For observation ``i`` the
+            model is evaluated at :math:`\\boldsymbol{\\theta}^{(i)}`
+            where :math:`\\theta^{(i)}_j = \\theta_j` for
+            :math:`j \\neq k` and
+            :math:`\\theta^{(i)}_k = \\theta_k \\cdot \\alpha_i`,
+            with :math:`k` = ``exposure_param_index``. The exposed
+            rate parameter and :math:`\\alpha_i` jointly determine
+            each observation's expected event count (or hazard, or
+            PMF, depending on the model).
+
+            This is the GLM "exposure" / "offset" construct: it
+            linearises the relationship between a rate parameter and an
+            observation-specific outcome that scales with a known
+            quantity. Concrete instances:
+
+            - **Coalescent-with-mutation**: :math:`\\alpha_i` = segment
+              length :math:`L_i` in bases; :math:`\\theta_k` is the
+              per-base mutation rate.
+            - **Survival / failure-time**: :math:`\\alpha_i` =
+              time-at-risk for unit :math:`i`; :math:`\\theta_k` is the
+              hazard rate.
+            - **Spatial Poisson**: :math:`\\alpha_i` = area or volume
+              of region :math:`i`; :math:`\\theta_k` is the intensity
+              per unit area.
+
+            Forms:
+
+            - ``None`` (default): no exposure correction; existing
+              behaviour.
+            - scalar: same :math:`\\alpha` applied to every observation.
+            - 1D array of length ``n_observations``: per-observation
+              :math:`\\alpha`. For dense 2D ``observed_data`` of shape
+              ``(n_observations, n_features)`` the same
+              :math:`\\alpha_i` is shared across all features of
+              observation :math:`i`.
+
+            Requires ``exposure_param_index`` to be set. Not supported
+            for ``SparseObservations`` (raises ``NotImplementedError``).
+        exposure_param_index : int or None, default=None
+            Index :math:`k` of the rate-typed parameter in
+            :math:`\\boldsymbol{\\theta}` that ``exposure`` scales.
+            Required when ``exposure`` is set. Must be in
+            ``[0, param_length)``.
+
+            Under daisy-chain (``epoch_starts=[…]``),
+            :math:`\\boldsymbol{\\theta}` has flat layout
+            ``(n_epochs * param_length,)``;
+            ``exposure_param_index`` remains the *local* per-epoch
+            index and is broadcast across every epoch internally.
 
         Returns
         -------
@@ -5338,7 +6269,7 @@ extern "C" {{
                 "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
             ) from e
 
-        from .svgd import SVGD
+        from .svgd import SVGD, StepSizeSchedule, RegularizationSchedule
 
         # Validate SVGD parameters
         if n_particles is not None and n_particles < 1:
@@ -5349,11 +6280,89 @@ extern "C" {{
 
         if learning_rate is not None and not isinstance(learning_rate, StepSizeSchedule) and isinstance(learning_rate, (int, float, np.integer, np.floating)) and learning_rate <= 0:
             raise ValueError(f"learning_rate must be positive, got {learning_rate}")
-        
+
         if not isinstance(regularization, RegularizationSchedule) and regularization < 0:
             raise ValueError(f"regularization must be >= 0, got {regularization}")
         if nr_moments < 1:
             raise ValueError(f"nr_moments must be >= 1, got {nr_moments}")
+
+        # Centralised combinational validation. Catches invalid combos
+        # (graph kind × continuous/discrete × observation shape × rewards
+        # × epochs × fixed × exposure × ...) before any model is
+        # constructed; see src/phasic/svgd_config.py for the rule list.
+        from .svgd_config import from_svgd_call as _svgd_from_call, validate as _svgd_validate
+        # Probe the regularization at the *current* schedule position (or
+        # use the scalar). The validator only needs to know whether
+        # regularization is positive at any point during the run.
+        _reg_probe = (
+            float(regularization(0)) if isinstance(regularization, RegularizationSchedule)
+            else float(regularization)
+        )
+        _svgd_validate(_svgd_from_call(
+            self,
+            observed_data,
+            rewards=rewards,
+            fixed=fixed,
+            epoch_starts=epoch_starts,
+            exposure=exposure,
+            exposure_param_index=exposure_param_index,
+            param_transform=param_transform,
+            positive_params=positive_params,
+            preconditioner=preconditioner,
+            regularization=_reg_probe,
+            nr_moments=nr_moments,
+            joint_index=joint_index,
+        ))
+
+        # Reward-vector structural validation (shape + coverage).
+        # Skipped when joint_index is active (rewards then encode joint
+        # observation indices, not vertex-level reward weights).
+        #
+        # Coverage failures DO NOT raise here: they're handled by a
+        # zero-inflated likelihood that models the point mass at
+        # r = 0 (trajectories that absorb without visiting any
+        # rewarded vertex) separately from the continuous part. The
+        # mode-switch is informational; users see a one-time
+        # UserWarning naming the offending features.
+        _partial_coverage_features_for_zi: list[int] = []
+        if rewards is not None and validate_rewards and not joint_index:
+            rewards = self._validate_rewards(
+                rewards,
+                allow_2d=True,
+                coverage_mode="report",
+                context="rewards",
+            )
+            _partial_coverage_features_for_zi = (
+                self._partial_coverage_features(rewards)
+            )
+            if _partial_coverage_features_for_zi:
+                import warnings
+                arr_for_msg = np.asarray(rewards, dtype=np.float64)
+                if arr_for_msg.ndim == 1:
+                    warnings.warn(
+                        "rewards: partial coverage (some absorbing "
+                        "trajectories do not visit any rewarded "
+                        "vertex). Using zero-inflated likelihood "
+                        "automatically: SVGD models the point mass "
+                        "at r = 0 via p(theta) = "
+                        "P(visit a rewarded vertex). To use the "
+                        "legacy sub-stochastic continuous-only "
+                        "likelihood, pass validate_rewards=False.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                else:
+                    warnings.warn(
+                        f"rewards: features "
+                        f"{_partial_coverage_features_for_zi} have "
+                        f"partial coverage (of {arr_for_msg.shape[0]} "
+                        "total features). Using zero-inflated "
+                        "likelihood automatically for those features. "
+                        "To use the legacy sub-stochastic continuous-"
+                        "only likelihood, pass validate_rewards=False.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
 
         # Validate observed_data: must be 1-D array or SparseObservations
         # (skip for joint probability graphs — they accept lists of tuples)
@@ -5436,8 +6445,7 @@ extern "C" {{
             if regularization > 0:
                 print("Warning: Moment regularization is not implemented with joint_index=True")
                 raise NotImplementedError(
-                    "Moment regularization is not supported with joint_index=True. "
-                    "Set regularization=0 or use joint_index=False."
+                    "Moment regularization is not supported with joint probability models."
                 )
             if rewards is not None:
                 print("Warning: Reward transformation is not supported with joint_index=True")
@@ -5460,6 +6468,25 @@ extern "C" {{
                     granularity=daisy_chain_granularity,
                     verbose=verbose,
                 )
+                # When exposure is set, push the per-observation rate
+                # scaling INTO the daisy-chain model: it builds a per-
+                # obs theta_batch and dispatches one batched FFI call.
+                # The outer SVGD wrapper sees the model's
+                # _handles_exposure_internally tag and does NOT apply
+                # _wrap_model_with_exposure on top.
+                _daisy_exposure = (
+                    np.asarray(exposure, dtype=np.float64).ravel()
+                    if exposure is not None else None
+                )
+                # Scalar exposure broadcasts to one entry per
+                # observation; the validator already enforces the
+                # length constraint.
+                if _daisy_exposure is not None and _daisy_exposure.size == 1:
+                    _daisy_exposure = np.full(
+                        (len(observed_data),),
+                        float(_daisy_exposure.item()),
+                        dtype=np.float64,
+                    )
                 model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
                     observed_indices=observed_data,
                     epoch_starts=epoch_starts,
@@ -5469,6 +6496,8 @@ extern "C" {{
                     sd=5.0,
                     verbose=verbose,
                     granularity=daisy_chain_granularity,
+                    exposure_arr=_daisy_exposure,
+                    exposure_param_index=exposure_param_index,
                 )
             else:
                 # Parse fixed to get mask for joint_index model
@@ -5510,6 +6539,21 @@ extern "C" {{
                 theta_dim=theta_dim
             )
 
+        # Zero-inflated likelihood wiring: when the rewards validator
+        # flagged partial-coverage features above, attach a
+        # JAX-differentiable p(theta) function and per-feature zero
+        # counts so SVGD's _log_prob_unified can add the
+        # n_zero * log(1 - p(theta)) term. Models without partial
+        # coverage carry no attributes and the legacy path runs
+        # unchanged.
+        if _partial_coverage_features_for_zi:
+            self._attach_zero_inflated_term(
+                model,
+                rewards=rewards,
+                offenders=_partial_coverage_features_for_zi,
+                observed_data=observed_data,
+            )
+
         # Create SVGD object
         svgd = SVGD(
             observed_data=observed_data,
@@ -5536,7 +6580,9 @@ extern "C" {{
             rewards=rewards,
             fixed=fixed,
             optimizer=optimizer,
-            preconditioner=preconditioner
+            preconditioner=preconditioner,
+            exposure=exposure,
+            exposure_param_index=exposure_param_index,
         )
 
         # Run inference
@@ -8320,12 +9366,21 @@ extern "C" {{
             nv = vmap[v.index()]
 
             if v.index() in t_vertex_old_indices:
-                t_aux_vertex = new.create_vertex([0] * self.state_length())
-                # Unit-weight parameterised edges in both directions; using
-                # the modern list-based add_edge to avoid the
-                # add_edge_parameterized deprecation warning.
-                nv.add_edge(t_aux_vertex, [1.0] * param_length)
-                t_aux_vertex.add_edge(nv, [1.0] * param_length)
+                # Install the trapping loop as bidirectional
+                # COEFFICIENT-LESS constant-weight edges. The previous
+                # implementation used parameterised edges with
+                # coefficient ``[1.0] * param_length``, but linear-mode
+                # weight evaluation gives ``Σ 1.0 · θ_k = θ_0 + θ_1 + …``,
+                # which (a) couples the trapping rate to theta and (b)
+                # under per-observation exposure scaling lets the
+                # mu-slot-times-alpha term inflate every t-aux edge in
+                # the JSP graph, blowing up λ_max and the
+                # uniformization auto-granularity. Using
+                # ``add_aux_vertex_constant`` makes both directions
+                # coefficient-less so ``ptd_graph_update_weights``
+                # skips them; the trapping rate stays at exactly 1.0
+                # regardless of theta or exposure.
+                t_aux_vertex = nv.add_aux_vertex_constant(1.0)
                 t_aux_map[nv.index()] = t_aux_vertex.index()
                 continue
 
@@ -8447,6 +9502,7 @@ extern "C" {{
                 "joint_stop_prob_graph()."
             )
 
+        _ensure_jax_active()
         epoch_thetas_arr = jnp.asarray(epoch_thetas)
         if epoch_thetas_arr.ndim != 2:
             raise ValueError(
@@ -8519,11 +9575,38 @@ extern "C" {{
         # custom_vjp wrapper differentiates only theta_flat (initial_ipv
         # is closed over and treated as fixed). Single FFI call replaces
         # the per-epoch pure_callback chain.
+        #
+        # _forward is also wrapped in custom_vmap so that under
+        # vmap(grad(loss))(particles), each FD perturbation in the
+        # backward dispatches ONE fat (P, theta_dim) FFI call instead
+        # of P separate expand_dims-batched calls. Without this rule
+        # the per-perturbation FFI dispatch would fan out per particle,
+        # multiplying dispatch overhead by P per gradient.
+        from jax import custom_batching as _cb_local
+
+        @_cb_local.custom_vmap
         def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
             return compute_daisy_chain_joint_probs_ffi(
                 structure_json_str,
                 theta_flat,
                 initial_ipv_arr,
+            )
+
+        @_forward.def_vmap
+        def _forward_vmap_rule(axis_size, in_batched, theta_flat):
+            # theta_flat: (axis_size, n_epochs * param_length).
+            # Dispatch as one fat 2D FFI call. initial_ipv is broadcast
+            # against the leading axis (the C++ handler supports
+            # ipv_batch_size=1 against any theta_batch_size — see
+            # graph_builder_ffi.cpp:1261-1266).
+            del axis_size, in_batched
+            return (
+                compute_daisy_chain_joint_probs_ffi(
+                    structure_json_str,
+                    theta_flat,
+                    initial_ipv_arr[None, :],  # (1, n_ipv)
+                ),
+                True,  # output is batched along axis 0
             )
 
         # Wrap the forward in a custom_vjp so jax.grad works via finite
@@ -8822,7 +9905,7 @@ extern "C" {{
 
     def joint_prob_table(self) -> pd.DataFrame:
 
-        if not (self._joint_prob_base_graph_indexer and self.is_discrete):
+        if not (self._joint_prob_base_graph_indexer):
             raise ValueError("Graph must be discrete and a joint probability representation.")
 
         outcomes, probs, t_vertex_indices = self._get_joint_probs()

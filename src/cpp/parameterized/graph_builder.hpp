@@ -284,6 +284,16 @@ private:
     std::vector<RegularEdge> edges_;
     std::vector<RegularEdge> start_edges_;  // From starting vertex
 
+    // Constant (coefficient-less) edges: (from_idx, to_idx, weight).
+    // Created by Vertex::add_aux_vertex_constant. They have
+    // coefficients_length == 0 in the C representation, so
+    // ptd_graph_update_weights skips them. The build() method
+    // reconstructs them by direct ptd_edge struct manipulation,
+    // bypassing the EDGE_MODE lock so they coexist with parameterised
+    // edges on the same graph (the t-aux trapping loops in the
+    // joint_stop_prob_graph).
+    std::vector<RegularEdge> constant_edges_;
+
     // Parameterized edges: (from_idx, to_idx, coefficients...)
     struct ParameterizedEdge {
         int from_idx;

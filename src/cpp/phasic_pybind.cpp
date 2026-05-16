@@ -4165,6 +4165,55 @@ Notes
 - Auxiliary vertices can be identified by their all-zero state
 )delim")
 
+    .def("add_aux_vertex_constant",
+        [](phasic::Vertex& self, double weight) -> phasic::Vertex {
+            return self.add_aux_vertex_constant(weight);
+        },
+        py::arg("weight"),
+        py::return_value_policy::reference_internal,
+        R"delim(
+Add an auxiliary vertex with both trapping-loop edges as
+coefficient-less constant edges.
+
+Like ``add_aux_vertex(rate)`` but works on **any** graph, including a
+parameterised one, by constructing both directions of the v <-> aux
+loop as edges with no coefficient vector. Such edges are skipped by
+``ptd_graph_update_weights`` (see ``src/c/phasic.c`` around L4435), so
+the trapping rate is decoupled from theta.
+
+This is the right primitive when you need a structural trapping loop
+on a parameterised graph and you do **not** want the loop's rate to
+depend on theta. The motivating use case is ``joint_stop_prob_graph``,
+where t-vertex <-> aux loops on a parameterised JSP graph would
+otherwise inflate the maximum exit rate proportionally to any
+per-observation theta scaling (e.g. ``exposure``), causing the
+uniformization auto-granularity to balloon and the daisy-chain FFI to
+slow to a crawl.
+
+Parameters
+----------
+weight : float
+    Strictly-positive constant weight applied to BOTH edges
+    (v -> aux and aux -> v). Typical value: 1.0.
+
+Returns
+-------
+Vertex
+    The created auxiliary vertex (state ``[0, ..., 0]``).
+
+Raises
+------
+ValueError
+    If ``weight`` is not a strictly-positive number.
+
+Notes
+-----
+- Both edges have ``coefficients_length == 0`` and constant ``weight``.
+- ``update_weights`` does not rescale these edges.
+- The aux vertex is identified by its all-zero state, like
+  ``add_aux_vertex``.
+)delim")
+
     .def("__repr__",
       [](phasic::Vertex &v) {
 
@@ -4420,6 +4469,20 @@ Returns
 -------
 float
     The edge weight.
+      )delim")
+
+    .def("coefficients_length", &phasic::Edge::coefficients_length, R"delim(
+Get the number of coefficients in this edge's coefficient vector.
+
+A return value of 0 indicates a coefficient-less *constant* edge whose
+weight is hardcoded and never rescaled by ``update_weights``. Such
+edges are created internally by ``add_aux_vertex_constant`` (the t-aux
+trapping loop on parameterised joint-stop-prob graphs).
+
+Returns
+-------
+int
+    Number of coefficients (0 for constant edges).
       )delim")
 
     .def("update_to", &phasic::Edge::update_to, R"delim(

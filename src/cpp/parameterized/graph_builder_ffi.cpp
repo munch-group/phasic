@@ -6,7 +6,12 @@
 #include <string>
 #include <memory>
 #include <limits>
+#include <mutex>
 #include <nlohmann/json.hpp>
+
+#ifdef PHASIC_HAVE_OPENMP
+#include <omp.h>
+#endif
 
 extern "C" {
 #include "../../c/phasic_log.h"
@@ -21,6 +26,67 @@ namespace ffi = xla::ffi;
 // Thread-local cache for GraphBuilder instances
 // Key: JSON string, Value: GraphBuilder instance
 thread_local std::unordered_map<std::string, std::shared_ptr<GraphBuilder>> builder_cache;
+
+// Parsed daisy-chain metadata + topology-derived lookup tables.
+// Computed once per builder (topology-only — no theta dependence) and
+// reused across every FFI call for that model. Eliminates the ~few-ms
+// JSON re-parse + the per-batch collapsed_pos rebuild.
+struct DaisyChainMeta {
+    int n_epochs;
+    int param_length;
+    double t_eval;
+    int granularity;
+    std::vector<double> epoch_dts;
+    std::vector<int> ipv_target_indices;
+    std::vector<int> t_aux_keys;
+    std::vector<int> t_aux_values;
+    std::vector<int> t_vertex_indices;
+
+    // Derived (topology-only).
+    size_t n_vertices = 0;
+    size_t n_collapsed = 0;
+    std::unordered_set<int> aux_set;
+    std::unordered_map<int, int> t_to_aux;
+    std::vector<int> collapsed_pos;  // length n_vertices, -1 for aux entries
+};
+
+// Cache parsed daisy-chain metadata by structure-json string.
+// Process-wide (not thread-local) because the metadata is read-only
+// after the initial population — multiple OMP threads can share it
+// safely. The initial population happens under
+// daisy_chain_meta_init_mutex. Keyed by json_str (rather than
+// GraphBuilder*) so the entry is shared across the per-thread
+// builder_cache copies of the same model.
+static std::unordered_map<std::string, std::shared_ptr<const DaisyChainMeta>>
+    daisy_chain_meta_cache;
+static std::mutex daisy_chain_meta_init_mutex;
+
+// Per-thread persistent Graph, keyed by GraphBuilder*. Each OMP thread
+// builds its Graph once on first use, then reuses via update_weights
+// (zero alloc) on every subsequent batch element. Eliminates the
+// dominant allocator-contention loss in the per-obs path.
+thread_local std::unordered_map<const GraphBuilder*, std::unique_ptr<phasic::Graph>>
+    per_thread_graph_cache;
+
+// Disables libomp dynamic-thread-count adjustment so OMP regions get
+// the full width configured via OMP_NUM_THREADS (i.e. phasic.config
+// cpu_threads). Logs the resulting omp_get_max_threads() once so we
+// can verify fan-out at runtime via PHASIC_LOG_LEVEL=DEBUG.
+static void ensure_omp_full_width_once() {
+#ifdef PHASIC_HAVE_OPENMP
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        omp_set_dynamic(0);
+        const int max_threads = omp_get_max_threads();
+        omp_set_num_threads(max_threads);
+        PTD_LOG_DEBUG(
+            "phasic FFI OMP: dynamic disabled, max_threads=%d "
+            "(from OMP_NUM_THREADS / phasic.config cpu_threads)",
+            max_threads
+        );
+    });
+#endif
+}
 
 ffi::Error ComputePmfFfiImpl(
     std::string_view structure_json,
@@ -1029,6 +1095,8 @@ ffi::Error DaisyChainJointProbsFfiImpl(
     ffi::ResultBuffer<ffi::F64> result
 ) {
     try {
+        ensure_omp_full_width_once();
+
         std::string json_str(structure_json);
 
         // Thread-local GraphBuilder cache lookup (mirrors
@@ -1048,65 +1116,105 @@ ffi::Error DaisyChainJointProbsFfiImpl(
             }
         }
 
-        // Parse daisy-chain metadata from the JSON. We use nlohmann::json
-        // here directly — same library GraphBuilder uses internally.
-        nlohmann::json j;
-        try {
-            j = nlohmann::json::parse(json_str);
-        } catch (const std::exception& e) {
-            return ffi::Error::InvalidArgument(
-                std::string("Failed to re-parse JSON for daisy-chain metadata: ") + e.what()
-            );
-        }
-        if (!j.contains("_daisy_chain")) {
-            return ffi::Error::InvalidArgument(
-                "structure_json must contain a top-level \"_daisy_chain\" "
-                "object with daisy-chain metadata."
-            );
-        }
-        const auto& dc = j["_daisy_chain"];
-        const int n_epochs       = dc.at("n_epochs").get<int>();
-        const int param_length   = dc.at("param_length").get<int>();
-        const double t_eval      = dc.at("t_eval").get<double>();
-        // Granularity is optional for backwards compatibility — older
-        // callers built JSON without this field. Default 0 = auto.
-        const int granularity    = dc.contains("granularity")
-                                   ? dc.at("granularity").get<int>() : 0;
-        std::vector<double> epoch_dts          = dc.at("epoch_dts").get<std::vector<double>>();
-        std::vector<int> ipv_target_indices    = dc.at("ipv_target_indices").get<std::vector<int>>();
-        std::vector<int> t_aux_keys            = dc.at("t_aux_keys").get<std::vector<int>>();
-        std::vector<int> t_aux_values          = dc.at("t_aux_values").get<std::vector<int>>();
-        std::vector<int> t_vertex_indices      = dc.at("t_vertex_indices").get<std::vector<int>>();
+        // Look up cached daisy-chain metadata (parsed JSON + topology-
+        // only lookup tables: aux_set, t_to_aux, collapsed_pos). On
+        // first call for this builder, parse the JSON, build a
+        // throwaway Graph to read n_vertices, then populate the cache.
+        std::shared_ptr<const DaisyChainMeta> meta;
+        {
+            std::lock_guard<std::mutex> lock(daisy_chain_meta_init_mutex);
+            auto meta_it = daisy_chain_meta_cache.find(json_str);
+            if (meta_it != daisy_chain_meta_cache.end()) {
+                meta = meta_it->second;
+            } else {
+                auto m = std::make_shared<DaisyChainMeta>();
+                nlohmann::json j;
+                try {
+                    j = nlohmann::json::parse(json_str);
+                } catch (const std::exception& e) {
+                    return ffi::Error::InvalidArgument(
+                        std::string("Failed to re-parse JSON for daisy-chain metadata: ") + e.what()
+                    );
+                }
+                if (!j.contains("_daisy_chain")) {
+                    return ffi::Error::InvalidArgument(
+                        "structure_json must contain a top-level \"_daisy_chain\" "
+                        "object with daisy-chain metadata."
+                    );
+                }
+                const auto& dc = j["_daisy_chain"];
+                m->n_epochs            = dc.at("n_epochs").get<int>();
+                m->param_length        = dc.at("param_length").get<int>();
+                m->t_eval              = dc.at("t_eval").get<double>();
+                // Granularity is optional for backwards compatibility — older
+                // callers built JSON without this field. Default 0 = auto.
+                m->granularity         = dc.contains("granularity")
+                                         ? dc.at("granularity").get<int>() : 0;
+                m->epoch_dts           = dc.at("epoch_dts").get<std::vector<double>>();
+                m->ipv_target_indices  = dc.at("ipv_target_indices").get<std::vector<int>>();
+                m->t_aux_keys          = dc.at("t_aux_keys").get<std::vector<int>>();
+                m->t_aux_values        = dc.at("t_aux_values").get<std::vector<int>>();
+                m->t_vertex_indices    = dc.at("t_vertex_indices").get<std::vector<int>>();
 
-        if (n_epochs < 1) {
-            return ffi::Error::InvalidArgument("n_epochs must be >= 1");
-        }
-        if (static_cast<int>(epoch_dts.size()) != n_epochs - 1) {
-            return ffi::Error::InvalidArgument(
-                "epoch_dts must have length n_epochs - 1"
-            );
-        }
-        if (t_aux_keys.size() != t_aux_values.size()) {
-            return ffi::Error::InvalidArgument(
-                "_t_aux_map keys and values must have the same length"
-            );
-        }
-        const size_t n_ipv  = ipv_target_indices.size();
-        const size_t n_t    = t_vertex_indices.size();
+                if (m->n_epochs < 1) {
+                    return ffi::Error::InvalidArgument("n_epochs must be >= 1");
+                }
+                if (static_cast<int>(m->epoch_dts.size()) != m->n_epochs - 1) {
+                    return ffi::Error::InvalidArgument(
+                        "epoch_dts must have length n_epochs - 1"
+                    );
+                }
+                if (m->t_aux_keys.size() != m->t_aux_values.size()) {
+                    return ffi::Error::InvalidArgument(
+                        "_t_aux_map keys and values must have the same length"
+                    );
+                }
 
-        // Build aux-set + (vertex_idx → t_aux_key) lookup tables and the
-        // collapsed-position arrays once. These depend only on the JSP
-        // graph topology, not on theta.
-        std::unordered_set<int> aux_set;
-        aux_set.reserve(t_aux_values.size());
-        for (int v : t_aux_values) aux_set.insert(v);
+                // aux_set + t_to_aux are pure topology — independent of
+                // graph instance. Compute now from the parsed JSON.
+                m->aux_set.reserve(m->t_aux_values.size());
+                for (int v : m->t_aux_values) m->aux_set.insert(v);
+                m->t_to_aux.reserve(m->t_aux_keys.size());
+                for (size_t k = 0; k < m->t_aux_keys.size(); ++k) {
+                    m->t_to_aux[m->t_aux_keys[k]] = m->t_aux_values[k];
+                }
 
-        // For each t-vertex key v_k, the index of its aux partner.
-        std::unordered_map<int, int> t_to_aux;
-        t_to_aux.reserve(t_aux_keys.size());
-        for (size_t k = 0; k < t_aux_keys.size(); ++k) {
-            t_to_aux[t_aux_keys[k]] = t_aux_values[k];
+                // collapsed_pos requires n_vertices, which is only
+                // available from a built Graph. Build a single
+                // throwaway here (small one-time cost; subsequent
+                // calls reuse the cached metadata).
+                std::vector<double> dummy_theta(m->param_length, 1.0);
+                phasic::Graph probe = builder->build(
+                    dummy_theta.data(), static_cast<size_t>(m->param_length)
+                );
+                m->n_vertices = probe.vertices_length();
+                m->collapsed_pos.assign(m->n_vertices, -1);
+                int rank = 0;
+                for (size_t i = 0; i < m->n_vertices; ++i) {
+                    if (m->aux_set.count(static_cast<int>(i))) continue;
+                    m->collapsed_pos[i] = rank++;
+                }
+                m->n_collapsed = static_cast<size_t>(rank);
+
+                daisy_chain_meta_cache[json_str] = m;
+                meta = m;
+            }
         }
+
+        const int n_epochs       = meta->n_epochs;
+        const int param_length   = meta->param_length;
+        const double t_eval      = meta->t_eval;
+        const int granularity    = meta->granularity;
+        const auto& epoch_dts          = meta->epoch_dts;
+        const auto& ipv_target_indices = meta->ipv_target_indices;
+        const auto& t_vertex_indices   = meta->t_vertex_indices;
+        const auto& aux_set            = meta->aux_set;
+        const auto& t_to_aux           = meta->t_to_aux;
+        const auto& collapsed_pos      = meta->collapsed_pos;
+        const size_t n_vertices  = meta->n_vertices;
+        const size_t n_collapsed = meta->n_collapsed;
+        const size_t n_ipv       = ipv_target_indices.size();
+        const size_t n_t         = t_vertex_indices.size();
 
         // Parse dimensions (handle vmap batching; mirrors
         // ComputeSojournTimesFfiImpl).
@@ -1157,8 +1265,22 @@ ffi::Error DaisyChainJointProbsFfiImpl(
             );
         }
 
-        // Per-batch daisy chain. OpenMP parallelises over particles when
-        // batched; each iteration owns its own fresh Graph.
+#ifdef PHASIC_HAVE_OPENMP
+        PTD_LOG_DEBUG(
+            "DaisyChainJointProbsFfiImpl: batch_size=%zu, "
+            "omp_get_max_threads()=%d",
+            batch_size, omp_get_max_threads()
+        );
+#else
+        PTD_LOG_DEBUG(
+            "DaisyChainJointProbsFfiImpl: batch_size=%zu, OpenMP disabled",
+            batch_size
+        );
+#endif
+
+        // Per-batch daisy chain. OpenMP parallelises over batch
+        // elements; each thread reuses a persistent Graph across
+        // batch elements via update_weights (no per-iter alloc).
         #pragma omp parallel for if(batch_size > 1)
         for (size_t b = 0; b < batch_size; ++b) {
             const double* theta_b =
@@ -1167,29 +1289,29 @@ ffi::Error DaisyChainJointProbsFfiImpl(
                 (ipv_batch_size > 1) ? ipv_data + b * ipv_len : ipv_data;
             double* result_b = result_data + b * n_t;
 
-            // Build fresh Graph per batch element (each runs in its own
-            // OpenMP thread; phasic::Graph isn't thread-safe under
-            // update_weights, so no sharing). Use the first epoch's
-            // theta for the initial build — we'll overwrite via
-            // ptd_graph_update_weights inside the per-epoch loop, so
-            // the initial theta value is irrelevant beyond satisfying
-            // builder->build's length-check (must equal param_length).
-            Graph g = builder->build(theta_b, static_cast<size_t>(param_length));
-
-            // Collapsed-position lookup: position of vertex_idx in the
-            // collapsed (length = n_vertices - n_aux) vector. Computed
-            // once per batch (could be hoisted outside the OpenMP loop
-            // since it depends only on graph topology, but the cost is
-            // O(n_vertices) which is negligible relative to the
-            // stop_probability uniformization step count).
-            const size_t n_vertices = g.vertices_length();
-            std::vector<int> collapsed_pos(n_vertices, -1);
-            int rank = 0;
-            for (size_t i = 0; i < n_vertices; ++i) {
-                if (aux_set.count(static_cast<int>(i))) continue;
-                collapsed_pos[i] = rank++;
+            // Per-thread Graph reuse: each OMP thread builds its
+            // Graph once on first use, then reuses via update_weights
+            // (in-place edge-weight mutation, zero alloc) and
+            // update_ipv on every subsequent batch element. The
+            // initial build uses dummy theta — every batch element
+            // overwrites via update_weights inside the per-epoch
+            // loop, so initial values are irrelevant beyond
+            // satisfying the length check.
+            phasic::Graph* g_ptr = nullptr;
+            {
+                auto& slot = per_thread_graph_cache[builder.get()];
+                if (!slot) {
+                    std::vector<double> dummy_theta(param_length, 1.0);
+                    slot = std::make_unique<phasic::Graph>(
+                        builder->build(
+                            dummy_theta.data(),
+                            static_cast<size_t>(param_length)
+                        )
+                    );
+                }
+                g_ptr = slot.get();
             }
-            const size_t n_collapsed = static_cast<size_t>(rank);
+            phasic::Graph& g = *g_ptr;
 
             // Working IPV (length n_ipv) — initialised to user's
             // initial_ipv, then overwritten between epochs.

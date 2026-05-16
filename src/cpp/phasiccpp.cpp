@@ -412,6 +412,74 @@ phasic::Vertex phasic::Vertex::add_aux_vertex(std::vector<double> rate_coeffs) {
 }
 
 
+phasic::Vertex phasic::Vertex::add_aux_vertex_constant(double weight) {
+    // Create an aux vertex and bidirectional coefficient-less constant
+    // edges. Both directions have coefficients_length == 0, so
+    // ptd_graph_update_weights skips them (see src/c/phasic.c around
+    // L4435-4439). The weights are hardcoded and remain constant
+    // regardless of any later update_weights() call.
+    //
+    // This bypasses the EDGE_MODE_PARAMETERIZED lock for the v->aux
+    // direction by manipulating the ptd_edge struct directly,
+    // mirroring the trick used in add_aux_vertex(double rate) for the
+    // aux->v return edge. Used by joint_stop_prob_graph() to install
+    // trapping loops on parameterised JSP graphs without making the
+    // trapping rate depend on theta (which would blow up λ_max under
+    // per-observation exposure scaling).
+    if (!(weight > 0.0)) {
+        throw std::invalid_argument(
+            "add_aux_vertex_constant: weight must be strictly positive"
+        );
+    }
+
+    size_t state_len = this->vertex->graph->state_length;
+    std::vector<int> zero_state(state_len, 0);
+
+    // create the aux vertex
+    Vertex aux = graph.create_vertex(zero_state);
+
+    // Helper lambda: append a manually constructed constant edge to a
+    // vertex's edge list, bypassing all add_edge validation.
+    auto append_constant_edge =
+        [](struct ptd_vertex *from_v, struct ptd_vertex *to_v, double w) {
+            struct ptd_edge *edge =
+                (struct ptd_edge *)malloc(sizeof(*edge));
+            if (edge == NULL) {
+                throw std::runtime_error("Failed to allocate edge");
+            }
+            edge->to = to_v;
+            edge->weight = w;
+            edge->coefficients_length = 0;
+            edge->coefficients = NULL;
+            edge->should_free_coefficients = false;
+
+            struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+                from_v->edges,
+                (from_v->edges_length + 1) * sizeof(struct ptd_edge *)
+            );
+            if (new_edges == NULL) {
+                free(edge);
+                throw std::runtime_error("Failed to allocate edge array");
+            }
+            from_v->edges = new_edges;
+            from_v->edges[from_v->edges_length] = edge;
+            from_v->edges_length++;
+        };
+
+    // Edge 1: aux -> this vertex (constant weight, coefficient-less).
+    append_constant_edge(aux.vertex, this->vertex, weight);
+
+    // Edge 2: this vertex -> aux (constant weight, coefficient-less).
+    // Bypasses the EDGE_MODE_PARAMETERIZED lock; this is the whole
+    // point of the new method.
+    append_constant_edge(this->vertex, aux.vertex, weight);
+
+    graph.notify_change();
+
+    return aux;
+}
+
+
 std::vector<int> phasic::Vertex::state() {
     return std::vector<int>(
             this->vertex->state,

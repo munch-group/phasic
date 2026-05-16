@@ -248,6 +248,73 @@ def is_sparse_observations(data: object) -> bool:
     return isinstance(data, SparseObservations)
 
 
+def _wrap_model_with_exposure(model: Callable, exposure: jnp.ndarray,
+                                exposure_param_index: int) -> Callable:
+    """Wrap a PMF/moments model to apply per-observation exposure.
+
+    Per-observation **exposure** is the GLM construct of a known
+    multiplicative scaling :math:`\\alpha_i` on a rate-typed component
+    :math:`\\theta_k` of the parameter vector. For each observation
+    ``i`` the wrapped model evaluates PMF and moments at
+    :math:`\\boldsymbol{\\theta}^{(i)}` where
+    :math:`\\theta^{(i)}_j = \\theta_j` for :math:`j \\neq k` and
+    :math:`\\theta^{(i)}_k = \\theta_k \\cdot \\alpha_i`,
+    with :math:`k` = ``exposure_param_index``.
+
+    Concrete instances of the abstraction: segment length in
+    coalescent-with-mutation, time-at-risk in survival / failure-time
+    models, area or volume in spatial Poisson regression.
+
+    Parameters
+    ----------
+    model : callable
+        Base model with signature ``model(theta, times, rewards=None)
+        -> (pmf, moments)`` where ``pmf`` has shape ``times.shape`` and
+        ``moments`` has shape ``(nr_moments,)``.
+    exposure : jnp.ndarray
+        Validated 1D array of strictly-positive per-observation
+        exposures, shape ``(n_obs,)``.
+    exposure_param_index : int
+        Index of the rate-typed parameter in ``theta`` that exposure
+        scales.
+
+    Returns
+    -------
+    callable
+        Wrapped model with the same signature. PMF output is 1D
+        ``(n_obs,)``; moments are averaged across observations to
+        produce shape ``(nr_moments,)``.
+    """
+    alpha = jnp.asarray(exposure, dtype=jnp.float64)
+
+    def wrapped(theta, times, rewards=None):
+        # Build per-obs effective theta by multiplying the
+        # exposure_param_index component by alpha_i for each observation.
+        # Shape: (n_obs, theta_dim)
+        theta_batch = jnp.broadcast_to(theta[None, :], (alpha.shape[0], theta.shape[0]))
+        theta_batch = theta_batch.at[:, exposure_param_index].multiply(alpha)
+
+        # Evaluate the base model once per observation. Each call uses
+        # a single-element times array so the model's PMF output shape
+        # contract (times.shape) is preserved. lax.map runs the body
+        # sequentially under JIT — this matches the underlying model's
+        # pure_callback / FFI batching contract, which does not support
+        # paired (theta_i, time_i) batching.
+        def per_obs(carry):
+            theta_i, time_i = carry
+            pmf_i, moments_i = model(theta_i, time_i[None], rewards=rewards)
+            return pmf_i[0], moments_i
+
+        pmf_per_obs, moments_per_obs = jax.lax.map(per_obs, (theta_batch, times))
+        # Aggregate moments across observations (mean) so the downstream
+        # regulariser sees the expected shape (nr_moments,) or
+        # (n_features, nr_moments) for the multivariate case.
+        moments = jnp.mean(moments_per_obs, axis=0)
+        return pmf_per_obs, moments
+
+    return wrapped
+
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -4060,6 +4127,51 @@ class SVGD:
             >>> # Explicit optimizer
             >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
 
+    exposure : float, array-like, or None, default=None
+        Per-observation **exposure** :math:`\alpha_i` — a known
+        multiplicative scaling on a rate-typed component of
+        :math:`\boldsymbol{\theta}`. For observation ``i`` the model is
+        evaluated at :math:`\boldsymbol{\theta}^{(i)}` where
+        :math:`\theta^{(i)}_j = \theta_j` for :math:`j \neq k` and
+        :math:`\theta^{(i)}_k = \theta_k \cdot \alpha_i`, with
+        :math:`k` = ``exposure_param_index``. The exposed rate parameter
+        and :math:`\alpha_i` jointly determine each observation's
+        expected event count (or hazard, or PMF, depending on the
+        model).
+
+        This is the GLM "exposure" / "offset" construct: it linearises
+        the relationship between a rate parameter and an
+        observation-specific outcome that scales with a known quantity.
+        Concrete instances:
+
+        - **Coalescent-with-mutation**: :math:`\alpha_i` = segment length
+          :math:`L_i` in bases; :math:`\theta_k` is the per-base mutation
+          rate.
+        - **Survival / failure-time**: :math:`\alpha_i` = time-at-risk
+          for unit :math:`i`; :math:`\theta_k` is the hazard rate.
+        - **Spatial Poisson**: :math:`\alpha_i` = area or volume of
+          region :math:`i`; :math:`\theta_k` is the intensity per unit
+          area.
+
+        - ``None`` (default): no exposure correction; existing behaviour.
+        - scalar: same :math:`\alpha` applied to every observation.
+        - 1D array of length ``n_observations``: per-observation
+          :math:`\alpha`. For dense 2D ``observed_data`` of shape
+          ``(n_observations, n_features)`` the same :math:`\alpha_i` is
+          shared across all features of observation :math:`i`.
+
+        Requires ``exposure_param_index``. Rejected for
+        ``SparseObservations`` (raises ``NotImplementedError``).
+    exposure_param_index : int or None, default=None
+        Index :math:`k` of the rate-typed parameter in
+        :math:`\boldsymbol{\theta}` that ``exposure`` scales. Required
+        when ``exposure`` is set. Must be in ``[0, param_length)``.
+
+        Under daisy-chain (``epoch_starts=[…]``), :math:`\boldsymbol{\theta}`
+        has flat layout ``(n_epochs * param_length,)``;
+        ``exposure_param_index`` remains the *local* per-epoch index and
+        is broadcast across every epoch internally.
+
     Attributes
     ----------
     particles : array
@@ -4165,7 +4277,9 @@ class SVGD:
                  rewards: jnp.ndarray | None = None,
                  fixed: dict | None = None,
                  optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
-                 preconditioner: str | _PreconditionerBase = 'auto') -> None:
+                 preconditioner: str | _PreconditionerBase = 'auto',
+                 exposure: jnp.ndarray | float | None = None,
+                 exposure_param_index: int | None = None) -> None:
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -4316,8 +4430,6 @@ class SVGD:
                 if verbose:
                     print(f"Warning: Could not parse compilation_config, using defaults")
 
-        self.model = model
-
         # Handle sparse vs dense observation format
         if is_sparse_observations(observed_data):
             self.observed_data = observed_data  # Keep as SparseObservations
@@ -4329,6 +4441,94 @@ class SVGD:
             self.observed_data = jnp.array(observed_data)
             self._sparse_format = False
             n_observations = float(self.observed_data.shape[0])
+
+        # Validate and apply per-observation exposure (GLM-style
+        # multiplicative scaling of theta[exposure_param_index] by
+        # alpha_i for each observation). See _wrap_model_with_exposure
+        # for the math and the surface concept.
+        if exposure is None and exposure_param_index is not None:
+            raise ValueError(
+                "exposure_param_index was provided but exposure is None. "
+                "Pass exposure (scalar or per-observation 1D vector) "
+                "alongside exposure_param_index, or pass neither."
+            )
+        if exposure is not None:
+            if self._sparse_format:
+                raise NotImplementedError(
+                    "exposure is not supported with SparseObservations. "
+                    "Sparse observations do not carry per-observation "
+                    "identity (values are flattened across features). "
+                    "Convert to dense format or pass exposure=None."
+                )
+            if exposure_param_index is None:
+                raise ValueError(
+                    "exposure_param_index must be provided when exposure "
+                    "is set. Pass the integer index of the rate-typed "
+                    "parameter in theta that exposure scales."
+                )
+            n_obs_dense = int(self.observed_data.shape[0])
+            exposure_np = np.asarray(exposure)
+            if exposure_np.ndim == 0:
+                # Scalar: broadcast to (n_obs,)
+                if not (exposure_np.item() > 0):
+                    raise ValueError(
+                        f"exposure must be strictly positive, got "
+                        f"{exposure_np.item()}."
+                    )
+                exposure_arr = jnp.full(
+                    (n_obs_dense,), float(exposure_np), dtype=jnp.float64
+                )
+            elif exposure_np.ndim == 1:
+                if exposure_np.shape[0] != n_obs_dense:
+                    raise ValueError(
+                        f"exposure length ({exposure_np.shape[0]}) does not "
+                        f"match number of observations ({n_obs_dense}). "
+                        f"Pass a scalar to broadcast, or a 1D vector "
+                        f"aligned with observed_data."
+                    )
+                if not bool(np.all(exposure_np > 0)):
+                    raise ValueError(
+                        f"exposure must contain strictly positive values "
+                        f"(alpha > 0). Got min={float(np.min(exposure_np))}."
+                    )
+                exposure_arr = jnp.asarray(exposure_np, dtype=jnp.float64)
+            else:
+                raise ValueError(
+                    f"exposure must be None, a scalar, or a 1D array. "
+                    f"Got shape {exposure_np.shape}."
+                )
+
+            if not isinstance(exposure_param_index, (int, np.integer)):
+                raise TypeError(
+                    f"exposure_param_index must be an integer, got "
+                    f"{type(exposure_param_index).__name__}."
+                )
+            exposure_param_index = int(exposure_param_index)
+            if theta_dim is not None and not (0 <= exposure_param_index < theta_dim):
+                raise ValueError(
+                    f"exposure_param_index={exposure_param_index} is out "
+                    f"of range for theta_dim={theta_dim}."
+                )
+            if theta_init is not None:
+                init_theta_dim = jnp.asarray(theta_init).shape[-1]
+                if not (0 <= exposure_param_index < init_theta_dim):
+                    raise ValueError(
+                        f"exposure_param_index={exposure_param_index} is "
+                        f"out of range for theta_init with "
+                        f"theta_dim={init_theta_dim}."
+                    )
+
+            self.exposure = exposure_arr
+            self.exposure_param_index = exposure_param_index
+        else:
+            self.exposure = None
+            self.exposure_param_index = None
+
+        # Assign the un-wrapped model so the downstream model-validation
+        # block can probe it with a small test slice of observed_data.
+        # The wrapper is applied at the end of __init__ once validation
+        # has succeeded — see "Apply per-observation rescaling wrapper".
+        self.model = model
 
         self.prior = prior
         # Detect per-parameter priors (list/tuple of Prior objects)
@@ -4769,6 +4969,44 @@ class SVGD:
                 "Ensure model has signature: model(theta, times, rewards=None) -> (pmf, moments)"
             )
 
+        # Apply per-observation exposure wrapper.
+        # Wrapping happens after model validation so the validation
+        # block can probe the unwrapped model with a small test slice
+        # of observed_data without tripping the wrapper's per-obs
+        # vmap shape contract (which requires times to align with
+        # the full exposure vector).
+        #
+        # Models that already handle exposure internally (currently:
+        # the daisy-chain joint-prob model from
+        # _daisy_chain_svgd_model with exposure_arr=...) tag
+        # themselves with _handles_exposure_internally=True so we
+        # skip the outer wrapper. Without this skip the wrapper's
+        # jax.lax.map over n_obs would compose with the model's own
+        # per-obs FFI batching and reintroduce the JIT-compile cliff
+        # the per-obs model exists to avoid.
+        #
+        # Models that additionally handle particle-batching natively
+        # via a jax.experimental.custom_batching.custom_vmap rule tag
+        # themselves with _handles_particle_vmap=True; for those the
+        # user's parallel_mode='vmap' choice is honoured (the rule
+        # fuses the particle batch with the model's internal FFI
+        # batch into one fat call).
+        if getattr(self.model, '_handles_exposure_internally', False):
+            if not getattr(self.model, '_handles_particle_vmap', False):
+                # Legacy internal-exposure models without a custom_vmap
+                # rule would otherwise inject a third leading axis on
+                # the FFI buffer, which the C handler rejects (it
+                # accepts 1D or 2D only). Force parallel_mode='none'
+                # so SVGD iterates particles in a Python loop. The C
+                # handler still parallelises over n_obs internally
+                # via OpenMP.
+                if self.parallel_mode != 'none':
+                    self.parallel_mode = 'none'
+        elif self.exposure is not None:
+            self.model = _wrap_model_with_exposure(
+                self.model, self.exposure, self.exposure_param_index
+            )
+
         # Results (initialized after fit())
         self.particles = None
         self.theta_mean = None
@@ -5037,11 +5275,106 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Log-likelihood term - delegated to _log_lik_from_pmf so the same
-        # sparse/dense NaN-aware summation is the single source of truth used
-        # by both _log_prob_unified (for SVGD optimization) and the public
-        # log_likelihood() method (for AIC/BIC/LRT).
-        log_lik = self._log_lik_from_pmf(pmf_vals)
+        # Zero-inflated likelihood detection. When the model carries a
+        # _zero_inflated_p_fn attribute (set by Graph.svgd when the
+        # rewards have partial coverage), we model zero observations
+        # via the explicit point-mass term n_zero * log(1 - p(theta))
+        # instead of evaluating the continuous density at r = 0.
+        # Models without partial coverage have no such attribute and
+        # the legacy path runs unchanged (bit-identical).
+        has_zero_inflated = (
+            getattr(self.model, '_zero_inflated_p_fn', None) is not None
+        )
+
+        # Log-likelihood term - handle sparse vs dense format differently
+        if self._sparse_format:
+            # Sparse format: all values are valid (no NaN), simpler computation
+            # pmf_vals should be 1D array matching the number of observations
+            pmf_mask = ~jnp.isnan(pmf_vals)
+
+            def check_nan_pmf_sparse(pmf_mask):
+                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
+                if not np.all(pmf_mask):
+                    nan_count = np.sum(~pmf_mask)
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {nan_count}"
+                    )
+
+            # Register debug callback (only executes at runtime, not during tracing)
+            jax.debug.callback(check_nan_pmf_sparse, pmf_mask)
+
+            if has_zero_inflated:
+                # Continuous density term: contribute only for r > 0
+                # observations (zeros are handled by the explicit
+                # point-mass term below).
+                obs_values = jnp.asarray(self.observed_data.values)
+                positive_mask = obs_values > 0.0
+                log_lik = jnp.sum(
+                    jnp.where(
+                        positive_mask,
+                        jnp.log(pmf_vals + 1e-10),
+                        0.0,
+                    )
+                )
+            else:
+                # All observations are valid in sparse format - simple sum
+                log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+        else:
+            # Dense format: handle missing observations via NaN
+            # Distinguish between NaN observations (expected) and NaN PMF values (error)
+            obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
+            pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
+
+            if has_zero_inflated:
+                # Mask r == 0 observations out of the continuous-density
+                # contribution. The explicit point-mass term below
+                # contributes for them. PMF at r = 0 of a sub-density
+                # is a finite spurious value that would bias theta if
+                # used as-is in log-likelihood.
+                obs_positive_mask = obs_mask & (
+                    jnp.asarray(self.observed_data) > 0.0
+                )
+                invalid_pmf = obs_positive_mask & ~pmf_mask
+            else:
+                obs_positive_mask = obs_mask
+                invalid_pmf = obs_mask & ~pmf_mask
+
+            def check_nan_pmf(invalid_mask):
+                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
+                if np.any(invalid_mask):
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {np.sum(invalid_mask)}"
+                    )
+
+            # Register debug callback (only executes at runtime, not during tracing)
+            jax.debug.callback(check_nan_pmf, invalid_pmf)
+
+            # Compute log-likelihood only on valid positive observations
+            log_lik = jnp.sum(
+                jnp.where(
+                    obs_positive_mask, jnp.log(pmf_vals + 1e-10), 0.0,
+                )
+            )
+
+        # Zero-inflated point-mass term:
+        #   sum_j n_zero_j * log(1 - p_j(theta))
+        # where p_j(theta) = P(visit a rewarded vertex in feature j).
+        # Skipped entirely when has_zero_inflated is False (legacy
+        # bit-identical path).
+        if has_zero_inflated:
+            p_theta = self.model._zero_inflated_p_fn(theta_transformed)
+            n_zero = jnp.asarray(self.model._n_zero_per_feature)
+            # Clamp p into [eps, 1-eps] for numerical stability at the
+            # boundary; in covering-rewards cases the term is
+            # multiplied by zero anyway (n_zero == 0).
+            p_clamped = jnp.clip(p_theta, 1e-10, 1.0 - 1e-10)
+            zero_term = jnp.sum(n_zero * jnp.log1p(-p_clamped))
+            log_lik = log_lik + zero_term
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
