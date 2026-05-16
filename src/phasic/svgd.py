@@ -4905,6 +4905,75 @@ class SVGD:
 
         return log_lik + log_pri - moment_penalty
 
+    def _log_lik_from_pmf(self, pmf_vals: jnp.ndarray) -> jnp.ndarray:
+        """Pure log-likelihood term Σ log(pmf_i + ε) from a vector of PMF values.
+
+        Single source of truth for the sparse/dense NaN-aware likelihood
+        summation used by both _log_prob_unified (during SVGD optimization)
+        and the public log_likelihood() method (for AIC/BIC/LRT).
+        """
+        if self._sparse_format:
+            # Sparse format: all values are valid (no NaN). NaN PMF means
+            # the model misbehaved at this theta.
+            pmf_mask = ~jnp.isnan(pmf_vals)
+
+            def _check_sparse(mask):
+                if not np.all(mask):
+                    nan_count = np.sum(~mask)
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {nan_count}"
+                    )
+
+            jax.debug.callback(_check_sparse, pmf_mask)
+            return jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+        # Dense format: missing observations (NaN in data) are skipped;
+        # NaN PMF on a valid observation is an error.
+        obs_mask = ~jnp.isnan(self.observed_data)
+        pmf_mask = ~jnp.isnan(pmf_vals)
+        invalid_pmf = obs_mask & ~pmf_mask
+
+        def _check_dense(invalid_mask):
+            if np.any(invalid_mask):
+                raise ValueError(
+                    f"Model returned NaN PMF values for valid observations. "
+                    f"Check model implementation and parameter values. "
+                    f"NaN count: {np.sum(invalid_mask)}"
+                )
+
+        jax.debug.callback(_check_dense, invalid_pmf)
+        return jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+
+    def _log_likelihood_at(self, theta_unconstrained: jnp.ndarray,
+                           rewards: jnp.ndarray | None = None) -> jnp.ndarray:
+        """Evaluate Σ log p(x_i | θ) at a single theta in unconstrained (PHI) space.
+
+        Internal helper for the public log_likelihood() method. Applies
+        self.param_transform if set, evaluates the model once, and returns
+        only the likelihood term (no prior, no penalty).
+        """
+        if self.param_transform is not None:
+            theta_transformed = self.param_transform(theta_unconstrained)
+        else:
+            theta_transformed = theta_unconstrained
+        try:
+            result = self.model(theta_transformed, self.observed_data, rewards=rewards)
+        except Exception as e:
+            raise ValueError(
+                f"Model evaluation failed. Ensure model has signature "
+                f"model(theta, times, rewards=None). Error: {e}"
+            )
+        if not isinstance(result, tuple) or len(result) != 2:
+            raise ValueError(
+                "Model must return (pmf, moments) tuple. "
+                f"Got: {type(result)}. "
+                "Use Graph.pmf_and_moments_from_graph() to create model."
+            )
+        pmf_vals, _model_moments = result
+        return self._log_lik_from_pmf(pmf_vals)
+
     def _log_prob_unified(self, theta: jnp.ndarray, nr_moments: int = 0, sample_moments: jnp.ndarray | None = None,
                          regularization: float = 0.0, rewards: jnp.ndarray | None = None) -> float:
         """
@@ -4968,52 +5037,11 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Log-likelihood term - handle sparse vs dense format differently
-        if self._sparse_format:
-            # Sparse format: all values are valid (no NaN), simpler computation
-            # pmf_vals should be 1D array matching the number of observations
-            pmf_mask = ~jnp.isnan(pmf_vals)
-
-            def check_nan_pmf_sparse(pmf_mask):
-                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
-                if not np.all(pmf_mask):
-                    nan_count = np.sum(~pmf_mask)
-                    raise ValueError(
-                        f"Model returned NaN PMF values for valid observations. "
-                        f"Check model implementation and parameter values. "
-                        f"NaN count: {nan_count}"
-                    )
-
-            # Register debug callback (only executes at runtime, not during tracing)
-            jax.debug.callback(check_nan_pmf_sparse, pmf_mask)
-
-            # All observations are valid in sparse format - simple sum
-            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
-
-        else:
-            # Dense format: handle missing observations via NaN
-            # Distinguish between NaN observations (expected) and NaN PMF values (error)
-            obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
-            pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
-
-            # Check for invalid PMF using debug callback (JAX-compatible error checking)
-            # This won't block JIT compilation but will warn if NaN PMF occurs
-            invalid_pmf = obs_mask & ~pmf_mask
-
-            def check_nan_pmf(invalid_mask):
-                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
-                if np.any(invalid_mask):
-                    raise ValueError(
-                        f"Model returned NaN PMF values for valid observations. "
-                        f"Check model implementation and parameter values. "
-                        f"NaN count: {np.sum(invalid_mask)}"
-                    )
-
-            # Register debug callback (only executes at runtime, not during tracing)
-            jax.debug.callback(check_nan_pmf, invalid_pmf)
-
-            # Compute log-likelihood only on valid observations (skip NaN observations)
-            log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+        # Log-likelihood term - delegated to _log_lik_from_pmf so the same
+        # sparse/dense NaN-aware summation is the single source of truth used
+        # by both _log_prob_unified (for SVGD optimization) and the public
+        # log_likelihood() method (for AIC/BIC/LRT).
+        log_lik = self._log_lik_from_pmf(pmf_vals)
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
@@ -5742,6 +5770,186 @@ class SVGD:
             x = self.param_transform(x)
 
         return x.tolist(), log_prob_fn(x).item()
+
+
+    # ------------------------------------------------------------------
+    # Model-selection support: log-likelihood, degrees of freedom, n_obs
+    # ------------------------------------------------------------------
+
+    def log_likelihood(self, theta: jnp.ndarray | list | None = None,
+                       *, refine: bool = False) -> float:
+        """Maximum log-likelihood at the MAP (or at a supplied theta).
+
+        Returns the pure log-likelihood ``Σ log p(x_i | θ̂)`` with no
+        prior and no moment-regularization penalty. This is the quantity
+        consumed by AIC, BIC, and likelihood-ratio tests.
+
+        Parameters
+        ----------
+        theta : array-like or None, default=None
+            If None, evaluate at the MAP particle (the one maximizing
+            the log-posterior, found via :meth:`map_estimate_from_particles`).
+            If `refine=True`, the MAP is refined via gradient ascent on
+            the log-posterior before LL is evaluated there. The returned
+            value is always pure LL — the prior is used only to locate
+            the MAP, not added to the result.
+
+            If an array is provided, it is interpreted in CONSTRAINED
+            (model) space — i.e. the same space as `theta_mean`. The model
+            is evaluated directly without re-applying `param_transform`.
+            Must have shape ``(theta_dim,)``.
+
+        refine : bool, default=False
+            When `theta is None`, controls whether the MAP is refined via
+            gradient ascent on the log-posterior (70 steps, step size
+            0.01) before LL is evaluated. Ignored otherwise.
+
+        Returns
+        -------
+        float
+            Σ log p(x_i | θ̂) over all valid observations.
+
+        Raises
+        ------
+        RuntimeError
+            If the SVGD instance has not been fitted yet.
+        ValueError
+            If `theta` has wrong shape, or if the observed data has zero
+            valid entries.
+
+        Examples
+        --------
+        Maximum log-likelihood at the MAP, for AIC/BIC:
+
+        >>> svgd = graph.svgd(observed_data, theta_dim=2).optimize()
+        >>> ll_map = svgd.log_likelihood()
+        >>> ll_refined = svgd.log_likelihood(refine=True)  # closer to MLE
+
+        Evaluate LL at a specific θ (constrained space):
+
+        >>> import jax.numpy as jnp
+        >>> ll_at = svgd.log_likelihood(theta=jnp.array([1.5, 2.0]))
+
+        See Also
+        --------
+        phasic.model_selection.aic, phasic.model_selection.bic,
+        phasic.model_selection.likelihood_ratio_test
+        """
+        if not self.is_fitted:
+            raise RuntimeError(
+                "SVGD instance has not been fitted; call optimize() first."
+            )
+
+        if theta is None:
+            theta_unconstr_list, _ = self.map_estimate_from_particles(
+                unconstrained=True)
+            theta_unconstr = jnp.asarray(theta_unconstr_list, dtype=jnp.float64)
+
+            if refine:
+                # Refine the MAP via gradient ascent on the log-posterior
+                # (likelihood + prior), then evaluate pure LL at the
+                # refined point. This is the "log-likelihood at the MAP"
+                # — consistent with `map_estimate_with_optimization` but
+                # without depending on its (currently buggy) list-vs-array
+                # handling and `print` statement.
+                from functools import partial as _partial
+                log_post_fn = _partial(
+                    self._log_prob_unified,
+                    nr_moments=self.nr_moments,
+                    sample_moments=self.sample_moments,
+                    regularization=self.regularization,
+                    rewards=self.rewards,
+                )
+                grad_fn = jax.grad(log_post_fn)
+                x = theta_unconstr
+                n_steps = 70
+                step_size = 0.01
+                for _ in range(n_steps):
+                    g = grad_fn(x)
+                    x = x + step_size * g
+                theta_unconstr = x
+
+            ll = self._log_likelihood_at(theta_unconstr, rewards=self.rewards)
+            return float(ll)
+
+        theta_arr = jnp.asarray(theta, dtype=jnp.float64)
+        if theta_arr.shape != (self.theta_dim,):
+            raise ValueError(
+                f"theta must have shape ({self.theta_dim},), got {theta_arr.shape}"
+            )
+        # User supplied theta in CONSTRAINED space. Evaluate the model
+        # directly at that theta (skip param_transform) and sum log(pmf).
+        try:
+            result = self.model(theta_arr, self.observed_data, rewards=self.rewards)
+        except Exception as e:
+            raise ValueError(
+                f"Model evaluation failed at supplied theta. Error: {e}"
+            )
+        if not isinstance(result, tuple) or len(result) != 2:
+            raise ValueError(
+                "Model must return (pmf, moments) tuple."
+            )
+        pmf_vals, _ = result
+        return float(self._log_lik_from_pmf(pmf_vals))
+
+    @property
+    def degrees_of_freedom(self) -> int:
+        """Number of free (non-fixed) parameters.
+
+        This is the ``k`` consumed by AIC = 2k − 2·LL and BIC = k·log(n) − 2·LL,
+        and the basis for the LRT degrees of freedom (k_full − k_nested).
+
+        Notes
+        -----
+        Counts every non-fixed dimension of θ. If the model has structural
+        unidentifiabilities (parameters that don't affect any rate), they
+        will still be counted — phasic cannot detect them automatically.
+
+        Examples
+        --------
+        >>> svgd = graph.svgd(observed_data, theta_dim=3).optimize()
+        >>> svgd.degrees_of_freedom
+        3
+        >>> nested = graph.svgd(observed_data, theta_dim=3,
+        ...                     fixed=[(2, 1.0)]).optimize()
+        >>> nested.degrees_of_freedom
+        2
+        """
+        if self.fixed_mask is None:
+            return int(self.theta_dim)
+        return int(self.theta_dim - jnp.sum(self.fixed_mask == 1))
+
+    @property
+    def n_observations(self) -> int:
+        """Effective number of likelihood terms used by this fit.
+
+        For sparse observations, this is ``len(observed_data.values)``.
+        For dense observations, this counts non-NaN entries across all
+        dimensions — matching the number of terms actually summed in the
+        log-likelihood (see :meth:`_log_lik_from_pmf`). This is the ``n``
+        consumed by BIC.
+
+        Raises
+        ------
+        ValueError
+            If the observed data has zero valid (non-NaN) entries.
+
+        Examples
+        --------
+        >>> svgd = graph.svgd(observed_data, theta_dim=1).optimize()
+        >>> svgd.n_observations  # number of observations actually used
+        200
+        """
+        if self._sparse_format:
+            n = int(len(self.observed_data.values))
+        else:
+            n = int(jnp.sum(~jnp.isnan(self.observed_data)))
+        if n == 0:
+            raise ValueError(
+                "Observed data has no valid (non-NaN) entries; "
+                "AIC/BIC/log-likelihood are undefined."
+            )
+        return n
 
 
     def plot_posterior(self, true_theta: jnp.ndarray | list | None = None,

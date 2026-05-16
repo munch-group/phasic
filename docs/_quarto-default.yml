@@ -136,6 +136,7 @@ website:
             - pages/tutorial/svgd-multi-feature.ipynb
             - pages/tutorial/svgd-multi-param.ipynb
             - pages/tutorial/svgd-joint-prob.ipynb
+            - pages/tutorial/model-selection.ipynb
         - section: "Computation"
           contents:
             - pages/tutorial/configuration.ipynb

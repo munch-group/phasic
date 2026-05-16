@@ -295,6 +295,12 @@ from .cache_manager import CacheManager, print_jax_cache_info, configure_layered
 from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_model_cache_info, get_all_cache_stats, print_all_cache_info
 from .trace_cache import get_trace_cache_stats, print_trace_cache_info
 
+# Model selection (AIC, BIC, likelihood-ratio tests) for fitted SVGD
+# instances. Pure-Python / numpy / scipy module — JAX-free at import time.
+# Submodule access keeps the top-level namespace tidy:
+#     phasic.model_selection.aic(svgd)
+from . import model_selection
+
 # On-disk cache management (~/.phasic_cache/) — symbolic compute
 # graph cache (Stage A2) and Python trace cache.
 from . import cache
