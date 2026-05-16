@@ -26,6 +26,7 @@ format:
     # height:	700 # "wide"
 ---
 
+```{=html}
 <!--
 # ARROWS: 
 ↑ ↓ ← → ↔ ↕
@@ -35,156 +36,211 @@ format:
 ➛ ➜ ➔ ➝ ➞ ➟ ➠ ➧ ➨
 ⭠ ⭢ ⭤ ⭡ ⭣ ⭥ 
 -->
-
+```
 
 <!-- ---------------------------------------------------- -->
-# Phase-type distributions
+
+# Appetizer
+
 <!-- ---------------------------------------------------- -->
 
-## The coalescent as a **Markov jump process**
+## Math / Algorithms / Inference
 
-:::{.spacer-2}
+::::: {.incremental layout="[0.55,-0.05,0.4]"}
+::: column
+- **Time-homogenous**
+  - Full distributions of TMRCA, total branch length, singletons, doubletons...
+  - Any number of exact moments and cross-moments
+  - Expected sojourn times
+  - State probabilities at time t
+  - Exact joint probabilities of discrete events
+  - Cont. approx. joint probabilities of discrete at time t
+- **Time-inhomogeneous (epochs)**
+  - Distribution contexts
+  - Moment matched smooth distributions
+  - Daisy chaining cont. approx. joint probabilities
 :::
 
-::: {.r-stack }
+::: column
+- **Parameterization and inference**
+  - Method of moments
+  - SVGD
+  - scalar observations
+  - multi-feature observations
+  - observation of joint events
+:::
+:::::
 
-![](./images/coal_mc_jump_anim_1.svg){.nostretch width="100%" fig-align="left"}
+## Applications
 
-![](./images/coal_mc_jump_anim_2.svg){.nostretch width="100%"  fig-align="left" .fragment}
+::::: {.incremental layout="[0.55,-0.05,0.4]"}
+::: column
+- Joint prob models of variant counts in the coalescent (using Sticcs intervals)
+- Coalescent with selection exact full likelihood for predetermined trees (using tsinfer)
+- Two-locus exact joint prob for arbitrary genetic distance (utlilizes (co)variance information)
+- Estimate demography
+- Condition models on known demography
+- IM ghost model
+- Run-length - Genome Research / PLoS Genetics
+  - PSMC
+  - LAI
+  - Longest run for testing of LAI tracts and Tree stats
+- Constrained pedigree ARG
+  - Maybe with Sohini
+- **Moments / PDFs**
+  - blah blah
+- **Laplace**
+  - blah blah
+- **Joint probability**
+  - blah blah
+:::
 
-![](./images/coal_mc_jump_anim_3.svg){.nostretch width="100%"  fig-align="left" .fragment}
+::: column
+- **Moments / Time inhomogeneous**
+  - blah blah
+- **Joint. prob. / Time inhomogeneous**
+  - blah blah
 
-![](./images/coal_mc_jump_anim_4.svg){.nostretch width="100%"  fig-align="left" .fragment}
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-over-time echo=false >}}
 
-![](./images/coal_mc_jump_anim_5.svg){.nostretch width="100%"  fig-align="left" .fragment}
-::::
+fig-joint-prob-over-time
+:::
+:::::
 
+<!-- ---------------------------------------------------- -->
 
+# Phase-type distributions
+
+<!-- ---------------------------------------------------- -->
 
 ## The coalescent as a **Markov jump process**
 
-::: {layout="[0.55,-0.05,0.4]"}
+::: spacer-2
+:::
 
-:::: {.column}
+::: r-stack
+![](./images/coal_mc_jump_anim_1.svg){.nostretch width="100%" fig-align="left"}
 
-:::{.spacer-2}
+![](./images/coal_mc_jump_anim_2.svg){.nostretch .fragment width="100%" fig-align="left"}
+
+![](./images/coal_mc_jump_anim_3.svg){.nostretch .fragment width="100%" fig-align="left"}
+
+![](./images/coal_mc_jump_anim_4.svg){.nostretch .fragment width="100%" fig-align="left"}
+
+![](./images/coal_mc_jump_anim_5.svg){.nostretch .fragment width="100%" fig-align="left"}
+:::
+
+## The coalescent as a **Markov jump process**
+
+:::::::::: {layout="[0.55,-0.05,0.4]"}
+:::: column
+::: spacer-2
 :::
 
 ![](./images/coal_mc_jump_anim_5.svg){.nostretch height="30%" fig-align="left"}
-
 ::::
-:::: {.column}
 
-::::: {.fragment}
+::::::: column
+::: fragment
 $\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})$
-:::::
-::::: {.fragment}
+:::
+
+::: fragment
 $\boldsymbol{\alpha} = (1, 0, 0, 0)$
-:::::
-::::: {.fragment}
-${\color{blue}\boldsymbol{S}} = 
+:::
+
+::: fragment
+${\color{blue}\boldsymbol{S}} =
 \begin{bmatrix}
 -6 &  6  &  & \\
    & -3  & 1  & 2 \\
    &     & -1  & \\
    &     &  & -1 \\
 \end{bmatrix}$
-:::::
-::::: {.fragment}
+:::
+
+::: fragment
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}$
 
 $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
-:::::
-
-::::
 :::
+:::::::
+::::::::::
 
 <!-- ---------------------------------------------------- -->
+
 # Reward transforms
-<!-- ---------------------------------------------------- -->
 
+<!-- ---------------------------------------------------- -->
 
 ## The coalescent as a **Markov jump process**
 
-::: {layout="[0.55,-0.05,0.4]"}
-
-:::: {.column}
-
-:::{.spacer-2}
+::::::::::: {layout="[0.55,-0.05,0.4]"}
+:::: column
+::: spacer-2
 :::
 
 ![](./images/coalescent-tot-brlen-rewards.svg){.nostretch height="30%" fig-align="left"}
-
 ::::
-:::: {.column}
 
-::::: {.fragment}
+:::::::: column
+::: fragment
 $\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})$
-:::::
-::::: {.fragment}
+:::
+
+::: fragment
 $\boldsymbol{\alpha} = (1, 0, 0, 0)$
-:::::
-::::: {.fragment}
-${\color{blue}\boldsymbol{S}} = 
+:::
+
+::: fragment
+${\color{blue}\boldsymbol{S}} =
 \begin{bmatrix}
 -6 &  6  &  & \\
    & -3  & 1  & 2 \\
    &     & -1  & \\
    &     &  & -1 \\
 \end{bmatrix}$
-:::::
-::::: {.fragment}
+:::
 
+::: fragment
 ${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
+:::
 
-:::::
-::::: {.fragment}
+::: fragment
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
 
 $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
-:::::
-::::
 :::
-
+::::::::
+:::::::::::
 
 ## **Phase-type** distributed waiting time
 
-
-::: {layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]"}
-
-:::: {.column}
-
+::::::: {layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]"}
+::: column
 ![](./images/coalescent-unit-rewards.svg)
+:::
 
-:::: 
-
-:::: {.column .fragment}
-
+::: {.column .fragment}
 **TMRCA (tree height):**
 
 ${\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)$
 
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
+:::
 
-:::: 
-
-:::: {.column .fragment}
-
+::: {.column .fragment}
 ![](./images/coalescent-tot-brlen-rewards.svg)
+:::
 
-::::
-
-:::: {.column .fragment}
-
+::: {.column .fragment}
 **Total branch length:**
 
 ${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
 
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
-
-:::: 
-
 :::
+:::::::
 
 ## Singleton branch length using **reward transformation**
 
@@ -200,72 +256,63 @@ $w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x
 
 ![](./images/coalescent-2ton-revtrans-operations.svg)
 
-
 <!-- ---------------------------------------------------- -->
+
 # Graph Algorithms
+
 <!-- ---------------------------------------------------- -->
 
 ## **Matrix formulation** of phase-type distributions
 
-::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
-:::: {.column}
-
+::::::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
+:::: column
 😀 Proofs and well-described properties:
 
 CDF: $\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0$
 
-
 MGF: $\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}$
 
-::: {.spacer-1}
+::: spacer-1
 :::
 
 😱 Complexity:
 
-Matrix operations (${\boldsymbol{S}}^{-1}$ and ${\boldsymbol{S}}^{t}$)
-limit applicability. Needlessly so for sparse matrices.
-
+Matrix operations (${\boldsymbol{S}}^{-1}$ and ${\boldsymbol{S}}^{t}$) limit applicability. Needlessly so for sparse matrices.
 ::::
-:::: {.column}
 
+:::: column
 Coalescent n=10:
 
-::: {.r-stack}
-![](./images/sparse-matrix.png){.nostretch height="30%" fig-align="center" .disappear}
+::: r-stack
+![](./images/sparse-matrix.png){.nostretch .disappear height="30%" fig-align="center"}
 
-
-![](./images/sparse-matrix-as-graph.png){.nostretch height="30%" fig-align="center" .fragment }
+![](./images/sparse-matrix-as-graph.png){.nostretch .fragment height="30%" fig-align="center"}
 :::
-
 ::::
-:::
-
+:::::::
 
 ## A **graph-formulation** of phase-type distributions
 
-::: {layout="[0.40,-0.05,0.1,-0.05,0.40]"}
-:::: {.column}
-
-::: {.spacer-3}
+:::::::: {layout="[0.40,-0.05,0.1,-0.05,0.40]"}
+:::: column
+::: spacer-3
 :::
+
 ![](./images/sparse-matrix.png){.nostretch height="20%" fig-align="center"}
-
 ::::
-:::: {.column}
 
+:::: column
 ![](./images/tobias.png)
 
 ::: {.r-fit-text .center}
 ⮕
 :::
-
 ::::
-:::: {.column}
 
+::: column
 ![](./images/sparse-matrix-as-graph.png){.nostretch height="30%" fig-align="center"}
-
-::::
 :::
+::::::::
 
 ## A **graph-formulation** of phase-type distributions
 
@@ -279,9 +326,8 @@ Coalescent n=10:
 
 ## Computing **moments** from the graph
 
-::: {layout="[0.40,-0.05,0.1,-0.05,0.40]"}
-:::: {.column}
-
+::::: {layout="[0.40,-0.05,0.1,-0.05,0.40]"}
+::: column
 - Acyclic graphs:
   - Standardization of the graph.
   - Recursion in reverse topological order.
@@ -289,14 +335,12 @@ Coalescent n=10:
   - Standardization of the graph.
   - Construction of a corresponding acyclic graph
   - Recursion in reverse topological order.
-
-::::
-:::: {.column}
-
-![](./images/cyclic-graph.svg)
-
-::::
 :::
+
+::: column
+![](./images/cyclic-graph.svg)
+:::
+:::::
 
 ## Computing **moments** from the graph
 
@@ -304,16 +348,14 @@ Coalescent n=10:
 
 ![](./images/normalization.svg)
 
-
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
 
 ## Constructing an **acyclic graph**
 
 ![](./images/elimination1.svg){.nostretch width="80%" fig-align="center"}
 
-::: {layout="[-0.05,0.4,-0.05,0.4]"}
-:::: {.column}
-
+::::: {layout="[-0.05,0.4,-0.05,0.4]"}
+::: column
 **Edges:**<br>
 
 $w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})$
@@ -321,102 +363,86 @@ $w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\
 **Vertices:**<br>
 
 $x_A \leftarrow x_C + x_A$
-::::
-:::: {.column}
+:::
 
+::: column
 Insert the first equation in the third:<br>
 
 $\begin{align*}
-T_C &= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\ 
+T_C &= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\
 &= 10 + 0.6 \cdot T_B + 0.4 \cdot T_D
 \end{align*}$
-
-::::
 :::
+:::::
 
 ## Constructing an **acyclic graph**
 
 ![](./images/elimination2.svg){.nostretch width="80%" fig-align="center"}
 
-::: {layout="[-0.1,0.4,-0.05,0.4]"}
-:::: {.column}
+::::: {layout="[-0.1,0.4,-0.05,0.4]"}
+::: column
 $x_\mathrm{C} +\!\,= x_\mathrm{A}\, w(\mathrm{C}\rightarrow \mathrm{A})$
 
 $x_C \leftarrow 0.6 \cdot x_C$
+:::
 
-::::
-:::: {.column}
-
+::: column
 Insert the second equation in the third:<br>
-  
+
 $\begin{align*}
-T_C &= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\ 
+T_C &= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\
 &= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_D
 \end{align*}$
-
-::::
 :::
+:::::
 
 ## Constructing an **acyclic graph**
 
 ![](./images/elimination3.svg){.nostretch width="80%" fig-align="center"}
 
-::: {layout="[-0.1,0.4,-0.05,0.4]"}
-:::: {.column}
-
+::::: {layout="[-0.1,0.4,-0.05,0.4]"}
+::: column
 $x_C \leftarrow x_C + x_C \cdot \big(\frac{1}{1-0.6}-1\big)$
+:::
 
-::::
-:::: {.column}
-
+::: column
 Isolate $T_C$ in the third equation to remove self-loop:<br>
-  
+
 $\begin{align*}
 T_C &= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
 &= 16 + T_D
 \end{align*}$
-
-::::
 :::
+:::::
 
 ## Constructing an **acyclic graph**
 
 ![](./images/elimination4.svg){.nostretch width="80%" fig-align="center"}
 
-::: {layout="[-0.1,0.4,-0.05,0.4]"}
-:::: {.column}
-
-::::
-:::: {.column}
-
-
-::::
+::::: {layout="[-0.1,0.4,-0.05,0.4]"}
+::: column
 :::
 
+::: column
+:::
+:::::
 
 ## Constructing an **acyclic graph**
 
 ![](./images/elimination5.svg){.nostretch width="80%" fig-align="center"}
 
-::: {layout="[-0.1,0.4,-0.05,0.4]"}
-:::: {.column}
-
-::::
-:::: {.column}
-
-
-::::
+::::: {layout="[-0.1,0.4,-0.05,0.4]"}
+::: column
 :::
 
-
-
+::: column
+:::
+:::::
 
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
 
-::: {layout="[0.24,-0.05,0.4,-0.05,0.25]"}
-
-:::: {.column}
-
+:::::: {layout="[0.24,-0.05,0.4,-0.05,0.25]"}
+::: column
 $\begin{align*}
 T_A &= 5 + 0.6 \cdot T_B + 0.4 \cdot T_D \\
 T_B &= 2 + 0.5 \cdot T_C + 0.5 \cdot T_D \\
@@ -424,66 +450,52 @@ T_C &= 5 + T_A \\
 T_D &= 0
 \end{align*}$
 
-
-Insert the first equation in the third:  
+Insert the first equation in the third:\
 $\begin{align*}
-T_C &= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\ 
+T_C &= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\
 &= 10 + 0.6 \cdot T_B + 0.4 \cdot T_D
 \end{align*}$
 
-Insert the second equation in the third:  
+Insert the second equation in the third:\
 $\begin{align*}
-T_C &= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\ 
+T_C &= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\
 &= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_D
 \end{align*}$
 
-Isolate $T_C$ in the third equation to remove self-loop:  
+Isolate $T_C$ in the third equation to remove self-loop:\
 $\begin{align*}
 T_C &= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
 &= 16 + T_D
 \end{align*}$
 
-The equations are now:  
+The equations are now:\
 $\begin{align*}
 T_A &= 5 + 0.6 \cdot T_B + 0.4 \cdot T_D \\
 T_B &= 2 + 0.5 \cdot T_C + T_D\\
 T_C &= 16 + T_D \\
 T_D &= 16
 \end{align*}$
-
-::::
-:::: {.column}
-
-::::
-:::: {.column}
-
-$$
-w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})
-$$
-$$
-x_\mathrm{C} +\!\,= x_\mathrm{A}\, w(\mathrm{C}\rightarrow \mathrm{A})
-$$
-
-$$
-w(\mathrm{C}\rightarrow \mathrm{D}) = \frac{w(\mathrm{C}\rightarrow \mathrm{D})}{1 - w(\mathrm{C}\rightarrow \mathrm{C})}
-$$
-$$
-x_\mathrm{C} +\!\,= x_\mathrm{C} \left ( \frac{1}{1-w(\mathrm{C}\rightarrow \mathrm{C})} - 1\right)
-$$
-
-::::
-
 :::
 
+::: column
+:::
+
+::: column
+$$w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})$$
+
+$$x_\mathrm{C} +\!\,= x_\mathrm{A}\, w(\mathrm{C}\rightarrow \mathrm{A})$$
+
+$$w(\mathrm{C}\rightarrow \mathrm{D}) = \frac{w(\mathrm{C}\rightarrow \mathrm{D})}{1 - w(\mathrm{C}\rightarrow \mathrm{C})}$$
+
+$$x_\mathrm{C} +\!\,= x_\mathrm{C} \left ( \frac{1}{1-w(\mathrm{C}\rightarrow \mathrm{C})} - 1\right)$$
+:::
+::::::
 
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
-
-
 
 ![](./images/elimination.svg)
 
 ![](./images/graph_elimination_example.svg)
-
 
 ## Gauss elimination - reinvented
 
@@ -497,8 +509,7 @@ $$
 
 Computed by `expected_waiting_time(graph, [rewards])`
 
-(11, 10, 16) are the row sums of the Green matrix. 
-I.e. the expected waiting times starting at each vertex.
+(11, 10, 16) are the row sums of the Green matrix. I.e. the expected waiting times starting at each vertex.
 
 ## Higher-order **moments**
 
@@ -525,7 +536,6 @@ $\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'})
 - Rewards are applied as scalars and do not require recomputation.
 - Additional moments can then be computed in O(V2) time.
 
-
 ## Higher-order **moments**
 
 **1’ moment: 3**
@@ -550,64 +560,67 @@ $\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'})
 
 <!-- ![](./images/discrete4.svg) -->
 
-
-
 <!-- ---------------------------------------------------- -->
+
 # Laplace Transform
+
 <!-- ---------------------------------------------------- -->
 
 ## **Laplace** Transform
 
-
 <!-- ---------------------------------------------------- -->
+
 # Joint probability of discrete events
+
 <!-- ---------------------------------------------------- -->
 
 ## **Joint probability** of discrete events
 
 ## **Truncated** multivariate discrete phase-type distributions
 
-
 <!-- ---------------------------------------------------- -->
+
 # State Lumping
+
 <!-- ---------------------------------------------------- -->
 
 ## The **block** coalescent
 
-:::: {.columns}
-::: {.column width="50%"}
-
-::: {.spacer-1}
+::::::::: columns
+::::: {.column width="50%"}
+::: spacer-1
 :::
 
 Left column left column left column
 
 Left column left column left column
 
-::: {.spacer-1}
+::: spacer-1
 :::
 
 - Left column left column left column
 - Left column left column left column
-:::
-::: {.column width="50%"}
+:::::
+
+::::: {.column width="50%"}
 ![](./images/block-coal-totbrlen-rewards.svg)
 
-::: {.spacer-1}
+::: spacer-1
 :::
 
 ![](./images/block-coal-unit-rewards.svg)
 
-::: {.spacer-1}
+::: spacer-1
 :::
 
 ![](./images/block-coal1.svg)
-:::
-::::
-
+:::::
+:::::::::
 
 <!-- ---------------------------------------------------- -->
+
 # Time-inhomogeneous models with phase-type distributions
+
 <!-- ---------------------------------------------------- -->
 
 ## **Time-inhomogeneous** models
@@ -618,44 +631,41 @@ Left column left column left column
 
 ![](./images/time-inhom-trick.svg)
 
-
 <!-- ---------------------------------------------------- -->
+
 # Performance
+
 <!-- ---------------------------------------------------- -->
 
 ## Coalescent 100 marginal moments
 
-
 <!-- ---------------------------------------------------- -->
+
 # Popgen models
+
 <!-- ---------------------------------------------------- -->
 
 ## Statistical properties of the standard coalescent
 
-
-## Isolation with migration model 
-
+## Isolation with migration model
 
 ## The coalescent conditioned on a derived variant
 
-
 ## The coalescent with selection
-
 
 ![](./images/coal_with_derived_freq.svg)
 
-
 <!-- ---------------------------------------------------- -->
+
 # Inference with SVGD
-<!-- ---------------------------------------------------- -->
-
-
 
 <!-- ---------------------------------------------------- -->
-<!-- ---------------------------------------------------- -->
+
 <!-- ---------------------------------------------------- -->
 
+<!-- ---------------------------------------------------- -->
 
+<!-- ---------------------------------------------------- -->
 
 ## Header
 
@@ -664,26 +674,25 @@ Left column left column left column
 
 ![](./images/block-coal-unit-rewards.svg){.nostretch width="50%" fig-align="center"}
 
-
 ## Header
 
-:::: {.columns}
+::::: columns
 ::: {.column width="40%"}
 - Left column left column left column
 - Left column left column left column
 - Left column left column left column
 - Left column left column left column
 :::
+
 ::: {.column width="60%"}
 ![](./images/block-coal1.svg)
 :::
-::::
+:::::
 
-::: {.spacer-2}
+::: spacer-2
 :::
 
 ![](./images/block-coal-unit-rewards.svg){.nostretch width="80%" fig-align="center"}
-
 
 ## Header
 
@@ -697,32 +706,21 @@ Left column left column left column
 
 ![](./images/coalescent-2ton-revtrans-operations.svg)
 
-
-
-
-
-$$
-\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].
-$$
-
+$$\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].$$
 
 ## Admixture displacement in each <br>**geographical region** {.smaller}
 
-
-::: {.spacer-md} 
+::: spacer-md
 :::
 
-Here we have some text that may run over several lines of the slide frame,
-depending on how long it is.
+Here we have some text that may run over several lines of the slide frame, depending on how long it is.
 
-- first item 
-    - A sub item
+- first item
+  - A sub item
 
 Next, we'll brief review some theme-specific components.
 
-- Note that _all_ of the standard Reveal.js
-[features](https://quarto.org/docs/presentations/revealjs/)
-can be used with this theme, even if we don't highlight them here.
+- Note that *all* of the standard Reveal.js [features](https://quarto.org/docs/presentations/revealjs/) can be used with this theme, even if we don't highlight them here.
 
 ## Additional theme classes
 
@@ -736,41 +734,33 @@ Special classes for emphasis
 
 Cross-references
 
-- `.button` class provides a Beamer-like button, e.g.
-[[Summary]{.button}](#sec-summary)
+- `.button` class provides a Beamer-like button, e.g. [[Summary](#sec-summary)]{.button}
 
+------------------------------------------------------------------------
 
----------------------------------------------------------------
+::: {style="margin-top: 2em;"}
+:::
 
-<div style="margin-top: 2em;"></div>
+In Denmark, the workplace interaction is very informal and largely unaffected by seniority and age.
 
-In Denmark, the workplace interaction is very informal and largely unaffected by seniority and age. 
-
-$$
-\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t) + \lambda \sum_k a_k 
-$$
-
+$$\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t) + \lambda \sum_k a_k $$
 
 ## Social norms
 
 ### Neither academic seniority or age affected interaction
 
-
 <!-- a bug in quarto does not allow successive embeds witout somthing in between (like this) -->
-
-
 
 ## Slide title
 
-::: {.incremental}
+::: incremental
 - Eat spaghetti
 - Drink wine
 :::
 
 ## Slide title
 
-:::: {.columns}
-
+::::: columns
 ::: {.column width="40%"}
 Left column
 :::
@@ -780,18 +770,13 @@ Left column
 - Two
 - Three
 :::
-
-::::
-
+:::::
 
 ## header
 
-::: {.r-stretch}
-
+::: r-stretch
 {{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
 :::
-
-
 
 ## Slide Title
 
@@ -800,7 +785,6 @@ Slide content
 ::: aside
 Schumer et al. (2018)
 :::
-
 
 # Introduction to Phase-Type Distributions
 
@@ -818,11 +802,7 @@ In a continuous phase-type distribution, the underlying process is a continuous-
 
 **Example**: Consider a system with 3 transient states and 1 absorbing state. The system starts in state 1, transitions between states at exponential rates, and eventually reaches the absorbing state. The time until absorption follows a phase-type distribution.
 
-**Key characteristics:**
-- Transient states: temporary states the process can visit
-- Absorbing state: terminal state from which the process cannot escape
-- Transition rates: exponential rates governing state transitions
-- Time until absorption: the random variable of interest
+**Key characteristics:** - Transient states: temporary states the process can visit - Absorbing state: terminal state from which the process cannot escape - Transition rates: exponential rates governing state transitions - Time until absorption: the random variable of interest
 
 ### Discrete Phase-Type Distributions
 
@@ -836,24 +816,20 @@ A **discrete phase-type distribution** models the number of jumps in a discrete-
 
 Let $\tau$ be a phase-type distributed random variable with $p$ transient states. We write $\tau \sim PH_p(\boldsymbol{\alpha}, \mathbf{S})$ where:
 
-- **$\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)$**: Initial probability vector
+- $\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)$: Initial probability vector
   - $\alpha_i$ is the probability of starting in state $i$
   - Potential defect: $\alpha_0 = 1 - \sum_{i=1}^p \alpha_i$ (probability of starting in absorbing state)
-
-- **$\mathbf{S}$**: Sub-intensity matrix (rate matrix excluding absorbing states)
+- $\mathbf{S}$: Sub-intensity matrix (rate matrix excluding absorbing states)
   - Entry $s_{ij}$ is the rate of transition from state $i$ to state $j$
   - Diagonal entries are negative: $s_{ii} = -\sum_{j \neq i} s_{ij}$
-
-- **$\mathbf{U} = (-\mathbf{S})^{-1}$**: Green matrix
+- $\mathbf{U} = (-\mathbf{S})^{-1}$: Green matrix
   - Entry $u_{ij}$ is the expected total time spent in state $j$ when starting in state $i$
 
 #### Cumulative Distribution Function (CDF)
 
 The probability that absorption occurs by time $t$:
 
-$$
-F(t) = 1 - \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0
-$$
+$$F(t) = 1 - \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0$$
 
 where $e^{\mathbf{S}t}$ is the matrix exponential and $\mathbf{e}$ is a vector of ones.
 
@@ -861,29 +837,21 @@ where $e^{\mathbf{S}t}$ is the matrix exponential and $\mathbf{e}$ is a vector o
 
 The density function is:
 
-$$
-f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} (-\mathbf{S}) \mathbf{e}, \quad t \geq 0
-$$
+$$f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} (-\mathbf{S}) \mathbf{e}, \quad t \geq 0$$
 
 #### Moments
 
 The expectation (first moment):
 
-$$
-\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}
-$$
+$$\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}$$
 
 Higher-order moments:
 
-$$
-\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}
-$$
+$$\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}$$
 
 The variance:
 
-$$
-\text{Var}(\tau) = 2\boldsymbol{\alpha} \mathbf{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \mathbf{U} \mathbf{e})^2
-$$
+$$\text{Var}(\tau) = 2\boldsymbol{\alpha} \mathbf{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \mathbf{U} \mathbf{e})^2$$
 
 ### Discrete Phase-Type Distributions
 
@@ -891,25 +859,19 @@ For discrete phase-type distributions with sub-transition matrix $\mathbf{T}$ an
 
 #### Green Matrix
 
-$$
-\mathbf{U} = -(\mathbf{T} - \mathbf{I})^{-1}
-$$
+$$\mathbf{U} = -(\mathbf{T} - \mathbf{I})^{-1}$$
 
 #### CDF (Probability Mass Function)
 
 The probability of absorption at exactly jump $t$:
 
-$$
-F(t) = 1 - \boldsymbol{\pi} \mathbf{T}^t \mathbf{e}
-$$
+$$F(t) = 1 - \boldsymbol{\pi} \mathbf{T}^t \mathbf{e}$$
 
 #### Moments
 
 The expectation:
 
-$$
-\mathbb{E}[\tau] = \boldsymbol{\pi} \mathbf{U} \mathbf{e}
-$$
+$$\mathbb{E}[\tau] = \boldsymbol{\pi} \mathbf{U} \mathbf{e}$$
 
 ### Reward-Transformed Distributions
 
@@ -921,24 +883,17 @@ Phase-type distributions can be **reward-transformed** by assigning rewards $r_i
 
 Given rewards $\mathbf{r} = (r_1, \ldots, r_p)$, the reward-transformed variable is:
 
-$$
-Y = \int_0^\tau r(X_t) dt
-$$
+$$Y = \int_0^\tau r(X_t) dt$$
 
 where $\{X_t\}$ is the underlying Markov process and $\tau$ is the time until absorption.
 
-**Example**: Consider a system where:
-- State 1 has reward $r_1 = 1$ (baseline accumulation rate)
-- State 2 has reward $r_2 = 5$ (accumulates 5× faster)
-- The process spends time $t_1$ in state 1 and $t_2$ in state 2
+**Example**: Consider a system where: - State 1 has reward $r_1 = 1$ (baseline accumulation rate) - State 2 has reward $r_2 = 5$ (accumulates 5× faster) - The process spends time $t_1$ in state 1 and $t_2$ in state 2
 
 Then the total accumulated reward is $Y = 1 \cdot t_1 + 5 \cdot t_2$.
 
 The $k$-th moment of the reward-transformed distribution:
 
-$$
-\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\mathbf{U} \boldsymbol{\Delta}(\mathbf{r}))^k \mathbf{e}
-$$
+$$\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\mathbf{U} \boldsymbol{\Delta}(\mathbf{r}))^k \mathbf{e}$$
 
 where $\boldsymbol{\Delta}(\mathbf{r})$ is a diagonal matrix with rewards on the diagonal.
 
@@ -955,23 +910,15 @@ Think of rewards as **time multipliers** at each vertex: spending time $\Delta t
 
 **Key insight**: Rewards don't change the transition structure of the graph—they only change what we're measuring. The same stochastic process gives different distributions depending on the rewards.
 
-**Practical uses**:
-- **Population genetics**: Counting mutations (reward = mutation rate per lineage)
-- **Queuing theory**: Accumulated cost (reward = cost per unit time in each state)
-- **Physics**: Energy or distance (reward = rate of energy/distance change in each state)
+**Practical uses**: - **Population genetics**: Counting mutations (reward = mutation rate per lineage) - **Queuing theory**: Accumulated cost (reward = cost per unit time in each state) - **Physics**: Energy or distance (reward = rate of energy/distance change in each state)
 
-**Example**: In a population genetics model:
-- Each state represents a configuration of genealogical lineages
-- State with $k$ lineages has reward $r_k = \binom{k}{2}$ (number of pairs that could coalesce)
-- The reward-transformed distribution represents total branch length, not just time
+**Example**: In a population genetics model: - Each state represents a configuration of genealogical lineages - State with $k$ lineages has reward $r_k = \binom{k}{2}$ (number of pairs that could coalesce) - The reward-transformed distribution represents total branch length, not just time
 
 ### Multivariate Phase-Type Distributions
 
 **Multivariate phase-type distributions** assign a vector of rewards to each state, resulting in a vector-valued outcome:
 
-$$
-\mathbf{Y} \sim MPH^*(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})
-$$
+$$\mathbf{Y} \sim MPH^*(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})$$
 
 where $\mathbf{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
 
@@ -981,9 +928,7 @@ where $\mathbf{R}$ is a matrix of rewards (each row corresponds to a state, each
 
 **Joint moments**: The covariance between dimensions $i$ and $j$:
 
-$$
-\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e}
-$$
+$$\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e}$$
 
 ## Graph-Based Representation
 
@@ -993,15 +938,13 @@ Traditional matrix-based formulations become computationally infeasible for syst
 
 A phase-type distribution can be represented as a **weighted directed graph** $G = (V, E)$ where:
 
-- **Vertices ($V$)**: Represent states in the Markov chain
+- **Vertices (**$V$): Represent states in the Markov chain
   - Special **starting vertex** $S$: initial state
   - **Transient vertices**: states the process can visit
   - **Absorbing vertices**: terminal states (no outgoing edges)
-
-- **Edges ($E$)**: Represent transitions between states
+- **Edges (**$E$): Represent transitions between states
   - An edge $(v \to z)$ connects vertex $v$ to vertex $z$
   - Each edge has a **weight** $w(v \to z)$ representing the transition rate
-
 - **Edge weights**:
   - For continuous distributions: transition rates (positive real numbers)
   - For discrete distributions: transition probabilities (between 0 and 1)
@@ -1011,7 +954,7 @@ A phase-type distribution can be represented as a **weighted directed graph** $G
 The graph representation directly corresponds to the matrix formulation:
 
 | Matrix Concept | Graph Concept |
-|----------------|---------------|
+|-------------------------------------|-----------------------------------|
 | State $i$ | Vertex $v$ |
 | Initial probability $\alpha_i$ | Weight $w(S \to v_i)$ from starting vertex |
 | Sub-intensity entry $s_{ij}$ | Edge weight $w(v_i \to v_j)$ |
@@ -1020,37 +963,27 @@ The graph representation directly corresponds to the matrix formulation:
 
 **Example**: The sub-intensity matrix
 
-$$
-\mathbf{S} = \begin{pmatrix}
+$$\mathbf{S} = \begin{pmatrix}
 -5 & 1 & 4 \\
 1 & -8 & 2 \\
 0 & 1 & -3
-\end{pmatrix}
-$$
+\end{pmatrix}$$
 
-corresponds to a graph with:
-- Vertex A with edges: (A → B, weight=1), (A → C, weight=4)
-- Vertex B with edges: (B → A, weight=1), (B → C, weight=2)
-- Vertex C with edges: (C → B, weight=1)
-- Total exit rates: $\lambda_A = 5$, $\lambda_B = 8$, $\lambda_C = 3$
+corresponds to a graph with: - Vertex A with edges: (A → B, weight=1), (A → C, weight=4) - Vertex B with edges: (B → A, weight=1), (B → C, weight=2) - Vertex C with edges: (C → B, weight=1) - Total exit rates: $\lambda_A = 5$, $\lambda_B = 8$, $\lambda_C = 3$
 
 ### Advantages of Graph Representation
 
-1. **Memory efficiency**: Store only existing transitions (not full $p \times p$ matrix)
-   - For sparse systems: $O(|E|)$ vs $O(p^2)$ memory
-
-2. **Computational efficiency**: Operations on edges only
-   - Many algorithms: $O(|V|^2)$ vs $O(p^3)$ for matrix operations
-
-3. **Iterative construction**: Build state space incrementally
-   - Add vertices and edges as needed
-   - Natural for complex phenomena
-
-4. **Intuitive modeling**: Specify transitions from each state independently
-   - Markov property: next state depends only on current state
-   - Easy to encode complex models
-
-5. **Numerical stability**: Avoid matrix inversions and exponentials
+1.  **Memory efficiency**: Store only existing transitions (not full $p \times p$ matrix)
+    - For sparse systems: $O(|E|)$ vs $O(p^2)$ memory
+2.  **Computational efficiency**: Operations on edges only
+    - Many algorithms: $O(|V|^2)$ vs $O(p^3)$ for matrix operations
+3.  **Iterative construction**: Build state space incrementally
+    - Add vertices and edges as needed
+    - Natural for complex phenomena
+4.  **Intuitive modeling**: Specify transitions from each state independently
+    - Markov property: next state depends only on current state
+    - Easy to encode complex models
+5.  **Numerical stability**: Avoid matrix inversions and exponentials
 
 ### Example: Rabbit Island Model
 
@@ -1058,14 +991,7 @@ Consider rabbits jumping between two islands at rate 1. Islands flood at rates 2
 
 **State representation**: Vector $(n_1, n_2)$ where $n_i$ is the number of rabbits on island $i$.
 
-**Graph construction**:
-- Start with state $(2, 0)$: 2 rabbits on island 1
-- From state $(i, j)$:
-  - If $i > 0$: transition to $(i-1, j+1)$ at rate $i$ (rabbit jumps left to right)
-  - If $j > 0$: transition to $(i+1, j-1)$ at rate $j$ (rabbit jumps right to left)
-  - If $i > 0$: transition to $(0, j)$ at rate 2 (island 1 floods)
-  - If $j > 0$: transition to $(i, 0)$ at rate 4 (island 2 floods)
-  - Absorbing state: $(0, 0)$
+**Graph construction**: - Start with state $(2, 0)$: 2 rabbits on island 1 - From state $(i, j)$: - If $i > 0$: transition to $(i-1, j+1)$ at rate $i$ (rabbit jumps left to right) - If $j > 0$: transition to $(i+1, j-1)$ at rate $j$ (rabbit jumps right to left) - If $i > 0$: transition to $(0, j)$ at rate 2 (island 1 floods) - If $j > 0$: transition to $(i, 0)$ at rate 4 (island 2 floods) - Absorbing state: $(0, 0)$
 
 This naturally sparse structure makes graphs ideal for representation.
 
@@ -1073,11 +999,11 @@ This naturally sparse structure makes graphs ideal for representation.
 
 phasic implements efficient graph-based algorithms for:
 
-1. **State space construction**: Iterative building of the graph
-2. **Reward transformation**: Modifying distributions by assigning rewards
-3. **Moment computation**: Computing expectations, variances, higher moments
-4. **Distribution functions**: Computing PMF/PDF and CDF
-5. **Multivariate distributions**: Joint and marginal moments
+1.  **State space construction**: Iterative building of the graph
+2.  **Reward transformation**: Modifying distributions by assigning rewards
+3.  **Moment computation**: Computing expectations, variances, higher moments
+4.  **Distribution functions**: Computing PMF/PDF and CDF
+5.  **Multivariate distributions**: Joint and marginal moments
 
 ### Key Algorithmic Innovations
 
@@ -1094,7 +1020,7 @@ From Røikjer, Hobolth, and Munch (2022):
 
 Let's compute properties of an Erlang distribution (sum of exponential random variables):
 
-```python
+``` python
 from phasic import Graph
 
 # Build Erlang(3) distribution: sum of 3 exponentials with rate 1
@@ -1122,32 +1048,21 @@ print(f"CDF at t=2.0: {g.cdf(2.0)}")
 
 Phase-type distributions are particularly useful when:
 
-1. **Modeling absorption times**: Time until system reaches terminal state
-2. **Sparse state spaces**: Many states but few transitions per state
-3. **Complex phenomena**: Iterative construction from simple rules
-4. **Multiple quantities**: Multivariate distributions with correlated outcomes
-5. **Large state spaces**: Thousands to millions of states
+1.  **Modeling absorption times**: Time until system reaches terminal state
+2.  **Sparse state spaces**: Many states but few transitions per state
+3.  **Complex phenomena**: Iterative construction from simple rules
+4.  **Multiple quantities**: Multivariate distributions with correlated outcomes
+5.  **Large state spaces**: Thousands to millions of states
 
-**Applications**:
-- Queuing theory (service times)
-- Reliability theory (time to failure)
-- Population genetics (coalescent times)
-- Telecommunications (packet delays)
-- Survival analysis (time to event)
+**Applications**: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)
 
 ## Further Reading
 
 For detailed algorithms and proofs, see:
 
-**Røikjer, T., Hobolth, A., & Munch, K. (2022).** *Graph-based algorithms for phase-type distributions.* Statistics and Computing, 32:103. [https://doi.org/10.1007/s11222-022-10174-3](https://doi.org/10.1007/s11222-022-10174-3)
+**Røikjer, T., Hobolth, A., & Munch, K. (2022).** *Graph-based algorithms for phase-type distributions.* Statistics and Computing, 32:103. <https://doi.org/10.1007/s11222-022-10174-3>
 
-The paper provides:
-- Complete algorithmic details
-- Complexity analysis
-- Proofs of correctness
-- Empirical performance comparisons
-- Applications to population genetics
-
+The paper provides: - Complete algorithmic details - Complexity analysis - Proofs of correctness - Empirical performance comparisons - Applications to population genetics
 
 ## References
 
@@ -1157,9 +1072,7 @@ The paper provides:
 - Duff, I.S., Erisman, A.M., & Reid, J.K. (2017). *Direct Methods for Sparse Matrices.* Oxford University Press.
 - Bobbio, A., Horváth, A., & Telek, M. (2004). The scale factor: a new degree of freedom in phase-type approximation. *Performance Evaluation*, 56(1-4):121-144.
 
-
 *This documentation is based on the graph-based algorithms implemented in phasic and described in Røikjer et al. (2022).*
-
 
 **Statements and Declarations:**\
 The authors received no support from any organization for the submitted work and have no relevant financial or non-financial interests to disclose.

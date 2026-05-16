@@ -186,7 +186,7 @@ format:
     # code-tools:
     #   source: repo
     fig-align: center    
-    html-math-method: katex
+    html-math-method: mathjax
     toc: true
     mermaid:
       theme: neutral 

@@ -863,5 +863,21 @@ pixi install
 pixi run test
 ```
 
-*Last updated: 2026-04-08*
+## Zero-inflation and AIC/BIC
+
+`SVGD.log_likelihood()` now returns the **full** log-likelihood used
+by the optimiser, including the zero-inflation point-mass term
+`Σ_j n_zero_j · log(1 − p_j(θ))` when `Graph.svgd` attaches
+`_zero_inflated_p_fn` to the model (partial-coverage rewards).
+Previously this term was silently dropped from the public
+`log_likelihood()` path, so any saved AIC/BIC numbers from
+partial-coverage fits were off by `Σ_j n_zero_j · log(1 − p_j(θ̂))`
+and must be re-computed.
+
+Implementation: `SVGD._log_lik_from_pmf` (`src/phasic/svgd.py`) is the
+single source of truth for the full LL summation; both
+`_log_prob_unified` (SVGD optimisation) and `log_likelihood()`
+(AIC/BIC/LRT) delegate to it.
+
+*Last updated: 2026-05-16*
 - When creating a markdown file summarizing changes made, please prompt to add changed and new files to git, commit them with a message from the markdown file, but do not add the markdown file itself. Prompt only once and then do git add, commit, and push without prompting further.

@@ -126,6 +126,16 @@ $selection-bg: #26351c !default;
 //   margin-top: 1.25em;
 // }
 
+
+.reveal ul { list-style: none; padding-left: 0; }
+
+// .reveal ul, .reveal ul ul, .reveal ul ul ul { list-style: none; padding-left: 0; }
+// .reveal li { padding-left: 0; text-indent: -0; }
+// .reveal ul > li::before        { content: "▪ "; color: #c0392b; }
+// .reveal ul ul > li::before     { content: "▪ "; color: #888; }
+// .reveal ul ul ul > li::before  { content: "· "; color: #aaa; }
+
+
 // alerts etc.
 
 .alert {

@@ -9430,6 +9430,73 @@ extern "C" {{
         return new
 
 
+    def epoch_context(self) -> 'EpochContext':
+        """Build a single-epoch context for reading cumulative t-state probabilities.
+
+        Allowed only on **continuous** joint-prob graphs (built via
+        ``joint_prob_graph(..., discrete=False)``). Builds the
+        joint-stop-probability (JSP) graph internally, projects this
+        graph's starting-vertex IPV into the JSP graph's IPV layout,
+        inherits the current theta (whatever was last passed to this
+        graph's ``update_weights``), and returns an :class:`EpochContext`
+        ready for ``cumulative_probs`` calls.
+
+        If you have not called ``update_weights`` on this graph yet, you
+        must call ``ctx.update_weights(theta)`` on the returned context
+        before reading probabilities.
+
+        For the multi-epoch / daisy-chain reads used by SVGD, see
+        :meth:`daisy_chain_joint_probs`.
+
+        Returns
+        -------
+        EpochContext
+            A context object whose ``cumulative_probs(t)`` returns
+            ``P(absorbed via t-state by time t)`` for each t-state.
+            Converges to :meth:`joint_prob_table` (built with the same
+            settings and ``discrete=True``) as ``t → ∞``.
+
+        Raises
+        ------
+        ValueError
+            If this graph is not a joint-prob graph, or is the discrete
+            variant (use :meth:`joint_prob_table` for asymptotes
+            directly).
+        """
+        if not getattr(self, '_joint_prob_base_graph_indexer', None):
+            raise ValueError(
+                "epoch_context requires a graph produced by joint_prob_graph()."
+            )
+        if getattr(self, 'is_discrete', False):
+            raise ValueError(
+                "epoch_context requires a continuous joint-prob graph. The "
+                "discrete variant's joint_prob_table() already returns the "
+                "asymptotic probabilities directly."
+            )
+
+        jsp = self.joint_stop_prob_graph()
+
+        # Seed JSP graph's IPV from this graph's starting-vertex edges,
+        # using the same projection convention as the SVGD daisy-chain
+        # entry point (see __init__.py around the
+        # `initial_ipv = self_ipv_full[jsp._ipv_target_indices]` line).
+        self_ipv_full = np.zeros(self.vertices_length(), dtype=np.float64)
+        for edge in self.starting_vertex().edges():
+            self_ipv_full[edge.to().index()] = edge.weight()
+        initial_ipv = self_ipv_full[jsp._ipv_target_indices]
+        jsp.update_ipv(initial_ipv)
+
+        # Inherit the current theta from the source graph if one has been
+        # set via update_weights(). Users typically call update_weights()
+        # on the source graph before building the epoch context; we
+        # propagate that automatically so the context is ready to read
+        # without a redundant update_weights() call.
+        if self._last_theta is not None:
+            jsp.update_weights(self._last_theta)
+
+        return EpochContext(jsp, source_graph=self)
+
+
     def daisy_chain_joint_probs(
         self,
         *,
@@ -9903,6 +9970,26 @@ extern "C" {{
         return np.array(outcomes), np.array(probs), np.array(t_index)
 
 
+    def _joint_prob_columns(self) -> list[str]:
+        """Column names for a joint-prob DataFrame: reward columns + 'prob' + 't_vertex_index'.
+
+        Used by both :meth:`joint_prob_table` (which reads the asymptotic discrete
+        probabilities) and :class:`EpochContext` (which reads the continuous
+        cumulative probabilities at a finite time).
+        """
+        if not self._rewarded_props:
+            raise ValueError(
+                "Graph does not carry _rewarded_props; only joint-prob graphs "
+                "(built via joint_prob_graph) and graphs derived from them "
+                "(joint_stop_prob_graph) have column metadata."
+            )
+        column_names: list[str] = []
+        for p in self._rewarded_props:
+            for i in range(p.min_value, p.max_value + 1):
+                column_names.append(f"{p.name}_{i}")
+        column_names.extend(['prob', 't_vertex_index'])
+        return column_names
+
     def joint_prob_table(self) -> pd.DataFrame:
 
         if not (self._joint_prob_base_graph_indexer):
@@ -9911,13 +9998,7 @@ extern "C" {{
         outcomes, probs, t_vertex_indices = self._get_joint_probs()
 
         records = [[*obs, prob, idx] for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)]
-        column_names = []
-
-        for p in self._rewarded_props:
-            for i in range(p.min_value, p.max_value+1):
-                column_names.append(f"{p.name}_{i}")
-        column_names.extend(['prob', 't_vertex_index'])
-        joint = pd.DataFrame(records, columns=column_names).set_index('t_vertex_index')
+        joint = pd.DataFrame(records, columns=self._joint_prob_columns()).set_index('t_vertex_index')
         return joint
 
     def pull_cache(self, force: bool = False) -> bool:
@@ -10065,6 +10146,360 @@ extern "C" {{
             self, compute_id=id, metadata=metadata,
             dry_run=dry_run, overwrite_branch=overwrite_branch,
         )
+
+
+class EpochContext:
+    """Read cumulative t-state probabilities of a continuous joint-prob graph at arbitrary times.
+
+    Built via :meth:`Graph.epoch_context`. Wraps a joint-stop-probability
+    (JSP) graph plus the indexing metadata needed to collapse each
+    t-vertex's mass with its trapping aux partner, so that
+
+        M_i(t) = P(absorbed via t-state i by time t)
+
+    can be read directly. As ``t → ∞`` each ``M_i(t)`` converges to the
+    discrete asymptote :meth:`Graph.joint_prob_table` would give for the
+    same model.
+
+    The context is a thin Python wrapper — the heavy lifting (graph
+    transformation, forward computation) lives on the underlying graph
+    at :attr:`_graph`. Typical usage::
+
+        cjpg = graph.joint_prob_graph(..., discrete=False)
+        cjpg.update_weights(theta)        # optional — inherited below
+        ctx  = cjpg.epoch_context()       # inherits current theta of cjpg
+        probs = ctx.cumulative_probs(np.linspace(0, 4, 40))  # (40, n_t)
+
+    If the source graph has had ``update_weights`` called on it, the
+    context inherits that ``theta`` at construction time. Use
+    :meth:`update_weights` on the context only when you want to change
+    parameters after creation.
+
+    Attributes
+    ----------
+    _graph : Graph
+        The joint-stop-probability (JSP) graph (output of
+        :meth:`Graph.joint_stop_prob_graph`). The user can pass this to
+        any standard ``Graph`` method.
+    _source_graph : Graph
+        The continuous joint-prob graph this context was built from.
+        Kept for downstream introspection (e.g. retrieving
+        :meth:`joint_prob_table` of the matching discrete graph).
+    _t_vertex_indices : list[int]
+        Sorted t-vertex indices in the JSP graph. These are also the
+        ``t_vertex_index`` keys in the source graph's
+        :meth:`joint_prob_table` output.
+    _t_aux_map : dict[int, int]
+        ``{t_vertex_idx: aux_vertex_idx}`` mapping for the trapping
+        aux-loop pairs installed by :meth:`Graph.joint_stop_prob_graph`.
+    _ipv_target_indices : list[int]
+        Vertex indices in the JSP graph that carry the per-epoch IPV
+        edges. Propagated for symmetry with the JSP graph; rarely
+        needed by users.
+    """
+
+    def __init__(self, jsp_graph: 'Graph', source_graph: 'Graph') -> None:
+        if not getattr(jsp_graph, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "EpochContext requires a graph produced by joint_stop_prob_graph()."
+            )
+        self._graph = jsp_graph
+        self._source_graph = source_graph
+        self._t_vertex_indices = list(jsp_graph._t_vertex_indices)
+        self._t_aux_map = dict(jsp_graph._t_aux_map)
+        self._ipv_target_indices = list(jsp_graph._ipv_target_indices)
+        self._param_length = jsp_graph.param_length()
+        self._n_vertices = jsp_graph.vertices_length()
+
+    def update_weights(self, theta: ArrayLike) -> None:
+        """Set the per-epoch parameter vector ``theta`` on the underlying JSP graph."""
+        self._graph.update_weights(theta)
+
+    def update_ipv(self, ipv: ArrayLike) -> None:
+        """Override the initial-probability vector on the underlying JSP graph.
+
+        Auto-seeded from the source graph's starting-vertex edges at
+        construction time (see :meth:`Graph.epoch_context`); call this
+        only if you want a non-default IPV (for example, a propagated
+        IPV from a previous epoch).
+        """
+        self._graph.update_ipv(ipv)
+
+    def cumulative_probs(
+        self,
+        t: float | ArrayLike | None = None,
+        *,
+        tol: float = 1e-3,
+        granularity: int = 0,
+    ) -> np.ndarray | pd.DataFrame:
+        """Cumulative absorption probability at each t-state by time ``t``.
+
+        For each t-state ``i`` the returned value is
+        ``stop_probability(t)[t_i] + stop_probability(t)[aux(t_i)]`` —
+        the total mass that has ever been trapped in the (t, aux) pair
+        for that state.
+
+        Parameters
+        ----------
+        t : float, 1D array-like, or None, default None
+            Time(s) at which to evaluate.
+
+            * scalar → :class:`pandas.DataFrame` (``table=True``,
+              default) or 1D array of length ``len(_t_vertex_indices)``
+              (``table=False``).
+            * 1D array → 2D output of shape ``(len(t), n_t_states)``.
+              Requires ``table=False`` (an array-valued ``t`` is
+              rejected when ``table=True``).
+            * ``None`` → auto-pick a ``t`` large enough that the residual
+              transient mass at non-t / non-aux / non-start vertices
+              falls below ``tol``. Mirrors the policy used by the C++
+              daisy-chain handler in SVGD (see
+              :meth:`auto_t` / :meth:`Graph._probe_daisy_t_eval`).
+        tol : float, default 1e-3
+            Residual-mass tolerance used when ``t`` is ``None``. Ignored
+            otherwise.
+        granularity : int, default 0
+            Uniformization granularity forwarded to
+            :meth:`Graph.stop_probability`. ``0`` lets the underlying
+            implementation auto-pick a safe value.
+
+        Returns
+        -------
+        np.ndarray
+            Cumulative probabilities. See ``t`` and ``table`` for
+            shape / type.
+        """
+        if t is None:
+            t = self.auto_t(tol=tol, granularity=granularity)
+        t_arr = np.asarray(t, dtype=np.float64)
+        # if table and t_arr.ndim != 0:
+        #     raise ValueError(
+        #         "table=True requires a scalar t (or t=None). For an "
+        #         "array of times, call cumulative_probs(...) and build the "
+        #         "frame yourself."
+        #     )
+        if t_arr.ndim == 0:
+            probs = self._collapse_one(float(t_arr), granularity=granularity)
+            # if table:
+            #     outcomes, _, t_vertex_indices = self._source_graph._get_joint_probs()
+            #     records = [
+            #         [*obs, prob, idx]
+            #         for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)
+            #     ]
+            #     return pd.DataFrame(
+            #         records, columns=self._source_graph._joint_prob_columns()
+            #     ).set_index('t_vertex_index')
+            return probs
+        if t_arr.ndim != 1:
+            raise ValueError(
+                f"t must be a scalar, 1D array, or None; got ndim={t_arr.ndim}."
+            )
+        n_t = t_arr.shape[0]
+        n_states = len(self._t_vertex_indices)
+        out = np.empty((n_t, n_states), dtype=np.float64)
+        for k, tk in enumerate(t_arr):
+            out[k] = self._collapse_one(float(tk), granularity=granularity)
+        return out
+
+    def joint_prob_table(
+        self,
+        t: float | ArrayLike | None = None,
+        *,
+        tol: float = 1e-3,
+        granularity: int = 0,
+        table: bool = True,
+    ) -> np.ndarray | pd.DataFrame:
+        """Cumulative absorption probability at each t-state by time ``t``.
+
+        For each t-state ``i`` the returned value is
+        ``stop_probability(t)[t_i] + stop_probability(t)[aux(t_i)]`` —
+        the total mass that has ever been trapped in the (t, aux) pair
+        for that state.
+
+        Parameters
+        ----------
+        t : float or None, default None
+            Time at which to evaluate. Defaults to a ``t`` large 
+            enough that the residual transient mass at 
+            non-t / non-aux / non-start vertices falls below ``tol``. 
+            Mirrors the policy used by the C++ daisy-chain handler in
+            SVGD (see :meth:`auto_t` / :meth:`Graph._probe_daisy_t_eval`).
+        tol : float, default 1e-3
+            Residual-mass tolerance used when ``t`` is ``None``. Ignored
+            otherwise.
+        granularity : int, default 0
+            Uniformization granularity forwarded to
+            :meth:`Graph.stop_probability`. ``0`` lets the underlying
+            implementation auto-pick a safe value.
+
+        Returns
+        -------
+        pd.DataFrame
+            A :class:`pandas.DataFrame` with
+            the same layout as :meth:`Graph.joint_prob_table`:
+            rewarded-property columns + ``prob`` column, indexed by
+            ``t_vertex_index``.
+        """
+        if t is None:
+            t = self.auto_t(tol=tol, granularity=granularity)
+        t_arr = np.asarray(t, dtype=np.float64)
+        if t_arr.ndim == 0:
+            probs = self._collapse_one(float(t_arr), granularity=granularity)
+            outcomes, _, t_vertex_indices = self._source_graph._get_joint_probs()
+            records = [
+                [*obs, prob, idx]
+                for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)
+            ]
+            return pd.DataFrame(
+                records, columns=self._source_graph._joint_prob_columns()
+            ).set_index('t_vertex_index')
+        else:
+            raise ValueError(
+                "table=True requires a scalar t (or t=None). For an "
+                "array of times, call cumulative_probs(...) and build the "
+                "frame yourself."
+            )            
+
+    def auto_t(
+        self,
+        *,
+        tol: float = 1e-3,
+        t_min: float = 1.0,
+        t_max: float = 1024.0,
+        granularity: int = 0,
+    ) -> float:
+        """Smallest ``t`` whose residual transient mass falls below ``tol``.
+
+        Walks ``t = t_min, t_min*1.5, t_min*1.5^2, …`` and stops as soon
+        as the sum of mass at non-t / non-aux / non-start vertices is
+        below ``tol`` — i.e. once nearly all probability mass has either
+        absorbed into a t-state trap or been routed to the trash/abs
+        vertex. Same heuristic as the C++ daisy-chain handler and
+        :meth:`Graph._probe_daisy_t_eval`.
+
+        Parameters
+        ----------
+        tol : float, default 1e-3
+            Residual-mass cutoff.
+        t_min : float, default 1.0
+            Starting probe value.
+        t_max : float, default 1024.0
+            Upper bound. Returned if ``tol`` is never reached.
+        granularity : int, default 0
+            Forwarded to :meth:`Graph.stop_probability`.
+
+        Returns
+        -------
+        float
+            The chosen ``t``.
+        """
+        start_idx = self._graph.starting_vertex().index()
+        t_vertex_set = set(self._t_vertex_indices)
+        aux_set = set(self._t_aux_map.values())
+        # Indices whose mass we want driven to ~0 for a "settled" read.
+        residual_indices = [
+            v for v in range(self._n_vertices)
+            if v != start_idx and v not in t_vertex_set and v not in aux_set
+        ]
+        t = float(t_min)
+        while t <= t_max:
+            raw = np.asarray(
+                self._graph.stop_probability(t, granularity=granularity),
+                dtype=np.float64,
+            )
+            residual = float(np.sum(raw[residual_indices]))
+            if residual < tol:
+                return t
+            t *= 1.5
+        return float(t_max)
+
+    def next_ipv(
+        self,
+        t: float | None = None,
+        *,
+        tol: float = 1e-3,
+        granularity: int = 0,
+    ) -> np.ndarray:
+        """IPV for the next epoch: per-vertex probabilities at time ``t`` collapsed onto the JSP graph's IPV layout.
+
+        Use this to daisy-chain epochs by hand: feed the returned vector
+        to ``next_ctx.update_ipv(...)`` (or to the next graph's
+        ``update_ipv``) so the next epoch starts where this one left off.
+
+        Each entry is the mass at one JSP-graph vertex listed in
+        ``_ipv_target_indices``, with t-vertex / aux-partner pairs
+        summed (matching :meth:`cumulative_probs`). Aux vertices, trash
+        pairs, the absorbing vertex, and the starting vertex are
+        excluded — i.e. the same layout the JSP graph's IPV edges use.
+
+        For the multi-epoch SVGD pipeline, prefer
+        :meth:`Graph.daisy_chain_joint_probs`; this method is the
+        equivalent for ad-hoc per-epoch reads.
+
+        Parameters
+        ----------
+        t : float or None, default None
+            Time at which to evaluate. ``None`` → auto-pick via
+            :meth:`auto_t` with the supplied ``tol``.
+        tol : float, default 1e-3
+            Residual-mass tolerance used when ``t`` is ``None``. Ignored
+            otherwise.
+        granularity : int, default 0
+            Forwarded to :meth:`Graph.stop_probability`.
+
+        Returns
+        -------
+        np.ndarray
+            1D vector of length ``len(_ipv_target_indices)``, in the
+            same order. Pass directly to the next epoch's
+            ``update_ipv``.
+        """
+        if t is None:
+            t = self.auto_t(tol=tol, granularity=granularity)
+        if np.ndim(t) != 0:
+            raise ValueError(
+                f"next_ipv requires a scalar t or None; got ndim={np.ndim(t)}."
+            )
+        raw = np.asarray(
+            self._graph.stop_probability(float(t), granularity=granularity),
+            dtype=np.float64,
+        )
+        out = np.empty(len(self._ipv_target_indices), dtype=np.float64)
+        for i, v in enumerate(self._ipv_target_indices):
+            p = raw[v]
+            if v in self._t_aux_map:
+                p += raw[self._t_aux_map[v]]
+            out[i] = p
+        return out
+
+    def cumulative_probs_table(
+        self,
+        t: float | None = None,
+        *,
+        tol: float = 1e-3,
+        granularity: int = 0,
+    ) -> pd.DataFrame:
+        """Alias for :meth:`cumulative_probs` with ``table=True``.
+
+        Returns a :class:`pandas.DataFrame` matching the layout of
+        :meth:`Graph.joint_prob_table`. ``t`` must be a scalar (or
+        ``None`` to auto-pick); use :meth:`cumulative_probs` for arrays
+        of times.
+        """
+        return self.cumulative_probs(
+            t, tol=tol, granularity=granularity, table=True
+        )
+
+    def _collapse_one(self, t: float, *, granularity: int = 0) -> np.ndarray:
+        """One stop_probability call + t/aux collapse → 1D probability vector."""
+        raw = np.asarray(
+            self._graph.stop_probability(t, granularity=granularity),
+            dtype=np.float64,
+        )
+        out = np.empty(len(self._t_vertex_indices), dtype=np.float64)
+        for i, t_idx in enumerate(self._t_vertex_indices):
+            out[i] = raw[t_idx] + raw[self._t_aux_map[t_idx]]
+        return out
 
 
 # Module-level utility functions
