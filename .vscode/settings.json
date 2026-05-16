@@ -89,14 +89,6 @@
     "cmake.cmakePath": "/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/cmake",
     "favorites.resources": [
         {
-            "filePath": "docs/_quarto.yml",
-            "group": "Default"
-        },
-        {
-            "filePath": "pyproject.toml",
-            "group": "Default"
-        },
-        {
             "filePath": "docs/pages/tutorials/full_api",
             "group": "Default"
         },
@@ -125,7 +117,11 @@
             "group": "Default"
         },
         {
-            "filePath": "tests/pytest/test_mcmc.py",
+            "filePath": "docs/pages/popgen",
+            "group": "Default"
+        },
+        {
+            "filePath": "docs/slides",
             "group": "Default"
         }
     ],
