@@ -2,7 +2,9 @@ project:
   type: website
   output-dir: _build
   pre-render: 
-    - quarto render mathref/ 
+    - quarto render mathref/
+    - quarto render slides/
+    - quarto render manuscript/ 
 
   # resources:
   # - objects.txt
@@ -19,7 +21,6 @@ project:
     # - "!draft-*.qmd"  # except those starting with draft-
     - "!internals/"  # exclude entire directories
     - "!pages/benchmarks/**"
-    - "!pages/popgen/"
     - "!pages/topics/R/"
     - "!mathref/"  # Mathematical Reference is a separate Quarto book project with its own _quarto.yml
     - "!pages/vignettes/"  
@@ -142,14 +143,26 @@ website:
             - pages/tutorial/scc-decomposition.ipynb
             - pages/tutorial/distributed.ipynb
             - pages/tutorial/model-hub.ipynb
-        - section: "Deep dives"
+        - section: "Misc"
           contents:
             - pages/topics/vscodenb.ipynb
-            - pages/topics/caching_guide.qmd
-            - pages/topics/state-indexer.ipynb
-      
-        - href: https://github.com/munch-group/phasic/issues
-          text: Issue Tracker
+            # - pages/topics/caching_guide.qmd
+            # - pages/topics/state-indexer.ipynb
+            - href: https://github.com/munch-group/phasic/issues
+              text: Issue Tracker
+        - section: "Popgen experiments"
+          collapse-level: 1
+          contents:
+            - pages/popgen/coalescent-selection.ipynb
+            - pages/popgen/combining_pdf_and_moments.md
+            - pages/popgen/simulate_data.ipynb
+            - pages/popgen/tree-seqs.ipynb
+            - pages/popgen/two-locus-arg.ipynb
+            - pages/popgen/two-locus-island.ipynb
+            - pages/popgen/arg-constraint/arg_constraint_example.ipynb
+            - pages/popgen/arg-constraint/clade_constraint_example.ipynb
+            - pages/popgen/arg-constraint/example.ipynb
+
 
 
 lightbox: true

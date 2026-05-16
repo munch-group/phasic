@@ -1,12 +1,12 @@
 project:
   type: manuscript
-  output-dir: ../_book/thesis
+  output-dir: ../_book/manuscript
 
 filters:
-  - at: pre-quarto
-    path: ../filters/abstract-section.lua
-    # moves abstract section to meta data so it does not need
-    # to to in metadata. Just put it in an "# Abstract" section    # same as any other section
+  # - at: pre-quarto
+  #   path: ../filters/abstract-section.lua
+  #   # moves abstract section to meta data so it does not need
+  #   # to to in metadata. Just put it in an "# Abstract" section    # same as any other section
   - at: post-quarto
     path: ../filters/captions.lua
     # moves subcaptions into the main caption
@@ -16,60 +16,60 @@ manuscript:
 
 
 format:
-  html: default
+  html:
     theme: [default, ../custom.scss]     
   # docx: default
 #  jats: default
 
 
-  pdf:
-    # filters:
-    # # - at: pre-ast
-    # #   path: filter1.lua
-    #   - movesubcaptions.lua  
-    # # latex-clean: false
-    documentclass: scrbook
-    pdf-engine: pdflatex
-    papersize: A4
-    toc: true
-    toc-depth: 2
-    toc-title: "Table of contents"
-    lof: true
-    lot: true
-    fig-align: center
-    geometry:
-      - left=2.54cm
-      - right=2.54cm           
-      # - inner=3cm
-      # - outer=4cm
-      # - top=3cm
-      # - bottom=4cm
-      # - headsep=22pt
-      # - headheight=11pt
-      # - footskip=33pt
-      # - ignorehead
-      # - ignorefoot
-      # - heightrounded
+  # pdf:
+  #   # filters:
+  #   # # - at: pre-ast
+  #   # #   path: filter1.lua
+  #   #   - movesubcaptions.lua  
+  #   # # latex-clean: false
+  #   documentclass: scrbook
+  #   pdf-engine: pdflatex
+  #   papersize: A4
+  #   toc: true
+  #   toc-depth: 2
+  #   toc-title: "Table of contents"
+  #   lof: true
+  #   lot: true
+  #   fig-align: center
+  #   geometry:
+  #     - left=2.54cm
+  #     - right=2.54cm           
+  #     # - inner=3cm
+  #     # - outer=4cm
+  #     # - top=3cm
+  #     # - bottom=4cm
+  #     # - headsep=22pt
+  #     # - headheight=11pt
+  #     # - footskip=33pt
+  #     # - ignorehead
+  #     # - ignorefoot
+  #     # - heightrounded
 
-      # - textheight=9in,
-      # - textwidth=6.5in,
-      # - top=1in,
-      # - headheight=14pt,
-      # - headsep=25pt,
-      # - footskip=30pt      
-    fontsize: 10pt
-    linestretch: 1.0
-    # linestretch: 1.25    
-    number-sections: true
-    number-depth: 2    
-    highlight-style: kate 
-    tbl-cap-location: top
-    code:
-      code-block-bg: "#dedede"    
-    include-in-header:
-      - file: header_extra.tex
-    template-partials:
-      - before-body.tex      
+  #     # - textheight=9in,
+  #     # - textwidth=6.5in,
+  #     # - top=1in,
+  #     # - headheight=14pt,
+  #     # - headsep=25pt,
+  #     # - footskip=30pt      
+  #   fontsize: 10pt
+  #   linestretch: 1.0
+  #   # linestretch: 1.25    
+  #   number-sections: true
+  #   number-depth: 2    
+  #   highlight-style: kate 
+  #   tbl-cap-location: top
+  #   code:
+  #     code-block-bg: "#dedede"    
+  #   include-in-header:
+  #     - file: header_extra.tex
+  #   template-partials:
+  #     - before-body.tex      
 
 notebook-links: false
 
@@ -78,4 +78,4 @@ lightbox: true
 execute:
   freeze: false
 
-bibliography: ../references.bib
+bibliography: references.bib
