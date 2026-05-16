@@ -2707,8 +2707,17 @@ class Graph(_Graph):
         distribution context using distribution_context().
         """
         if "rewards" in kwargs and validate_rewards:
+            # Use coverage_mode="warn": partial-coverage reward
+            # vectors are legal here (the C++ sampler naturally
+            # returns 0 for trajectories that don't visit any
+            # rewarded vertex; the resulting samples are a mixture
+            # of point-mass-at-0 and a continuous part). Warn so the
+            # user knows what shape their data has.
             kwargs["rewards"] = self._validate_rewards(
-                kwargs["rewards"], allow_2d=False, context="rewards",
+                kwargs["rewards"],
+                allow_2d=False,
+                coverage_mode="warn",
+                context="rewards",
             )
         if self.is_discrete:
             return np.array(super().sample_discrete(n, **kwargs))
@@ -3393,31 +3402,17 @@ class Graph(_Graph):
         if np.any(np.isnan(rewards_arr)):
             raise ValueError("rewards contains NaN values")
         if validate_rewards:
-            # Shape errors always raise (wrong-length rewards is a bug).
+            # Shape errors always raise (wrong-length rewards is a
+            # bug). Coverage failures warn but do not raise, since
+            # reward_transform has legitimate sub-stochastic uses
+            # (Laplace transforms, conditional expectations).
             self._validate_rewards(
                 rewards_arr,
                 allow_2d=False,
-                check_coverage=False,
+                check_coverage=True,
+                coverage_mode="warn",
                 context="rewards",
             )
-            # Coverage failure only warns - reward_transform has
-            # legitimate sub-stochastic uses (Laplace transforms,
-            # conditional expectations).
-            try:
-                self._validate_reward_coverage(rewards_arr, context="rewards")
-            except ValueError as exc:
-                import warnings
-                first_line = exc.args[0].splitlines()[0]
-                warnings.warn(
-                    f"reward_transform: {first_line} The resulting "
-                    "reward-transformed graph will be sub-stochastic. "
-                    "This is fine for Laplace transforms and conditional "
-                    "expectations; for likelihood inference, use a "
-                    "covering reward vector or pass "
-                    "validate_rewards=False to silence this warning.",
-                    UserWarning,
-                    stacklevel=2,
-                )
 
         if self.is_discrete:
             return Graph(super().reward_transform_discrete(rewards))
@@ -3560,6 +3555,51 @@ class Graph(_Graph):
         n = self.vertices_length()
         return [i for i in range(n) if self.vertex_at(i).edges_length() == 0]
 
+    def _validate_no_absorbing_reward(
+        self, rewards_1d: np.ndarray, *, context: str,
+    ) -> None:
+        """Raise ValueError if rewards has nonzero weight on absorbing vertices.
+
+        Absorbing vertices have zero sojourn time by definition (the
+        chain stops there). Rewarding them contributes a point mass
+        of zero observations that carries no likelihood information
+        but biases the estimator (the continuous-density evaluation
+        at r = 0 is a spurious finite value, not the true atomic
+        mass).
+
+        Assumes ``rewards_1d`` is already shape-validated. Called
+        from ``_validate_rewards`` before the coverage check.
+        """
+        rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
+        absorbing = set(self._absorbing_vertex_indices())
+        nonzero = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
+        bad = sorted(absorbing & nonzero)
+        if not bad:
+            return
+
+        raise ValueError(
+            f"{context}: rewards have nonzero weight on absorbing "
+            f"vertices {bad}.\n"
+            "\n"
+            "Absorbing vertices have zero sojourn time by definition "
+            "(the trajectory absorbs and stops), so rewarding them\n"
+            "produces an identically-zero sample that carries no "
+            "likelihood information about theta. The continuous-\n"
+            "density evaluation at r = 0 is a spurious finite value "
+            "that biases the estimator upward.\n"
+            "\n"
+            "Fix: set rewards[v] = 0 for every absorbing vertex v, "
+            "or build your reward matrix from the non-absorbing\n"
+            "state decomposition. Common idiom:\n"
+            "\n"
+            "    rewards = graph.states().T[:-1]   # drop the row "
+            "indexing the absorbing state\n"
+            "\n"
+            "If you intentionally want to model an atom at r = 0 "
+            "(rare; mathematically degenerate), pass\n"
+            "validate_rewards=False to skip this check."
+        )
+
     def _validate_reward_coverage(
         self, rewards_1d: np.ndarray, *, context: str,
     ) -> None:
@@ -3646,6 +3686,7 @@ class Graph(_Graph):
         *,
         allow_2d: bool = True,
         check_coverage: bool = True,
+        coverage_mode: str = "raise",
         context: str = "rewards",
     ) -> np.ndarray:
         """Unified validator for reward arrays (shape + coverage).
@@ -3663,8 +3704,21 @@ class Graph(_Graph):
             trajectory must accumulate positive reward). Set False
             from ``reward_transform`` (which warns rather than raises
             on coverage failure).
+        coverage_mode : {"raise", "report", "warn"}, default "raise"
+            How to handle coverage failures:
+
+            - ``"raise"`` (default, backwards-compat): raise
+              ``ValueError`` with a witness-path diagnostic.
+            - ``"report"``: never raise; caller inspects the returned
+              array and uses ``_partial_coverage_features`` to decide
+              what to do. Used by ``Graph.svgd`` to switch to a
+              zero-inflated likelihood automatically.
+            - ``"warn"``: emit one ``UserWarning`` per offending
+              feature; no raise. Used by ``Graph.sample`` (which
+              returns mixture samples naturally) and
+              ``Graph.reward_transform`` (Laplace-transform users).
         context : str
-            Used to label the error message (e.g. "rewards",
+            Used to label error / warning messages (e.g. "rewards",
             "feature 2 rewards").
 
         Returns
@@ -3676,8 +3730,8 @@ class Graph(_Graph):
         Raises
         ------
         ValueError
-            On shape mismatch (always) or coverage failure (when
-            ``check_coverage=True``).
+            On shape mismatch (always) or coverage failure (only when
+            ``check_coverage=True`` and ``coverage_mode="raise"``).
         """
         arr = np.asarray(rewards, dtype=np.float64)
         n_v = self.vertices_length()
@@ -3719,29 +3773,327 @@ class Graph(_Graph):
                 f"got shape {arr.shape}."
             )
 
-        # ---- Coverage check (O(V+E) per feature, gated) ------------
+        # ---- Absorbing-vertex check (O(V), always raises) ----------
+        # Rewards on absorbing vertices are a feature-engineering bug
+        # (the trajectory absorbs and stops, contributing 0 sojourn
+        # time to any reward there). This check fires before the
+        # coverage check regardless of coverage_mode, because it's
+        # not a modelling choice — it's invalid input.
         if check_coverage:
             if arr.ndim == 1:
-                self._validate_reward_coverage(arr, context=context)
+                self._validate_no_absorbing_reward(arr, context=context)
             else:
-                offenders: list[int] = []
-                messages: list[str] = []
                 for j in range(arr.shape[0]):
-                    try:
-                        self._validate_reward_coverage(
-                            arr[j], context=f"{context}[feature {j}]"
-                        )
-                    except ValueError as exc:
-                        offenders.append(j)
-                        messages.append(exc.args[0])
-                if offenders:
-                    joined = "\n\n---\n\n".join(messages)
-                    raise ValueError(
-                        f"{context}: invalid rewards for features "
-                        f"{offenders} (of {arr.shape[0]}).\n\n{joined}"
+                    self._validate_no_absorbing_reward(
+                        arr[j], context=f"{context}[feature {j}]"
                     )
 
+        # ---- Coverage check (O(V+E) per feature, gated) ------------
+        if not check_coverage:
+            return arr
+
+        if coverage_mode not in ("raise", "report", "warn"):
+            raise ValueError(
+                f"coverage_mode must be one of "
+                f"'raise' | 'report' | 'warn'; got {coverage_mode!r}."
+            )
+
+        if arr.ndim == 1:
+            offenders: list[int] = []
+            messages: list[str] = []
+            try:
+                self._validate_reward_coverage(arr, context=context)
+            except ValueError as exc:
+                offenders.append(0)
+                messages.append(exc.args[0])
+        else:
+            offenders = []
+            messages = []
+            for j in range(arr.shape[0]):
+                try:
+                    self._validate_reward_coverage(
+                        arr[j], context=f"{context}[feature {j}]"
+                    )
+                except ValueError as exc:
+                    offenders.append(j)
+                    messages.append(exc.args[0])
+
+        if not offenders:
+            return arr
+
+        if coverage_mode == "raise":
+            if arr.ndim == 1:
+                raise ValueError(messages[0])
+            joined = "\n\n---\n\n".join(messages)
+            raise ValueError(
+                f"{context}: invalid rewards for features "
+                f"{offenders} (of {arr.shape[0]}).\n\n{joined}"
+            )
+        if coverage_mode == "warn":
+            import warnings
+            for msg in messages:
+                first_line = msg.splitlines()[0]
+                warnings.warn(
+                    f"{first_line} The resulting reward-transformed "
+                    "distribution is sub-stochastic; if you are using "
+                    "it for likelihood inference, Graph.svgd handles "
+                    "this automatically via a zero-inflated likelihood.",
+                    UserWarning,
+                    stacklevel=3,
+                )
+        # mode == "report": silent; caller inspects via
+        # _partial_coverage_features to act on offenders.
+
         return arr
+
+    def _initial_probability_vector(self) -> np.ndarray:
+        """Return the IPV as a length-n_vertices np.float64 array.
+
+        Reads the synthetic start vertex's outgoing edges; the
+        ``weight()`` of each edge is the initial probability mass
+        placed on the target vertex. Same convention used by
+        ``_starting_vertex_indices`` and ``absorbing_state_rewards``.
+        """
+        n_v = self.vertices_length()
+        alpha = np.zeros(n_v, dtype=np.float64)
+        for e in self.starting_vertex().edges():
+            w = float(e.weight())
+            if w > 0.0:
+                alpha[int(e.to().index())] = w
+        return alpha
+
+    def reward_visit_probability(
+        self,
+        rewards,
+        theta=None,
+    ):
+        """Probability of visiting any rewarded vertex before absorption.
+
+        For a 1D reward vector ``rewards`` and (parameterized) graph at
+        parameter ``theta``, returns the scalar probability that a
+        trajectory absorbed from the starting vertex visits at least
+        one vertex with reward > 0 before being absorbed. This is the
+        phase-type quantity
+
+            p(theta) = sum_{v in starts} alpha_v * h_v(theta)
+
+        where ``h_v(theta) = P(reach a rewarded vertex | start at v)``
+        and ``alpha`` is the IPV. ``h`` is computed via
+        ``Graph.backward_probabilities`` using the rewarded vertices
+        as the target set; the result depends only on graph topology,
+        IPV, and theta — NOT on observed reward times.
+
+        Parameters
+        ----------
+        rewards : array-like, shape (n_vertices,)
+            Per-vertex reward; only the nonzero pattern is used.
+        theta : array-like, optional
+            Parameter vector. If None, uses the graph's current
+            parameter setting. If a JAX tracer is passed, the
+            JAX-differentiable FFI path is used and the return is a
+            jax.Array. Otherwise the result is a Python float.
+
+        Returns
+        -------
+        float or jax.Array, shape ()
+            Probability p(theta) in [0, 1].
+
+        Notes
+        -----
+        When p < 1, some absorbing trajectories accumulate zero
+        cumulative reward. The induced reward distribution is then a
+        mixture (point mass at 0 + continuous part for r > 0); use
+        ``Graph.svgd(..., rewards=...)`` to fit it with a
+        zero-inflated likelihood automatically.
+        """
+        rewards_arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+        if rewards_arr.shape != (n_v,):
+            raise ValueError(
+                f"rewards must have shape (n_vertices={n_v},); "
+                f"got shape {rewards_arr.shape}."
+            )
+
+        rewarded = [int(v) for v in np.where(rewards_arr > 0.0)[0]]
+        if not rewarded:
+            # No rewarded vertices: p is trivially zero.
+            try:
+                import jax
+                if isinstance(theta, (jax.Array, jax.core.Tracer)):
+                    import jax.numpy as jnp
+                    return jnp.asarray(0.0, dtype=jnp.float64)
+            except ImportError:
+                pass
+            return 0.0
+
+        # JAX-traced theta routes through the FFI path.
+        try:
+            import jax
+            import jax.numpy as jnp
+            if isinstance(theta, (jax.Array, jax.core.Tracer)):
+                from .ffi_wrappers import compute_reward_visit_probability_ffi
+                structure_json = self.serialize()
+                alpha = jnp.asarray(
+                    self._initial_probability_vector(), dtype=jnp.float64,
+                )
+                return compute_reward_visit_probability_ffi(
+                    structure_json,
+                    theta,
+                    jnp.asarray(rewarded, dtype=jnp.int32),
+                    alpha,
+                )
+        except ImportError:
+            pass
+
+        # Concrete-theta path. Uses the graph's current parameter
+        # setting if theta is None; otherwise temporarily updates
+        # weights to compute h then restores them.
+        if theta is not None:
+            self.update_weights(np.asarray(theta, dtype=np.float64))
+
+        h = self.backward_probabilities(rewarded)
+        alpha = self._initial_probability_vector()
+        return float(np.sum(alpha * h))
+
+    def _partial_coverage_features(self, rewards) -> list[int]:
+        """Return indices of features (rows) that fail the coverage check.
+
+        For 1D rewards returns ``[0]`` if the single vector fails,
+        otherwise ``[]``. For 2D rewards ``(n_features, n_vertices)``
+        returns the list of offending feature indices. Reuses the
+        existing ``_validate_reward_coverage`` BFS — just catches the
+        ValueError instead of letting it propagate.
+        """
+        arr = np.asarray(rewards, dtype=np.float64)
+        if arr.ndim == 1:
+            try:
+                self._validate_reward_coverage(arr, context="rewards")
+                return []
+            except ValueError:
+                return [0]
+        assert arr.ndim == 2, "expected 1D or 2D rewards after shape check"
+        offenders: list[int] = []
+        for j in range(arr.shape[0]):
+            try:
+                self._validate_reward_coverage(
+                    arr[j], context=f"rewards[feature {j}]"
+                )
+            except ValueError:
+                offenders.append(j)
+        return offenders
+
+    def _attach_zero_inflated_term(
+        self,
+        model,
+        *,
+        rewards,
+        offenders: list[int],
+        observed_data,
+    ) -> None:
+        """Wire the zero-inflated likelihood term onto an SVGD model.
+
+        Attaches two attributes to ``model``:
+
+        - ``_zero_inflated_p_fn`` : callable ``theta -> jax.Array``,
+          returning a vector of ``p_j(theta) = P(visit a rewarded
+          vertex in feature j | theta)`` for the offending features
+          (length ``len(offenders)``). JAX-differentiable.
+        - ``_n_zero_per_feature`` : np.int64 array of shape
+          ``(len(offenders),)`` counting zero-valued observations per
+          offending feature. Computed once at attach time from the
+          user's ``observed_data``.
+
+        ``SVGD._log_prob_unified`` reads these to add the
+        ``Σ_j n_zero_j * log(1 - p_j(theta))`` term to the
+        log-likelihood.
+        """
+        import jax.numpy as jnp
+        from .svgd import SparseObservations, is_sparse_observations
+
+        arr = np.asarray(rewards, dtype=np.float64)
+        n_v = self.vertices_length()
+        if arr.ndim == 1:
+            offender_reward_rows = [arr]
+        else:
+            offender_reward_rows = [arr[j] for j in offenders]
+
+        # Per-feature zero counts from observed_data.
+        n_zero_per_feature = np.zeros(len(offenders), dtype=np.int64)
+        if is_sparse_observations(observed_data):
+            values = np.asarray(observed_data.values)
+            feat_idx = np.asarray(observed_data.features)
+            for k, j in enumerate(offenders):
+                mask = feat_idx == j
+                if not np.any(mask):
+                    n_zero_per_feature[k] = 0
+                    continue
+                vals_j = values[mask]
+                n_zero_per_feature[k] = int(
+                    np.sum((vals_j == 0.0) & ~np.isnan(vals_j))
+                )
+        else:
+            obs = np.asarray(observed_data)
+            if obs.ndim == 1:
+                # 1D path: rewards must be 1D, single offender == feature 0.
+                n_zero_per_feature[0] = int(np.sum(obs == 0.0))
+            elif obs.ndim == 2:
+                # 2D dense (NaN-padded) observations.
+                for k, j in enumerate(offenders):
+                    col = obs[:, j]
+                    n_zero_per_feature[k] = int(
+                        np.sum((col == 0.0) & ~np.isnan(col))
+                    )
+            else:
+                raise ValueError(
+                    "_attach_zero_inflated_term: observed_data must be "
+                    "1D, 2D, or SparseObservations; got ndim "
+                    f"{obs.ndim}."
+                )
+
+        # Skip the wiring entirely when there are NO zero observations
+        # for any offending feature. The math then contributes nothing
+        # (n_zero * log(1 - p) == 0) and we save the runtime cost of
+        # the extra FFI call. The legacy path is correct in that case.
+        if not np.any(n_zero_per_feature > 0):
+            return
+
+        # Precompute the (concrete) rewarded-vertex index arrays once
+        # so the JAX-traced p(theta) function can use static-sized
+        # int32 arrays inside the FFI call.
+        rewarded_per_feature: list[np.ndarray] = []
+        for row in offender_reward_rows:
+            rewarded = np.where(row > 0.0)[0].astype(np.int32)
+            rewarded_per_feature.append(rewarded)
+
+        alpha = self._initial_probability_vector()
+        structure_json = self.serialize()
+
+        from .ffi_wrappers import compute_reward_visit_probability_ffi
+
+        def _zero_inflated_p_fn(theta):
+            """Return p_j(theta) for each offending feature j.
+
+            Uses ``compute_reward_visit_probability_ffi`` which is
+            built on ``pure_callback`` with ``vmap_method='sequential'``
+            — so under vmap-over-particles the underlying C handler
+            is invoked once per particle (the C handler does not
+            natively support batched theta).
+            """
+            alpha_j = jnp.asarray(alpha, dtype=jnp.float64)
+            ps = []
+            for rewarded in rewarded_per_feature:
+                rewarded_j = jnp.asarray(rewarded, dtype=jnp.int32)
+                ps.append(
+                    compute_reward_visit_probability_ffi(
+                        structure_json, theta, rewarded_j, alpha_j,
+                    )
+                )
+            return jnp.stack(ps)
+
+        model._zero_inflated_p_fn = _zero_inflated_p_fn
+        model._n_zero_per_feature = jnp.asarray(
+            n_zero_per_feature, dtype=jnp.float64,
+        )
 
     def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         """
@@ -5959,10 +6311,52 @@ extern "C" {{
         # Reward-vector structural validation (shape + coverage).
         # Skipped when joint_index is active (rewards then encode joint
         # observation indices, not vertex-level reward weights).
+        #
+        # Coverage failures DO NOT raise here: they're handled by a
+        # zero-inflated likelihood that models the point mass at
+        # r = 0 (trajectories that absorb without visiting any
+        # rewarded vertex) separately from the continuous part. The
+        # mode-switch is informational; users see a one-time
+        # UserWarning naming the offending features.
+        _partial_coverage_features_for_zi: list[int] = []
         if rewards is not None and validate_rewards and not joint_index:
             rewards = self._validate_rewards(
-                rewards, allow_2d=True, context="rewards",
+                rewards,
+                allow_2d=True,
+                coverage_mode="report",
+                context="rewards",
             )
+            _partial_coverage_features_for_zi = (
+                self._partial_coverage_features(rewards)
+            )
+            if _partial_coverage_features_for_zi:
+                import warnings
+                arr_for_msg = np.asarray(rewards, dtype=np.float64)
+                if arr_for_msg.ndim == 1:
+                    warnings.warn(
+                        "rewards: partial coverage (some absorbing "
+                        "trajectories do not visit any rewarded "
+                        "vertex). Using zero-inflated likelihood "
+                        "automatically: SVGD models the point mass "
+                        "at r = 0 via p(theta) = "
+                        "P(visit a rewarded vertex). To use the "
+                        "legacy sub-stochastic continuous-only "
+                        "likelihood, pass validate_rewards=False.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                else:
+                    warnings.warn(
+                        f"rewards: features "
+                        f"{_partial_coverage_features_for_zi} have "
+                        f"partial coverage (of {arr_for_msg.shape[0]} "
+                        "total features). Using zero-inflated "
+                        "likelihood automatically for those features. "
+                        "To use the legacy sub-stochastic continuous-"
+                        "only likelihood, pass validate_rewards=False.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
 
         # Validate observed_data: must be 1-D array or SparseObservations
         # (skip for joint probability graphs — they accept lists of tuples)
@@ -6137,6 +6531,21 @@ extern "C" {{
             model = Graph.pmf_and_moments_from_graph(
                 self, nr_moments=nr_moments, discrete=discrete,
                 theta_dim=theta_dim
+            )
+
+        # Zero-inflated likelihood wiring: when the rewards validator
+        # flagged partial-coverage features above, attach a
+        # JAX-differentiable p(theta) function and per-feature zero
+        # counts so SVGD's _log_prob_unified can add the
+        # n_zero * log(1 - p(theta)) term. Models without partial
+        # coverage carry no attributes and the legacy path runs
+        # unchanged.
+        if _partial_coverage_features_for_zi:
+            self._attach_zero_inflated_term(
+                model,
+                rewards=rewards,
+                offenders=_partial_coverage_features_for_zi,
+                observed_data=observed_data,
             )
 
         # Create SVGD object

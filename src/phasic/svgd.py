@@ -5206,6 +5206,17 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
+        # Zero-inflated likelihood detection. When the model carries a
+        # _zero_inflated_p_fn attribute (set by Graph.svgd when the
+        # rewards have partial coverage), we model zero observations
+        # via the explicit point-mass term n_zero * log(1 - p(theta))
+        # instead of evaluating the continuous density at r = 0.
+        # Models without partial coverage have no such attribute and
+        # the legacy path runs unchanged (bit-identical).
+        has_zero_inflated = (
+            getattr(self.model, '_zero_inflated_p_fn', None) is not None
+        )
+
         # Log-likelihood term - handle sparse vs dense format differently
         if self._sparse_format:
             # Sparse format: all values are valid (no NaN), simpler computation
@@ -5225,8 +5236,22 @@ class SVGD:
             # Register debug callback (only executes at runtime, not during tracing)
             jax.debug.callback(check_nan_pmf_sparse, pmf_mask)
 
-            # All observations are valid in sparse format - simple sum
-            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+            if has_zero_inflated:
+                # Continuous density term: contribute only for r > 0
+                # observations (zeros are handled by the explicit
+                # point-mass term below).
+                obs_values = jnp.asarray(self.observed_data.values)
+                positive_mask = obs_values > 0.0
+                log_lik = jnp.sum(
+                    jnp.where(
+                        positive_mask,
+                        jnp.log(pmf_vals + 1e-10),
+                        0.0,
+                    )
+                )
+            else:
+                # All observations are valid in sparse format - simple sum
+                log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
 
         else:
             # Dense format: handle missing observations via NaN
@@ -5234,9 +5259,19 @@ class SVGD:
             obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
             pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
 
-            # Check for invalid PMF using debug callback (JAX-compatible error checking)
-            # This won't block JIT compilation but will warn if NaN PMF occurs
-            invalid_pmf = obs_mask & ~pmf_mask
+            if has_zero_inflated:
+                # Mask r == 0 observations out of the continuous-density
+                # contribution. The explicit point-mass term below
+                # contributes for them. PMF at r = 0 of a sub-density
+                # is a finite spurious value that would bias theta if
+                # used as-is in log-likelihood.
+                obs_positive_mask = obs_mask & (
+                    jnp.asarray(self.observed_data) > 0.0
+                )
+                invalid_pmf = obs_positive_mask & ~pmf_mask
+            else:
+                obs_positive_mask = obs_mask
+                invalid_pmf = obs_mask & ~pmf_mask
 
             def check_nan_pmf(invalid_mask):
                 """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
@@ -5250,8 +5285,27 @@ class SVGD:
             # Register debug callback (only executes at runtime, not during tracing)
             jax.debug.callback(check_nan_pmf, invalid_pmf)
 
-            # Compute log-likelihood only on valid observations (skip NaN observations)
-            log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+            # Compute log-likelihood only on valid positive observations
+            log_lik = jnp.sum(
+                jnp.where(
+                    obs_positive_mask, jnp.log(pmf_vals + 1e-10), 0.0,
+                )
+            )
+
+        # Zero-inflated point-mass term:
+        #   sum_j n_zero_j * log(1 - p_j(theta))
+        # where p_j(theta) = P(visit a rewarded vertex in feature j).
+        # Skipped entirely when has_zero_inflated is False (legacy
+        # bit-identical path).
+        if has_zero_inflated:
+            p_theta = self.model._zero_inflated_p_fn(theta_transformed)
+            n_zero = jnp.asarray(self.model._n_zero_per_feature)
+            # Clamp p into [eps, 1-eps] for numerical stability at the
+            # boundary; in covering-rewards cases the term is
+            # multiplied by zero anyway (n_zero == 0).
+            p_clamped = jnp.clip(p_theta, 1e-10, 1.0 - 1e-10)
+            zero_term = jnp.sum(n_zero * jnp.log1p(-p_clamped))
+            log_lik = log_lik + zero_term
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:

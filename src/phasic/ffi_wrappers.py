@@ -40,6 +40,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import functools
+
 import jax
 import jax.numpy as jnp
 from jax import ffi
@@ -1127,6 +1129,163 @@ def backward_probabilities_ffi(
     )
 
 
+def compute_reward_visit_probability_ffi(
+    structure_json: 'str | dict',
+    theta: 'jax.Array',
+    target_vertices: 'jax.Array',
+    initial_ipv: 'jax.Array',
+) -> 'jax.Array':
+    """Probability of visiting any target vertex before absorption.
+
+    Returns the scalar phase-type quantity
+
+        p(theta) = sum_v alpha_v * h_v(theta)
+
+    where ``h_v(theta) = P(reach target_vertices | start at v)`` is
+    computed via the underlying C handler ``ptd_backward_probabilities``
+    (NOT the FFI wrapper, which lacks batched-theta support). We route
+    through ``jax.pure_callback`` with ``vmap_method='sequential'`` so
+    vmap-over-particles dispatches one C call per particle. The
+    function is JAX-differentiable via a ``custom_vjp`` with central
+    finite differences.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Serialized graph structure.
+    theta : jax.Array
+        Parameter vector, shape (n_params,).
+    target_vertices : jax.Array
+        Indices of vertices treated as the reachable target set,
+        shape (n_targets,), int32. Typically the set of vertices with
+        positive reward.
+    initial_ipv : jax.Array
+        Initial probability vector alpha, shape (n_vertices,).
+        Nonzero only at the graph's starting vertices.
+
+    Returns
+    -------
+    jax.Array, shape ()
+        Scalar p(theta) in [0, 1].
+    """
+    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
+    target_vertices = jnp.asarray(target_vertices, dtype=jnp.int32)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    return _reward_visit_probability_autodiff(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+
+
+def _reward_visit_probability_callback(
+    structure_json_str: str,
+    theta_np: np.ndarray,
+    target_vertices_np: np.ndarray,
+    initial_ipv_np: np.ndarray,
+) -> np.ndarray:
+    """Concrete-Python helper: compute p(theta) without JAX.
+
+    Builds a temporary Graph with the given theta, runs the C
+    backward_probabilities helper, then takes the inner product
+    against the IPV. Always returns a 0-D float64 scalar.
+    """
+    import phasic
+    from phasic import Graph
+    # Rebuild a Graph from the serialized JSON. Cache the parsed
+    # builder on the structure_json_str to avoid repeated parsing.
+    builder = _get_pybind_builder(structure_json_str)
+    theta_np = np.asarray(theta_np, dtype=np.float64).ravel()
+    targets = [int(x) for x in np.asarray(target_vertices_np).ravel()]
+    # Build a concrete Graph at the given theta and use its
+    # backward_probabilities Python wrapper.
+    concrete = Graph(builder.build(theta_np))
+    h = np.asarray(concrete.backward_probabilities(targets), dtype=np.float64)
+    alpha = np.asarray(initial_ipv_np, dtype=np.float64)
+    return np.array(float(np.dot(alpha, h)), dtype=np.float64)
+
+
+def _get_pybind_builder(structure_json_str: str):
+    """Thread-local cache for pybind GraphBuilder by structure JSON.
+
+    Avoids reparsing the JSON on every callback invocation.
+    """
+    import phasic as _phasic
+    cache = getattr(_get_pybind_builder, "_cache", None)
+    if cache is None:
+        cache = {}
+        _get_pybind_builder._cache = cache
+    if structure_json_str not in cache:
+        cache[structure_json_str] = (
+            _phasic.parameterized.GraphBuilder(structure_json_str)
+        )
+    return cache[structure_json_str]
+
+
+def _reward_visit_probability_forward(
+    structure_json, theta, target_vertices, initial_ipv,
+):
+    """JAX-side forward via pure_callback so vmap iterates per particle."""
+    structure_str = _ensure_json_string(structure_json)
+    result_shape = jax.ShapeDtypeStruct((), jnp.float64)
+
+    def _cb(theta_jax, target_jax, ipv_jax):
+        return _reward_visit_probability_callback(
+            structure_str,
+            np.asarray(theta_jax),
+            np.asarray(target_jax),
+            np.asarray(ipv_jax),
+        )
+
+    return jax.pure_callback(
+        _cb,
+        result_shape,
+        theta,
+        target_vertices,
+        initial_ipv,
+        vmap_method='sequential',
+    )
+
+
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0,))
+def _reward_visit_probability_autodiff(
+    structure_json, theta, target_vertices, initial_ipv,
+):
+    return _reward_visit_probability_forward(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+
+
+def _rvp_fwd(structure_json, theta, target_vertices, initial_ipv):
+    out = _reward_visit_probability_forward(
+        structure_json, theta, target_vertices, initial_ipv,
+    )
+    return out, (theta, target_vertices, initial_ipv)
+
+
+def _rvp_bwd(structure_json, res, cotangent):
+    theta, target_vertices, initial_ipv = res
+    eps = 1e-7
+    n_params = int(theta.shape[-1])
+    grads = []
+    for i in range(n_params):
+        tp = theta.at[i].add(eps)
+        tm = theta.at[i].add(-eps)
+        fp = _reward_visit_probability_forward(
+            structure_json, tp, target_vertices, initial_ipv,
+        )
+        fm = _reward_visit_probability_forward(
+            structure_json, tm, target_vertices, initial_ipv,
+        )
+        grads.append(cotangent * (fp - fm) / (2.0 * eps))
+    return (
+        jnp.stack(grads),
+        jnp.zeros_like(target_vertices, dtype=jnp.float64),
+        jnp.zeros_like(initial_ipv),
+    )
+
+
+_reward_visit_probability_autodiff.defvjp(_rvp_fwd, _rvp_bwd)
+
+
 # ============================================================================
 # Module Initialization
 # ============================================================================
@@ -1238,4 +1397,6 @@ __all__ = [
     'compute_pmf_multivariate_ffi',
     'compute_sojourn_times_ffi',
     'compute_daisy_chain_joint_probs_ffi',
+    'backward_probabilities_ffi',
+    'compute_reward_visit_probability_ffi',
 ]

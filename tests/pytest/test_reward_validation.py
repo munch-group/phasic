@@ -166,13 +166,14 @@ def test_coverage_skip_last_row_fails():
 
 
 def test_coverage_partial_decomposition_passes():
-    """A subset of rows that covers all paths must pass. For the N=4
-    coalescent, rows [0, 1, 3] of states().T form a valid feature
-    decomposition (row 2 alone is the problematic one)."""
+    """A subset of rows that is both covering AND has no absorbing-
+    vertex weight passes both validation checks. For the N=4
+    coalescent, rows [0, 1] of states().T are fully covering and
+    use only non-absorbing vertices."""
     g = _build_n4_coalescent()
-    rewards = g.states().T[[0, 1, 3]].astype(np.float64)
+    rewards = g.states().T[[0, 1]].astype(np.float64)
     out = g._validate_rewards(rewards, allow_2d=True)
-    assert out.shape == (3, g.vertices_length())
+    assert out.shape == (2, g.vertices_length())
 
 
 def test_coverage_witness_path_correctness():
@@ -216,46 +217,19 @@ def test_coverage_opt_out_passes_invalid():
 # ---------------------------------------------------------------------------
 
 
-def test_svgd_rejects_invalid_rewards():
-    """End-to-end: Graph.svgd refuses the tutorial-bug 2D rewards."""
+def test_svgd_warns_and_recovers_on_partial_coverage():
+    """End-to-end: Graph.svgd with partial-coverage 2D rewards no
+    longer raises; it switches to a zero-inflated likelihood and
+    emits a one-time UserWarning naming the offending features.
+    The recovered theta is within sampling noise of the truth."""
     g = _build_n4_coalescent()
     rewards = g.states().T[:-1].astype(np.float64)
 
     # Build sparse observations using the (broken) reward decomposition.
-    n = 200
-    per_feat = [g.sample(n, rewards=rewards[i], validate_rewards=False)
-                for i in range(rewards.shape[0])]
-    obs = np.full(
-        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
-    )
-    for i in range(rewards.shape[0]):
-        obs[i*n:(i+1)*n, i] = per_feat[i]
-    sparse_obs = dense_to_sparse(obs)
-
-    g_svgd = Graph(_build_n4_coalescent()._original_callback if hasattr(_build_n4_coalescent(), '_original_callback') else _build_n4_coalescent())
-    # Easier: reuse the fixture's coalescent in a fresh graph.
-    g_svgd = _build_n4_coalescent()
-    with pytest.raises(ValueError) as excinfo:
-        g_svgd.svgd(
-            observed_data=sparse_obs,
-            rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
-            n_iterations=2,
-            n_particles=4,
-            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
-            progress=False,
-        )
-    assert "feature" in str(excinfo.value).lower()
-
-
-def test_svgd_accepts_valid_decomposition_and_recovers_theta():
-    """The fixed tutorial: with rows [0,1,3] of states().T, theta is
-    recovered within sampling noise."""
-    g = _build_n4_coalescent()
-    rewards = g.states().T[[0, 1, 3]].astype(np.float64)
-
-    n = 5_000  # smaller than tutorial; keep test fast
-    per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    n = 5_000
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # Suppress the sample warning
+        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
     obs = np.full(
         (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
     )
@@ -265,28 +239,82 @@ def test_svgd_accepts_valid_decomposition_and_recovers_theta():
     sparse_obs = dense_to_sparse(obs)
 
     g_svgd = _build_n4_coalescent()
-    svgd = g_svgd.svgd(
-        observed_data=sparse_obs,
-        rewards=rewards,
-        prior=GaussPrior(ci=[1, 20]),
-        n_iterations=200,
-        n_particles=10,
-        learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
-        progress=False,
-    )
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        svgd = g_svgd.svgd(
+            observed_data=sparse_obs,
+            rewards=rewards,
+            prior=GaussPrior(ci=[1, 20]),
+            n_iterations=200,
+            n_particles=10,
+            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
+            progress=False,
+        )
+    # Exactly one partial-coverage warning, naming feature 2.
+    partial_warnings = [
+        wi for wi in w if "partial coverage" in str(wi.message)
+    ]
+    assert len(partial_warnings) >= 1
+    assert "[2]" in str(partial_warnings[0].message)
+
     theta = float(np.asarray(svgd.theta_mean).ravel()[0])
-    # The fix takes the bias from ~11 down to within ~10% of truth.
     assert abs(theta - 10.0) < 1.5, (
         f"theta_mean = {theta} too far from true 10.0; "
-        f"the validator may have allowed an invalid decomposition."
+        f"the zero-inflated likelihood did not recover theta."
     )
 
 
-def test_sample_rejects_invalid_rewards():
-    """Graph.sample with an invalid reward vector raises."""
+def test_svgd_full_coverage_does_not_emit_warning():
+    """Covering rewards still produce no partial-coverage warning
+    and the legacy continuous-density log-likelihood path runs
+    unchanged."""
     g = _build_n4_coalescent()
-    with pytest.raises(ValueError):
-        g.sample(100, rewards=np.array([0, 0, 0, 0, 1, 0], dtype=np.float64))
+    rewards = g.states().T[[0, 1]].astype(np.float64)
+
+    n = 2_000
+    per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    obs = np.full(
+        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
+    )
+    for i in range(rewards.shape[0]):
+        obs[i*n:(i+1)*n, i] = per_feat[i]
+    sparse_obs = dense_to_sparse(obs)
+
+    g_svgd = _build_n4_coalescent()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        svgd = g_svgd.svgd(
+            observed_data=sparse_obs,
+            rewards=rewards,
+            prior=GaussPrior(ci=[1, 20]),
+            n_iterations=50,
+            n_particles=4,
+            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
+            progress=False,
+        )
+    partial_warnings = [
+        wi for wi in w if "partial coverage" in str(wi.message)
+    ]
+    assert len(partial_warnings) == 0, (
+        "Full-coverage rewards must not trigger partial-coverage warnings"
+    )
+
+
+def test_sample_warns_on_partial_coverage_but_returns_zeros():
+    """Graph.sample with partial-coverage rewards no longer raises;
+    it warns and returns mixture samples (some zero, some positive)."""
+    g = _build_n4_coalescent()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        samples = g.sample(
+            500, rewards=np.array([0, 0, 0, 0, 1, 0], dtype=np.float64),
+        )
+    # Should emit a sub-stochastic warning.
+    assert any("sub-stochastic" in str(wi.message) for wi in w)
+    # Some samples must be zero (mixture).
+    assert np.any(samples == 0.0)
+    # Some samples must be positive.
+    assert np.any(samples > 0.0)
 
 
 def test_sample_with_validate_false_returns_zeros():
@@ -364,3 +392,261 @@ def test_ffi_wrapper_orientation_consistent():
                 structure_dict, theta, times, rewards_old,
                 discrete=False, granularity=100, compute_joint=False,
             )
+
+
+# ---------------------------------------------------------------------------
+# Zero-inflated likelihood tests
+# ---------------------------------------------------------------------------
+
+
+def test_reward_visit_probability_matches_sampling():
+    """p(theta) from reward_visit_probability matches the empirical
+    fraction of samples that visited a rewarded vertex."""
+    g = _build_n4_coalescent()
+    rewards = np.array([0, 0, 0, 0, 1, 0], dtype=np.float64)
+    p = g.reward_visit_probability(rewards)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        samples = g.sample(20_000, rewards=rewards, validate_rewards=False)
+    empirical = float(np.mean(samples > 0.0))
+    # Standard error on a Bernoulli(p~2/3) with n=20k is ~0.003.
+    assert abs(p - empirical) < 0.015, (
+        f"p={p:.4f} differs from empirical={empirical:.4f} by more "
+        f"than 3 standard errors."
+    )
+
+
+def test_reward_visit_probability_full_coverage_is_one():
+    """Reward vector that every trajectory visits should give p=1."""
+    g = _build_n4_coalescent()
+    # The "1-tons" reward vector covers every trajectory.
+    rewards = g.states().T[0].astype(np.float64)
+    assert g.reward_visit_probability(rewards) == pytest.approx(1.0, abs=1e-12)
+
+
+def test_reward_visit_probability_jax_traceable():
+    """p(theta) is JAX-traceable and produces finite gradients."""
+    import jax
+    import jax.numpy as jnp
+    g = _build_n4_coalescent()
+    rewards = np.array([0, 0, 0, 0, 1, 0], dtype=np.float64)
+    structure_json = g.serialize()
+    alpha = jnp.asarray(
+        g._initial_probability_vector(), dtype=jnp.float64,
+    )
+    target = jnp.asarray([4], dtype=jnp.int32)
+    from phasic.ffi_wrappers import compute_reward_visit_probability_ffi
+
+    def loss(theta):
+        return compute_reward_visit_probability_ffi(
+            structure_json, theta, target, alpha,
+        )
+
+    val = loss(jnp.array([10.0]))
+    assert float(val) == pytest.approx(2.0 / 3.0, abs=1e-6)
+    grad = jax.grad(lambda th: loss(th).sum())(jnp.array([10.0]))
+    # For a single-parameter coalescent, p is rate-invariant so the
+    # gradient should be approximately zero. The key requirement is
+    # that it's a finite number, not NaN/inf.
+    assert np.isfinite(np.asarray(grad)).all()
+
+
+def test_zero_inflated_log_lik_matches_reference():
+    """Manually compute the zero-inflated likelihood and compare to
+    SVGD's _log_prob_unified path."""
+    import jax
+    import jax.numpy as jnp
+    from phasic.svgd import SVGD
+
+    g = _build_n4_coalescent()
+    rewards = g.states().T[:-1].astype(np.float64)
+    n = 500
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    obs = np.full(
+        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
+    )
+    for i in range(rewards.shape[0]):
+        obs[i*n:(i+1)*n, i] = per_feat[i]
+    sparse_obs = dense_to_sparse(obs)
+
+    g_model = _build_n4_coalescent()
+    model = Graph.pmf_and_moments_from_graph_multivariate(
+        g_model, nr_moments=2, discrete=False,
+    )
+    g_model._attach_zero_inflated_term(
+        model, rewards=rewards, offenders=[2], observed_data=sparse_obs,
+    )
+
+    theta = jnp.array([10.0])
+    pmf_vals, _ = model(theta, sparse_obs, rewards=jnp.asarray(rewards))
+    obs_values = jnp.asarray(sparse_obs.values)
+    positive_mask = obs_values > 0.0
+    log_lik_pos = float(jnp.sum(
+        jnp.where(positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
+    ))
+    p_theta = model._zero_inflated_p_fn(theta)
+    n_zero = jnp.asarray(model._n_zero_per_feature)
+    p_clamped = jnp.clip(p_theta, 1e-10, 1.0 - 1e-10)
+    zero_term = float(jnp.sum(n_zero * jnp.log1p(-p_clamped)))
+    log_lik_zi = log_lik_pos + zero_term
+
+    # Verify against an explicit reference: sum log(pdf) over positives
+    # + n_zero * log(1 - p_for_feature_2).
+    p_f2 = float(g_model.reward_visit_probability(rewards[2]))
+    feat_idx = np.asarray(sparse_obs.features)
+    n_zero_ref = int(np.sum((feat_idx == 2) & (np.asarray(obs_values) == 0.0)))
+    log_lik_ref_pos = float(jnp.sum(
+        jnp.where(positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
+    ))
+    log_lik_ref = log_lik_ref_pos + n_zero_ref * np.log1p(-p_f2)
+
+    assert abs(log_lik_zi - log_lik_ref) < 1e-6, (
+        f"ZI log-lik {log_lik_zi:.6f} differs from reference "
+        f"{log_lik_ref:.6f} by more than 1e-6."
+    )
+
+
+def test_zero_inflated_validate_rewards_false_skips_zi():
+    """When the user opts out of validation, no zero-inflated path
+    is wired and the legacy (biased) likelihood is used."""
+    g = _build_n4_coalescent()
+    rewards = g.states().T[:-1].astype(np.float64)
+    n = 200
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    obs = np.full(
+        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
+    )
+    for i in range(rewards.shape[0]):
+        obs[i*n:(i+1)*n, i] = per_feat[i]
+    sparse_obs = dense_to_sparse(obs)
+
+    g_svgd = _build_n4_coalescent()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        svgd = g_svgd.svgd(
+            observed_data=sparse_obs,
+            rewards=rewards,
+            prior=GaussPrior(ci=[1, 20]),
+            n_iterations=5,
+            n_particles=4,
+            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
+            validate_rewards=False,
+            progress=False,
+        )
+    # Model should NOT carry the zero-inflated attribute.
+    assert not hasattr(svgd.model, "_zero_inflated_p_fn"), (
+        "validate_rewards=False must skip the zero-inflated wiring"
+    )
+
+
+def test_validator_still_raises_on_shape_errors():
+    """Shape errors keep raising hard; only coverage failures soften
+    to warnings."""
+    g = _build_n4_coalescent()
+    # Wrong-length 1D
+    with pytest.raises(ValueError, match=r"1D rewards must have shape"):
+        g._validate_rewards(np.ones(3), allow_2d=False)
+    # 3D
+    with pytest.raises(ValueError, match=r"must be 1D .* or 2D"):
+        g._validate_rewards(np.ones((2, 3, 6)))
+
+
+def test_absorbing_reward_raises():
+    """Rewards on absorbing vertices are a feature-engineering bug;
+    Graph.svgd refuses them with a clear error message naming the
+    offending vertices."""
+    g = _build_n4_coalescent()
+    # graph.states().T includes a row indexing the absorbing state.
+    rewards = g.states().T.astype(np.float64)
+    with pytest.raises(ValueError) as excinfo:
+        g._validate_rewards(rewards, allow_2d=True)
+    msg = str(excinfo.value)
+    assert "absorbing" in msg.lower()
+    # Should suggest the [:-1] idiom.
+    assert "[:-1]" in msg
+
+
+def test_absorbing_reward_1d_raises():
+    """Same as above but for a single 1D reward vector."""
+    g = _build_n4_coalescent()
+    # Reward only the absorbing vertex (last index).
+    n_v = g.vertices_length()
+    rewards = np.zeros(n_v, dtype=np.float64)
+    rewards[-1] = 1.0
+    with pytest.raises(ValueError, match=r"absorbing"):
+        g._validate_rewards(rewards, allow_2d=False)
+
+
+def test_absorbing_reward_opt_out_allows():
+    """validate_rewards=False bypasses the absorbing-vertex check
+    for advanced users who knowingly want a degenerate likelihood."""
+    g = _build_n4_coalescent()
+    rewards = g.states().T.astype(np.float64)
+    # check_coverage=False also disables the absorbing-vertex check
+    # (both are coverage-related validations).
+    out = g._validate_rewards(rewards, allow_2d=True, check_coverage=False)
+    assert out.shape == rewards.shape
+
+
+def test_svgd_absorbing_reward_raises_at_entry():
+    """End-to-end: Graph.svgd raises immediately when rewards have
+    absorbing-vertex weight, BEFORE any model build / optimization."""
+    g = _build_n4_coalescent()
+    rewards = g.states().T.astype(np.float64)  # includes absorbing row
+
+    # Dummy sparse observations (won't be used — should raise first).
+    n = 10
+    obs = np.full((n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64)
+    for i in range(rewards.shape[0]):
+        obs[i*n:(i+1)*n, i] = np.random.uniform(0.01, 1.0, n)
+    sparse_obs = dense_to_sparse(obs)
+
+    with pytest.raises(ValueError, match=r"absorbing"):
+        g.svgd(
+            observed_data=sparse_obs,
+            rewards=rewards,
+            prior=GaussPrior(ci=[1, 20]),
+            n_iterations=2,
+            n_particles=4,
+            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
+            progress=False,
+        )
+
+
+def test_partial_coverage_warning_fires_once():
+    """A single Graph.svgd call emits exactly one partial-coverage
+    warning regardless of n_iterations."""
+    g = _build_n4_coalescent()
+    rewards = g.states().T[:-1].astype(np.float64)
+    n = 200
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    obs = np.full(
+        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
+    )
+    for i in range(rewards.shape[0]):
+        obs[i*n:(i+1)*n, i] = per_feat[i]
+    sparse_obs = dense_to_sparse(obs)
+
+    g_svgd = _build_n4_coalescent()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        g_svgd.svgd(
+            observed_data=sparse_obs,
+            rewards=rewards,
+            prior=GaussPrior(ci=[1, 20]),
+            n_iterations=30,  # many iterations
+            n_particles=4,
+            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
+            progress=False,
+        )
+    partial = [wi for wi in w if "partial coverage" in str(wi.message)]
+    assert len(partial) == 1, (
+        f"Expected exactly 1 partial-coverage warning, got "
+        f"{len(partial)}"
+    )
