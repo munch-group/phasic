@@ -5143,13 +5143,27 @@ class SVGD:
 
         return log_lik + log_pri - moment_penalty
 
-    def _log_lik_from_pmf(self, pmf_vals: jnp.ndarray) -> jnp.ndarray:
-        """Pure log-likelihood term Σ log(pmf_i + ε) from a vector of PMF values.
+    def _log_lik_from_pmf(self, pmf_vals: jnp.ndarray,
+                          theta_transformed: jnp.ndarray | None = None) -> jnp.ndarray:
+        """Full log-likelihood Σ log p(x_i | θ) from a vector of PMF values.
 
         Single source of truth for the sparse/dense NaN-aware likelihood
         summation used by both _log_prob_unified (during SVGD optimization)
         and the public log_likelihood() method (for AIC/BIC/LRT).
+
+        When the model carries a ``_zero_inflated_p_fn`` attribute (set
+        by Graph.svgd when the rewards have partial coverage), the
+        ``r == 0`` observations are excluded from the continuous-density
+        contribution and the explicit point-mass term
+        ``Σ_j n_zero_j · log(1 − p_j(θ))`` is added.
+        ``theta_transformed`` (constrained model space) is required in
+        that case so ``p_j(θ)`` can be evaluated; callers in the
+        standard (non-zero-inflated) path may pass ``None``.
         """
+        has_zero_inflated = (
+            getattr(self.model, '_zero_inflated_p_fn', None) is not None
+        )
+
         if self._sparse_format:
             # Sparse format: all values are valid (no NaN). NaN PMF means
             # the model misbehaved at this theta.
@@ -5165,24 +5179,64 @@ class SVGD:
                     )
 
             jax.debug.callback(_check_sparse, pmf_mask)
-            return jnp.sum(jnp.log(pmf_vals + 1e-10))
 
-        # Dense format: missing observations (NaN in data) are skipped;
-        # NaN PMF on a valid observation is an error.
-        obs_mask = ~jnp.isnan(self.observed_data)
-        pmf_mask = ~jnp.isnan(pmf_vals)
-        invalid_pmf = obs_mask & ~pmf_mask
-
-        def _check_dense(invalid_mask):
-            if np.any(invalid_mask):
-                raise ValueError(
-                    f"Model returned NaN PMF values for valid observations. "
-                    f"Check model implementation and parameter values. "
-                    f"NaN count: {np.sum(invalid_mask)}"
+            if has_zero_inflated:
+                # Continuous density term: contribute only for r > 0
+                # observations (zeros are handled by the explicit
+                # point-mass term below).
+                obs_values = jnp.asarray(self.observed_data.values)
+                positive_mask = obs_values > 0.0
+                log_lik = jnp.sum(
+                    jnp.where(positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
                 )
+            else:
+                log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+        else:
+            # Dense format: missing observations (NaN in data) are skipped;
+            # NaN PMF on a valid observation is an error.
+            obs_mask = ~jnp.isnan(self.observed_data)
+            pmf_mask = ~jnp.isnan(pmf_vals)
 
-        jax.debug.callback(_check_dense, invalid_pmf)
-        return jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+            if has_zero_inflated:
+                # Mask r == 0 observations out of the continuous-density
+                # contribution. PMF at r = 0 of a sub-density is a finite
+                # spurious value that would bias theta if used as-is.
+                obs_positive_mask = obs_mask & (
+                    jnp.asarray(self.observed_data) > 0.0
+                )
+                invalid_pmf = obs_positive_mask & ~pmf_mask
+            else:
+                obs_positive_mask = obs_mask
+                invalid_pmf = obs_mask & ~pmf_mask
+
+            def _check_dense(invalid_mask):
+                if np.any(invalid_mask):
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {np.sum(invalid_mask)}"
+                    )
+
+            jax.debug.callback(_check_dense, invalid_pmf)
+            log_lik = jnp.sum(
+                jnp.where(obs_positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
+            )
+
+        if has_zero_inflated:
+            if theta_transformed is None:
+                raise ValueError(
+                    "theta_transformed is required when the model carries "
+                    "_zero_inflated_p_fn (partial reward coverage)."
+                )
+            p_theta = self.model._zero_inflated_p_fn(theta_transformed)
+            n_zero = jnp.asarray(self.model._n_zero_per_feature)
+            # Clamp p into [eps, 1-eps] for numerical stability at the
+            # boundary; in covering-rewards cases the term is multiplied
+            # by zero anyway (n_zero == 0).
+            p_clamped = jnp.clip(p_theta, 1e-10, 1.0 - 1e-10)
+            log_lik = log_lik + jnp.sum(n_zero * jnp.log1p(-p_clamped))
+
+        return log_lik
 
     def _log_likelihood_at(self, theta_unconstrained: jnp.ndarray,
                            rewards: jnp.ndarray | None = None) -> jnp.ndarray:
@@ -5210,7 +5264,7 @@ class SVGD:
                 "Use Graph.pmf_and_moments_from_graph() to create model."
             )
         pmf_vals, _model_moments = result
-        return self._log_lik_from_pmf(pmf_vals)
+        return self._log_lik_from_pmf(pmf_vals, theta_transformed)
 
     def _log_prob_unified(self, theta: jnp.ndarray, nr_moments: int = 0, sample_moments: jnp.ndarray | None = None,
                          regularization: float = 0.0, rewards: jnp.ndarray | None = None) -> float:
@@ -5275,106 +5329,11 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Zero-inflated likelihood detection. When the model carries a
-        # _zero_inflated_p_fn attribute (set by Graph.svgd when the
-        # rewards have partial coverage), we model zero observations
-        # via the explicit point-mass term n_zero * log(1 - p(theta))
-        # instead of evaluating the continuous density at r = 0.
-        # Models without partial coverage have no such attribute and
-        # the legacy path runs unchanged (bit-identical).
-        has_zero_inflated = (
-            getattr(self.model, '_zero_inflated_p_fn', None) is not None
-        )
-
-        # Log-likelihood term - handle sparse vs dense format differently
-        if self._sparse_format:
-            # Sparse format: all values are valid (no NaN), simpler computation
-            # pmf_vals should be 1D array matching the number of observations
-            pmf_mask = ~jnp.isnan(pmf_vals)
-
-            def check_nan_pmf_sparse(pmf_mask):
-                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
-                if not np.all(pmf_mask):
-                    nan_count = np.sum(~pmf_mask)
-                    raise ValueError(
-                        f"Model returned NaN PMF values for valid observations. "
-                        f"Check model implementation and parameter values. "
-                        f"NaN count: {nan_count}"
-                    )
-
-            # Register debug callback (only executes at runtime, not during tracing)
-            jax.debug.callback(check_nan_pmf_sparse, pmf_mask)
-
-            if has_zero_inflated:
-                # Continuous density term: contribute only for r > 0
-                # observations (zeros are handled by the explicit
-                # point-mass term below).
-                obs_values = jnp.asarray(self.observed_data.values)
-                positive_mask = obs_values > 0.0
-                log_lik = jnp.sum(
-                    jnp.where(
-                        positive_mask,
-                        jnp.log(pmf_vals + 1e-10),
-                        0.0,
-                    )
-                )
-            else:
-                # All observations are valid in sparse format - simple sum
-                log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
-
-        else:
-            # Dense format: handle missing observations via NaN
-            # Distinguish between NaN observations (expected) and NaN PMF values (error)
-            obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
-            pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
-
-            if has_zero_inflated:
-                # Mask r == 0 observations out of the continuous-density
-                # contribution. The explicit point-mass term below
-                # contributes for them. PMF at r = 0 of a sub-density
-                # is a finite spurious value that would bias theta if
-                # used as-is in log-likelihood.
-                obs_positive_mask = obs_mask & (
-                    jnp.asarray(self.observed_data) > 0.0
-                )
-                invalid_pmf = obs_positive_mask & ~pmf_mask
-            else:
-                obs_positive_mask = obs_mask
-                invalid_pmf = obs_mask & ~pmf_mask
-
-            def check_nan_pmf(invalid_mask):
-                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
-                if np.any(invalid_mask):
-                    raise ValueError(
-                        f"Model returned NaN PMF values for valid observations. "
-                        f"Check model implementation and parameter values. "
-                        f"NaN count: {np.sum(invalid_mask)}"
-                    )
-
-            # Register debug callback (only executes at runtime, not during tracing)
-            jax.debug.callback(check_nan_pmf, invalid_pmf)
-
-            # Compute log-likelihood only on valid positive observations
-            log_lik = jnp.sum(
-                jnp.where(
-                    obs_positive_mask, jnp.log(pmf_vals + 1e-10), 0.0,
-                )
-            )
-
-        # Zero-inflated point-mass term:
-        #   sum_j n_zero_j * log(1 - p_j(theta))
-        # where p_j(theta) = P(visit a rewarded vertex in feature j).
-        # Skipped entirely when has_zero_inflated is False (legacy
-        # bit-identical path).
-        if has_zero_inflated:
-            p_theta = self.model._zero_inflated_p_fn(theta_transformed)
-            n_zero = jnp.asarray(self.model._n_zero_per_feature)
-            # Clamp p into [eps, 1-eps] for numerical stability at the
-            # boundary; in covering-rewards cases the term is
-            # multiplied by zero anyway (n_zero == 0).
-            p_clamped = jnp.clip(p_theta, 1e-10, 1.0 - 1e-10)
-            zero_term = jnp.sum(n_zero * jnp.log1p(-p_clamped))
-            log_lik = log_lik + zero_term
+        # Full log-likelihood (continuous-density contribution plus
+        # zero-inflation point-mass term, when the model carries
+        # _zero_inflated_p_fn). Delegates to _log_lik_from_pmf so the
+        # same expression is used by log_likelihood() for AIC/BIC/LRT.
+        log_lik = self._log_lik_from_pmf(pmf_vals, theta_transformed)
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
@@ -6117,6 +6076,14 @@ class SVGD:
         prior and no moment-regularization penalty. This is the quantity
         consumed by AIC, BIC, and likelihood-ratio tests.
 
+        For partial-coverage reward models (Graph.svgd attaches a
+        ``_zero_inflated_p_fn`` to the model when rewards don't cover
+        every absorbing trajectory), the returned value also includes
+        the explicit zero-inflation point-mass term
+        ``Σ_j n_zero_j · log(1 − p_j(θ))``, matching the likelihood
+        SVGD optimised against. Prior to v0.28.7 this term was silently
+        dropped here, which biased AIC/BIC for partial-coverage fits.
+
         Parameters
         ----------
         theta : array-like or None, default=None
@@ -6223,7 +6190,7 @@ class SVGD:
                 "Model must return (pmf, moments) tuple."
             )
         pmf_vals, _ = result
-        return float(self._log_lik_from_pmf(pmf_vals))
+        return float(self._log_lik_from_pmf(pmf_vals, theta_arr))
 
     @property
     def degrees_of_freedom(self) -> int:
