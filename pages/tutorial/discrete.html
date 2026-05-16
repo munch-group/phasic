@@ -79,7 +79,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-1e0616402f4b8aa822879c8063986d56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -364,7 +364,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
- <span class="menu-text">Deep dives</span></a>
+ <span class="menu-text">Misc</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -378,21 +378,50 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/topics/caching_guide.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Caching</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/topics/state-indexer.ipynb</span>
-  </li>
-      </ul>
-  </li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="https://github.com/munch-group/phasic/issues" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Issue Tracker</span></a>
   </div>
 </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Popgen experiments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/coalescent-selection.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/combining_pdf_and_moments.md</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/simulate_data.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/tree-seqs.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/two-locus-arg.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/two-locus-island.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/arg-constraint/arg_constraint_example.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/arg-constraint/clade_constraint_example.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+ <span class="menu-text">pages/popgen/arg-constraint/example.ipynb</span>
+  </li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -701,7 +730,7 @@ Tip
 </div>
 </div>
 <p>This process is automated by the <code>discretize</code> method, which accepts either a single rate of discrete events for all state (E.g. <code>graph.discretize(0.7)</code>), or a callable mapping each state vector to a rate. The following example produces the mutation graph above:</p>
-<div id="fig-mutationons-discretize" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:55.236007Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:55.235873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:55.238636Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:55.238264Z&quot;}}">
+<div id="fig-mutationons-discretize" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:55.236007Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:55.235873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:55.238636Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:55.238264Z&quot;}}" data-execution_count="9">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mutationons-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>24&nbsp; Probability Matching Estimation – Mathematical Reference </title>
+<title>24&nbsp; Joint Probability Graphs and Probability Matching Estimation – Mathematical Reference </title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -63,7 +63,7 @@ div.csl-indent {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-f92c19f2293834fd794fe411fc5ae666.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-2df4c6e34337a87f9634a80e469a8724.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -186,7 +186,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./22_probability_matching.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./22_probability_matching.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Joint Probability Graphs and Probability Matching Estimation</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -403,7 +403,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Joint Probability Graphs and Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -477,9 +477,20 @@ window.Quarto = {
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#joint-probability-graphs" id="toc-joint-probability-graphs" class="nav-link" data-scroll-target="#joint-probability-graphs">Joint Probability Graphs</a>
+  <ul class="collapse">
   <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
   <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#worked-example-geomp-closed-form-for-the-n2-coalescent" id="toc-worked-example-geomp-closed-form-for-the-n2-coalescent" class="nav-link" data-scroll-target="#worked-example-geomp-closed-form-for-the-n2-coalescent">Worked example: Geom(p) closed form for the <span class="math inline">N=2</span> coalescent</a></li>
+  <li><a href="#remarks" id="toc-remarks" class="nav-link" data-scroll-target="#remarks">Remarks</a></li>
   <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  </ul></li>
+  <li><a href="#probability-matching-estimation" id="toc-probability-matching-estimation" class="nav-link" data-scroll-target="#probability-matching-estimation">Probability Matching Estimation</a>
+  <ul class="collapse">
+  <li><a href="#definitions-1" id="toc-definitions-1" class="nav-link" data-scroll-target="#definitions-1">Definitions</a></li>
+  <li><a href="#theorems-and-proofs-1" id="toc-theorems-and-proofs-1" class="nav-link" data-scroll-target="#theorems-and-proofs-1">Theorems and Proofs</a></li>
+  <li><a href="#algorithms-1" id="toc-algorithms-1" class="nav-link" data-scroll-target="#algorithms-1">Algorithms</a></li>
+  </ul></li>
   <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
   <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
   <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
@@ -489,9 +500,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./22_probability_matching.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./22_probability_matching.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Joint Probability Graphs and Probability Matching Estimation</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></h1>
+<h1 class="title"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Joint Probability Graphs and Probability Matching Estimation</span></h1>
 </div>
 
 
@@ -510,38 +521,783 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes <strong>probability matching estimation</strong> for phase-type models with discrete joint probability structure. Unlike moment matching ([21]), which operates on continuous observations and their moments, probability matching targets models where observations are categorical (vertex indices in a joint probability graph) and the model produces a probability table over terminal vertices. The estimator minimizes the distance between the empirical probability distribution (from observed frequency counts) and the model probability distribution (from normalized expected sojourn times), providing parameter estimates and priors for subsequent Bayesian inference.</p>
-<p>In the phasic pipeline, probability matching applies to joint probability graphs constructed via <code>Graph.joint_prob_graph()</code>, where each observation corresponds to a terminal vertex index (e.g., a mutation count tuple in population genetics). The model probabilities are computed via the forward algorithm ([14]) and normalized over all terminal vertices. The estimation is cast as a nonlinear least-squares problem with multinomial covariance for standard error estimation via the delta method <span class="citation" data-cites="vandervaart1998">(<a href="28_references.html#ref-vandervaart1998" role="doc-biblioref"><span class="nocase">van der Vaart</span> 1998</a>)</span>.</p>
-<p><strong>Prerequisites:</strong> [01], [14]</p>
+<p>This file formalizes two tightly coupled pieces of phasic’s inference pipeline. The first is the <strong>joint probability graph</strong> construction (<code>Graph.joint_prob_graph</code>, <code>Graph.joint_stop_prob_graph</code>, <code>Graph.daisy_chain_joint_probs</code>, and <code>Graph.joint_prob_table</code>), which takes a parameterized phase-type model and lifts it to an enlarged state space whose absorbing-direction outcomes are individually addressable. The second is <strong>probability matching estimation</strong>, which consumes the joint-probability table produced by the first to estimate parameters by minimizing the distance between an empirical distribution and a model distribution over these outcomes.</p>
+<p>The joint-probability machinery is the foundation. It builds a new graph <span class="math inline">G_J</span> in which each reachable absorbing-direction outcome of the base model — for example, each possible site frequency spectrum (SFS) configuration on a coalescent tree — is represented by a designated <em>t-vertex</em> with a single outgoing edge to a unique absorbing state. The probability of each outcome is recovered either as an expected-visit count in the discrete graph (<code>joint_prob_table</code>) or as a trapped-mass reading in the continuous joint-stop-prob graph (<code>daisy_chain_joint_probs</code>). Both routes are exact under the formal model and are verified below against a closed-form check on the simplest non-trivial coalescent.</p>
+<p>Probability matching estimation then operates on the discrete table: given counts <span class="math inline">n_k</span> for each observed outcome, it finds the parameter <span class="math inline">\boldsymbol{\theta}</span> that makes the model probabilities <span class="math inline">\mathbf{p}(\boldsymbol{\theta})</span> closest in least-squares distance to the empirical proportions <span class="math inline">\hat{\mathbf{p}}</span>. Standard errors are obtained via the delta method using the multinomial covariance of <span class="math inline">\hat{\mathbf{p}}</span>. In the phasic pipeline, probability matching applies to joint probability graphs constructed via <code>Graph.joint_prob_graph()</code>; the empirical observations are vertex indices (e.g., a mutation count tuple in population genetics), and the model probabilities are computed via the forward algorithm ([14]) and normalized over all terminal vertices. The estimation is cast as a nonlinear least-squares problem <span class="citation" data-cites="vandervaart1998">(<a href="28_references.html#ref-vandervaart1998" role="doc-biblioref"><span class="nocase">van der Vaart</span> 1998</a>)</span>.</p>
+<p><strong>Prerequisites:</strong> [01], [02], [14], [15]</p>
 <p><strong>Source files:</strong></p>
 <ul>
+<li><code>src/phasic/__init__.py</code> (methods: <code>joint_prob_graph</code>, <code>joint_stop_prob_graph</code>, <code>daisy_chain_joint_probs</code>, <code>joint_prob_table</code>, <code>_get_joint_probs</code>, <code>update_ipv</code>)</li>
+<li><code>src/phasic/ffi_wrappers.py</code> (function: <code>compute_daisy_chain_joint_probs_ffi</code>)</li>
+<li><code>src/cpp/parameterized/graph_builder_ffi.cpp</code> (class: <code>DaisyChainJointProbsFfiImpl</code>)</li>
 <li><code>src/phasic/probability_matching.py</code> (functions: <code>probability_matching</code>, <code>_estimate_multinomial_covariance</code>, <code>_initial_guess_grid_probs</code>)</li>
 </ul>
 </section>
-<section id="definitions" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
-<div id="def-22-empirical-model-pmf" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 24.1 (Empirical and Model PMF)</strong></span> <em>Let <span class="math inline">y_1, \ldots, y_n</span> be i.i.d. observations, each taking values in a finite set of terminal vertex indices <span class="math inline">\mathcal{V}_{\text{term}} = \{v_{t_1}, \ldots, v_{t_J}\} \subset V</span>. Let <span class="math inline">\mathcal{V}_{\text{obs}} = \{v_{t_{i_1}}, \ldots, v_{t_{i_K}}\} \subseteq \mathcal{V}_{\text{term}}</span> be the set of <span class="math inline">K</span> distinct observed vertex indices, with counts <span class="math inline">n_k = \#\{i : y_i = v_{t_{i_k}}\}</span>. The <strong>empirical PMF</strong> is</em></p>
-<p><span id="eq-22-empirical-pmf"><span class="math display">\hat{p}_k = \frac{n_k}{n}, \quad k = 1, \ldots, K. \tag{24.1}</span></span></p>
-<p><em>The <strong>model PMF</strong> at parameter <span class="math inline">\boldsymbol{\theta}</span> is computed from the normalized expected sojourn times at terminal vertices:</em></p>
-<p><span id="eq-22-model-pmf"><span class="math display">p_k(\boldsymbol{\theta}) = \frac{x_{v_{t_{i_k}}}(\boldsymbol{\theta})}{\sum_{j=1}^{J} x_{v_{t_j}}(\boldsymbol{\theta})}, \quad k = 1, \ldots, K, \tag{24.2}</span></span></p>
+<section id="joint-probability-graphs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="joint-probability-graphs">Joint Probability Graphs</h2>
+<section id="definitions" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h3>
+<p>Throughout this section, <span class="math inline">G = (V, E, W)</span> denotes the <strong>base graph</strong>: a parameterized phase-type graph (continuous or discrete) representing the unaugmented Markov model. The base graph carries a state vector of length <span class="math inline">\ell</span> at each vertex; absorbing vertices are those with no outgoing edges. Each edge <span class="math inline">(v \to z) \in E</span> carries a coefficient vector <span class="math inline">\mathbf{c}_{vz} \in \mathbb{R}^k</span>, where <span class="math inline">k = \dim(\boldsymbol{\theta})</span> is the parameter dimension. Under the default linear weight mode, the runtime weight is <span class="math inline">w(v \to z) = \mathbf{c}_{vz}^\top \boldsymbol{\theta}</span>.</p>
+<div id="def-22-jp-reward-extension" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.1 (Reward extension and joint state space)</strong></span> <em>Let <span class="math inline">G</span> be a base graph with state vectors of length <span class="math inline">\ell</span> and let <span class="math inline">\mathbf{r} = (r_1, \ldots, r_m)</span> be a vector of <span class="math inline">m</span> non-negative integer <strong>reward bins</strong> with finite caps <span class="math inline">\bar{r}_j</span>. The <strong>joint state space</strong> <span class="math inline">\mathcal{X}_J</span> associated with <span class="math inline">G</span> and the reward configuration is</em></p>
+<p><span id="eq-22-jp-state-space"><span class="math display">\mathcal{X}_J \subseteq V(G) \times \{0, 1, \ldots\}^m, \tag{24.1}</span></span></p>
+<p><em>restricted to those pairs <span class="math inline">(v, \mathbf{r})</span> that are reachable by the construction described in <a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a>. Each pair encodes “the base process is in state <span class="math inline">v</span>, and so far <span class="math inline">r_j</span> events of type <span class="math inline">j</span> have been recorded” for <span class="math inline">j = 1, \ldots, m</span>.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+The reward extension is a deterministic counter attached to the base Markov chain. While the base chain runs, an auxiliary counter accumulates mutation-style events (independent Poisson processes whose rates depend on the current base state). The joint state is the pair (base state, accumulated counts). The caps <span class="math inline">\bar{r}_j</span> keep the state space finite — outcomes beyond the caps are absorbed into a single trash channel rather than being tracked individually.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the <span class="math inline">N=2</span> coalescent with one descendants Property, the base graph has two transient configurations (two singletons; one ancestor of class descendants=2) and absorption when the singletons merge. With <span class="math inline">m=1</span> reward bin (mutations on lineages of class descendants=1) and cap <span class="math inline">\bar{r}_1 = 5</span>, the joint state space contains pairs (base, count) for count <span class="math inline">= 0, 1, \ldots, 5</span> in the singleton phase, plus the post-coalescence absorbing-direction states.
+</details>
+<div id="def-22-jp-joint-graph" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.2 (Joint probability graph <span class="math inline">G_J</span>)</strong></span> <em>Let <span class="math inline">G</span> be a parameterized base graph with state-vector length <span class="math inline">\ell</span> and parameter dimension <span class="math inline">k</span>. Let <span class="math inline">\boldsymbol{\rho}: V(G) \to \mathbb{R}_{\geq 0}^m</span> be a state-dependent <strong>reward-rate function</strong> (the <code>_joint_prob_reward</code> callback), assigning to each base state <span class="math inline">v</span> a vector of <span class="math inline">m</span> per-bin rates <span class="math inline">\rho_j(v)</span> and a scalar trash rate <span class="math inline">\rho_{\mathrm{trash}}(v)</span>. Let <span class="math inline">\mathbf{r}^{\max}</span> be the reward cap vector and <span class="math inline">r^{\mathrm{tot}}_{\max}</span> the total-mass cap (with <span class="math inline">\rho_{\mathrm{trash}}</span> absorbing any rate that would push the cumulative reward vector past these caps).</em></p>
+<p><em>The <strong>joint probability graph</strong> <span class="math inline">G_J = (V_J, E_J, W_J)</span> is the parameterized graph constructed as follows.</em></p>
+<ol type="1">
+<li><p><em>Initial-distribution lift: for each starting edge <span class="math inline">(v_0 \to v)</span> of <span class="math inline">G</span>, add a starting edge in <span class="math inline">G_J</span> to the joint state <span class="math inline">(v, \mathbf{0})</span> with the same coefficient vector (padded by one extra slot for the mutation-rate channel, set to <span class="math inline">0</span>).</em></p></li>
+<li><p><em>BFS expansion: for every joint state <span class="math inline">(v, \mathbf{r}) \in V_J</span> already created:</em></p>
+<ul>
+<li><em>For every base-graph edge <span class="math inline">(v \to z) \in E</span>, add a joint edge <span class="math inline">((v, \mathbf{r}) \to (z, \mathbf{r}))</span> with the base coefficient vector padded by a <span class="math inline">0</span> in the mutation slot.</em></li>
+<li><em>For each reward index <span class="math inline">j \in \{1, \ldots, m\}</span> with <span class="math inline">\rho_j(v) &gt; 0</span> and <span class="math inline">\mathbf{r} + \mathbf{e}_j</span> within the caps, add a joint edge <span class="math inline">((v, \mathbf{r}) \to (v, \mathbf{r} + \mathbf{e}_j))</span> with all base coefficients zero and a coefficient <span class="math inline">\rho_j(v)</span> in the mutation slot.</em></li>
+<li><em>Add a joint edge <span class="math inline">((v, \mathbf{r}) \to v_{\mathrm{trash}}^{(1)})</span> with coefficient <span class="math inline">\rho_{\mathrm{trash}}(v)</span> in the mutation slot whenever the trash rate is positive.</em></li>
+</ul></li>
+<li><p><em>Trash pair: create two zero-state vertices <span class="math inline">v_{\mathrm{trash}}^{(1)}, v_{\mathrm{trash}}^{(2)}</span> joined by a directed 2-cycle of unit-coefficient edges in the mutation slot. They are not absorbing and not connected to the absorbing vertex.</em></p></li>
+<li><p><em>A joint state <span class="math inline">(z, \mathbf{r}')</span> created at step 2 whose base part <span class="math inline">z</span> is absorbing in <span class="math inline">G</span> is marked a <strong>t-vertex</strong>.</em></p></li>
+<li><p><em>Absorbing vertex: a single new vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span> is created; for each t-vertex <span class="math inline">t</span>, an edge <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span> is added with all coefficients zero except a coefficient <span class="math inline">1</span> in the mutation slot.</em></p></li>
+</ol>
+<p><em>The construction terminates because the joint state space is finite once the caps are enforced.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+The joint graph runs two clocks in parallel. The base clock advances on the base graph’s own edges (carrying the original parameterization). The reward clock advances when a Poisson-rate counter ticks; each tick adds one to the corresponding reward bin and creates a new joint vertex. Whenever the base clock reaches an absorbing state, the joint vertex it lands in is labelled a t-vertex; this label distinguishes outcomes from each other on the way to a single shared absorbing state. The trash pair acts as a “garbage bin”: rate that should not be tracked individually is sent there and bounces between the pair forever.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the <span class="math inline">N=2</span> coalescent with reward bin tracking mutations on descendants=1 lineages, the base state <span class="math inline">(2, 0)</span> (two singletons) has reward-rate <span class="math inline">\rho_1((2,0)) = 2\mu</span> (two lineages each mutating at rate <span class="math inline">\mu</span>). The construction creates a chain of singleton-phase joint states <span class="math inline">(\text{singleton}, 0), (\text{singleton}, 1), (\text{singleton}, 2), \ldots</span>, with a coalescence edge from each into the corresponding post-coalescence (descendants=2) state. The post-coalescence states are t-vertices.
+</details>
+<div id="def-22-jp-t-vertex" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.3 (t-vertex)</strong></span> <em>A vertex <span class="math inline">t \in V_J</span> is a <strong>t-vertex</strong> of <span class="math inline">G_J</span> if it is created at step 2 of <a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a> and its base part <span class="math inline">z</span> is absorbing in the base graph <span class="math inline">G</span>. Equivalently, after step 5, <span class="math inline">t</span> has exactly one outgoing edge, namely <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span> with weight <span class="math inline">1</span> (in the mutation slot under linear weight mode).</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+A t-vertex is a “labelled absorbing state”. The construction lifts the single absorbing state of the base graph to a family of labelled copies — one per outcome the user wants to distinguish. The label is the reward vector <span class="math inline">\mathbf{r}'</span> recorded at the moment the base clock terminated.
+</details>
+<div id="def-22-jp-trash-pair" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.4 (Trash pair)</strong></span> <em>The <strong>trash pair</strong> of <span class="math inline">G_J</span> is the ordered pair <span class="math inline">(v_{\mathrm{trash}}^{(1)}, v_{\mathrm{trash}}^{(2)})</span> of zero-state vertices joined by a directed 2-cycle, with the property that any joint-graph vertex with positive trash rate has an outgoing edge to <span class="math inline">v_{\mathrm{trash}}^{(1)}</span> (and only to <span class="math inline">v_{\mathrm{trash}}^{(1)}</span>). Mass that enters the pair circulates between the two vertices indefinitely and never reaches the absorbing vertex.</em></p>
+</div>
+<div id="def-22-jp-joint-stop-prob-graph" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.5 (Joint stop-probability graph <span class="math inline">G_{\mathrm{JSP}}</span>)</strong></span> <em>Given a joint probability graph <span class="math inline">G_J</span> (<a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a>), the <strong>joint stop-probability graph</strong> <span class="math inline">G_{\mathrm{JSP}} = (V_{\mathrm{JSP}}, E_{\mathrm{JSP}}, W_{\mathrm{JSP}})</span> is constructed by:</em></p>
+<ol type="1">
+<li><em>Carrying every non-trash transient vertex of <span class="math inline">G_J</span> to <span class="math inline">G_{\mathrm{JSP}}</span> with its outgoing edges, redirecting any edge that targeted <span class="math inline">v_{\mathrm{trash}}^{(1)}</span> to the absorbing vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span>.</em></li>
+<li><em>For each t-vertex <span class="math inline">t</span>, <strong>removing</strong> the outgoing edge <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span> and instead <strong>creating</strong> a new zero-state vertex <span class="math inline">\mathrm{aux}(t)</span> and adding the two directed edges <span class="math inline">(t \to \mathrm{aux}(t))</span> and <span class="math inline">(\mathrm{aux}(t) \to t)</span>. The coefficient vector of each of these two <strong>aux loop edges</strong> is the all-ones vector <span class="math inline">(1, 1, \ldots, 1) \in \mathbb{R}^k</span>.</em></li>
+<li><em>Adding a starting-vertex edge with initial weight <span class="math inline">0</span> to every vertex of <span class="math inline">V_{\mathrm{JSP}}</span> that is neither <span class="math inline">v_{\mathrm{abs}}^{J}</span>, an aux vertex, nor a trash vertex. The ordered list of targets is the <strong>IPV target index list</strong> <span class="math inline">\mathcal{I}_{\mathrm{ipv}}</span>.</em></li>
+</ol>
+<p><em>The pair <span class="math inline">(t, \mathrm{aux}(t))</span> is the <strong>aux loop</strong> of t-vertex <span class="math inline">t</span>, and <span class="math inline">\mathrm{aux}(t)</span> is the <strong>aux partner</strong> of <span class="math inline">t</span>.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+<span class="math inline">G_J</span> as a continuous CTMC has the same issue all phase-type distributions have: probability flows out of t-vertices into a single absorbing state, so by inspection at finite time you cannot tell which t-vertex the mass came from. <span class="math inline">G_{\mathrm{JSP}}</span> fixes this by cutting the absorbing edge of each t-vertex and replacing it with a self-contained 2-cycle (the aux loop). Mass that enters t-vertex <span class="math inline">t</span> stays in the <span class="math inline">\{t, \mathrm{aux}(t)\}</span> pair forever, so the <em>sum</em> <span class="math inline">p_t(s) + p_{\mathrm{aux}(t)}(s)</span> of probability mass on the pair monotonically tracks “fraction of paths whose first arrival at any t-vertex was at <span class="math inline">t</span>, observed by time <span class="math inline">s</span>”. As <span class="math inline">s \to \infty</span> this equals the joint probability of the outcome encoded by <span class="math inline">t</span>.
+</details>
+<div id="def-22-jp-ipv-layout" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.6 (IPV layout and <code>update_ipv</code>)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span> have <span class="math inline">|\mathcal{I}_{\mathrm{ipv}}| = n_{\mathrm{ipv}}</span> ordered IPV target indices. The <strong>initial probability vector layout</strong> is the vector <span class="math inline">\boldsymbol{\pi} \in \mathbb{R}^{n_{\mathrm{ipv}}}</span> whose <span class="math inline">i</span>-th component is the weight of the starting-vertex edge to the <span class="math inline">i</span>-th IPV target. The method <code>update_ipv($\boldsymbol{\pi}$)</code> overwrites these edge weights with the components of <span class="math inline">\boldsymbol{\pi}</span>, leaving the rest of <span class="math inline">G_{\mathrm{JSP}}</span> unchanged.</em></p>
+</div>
+<div id="def-22-jp-daisy-chain" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.7 (Daisy chain dynamics)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span> be a joint stop-probability graph. Let <span class="math inline">n \geq 1</span> be the number of <strong>epochs</strong>, with per-epoch parameter vectors <span class="math inline">\boldsymbol{\theta}^{(0)}, \ldots, \boldsymbol{\theta}^{(n-1)} \in \mathbb{R}^k</span> and per-epoch durations <span class="math inline">\Delta t_0, \ldots, \Delta t_{n-2} &gt; 0</span>. Let <span class="math inline">\boldsymbol{\pi}^{(0)} \in \mathbb{R}^{n_{\mathrm{ipv}}}</span> be the initial IPV (the user-supplied <code>initial_ipv</code>). Let <span class="math inline">t_{\mathrm{eval}} &gt; 0</span> be the final-epoch evaluation horizon. Let</em></p>
+<p><span id="eq-22-jp-stop-prob-operator"><span class="math display">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s) \in \mathbb{R}^{|V_{\mathrm{JSP}}|} \tag{24.2}</span></span></p>
+<p><em>denote the time-<span class="math inline">s</span> forward operator on <span class="math inline">G_{\mathrm{JSP}}</span> with weights set by <span class="math inline">\boldsymbol{\theta}</span> and starting-vertex edges set by <span class="math inline">\boldsymbol{\pi}</span>. That is, <span class="math inline">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s)</span> is the per-vertex probability mass vector at time <span class="math inline">s</span> of the continuous-time Markov chain on <span class="math inline">V_{\mathrm{JSP}}</span> whose state at time <span class="math inline">0</span> has distribution given by the IPV <span class="math inline">\boldsymbol{\pi}</span> and whose transition rates are given by the edges of <span class="math inline">G_{\mathrm{JSP}}</span> under parameter <span class="math inline">\boldsymbol{\theta}</span>. Operationally, <span class="math inline">F</span> is computed by the uniformization-based forward algorithm of [14].</em></p>
+<p><em>Define the <strong>t-aux collapse operator</strong> <span class="math inline">\mathcal{C}: \mathbb{R}^{|V_{\mathrm{JSP}}|} \to \mathbb{R}^{|V_{\mathrm{JSP}}|}</span> by</em></p>
+<p><span id="eq-22-jp-collapse-operator"><span class="math display">\mathcal{C}(\mathbf{p})_v = \begin{cases} p_v + p_{\mathrm{aux}(v)} &amp; \text{if $v$ is a t-vertex of $G_{\mathrm{JSP}}$,} \\ p_v &amp; \text{otherwise.} \end{cases} \tag{24.3}</span></span></p>
+<p><em>Let <span class="math inline">\mathcal{P}: \mathbb{R}^{|V_{\mathrm{JSP}}|} \to \mathbb{R}^{n_{\mathrm{ipv}}}</span> denote the <strong>IPV projection</strong>: <span class="math inline">\mathcal{P}(\mathbf{p})</span> is the sub-vector of <span class="math inline">\mathbf{p}</span> indexed by <span class="math inline">\mathcal{I}_{\mathrm{ipv}}</span>.</em></p>
+<p><em>The <strong>daisy chain dynamics</strong> <span class="math inline">\mathrm{DC}\bigl(\{\boldsymbol{\theta}^{(i)}\}, \{\Delta t_i\}, \boldsymbol{\pi}^{(0)}, t_{\mathrm{eval}}\bigr)</span> produces a sequence <span class="math inline">\mathbf{q}^{(0)}, \ldots, \mathbf{q}^{(n-1)}</span> by:</em></p>
+<ul>
+<li><em>For <span class="math inline">i = 0, \ldots, n-2</span>: <span class="math inline">\mathbf{q}^{(i)} = \mathcal{C}\bigl(F_{\boldsymbol{\theta}^{(i)}}(\boldsymbol{\pi}^{(i)}, \Delta t_i)\bigr)</span> and <span class="math inline">\boldsymbol{\pi}^{(i+1)} = \mathcal{P}(\mathbf{q}^{(i)})</span>.</em></li>
+<li><em>For <span class="math inline">i = n-1</span>: <span class="math inline">\mathbf{q}^{(n-1)} = \mathcal{C}\bigl(F_{\boldsymbol{\theta}^{(n-1)}}(\boldsymbol{\pi}^{(n-1)}, t_{\mathrm{eval}})\bigr)</span>.</em></li>
+</ul>
+<p><em>The output is the vector <span class="math inline">\bigl(\mathbf{q}^{(n-1)}_t\bigr)_{t \in \mathcal{T}}</span> where <span class="math inline">\mathcal{T}</span> is the ordered list of t-vertex indices.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+The daisy chain implements a piecewise-time-homogeneous CTMC by running uniformization <span class="math inline">n</span> times. After each non-final epoch it freezes the surviving probability mass at every vertex of <span class="math inline">G_{\mathrm{JSP}}</span>, collapses the t-aux loops by adding aux mass to its t-vertex (because for downstream epochs you do not need to track aux mass separately — it is already trapped), restricts the result to the IPV target index list, and feeds that as the IPV for the next epoch. The collapse step is essential: without it, mass that has already been trapped in an aux loop at time <span class="math inline">\sum \Delta t_i</span> would be lost when re-seeding the next epoch’s IPV.
+</details>
+</section>
+<section id="theorems-and-proofs" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h3>
+<p>We now establish the correctness of <code>joint_prob_table()</code> (Theorem 22.A) and <code>daisy_chain_joint_probs()</code> (Theorem 22.B). The proofs rest on four lemmas about the structure of <span class="math inline">G_J</span> and <span class="math inline">G_{\mathrm{JSP}}</span>.</p>
+<div id="lem-22-jp-no-revisit" class="lemma theorem">
+<p><span class="theorem-title"><strong>Lemma 24.1 (No-revisit property of t-vertices)</strong></span> <em>Let <span class="math inline">G_J</span> be a joint probability graph (<a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a>), regarded as a discrete absorbing Markov chain after running <code>update_weights($\boldsymbol{\theta}$)</code> and the chain’s auto-normalization. Let <span class="math inline">t</span> be any t-vertex. Then almost surely the chain visits <span class="math inline">t</span> at most once before absorption.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By <a href="#def-22-jp-t-vertex" class="quarto-xref">Definition&nbsp;<span>24.3</span></a>, after step 5 of the construction every t-vertex <span class="math inline">t</span> has exactly one outgoing edge <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span> to the absorbing vertex, with weight <span class="math inline">1</span> (in the mutation slot). Under the discrete normalization performed by <code>set_was_dph(True)</code> together with <code>update_weights</code>, the outgoing transition probability from <span class="math inline">t</span> is therefore <span class="math inline">\Pr(t \to v_{\mathrm{abs}}^{J}) = 1</span>. Hence the chain transitions from <span class="math inline">t</span> to <span class="math inline">v_{\mathrm{abs}}^{J}</span> at the next step with probability one; once absorbed, no further transitions occur. Thus the chain cannot enter <span class="math inline">t</span> a second time. <span class="math inline">\square</span></p>
+</div>
+<div id="lem-22-jp-ipv-linearity" class="lemma theorem">
+<p><span class="theorem-title"><strong>Lemma 24.2 (IPV linearity of the forward operator)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span> be a joint stop-probability graph. The forward operator <span class="math inline">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s)</span> defined in <a href="#eq-22-jp-stop-prob-operator" class="quarto-xref">Equation&nbsp;<span>24.2</span></a> is linear in <span class="math inline">\boldsymbol{\pi}</span>. In particular, for any <span class="math inline">c &gt; 0</span>,</em></p>
+<p><span id="eq-22-jp-linearity"><span class="math display">F_{\boldsymbol{\theta}}(c \boldsymbol{\pi}, s) = c \cdot F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s), \tag{24.4}</span></span></p>
+<p><em>and the t-aux collapse <span class="math inline">\mathcal{C}</span> and IPV projection <span class="math inline">\mathcal{P}</span> are also linear.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>The forward operator <span class="math inline">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s)</span> propagates initial mass through a fixed CTMC. Concretely, <span class="math inline">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s) = \boldsymbol{\pi} \cdot e^{\boldsymbol{\Lambda} s}</span> where <span class="math inline">\boldsymbol{\Lambda}</span> is the rate matrix of <span class="math inline">G_{\mathrm{JSP}}</span> restricted to the IPV-supported vertices (with rows in the IPV layout) — or equivalently, <span class="math inline">F</span> is computed by the uniformization-based forward algorithm of [14] which evolves the initial mass via a sequence of left-multiplications by a fixed stochastic matrix. Both representations are linear functions of <span class="math inline">\boldsymbol{\pi}</span>. Linearity of <span class="math inline">\mathcal{C}</span> is immediate from <a href="#eq-22-jp-collapse-operator" class="quarto-xref">Equation&nbsp;<span>24.3</span></a> (it is a sum of two coordinates); linearity of <span class="math inline">\mathcal{P}</span> is immediate as it is a coordinate selection. <span class="math inline">\square</span></p>
+</div>
+<div id="lem-22-jp-trap-monotone" class="lemma theorem">
+<p><span class="theorem-title"><strong>Lemma 24.3 (Mass-trapping monotonicity of the aux loop)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span> be a joint stop-probability graph, fix a positive parameter vector <span class="math inline">\boldsymbol{\theta}</span> with <span class="math inline">\sum_{k} \theta_k &gt; 0</span>, and fix an initial mass distribution <span class="math inline">\boldsymbol{\pi}</span>. Let <span class="math inline">\mathbf{p}(s) = F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s)</span>. For each t-vertex <span class="math inline">t</span>, define the <strong>trapped mass</strong></em></p>
+<p><span id="eq-22-jp-trapped-mass"><span class="math display">M_t(s) \;=\; p_t(s) + p_{\mathrm{aux}(t)}(s). \tag{24.5}</span></span></p>
+<p><em>Then <span class="math inline">M_t(s)</span> is non-decreasing in <span class="math inline">s</span>, bounded above by the total starting mass <span class="math inline">\sum_i \pi_i</span>, and the limit <span class="math inline">\lim_{s \to \infty} M_t(s) = M_t^{\infty}</span> exists. Furthermore, <span class="math inline">M_t^{\infty}</span> equals the probability under the unmodified <span class="math inline">G_J</span>-chain (with the same parameter <span class="math inline">\boldsymbol{\theta}</span>) that the absorbing vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span> is entered through the unique absorbing edge of t-vertex <span class="math inline">t</span>, weighted by the same initial mass distribution <span class="math inline">\boldsymbol{\pi}</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><strong>Monotonicity.</strong> Consider the rate of change of <span class="math inline">M_t</span> in continuous time. By <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a>, the only edges incident to the pair <span class="math inline">\{t, \mathrm{aux}(t)\}</span> are:</p>
+<ul>
+<li>the two aux-loop edges <span class="math inline">(t \to \mathrm{aux}(t))</span> and <span class="math inline">(\mathrm{aux}(t) \to t)</span>, which transfer mass <em>within</em> the pair, contributing zero to <span class="math inline">\dot{M}_t</span>;</li>
+<li>incoming edges <span class="math inline">(u \to t)</span> where <span class="math inline">u \neq \mathrm{aux}(t)</span> is any parent of <span class="math inline">t</span> in <span class="math inline">G_J</span>, which contribute non-negative inflow to <span class="math inline">M_t</span>.</li>
+</ul>
+<p>There are no outgoing edges from <span class="math inline">\{t, \mathrm{aux}(t)\}</span> to vertices outside the pair, because (i) the original absorbing edge <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span> was removed at step 2 of <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a>, and (ii) <span class="math inline">\mathrm{aux}(t)</span> has only the edge back to <span class="math inline">t</span>. Hence <span class="math inline">\dot{M}_t(s) \geq 0</span> for all <span class="math inline">s</span>.</p>
+<p><strong>Boundedness.</strong> Total mass is conserved by the dynamics (mass that reaches <span class="math inline">v_{\mathrm{abs}}^{J}</span> is also tracked as a coordinate of <span class="math inline">\mathbf{p}</span> in the forward algorithm; mass that enters the trash pair circulates within it). Hence <span class="math inline">\sum_v p_v(s) = \sum_i \pi_i</span> for all <span class="math inline">s</span>, and in particular <span class="math inline">M_t(s) \leq \sum_i \pi_i</span>.</p>
+<p><strong>Existence of the limit.</strong> A bounded monotone function has a limit.</p>
+<p><strong>Identification.</strong> Couple the <span class="math inline">G_{\mathrm{JSP}}</span> chain with the <span class="math inline">G_J</span> chain by using identical sample paths up to the first time the path enters a t-vertex. In <span class="math inline">G_{\mathrm{JSP}}</span>, the path then stays in <span class="math inline">\{t, \mathrm{aux}(t)\}</span> forever; in <span class="math inline">G_J</span>, the path takes the absorbing edge <span class="math inline">(t \to v_{\mathrm{abs}}^{J})</span>. Up to the moment of first entry, the two chains have identical transition kernels (by construction step 1 of <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a>, with the trash-pair redirection treated symmetrically in both views). Hence the event “path’s first visit to a t-vertex is <span class="math inline">t</span>” has the same probability under both chains. In <span class="math inline">G_{\mathrm{JSP}}</span>, that event has probability <span class="math inline">M_t^{\infty}</span> (because after first entry, the path stays in the pair forever, contributing exactly its starting weight to <span class="math inline">M_t</span>). In <span class="math inline">G_J</span>, that event has probability “absorbing edge taken from <span class="math inline">t</span>” <span class="math inline">\cdot</span> (initial mass).</p>
+<p>By <a href="#lem-22-jp-no-revisit" class="quarto-xref">Lemma&nbsp;<span>24.1</span></a>, in the embedded discrete chain of <span class="math inline">G_J</span> each t-vertex is visited at most once. Therefore “first visit to a t-vertex is <span class="math inline">t</span>” coincides with “absorption occurs through <span class="math inline">t</span>”. This identifies <span class="math inline">M_t^{\infty}</span> as the joint probability of outcome <span class="math inline">t</span> under the unmodified <span class="math inline">G_J</span> dynamics. <span class="math inline">\square</span></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Remark on aux-loop coefficient.</strong> The current implementation emits coefficient vector <span class="math inline">(1, 1, \ldots, 1) \in \mathbb{R}^k</span> for both aux-loop edges, giving runtime weight <span class="math inline">\sum_k \theta_k</span> under linear weight mode. The notebook documentation refers to “unit-weight” aux-loop edges; this should be read as “all-ones coefficient”, not “unit runtime weight”. The asymptotic claim of <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a> is insensitive to the choice of positive aux-loop weight — any strictly positive bidirectional 2-cycle on <span class="math inline">\{t, \mathrm{aux}(t)\}</span> traps mass and yields the same <span class="math inline">M_t^{\infty}</span>. The choice of weight affects only the rate at which <span class="math inline">M_t(s)</span> approaches <span class="math inline">M_t^{\infty}</span>, which has practical consequences for choosing <span class="math inline">t_{\mathrm{eval}}</span> (see <a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a>).</p>
+</blockquote>
+<div id="lem-22-jp-chapman-kolmogorov" class="lemma theorem">
+<p><span class="theorem-title"><strong>Lemma 24.4 (Chapman–Kolmogorov composition over epochs)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span>, <span class="math inline">\{\boldsymbol{\theta}^{(i)}\}</span>, <span class="math inline">\{\Delta t_i\}</span>, and <span class="math inline">\boldsymbol{\pi}^{(0)}</span> be as in <a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a>. For each <span class="math inline">i \in \{0, \ldots, n-1\}</span> and each non-aux non-trash vertex <span class="math inline">v</span>,</em></p>
+<p><span id="eq-22-jp-ck-step"><span class="math display">\bigl[F_{\boldsymbol{\theta}^{(i)}}(\boldsymbol{\pi}^{(i)}, s)\bigr]_v \;=\; \Pr\bigl[Y(s) = v \mid Y(0) \sim \boldsymbol{\pi}^{(i)}\bigr], \tag{24.6}</span></span></p>
+<p><em>where <span class="math inline">\{Y(s)\}_{s \geq 0}</span> is the inhomogeneous CTMC on <span class="math inline">V_{\mathrm{JSP}}</span> whose rates during epoch <span class="math inline">i</span> are those of <span class="math inline">G_{\mathrm{JSP}}</span> with parameter <span class="math inline">\boldsymbol{\theta}^{(i)}</span>. Furthermore, for <span class="math inline">i \leq n-2</span>,</em></p>
+<p><span id="eq-22-jp-ck-compose"><span class="math display">\boldsymbol{\pi}^{(i+1)} \;=\; \mathcal{P} \circ \mathcal{C}\bigl(F_{\boldsymbol{\theta}^{(i)}}(\boldsymbol{\pi}^{(i)}, \Delta t_i)\bigr) \;=\; \Pr\bigl[Y(T_i) \in \cdot \mid Y(0) \sim \boldsymbol{\pi}^{(0)}\bigr] \tag{24.7}</span></span></p>
+<p><em>restricted to the IPV layout, where <span class="math inline">T_i = \sum_{j=0}^{i} \Delta t_j</span>, and where the conditional distribution is summed over aux–t-vertex pairs.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><a href="#eq-22-jp-ck-step" class="quarto-xref">Equation&nbsp;<span>24.6</span></a> holds within a single epoch by [14] Theorem (uniformization-based forward algorithm). For the composition, observe that:</p>
+<ul>
+<li>At time <span class="math inline">T_i</span>, the forward algorithm of epoch <span class="math inline">i</span> produces <span class="math inline">\mathbf{p}^{(i)} = F_{\boldsymbol{\theta}^{(i)}}(\boldsymbol{\pi}^{(i)}, \Delta t_i) \in \mathbb{R}^{|V_{\mathrm{JSP}}|}</span>, which by the within-epoch result is the marginal distribution of <span class="math inline">Y(T_i)</span>.</li>
+<li>Mass trapped in any aux loop <span class="math inline">\{t, \mathrm{aux}(t)\}</span> is permanently confined to that pair (proof of <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a>). Hence applying <span class="math inline">\mathcal{C}</span> to <span class="math inline">\mathbf{p}^{(i)}</span> does not change the marginal probability of <span class="math inline">Y(T_i)</span> being in the pair <span class="math inline">\{t, \mathrm{aux}(t)\}</span> — it merely re-attributes the aux-vertex mass to its t-partner. Because the aux vertex has zero outgoing rate to anything outside the pair, this re-attribution does not affect any subsequent epoch’s evolution, <em>provided</em> the next epoch’s IPV does not introduce mass into the aux partner. By <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a> step 3, aux vertices have no starting-vertex edges in the IPV layout, so <span class="math inline">\boldsymbol{\pi}^{(i+1)}</span> never places mass on an aux vertex. The collapse <span class="math inline">\mathcal{C}</span> is therefore safe: dropping aux mass from the IPV and adding it to the t-vertex’s IPV slot gives an equivalent CTMC restart at time <span class="math inline">T_i</span>.</li>
+<li>The IPV projection <span class="math inline">\mathcal{P}</span> extracts the components on the IPV-supported vertex set. Because every transient non-aux non-trash vertex appears in <span class="math inline">\mathcal{I}_{\mathrm{ipv}}</span> (step 3 of <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a>), no information needed to restart the chain is lost.</li>
+</ul>
+<p>Therefore the conditional distribution of <span class="math inline">Y(T_i)</span> over IPV-supported vertices (with aux mass folded into its t-partner) is precisely <span class="math inline">\boldsymbol{\pi}^{(i+1)}</span>, and Chapman–Kolmogorov composition yields <a href="#eq-22-jp-ck-compose" class="quarto-xref">Equation&nbsp;<span>24.7</span></a>. <span class="math inline">\square</span></p>
+</div>
+<p>We can now state and prove the two main correctness theorems.</p>
+<div id="thm-22-jp-discrete-correct" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 24.1 (Theorem 22.A: Correctness of <code>joint_prob_table()</code>)</strong></span> <em>Let <span class="math inline">G_J</span> be a discrete joint probability graph built by <code>Graph.joint_prob_graph(..., discrete=True)</code> from a parameterized base graph <span class="math inline">G</span>. Fix a positive parameter vector <span class="math inline">\boldsymbol{\theta}</span>, call <code>update_weights($\boldsymbol{\theta}$)</code>, and let <span class="math inline">\boldsymbol{\alpha}_J</span> and <span class="math inline">\mathbf{T}_J</span> denote the resulting initial distribution and sub-transition matrix of <span class="math inline">G_J</span> (with the auto-normalization for the discrete chain in effect).</em></p>
+<p><em>Then for every t-vertex <span class="math inline">t</span> of <span class="math inline">G_J</span>, the <span class="math inline">t</span>-th component of the fundamental-matrix row <span class="math inline">\boldsymbol{\alpha}_J (\mathbf{I} - \mathbf{T}_J)^{-1}</span> — i.e., the expected number of visits to <span class="math inline">t</span> before absorption — equals the probability that the chain is absorbed through the unique absorbing edge of <span class="math inline">t</span>. Consequently, the DataFrame returned by <code>Graph.joint_prob_table()</code> contains, in its <code>prob</code> column, the exact joint probabilities of the outcomes encoded by the t-vertices.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By <a href="#lem-22-jp-no-revisit" class="quarto-xref">Lemma&nbsp;<span>24.1</span></a>, the chain visits each t-vertex <span class="math inline">t</span> at most once before absorption. Hence the expected number of visits to <span class="math inline">t</span>, which for a transient state of an absorbing Markov chain equals the corresponding entry of the fundamental matrix <span class="math inline">\boldsymbol{\alpha}_J (\mathbf{I} - \mathbf{T}_J)^{-1}</span> ([01]; <span class="citation" data-cites="neuts1981">Neuts (<a href="28_references.html#ref-neuts1981" role="doc-biblioref">1981</a>)</span>; <span class="citation" data-cites="bladt2017">Bladt and Nielsen (<a href="28_references.html#ref-bladt2017" role="doc-biblioref">2017</a>)</span>), reduces to the probability that the chain ever visits <span class="math inline">t</span>:</p>
+<p><span class="math display">\bigl[\boldsymbol{\alpha}_J (\mathbf{I} - \mathbf{T}_J)^{-1}\bigr]_t \;=\; \mathbb{E}[\text{visits to } t] \;=\; \Pr[\text{chain visits } t].</span></p>
+<p>Since <span class="math inline">t</span>’s only outgoing transition is the deterministic step to the absorbing vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span>, visiting <span class="math inline">t</span> is the same event as being absorbed through the unique absorbing edge of <span class="math inline">t</span>. This identifies the fundamental-matrix entry as the joint probability of the outcome encoded by <span class="math inline">t</span>.</p>
+<p>Operationally, <code>joint_prob_table()</code> computes these entries through <code>expected_sojourn_time(t_indices)</code> ([15]), which evaluates <span class="math inline">\boldsymbol{\alpha}_J (\mathbf{I} - \mathbf{T}_J)^{-1}</span> at the requested transient states via the cached elimination trace ([06], [11]). The returned probabilities are therefore exact (up to floating-point round-off and the deficit corresponding to trapped-trash mass). <span class="math inline">\square</span></p>
+</div>
+<div id="thm-22-jp-continuous-correct" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 24.2 (Theorem 22.B: Correctness of <code>daisy_chain_joint_probs()</code>)</strong></span> <em>Let <span class="math inline">G_{\mathrm{JSP}}</span> be the continuous joint stop-probability graph derived from a continuous base graph <span class="math inline">G</span> via <span class="math inline">G_J = \texttt{joint\_prob\_graph}(\ldots, \texttt{discrete=False})</span> and <span class="math inline">G_{\mathrm{JSP}} = G_J.\texttt{joint\_stop\_prob\_graph}()</span>. Fix epoch parameter vectors <span class="math inline">\boldsymbol{\theta}^{(0)}, \ldots, \boldsymbol{\theta}^{(n-1)} \in \mathbb{R}^k_{&gt;0}</span>, epoch durations <span class="math inline">\Delta t_0, \ldots, \Delta t_{n-2} &gt; 0</span>, an initial IPV <span class="math inline">\boldsymbol{\pi}^{(0)} \in \mathbb{R}_{\geq 0}^{n_{\mathrm{ipv}}}</span> with <span class="math inline">N = \sum_i \pi^{(0)}_i</span>, and a final-epoch horizon <span class="math inline">t_{\mathrm{eval}} &gt; 0</span>. Let <span class="math inline">\bigl(q_t\bigr)_{t \in \mathcal{T}}</span> denote the output of <span class="math inline">\texttt{daisy\_chain\_joint\_probs}(\boldsymbol{\theta}^{(\cdot)}, \Delta t_{(\cdot)}, \boldsymbol{\pi}^{(0)}, t_{\mathrm{eval}})</span> (the components of <span class="math inline">\mathbf{q}^{(n-1)}</span> at the t-vertex indices, per <a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a>).</em></p>
+<p><em>Then</em></p>
+<p><span id="eq-22-jp-continuous-correct"><span class="math display">\lim_{t_{\mathrm{eval}} \to \infty}\; \frac{q_t}{N} \;=\; \Pr\bigl[\,\text{outcome encoded by $t$ under the piecewise-time-homogeneous CTMC defined by $G$, $\{\boldsymbol{\theta}^{(i)}\}$, $\{\Delta t_i\}$, normalized initial distribution $\boldsymbol{\pi}^{(0)} / N$}\,\bigr]. \tag{24.8}</span></span></p>
+<p><em>For finite <span class="math inline">t_{\mathrm{eval}}</span>, <span class="math inline">q_t / N</span> underestimates the joint probability by exactly the residual mass that is still in transit (i.e., on a non-t, non-aux, non-trash, non-absorbing vertex) at time <span class="math inline">t_{\mathrm{eval}}</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>Recall from <a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a> that the daisy chain produces <span class="math inline">\mathbf{q}^{(i)} = \mathcal{C}\bigl(F_{\boldsymbol{\theta}^{(i)}}(\boldsymbol{\pi}^{(i)}, \Delta t_i)\bigr)</span> for <span class="math inline">i \leq n-2</span> and <span class="math inline">\mathbf{q}^{(n-1)} = \mathcal{C}\bigl(F_{\boldsymbol{\theta}^{(n-1)}}(\boldsymbol{\pi}^{(n-1)}, t_{\mathrm{eval}})\bigr)</span>. By <a href="#lem-22-jp-chapman-kolmogorov" class="quarto-xref">Lemma&nbsp;<span>24.4</span></a>, the post-collapse vector <span class="math inline">\mathbf{q}^{(i)}</span> encodes, on every non-aux non-trash vertex, the marginal probability mass at time <span class="math inline">T_i = \sum_{j=0}^{i} \Delta t_j</span> of the inhomogeneous CTMC <span class="math inline">\{Y(s)\}</span> with starting distribution <span class="math inline">\boldsymbol{\pi}^{(0)}</span>, with aux mass already folded back into t-partners.</p>
+<p>Restricted to t-vertices, <span class="math inline">\mathbf{q}^{(n-1)}_t = p_t(t_{\mathrm{eval}}) + p_{\mathrm{aux}(t)}(t_{\mathrm{eval}}) = M_t(t_{\mathrm{eval}})</span> (the trapped mass of <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a>, applied to the inhomogeneous chain). By <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a>, <span class="math inline">M_t(s)</span> is non-decreasing and bounded by total mass <span class="math inline">N</span>; its limit <span class="math inline">M_t^{\infty}</span> exists.</p>
+<p>Identify <span class="math inline">M_t^{\infty}</span> as the joint probability under the unmodified inhomogeneous <span class="math inline">G_J</span> dynamics, by the same coupling argument: pair each <span class="math inline">G_{\mathrm{JSP}}</span>-path with the <span class="math inline">G_J</span>-path that follows the same transitions up to the first time it enters a t-vertex. Up to that moment, the two chains are identical in law (within each epoch, the rates of <span class="math inline">G_{\mathrm{JSP}}</span> outside aux loops match those of <span class="math inline">G_J</span> with trash redirected to absorbing — see step 1 of <a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a>). After first entry, the <span class="math inline">G_{\mathrm{JSP}}</span>-path stays in <span class="math inline">\{t, \mathrm{aux}(t)\}</span> forever, contributing exactly its weight to <span class="math inline">M_t^{\infty}</span>; the <span class="math inline">G_J</span>-path absorbs through <span class="math inline">t</span> at the next rate-<span class="math inline">1</span> exponential transition, contributing the same weight to the joint-probability mass of outcome <span class="math inline">t</span>. By <a href="#lem-22-jp-no-revisit" class="quarto-xref">Lemma&nbsp;<span>24.1</span></a> (which holds equally for the continuous chain because no t-vertex can be re-entered: it has a single outgoing rate-<span class="math inline">1</span> edge to absorbing), each path contributes to exactly one t-vertex.</p>
+<p>Divide by <span class="math inline">N</span> to normalize the initial total mass to <span class="math inline">1</span>; <a href="#lem-22-jp-ipv-linearity" class="quarto-xref">Lemma&nbsp;<span>24.2</span></a> ensures this division acts coordinate-wise on the output. This proves <a href="#eq-22-jp-continuous-correct" class="quarto-xref">Equation&nbsp;<span>24.8</span></a>.</p>
+<p>For the finite-<span class="math inline">t_{\mathrm{eval}}</span> error bound, observe that the difference <span class="math inline">M_t^{\infty} - M_t(t_{\mathrm{eval}})</span> is the probability mass that <em>would</em> have entered the pair <span class="math inline">\{t, \mathrm{aux}(t)\}</span> after time <span class="math inline">t_{\mathrm{eval}}</span>. Summed over <span class="math inline">t</span> this equals the total mass that is still on a non-t, non-aux, non-trash, non-absorbing vertex at time <span class="math inline">t_{\mathrm{eval}}</span>, since all other “sinks” (the absorbing vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span> never receives mass in <span class="math inline">G_{\mathrm{JSP}}</span>, the trash pair does receive mass but is already accounted for by the deficit at construction time) are inaccessible. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="worked-example-geomp-closed-form-for-the-n2-coalescent" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="worked-example-geomp-closed-form-for-the-n2-coalescent">Worked example: Geom(p) closed form for the <span class="math inline">N=2</span> coalescent</h3>
+<p>The simplest non-trivial coalescent — <span class="math inline">N=2</span> samples with a single descendants Property — admits a closed-form expression for the joint distribution that both <code>joint_prob_table()</code> and <code>daisy_chain_joint_probs()</code> can be checked against. We present this as a worked example rather than a theorem in its own right; it is a consistency check that the formal results of <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a> and <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> reduce correctly in a tractable special case.</p>
+<div id="cor-22-jp-geom-check" class="corollary theorem">
+<p><span class="theorem-title"><strong>Corollary 24.1 (Corollary 22.A.1: <span class="math inline">N=2</span> coalescent reduces to a Geometric distribution)</strong></span> <em>Let <span class="math inline">G</span> be the parameterized <span class="math inline">N=2</span> coalescent base graph with coalescence rate <span class="math inline">r_c</span> and per-lineage mutation rate <span class="math inline">\mu</span> (so two singleton lineages mutate independently at rate <span class="math inline">\mu</span> each, until coalescence). Let <span class="math inline">G_J</span> be the discrete joint probability graph built with one mutation reward bin (descendants=1). Let <span class="math inline">K</span> denote the random variable “total number of descendants=1 mutations recorded at the moment of coalescence”. Then by <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>, <code>joint_prob_table()</code> returns the exact PMF of <span class="math inline">K</span>, and that PMF satisfies</em></p>
+<p><span id="eq-22-jp-geom"><span class="math display">\Pr(K = k) \;=\; q^k\, (1 - q), \qquad k = 0, 1, 2, \ldots, \qquad q = \frac{2\mu}{2\mu + r_c}. \tag{24.9}</span></span></p>
+<p><em>Equivalently, <span class="math inline">K \sim \operatorname{Geo}(q)</span> in the convention of Section 6.1 of <code>notation_standard.md</code> (where the standard’s parameter <span class="math inline">p</span> corresponds to the per-step failure probability — here, the probability that a mutation event fires before coalescence, <span class="math inline">q = 2\mu / (2\mu + r_c)</span>). The absorption probability per discrete step is <span class="math inline">1 - q = r_c / (2\mu + r_c)</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>Condition on the coalescence time <span class="math inline">T \sim \operatorname{Exp}(r_c)</span>. While both singletons are alive (duration <span class="math inline">T</span>), mutations accumulate at total rate <span class="math inline">2\mu</span>, so <span class="math inline">K \mid T \sim \operatorname{Poisson}(2\mu T)</span>. Marginalizing,</p>
+<p><span class="math display">\Pr(K = k) \;=\; \int_0^\infty \frac{(2\mu t)^k e^{-2\mu t}}{k!}\, r_c e^{-r_c t}\, dt \;=\; \left(\frac{2\mu}{2\mu + r_c}\right)^k \cdot \frac{r_c}{2\mu + r_c},</span></p>
+<p>which matches <a href="#eq-22-jp-geom" class="quarto-xref">Equation&nbsp;<span>24.9</span></a> with <span class="math inline">q = 2\mu / (2\mu + r_c)</span>. By <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>, this is exactly what <code>joint_prob_table()</code> returns. The same value is recovered (modulo the residual-mass term of <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a>) by <code>daisy_chain_joint_probs()</code> with a single time-homogeneous epoch and large <span class="math inline">t_{\mathrm{eval}}</span>. The notebook <code>docs/pages/tutorial/joint-probability.ipynb</code> (Part A, “Proof of correctness”) verifies this numerically against a Monte Carlo simulator with <span class="math inline">4 \times 10^5</span> replicates: every row agrees with the simulator to within <span class="math inline">\sim 2</span> standard errors. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="remarks" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="remarks">Remarks</h3>
+<blockquote class="blockquote">
+<p><strong>Remark on the mutation-rate convention.</strong> <code>joint_prob_graph(..., mutation_rate=mu0)</code> bakes a factor <code>mu0 * state[i]</code> into the coefficient of every mutation edge (one coefficient per reward bin) and reserves a second parameter slot as a runtime multiplier. The effective per-lineage mutation rate is therefore <span class="math inline">\mu_0 \cdot \theta_\mu</span> where <span class="math inline">\theta_\mu</span> is the runtime parameter. To match the closed form of <a href="#cor-22-jp-geom-check" class="quarto-xref">Corollary&nbsp;<span>24.1</span></a> at runtime <span class="math inline">\mu = 1/2</span>, one can build with <code>mutation_rate=1.0</code> and call <code>update_weights([r_c, 0.5])</code>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Remark on <code>daisy_chain_joint_probs</code> gradients.</strong> The <code>daisy_chain_joint_probs</code> method is JAX-traceable, but its gradient with respect to the per-epoch theta vector is implemented as a central-difference finite difference (step <span class="math inline">\epsilon = 10^{-7}</span>) wrapped in <code>jax.custom_vjp</code>. It is not analytical reverse-mode autodiff. For downstream SVGD or HMC inference this matters: the gradient cost is linear in the number of free theta slots (one forward call per slot per backward pass), and the gradient inherits a small <span class="math inline">O(\epsilon^2)</span> truncation error in addition to the residual-mass error of <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a>. The <code>fixed_indices</code> argument skips finite-difference evaluations on slots the user has pinned.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Remark on choosing <span class="math inline">t_{\mathrm{eval}}</span>.</strong> <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> gives the exact joint probabilities in the limit <span class="math inline">t_{\mathrm{eval}} \to \infty</span>; for finite <span class="math inline">t_{\mathrm{eval}}</span> the residual mass at non-t-non-aux-non-trash-non-absorbing vertices quantifies the underestimation. The default heuristic in <code>daisy_chain_joint_probs</code> sets <span class="math inline">t_{\mathrm{eval}} = \max(4 \sum \Delta t_i, 10)</span>. For slow-mutation models a larger horizon is needed; an adaptive choice via residual-mass probing is exposed via <code>Graph._probe_daisy_t_eval(...)</code> or by passing <code>daisy_chain_t_eval='auto'</code> to <code>Graph.svgd</code>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Remark on the aux-loop rate.</strong> Because the aux-loop coefficient vector is all-ones (rather than a single <span class="math inline">1</span> in a dedicated slot), the rate of the bidirectional 2-cycle scales with <span class="math inline">\sum_k \theta_k</span>. For very small total <span class="math inline">\theta</span> this rate is small, so mass arriving at a t-vertex shuttles slowly into the aux partner before the next epoch boundary. The asymptotic correctness of <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> is unaffected (any positive rate traps mass), but the rate of convergence in <span class="math inline">t_{\mathrm{eval}}</span> is governed by the slower of the aux-loop rate and the slowest within-epoch transition rate.</p>
+</blockquote>
+</section>
+<section id="algorithms" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h3>
+<p>The four algorithms in this section formalise the joint-probability machinery underlying the <code>joint_prob_graph</code>, <code>joint_stop_prob_graph</code>, <code>daisy_chain_joint_probs</code>, and <code>joint_prob_table</code> methods of the <code>Graph</code> class. Together they realise the discrete and continuous routes from a parameterised base graph <span class="math inline">G</span> to the joint-probability table <span class="math inline">\mathbf{p}(\boldsymbol{\theta})</span> over terminal outcomes that probability matching consumes (see <a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a>). <a href="#alg-22-jp-graph" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a> constructs the joint-probability graph <span class="math inline">G_J</span> — the augmented state space that lifts reward counters into the state vector so each terminal outcome corresponds to a distinct vertex. <a href="#alg-22-jp-stop-graph" class="quarto-xref">Algorithm&nbsp;<span>24.2</span></a> transforms <span class="math inline">G_J</span> into the joint-stop-prob graph <span class="math inline">G_{\mathrm{JSP}}</span> used for time-inhomogeneous (daisy-chained) inference: t-vertices acquire trapping aux loops and every interior vertex receives a starting-vertex edge with weight zero whose runtime value is supplied by <code>update_ipv</code>. <a href="#alg-22-jp-daisy-chain" class="quarto-xref">Algorithm&nbsp;<span>24.3</span></a> composes per-epoch stop-probability evaluations on <span class="math inline">G_{\mathrm{JSP}}</span> via the IPV bridge to produce joint probabilities across a sequence of epochs. <a href="#alg-22-jp-table" class="quarto-xref">Algorithm&nbsp;<span>24.4</span></a> extracts the discrete joint-probability table by reading expected sojourn times at the t-vertices of a discrete <span class="math inline">G_J</span>.</p>
+<div id="alg-22-jp-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="algorithm-22.a-joint-probability-graph-construction" class="level4" aria-describedby="alg-22-jp-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.1">
+<h4 data-number="24.0.0.1" class="anchored" data-anchor-id="algorithm-22.a-joint-probability-graph-construction"><span class="header-section-number">24.0.0.1</span> Algorithm 22.A: Joint-Probability Graph Construction</h4>
+<p><em>Description.</em> Builds the joint-probability graph <span class="math inline">G_J</span> from a parameterised base graph <span class="math inline">G</span> by expanding the state vector with one reward counter per rewarded property. Starting from the base initial distribution, the algorithm performs a breadth-first traversal of the augmented vertex set: at each newly created vertex, it (i) carries over every base-graph transition (with the current reward counters unchanged), (ii) emits a “mutation” transition for each rewarded property whose counter can still be incremented, with a callback-supplied rate placed in a dedicated parameter slot, and (iii) records a “trash” rate that captures probability mass leaking out of the truncation region. A trash pair (two vertices in a unit-weight cycle) absorbs the leaking mass; a fresh absorbing vertex receives unit-weight edges from every t-vertex (a vertex whose base-graph projection has a transition to an absorbing state). The result is a graph whose terminal vertices stand in bijection with joint-reward outcomes, and whose stop probability at <span class="math inline">\infty</span> at each t-vertex equals the joint probability of the corresponding outcome (<a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>).</p>
+<pre><code>Joint-Probability Graph Construction
+ 1: Let G = (V, E) be a parameterised base graph with d = paramlength(G) parameters
+ 2: Let base_indexer describe G's state space (one property set with p properties)
+ 3: Let reward_only ⊆ properties(base_indexer) (default: all parameterised properties)
+ 4: Let rewardCallback(state, ...) → (rates, trash_rate) emit per-bin mutation rates
+ 5: Let mutation_rate &gt; 0, reward_limit ∈ N, tot_reward_limit ∈ R ∪ {∞}
+ 6: Let discrete ∈ {true, false} select DPH or CPH semantics
+ 7:
+ 8: function JointProbGraph(G, base_indexer, reward_only, rewardCallback,
+ 9:                         mutation_rate, reward_limit, tot_reward_limit, discrete)
+10:   reward_indexer ← one PropertySet per rewarded property in base_indexer
+11:   joint_indexer  ← base_indexer ⊕ reward_indexer       triangleright concatenate
+12:   p_J            ← state_length(joint_indexer)
+13:   I_base         ← indices of base part in joint state vector
+14:   I_rwd          ← indices of reward part in joint state vector
+15:   G_J            ← empty graph with state_length p_J
+16:   v_0^J          ← starting_vertex(G_J)
+17:   d_J            ← d + 1                                triangleright extra slot for mutation rate
+18:
+19:   // Step 1 — lift base initial distribution
+20:   for each edge (v_0 → v) ∈ outgoing(starting_vertex(G)) with coefficient c do
+21:     x ← v.state ⊕ 0_{|I_rwd|}
+22:     add edge v_0^J → FindOrCreateVertex(G_J, x) with coefficient c
+23:   end for
+24:
+25:   // Step 2 — BFS expansion over joint vertices
+26:   T          ← ∅                                          triangleright t-vertex index set
+27:   trashRate  ← empty map (vertex index → rate)
+28:   i          ← 1
+29:   while i &lt; |V(G_J)| do
+30:     v       ← vertex_at(G_J, i)
+31:     x       ← state(v)
+32:     x_base  ← x[I_base];   x_rwd ← x[I_rwd]
+33:     u       ← FindVertex(G, x_base)                      triangleright base-graph counterpart
+34:
+35:     for each edge (u → z) ∈ outgoing(u) with coefficient c do
+36:       y    ← state(z) ⊕ x_rwd                            triangleright base step, rewards unchanged
+37:       if y = x then continue end if                       triangleright skip self-state echo
+38:       w    ← FindOrCreateVertex(G_J, y)
+39:       add edge v → w with coefficient c ⊕ 0              triangleright pad mutation slot
+40:       if outgoing(FindVertex(G, y[I_base])) = ∅ then
+41:         T ← T ∪ {index(w)}                                triangleright base part is absorbing
+42:       end if
+43:     end for
+44:
+45:     (rates, trash) ← rewardCallback(x_base, base_indexer,
+46:                       reward_indexer, x_rwd,
+47:                       mutation_rate, reward_limit, tot_reward_limit)
+48:     trashRate[i] ← trash
+49:
+50:     for j ← 0 to |I_rwd| − 1 do
+51:       if rates[j] &gt; 0 then
+52:         x_rwd' ← x_rwd; x_rwd'[j] ← x_rwd'[j] + 1
+53:         y      ← x_base ⊕ x_rwd'
+54:         if outgoing(FindVertex(G, y[I_base])) = ∅ then
+55:           continue                                        triangleright no mutations after absorption
+56:         end if
+57:         w      ← FindOrCreateVertex(G_J, y)
+58:         add edge v → w with coefficient 0_d ⊕ rates[j]   triangleright rate lives in mutation slot
+59:       end if
+60:     end for
+61:
+62:     i ← i + 1
+63:   end while
+64:
+65:   // Step 3 — trash pair absorbs leakage
+66:   v_trash      ← FindOrCreateVertex(G_J, 0_{p_J})
+67:   v_trashLoop  ← CreateVertex(G_J, 0_{p_J})
+68:   add edge v_trash     → v_trashLoop with coefficient 0_d ⊕ 1
+69:   add edge v_trashLoop → v_trash     with coefficient 0_d ⊕ 1
+70:   for each (i, r) ∈ trashRate with r &gt; 0 do
+71:     add edge vertex_at(G_J, i) → v_trash with coefficient 0_d ⊕ r
+72:   end for
+73:
+74:   // Step 4 — optional fusion of t-vertices that share a reward projection
+75:   if reward_only ⊊ properties(base_indexer) then
+76:     for each equivalence class C of T under reward-only projection do
+77:       t*  ← CreateVertex(G_J, projected state of class C)
+78:       for each i ∈ C do
+79:         add edge vertex_at(G_J, i) → t* with coefficient 0_d ⊕ 1
+80:         T ← T \ {i}
+81:       end for
+82:       T ← T ∪ {index(t*)}
+83:     end for
+84:   end if
+85:
+86:   // Step 5 — common absorbing vertex
+87:   v_∞ ← CreateVertex(G_J, 0_{p_J})
+88:   for each i ∈ T do
+89:     add edge vertex_at(G_J, i) → v_∞ with coefficient 0_d ⊕ 1
+90:   end for
+91:
+92:   is_discrete(G_J) ← discrete
+93:   record metadata: base_indexer, reward_indexer, joint_indexer on G_J
+94:   return G_J
+95: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G</span> (base graph)</td>
+<td><code>self</code> (<code>__init__.py:joint_prob_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">G_J</span></td>
+<td><span class="math inline">G_J</span></td>
+<td><code>joint_graph</code> (<code>__init__.py:joint_prob_graph</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v_0^J</span></td>
+<td><span class="math inline">v_0^J</span></td>
+<td><code>starting_vertex</code> (<code>__init__.py:joint_prob_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><code>base_indexer</code></td>
+<td>base state indexer</td>
+<td><code>base_graph_indexer</code></td>
+</tr>
+<tr class="odd">
+<td><code>reward_indexer</code></td>
+<td>reward state indexer</td>
+<td><code>reward_indexer</code></td>
+</tr>
+<tr class="even">
+<td><code>joint_indexer</code></td>
+<td>base <span class="math inline">\oplus</span> reward</td>
+<td><code>joint_graph_indexer</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">p_J</span></td>
+<td>joint state vector length</td>
+<td><code>state_vector_length</code></td>
+</tr>
+<tr class="even">
+<td><code>I_base</code>, <code>I_rwd</code></td>
+<td>base / reward index sets</td>
+<td><code>state_indices</code>, <code>reward_state_indices</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">d</span>, <span class="math inline">d_J = d+1</span></td>
+<td>param length, joint param length</td>
+<td><code>param_length</code>, <code>self.param_length()+1</code></td>
+</tr>
+<tr class="even">
+<td><code>rewardCallback</code></td>
+<td><span class="math inline">\phi_{\mathrm{rwd}}</span></td>
+<td><code>reward_rates_callback</code> / <code>self._joint_prob_reward</code></td>
+</tr>
+<tr class="odd">
+<td><code>mutation_rate</code></td>
+<td><span class="math inline">\mu_0</span></td>
+<td><code>mutation_rate</code></td>
+</tr>
+<tr class="even">
+<td><code>reward_limit</code>, <code>tot_reward_limit</code></td>
+<td><span class="math inline">\rho_{\max}</span>, <span class="math inline">\Sigma_{\max}</span></td>
+<td><code>reward_limit</code>, <code>tot_reward_limit</code></td>
+</tr>
+<tr class="odd">
+<td><code>trashRate</code></td>
+<td>trash-rate map</td>
+<td><code>trash_rates</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">T</span></td>
+<td>t-vertex index set <span class="math inline">V_{\mathrm{t}}</span></td>
+<td><code>t_vertex_indices</code></td>
+</tr>
+<tr class="odd">
+<td><code>v_trash</code>, <code>v_trashLoop</code></td>
+<td>trash pair <span class="math inline">(v_{\mathrm{tr}}^{(1)}, v_{\mathrm{tr}}^{(2)})</span></td>
+<td><code>trash_vertex</code>, <code>trash_loop_vertex</code></td>
+</tr>
+<tr class="even">
+<td><code>v_∞</code></td>
+<td>new absorbing vertex <span class="math inline">v_{\mathrm{abs}}^{J}</span></td>
+<td><code>new_absorbing</code></td>
+</tr>
+<tr class="odd">
+<td><code>c ⊕ 0</code>, <code>0_d ⊕ r</code></td>
+<td>parameter-coefficient concatenation</td>
+<td><code>np.append(coeffs, 0)</code>, <code>np.append(np.zeros(d), r)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Let <span class="math inline">p_J = |V(G_J)|</span> and <span class="math inline">m_J = |E(G_J)|</span>, and write <span class="math inline">\Delta_{\mathrm{out}}</span> for the maximum out-degree in <span class="math inline">G</span> and <span class="math inline">r = |I_{\mathrm{rwd}}|</span>. The BFS visits each joint vertex once; per vertex the algorithm enumerates <span class="math inline">O(\Delta_{\mathrm{out}} + r)</span> outgoing edges and performs <span class="math inline">O(\Delta_{\mathrm{out}} + r)</span> hash lookups in the joint-vertex index. Time: <span class="math inline">O(p_J (\Delta_{\mathrm{out}} + r))</span> for construction, plus <span class="math inline">O(p_J)</span> for the optional fusion step and <span class="math inline">O(|T|)</span> for the absorbing wiring. Space: <span class="math inline">O(p_J + m_J)</span> for the resulting graph plus <span class="math inline">O(p_J)</span> for the trash-rate map.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-jp-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;24.1: <strong>Correctness.</strong> The augmented state vector <span class="math inline">(x_{\mathrm{base}}, x_{\mathrm{rwd}})</span> jointly records the base process and the accumulated mutation counts. Step 2 implements the joint chain: a base transition keeps <span class="math inline">x_{\mathrm{rwd}}</span> fixed (so the joint generator’s restriction to $x_{} = $ const is exactly the base generator), while a mutation transition increments one reward coordinate at the rate supplied by <span class="math inline">\phi_{\mathrm{rwd}}</span>. The skip on line 54 enforces that no mutations occur after the base process is absorbed; by <a href="#lem-22-jp-no-revisit" class="quarto-xref">Lemma&nbsp;<span>24.1</span></a> the reward coordinates therefore never revisit any value. The trash pair (lines 66–72) is an absorbing cycle outside the joint state space — it carries away mass that would otherwise leave the truncation window <span class="math inline">\{x_{\mathrm{rwd}} : \mathbf{1}^\top x_{\mathrm{rwd}} \le \Sigma_{\max}\}</span> — and is by construction disjoint from <span class="math inline">T</span>. The t-vertex set <span class="math inline">T</span> (line 41) is identified by base-graph absorbing-ness of the projection, so each <span class="math inline">i \in T</span> corresponds to one joint-reward outcome; the unit-weight edges to <span class="math inline">v_\infty</span> funnel absorbing mass to a single sink without altering the joint absorption probabilities (the per-outcome split is read at the t-vertex, not at <span class="math inline">v_\infty</span>). The fusion of step 4, when invoked, sums probabilities over outcome classes that agree on the user-selected reward subset — exactly the marginal joint probability over that subset.
+</figcaption>
+</figure>
+</div>
+<div id="alg-22-jp-stop-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="algorithm-22.b-joint-stop-prob-graph-construction" class="level4" aria-describedby="alg-22-jp-stop-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.2">
+<h4 data-number="24.0.0.2" class="anchored" data-anchor-id="algorithm-22.b-joint-stop-prob-graph-construction"><span class="header-section-number">24.0.0.2</span> Algorithm 22.B: Joint-Stop-Prob Graph Construction</h4>
+<p><em>Description.</em> Transforms a joint-probability graph <span class="math inline">G_J</span> (produced by <a href="#alg-22-jp-graph" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a>) into a joint-stop-prob graph <span class="math inline">G_{\mathrm{JSP}}</span> suitable for time-inhomogeneous inference. The key structural change is the <strong>trapping aux loop</strong>: for each t-vertex <span class="math inline">v \in T</span>, the algorithm creates an auxiliary vertex <span class="math inline">v_{\mathrm{aux}}</span> with state <span class="math inline">\mathbf{0}</span> and installs a pair of unit-coefficient parameterised edges <span class="math inline">v \rightleftarrows v_{\mathrm{aux}}</span>. Mass that reaches <span class="math inline">v</span> shuttles between <span class="math inline">v</span> and <span class="math inline">v_{\mathrm{aux}}</span> forever (rather than being absorbed at <span class="math inline">v_{\mathrm{abs}}^J</span>), so $( v) + ( v_{}) = $ cumulative absorption probability at the outcome corresponding to <span class="math inline">v</span> as a function of time. To bridge adjacent epochs in a daisy chain, the algorithm also installs an <strong>initial-probability-vector (IPV) edge</strong> from <span class="math inline">v_0</span> to every interior vertex (excluding aux, trash, absorbing, and the starting vertex) with weight zero; the runtime weights are set by <code>update_ipv</code> before each epoch.</p>
+<pre><code>Joint-Stop-Prob Graph Construction
+ 1: Let G_J be a joint-probability graph (output of @alg-22-jp-graph)
+ 2: Let d = paramlength(G_J)
+ 3:
+ 4: function JointStopProbGraph(G_J)
+ 5:   v_0^old   ← starting_vertex(G_J)
+ 6:   T_old     ← {v ∈ V(G_J) : ∃(v → w) with outgoing(w) = ∅}
+ 7:   Trash_old ← TrashPairVertices(G_J)            triangleright the two zero-state cycle
+ 8:   v_∞^old   ← the unique vertex with outgoing(v_∞^old) = ∅
+ 9:
+10:   G_JSP     ← empty graph with state_length p_J, paramlength d
+11:   vmap      ← {v_0^old ↦ starting_vertex(G_JSP)}
+12:   for each v ∈ V(G_J) \ {v_0^old} do
+13:     vmap[v] ← CreateVertex(G_JSP, state(v))
+14:   end for
+15:
+16:   T_aux  ← empty map (new t-vertex index → new aux-vertex index)
+17:
+18:   for each v ∈ V(G_J) \ ({v_0^old} ∪ Trash_old) with outgoing(v) ≠ ∅ do
+19:     v'  ← vmap[v]
+20:     if v ∈ T_old then
+21:       v_aux ← CreateVertex(G_JSP, 0_{p_J})
+22:       add edge v'    → v_aux with coefficient 1_d
+23:       add edge v_aux → v'    with coefficient 1_d    triangleright trapping aux loop
+24:       T_aux[index(v')] ← index(v_aux)
+25:     else
+26:       for each edge (v → z) ∈ outgoing(v) with coefficient c do
+27:         z' ← if z ∈ Trash_old then vmap[v_∞^old] else vmap[z]
+28:         add edge v' → z' with coefficient c
+29:       end for
+30:     end if
+31:   end for
+32:
+33:   // IPV edges (weight 0; update_ipv writes the runtime values)
+34:   I_IPV ← sorted({index(vmap[v]) : v ∈ V(G_J),
+35:                    v ∉ {v_0^old, v_∞^old} ∪ Trash_old})
+36:   for each k ∈ I_IPV do
+37:     add edge starting_vertex(G_JSP) → vertex_at(G_JSP, k)
+38:           with scalar weight 0
+39:   end for
+40:
+41:   attach metadata: _joint_stop_prob_graph ← true,
+42:                    _t_vertex_indices    ← sort(keys(T_aux)),
+43:                    _t_aux_map           ← T_aux,
+44:                    _ipv_target_indices  ← I_IPV
+45:   return G_JSP
+46: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G_J</span>, <span class="math inline">G_{\mathrm{JSP}}</span></td>
+<td><span class="math inline">G_J</span>, <span class="math inline">G_{\mathrm{JSP}}</span></td>
+<td><code>self</code>, <code>new</code> (<code>__init__.py:joint_stop_prob_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><code>vmap</code></td>
+<td>vertex relocation map</td>
+<td><code>vmap</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">T_{\mathrm{old}}</span></td>
+<td>t-vertex set in <span class="math inline">G_J</span></td>
+<td><code>t_vertex_old_indices</code></td>
+</tr>
+<tr class="even">
+<td><code>Trash_old</code>, <span class="math inline">v_\infty^{\mathrm{old}}</span></td>
+<td>trash pair, absorbing</td>
+<td><code>trash_old_indices</code>, <code>abs_old_index</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">T_{\mathrm{aux}}</span></td>
+<td>t-vertex <span class="math inline">\to</span> aux-vertex map</td>
+<td><code>t_aux_map</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v_{\mathrm{aux}}</span></td>
+<td>aux vertex paired with <span class="math inline">v</span></td>
+<td><code>t_aux_vertex</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{1}_d</span></td>
+<td>coefficient vector of ones</td>
+<td><code>[1.0] * param_length</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">I_{\mathrm{IPV}}</span></td>
+<td>IPV target index list</td>
+<td><code>_ipv_target_indices</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Let <span class="math inline">n = |V(G_J)|</span> and <span class="math inline">m = |E(G_J)|</span>, <span class="math inline">|T| = |T_{\mathrm{old}}|</span>. The single sweep over <span class="math inline">V(G_J)</span> on lines 18–31 copies <span class="math inline">O(m)</span> edges and installs <span class="math inline">O(|T|)</span> new aux vertices and <span class="math inline">2|T|</span> trapping edges; the IPV pass adds <span class="math inline">O(n)</span> starting edges. Time: <span class="math inline">O(n + m)</span>. Space: <span class="math inline">O(n + m + |T|)</span> for the new graph and the auxiliary maps.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-jp-stop-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;24.2: <strong>Correctness.</strong> The trapping aux loop has total outgoing weight <span class="math inline">\sum_k 1 \cdot \theta_k</span> on each side at runtime; once probability mass enters the pair, the joint occupation across <span class="math inline">(v, v_{\mathrm{aux}})</span> is conserved because neither vertex has any outgoing edge to a vertex outside the pair (the original outgoing edge to the absorbing vertex is deliberately omitted on lines 20–24). By the trapping argument behind <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> (the mass-trapping monotonicity established in <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a>), this means the cumulative absorption probability at the outcome corresponding to <span class="math inline">v \in T</span> in <span class="math inline">G_J</span> equals the total mass on <span class="math inline">\{v, v_{\mathrm{aux}}\}</span> at any time in <span class="math inline">G_{\mathrm{JSP}}</span>. The redirection of trash edges to <span class="math inline">v_\infty</span> on line 27 preserves total probability (the trash pair in <span class="math inline">G_J</span> traps mass with no observable consequence; merging that mass into <span class="math inline">v_\infty</span> does the same in <span class="math inline">G_{\mathrm{JSP}}</span>). The IPV edges at weight zero on lines 36–39 are no-ops until <code>update_ipv</code> writes runtime values; the resulting parameterised initial distribution applied at the start of each epoch is exactly <span class="math inline">\boldsymbol{\pi}^{(i)}</span> on the IPV-target subset of vertices, as required by <a href="#lem-22-jp-ipv-linearity" class="quarto-xref">Lemma&nbsp;<span>24.2</span></a>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-22-jp-daisy-chain" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="algorithm-22.c-daisy-chain-joint-probabilities" class="level4" aria-describedby="alg-22-jp-daisy-chain-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.3">
+<h4 data-number="24.0.0.3" class="anchored" data-anchor-id="algorithm-22.c-daisy-chain-joint-probabilities"><span class="header-section-number">24.0.0.3</span> Algorithm 22.C: Daisy-Chain Joint Probabilities</h4>
+<p><em>Description.</em> Composes <span class="math inline">n_{\mathrm{ep}}</span> epochs of stop-probability evaluation on a joint-stop-prob graph <span class="math inline">G_{\mathrm{JSP}}</span> to obtain the joint probabilities of each t-state outcome under a piecewise-constant CTMC. Within each epoch <span class="math inline">i &lt; n_{\mathrm{ep}} - 1</span> the algorithm sets the epoch-<span class="math inline">i</span> parameter vector <span class="math inline">\boldsymbol{\theta}^{(i)}</span> and IPV <span class="math inline">\boldsymbol{\pi}^{(i)}</span>, runs the forward algorithm for duration <span class="math inline">\Delta t_i</span> to obtain the time-<span class="math inline">\Delta t_i</span> stop-probability vector <span class="math inline">\mathbf{p}^{(i)}</span>, collapses each t-vertex / aux-vertex pair into a single survivor mass via <span class="math inline">q^{(i)}_v = p^{(i)}_v + \mathbb{1}_{\{v \in T\}} \cdot p^{(i)}_{\mathrm{aux}(v)}</span>, and projects the collapsed vector onto the IPV layout of epoch <span class="math inline">i+1</span>. In the final epoch <span class="math inline">i = n_{\mathrm{ep}} - 1</span> the algorithm reads stop-probabilities at <span class="math inline">t_{\mathrm{eval}}</span> and returns the collapsed masses at the indices in <span class="math inline">\_t\_vertex\_indices</span> as the joint probabilities. Composition over epochs is justified by Chapman–Kolmogorov (<a href="#lem-22-jp-chapman-kolmogorov" class="quarto-xref">Lemma&nbsp;<span>24.4</span></a>), and the choice of <span class="math inline">t_{\mathrm{eval}}</span> large enough is justified by the monotone-convergence lemma <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a>.</p>
+<pre><code>Daisy-Chain Joint Probabilities
+ 1: Let G_JSP be a joint-stop-prob graph (output of @alg-22-jp-stop-graph)
+ 2: Let n_ep ≥ 1, theta^{(0..n_ep-1)} ∈ R^{n_ep × d}, dt^{(0..n_ep-2)} ∈ R_+^{n_ep-1}
+ 3: Let pi^{(0)} ∈ R^{|I_IPV|} be the initial IPV
+ 4: Let t_eval &gt; 0, granularity g ≥ 0, fixed_indices ⊆ {0, ..., n_ep·d − 1}
+ 5: Let I_IPV = G_JSP._ipv_target_indices, T_aux = G_JSP._t_aux_map
+ 6: Let I_t = G_JSP._t_vertex_indices
+ 7:
+ 8: function DaisyChainJointProbs(G_JSP, theta, dt, pi^{(0)}, t_eval, g)
+ 9:   pi_curr ← pi^{(0)}
+10:   update_ipv(G_JSP, pi_curr)                triangleright write IPV edge weights
+11:
+12:   for i ← 0 to n_ep − 1 do
+13:     update_weights(G_JSP, theta[i])         triangleright epoch-i parameters
+14:     if i &lt; n_ep − 1 then
+15:       t_step ← dt[i]
+16:     else
+17:       t_step ← t_eval
+18:     end if
+19:     p ← StopProbability(G_JSP, t_step, g)   triangleright forward alg @alg-14-cph-uniformization
+20:
+21:     // Collapse each (t, aux) pair onto its t-vertex coordinate
+22:     for each v ∈ V(G_JSP) do
+23:       q[v] ← p[v] + 1_{v ∈ dom(T_aux)} · p[T_aux[v]]
+24:     end for
+25:
+26:     if i &lt; n_ep − 1 then
+27:       pi_curr ← (q[I_IPV[0]], q[I_IPV[1]], …, q[I_IPV[|I_IPV|−1]])
+28:       update_ipv(G_JSP, pi_curr)             triangleright propagate survivors
+29:     end if
+30:   end for
+31:
+32:   return (q[I_t[0]], q[I_t[1]], …, q[I_t[|I_t|−1]])
+33: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\theta}^{(i)}</span></td>
+<td>epoch-<span class="math inline">i</span> parameter</td>
+<td><code>epoch_thetas[i]</code> (<code>__init__.py:daisy_chain_joint_probs</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\Delta t_i</span></td>
+<td>epoch-<span class="math inline">i</span> duration</td>
+<td><code>epoch_dts[i]</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\pi}^{(i)}</span></td>
+<td>epoch-<span class="math inline">i</span> IPV</td>
+<td><code>initial_ipv</code> (i=0); subsequently <code>pi_curr</code> propagated in the FFI handler</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{p}^{(i)}</span></td>
+<td>stop-probability vector at <span class="math inline">t_{\mathrm{step}}</span></td>
+<td>output of <code>stop_probability</code> / C++ <code>compute_daisy_chain_joint_probs_ffi</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{q}^{(i)}</span></td>
+<td>t-aux-collapsed vector</td>
+<td>result of <code>_collapse_t_aux</code> (FFI handler)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t_{\mathrm{eval}}</span></td>
+<td>final-epoch read-out time</td>
+<td><code>t_eval</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">g</span></td>
+<td>uniformisation granularity</td>
+<td><code>granularity</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">I_{\mathrm{IPV}}</span>, <span class="math inline">T_{\mathrm{aux}}</span>, <span class="math inline">I_t</span></td>
+<td>metadata maps from <span class="math inline">G_{\mathrm{JSP}}</span></td>
+<td><code>_ipv_target_indices</code>, <code>_t_aux_map</code>, <code>_t_vertex_indices</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Let <span class="math inline">n = |V(G_{\mathrm{JSP}})|</span> and <span class="math inline">m = |E(G_{\mathrm{JSP}})|</span>. Each call to <code>StopProbability</code> runs the forward algorithm with cost <span class="math inline">O(g \cdot t_{\mathrm{step}} \cdot m)</span> (see <a href="14_distribution_computation.html#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a>), and the t-aux collapse plus IPV projection are <span class="math inline">O(n + |I_{\mathrm{IPV}}|)</span>. Over <span class="math inline">n_{\mathrm{ep}}</span> epochs the total time is</p>
+<p><span class="math display">O\!\left(\sum_{i=0}^{n_{\mathrm{ep}}-2} g \cdot \Delta t_i \cdot m \;+\; g \cdot t_{\mathrm{eval}} \cdot m \;+\; n_{\mathrm{ep}} \cdot n \right).</span></p>
+<p>Space: <span class="math inline">O(n + m)</span> for the graph and probability vectors; the <code>custom_vjp</code> wrapper for finite-difference gradients doubles the storage at backward time.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-jp-daisy-chain-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;24.3: <strong>Correctness.</strong> Fix the IPV <span class="math inline">\boldsymbol{\pi}^{(i)}</span> and parameters <span class="math inline">\boldsymbol{\theta}^{(i)}</span> for epoch <span class="math inline">i</span> and let <span class="math inline">\mathbf{S}^{(i)}</span> be the corresponding sub-intensity matrix of <span class="math inline">G_{\mathrm{JSP}}</span>. By <a href="#lem-22-jp-ipv-linearity" class="quarto-xref">Lemma&nbsp;<span>24.2</span></a> the stop-probability vector <span class="math inline">\mathbf{p}^{(i)} = \boldsymbol{\pi}^{(i)} e^{\mathbf{S}^{(i)} \Delta t_i}</span> is linear in <span class="math inline">\boldsymbol{\pi}^{(i)}</span>, so any propagation of survivors at the end of epoch <span class="math inline">i</span> becomes the IPV of epoch <span class="math inline">i+1</span> without loss of total mass. The t-aux collapse on line 23 sums the masses on <span class="math inline">\{v, v_{\mathrm{aux}(v)}\}</span>; by the trapping argument in <a href="#alg-22-jp-stop-graph" class="quarto-xref">Algorithm&nbsp;<span>24.2</span></a>, this sum equals the cumulative absorption probability at the outcome corresponding to <span class="math inline">v</span> over <span class="math inline">[0, \Delta t_i]</span>, plus the in-transit mass still circulating in the loop pair. Because the IPV layout <span class="math inline">I_{\mathrm{IPV}}</span> skips the aux vertices, projecting <span class="math inline">\mathbf{q}^{(i)}</span> onto <span class="math inline">I_{\mathrm{IPV}}</span> injects each collapsed mass back onto the corresponding non-aux vertex; <a href="#lem-22-jp-chapman-kolmogorov" class="quarto-xref">Lemma&nbsp;<span>24.4</span></a> then identifies the composition of the per-epoch propagators with the propagator of the piecewise-constant CTMC on <span class="math inline">[0, \sum_i \Delta t_i + t_{\mathrm{eval}}]</span>. By <a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a> the t-vertex masses <span class="math inline">\mathbf{q}^{(n_{\mathrm{ep}}-1)}_{I_t}</span> converge monotonically to the joint probabilities of the outcomes as <span class="math inline">t_{\mathrm{eval}} \to \infty</span>; for any fixed <span class="math inline">t_{\mathrm{eval}}</span> the returned vector is the joint probability conditional on the chain having absorbed by <span class="math inline">\sum_i \Delta t_i + t_{\mathrm{eval}}</span> — exactly the quantity targeted by <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-22-jp-table" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="algorithm-22.d-discrete-joint-probability-table" class="level4" aria-describedby="alg-22-jp-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.4">
+<h4 data-number="24.0.0.4" class="anchored" data-anchor-id="algorithm-22.d-discrete-joint-probability-table"><span class="header-section-number">24.0.0.4</span> Algorithm 22.D: Discrete Joint-Probability Table</h4>
+<p><em>Description.</em> Reads the joint-probability table from a discrete joint-probability graph <span class="math inline">G_J</span> (output of <a href="#alg-22-jp-graph" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a> with <code>discrete=true</code>) by computing the expected sojourn time at each t-vertex and pairing it with the t-vertex’s reward-state projection. For a DPH on <span class="math inline">G_J</span> with starting distribution <span class="math inline">\boldsymbol{\alpha}_J</span> and sub-transition matrix <span class="math inline">\mathbf{T}_J</span>, the expected sojourn time at transient vertex <span class="math inline">v</span> is <span class="math inline">\bigl(\boldsymbol{\alpha}_J (\mathbf{I} - \mathbf{T}_J)^{-1}\bigr)_v</span>. For a t-vertex (one whose only outgoing edge leads to the common absorbing vertex <span class="math inline">v_{\mathrm{abs}}^J</span> with weight <span class="math inline">1</span>), this quantity equals the probability that the joint chain is absorbed at <span class="math inline">v</span> — that is, the joint probability of the outcome at <span class="math inline">v</span>. The algorithm reuses the cached elimination trace machinery of [15] to evaluate <span class="math inline">\boldsymbol{\alpha}_J(\mathbf{I}-\mathbf{T}_J)^{-1}</span> at a fixed parameter vector without re-running graph elimination.</p>
+<pre><code>Discrete Joint-Probability Table
+ 1: Let G_J be a discrete joint-probability graph (is_discrete(G_J) = true)
+ 2: Let I_rwd index the reward suffix of the joint state vector
+ 3:
+ 4: function JointProbTable(G_J)
+ 5:   T ← ∅
+ 6:   for each v ∈ V(G_J) do
+ 7:     for each edge (v → w) ∈ outgoing(v) do
+ 8:       if outgoing(w) = ∅ then
+ 9:         T ← T ∪ {index(v)}                triangleright v is a t-vertex
+10:         break
+11:       end if
+12:     end for
+13:   end for
+14:
+15:   outcomes ← (state(vertex_at(G_J, i))[I_rwd] : i ∈ T)
+16:                                           triangleright reward projection of each t-vertex
+17:
+18:   x_T ← ExpectedSojournTime(G_J, T)        triangleright (alpha_J (I − T_J)^{−1})_T via [15]
+19:
+20:   table ← empty data frame with one row per i ∈ T,
+21:           columns (one_per_reward_dim, prob, t_vertex_index)
+22:   for k ← 0 to |T| − 1 do
+23:     append row (outcomes[k], prob = x_T[k], t_vertex_index = T[k]) to table
+24:   end for
+25:   return table
+26: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G_J</span></td>
+<td>discrete joint-probability graph</td>
+<td><code>self</code> (<code>__init__.py:joint_prob_table</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">T</span></td>
+<td>t-vertex index set <span class="math inline">V_{\mathrm{t}}</span></td>
+<td><code>t_vertex_indices</code> (<code>__init__.py:_get_joint_probs</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">I_{\mathrm{rwd}}</span></td>
+<td>reward suffix indices</td>
+<td><code>joint_reward_state_indices</code></td>
+</tr>
+<tr class="even">
+<td><code>outcomes</code></td>
+<td>reward-projected states of t-vertices</td>
+<td><code>outcomes</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{x}_T</span></td>
+<td>expected sojourn at t-vertices</td>
+<td><code>sojourn_times</code> (<code>__init__.py:_get_joint_probs</code>)</td>
+</tr>
+<tr class="even">
+<td><code>ExpectedSojournTime</code></td>
+<td><span class="math inline">\boldsymbol{\alpha}_J(\mathbf{I}-\mathbf{T}_J)^{-1}</span> restricted to <span class="math inline">T</span></td>
+<td><code>expected_sojourn_time(t_indices)</code></td>
+</tr>
+<tr class="odd">
+<td><code>table</code></td>
+<td>joint-probability data frame</td>
+<td><code>joint</code> (<code>__init__.py:joint_prob_table</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Let <span class="math inline">n = |V(G_J)|</span>, <span class="math inline">m = |E(G_J)|</span>, <span class="math inline">|T|</span> the t-vertex count. The t-vertex scan on lines 6–13 runs in <span class="math inline">O(n + m)</span>. The call to <code>ExpectedSojournTime</code> reuses the cached elimination trace ([15]) and costs <span class="math inline">O(N_C)</span> where <span class="math inline">N_C = O(n^2)</span> is the size of the reward-compute command sequence (see <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>); evaluating at <span class="math inline">|T|</span> vertices contributes an additive <span class="math inline">O(|T|)</span> pick-out. Total time: <span class="math inline">O(n + m + n^2 + |T|)</span>, which equals <span class="math inline">O(n^2)</span> when <span class="math inline">m = O(n^2)</span> (typical sparse-graph case) and is amortised over the cached trace; on the first call elimination costs <span class="math inline">O(n^3)</span>. Space: <span class="math inline">O(n + |T|)</span> for the t-vertex array and the result vector.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-jp-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;24.4: <strong>Correctness.</strong> For a discrete absorbing Markov chain with starting distribution <span class="math inline">\boldsymbol{\alpha}_J</span> and sub-transition matrix <span class="math inline">\mathbf{T}_J</span> on the transient states of <span class="math inline">G_J</span>, the matrix <span class="math inline">(\mathbf{I}-\mathbf{T}_J)^{-1}</span> is the <strong>fundamental matrix</strong> <span class="citation" data-cites="bladt2017">(<a href="28_references.html#ref-bladt2017" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span>: entry <span class="math inline">(u,v)</span> is the expected number of visits to <span class="math inline">v</span> starting from <span class="math inline">u</span> before absorption. The row-vector product <span class="math inline">\boldsymbol{\alpha}_J(\mathbf{I}-\mathbf{T}_J)^{-1}</span> is therefore the expected-visits vector under <span class="math inline">\boldsymbol{\alpha}_J</span>. Restricted to a t-vertex <span class="math inline">v \in T</span> — which by construction has a single outgoing edge to <span class="math inline">v_{\mathrm{abs}}^J</span> with weight <span class="math inline">1</span> — every visit to <span class="math inline">v</span> is immediately followed by absorption, so the expected number of visits to <span class="math inline">v</span> equals the absorption probability at <span class="math inline">v</span>. By <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a> this is exactly the joint probability of the outcome associated with <span class="math inline">v</span>, and by <a href="#lem-22-jp-no-revisit" class="quarto-xref">Lemma&nbsp;<span>24.1</span></a> each outcome corresponds to a unique t-vertex (no double counting). The reward projection on line 15 strips the base-state coordinates (which are all the base-graph absorbing state) and keeps only the reward counters, which by construction uniquely identify the outcome. The pseudocode therefore returns the exact joint-probability table, modulo the floating-point arithmetic of the cached elimination trace.
+</figcaption>
+</figure>
+</div>
+<p>The preceding four algorithms construct the joint-probability and joint-stop-prob graphs that feed the <strong>probability matching estimator</strong> for parameter inference. The estimator itself is summarised in <a href="#alg-22-pm-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.5</span></a> below; the joint-probability table it consumes is produced either by <a href="#alg-22-jp-table" class="quarto-xref">Algorithm&nbsp;<span>24.4</span></a> (discrete, single-epoch) or by <a href="#alg-22-jp-daisy-chain" class="quarto-xref">Algorithm&nbsp;<span>24.3</span></a> (continuous, multi-epoch).</p>
+</section>
+</section>
+<section id="probability-matching-estimation" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="probability-matching-estimation">Probability Matching Estimation</h2>
+<p>Probability matching estimation operates on the discrete joint probability table <span class="math inline">\bigl(\hat{p}_1, \ldots, \hat{p}_K\bigr)</span> produced by <code>Graph.joint_prob_table()</code> of <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>, treating each observation as a t-vertex index. Unlike moment matching ([21]), which operates on continuous observations and their moments, probability matching targets models where observations are categorical (t-vertex indices in a joint probability graph) and the model produces a probability table over t-vertices. The estimator minimizes the distance between the empirical probability distribution (from observed frequency counts) and the model probability distribution (from normalized expected sojourn times), providing parameter estimates and priors for subsequent Bayesian inference.</p>
+<p>In the phasic pipeline, probability matching applies to joint probability graphs constructed via <code>Graph.joint_prob_graph()</code>, where each observation corresponds to a t-vertex index (e.g., a mutation count tuple in population genetics). The model probabilities are computed via the forward algorithm ([14]) and normalized over all t-vertices. The estimation is cast as a nonlinear least-squares problem with multinomial covariance for standard error estimation via the delta method <span class="citation" data-cites="vandervaart1998">(<a href="28_references.html#ref-vandervaart1998" role="doc-biblioref"><span class="nocase">van der Vaart</span> 1998</a>)</span>.</p>
+<section id="definitions-1" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="definitions-1">Definitions</h3>
+<div id="def-22-pm-empirical-model-pmf" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.8 (Empirical and Model PMF)</strong></span> <em>Let <span class="math inline">y_1, \ldots, y_n</span> be i.i.d. observations, each taking values in a finite set of t-vertex indices <span class="math inline">\mathcal{V}_{\text{term}} = \{v_{t_1}, \ldots, v_{t_J}\} \subset V</span>. Let <span class="math inline">\mathcal{V}_{\text{obs}} = \{v_{t_{i_1}}, \ldots, v_{t_{i_K}}\} \subseteq \mathcal{V}_{\text{term}}</span> be the set of <span class="math inline">K</span> distinct observed vertex indices, with counts <span class="math inline">n_k = \#\{i : y_i = v_{t_{i_k}}\}</span>. The <strong>empirical PMF</strong> is</em></p>
+<p><span id="eq-22-pm-empirical-pmf"><span class="math display">\hat{p}_k = \frac{n_k}{n}, \quad k = 1, \ldots, K. \tag{24.10}</span></span></p>
+<p><em>The <strong>model PMF</strong> at parameter <span class="math inline">\boldsymbol{\theta}</span> is computed from the normalized expected sojourn times at t-vertices:</em></p>
+<p><span id="eq-22-pm-model-pmf"><span class="math display">p_k(\boldsymbol{\theta}) = \frac{x_{v_{t_{i_k}}}(\boldsymbol{\theta})}{\sum_{j=1}^{J} x_{v_{t_j}}(\boldsymbol{\theta})}, \quad k = 1, \ldots, K, \tag{24.11}</span></span></p>
 <p><em>where <span class="math inline">x_v(\boldsymbol{\theta})</span> is the expected sojourn time at vertex <span class="math inline">v</span> under parameter <span class="math inline">\boldsymbol{\theta}</span>, computed via the forward algorithm ([14]).</em></p>
 </div>
 <details>
 <summary>
 Intuition
 </summary>
-The empirical PMF is simply the observed relative frequency of each vertex index in the data. The model PMF is the theoretical probability of each vertex under the phase-type model, obtained by normalizing the expected sojourn times (which are proportional to absorption probabilities in the joint probability graph construction). Probability matching finds the parameter that makes these two distributions as close as possible.
+The empirical PMF is simply the observed relative frequency of each vertex index in the data. The model PMF is the theoretical probability of each vertex under the phase-type model, obtained by normalizing the expected sojourn times (which are proportional to absorption probabilities in the joint probability graph construction; see <a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>). Probability matching finds the parameter that makes these two distributions as close as possible.
 </details>
 <details>
 <summary>
 Example
 </summary>
-In a coalescent model with mutations, terminal vertices represent site frequency spectrum (SFS) categories. If <span class="math inline">n = 1000</span> loci are observed with counts <span class="math inline">(n_1, n_2, n_3) = (500, 350, 150)</span> for singletons, doubletons, and tripletons, then <span class="math inline">\hat{\mathbf{p}} = (0.5, 0.35, 0.15)</span>. The model predicts <span class="math inline">\mathbf{p}(\theta) = (0.52, 0.30, 0.18)</span> for some <span class="math inline">\theta</span>, and probability matching adjusts <span class="math inline">\theta</span> to reduce this discrepancy.
+In a coalescent model with mutations, t-vertices represent site frequency spectrum (SFS) categories. If <span class="math inline">n = 1000</span> loci are observed with counts <span class="math inline">(n_1, n_2, n_3) = (500, 350, 150)</span> for singletons, doubletons, and tripletons, then <span class="math inline">\hat{\mathbf{p}} = (0.5, 0.35, 0.15)</span>. The model predicts <span class="math inline">\mathbf{p}(\theta) = (0.52, 0.30, 0.18)</span> for some <span class="math inline">\theta</span>, and probability matching adjusts <span class="math inline">\theta</span> to reduce this discrepancy.
 </details>
-<div id="def-22-prob-objective" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 24.2 (Probability Matching Objective)</strong></span> <em>The <strong>probability matching objective</strong> is the nonlinear least-squares problem</em></p>
-<p><span id="eq-22-prob-objective"><span class="math display">\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} &gt; 0} \sum_{k=1}^{K} \left( p_k(\boldsymbol{\theta}) - \hat{p}_k \right)^2. \tag{24.3}</span></span></p>
+<div id="def-22-pm-prob-objective" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.9 (Probability Matching Objective)</strong></span> <em>The <strong>probability matching objective</strong> is the nonlinear least-squares problem</em></p>
+<p><span id="eq-22-pm-prob-objective"><span class="math display">\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} &gt; 0} \sum_{k=1}^{K} \left( p_k(\boldsymbol{\theta}) - \hat{p}_k \right)^2. \tag{24.12}</span></span></p>
 <p><em>The constraint <span class="math inline">\boldsymbol{\theta} &gt; 0</span> ensures positive rates. This is equivalent to minimizing <span class="math inline">\lVert \mathbf{p}(\boldsymbol{\theta}) - \hat{\mathbf{p}} \rVert_2^2</span>, where <span class="math inline">\mathbf{p}(\boldsymbol{\theta}) = (p_1(\boldsymbol{\theta}), \ldots, p_K(\boldsymbol{\theta}))^\top</span> and <span class="math inline">\hat{\mathbf{p}} = (\hat{p}_1, \ldots, \hat{p}_K)^\top</span>.</em></p>
 </div>
 <details>
@@ -550,9 +1306,9 @@ Intuition
 </summary>
 The objective measures the squared Euclidean distance between the model and empirical probability vectors. Unlike maximum likelihood (which uses the multinomial log-likelihood), least-squares probability matching is computationally simpler and provides a natural residual structure for standard error estimation. The two approaches are asymptotically equivalent for well-specified models.
 </details>
-<div id="def-22-multinomial-cov" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 24.3 (Multinomial Covariance)</strong></span> <em>Under the multinomial model <span class="math inline">(n_1, \ldots, n_K) \sim \operatorname{Multinomial}(n, \hat{p}_1, \ldots, \hat{p}_K)</span>, the <strong>covariance of the empirical proportions</strong> is</em></p>
-<p><span id="eq-22-multinomial-cov"><span class="math display">\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = \frac{1}{n} \begin{cases} \hat{p}_i(1 - \hat{p}_i) &amp; \text{if } i = j, \\ -\hat{p}_i \hat{p}_j &amp; \text{if } i \neq j. \end{cases} \tag{24.4}</span></span></p>
+<div id="def-22-pm-multinomial-cov" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 24.10 (Multinomial Covariance)</strong></span> <em>Under the multinomial model <span class="math inline">(n_1, \ldots, n_K) \sim \operatorname{Multinomial}(n, \hat{p}_1, \ldots, \hat{p}_K)</span>, the <strong>covariance of the empirical proportions</strong> is</em></p>
+<p><span id="eq-22-pm-multinomial-cov"><span class="math display">\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = \frac{1}{n} \begin{cases} \hat{p}_i(1 - \hat{p}_i) &amp; \text{if } i = j, \\ -\hat{p}_i \hat{p}_j &amp; \text{if } i \neq j. \end{cases} \tag{24.13}</span></span></p>
 <p><em>In matrix form, <span class="math inline">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = n^{-1}(\operatorname{diag}(\hat{\mathbf{p}}) - \hat{\mathbf{p}} \hat{\mathbf{p}}^\top)</span>.</em></p>
 </div>
 <details>
@@ -568,30 +1324,30 @@ Example
 For <span class="math inline">K = 3</span> categories with <span class="math inline">\hat{\mathbf{p}} = (0.5, 0.35, 0.15)</span> and <span class="math inline">n = 100</span>: <span class="math display">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = \frac{1}{100}\begin{pmatrix} 0.25 &amp; -0.175 &amp; -0.075 \\ -0.175 &amp; 0.2275 &amp; -0.0525 \\ -0.075 &amp; -0.0525 &amp; 0.1275 \end{pmatrix}.</span>
 </details>
 </section>
-<section id="theorems-and-proofs" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
-<div id="thm-22-multinomial-cov" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 24.1 (Multinomial Covariance Is Exact for Independent Observations)</strong></span> <em>Let <span class="math inline">y_1, \ldots, y_n</span> be i.i.d. draws from a categorical distribution with probabilities <span class="math inline">\mathbf{p}^* = (p_1^*, \ldots, p_K^*)</span>, and let <span class="math inline">\hat{p}_k = n_k / n</span> where <span class="math inline">n_k = \sum_{i=1}^{n} \mathbb{1}_{\{y_i = k\}}</span>. Then:</em></p>
+<section id="theorems-and-proofs-1" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="theorems-and-proofs-1">Theorems and Proofs</h3>
+<div id="thm-22-pm-multinomial-cov" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 24.3 (Multinomial Covariance Is Exact for Independent Observations)</strong></span> <em>Let <span class="math inline">y_1, \ldots, y_n</span> be i.i.d. draws from a categorical distribution with probabilities <span class="math inline">\mathbf{p}^* = (p_1^*, \ldots, p_K^*)</span>, and let <span class="math inline">\hat{p}_k = n_k / n</span> where <span class="math inline">n_k = \sum_{i=1}^{n} \mathbb{1}_{\{y_i = k\}}</span>. Then:</em></p>
 <p><em>(i) <span class="math inline">\mathbb{E}[\hat{p}_k] = p_k^*</span> (unbiasedness).</em></p>
 <p><em>(ii) <span class="math inline">\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = n^{-1}(\delta_{ij} p_i^* - p_i^* p_j^*)</span>, where <span class="math inline">\delta_{ij}</span> is the Kronecker delta.</em></p>
-<p><em>(iii) The plug-in estimator <span class="math inline">\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}}</span> from <a href="#def-22-multinomial-cov" class="quarto-xref">Definition&nbsp;<span>24.3</span></a> (replacing <span class="math inline">p_k^*</span> with <span class="math inline">\hat{p}_k</span>) is a consistent estimator of <span class="math inline">\operatorname{Cov}(\hat{\mathbf{p}})</span>.</em></p>
+<p><em>(iii) The plug-in estimator <span class="math inline">\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}}</span> from <a href="#def-22-pm-multinomial-cov" class="quarto-xref">Definition&nbsp;<span>24.10</span></a> (replacing <span class="math inline">p_k^*</span> with <span class="math inline">\hat{p}_k</span>) is a consistent estimator of <span class="math inline">\operatorname{Cov}(\hat{\mathbf{p}})</span>.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span></p>
 <ol type="i">
 <li><p>Since each <span class="math inline">y_i</span> is an independent draw, <span class="math inline">n_k = \sum_{i=1}^{n} \mathbb{1}_{\{y_i = k\}}</span> is a sum of i.i.d. Bernoulli(<span class="math inline">p_k^*</span>) random variables. Thus <span class="math inline">\mathbb{E}[n_k] = n p_k^*</span> and <span class="math inline">\mathbb{E}[\hat{p}_k] = p_k^*</span>.</p></li>
-<li><p>For the diagonal, <span class="math inline">\operatorname{Var}(n_k) = n p_k^*(1 - p_k^*)</span> (binomial variance), so <span class="math inline">\operatorname{Var}(\hat{p}_k) = n^{-2} \operatorname{Var}(n_k) = n^{-1} p_k^*(1 - p_k^*)</span>. For the off-diagonal (<span class="math inline">i \neq j</span>), consider a single observation: <span class="math inline">\operatorname{Cov}(\mathbb{1}_{\{y = i\}}, \mathbb{1}_{\{y = j\}}) = \mathbb{E}[\mathbb{1}_{\{y = i\}} \mathbb{1}_{\{y = j\}}] - p_i^* p_j^* = 0 - p_i^* p_j^*</span> (since <span class="math inline">y</span> cannot equal both <span class="math inline">i</span> and <span class="math inline">j</span>). Summing over <span class="math inline">n</span> independent observations: <span class="math inline">\operatorname{Cov}(n_i, n_j) = -n p_i^* p_j^*</span>, so <span class="math inline">\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = -n^{-1} p_i^* p_j^*</span>. Combining both cases gives <a href="#eq-22-multinomial-cov" class="quarto-xref">Equation&nbsp;<span>24.4</span></a> with <span class="math inline">p_k^*</span> in place of <span class="math inline">\hat{p}_k</span>.</p></li>
-<li><p>By the strong law of large numbers, <span class="math inline">\hat{p}_k \xrightarrow{\text{a.s.}} p_k^*</span> for each <span class="math inline">k</span>. Since the covariance formula (<a href="#eq-22-multinomial-cov" class="quarto-xref">Equation&nbsp;<span>24.4</span></a>) is a continuous function of <span class="math inline">\hat{p}_k</span>, the continuous mapping theorem gives <span class="math inline">\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}} \xrightarrow{\text{a.s.}} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span>, establishing consistency. <span class="math inline">\square</span></p></li>
+<li><p>For the diagonal, <span class="math inline">\operatorname{Var}(n_k) = n p_k^*(1 - p_k^*)</span> (binomial variance), so <span class="math inline">\operatorname{Var}(\hat{p}_k) = n^{-2} \operatorname{Var}(n_k) = n^{-1} p_k^*(1 - p_k^*)</span>. For the off-diagonal (<span class="math inline">i \neq j</span>), consider a single observation: <span class="math inline">\operatorname{Cov}(\mathbb{1}_{\{y = i\}}, \mathbb{1}_{\{y = j\}}) = \mathbb{E}[\mathbb{1}_{\{y = i\}} \mathbb{1}_{\{y = j\}}] - p_i^* p_j^* = 0 - p_i^* p_j^*</span> (since <span class="math inline">y</span> cannot equal both <span class="math inline">i</span> and <span class="math inline">j</span>). Summing over <span class="math inline">n</span> independent observations: <span class="math inline">\operatorname{Cov}(n_i, n_j) = -n p_i^* p_j^*</span>, so <span class="math inline">\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = -n^{-1} p_i^* p_j^*</span>. Combining both cases gives <a href="#eq-22-pm-multinomial-cov" class="quarto-xref">Equation&nbsp;<span>24.13</span></a> with <span class="math inline">p_k^*</span> in place of <span class="math inline">\hat{p}_k</span>.</p></li>
+<li><p>By the strong law of large numbers, <span class="math inline">\hat{p}_k \xrightarrow{\text{a.s.}} p_k^*</span> for each <span class="math inline">k</span>. Since the covariance formula (<a href="#eq-22-pm-multinomial-cov" class="quarto-xref">Equation&nbsp;<span>24.13</span></a>) is a continuous function of <span class="math inline">\hat{p}_k</span>, the continuous mapping theorem gives <span class="math inline">\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}} \xrightarrow{\text{a.s.}} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span>, establishing consistency. <span class="math inline">\square</span></p></li>
 </ol>
 </div>
 </section>
-<section id="algorithms" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
-<div id="alg-22-probability-matching" class="quarto-float quarto-figure quarto-figure-center anchored">
+<section id="algorithms-1" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="algorithms-1">Algorithms</h3>
+<div id="alg-22-pm-probability-matching" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="probability-matching-estimation" class="level4" aria-describedby="alg-22-probability-matching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.1">
-<h4 data-number="24.0.0.1" class="anchored" data-anchor-id="probability-matching-estimation"><span class="header-section-number">24.0.0.1</span> Probability Matching Estimation</h4>
-<p><em>Description.</em> Estimates the parameter vector <span class="math inline">\boldsymbol{\theta}</span> of a joint probability graph by matching model probabilities to empirical probabilities. The algorithm: (1) tabulates observed vertex indices and computes empirical probabilities, (2) constructs a model probability function that evaluates normalized sojourn times via the forward algorithm, (3) finds an initial guess by coordinate-wise grid search matching the most common observation’s probability, (4) solves the least-squares problem (<a href="#eq-22-prob-objective" class="quarto-xref">Equation&nbsp;<span>24.3</span></a>), and (5) computes standard errors via the delta method using the multinomial covariance from <a href="#thm-22-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>.</p>
+<section id="probability-matching-estimation-1" class="level4" aria-describedby="alg-22-pm-probability-matching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="24.0.0.5">
+<h4 data-number="24.0.0.5" class="anchored" data-anchor-id="probability-matching-estimation-1"><span class="header-section-number">24.0.0.5</span> Probability Matching Estimation</h4>
+<p><em>Description.</em> Estimates the parameter vector <span class="math inline">\boldsymbol{\theta}</span> of a joint probability graph by matching model probabilities to empirical probabilities. The algorithm: (1) tabulates observed vertex indices and computes empirical probabilities, (2) constructs a model probability function that evaluates normalized sojourn times via the forward algorithm, (3) finds an initial guess by coordinate-wise grid search matching the most common observation’s probability, (4) solves the least-squares problem (<a href="#eq-22-pm-prob-objective" class="quarto-xref">Equation&nbsp;<span>24.12</span></a>), and (5) computes standard errors via the delta method using the multinomial covariance from <a href="#thm-22-pm-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.3</span></a>.</p>
 <pre><code>Probability Matching Estimation
 1: Let G = (V, E) be a parameterized joint probability graph with d parameters
 2: Let y_1, ..., y_n be observed vertex indices (integers)
@@ -748,41 +1504,79 @@ For <span class="math inline">K = 3</span> categories with <span class="math inl
 </table>
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(N_{\text{iter}} \cdot (C_{\text{fwd}} \cdot (K + J) + K))</span>, where <span class="math inline">N_{\text{iter}}</span> is the number of least-squares iterations (at most <span class="math inline">200 \cdot d_{\text{free}}</span>), <span class="math inline">C_{\text{fwd}}</span> is the cost of one forward algorithm evaluation per vertex ([14]), <span class="math inline">K</span> is the number of distinct observations, and <span class="math inline">J</span> is the total number of terminal vertices (for normalization). The initial grid search costs <span class="math inline">O(d_{\text{free}} \cdot 30 \cdot C_{\text{fwd}} \cdot (K + J))</span>. The multinomial covariance computation and delta method cost <span class="math inline">O(K^2)</span> and <span class="math inline">O(K^2 \cdot d_{\text{free}})</span> respectively. Space: <span class="math inline">O(K^2)</span> for the multinomial covariance matrix plus <span class="math inline">O(J)</span> for the terminal vertex array.</p>
 </section>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-probability-matching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;24.1: <strong>Correctness.</strong> The empirical PMF <span class="math inline">\hat{\mathbf{p}}</span> is an unbiased and consistent estimator of the true PMF <span class="math inline">\mathbf{p}^*</span> (<a href="#thm-22-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>(i)). Under standard regularity conditions on the model (continuous <span class="math inline">\mathbf{p}(\boldsymbol{\theta})</span> and unique identification), the least-squares estimator <span class="math inline">\hat{\boldsymbol{\theta}}</span> is consistent for <span class="math inline">\boldsymbol{\theta}^*</span>. The standard errors are obtained via the delta method: <span class="math inline">\operatorname{Cov}(\hat{\boldsymbol{\theta}}) \approx \mathbf{G} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}} \mathbf{G}^\top</span>, where <span class="math inline">\mathbf{G} = \mathbf{J}^+</span> and <span class="math inline">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span> is the multinomial covariance from <a href="#thm-22-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a>.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-22-pm-probability-matching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;24.5: <strong>Correctness.</strong> The empirical PMF <span class="math inline">\hat{\mathbf{p}}</span> is an unbiased and consistent estimator of the true PMF <span class="math inline">\mathbf{p}^*</span> (<a href="#thm-22-pm-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.3</span></a>(i)). Under standard regularity conditions on the model (continuous <span class="math inline">\mathbf{p}(\boldsymbol{\theta})</span> and unique identification), the least-squares estimator <span class="math inline">\hat{\boldsymbol{\theta}}</span> is consistent for <span class="math inline">\boldsymbol{\theta}^*</span>. The standard errors are obtained via the delta method: <span class="math inline">\operatorname{Cov}(\hat{\boldsymbol{\theta}}) \approx \mathbf{G} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}} \mathbf{G}^\top</span>, where <span class="math inline">\mathbf{G} = \mathbf{J}^+</span> and <span class="math inline">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span> is the multinomial covariance from <a href="#thm-22-pm-multinomial-cov" class="quarto-xref">Theorem&nbsp;<span>24.3</span></a>.
 </figcaption>
 </figure>
 </div>
 </section>
+</section>
 <section id="numerical-considerations" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
-<p><strong>Normalization.</strong> The model probabilities (<a href="#eq-22-model-pmf" class="quarto-xref">Equation&nbsp;<span>24.2</span></a>) require normalization over all terminal vertices, not just the observed ones. Unobserved terminal vertices may have non-zero probability under the model, and excluding them would bias the probabilities upward. The implementation identifies all terminal vertices (vertices with no outgoing edges that are reachable from vertices that do have outgoing edges) and computes their sojourn times for normalization.</p>
+<p><strong>Normalization.</strong> The model probabilities (<a href="#eq-22-pm-model-pmf" class="quarto-xref">Equation&nbsp;<span>24.11</span></a>) require normalization over all terminal vertices, not just the observed ones. Unobserved terminal vertices may have non-zero probability under the model, and excluding them would bias the probabilities upward. The implementation identifies all terminal vertices (vertices with no outgoing edges that are reachable from vertices that do have outgoing edges) and computes their sojourn times for normalization.</p>
 <p><strong>Positivity constraint.</strong> As in [21], the Trust Region Reflective solver enforces <span class="math inline">\theta_j &gt; 10^{-10}</span> via bound constraints, preventing numerical issues with zero rates.</p>
 <p><strong>Singular Jacobian.</strong> When <span class="math inline">K &gt; d_{\text{free}}</span> (more probability equations than parameters), the Jacobian <span class="math inline">\mathbf{J}</span> is tall and the pseudoinverse <span class="math inline">\mathbf{J}^+</span> is used. When <span class="math inline">K \leq d_{\text{free}}</span> (underdetermined), the pseudoinverse provides the minimum-norm solution. If the pseudoinverse computation fails (due to numerically singular <span class="math inline">\mathbf{J}</span>), the fallback heuristic <span class="math inline">\text{se}_j = 0.5 |\hat{\theta}_j|</span> is used.</p>
 <p><strong>Standard error floor.</strong> As in [21], standard errors for free parameters are floored at <span class="math inline">0.5 \cdot \max(|\hat{\theta}_j|, 10^{-4})</span> to ensure priors always have non-degenerate spread.</p>
 <p><strong>Multinomial covariance singularity.</strong> The multinomial covariance matrix <span class="math inline">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span> is always singular (its rank is <span class="math inline">K - 1</span> since the probabilities sum to 1). The pseudoinverse in the delta method handles this automatically: <span class="math inline">\mathbf{G} = \mathbf{J}^+</span> operates on the column space of <span class="math inline">\mathbf{J}</span>, which typically has rank <span class="math inline">\min(K, d_{\text{free}})</span>.</p>
+<p><strong>Daisy-chain horizon <span class="math inline">t_{\mathrm{eval}}</span>.</strong> For continuous joint-probability inference via <code>daisy_chain_joint_probs</code>, the residual mass error of <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> decays as <span class="math inline">t_{\mathrm{eval}}</span> grows, with rate governed by the smallest non-zero rate of <span class="math inline">G_{\mathrm{JSP}}</span> under the current <span class="math inline">\boldsymbol{\theta}</span>. The default heuristic uses <span class="math inline">t_{\mathrm{eval}} = \max(4 \sum \Delta t_i, 10)</span>; an adaptive residual-mass probe is exposed via <code>Graph._probe_daisy_t_eval(...)</code>.</p>
 </section>
 <section id="implementation-notes" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
 <p><strong>Source code mapping:</strong></p>
 <table class="caption-top table">
 <colgroup>
+<col style="width: 44%">
+<col style="width: 10%">
 <col style="width: 32%">
-<col style="width: 17%">
-<col style="width: 29%">
-<col style="width: 20%">
+<col style="width: 12%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Algorithm</th>
+<th>Algorithm / construction</th>
 <th>File</th>
-<th>Function</th>
+<th>Function / method</th>
 <th>Lines</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-22-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a> (entry)</td>
+<td><a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a> (joint-prob graph build)</td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>joint_prob_graph</code></td>
+<td>L7923–L8200</td>
+</tr>
+<tr class="even">
+<td><a href="#def-22-jp-reward-extension" class="quarto-xref">Definition&nbsp;<span>24.1</span></a> (reward callback)</td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>_joint_prob_reward</code></td>
+<td>L7857–L7920</td>
+</tr>
+<tr class="odd">
+<td><a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a></td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>joint_stop_prob_graph</code></td>
+<td>L8203–L8369</td>
+</tr>
+<tr class="even">
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a> (daisy chain dynamics)</td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>daisy_chain_joint_probs</code></td>
+<td>L8372–L8560</td>
+</tr>
+<tr class="odd">
+<td><a href="#def-22-jp-ipv-layout" class="quarto-xref">Definition&nbsp;<span>24.6</span></a> (update_ipv)</td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>update_ipv</code></td>
+<td>L2101–…</td>
+</tr>
+<tr class="even">
+<td><a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a> (joint_prob_table)</td>
+<td><code>src/phasic/__init__.py</code></td>
+<td><code>joint_prob_table</code>, <code>_get_joint_probs</code></td>
+<td>L8781–L8832</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-22-pm-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.5</span></a> (entry)</td>
 <td><code>src/phasic/probability_matching.py</code></td>
 <td><code>probability_matching</code></td>
 <td>L142–L357</td>
@@ -807,9 +1601,12 @@ Algorithm&nbsp;24.1: <strong>Correctness.</strong> The empirical PMF <span class
 </tr>
 </tbody>
 </table>
-<p><strong>Deviations from pseudocode:</strong></p>
+<p><strong>Deviations from pseudocode and documentation:</strong></p>
 <ul>
-<li>The model probability function <code>probs_fn</code> uses <code>compute_sojourn_times_ffi</code> from the FFI wrappers rather than directly calling the forward algorithm. This leverages the trace cache for efficient repeated evaluation with different parameter vectors.</li>
+<li>The aux-loop edges in <code>joint_stop_prob_graph()</code> are constructed with coefficient vector <code>[1.0] * param_length</code>, not unit weight. Under the default linear weight mode this gives runtime weight <span class="math inline">\sum_k \theta_k</span> rather than <span class="math inline">1</span>. The asymptotic correctness of <a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a> is insensitive to the choice of positive aux-loop coefficient.</li>
+<li><code>daisy_chain_joint_probs</code> uses a <code>jax.custom_vjp</code> wrapper with central-difference finite-difference gradients (<span class="math inline">\epsilon = 10^{-7}</span>); it is not analytical reverse-mode autodiff.</li>
+<li>The trash channel is sourced by the <code>_joint_prob_reward</code> callback: whenever a reward-rate increment would push the cumulative reward vector past either <code>reward_limit</code> or <code>tot_reward_limit</code>, the corresponding rate is added to <code>trash_rate</code> instead of <code>reward_rates[i]</code>. The trash pair is reachable only from non-t-vertices.</li>
+<li>The model probability function <code>probs_fn</code> of probability matching uses <code>compute_sojourn_times_ffi</code> from the FFI wrappers rather than directly calling the forward algorithm. This leverages the trace cache for efficient repeated evaluation with different parameter vectors.</li>
 <li>The terminal vertex identification traverses the graph structure once to find all vertices that have at least one edge leading to a vertex with no outgoing edges. The pseudocode abstracts this as <code>AllTerminalVertices(G)</code>.</li>
 <li>The <code>ProbMatchResult</code> dataclass stores <code>empirical_probs</code>, <code>model_probs</code>, and <code>unique_indices</code> for diagnostic comparison, not shown in the pseudocode return.</li>
 <li>The initial guess grid (<code>_initial_guess_grid_probs</code>) matches the maximum model probability to the maximum empirical probability, rather than matching specific vertex probabilities. This is a robust heuristic that works regardless of which vertex is most common.</li>
@@ -833,90 +1630,211 @@ Algorithm&nbsp;24.1: <strong>Correctness.</strong> The empirical PMF <span class
 </thead>
 <tbody>
 <tr class="odd">
+<td><span class="math inline">G_J</span></td>
+<td>Joint probability graph</td>
+<td><a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">G_{\mathrm{JSP}}</span></td>
+<td>Joint stop-probability graph</td>
+<td><a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{X}_J</span></td>
+<td>Joint state space</td>
+<td><a href="#def-22-jp-reward-extension" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t</span>, <span class="math inline">\mathcal{T}</span></td>
+<td>t-vertex; ordered list of t-vertex indices</td>
+<td><a href="#def-22-jp-t-vertex" class="quarto-xref">Definition&nbsp;<span>24.3</span></a>, <a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathrm{aux}(t)</span></td>
+<td>Aux partner of t-vertex <span class="math inline">t</span></td>
+<td><a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v_{\mathrm{trash}}^{(1)}, v_{\mathrm{trash}}^{(2)}</span></td>
+<td>Trash pair</td>
+<td><a href="#def-22-jp-trash-pair" class="quarto-xref">Definition&nbsp;<span>24.4</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v_{\mathrm{abs}}^{J}</span></td>
+<td>Joint-graph absorbing vertex</td>
+<td><a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\rho}, \rho_{\mathrm{trash}}</span></td>
+<td>Reward-rate function and trash-rate</td>
+<td><a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{r}^{\max}, r^{\mathrm{tot}}_{\max}</span></td>
+<td>Reward caps</td>
+<td><a href="#def-22-jp-joint-graph" class="quarto-xref">Definition&nbsp;<span>24.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{I}_{\mathrm{ipv}}</span></td>
+<td>IPV target index list</td>
+<td><a href="#def-22-jp-joint-stop-prob-graph" class="quarto-xref">Definition&nbsp;<span>24.5</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\pi}, \boldsymbol{\pi}^{(i)}</span></td>
+<td>Initial probability vector (epoch <span class="math inline">i</span>)</td>
+<td><a href="#def-22-jp-ipv-layout" class="quarto-xref">Definition&nbsp;<span>24.6</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">F_{\boldsymbol{\theta}}(\boldsymbol{\pi}, s)</span></td>
+<td>Forward operator at time <span class="math inline">s</span></td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{C}</span></td>
+<td>t-aux collapse operator</td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{P}</span></td>
+<td>IPV projection</td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">M_t(s), M_t^{\infty}</span></td>
+<td>Trapped mass at t-aux pair <span class="math inline">\{t, \mathrm{aux}(t)\}</span></td>
+<td><a href="#lem-22-jp-trap-monotone" class="quarto-xref">Lemma&nbsp;<span>24.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathrm{DC}(\cdot)</span></td>
+<td>Daisy chain dynamics</td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">N</span></td>
+<td>Total initial IPV mass</td>
+<td><a href="#thm-22-jp-continuous-correct" class="quarto-xref">Theorem&nbsp;<span>24.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t_{\mathrm{eval}}</span></td>
+<td>Final-epoch evaluation horizon</td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\Delta t_i</span></td>
+<td>Duration of epoch <span class="math inline">i</span></td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\theta}^{(i)}</span></td>
+<td>Parameter vector in epoch <span class="math inline">i</span></td>
+<td><a href="#def-22-jp-daisy-chain" class="quarto-xref">Definition&nbsp;<span>24.7</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\alpha}_J, \mathbf{T}_J</span></td>
+<td>Initial distribution and sub-transition matrix of <span class="math inline">G_J</span></td>
+<td><a href="#thm-22-jp-discrete-correct" class="quarto-xref">Theorem&nbsp;<span>24.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">K</span> (in <a href="#cor-22-jp-geom-check" class="quarto-xref">Corollary&nbsp;<span>24.1</span></a>)</td>
+<td>Mutation count at coalescence</td>
+<td><a href="#cor-22-jp-geom-check" class="quarto-xref">Corollary&nbsp;<span>24.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">p = r_c/(2\mu + r_c)</span></td>
+<td>Geometric success probability</td>
+<td><a href="#cor-22-jp-geom-check" class="quarto-xref">Corollary&nbsp;<span>24.1</span></a></td>
+</tr>
+<tr class="even">
 <td><span class="math inline">d_{\text{free}}</span></td>
 <td>Number of free parameters</td>
-<td><a href="#alg-22-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a></td>
+<td><a href="#alg-22-pm-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.5</span></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><span class="math inline">\hat{\boldsymbol{\theta}}</span></td>
 <td>Probability matching estimator</td>
-<td><a href="#def-22-prob-objective" class="quarto-xref">Definition&nbsp;<span>24.2</span></a></td>
+<td><a href="#def-22-pm-prob-objective" class="quarto-xref">Definition&nbsp;<span>24.9</span></a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><span class="math inline">\mathbf{G}</span></td>
 <td>Pseudoinverse of Jacobian <span class="math inline">\mathbf{J}^+</span></td>
-<td><a href="#alg-22-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a></td>
+<td><a href="#alg-22-pm-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.5</span></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><span class="math inline">\hat{\mathbf{p}}</span></td>
 <td>Empirical PMF vector</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><span class="math inline">\hat{p}_k</span></td>
 <td>Empirical probability of category <span class="math inline">k</span></td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><span class="math inline">\mathbf{J}</span></td>
 <td>Jacobian of model PMF</td>
-<td><a href="#alg-22-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">K</span></td>
-<td>Number of distinct observed categories</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#alg-22-pm-probability-matching" class="quarto-xref">Algorithm&nbsp;<span>24.5</span></a></td>
 </tr>
 <tr class="even">
+<td><span class="math inline">K</span> (probability matching)</td>
+<td>Number of distinct observed categories</td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
+</tr>
+<tr class="odd">
 <td><span class="math inline">J</span></td>
 <td>Total number of terminal vertices</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><span class="math inline">n</span></td>
 <td>Number of observations</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><span class="math inline">n_k</span></td>
 <td>Count of category <span class="math inline">k</span></td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><span class="math inline">\mathbf{p}(\boldsymbol{\theta})</span></td>
 <td>Model PMF vector</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><span class="math inline">p_k(\boldsymbol{\theta})</span></td>
 <td>Model probability of category <span class="math inline">k</span></td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><span class="math inline">\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}</span></td>
 <td>Multinomial covariance matrix</td>
-<td><a href="#def-22-multinomial-cov" class="quarto-xref">Definition&nbsp;<span>24.3</span></a></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\mathcal{V}_{\text{obs}}</span></td>
-<td>Set of observed vertex indices</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-multinomial-cov" class="quarto-xref">Definition&nbsp;<span>24.10</span></a></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\mathcal{V}_{\text{term}}</span></td>
-<td>Set of all terminal vertex indices</td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><span class="math inline">\mathcal{V}_{\text{obs}}</span></td>
+<td>Set of observed vertex indices</td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
 <tr class="even">
+<td><span class="math inline">\mathcal{V}_{\text{term}}</span></td>
+<td>Set of all terminal (t-)vertex indices</td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
+</tr>
+<tr class="odd">
 <td><span class="math inline">x_v(\boldsymbol{\theta})</span></td>
 <td>Expected sojourn time at vertex <span class="math inline">v</span></td>
-<td><a href="#def-22-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.1</span></a></td>
+<td><a href="#def-22-pm-empirical-model-pmf" class="quarto-xref">Definition&nbsp;<span>24.8</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
 <div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-bladt2017" class="csl-entry" role="listitem">
+Bladt, Mogens, and Bo Friis Nielsen. 2017. <em>Matrix-Exponential Distributions in Applied Probability</em>. Vol. 81. Probability Theory and Stochastic Modelling. Springer. <a href="https://doi.org/10.1007/978-1-4939-7049-0">https://doi.org/10.1007/978-1-4939-7049-0</a>.
+</div>
+<div id="ref-neuts1981" class="csl-entry" role="listitem">
+Neuts, Marcel F. 1981. <em>Matrix-Geometric Solutions in Stochastic Models: An Algorithmic Approach</em>. Johns Hopkins University Press.
+</div>
 <div id="ref-vandervaart1998" class="csl-entry" role="listitem">
 <span class="nocase">van der Vaart, Aad W.</span> 1998. <em>Asymptotic Statistics</em>. Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511802256">https://doi.org/10.1017/CBO9780511802256</a>.
 </div>
