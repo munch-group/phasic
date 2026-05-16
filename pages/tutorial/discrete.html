@@ -400,32 +400,53 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       </div>
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/coalescent-selection.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coalescent with selection</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/combining_pdf_and_moments.md</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example data</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/simulate_data.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tree sequences with RELATE</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/tree-seqs.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">two-locus-arg.html</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/two-locus-arg.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Two-locus Island model</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/two-locus-island.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ARG constraints</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/arg-constraint/arg_constraint_example.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coalescent constraints</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/popgen/arg-constraint/clade_constraint_example.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/popgen/arg-constraint/example.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Constraints using bipartitions</span></a>
+  </div>
+</li>
       </ul>
   </li>
     </ul>
@@ -736,7 +757,7 @@ Tip
 </div>
 </div>
 <p>This process is automated by the <code>discretize</code> method, which accepts either a single rate of discrete events for all state (E.g. <code>graph.discretize(0.7)</code>), or a callable mapping each state vector to a rate. The following example produces the mutation graph above:</p>
-<div id="fig-mutationons-discretize" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="9" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:55.236007Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:55.235873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:55.238636Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:55.238264Z&quot;}}">
+<div id="fig-mutationons-discretize" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:55.236007Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:55.235873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:55.238636Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:55.238264Z&quot;}}" data-execution_count="9">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mutationons-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Optional</span>

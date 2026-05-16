@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>The Coalescent</title>
+<title>two-locus-arg</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -61,15 +61,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../pages/tutorial/state-space.html" rel="next">
-<link href="../../pages/getting_started.html" rel="prev">
+<link href="../../pages/popgen/two-locus-island.html" rel="next">
+<link href="../../pages/popgen/tree-seqs.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -80,9 +80,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
-<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
-<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
-<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -116,9 +113,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
-
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -172,7 +166,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/introduction.html">Modeling</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/introduction.html">The Coalescent</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/popgen/coalescent-selection.html">Popgen experiments</a></li><li class="breadcrumb-item"><a href="../../pages/popgen/two-locus-arg.html">two-locus-arg.html</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -201,7 +195,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/introduction.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../pages/tutorial/introduction.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">The Coalescent</span></a>
   </div>
 </li>
@@ -419,7 +413,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
+  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">two-locus-arg.html</span></a>
   </div>
 </li>
@@ -458,166 +452,182 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/popgen/coalescent-selection.html">Popgen experiments</a></li><li class="breadcrumb-item"><a href="../../pages/popgen/two-locus-arg.html">two-locus-arg.html</a></li></ol></nav></header>
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/introduction.html">Modeling</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/introduction.html">The Coalescent</a></li></ol></nav>
-<div class="quarto-title">
-<h1 class="title">The Coalescent</h1>
+
+
+
+<div id="65ee7f7a" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.state_indexing <span class="im">import</span> Property, StateIndexer</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>phasic.plot.get_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-
-
-
-<div class="quarto-title-meta">
-
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
-<div id="d49a9fe5" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># #| echo: false</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># #| column: margin</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic.utils import download_link</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download_link(__vsc_ipynb_file__) </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a331f16f" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_arg(s<span class="op">=</span><span class="va">None</span>, N<span class="op">=</span><span class="va">None</span>, R<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Build two-locus ancestral recombination graph (ARG).</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">    s : int</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">        Sample size</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">    N : float</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">        Effective population size (diploid)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">    R : float</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">        Recombination rate between loci</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">    phasic.Graph</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">        Phase-type graph representing the ARG</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define state space for two-locus model</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    state_space <span class="op">=</span> StateIndexer([</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants_l1'</span>, max_value<span class="op">=</span>s),</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants_l2'</span>, max_value<span class="op">=</span>s)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    ])</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># State vector length</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> state_space.n_states</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize graph</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    graph <span class="op">=</span> phasic.Graph(n)</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create initial state: s lineages with (1,1) descendants at both loci</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    initial_state <span class="op">=</span> np.zeros(n, dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    initial_idx <span class="op">=</span> state_space.props_to_index(descendants_l1<span class="op">=</span><span class="dv">1</span>, descendants_l2<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    initial_state[initial_idx] <span class="op">=</span> s</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(initial_state)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    first_vertex <span class="op">=</span> graph.find_or_create_vertex(initial_state)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    graph.starting_vertex().add_edge(first_vertex, <span class="fl">1.0</span>)</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Process vertices iteratively (graph grows during iteration)</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    index <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> index <span class="op">&lt;</span> graph.vertices_length():</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        vertex <span class="op">=</span> graph.vertex_at(index)</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> vertex.state()</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Count total lineages</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>        total_lineages <span class="op">=</span> <span class="bu">int</span>(np.<span class="bu">sum</span>(state))</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> total_lineages <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Only one lineage remaining, stop</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>            index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Iterate over all lineage configurations</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Get properties for configuration i</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>            conf_i <span class="op">=</span> state_space.index_to_props(i)</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>            <span class="co"># COALESCENCE: Try coalescing with all configurations j &gt;= i</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, n):</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>                conf_j <span class="op">=</span> state_space.index_to_props(j)</span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Calculate coalescence rate</span></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> i <span class="op">==</span> j:</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>                        <span class="cf">continue</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>                    rate <span class="op">=</span> state[i] <span class="op">*</span> (state[i] <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span> <span class="op">/</span> N</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>                <span class="cf">else</span>:</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>:</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>                        <span class="cf">continue</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>                    rate <span class="op">=</span> state[i] <span class="op">*</span> state[j] <span class="op">/</span> N</span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Create child state after coalescence</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>                child_state <span class="op">=</span> state.copy()</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Remove coalescing lineages</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>                child_state[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>                child_state[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Add coalesced lineage (descendants sum at both loci)</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>                new_l1 <span class="op">=</span> conf_i[<span class="st">'descendants_l1'</span>] <span class="op">+</span> conf_j[<span class="st">'descendants_l1'</span>]</span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>                new_l2 <span class="op">=</span> conf_i[<span class="st">'descendants_l2'</span>] <span class="op">+</span> conf_j[<span class="st">'descendants_l2'</span>]</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Verify descendants don't exceed sample size</span></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> new_l1 <span class="op">&lt;=</span> s <span class="kw">and</span> new_l2 <span class="op">&lt;=</span> s:</span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>                    k <span class="op">=</span> state_space.props_to_index(descendants_l1<span class="op">=</span>new_l1, descendants_l2<span class="op">=</span>new_l2)</span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>                    child_state[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>                    child_vertex <span class="op">=</span> graph.find_or_create_vertex(child_state)</span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>                    vertex.add_edge(child_vertex, rate)</span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>            <span class="co"># RECOMBINATION: Can only recombine if lineage has descendants at both loci</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> conf_i[<span class="st">'descendants_l1'</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> conf_i[<span class="st">'descendants_l2'</span>] <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> R</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Create child state after recombination</span></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>                child_state <span class="op">=</span> state.copy()</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Remove recombining lineage</span></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>                child_state[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Add two recombinant lineages (one for each locus)</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>                k <span class="op">=</span> state_space.props_to_index(descendants_l1<span class="op">=</span>conf_i[<span class="st">'descendants_l1'</span>], descendants_l2<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>                l <span class="op">=</span> state_space.props_to_index(descendants_l1<span class="op">=</span><span class="dv">0</span>, descendants_l2<span class="op">=</span>conf_i[<span class="st">'descendants_l2'</span>])</span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>                child_state[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>                child_state[l] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>                child_vertex <span class="op">=</span> graph.find_or_create_vertex(child_state)</span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a>                vertex.add_edge(child_vertex, rate)</span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>        index <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> graph</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="0bd99048" class="cell" data-execution_count="25">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.utils <span class="im">import</span> tree_illustration</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
+<div id="bc18865d" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> two_locus_arg(s<span class="op">=</span><span class="dv">3</span>, N<span class="op">=</span><span class="dv">1000</span>, R<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#graph.plot(max_nodes=200)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[0 0 0 0 0 3 0 0 0 0 0 0 0 0 0 0]</code></pre>
 </div>
-</div>
-<!-- 
-
-**Introduction:** The coalescent process as an example of a Markov jump process.
-
-**State-space construction:** Multiple approaches to building state spaces: manual construction, callback functions, and matrix interfaces.
-
-**Visualizing state space:** Plot state space graphs for visual inspection.
-
-**Moments and distributions:** Computing moments, expectations, variances, PDFs, CDFs, and reward transformations.
-
-**Discrete phase-type distributions:** Discretization of continuous models, discrete PMFs and CDFs, and multivariate marginal distributions.
-
-**State vector indexing:** The state indexing utility for mapping between flat indices and structured state properties.
-
-**Parameterized models:** Parameterizing edge weights to evaluate models across different parameter values without graph reconstruction.
-
-### Computation
-
-**MPFR:** Automated use of multiple-precision floating-point computation.
-
-**Hierarchical symbolic trace:** Trace-based computation for efficient repeated evaluation of parameterized models.
-
-**Multi-level caching:** Runtime and persistent caching of graphs and models.
-
-**Model sharing:** Sharing elimination traces via IPFS for community reuse.
-
-**Distributed computing:** Scaling inference across multiple devices on a SLURM cluster.
-
-
-### Inference
-
-**Method of Moments:** Data-informed priors via moment matching for use with SVGD inference.
-
-**Inference basics:** Bayesian parameter inference using SVGD with priors, learning rate schedules, regularization, and adaptive optimizers.
-
-**Multi-feature inference:** SVGD on reward-transformed observations with multiple features using dense and sparse observation formats.
-
-**Multi-parameter inference:** Fitting models with multiple parameters, demonstrated on a two-population island model.
-
-**Joint probability inference:** SVGD inference on discrete joint probability observations including ARG models.
-
-### Modelling
-
-**Time inhomogeneity:** Step-wise construction of time-inhomogeneous processes using epoch-wise approaches.
-
-**Laplace transform:** Laplace transform computation and its use for computing expectations and higher moments.
-
-**Joint probability:** Joint probability distributions of multiple random variables from a single phase-type model.
-
-**Finite Markov chains:** Distribution of steps spent in states and runs of particular states.
- -->
-<p>The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.</p>
-<p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages because mutations occurring on those branches produce a singleton mutation in our sample. Similarly with doubletons tripleton and so on.</p>
-<div id="cell-fig-coalescent-intro-branches" class="cell" data-execution_count="27">
-<div class="cell-output cell-output-display">
-<div id="fig-coalescent-intro-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample."><img src="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" width="674" height="328" class="figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample.
-</figcaption>
-</figure>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>32</code></pre>
 </div>
 </div>
+<div id="7dc4f7a1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>, <span class="dv">20</span>):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(i, two_locus_arg(s<span class="op">=</span>i, N<span class="op">=</span><span class="dv">1000</span>, R<span class="op">=</span><span class="dv">1</span>).vertices_length())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>3 32
+4 110
+5 340
+6 1044
+7 2999
+8 8407
+9 22653
+10 59522
+11 151959
+12 379694
+13 927623</code></pre>
 </div>
-<p>We can encode the states of this Markov chain as vectors enumerating the number of live 1’tons, 2’tons, 3’tons, and 4’tons branches (<a href="#fig-coalescent-intro-branches" class="quarto-xref">Figure&nbsp;1</a>). With four samples, the Coalescent jumps starts with a state of four singletons and terminates/absorbs at the state with a single 4’ton (<a href="#fig-coalescent-graph" class="quarto-xref">Figure&nbsp;2</a>).</p>
-<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:40.100531Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:40.100446Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:40.327666Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:40.327149Z&quot;}}" data-execution_count="5">
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="introduction_files/figure-html/fig-coalescent-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;2: The coalescent process with four samples. The S (starting) state just signifies that the process begins in state (4,0,0,0). Edges are annotated with the coalescence rates that, in this model represents the transition rates of the model"><img src="introduction_files/figure-html/fig-coalescent-graph-output-1.svg" class="img-fluid figure-img"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: The coalescent process with four samples. The S (starting) state just signifies that the process begins in state (4,0,0,0). Edges are annotated with the coalescence rates that, in this model represents the transition rates of the model
-</figcaption>
-</figure>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[9]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> i <span style="font-weight:bold;color:rgb(175,0,255)">in</span> <span style="color:rgb(0,135,0)">range</span>(<span class="ansi-green-fg">3</span>, <span class="ansi-green-fg">20</span>):
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span>     <span style="color:rgb(0,135,0)">print</span>(i, <span class="ansi-yellow-bg">two_locus_arg</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">s</span><span class="ansi-yellow-bg">=</span><span class="ansi-yellow-bg">i</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">N</span><span class="ansi-yellow-bg">=</span><span class="ansi-green-fg ansi-yellow-bg">1000</span><span class="ansi-yellow-bg">,</span><span class="ansi-yellow-bg"> </span><span class="ansi-yellow-bg">R</span><span class="ansi-yellow-bg">=</span><span class="ansi-green-fg ansi-yellow-bg">1</span><span class="ansi-yellow-bg">)</span>.vertices_length())
+
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 120</span>, in <span class="ansi-cyan-fg">two_locus_arg</span><span class="ansi-blue-fg">(s, N, R)</span>
+<span class="ansi-green-fg">    117</span>         child_state[k] += <span class="ansi-green-fg">1</span>
+<span class="ansi-green-fg">    118</span>         child_state[l] += <span class="ansi-green-fg">1</span>
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">120</span>         child_vertex = <span class="ansi-yellow-bg">graph</span><span class="ansi-yellow-bg">.</span><span class="ansi-yellow-bg">find_or_create_vertex</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg">child_state</span><span class="ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    121</span>         vertex.add_edge(child_vertex, rate)
+<span class="ansi-green-fg">    123</span> index += <span class="ansi-green-fg">1</span>
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>: </pre>
 </div>
 </div>
 </div>
@@ -1027,51 +1037,19 @@ Figure&nbsp;2: The coalescent process with four samples. The S (starting) state 
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../pages/getting_started.html" class="pagination-link" aria-label="Getting Started">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Getting Started</span>
+      <a href="../../pages/popgen/tree-seqs.html" class="pagination-link" aria-label="Tree sequences with RELATE">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Tree sequences with RELATE</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../pages/tutorial/state-space.html" class="pagination-link" aria-label="State-space construction">
-        <span class="nav-page-text">State-space construction</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../pages/popgen/two-locus-island.html" class="pagination-link" aria-label="Two-locus Island model">
+        <span class="nav-page-text">Two-locus Island model</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/introduction.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/introduction.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
-(function() {
-  let previousOnload = window.onload;
-  window.onload = () => {
-    if (previousOnload) {
-      previousOnload();
-    }
-    lightboxQuarto.on('slide_before_load', (data) => {
-      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-      const href = trigger.getAttribute('href');
-      if (href !== null) {
-        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
-        if (imgEl !== null) {
-          const srcAttr = imgEl.getAttribute("src");
-          if (srcAttr && srcAttr.startsWith("data:")) {
-            slideConfig.href = srcAttr;
-          }
-        }
-      } 
-    });
-  
-    lightboxQuarto.on('slide_after_load', (data) => {
-      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(slideNode);
-      }
-    });
-  
-  };
-  
-})();
-          </script>
 
 
 
 
-</body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/popgen/two-locus-arg.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/popgen/two-locus-arg.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>
