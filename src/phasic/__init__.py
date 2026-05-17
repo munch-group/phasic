@@ -5823,8 +5823,14 @@ extern "C" {{
             _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
 
             def model(theta, _observed_arg=None, rewards=None):
-                theta_arr = jnp.atleast_1d(theta)
-                joint_probs = _autodiff(theta_arr.reshape(-1))
+                theta_arr = jnp.atleast_1d(theta).reshape(-1)
+                # Replicate master values into slave positions BEFORE
+                # the FFI sees theta. Cotangents at slave positions
+                # are routed back to the master via the scatter's
+                # standard VJP, so the FD bwd's per-slave partials
+                # add into dL/d(master) automatically.
+                theta_arr = _apply_tying(theta_arr)
+                joint_probs = _autodiff(theta_arr)
                 per_obs = joint_probs[observed_pos_jnp]
                 return per_obs, jnp.zeros(2)
 
@@ -6031,6 +6037,12 @@ extern "C" {{
 
             def model(theta, _observed_arg=None, rewards=None):
                 theta_arr = jnp.atleast_1d(theta)
+                # Replicate master values into slave positions BEFORE
+                # the per-obs scaling + FFI sees theta. (Same fix as
+                # the no-exposure branch; see that wrapper for the
+                # gradient-routing rationale.) When no ties are
+                # active, _apply_tying is the identity.
+                theta_arr = _apply_tying(theta_arr)
                 per_obs = _per_obs_autodiff(theta_arr)
                 return per_obs, jnp.zeros(2)
 
@@ -6787,6 +6799,27 @@ extern "C" {{
             exposure=exposure,
             exposure_param_index=exposure_param_index,
         )
+
+        # Post-init for tied parameters: copy master column values
+        # into the slave columns of svgd.theta_init so the initial
+        # particles tensor is internally consistent. Slaves are
+        # marked fixed by `broadcast_fixed`, so SVGD never updates
+        # them — but the SVGD-side default init for fixed dims uses
+        # the per-dim sentinel from `fixed_values` (0.0 for slaves)
+        # which would be invisibly wrong without this step. The model
+        # wrapper still applies `_apply_tying` on every forward call,
+        # so even if a future code path skipped this step the FFI
+        # would still see consistent theta — this just keeps the
+        # exposed `svgd.theta_init` matrix in shape for inspection.
+        _tying_info = getattr(model, '_tying_info', None)
+        if _tying_info is not None and _tying_info.get('slave_to_master'):
+            import jax.numpy as _jnp_local
+            theta_init_jax = _jnp_local.asarray(svgd.theta_init)
+            for slave_flat, master_flat in _tying_info['slave_to_master'].items():
+                theta_init_jax = theta_init_jax.at[:, slave_flat].set(
+                    theta_init_jax[:, master_flat]
+                )
+            svgd.theta_init = theta_init_jax
 
         # Run inference
         svgd.optimize(return_history=return_history)

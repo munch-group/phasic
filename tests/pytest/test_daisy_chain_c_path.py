@@ -692,6 +692,252 @@ class TestTied:
         # The master (flat 0) is NOT in broadcast_fixed — it stays learnable.
         assert 0 not in all_flats
 
+
+# ---------------------------------------------------------------------------
+# Class 4c: tied gradient correctness (plan: typed-riding-truffle, batch 3).
+# The load-bearing claim: cotangents at slave positions are routed back
+# to the master via _apply_tying's scatter VJP, so the per-slave FD
+# partials sum into dL/d(master). These tests pin that contract.
+# ---------------------------------------------------------------------------
+
+
+class TestTiedGradient:
+    def _build_source_jp(self):
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g = Graph(cb, indexer=indexer)
+        return g.joint_prob_graph(
+            indexer, mutation_rate=MUTATION_RATE,
+            reward_limit=REWARD_LIMIT, discrete=False,
+        )
+
+    @staticmethod
+    def _build_loss(jp, *, user_tied=None):
+        """Build a loss closure exercising the SVGD-side daisy-chain
+        model (with or without tying). Returns (loss, theta_dim).
+        Use the first few t-vertices as observation targets so the loss
+        is well-defined."""
+        import jax
+        import jax.numpy as jnp
+
+        jsp = jp.joint_stop_prob_graph()
+        observed_indices = list(jsp._t_vertex_indices[:4])
+
+        model, theta_dim, _, _ = jp._daisy_chain_svgd_model(
+            observed_indices=observed_indices,
+            epoch_starts=[0.0, 0.4, 0.9],
+            t_eval=10.0,
+            user_tied=user_tied,
+        )
+
+        def loss(theta_flat):
+            per_obs, _ = model(theta_flat)
+            return jnp.sum(jnp.log(per_obs + 1e-12))
+
+        return loss, theta_dim
+
+    def test_tied_forward_matches_explicit_replication(self):
+        """`tied=[(0, [0, 1, 2])]` with master θ* matches `tied=None`
+        with a full-length theta where slot 0 = θ* in every epoch."""
+        import jax
+        import jax.numpy as jnp
+
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        n_epochs = 3
+
+        loss_free, theta_dim_free = self._build_loss(jp, user_tied=None)
+        loss_tied, theta_dim_tied = self._build_loss(
+            jp, user_tied=[(0, list(range(n_epochs)))]
+        )
+        assert theta_dim_free == theta_dim_tied == n_epochs * param_length
+
+        # Build theta_full where slot 0 (local) is θ* in every epoch
+        # and slots 1..param_length-1 vary per epoch.
+        theta_star = 1.7
+        theta_list = []
+        for epoch in range(n_epochs):
+            for slot in range(param_length):
+                if slot == 0:
+                    theta_list.append(theta_star)
+                else:
+                    # Distinct values so the test catches accidental
+                    # cross-talk between slots.
+                    theta_list.append(0.5 + 0.1 * (epoch * param_length + slot))
+        theta_full = jnp.asarray(theta_list, dtype=jnp.float64)
+
+        out_free = loss_free(theta_full)
+        out_tied = loss_tied(theta_full)
+        assert jnp.allclose(out_free, out_tied, rtol=0, atol=1e-12), (
+            f"out_free={out_free!r} out_tied={out_tied!r}"
+        )
+
+    def test_tied_gradient_sums_per_epoch_partials(self):
+        """LOAD-BEARING: under `tied=[(0, [0, 1, 2])]`, the gradient at
+        the master flat index equals the sum of the free-model's
+        per-epoch partials at every slot-0 flat position.
+
+        FD bwd in the daisy chain perturbs each flat index
+        independently with eps=1e-7; cotangents at slave positions
+        get routed back to the master via _apply_tying's scatter VJP.
+        """
+        import jax
+        import jax.numpy as jnp
+
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        n_epochs = 3
+
+        loss_free, _ = self._build_loss(jp, user_tied=None)
+        loss_tied, _ = self._build_loss(
+            jp, user_tied=[(0, list(range(n_epochs)))]
+        )
+
+        theta_star = 1.7
+        theta_list = []
+        for epoch in range(n_epochs):
+            for slot in range(param_length):
+                if slot == 0:
+                    theta_list.append(theta_star)
+                else:
+                    theta_list.append(0.5 + 0.1 * (epoch * param_length + slot))
+        theta_full = jnp.asarray(theta_list, dtype=jnp.float64)
+
+        # slot-0 flat indices: 0, param_length, 2*param_length, ...
+        slot0_flats = [epoch * param_length for epoch in range(n_epochs)]
+        master_flat = slot0_flats[0]
+        slave_flats = slot0_flats[1:]
+
+        g_free = jax.grad(loss_free)(theta_full)
+        expected_master_grad = float(sum(g_free[i] for i in slot0_flats))
+
+        g_tied = jax.grad(loss_tied)(theta_full)
+        tol = max(1e-6, 1e-4 * abs(expected_master_grad))
+        assert abs(float(g_tied[master_flat]) - expected_master_grad) < tol, (
+            f"tied master grad {float(g_tied[master_flat])!r} does not "
+            f"match sum of free per-epoch partials "
+            f"{expected_master_grad!r} (tol={tol})"
+        )
+        # Slave positions in the tied model should have zero
+        # contribution (their cotangent was routed to the master).
+        for slave_flat in slave_flats:
+            assert abs(float(g_tied[slave_flat])) < tol, (
+                f"tied slave grad at flat {slave_flat} = "
+                f"{float(g_tied[slave_flat])!r} is not zero "
+                f"(tol={tol})"
+            )
+
+    def test_tied_plus_fixed_partition(self):
+        """`fixed + tied` together must produce a well-defined
+        partition: master is learnable, fixed slots are fixed,
+        slave slots are fixed (sentinel 0.0). End-to-end via
+        Graph.svgd to also exercise the post-init theta_init
+        consistency step."""
+        from phasic import LogGaussPrior, Adamelia
+        import jax.numpy as jnp
+
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        n_epochs = 3
+
+        # Build observations as joint-prob outcome tuples. Sample from
+        # the discrete joint_prob_table for the smallest valid outcome.
+        # joint-prob columns end with `prob`; first columns are
+        # rewarded-property indicators.
+        disc = jp._joint_prob_base_graph_indexer  # noqa: F841 (sanity)
+        jpt = jp.joint_prob_table() if jp.is_discrete else None
+        if jpt is None:
+            # Build a transient discrete copy just to harvest one
+            # outcome tuple.
+            indexer = _make_indexer()
+            cb = _make_callback(indexer)
+            disc_jp = Graph(cb, indexer=indexer).joint_prob_graph(
+                indexer, mutation_rate=MUTATION_RATE,
+                reward_limit=REWARD_LIMIT, discrete=True,
+            )
+            disc_jp.update_weights([1.0] * (disc_jp.param_length() - 1) + [MUTATION_RATE])
+            jpt = disc_jp.joint_prob_table()
+        outcome_cols = list(jpt.columns[:-1])
+        outcome = tuple(int(jpt.iloc[0][c]) for c in outcome_cols)
+        obs = [outcome] * 8
+
+        svgd = jp.svgd(
+            obs,
+            fixed=[(1, 1e-8)],                              # slot 1 fixed
+            tied=[(0, [0, 2])],                             # slot 0 tied epochs 0, 2
+            prior=LogGaussPrior(ci=[1e-6, 1e-2]),
+            n_iterations=2,
+            n_particles=4,
+            optimizer=Adamelia(learning_rate=0.1),
+            epoch_starts=[0.0, 0.4, 0.9],
+        )
+
+        # Expected partition (n_epochs=3, param_length=3, theta_dim=9):
+        # - slot 0 master at flat 0       -> learnable
+        # - slot 0 free at flat 3 (ep 1)  -> learnable
+        # - slot 0 slave at flat 6 (ep 2) -> fixed (slave, sentinel)
+        # - slot 1 fixed at flats 1, 4, 7 -> fixed (user-supplied)
+        # - slot 2 free at flats 2, 5, 8  -> learnable
+        n_fixed = int(jnp.sum(svgd.fixed_mask))
+        n_total = n_epochs * param_length
+        # Three user-fixed (slot 1 × 3 epochs) + 1 slave.
+        assert n_fixed == 4, f"expected 4 fixed dims, got {n_fixed}"
+        # Five learnable: 2 from slot 0 (master + free epoch 1)
+        #               + 3 from slot 2 (free in every epoch).
+        assert (n_total - n_fixed) == 5
+
+        # The master's column in theta_init must match the slave's
+        # column (the post-init consistency step).
+        slave_flat = 2 * param_length + 0
+        master_flat = 0
+        np.testing.assert_allclose(
+            np.asarray(svgd.theta_init[:, slave_flat]),
+            np.asarray(svgd.theta_init[:, master_flat]),
+        )
+
+    def test_tied_summary_shows_tied_label(self, capsys):
+        """SVGD.summary prints `Tied→θ[k]` for slave rows; the master
+        row prints regular MAP / Mean / SD / CI."""
+        from phasic import LogGaussPrior, Adamelia
+
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+
+        # Sample a single observation tuple for the disc joint table.
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        disc_jp = Graph(cb, indexer=indexer).joint_prob_graph(
+            indexer, mutation_rate=MUTATION_RATE,
+            reward_limit=REWARD_LIMIT, discrete=True,
+        )
+        disc_jp.update_weights([1.0] * (disc_jp.param_length() - 1) + [MUTATION_RATE])
+        jpt = disc_jp.joint_prob_table()
+        outcome = tuple(int(jpt.iloc[0][c]) for c in list(jpt.columns[:-1]))
+        obs = [outcome] * 8
+
+        svgd = jp.svgd(
+            obs,
+            tied=[(0, [0, 1])],
+            prior=LogGaussPrior(ci=[1e-6, 1e-2]),
+            n_iterations=2,
+            n_particles=4,
+            optimizer=Adamelia(learning_rate=0.1),
+            epoch_starts=[0.0, 0.5],
+        )
+        # capsys captures stdout — call summary and check the slave
+        # row carries the Tied label.
+        capsys.readouterr()  # drain any prior output
+        svgd.summary()
+        out = capsys.readouterr().out
+        # slave flat index = 1 * param_length + 0 = param_length.
+        slave_flat = param_length
+        # The slave row begins with its index then the Tied label.
+        assert f'Tied→θ[0]' in out, (
+            f"summary did not show Tied→θ[0] for the slave at flat "
+            f"{slave_flat}. Output was:\n{out}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Particle-vmap fusion tests (plan: radiant-giggling-wigderson, path A).
 # Verify that `vmap(grad(loss))(particles)` on Graph.daisy_chain_joint_probs

@@ -8700,13 +8700,41 @@ class SVGD:
             hi_label = f"CI {hi_pct:.1g}%"
 
         fields = ["Parameter", "Fixed", "MAP", "Mean", "SD", lo_label, hi_label]
-        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<12} {:<12}"
+        # Widen the "Fixed" column to fit "Tied→θ[NN]" labels for
+        # daisy-chain models with tied parameters.
+        fmt_str = "{:<10} {:<14} {:<10} {:<10} {:<10} {:<12} {:<12}"
         print(fmt_str.format(*fields))
+
+        # Read the slave→master map from the model (attached by
+        # Graph._daisy_chain_svgd_model). For non-daisy-chain models
+        # this is missing and we fall through to the legacy "Yes/No"
+        # Fixed column.
+        _tying_info = getattr(self.model, '_tying_info', None) or {}
+        _slave_to_master = _tying_info.get('slave_to_master', {})
 
         for i in range(self.theta_dim):
             val_fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i]) + 1e-300) > 2 else f'{{:.4g}}'
+            is_slave = i in _slave_to_master
+            is_fixed = (
+                self.fixed_mask is not None
+                and self.fixed_mask[i]
+                and not is_slave
+            )
 
-            if self.fixed_mask is not None and self.fixed_mask[i]:
+            if is_slave:
+                # Slave row: print the link to its master and NA for
+                # the posterior summaries (the master's row carries
+                # the real numbers).
+                master_flat = _slave_to_master[i]
+                fields = [i,
+                    f'Tied→θ[{master_flat}]',
+                    'NA',
+                    'NA',
+                    'NA',
+                    'NA',
+                    'NA',
+                    ]
+            elif is_fixed:
                 fields = [i,
                     'Yes',
                     val_fmt.format(theta_mean[i]),
@@ -8727,7 +8755,7 @@ class SVGD:
                     ci_upper = jnp.percentile(particles[:, i], hi_pct).item()
 
                 fields = [i,
-                        'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
+                        'No',
                         val_fmt.format(theta_map[i]),
                         val_fmt.format(theta_mean[i]),
                         val_fmt.format(theta_std[i]),

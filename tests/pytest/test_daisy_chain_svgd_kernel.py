@@ -124,6 +124,30 @@ _SVGD_DISC_FIRST_CELL = textwrap.dedent('''
 ''')
 
 
+# Plan: typed-riding-truffle, batch 5. Mirrors _SVGD_NO_EXPOSURE_CELL
+# but adds tied=[(0, [0, 1])] so the no-exposure daisy-chain path
+# also exercises _apply_tying in the kernel-context trace stack.
+_SVGD_TIED_CELL = textwrap.dedent('''
+    jpg_cont = graph.joint_prob_graph(
+        indexer,
+        reward_limit=reward_limit,
+        mutation_rate=mutation_rate,
+        discrete=False,
+    )
+    svgd = jpg_cont.svgd(
+        observations,
+        fixed=[(1, mutation_rate)],
+        tied=[(0, [0, 1])],
+        prior=LogGaussPrior(ci=[1/50_000, 1/5000]),
+        n_iterations=2,
+        n_particles=8,
+        optimizer=Adamelia(learning_rate=0.2),
+        epoch_starts=[0, 0.5],
+    )
+    print('SUCCESS')
+''')
+
+
 def _run_cell(kc, code, timeout=600):
     """Send ``code`` to the kernel client ``kc`` and return
     ``(status, stdout, stderr)`` where ``stdout``/``stderr`` are the
@@ -214,5 +238,34 @@ def test_no_exposure_daisy_chain_svgd_runs_after_discrete_svgd():
             f"stdout={stdout!r} stderr={stderr!r}"
         )
         assert 'SUCCESS' in stdout
+    finally:
+        km.shutdown_kernel()
+
+
+def test_no_exposure_daisy_chain_svgd_runs_with_tied_in_kernel():
+    """Tied-parameter SVGD must run cleanly inside an ipykernel.
+    Mirrors `test_no_exposure_daisy_chain_svgd_runs_in_kernel` but
+    adds ``tied=[(0, [0, 1])]`` so the `_apply_tying` scatter inside
+    the model wrapper is exercised in the kernel trace stack —
+    catches any regression where the tying machinery re-introduces
+    a `DynamicJaxprTracer` const-leak under `vmap(jit(grad(...)))`.
+    Plan: typed-riding-truffle, batch 5.
+    """
+    from jupyter_client.manager import start_new_kernel
+
+    km, kc = start_new_kernel(kernel_name='python3')
+    try:
+        status, _, stderr = _run_cell(kc, _CELL_PREAMBLE)
+        assert status == 'ok', f"preamble failed: stderr={stderr!r}"
+
+        status, stdout, stderr = _run_cell(kc, _SVGD_TIED_CELL)
+        assert status == 'ok', (
+            f"tied daisy-chain SVGD failed in kernel — regression. "
+            f"stdout={stdout!r} stderr={stderr!r}"
+        )
+        assert 'SUCCESS' in stdout, (
+            f"tied SVGD ran without raising but did not reach the "
+            f"SUCCESS print. stdout={stdout!r}"
+        )
     finally:
         km.shutdown_kernel()
