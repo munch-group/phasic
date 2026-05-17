@@ -5633,18 +5633,132 @@ extern "C" {{
         #       (the C++ handler parallelises over the batch with
         #       OpenMP). No Python-side lax.map fan-out.
         if exposure_arr is None:
+            # No-exposure path: inlined builder that mirrors the exposure
+            # branch below MINUS the per-obs scaling. structure_json and
+            # initial_ipv_arr are built ONCE here at SVGD-creation time
+            # (outside any trace) so the closures captured by _forward,
+            # the custom_vmap rule, and the custom_vjp wiring are
+            # concrete jax arrays rather than trace-context tracers.
+            # See `daisy-chain-fusion-recovery-plan.md` for the full
+            # rationale: the previous shape — calling
+            # `jsp.daisy_chain_joint_probs(...)` from inside model() —
+            # re-defined those closures on every model invocation,
+            # which leaked an outer-trace tracer into the inner jaxpr's
+            # consts under `vmap(jit(grad(...)))` in some execution
+            # contexts (notably ipykernel).
+            from .ffi_wrappers import (
+                _make_json_serializable,
+                compute_daisy_chain_joint_probs_ffi,
+            )
+            import json as _json_mod_local
+            from jax import custom_batching as _cb_local
+
+            theta_dim_local = self.param_length()
+            initial_ipv_arr_local = jnp.asarray(initial_ipv, dtype=jnp.float64)
+            # (1, n_ipv) form for the vmap rule. The FFI handler
+            # broadcasts ipv_batch_size=1 against any theta_batch_size>=1
+            # (see graph_builder_ffi.cpp:1261-1266), so this one row
+            # serves both single-particle and multi-particle paths.
+            initial_ipv_one_local = initial_ipv_arr_local[None, :]
+            t_eval_resolved = (
+                t_eval if t_eval is not None
+                else max(float(sum(epoch_dts)) * 4.0, 10.0)
+            )
+            structure_local = _make_json_serializable(
+                jsp.serialize(theta_dim=theta_dim_local)
+            )
+            structure_local["_daisy_chain"] = {
+                "n_epochs": int(n_epochs),
+                "param_length": int(theta_dim_local),
+                "t_eval": float(t_eval_resolved),
+                "granularity": int(granularity),
+                "epoch_dts": [float(x) for x in epoch_dts],
+                "ipv_target_indices": [int(x) for x in jsp._ipv_target_indices],
+                "t_aux_keys": [int(k) for k in jsp._t_aux_map.keys()],
+                "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
+                "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
+            }
+            structure_json_local = _json_mod_local.dumps(structure_local)
+
+            eps_local = 1e-7
+            fixed_set_local = (
+                set(int(i) for i in fixed_indices)
+                if fixed_indices is not None else set()
+            )
+
+            # Forward: wrapped with custom_vmap so that under
+            # vmap(grad(loss))(particles), the FD-backward's per-
+            # perturbation _forward(tp)/_forward(tm) calls dispatch ONE
+            # fused (P, theta_dim) FFI call per perturbation instead of
+            # P separate (theta_dim,) calls fanned out by JAX's default
+            # expand_dims rule. The structure_json and initial_ipv
+            # captures are CONCRETE (built outside any trace at SVGD-
+            # creation time), so the rule does NOT leak a tracer into
+            # the inner jaxpr's consts the way the previous
+            # in-`daisy_chain_joint_probs` version did.
+            @_cb_local.custom_vmap
+            def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
+                return compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local,
+                    theta_flat,
+                    initial_ipv_arr_local,
+                )
+
+            @_forward.def_vmap
+            def _forward_vmap_rule(axis_size, in_batched, theta_flat):
+                # theta_flat: (axis_size, n_epochs * param_length).
+                # Dispatch as one fat 2D FFI call.
+                del axis_size, in_batched
+                return (
+                    compute_daisy_chain_joint_probs_ffi(
+                        structure_json_local,
+                        theta_flat,
+                        initial_ipv_one_local,  # (1, n_ipv)
+                    ),
+                    True,  # batched along axis 0
+                )
+
+            # custom_vjp: FD backward, skipping fixed indices.
+            @jax.custom_vjp
+            def _autodiff(theta_flat):
+                return _forward(theta_flat)
+
+            def _autodiff_fwd(theta_flat):
+                return _forward(theta_flat), theta_flat
+
+            def _autodiff_bwd(theta_flat, cotangent):
+                n_params = theta_flat.shape[0]
+                grads = []
+                for i in range(n_params):
+                    if i in fixed_set_local:
+                        grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                        continue
+                    tp = theta_flat.at[i].add(eps_local)
+                    tm = theta_flat.at[i].add(-eps_local)
+                    jp = _forward(tp)
+                    jm = _forward(tm)
+                    grads.append(
+                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                    )
+                return (jnp.stack(grads),)
+
+            _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
+
             def model(theta, _observed_arg=None, rewards=None):
                 theta_arr = jnp.atleast_1d(theta)
-                joint_probs = jsp.daisy_chain_joint_probs(
-                    epoch_thetas=theta_arr.reshape(n_epochs, param_length),
-                    epoch_dts=epoch_dts,
-                    initial_ipv=initial_ipv,
-                    t_eval=t_eval,
-                    fixed_indices=fixed_indices,
-                    granularity=granularity,
-                )
+                joint_probs = _autodiff(theta_arr.reshape(-1))
                 per_obs = joint_probs[observed_pos_jnp]
                 return per_obs, jnp.zeros(2)
+
+            # Tag the model so SVGD.__init__ keeps parallel_mode='vmap'.
+            # _handles_exposure_internally is a slight misnomer on this
+            # no-exposure model but is harmless: SVGD's exposure-wrapper
+            # branch is gated on `self.exposure is not None`, so a no-
+            # exposure model is never wrapped regardless of this tag.
+            # We set both flags to reuse the existing dispatch in
+            # `svgd.py:4994-5004` without touching SVGD.
+            model._handles_exposure_internally = True
+            model._handles_particle_vmap = True
         else:
             # Validate per-obs inputs.
             if exposure_param_index is None:
@@ -9643,37 +9757,25 @@ extern "C" {{
         # is closed over and treated as fixed). Single FFI call replaces
         # the per-epoch pure_callback chain.
         #
-        # _forward is also wrapped in custom_vmap so that under
-        # vmap(grad(loss))(particles), each FD perturbation in the
-        # backward dispatches ONE fat (P, theta_dim) FFI call instead
-        # of P separate expand_dims-batched calls. Without this rule
-        # the per-perturbation FFI dispatch would fan out per particle,
-        # multiplying dispatch overhead by P per gradient.
-        from jax import custom_batching as _cb_local
-
-        @_cb_local.custom_vmap
+        # Note: this function is defined INSIDE daisy_chain_joint_probs,
+        # which means closures over ``initial_ipv_arr`` /
+        # ``structure_json_str`` are re-created on every call. That is
+        # fine for ad-hoc one-shot use (forward eval, ``t_eval='auto'``
+        # probe, etc.) but DOES NOT support a ``custom_vmap`` rule
+        # wrapped around ``_forward`` — under ``vmap(jit(grad(...)))``
+        # the rule's closure captures an enclosing-trace tracer that
+        # later leaks into the inner jaxpr's consts as a
+        # ``DynamicJaxprTracer``. The SVGD entry point sidesteps this
+        # by building its own ``_forward`` + ``custom_vmap`` rule at
+        # model-creation time in ``Graph._daisy_chain_svgd_model``'s
+        # no-exposure branch (closures capture concrete arrays since
+        # nothing is being traced at that point). Do not add
+        # ``custom_vmap`` here.
         def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
             return compute_daisy_chain_joint_probs_ffi(
                 structure_json_str,
                 theta_flat,
                 initial_ipv_arr,
-            )
-
-        @_forward.def_vmap
-        def _forward_vmap_rule(axis_size, in_batched, theta_flat):
-            # theta_flat: (axis_size, n_epochs * param_length).
-            # Dispatch as one fat 2D FFI call. initial_ipv is broadcast
-            # against the leading axis (the C++ handler supports
-            # ipv_batch_size=1 against any theta_batch_size — see
-            # graph_builder_ffi.cpp:1261-1266).
-            del axis_size, in_batched
-            return (
-                compute_daisy_chain_joint_probs_ffi(
-                    structure_json_str,
-                    theta_flat,
-                    initial_ipv_arr[None, :],  # (1, n_ipv)
-                ),
-                True,  # output is batched along axis 0
             )
 
         # Wrap the forward in a custom_vjp so jax.grad works via finite
