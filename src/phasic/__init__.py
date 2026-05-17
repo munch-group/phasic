@@ -6181,6 +6181,7 @@ extern "C" {{
              rewards: ArrayLike | None = None,
              fixed: ArrayLike | None = None,
              tied: ArrayLike | None = None,
+             callback: Callable | None = None,
              preconditioner: str | object | None = 'auto',
              epoch_starts: ArrayLike | None = None,
              daisy_chain_t_eval: float | str | None = None,
@@ -6517,6 +6518,7 @@ extern "C" {{
             rewards=rewards,
             fixed=fixed,
             tied=tied,
+            callback=callback,
             epoch_starts=epoch_starts,
             exposure=exposure,
             exposure_param_index=exposure_param_index,
@@ -6528,306 +6530,337 @@ extern "C" {{
             joint_index=joint_index,
         ))
 
-        # Reward-vector structural validation (shape + coverage).
-        # Skipped when joint_index is active (rewards then encode joint
-        # observation indices, not vertex-level reward weights).
+        # Per-call override of graph.weight_callback. When the kwarg
+        # is set, temporarily flip graph.weight_callback to the
+        # supplied callable so the existing weight_mode='callback'
+        # machinery in `Graph.pmf_and_moments_from_graph` picks it
+        # up via `self.serialize()`. The graph's prior callback /
+        # weight_mode are restored in the `finally:` block below,
+        # regardless of whether SVGD succeeds or raises.
         #
-        # Coverage failures DO NOT raise here: they're handled by a
-        # zero-inflated likelihood that models the point mass at
-        # r = 0 (trajectories that absorb without visiting any
-        # rewarded vertex) separately from the continuous part. The
-        # mode-switch is informational; users see a one-time
-        # UserWarning naming the offending features.
-        _partial_coverage_features_for_zi: list[int] = []
-        if rewards is not None and validate_rewards and not joint_index:
-            rewards = self._validate_rewards(
-                rewards,
-                allow_2d=True,
-                coverage_mode="report",
-                context="rewards",
-            )
-            _partial_coverage_features_for_zi = (
-                self._partial_coverage_features(rewards)
-            )
-            if _partial_coverage_features_for_zi:
-                import warnings
-                arr_for_msg = np.asarray(rewards, dtype=np.float64)
-                if arr_for_msg.ndim == 1:
-                    warnings.warn(
-                        "rewards: partial coverage (some absorbing "
-                        "trajectories do not visit any rewarded "
-                        "vertex). Using zero-inflated likelihood "
-                        "automatically: SVGD models the point mass "
-                        "at r = 0 via p(theta) = "
-                        "P(visit a rewarded vertex). To use the "
-                        "legacy sub-stochastic continuous-only "
-                        "likelihood, pass validate_rewards=False.",
-                        UserWarning,
-                        stacklevel=2,
-                    )
-                else:
-                    warnings.warn(
-                        f"rewards: features "
-                        f"{_partial_coverage_features_for_zi} have "
-                        f"partial coverage (of {arr_for_msg.shape[0]} "
-                        "total features). Using zero-inflated "
-                        "likelihood automatically for those features. "
-                        "To use the legacy sub-stochastic continuous-"
-                        "only likelihood, pass validate_rewards=False.",
-                        UserWarning,
-                        stacklevel=2,
-                    )
+        # Validator rule R21 has already rejected the incompatible
+        # combination `callback + epoch_starts`, so the daisy-chain
+        # FFI path will never silently ignore the callback in this
+        # branch.
+        _callback_overridden = callback is not None
+        _prev_weight_callback = self._weight_callback
+        _prev_weight_mode = self._weight_mode
+        if _callback_overridden:
+            # Setter flips _weight_mode to 'callback'; both fields
+            # are restored in the finally below.
+            self.weight_callback = callback
 
-        # Validate observed_data: must be 1-D array or SparseObservations
-        # (skip for joint probability graphs — they accept lists of tuples)
-        _is_joint_graph = self._joint_prob_base_graph_indexer is not None
-        from .svgd import SparseObservations as _SparseObs, is_sparse_observations
-        if not is_sparse_observations(observed_data) and not joint_index and not _is_joint_graph:
-            observed_data = np.asarray(observed_data, dtype=np.float64)
-            if observed_data.ndim != 1:
-                raise TypeError(
-                    "observed_data must be a 1-D array or SparseObservations. "
-                    "For multivariate data, use dense_to_sparse()."
+        try:
+            # Reward-vector structural validation (shape + coverage).
+            # Skipped when joint_index is active (rewards then encode joint
+            # observation indices, not vertex-level reward weights).
+            #
+            # Coverage failures DO NOT raise here: they're handled by a
+            # zero-inflated likelihood that models the point mass at
+            # r = 0 (trajectories that absorb without visiting any
+            # rewarded vertex) separately from the continuous part. The
+            # mode-switch is informational; users see a one-time
+            # UserWarning naming the offending features.
+            _partial_coverage_features_for_zi: list[int] = []
+            if rewards is not None and validate_rewards and not joint_index:
+                rewards = self._validate_rewards(
+                    rewards,
+                    allow_2d=True,
+                    coverage_mode="report",
+                    context="rewards",
                 )
-            if np.any(np.isnan(observed_data)):
-                raise ValueError(
-                    "observed_data contains NaN values. "
-                    "Use SparseObservations for data with missing values."
+                _partial_coverage_features_for_zi = (
+                    self._partial_coverage_features(rewards)
                 )
-        elif is_sparse_observations(observed_data) and rewards is None:
-            raise ValueError(
-                "rewards must be provided when using SparseObservations."
-            )
-
-        # Auto-infer theta_dim from graph if not provided
-        if theta_dim is None and theta_init is None:
-            theta_dim = self.param_length()
-            if theta_dim == 0:
-                raise ValueError(
-                    "theta_dim could not be inferred. Either the graph has no parameterized edges, "
-                    "or you must specify theta_dim (or theta_init) explicitly."
-                )
-
-        if discrete is None:
-            discrete = self.is_discrete
-
-        # Default prior: DataPrior with sd=5 (wide, data-informed).
-        # Skip when epoch_starts is given — the daisy-chain branch
-        # builds its own broadcast prior with the right shape.
-        if prior is None and epoch_starts is None:
-            from .svgd import DataPrior
-            try:
-                prior = DataPrior(
-                    self, observed_data, sd=5.0, fixed=fixed,
-                    theta_dim=theta_dim, discrete=discrete, verbose=verbose,
-                )
-            except Exception:
-                pass  # Fall through to SVGD's standard-normal default
-
-        # Handle joint_index mode
-        if self._joint_prob_base_graph_indexer is not None:
-            logger = get_logger(__name__)
-
-            if not joint_index:
-                logger.info("Graph was constructed with joint index support. "
-                  "joint_index=True is implied.")
-            joint_index = True # FIXME: joint_index is always True if graph supports it, so not really needed as argument
-
-            if not self._joint_prob_base_graph_indexer:
-                raise ValueError(
-                    "Graph was not constructed with joint index support. "
-                    "Cannot use joint_index=True."
-                )
-            # map observed data to indices in joint probability table
-            joint_prob_table = self.joint_prob_table()
-            obs_indices = []
-            obs2idx = joint_prob_table.groupby(joint_prob_table.columns[:-1].to_list()).groups
-            for obs in observed_data:
-                idx = obs2idx[tuple(obs)]
-                if idx.size > 1:
-                    # if observation maps to multiple indices, sample according to their probabilities
-                    p = joint_prob_table.loc[idx, 'prob'].to_numpy()
-                    p = p / p.sum()
-                    chosen_idx = np.random.choice(idx, p=p)
-                    obs_indices.append(chosen_idx.item())
-                else:
-                    # else just return the unique index
-                    obs_indices.append(idx.item())
-            observed_data = obs_indices
-
-            # Check for unsupported combinations
-            if regularization > 0:
-                print("Warning: Moment regularization is not implemented with joint_index=True")
-                raise NotImplementedError(
-                    "Moment regularization is not supported with joint probability models."
-                )
-            if rewards is not None:
-                print("Warning: Reward transformation is not supported with joint_index=True")
-                raise NotImplementedError(
-                    "Reward transformation is not supported with joint_index=True. "
-                    "Set rewards=None or use joint_index=False."
-                )
-            # Force discrete mode for joint_index
-            discrete = True
-
-            # Daisy-chain branch: when epoch_starts is provided, fit
-            # n_epochs * param_length parameters under a piecewise-
-            # constant time-inhomogeneous joint-prob model.
-            if epoch_starts is not None:
-                resolved_t_eval = self._resolve_daisy_chain_t_eval(
-                    daisy_chain_t_eval=daisy_chain_t_eval,
-                    epoch_starts=epoch_starts,
-                    probe_theta=daisy_chain_probe_theta,
-                    tol=daisy_chain_t_eval_tol,
-                    granularity=daisy_chain_granularity,
-                    verbose=verbose,
-                )
-                # When exposure is set, push the per-observation rate
-                # scaling INTO the daisy-chain model: it builds a per-
-                # obs theta_batch and dispatches one batched FFI call.
-                # The outer SVGD wrapper sees the model's
-                # _handles_exposure_internally tag and does NOT apply
-                # _wrap_model_with_exposure on top.
-                _daisy_exposure = (
-                    np.asarray(exposure, dtype=np.float64).ravel()
-                    if exposure is not None else None
-                )
-                # Scalar exposure broadcasts to one entry per
-                # observation; the validator already enforces the
-                # length constraint.
-                if _daisy_exposure is not None and _daisy_exposure.size == 1:
-                    _daisy_exposure = np.full(
-                        (len(observed_data),),
-                        float(_daisy_exposure.item()),
-                        dtype=np.float64,
-                    )
-                model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
-                    observed_indices=observed_data,
-                    epoch_starts=epoch_starts,
-                    t_eval=resolved_t_eval,
-                    user_prior=prior,
-                    user_fixed=fixed,
-                    user_tied=tied,
-                    sd=5.0,
-                    verbose=verbose,
-                    granularity=daisy_chain_granularity,
-                    exposure_arr=_daisy_exposure,
-                    exposure_param_index=exposure_param_index,
-                )
-            else:
-                # Parse fixed to get mask for joint_index model
-                # This allows the custom VJP to skip finite differences for fixed dimensions
-                fixed_mask_for_model = None
-                if fixed is not None:
-                    import jax.numpy as jnp
-                    if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
-                        fixed_mask_for_model = jnp.zeros(theta_dim)
-                        for idx, _ in fixed:
-                            fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
+                if _partial_coverage_features_for_zi:
+                    import warnings
+                    arr_for_msg = np.asarray(rewards, dtype=np.float64)
+                    if arr_for_msg.ndim == 1:
+                        warnings.warn(
+                            "rewards: partial coverage (some absorbing "
+                            "trajectories do not visit any rewarded "
+                            "vertex). Using zero-inflated likelihood "
+                            "automatically: SVGD models the point mass "
+                            "at r = 0 via p(theta) = "
+                            "P(visit a rewarded vertex). To use the "
+                            "legacy sub-stochastic continuous-only "
+                            "likelihood, pass validate_rewards=False.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
                     else:
-                        fixed_mask_for_model = jnp.array(fixed)
-                # Use joint_index specific model with fixed_mask
-                model = Graph.pmf_from_graph_joint_index(
-                    self, theta_dim=theta_dim,
-                    fixed_mask=fixed_mask_for_model,
+                        warnings.warn(
+                            f"rewards: features "
+                            f"{_partial_coverage_features_for_zi} have "
+                            f"partial coverage (of {arr_for_msg.shape[0]} "
+                            "total features). Using zero-inflated "
+                            "likelihood automatically for those features. "
+                            "To use the legacy sub-stochastic continuous-"
+                            "only likelihood, pass validate_rewards=False.",
+                            UserWarning,
+                            stacklevel=2,
+                        )
+
+            # Validate observed_data: must be 1-D array or SparseObservations
+            # (skip for joint probability graphs — they accept lists of tuples)
+            _is_joint_graph = self._joint_prob_base_graph_indexer is not None
+            from .svgd import SparseObservations as _SparseObs, is_sparse_observations
+            if not is_sparse_observations(observed_data) and not joint_index and not _is_joint_graph:
+                observed_data = np.asarray(observed_data, dtype=np.float64)
+                if observed_data.ndim != 1:
+                    raise TypeError(
+                        "observed_data must be a 1-D array or SparseObservations. "
+                        "For multivariate data, use dense_to_sparse()."
+                    )
+                if np.any(np.isnan(observed_data)):
+                    raise ValueError(
+                        "observed_data contains NaN values. "
+                        "Use SparseObservations for data with missing values."
+                    )
+            elif is_sparse_observations(observed_data) and rewards is None:
+                raise ValueError(
+                    "rewards must be provided when using SparseObservations."
                 )
-        # Auto-detect if we need multivariate model (2D rewards)
-        elif rewards is not None:
-            import jax.numpy as jnp
-            rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)  # Ensure float64 for C++ compatibility
-            if rewards_arr.ndim == 2:
-                # Use multivariate model for 2D rewards
-                model = Graph.pmf_and_moments_from_graph_multivariate(
-                    self, nr_moments=nr_moments, discrete=discrete,
-                    use_ffi=False, theta_dim=theta_dim
-                )
+
+            # Auto-infer theta_dim from graph if not provided
+            if theta_dim is None and theta_init is None:
+                theta_dim = self.param_length()
+                if theta_dim == 0:
+                    raise ValueError(
+                        "theta_dim could not be inferred. Either the graph has no parameterized edges, "
+                        "or you must specify theta_dim (or theta_init) explicitly."
+                    )
+
+            if discrete is None:
+                discrete = self.is_discrete
+
+            # Default prior: DataPrior with sd=5 (wide, data-informed).
+            # Skip when epoch_starts is given — the daisy-chain branch
+            # builds its own broadcast prior with the right shape.
+            if prior is None and epoch_starts is None:
+                from .svgd import DataPrior
+                try:
+                    prior = DataPrior(
+                        self, observed_data, sd=5.0, fixed=fixed,
+                        theta_dim=theta_dim, discrete=discrete, verbose=verbose,
+                    )
+                except Exception:
+                    pass  # Fall through to SVGD's standard-normal default
+
+            # Handle joint_index mode
+            if self._joint_prob_base_graph_indexer is not None:
+                logger = get_logger(__name__)
+
+                if not joint_index:
+                    logger.info("Graph was constructed with joint index support. "
+                      "joint_index=True is implied.")
+                joint_index = True # FIXME: joint_index is always True if graph supports it, so not really needed as argument
+
+                if not self._joint_prob_base_graph_indexer:
+                    raise ValueError(
+                        "Graph was not constructed with joint index support. "
+                        "Cannot use joint_index=True."
+                    )
+                # map observed data to indices in joint probability table
+                joint_prob_table = self.joint_prob_table()
+                obs_indices = []
+                obs2idx = joint_prob_table.groupby(joint_prob_table.columns[:-1].to_list()).groups
+                for obs in observed_data:
+                    idx = obs2idx[tuple(obs)]
+                    if idx.size > 1:
+                        # if observation maps to multiple indices, sample according to their probabilities
+                        p = joint_prob_table.loc[idx, 'prob'].to_numpy()
+                        p = p / p.sum()
+                        chosen_idx = np.random.choice(idx, p=p)
+                        obs_indices.append(chosen_idx.item())
+                    else:
+                        # else just return the unique index
+                        obs_indices.append(idx.item())
+                observed_data = obs_indices
+
+                # Check for unsupported combinations
+                if regularization > 0:
+                    print("Warning: Moment regularization is not implemented with joint_index=True")
+                    raise NotImplementedError(
+                        "Moment regularization is not supported with joint probability models."
+                    )
+                if rewards is not None:
+                    print("Warning: Reward transformation is not supported with joint_index=True")
+                    raise NotImplementedError(
+                        "Reward transformation is not supported with joint_index=True. "
+                        "Set rewards=None or use joint_index=False."
+                    )
+                # Force discrete mode for joint_index
+                discrete = True
+
+                # Daisy-chain branch: when epoch_starts is provided, fit
+                # n_epochs * param_length parameters under a piecewise-
+                # constant time-inhomogeneous joint-prob model.
+                if epoch_starts is not None:
+                    resolved_t_eval = self._resolve_daisy_chain_t_eval(
+                        daisy_chain_t_eval=daisy_chain_t_eval,
+                        epoch_starts=epoch_starts,
+                        probe_theta=daisy_chain_probe_theta,
+                        tol=daisy_chain_t_eval_tol,
+                        granularity=daisy_chain_granularity,
+                        verbose=verbose,
+                    )
+                    # When exposure is set, push the per-observation rate
+                    # scaling INTO the daisy-chain model: it builds a per-
+                    # obs theta_batch and dispatches one batched FFI call.
+                    # The outer SVGD wrapper sees the model's
+                    # _handles_exposure_internally tag and does NOT apply
+                    # _wrap_model_with_exposure on top.
+                    _daisy_exposure = (
+                        np.asarray(exposure, dtype=np.float64).ravel()
+                        if exposure is not None else None
+                    )
+                    # Scalar exposure broadcasts to one entry per
+                    # observation; the validator already enforces the
+                    # length constraint.
+                    if _daisy_exposure is not None and _daisy_exposure.size == 1:
+                        _daisy_exposure = np.full(
+                            (len(observed_data),),
+                            float(_daisy_exposure.item()),
+                            dtype=np.float64,
+                        )
+                    model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
+                        observed_indices=observed_data,
+                        epoch_starts=epoch_starts,
+                        t_eval=resolved_t_eval,
+                        user_prior=prior,
+                        user_fixed=fixed,
+                        user_tied=tied,
+                        sd=5.0,
+                        verbose=verbose,
+                        granularity=daisy_chain_granularity,
+                        exposure_arr=_daisy_exposure,
+                        exposure_param_index=exposure_param_index,
+                    )
+                else:
+                    # Parse fixed to get mask for joint_index model
+                    # This allows the custom VJP to skip finite differences for fixed dimensions
+                    fixed_mask_for_model = None
+                    if fixed is not None:
+                        import jax.numpy as jnp
+                        if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+                            fixed_mask_for_model = jnp.zeros(theta_dim)
+                            for idx, _ in fixed:
+                                fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
+                        else:
+                            fixed_mask_for_model = jnp.array(fixed)
+                    # Use joint_index specific model with fixed_mask
+                    model = Graph.pmf_from_graph_joint_index(
+                        self, theta_dim=theta_dim,
+                        fixed_mask=fixed_mask_for_model,
+                    )
+            # Auto-detect if we need multivariate model (2D rewards)
+            elif rewards is not None:
+                import jax.numpy as jnp
+                rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)  # Ensure float64 for C++ compatibility
+                if rewards_arr.ndim == 2:
+                    # Use multivariate model for 2D rewards
+                    model = Graph.pmf_and_moments_from_graph_multivariate(
+                        self, nr_moments=nr_moments, discrete=discrete,
+                        use_ffi=False, theta_dim=theta_dim
+                    )
+                else:
+                    # Use standard model for 1D rewards
+                    model = Graph.pmf_and_moments_from_graph(
+                        self, nr_moments=nr_moments, discrete=discrete,
+                        theta_dim=theta_dim
+                    )
             else:
-                # Use standard model for 1D rewards
+                # No rewards - use standard model
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
                     theta_dim=theta_dim
                 )
-        else:
-            # No rewards - use standard model
-            model = Graph.pmf_and_moments_from_graph(
-                self, nr_moments=nr_moments, discrete=discrete,
-                theta_dim=theta_dim
-            )
 
-        # Zero-inflated likelihood wiring: when the rewards validator
-        # flagged partial-coverage features above, attach a
-        # JAX-differentiable p(theta) function and per-feature zero
-        # counts so SVGD's _log_prob_unified can add the
-        # n_zero * log(1 - p(theta)) term. Models without partial
-        # coverage carry no attributes and the legacy path runs
-        # unchanged.
-        if _partial_coverage_features_for_zi:
-            self._attach_zero_inflated_term(
-                model,
-                rewards=rewards,
-                offenders=_partial_coverage_features_for_zi,
-                observed_data=observed_data,
-            )
-
-        # Create SVGD object
-        svgd = SVGD(
-            observed_data=observed_data,
-            model=model,
-            prior=prior,
-            n_particles=n_particles,
-            n_iterations=n_iterations,
-            learning_rate=learning_rate,
-            bandwidth=bandwidth,
-            theta_init=theta_init,
-            theta_dim=theta_dim,
-            seed=seed,
-            verbose=verbose,
-            progress=progress,
-            jit=jit,
-            parallel=parallel,
-            n_devices=n_devices,
-            precompile=precompile,
-            compilation_config=compilation_config,
-            regularization=regularization,
-            nr_moments=nr_moments,
-            positive_params=positive_params,
-            param_transform=param_transform,
-            rewards=rewards,
-            fixed=fixed,
-            optimizer=optimizer,
-            preconditioner=preconditioner,
-            exposure=exposure,
-            exposure_param_index=exposure_param_index,
-        )
-
-        # Post-init for tied parameters: copy master column values
-        # into the slave columns of svgd.theta_init so the initial
-        # particles tensor is internally consistent. Slaves are
-        # marked fixed by `broadcast_fixed`, so SVGD never updates
-        # them — but the SVGD-side default init for fixed dims uses
-        # the per-dim sentinel from `fixed_values` (0.0 for slaves)
-        # which would be invisibly wrong without this step. The model
-        # wrapper still applies `_apply_tying` on every forward call,
-        # so even if a future code path skipped this step the FFI
-        # would still see consistent theta — this just keeps the
-        # exposed `svgd.theta_init` matrix in shape for inspection.
-        _tying_info = getattr(model, '_tying_info', None)
-        if _tying_info is not None and _tying_info.get('slave_to_master'):
-            import jax.numpy as _jnp_local
-            theta_init_jax = _jnp_local.asarray(svgd.theta_init)
-            for slave_flat, master_flat in _tying_info['slave_to_master'].items():
-                theta_init_jax = theta_init_jax.at[:, slave_flat].set(
-                    theta_init_jax[:, master_flat]
+            # Zero-inflated likelihood wiring: when the rewards validator
+            # flagged partial-coverage features above, attach a
+            # JAX-differentiable p(theta) function and per-feature zero
+            # counts so SVGD's _log_prob_unified can add the
+            # n_zero * log(1 - p(theta)) term. Models without partial
+            # coverage carry no attributes and the legacy path runs
+            # unchanged.
+            if _partial_coverage_features_for_zi:
+                self._attach_zero_inflated_term(
+                    model,
+                    rewards=rewards,
+                    offenders=_partial_coverage_features_for_zi,
+                    observed_data=observed_data,
                 )
-            svgd.theta_init = theta_init_jax
 
-        # Run inference
-        svgd.optimize(return_history=return_history)
+            # Create SVGD object
+            svgd = SVGD(
+                observed_data=observed_data,
+                model=model,
+                prior=prior,
+                n_particles=n_particles,
+                n_iterations=n_iterations,
+                learning_rate=learning_rate,
+                bandwidth=bandwidth,
+                theta_init=theta_init,
+                theta_dim=theta_dim,
+                seed=seed,
+                verbose=verbose,
+                progress=progress,
+                jit=jit,
+                parallel=parallel,
+                n_devices=n_devices,
+                precompile=precompile,
+                compilation_config=compilation_config,
+                regularization=regularization,
+                nr_moments=nr_moments,
+                positive_params=positive_params,
+                param_transform=param_transform,
+                rewards=rewards,
+                fixed=fixed,
+                optimizer=optimizer,
+                preconditioner=preconditioner,
+                exposure=exposure,
+                exposure_param_index=exposure_param_index,
+            )
 
-        # Return results as dictionary for backward compatibility
-        # return svgd.get_results()
+            # Post-init for tied parameters: copy master column values
+            # into the slave columns of svgd.theta_init so the initial
+            # particles tensor is internally consistent. Slaves are
+            # marked fixed by `broadcast_fixed`, so SVGD never updates
+            # them — but the SVGD-side default init for fixed dims uses
+            # the per-dim sentinel from `fixed_values` (0.0 for slaves)
+            # which would be invisibly wrong without this step. The model
+            # wrapper still applies `_apply_tying` on every forward call,
+            # so even if a future code path skipped this step the FFI
+            # would still see consistent theta — this just keeps the
+            # exposed `svgd.theta_init` matrix in shape for inspection.
+            _tying_info = getattr(model, '_tying_info', None)
+            if _tying_info is not None and _tying_info.get('slave_to_master'):
+                import jax.numpy as _jnp_local
+                theta_init_jax = _jnp_local.asarray(svgd.theta_init)
+                for slave_flat, master_flat in _tying_info['slave_to_master'].items():
+                    theta_init_jax = theta_init_jax.at[:, slave_flat].set(
+                        theta_init_jax[:, master_flat]
+                    )
+                svgd.theta_init = theta_init_jax
 
-        return svgd
+            # Run inference
+            svgd.optimize(return_history=return_history)
+
+            # Return results as dictionary for backward compatibility
+            # return svgd.get_results()
+
+            return svgd
+        finally:
+            # Restore graph.weight_callback / weight_mode if the
+            # kwarg overrode them. This runs on both success and
+            # exception so the graph state is not left mutated by
+            # a failed SVGD call. When the kwarg was None we skip
+            # the restore entirely (zero overhead in the common
+            # path).
+            if _callback_overridden:
+                self._weight_callback = _prev_weight_callback
+                self._weight_mode = _prev_weight_mode
 
     def mcmc(self,
              observed_data: ArrayLike | SparseObservations,

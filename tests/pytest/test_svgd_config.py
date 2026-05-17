@@ -416,6 +416,28 @@ class TestR20_TiedNoOverlap:
         ))
 
 
+class TestR21_CallbackIncompatibleWithEpochStarts:
+    """callback= is silently ignored by the daisy-chain FFI handler
+    (the C++ GraphBuilder only knows linear/log weight_mode), so the
+    validator must reject the combination loudly."""
+
+    def test_rejects_callback_with_epoch_starts(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"callback.*not supported.*epoch_starts"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                callback=lambda theta, coeffs: float(coeffs[0]) * theta[0],
+            ))
+
+    def test_accepts_callback_without_epoch_starts(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0, 3.0],
+            callback=lambda theta, coeffs: float(coeffs[0]) * theta[0],
+        ))
+
+
 # ---------------------------------------------------------------------------
 # Positive smoke tests — valid combinations should validate cleanly.
 # ---------------------------------------------------------------------------

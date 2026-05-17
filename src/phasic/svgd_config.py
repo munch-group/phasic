@@ -80,6 +80,11 @@ class SvgdConfig:
     # ``has_tied=False`` and ``tied_groups=None``.
     has_tied: bool = False
     tied_groups: Optional[Tuple[Tuple[int, Tuple[int, ...]], ...]] = None
+    # Per-edge weight callback (``Graph.svgd(callback=...)``). True iff
+    # the user passed a callable. The validator only needs to know
+    # *whether* a callback is set; the callable itself is consumed by
+    # the model builder via ``graph.weight_callback`` after validation.
+    has_callback: bool = False
 
 
 def _classify_graph_kind(graph: Any) -> GraphKind:
@@ -246,6 +251,7 @@ def from_svgd_call(
     rewards: Any = None,
     fixed: Any = None,
     tied: Any = None,
+    callback: Any = None,
     epoch_starts: Any = None,
     exposure: Any = None,
     exposure_param_index: Optional[int] = None,
@@ -283,6 +289,7 @@ def from_svgd_call(
 
     has_fixed, fixed_indices = _coerce_fixed_indices(fixed, has_epoch_starts)
     has_tied, tied_groups = _coerce_tied_groups(tied)
+    has_callback = callback is not None
 
     has_exposure = exposure is not None
     exposure_length: Optional[int] = None
@@ -318,6 +325,7 @@ def from_svgd_call(
         joint_index_explicit=bool(joint_index),
         has_tied=has_tied,
         tied_groups=tied_groups,
+        has_callback=has_callback,
     )
 
 
@@ -579,6 +587,17 @@ def _check_R19_tied_no_duplicate_epochs(c: SvgdConfig) -> None:
             )
 
 
+def _check_R21_callback_incompatible_with_epoch_starts(c: SvgdConfig) -> None:
+    if c.has_callback and c.has_epoch_starts:
+        raise SvgdConfigError(
+            "callback= is not supported under epoch_starts=... "
+            "(daisy-chain SVGD). The daisy-chain FFI handler computes "
+            "edge weights in C++ and only honours weight_mode='linear' "
+            "or 'log'; a Python callback would be silently ignored. "
+            "Drop epoch_starts or drop callback."
+        )
+
+
 def _check_R20_tied_no_overlap_with_fixed_or_other_tied(c: SvgdConfig) -> None:
     if not c.has_tied or c.tied_groups is None:
         return
@@ -645,6 +664,7 @@ _RULES = (
     _check_R18_tied_ranges,
     _check_R19_tied_no_duplicate_epochs,
     _check_R20_tied_no_overlap_with_fixed_or_other_tied,
+    _check_R21_callback_incompatible_with_epoch_starts,
 )
 
 
