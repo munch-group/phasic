@@ -4075,27 +4075,54 @@ class Graph(_Graph):
         alpha = self._initial_probability_vector()
         structure_json = self.serialize()
 
-        from .ffi_wrappers import compute_reward_visit_probability_ffi
+        # Prefer the fused `_cdf_zero_fn` exposed by the pybind model
+        # builder (the standard `Graph.svgd` path). It computes the
+        # atomic mass at r = 0 of the reward-transformed distribution,
+        # which is mathematically the complement of `p_j(theta)` =
+        # P(visit a rewarded vertex). One call per particle, sharing
+        # the reward_transform with the model's PDF pass.
+        cdf_zero_fn = getattr(model, '_cdf_zero_fn', None)
 
-        def _zero_inflated_p_fn(theta):
-            """Return p_j(theta) for each offending feature j.
+        if cdf_zero_fn is not None:
+            # Stack the offender rows into a 2D array (n_offenders, n_v)
+            # so `_cdf_zero_fn` returns one value per offender feature
+            # in the same order as `offender_reward_rows`.
+            offender_stack = np.stack(
+                [np.asarray(r, dtype=np.float64) for r in offender_reward_rows],
+                axis=0,
+            )
+            offender_stack_jax = jnp.asarray(offender_stack, dtype=jnp.float64)
 
-            Uses ``compute_reward_visit_probability_ffi`` which is
-            built on ``pure_callback`` with ``vmap_method='sequential'``
-            — so under vmap-over-particles the underlying C handler
-            is invoked once per particle (the C handler does not
-            natively support batched theta).
-            """
-            alpha_j = jnp.asarray(alpha, dtype=jnp.float64)
-            ps = []
-            for rewarded in rewarded_per_feature:
-                rewarded_j = jnp.asarray(rewarded, dtype=jnp.int32)
-                ps.append(
-                    compute_reward_visit_probability_ffi(
-                        structure_json, theta, rewarded_j, alpha_j,
+            def _zero_inflated_p_fn(theta):
+                """Return p_j(theta) = 1 - cdf_zero_j(theta) for each
+                offending feature j. Uses the fused pybind path which
+                shares the reward_transform with the model's PDF
+                computation; no separate backward_probabilities solve.
+                """
+                cdf_zeros = cdf_zero_fn(theta, offender_stack_jax)
+                return 1.0 - cdf_zeros
+        else:
+            from .ffi_wrappers import compute_reward_visit_probability_ffi
+
+            def _zero_inflated_p_fn(theta):
+                """Return p_j(theta) for each offending feature j.
+
+                Used when the model was built via the FFI path
+                (`use_ffi=True`) which does not currently expose
+                `_cdf_zero_fn`. Falls back to a separate
+                `backward_probabilities` solve per offender per
+                particle.
+                """
+                alpha_j = jnp.asarray(alpha, dtype=jnp.float64)
+                ps = []
+                for rewarded in rewarded_per_feature:
+                    rewarded_j = jnp.asarray(rewarded, dtype=jnp.int32)
+                    ps.append(
+                        compute_reward_visit_probability_ffi(
+                            structure_json, theta, rewarded_j, alpha_j,
+                        )
                     )
-                )
-            return jnp.stack(ps)
+                return jnp.stack(ps)
 
         model._zero_inflated_p_fn = _zero_inflated_p_fn
         model._n_zero_per_feature = jnp.asarray(
@@ -6539,6 +6566,27 @@ extern "C" {{
             joint_index=joint_index,
         ))
 
+        # When the user supplies `callback=`, theta_dim cannot be
+        # inferred unambiguously: the callback receives the full
+        # coefficient vector and may interpret only a subset of slots
+        # as parameters (the rest being auxiliary data). Falling back
+        # to `graph.param_length()` here would silently pick the
+        # coefficient length, which often differs from what the user
+        # had in mind. Require an explicit `theta_dim=` or
+        # `theta_init=` so the user's assumed dimensionality is the
+        # one we use.
+        if callback is not None and theta_dim is None and theta_init is None:
+            from .exceptions import SvgdConfigError
+            raise SvgdConfigError(
+                "callback= requires an explicit theta_dim= or "
+                "theta_init= argument. In callback mode the edge "
+                "coefficient vector may carry auxiliary data, so "
+                "theta_dim cannot be inferred from the graph without "
+                "ambiguity. Pass theta_dim=<n> (or theta_init of "
+                "shape (n_particles, n)) to make the parameter "
+                "dimension explicit."
+            )
+
         # Per-call override of graph.weight_callback. When the kwarg
         # is set, temporarily flip graph.weight_callback to the
         # supplied callable so the existing weight_mode='callback'
@@ -7693,6 +7741,95 @@ extern "C" {{
                 )
                 return result
 
+            # Companion closure: compute only cdf_zero (per-feature atom
+            # mass at r = 0 on the reward-transformed distribution),
+            # used by the zero-inflated likelihood path. JAX-differentiable
+            # via the same finite-difference pattern as the main model.
+            # Calls the new pybind method `compute_pmf_moments_and_cdf_zero`
+            # so the reward_transform is the same as the model path,
+            # discarding pmf/moments. The (small) extra cost replaces a
+            # `backward_probabilities` linear solve in
+            # `compute_reward_visit_probability_ffi` per particle.
+            def _compute_cdf_zero_cached(theta_np, rewards_np):
+                """Uses cached builder; returns cdf_zero (1D)."""
+                # Tiny times array — we only need the reward-transform
+                # side-effect, not any real time evaluation. The pybind
+                # method evaluates PDF at this dummy point but the cost
+                # is dominated by the reward transform.
+                times_np = np.array([1.0], dtype=np.float64)
+                if theta_np.ndim == 2:
+                    cdf_zeros = []
+                    for theta_single in theta_np:
+                        _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
+                            theta_single, times_np,
+                            nr_moments=1, discrete=discrete,
+                            granularity=0, rewards=rewards_np,
+                        )
+                        cdf_zeros.append(cz)
+                    return np.array(cdf_zeros)
+                else:
+                    _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
+                        theta_np, times_np,
+                        nr_moments=1, discrete=discrete,
+                        granularity=0, rewards=rewards_np,
+                    )
+                    return cz
+
+            def _cdf_zero_pure(theta, rewards):
+                """Pure cdf_zero computation, JAX-callback path."""
+                theta = jnp.atleast_1d(theta)
+                rewards_arr = jnp.atleast_1d(rewards).astype(jnp.float64)
+                # Output shape: (1,) for 1D rewards, (n_features,) for 2D.
+                if rewards_arr.ndim == 2:
+                    n_features = rewards_arr.shape[0]
+                    out_shape = jax.ShapeDtypeStruct((n_features,), jnp.float64)
+                else:
+                    out_shape = jax.ShapeDtypeStruct((1,), jnp.float64)
+
+                def callback_fn(theta_jax, rewards_jax):
+                    theta_np = np.asarray(theta_jax)
+                    rewards_np = np.asarray(rewards_jax, dtype=np.float64)
+                    if rewards_np.ndim == 3:
+                        rewards_np = rewards_np[0]
+                    elif rewards_np.ndim == 2 and theta_np.ndim == 2:
+                        rewards_np = rewards_np[0]
+                    return _compute_cdf_zero_cached(theta_np, rewards_np)
+
+                return jax.pure_callback(
+                    callback_fn,
+                    out_shape,
+                    theta, rewards_arr,
+                    vmap_method='expand_dims',
+                )
+
+            @jax.custom_vjp
+            def cdf_zero_fn(theta, rewards):
+                return _cdf_zero_pure(theta, rewards)
+
+            def cdf_zero_fwd(theta, rewards):
+                cz = _cdf_zero_pure(theta, rewards)
+                return cz, (theta, rewards)
+
+            def cdf_zero_bwd(res, g_cz):
+                theta, rewards = res
+                n_params = theta.shape[0]
+                eps = 1e-7
+                min_theta = 1e-9
+                grads = []
+                for i in range(n_params):
+                    theta_plus = theta.at[i].add(eps)
+                    theta_minus = theta.at[i].set(
+                        jnp.maximum(theta[i] - eps, min_theta)
+                    )
+                    actual_diff = theta_plus[i] - theta_minus[i]
+                    cz_plus = _cdf_zero_pure(theta_plus, rewards)
+                    cz_minus = _cdf_zero_pure(theta_minus, rewards)
+                    grad_i = jnp.sum(g_cz * (cz_plus - cz_minus) / actual_diff)
+                    grads.append(grad_i)
+                return jnp.array(grads), None
+
+            cdf_zero_fn.defvjp(cdf_zero_fwd, cdf_zero_bwd)
+
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
         def model(theta, times, rewards=None):
@@ -7753,6 +7890,15 @@ extern "C" {{
             return jnp.array(theta_bar), None, None  # gradients for theta, times, rewards
 
         model.defvjp(model_fwd, model_bwd)
+        # Expose the per-feature cdf_zero closure on the pybind path
+        # (the default for Graph.svgd). Consumed by
+        # _attach_zero_inflated_term to evaluate p(θ) = 1 - cdf_zero(θ)
+        # without a separate backward_probabilities solve. The FFI path
+        # (use_ffi=True) does not expose this attribute; its zero-
+        # inflation wiring continues to use the legacy
+        # compute_reward_visit_probability_ffi solve.
+        if not _callback_mode and not use_ffi:
+            model._cdf_zero_fn = cdf_zero_fn
         return model
 
     @classmethod

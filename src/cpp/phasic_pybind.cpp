@@ -5329,6 +5329,38 @@ Use Graph.distribution_context(granularity) instead.
           >>> # Use pmf for likelihood, moments for regularization
           )delim")
 
+      .def("compute_pmf_moments_and_cdf_zero",
+          &phasic::parameterized::GraphBuilder::compute_pmf_moments_and_cdf_zero,
+          py::arg("theta"),
+          py::arg("times"),
+          py::arg("nr_moments"),
+          py::arg("discrete") = false,
+          py::arg("granularity") = 100,
+          py::arg("rewards") = py::none(),
+          R"delim(
+          Compute PMF/PDF, moments, and the atomic mass at r = 0 on
+          the reward-transformed distribution, in a single pass.
+
+          Identical to compute_pmf_and_moments() but additionally
+          returns a per-feature ``cdf_zero`` that equals
+          ``g.reward_transform(rewards).cdf(0)`` (continuous) or
+          ``g.reward_transform(rewards).dph_cdf(0)`` (discrete).
+
+          Used by the zero-inflated likelihood term in Graph.svgd to
+          avoid a redundant backward_probabilities solve per
+          particle.
+
+          Returns
+          -------
+          tuple of (numpy.ndarray, numpy.ndarray, numpy.ndarray)
+              (pmf_values, moments, cdf_zero)
+              - pmf_values: shape (n_times,) for 1D rewards,
+                (n_times, n_features) for 2D rewards.
+              - moments: shape (nr_moments,) or (n_features, nr_moments).
+              - cdf_zero: shape (1,) for 1D/no rewards, (n_features,)
+                for 2D rewards.
+          )delim")
+
       .def("compute_pmf_multivariate",
           &phasic::parameterized::GraphBuilder::compute_pmf_multivariate,
           py::arg("theta"),

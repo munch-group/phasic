@@ -145,6 +145,38 @@ public:
     );
 
     /**
+     * @brief Compute PMF/PDF, moments, and the reward-transformed
+     *        atomic-mass-at-zero in a single pass.
+     *
+     * Identical to compute_pmf_and_moments() but additionally returns
+     * the per-feature mass that the reward-transformed distribution
+     * places on the atom at r = 0, equivalent to
+     * ``g.reward_transform(rewards).cdf(0)`` (continuous) or
+     * ``g.reward_transform(rewards).dph_cdf(0)`` (discrete). When
+     * called without rewards (rewards=None), the third output is
+     * a single 0.0 (the untransformed distribution has no
+     * reward-induced atom).
+     *
+     * Used by: zero-inflated likelihood term in Graph.svgd, to avoid
+     * a redundant ``backward_probabilities`` solve per particle.
+     *
+     * Shapes:
+     * - 1D / no rewards: cdf_zero is a length-1 numpy array.
+     * - 2D rewards: cdf_zero is shape (n_features,).
+     *
+     * GIL Note: Call with py::call_guard<py::gil_scoped_release>()
+     */
+    std::tuple<py::array_t<double>, py::array_t<double>, py::array_t<double>>
+    compute_pmf_moments_and_cdf_zero(
+        py::array_t<double> theta,
+        py::array_t<double> times,
+        int nr_moments,
+        bool discrete = false,
+        int granularity = 100,
+        py::object rewards = py::none()
+    );
+
+    /**
      * @brief Compute multivariate PMF/PDF for multiple feature dimensions
      *
      * NEW in v0.23.0: Native C++ support for multivariate observations.

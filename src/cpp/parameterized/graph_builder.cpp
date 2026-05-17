@@ -741,6 +741,192 @@ GraphBuilder::compute_pmf_and_moments(
     return std::make_pair(pmf_result, moments_result);
 }
 
+std::tuple<py::array_t<double>, py::array_t<double>, py::array_t<double>>
+GraphBuilder::compute_pmf_moments_and_cdf_zero(
+    py::array_t<double> theta,
+    py::array_t<double> times,
+    int nr_moments,
+    bool discrete,
+    int granularity,
+    py::object rewards_obj
+) {
+    // Step 1: Extract data from numpy arrays (requires GIL)
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+    auto times_buf = times.unchecked<1>();
+    size_t n_times = times_buf.shape(0);
+
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
+    std::vector<double> times_vec(n_times);
+    for (size_t i = 0; i < n_times; i++) {
+        times_vec[i] = times_buf(i);
+    }
+
+    bool has_rewards = !rewards_obj.is_none();
+    bool is_2d_rewards = false;
+    size_t n_features = 1;
+    size_t n_vertices = 0;
+
+    std::vector<double> rewards_vec_1d;
+    std::vector<std::vector<double>> rewards_2d;
+
+    if (has_rewards) {
+        auto rewards_array = rewards_obj.cast<py::array_t<double>>();
+        auto rewards_info = rewards_array.request();
+        if (rewards_info.ndim == 1) {
+            n_vertices = rewards_info.shape[0];
+            rewards_vec_1d.resize(n_vertices);
+            double* rewards_ptr = static_cast<double*>(rewards_info.ptr);
+            for (size_t i = 0; i < n_vertices; i++) {
+                rewards_vec_1d[i] = rewards_ptr[i];
+            }
+        } else if (rewards_info.ndim == 2) {
+            is_2d_rewards = true;
+            n_features = rewards_info.shape[0];
+            n_vertices = rewards_info.shape[1];
+            rewards_2d.resize(n_features, std::vector<double>(n_vertices));
+            double* rewards_ptr = static_cast<double*>(rewards_info.ptr);
+            for (size_t j = 0; j < n_features; j++) {
+                for (size_t i = 0; i < n_vertices; i++) {
+                    rewards_2d[j][i] = rewards_ptr[j * n_vertices + i];
+                }
+            }
+        } else {
+            throw std::runtime_error("Rewards must be 1D or 2D array");
+        }
+    }
+
+    // Step 2: C++ computation (release GIL)
+    std::vector<std::vector<double>> pmf_2d;
+    std::vector<std::vector<double>> moments_2d;
+    std::vector<double> cdf_zero_vec(n_features, 0.0);
+    {
+        py::gil_scoped_release release;
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
+
+        if (is_2d_rewards) {
+            pmf_2d.resize(n_times, std::vector<double>(n_features));
+            moments_2d.resize(n_features, std::vector<double>(nr_moments));
+            for (size_t j = 0; j < n_features; j++) {
+                Graph g_transformed = g.reward_transform(rewards_2d[j]);
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][j] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][j] = g_transformed.dph_pmf(jump_count);
+                        }
+                    }
+                    cdf_zero_vec[j] = g_transformed.dph_cdf(0);
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][j] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][j] = g_transformed.pdf(times_vec[t], granularity);
+                        }
+                    }
+                    cdf_zero_vec[j] = g_transformed.cdf(0.0, granularity);
+                }
+                moments_2d[j] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+            }
+        } else {
+            pmf_2d.resize(n_times, std::vector<double>(1));
+            moments_2d.resize(1, std::vector<double>(nr_moments));
+            if (!rewards_vec_1d.empty()) {
+                Graph g_transformed = g.reward_transform(rewards_vec_1d);
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][0] = g_transformed.dph_pmf(jump_count);
+                        }
+                    }
+                    cdf_zero_vec[0] = g_transformed.dph_cdf(0);
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][0] = g_transformed.pdf(times_vec[t], granularity);
+                        }
+                    }
+                    cdf_zero_vec[0] = g_transformed.cdf(0.0, granularity);
+                }
+                moments_2d[0] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+            } else {
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][0] = g.dph_pmf(jump_count);
+                        }
+                    }
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][0] = g.pdf(times_vec[t], granularity);
+                        }
+                    }
+                }
+                moments_2d[0] = compute_moments_impl(g, nr_moments, std::vector<double>());
+                // No rewards → no reward-induced atom; leave cdf_zero_vec[0] = 0.0.
+            }
+        }
+    }
+
+    // Step 3: numpy arrays (GIL held)
+    py::array_t<double> pmf_result, moments_result, cdf_zero_result;
+    if (is_2d_rewards) {
+        pmf_result = py::array_t<double>({n_times, n_features});
+        auto pmf_buf = pmf_result.mutable_unchecked<2>();
+        for (size_t t = 0; t < n_times; t++) {
+            for (size_t j = 0; j < n_features; j++) {
+                pmf_buf(t, j) = pmf_2d[t][j];
+            }
+        }
+        moments_result = py::array_t<double>({n_features, (size_t)nr_moments});
+        auto moments_buf = moments_result.mutable_unchecked<2>();
+        for (size_t j = 0; j < n_features; j++) {
+            for (int m = 0; m < nr_moments; m++) {
+                moments_buf(j, m) = moments_2d[j][m];
+            }
+        }
+        cdf_zero_result = py::array_t<double>(n_features);
+        auto cdf_buf = cdf_zero_result.mutable_unchecked<1>();
+        for (size_t j = 0; j < n_features; j++) {
+            cdf_buf(j) = cdf_zero_vec[j];
+        }
+    } else {
+        pmf_result = py::array_t<double>(n_times);
+        auto pmf_buf = pmf_result.mutable_unchecked<1>();
+        for (size_t t = 0; t < n_times; t++) {
+            pmf_buf(t) = pmf_2d[t][0];
+        }
+        moments_result = py::array_t<double>(nr_moments);
+        auto moments_buf = moments_result.mutable_unchecked<1>();
+        for (int m = 0; m < nr_moments; m++) {
+            moments_buf(m) = moments_2d[0][m];
+        }
+        // Scalar cdf_zero exposed as a 0-D numpy array of size 1
+        // so the Python side has a uniform "indexable" shape.
+        cdf_zero_result = py::array_t<double>(1);
+        auto cdf_buf = cdf_zero_result.mutable_unchecked<1>();
+        cdf_buf(0) = cdf_zero_vec[0];
+    }
+    return std::make_tuple(pmf_result, moments_result, cdf_zero_result);
+}
+
 py::array_t<double> GraphBuilder::compute_pmf_multivariate(
     py::array_t<double> theta,
     py::array_t<double> times,
