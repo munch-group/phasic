@@ -590,6 +590,109 @@ class TestPerEpochFixed:
 
 
 # ---------------------------------------------------------------------------
+# Class 4b: tied per-epoch parameters (plan: typed-riding-truffle).
+# Slaves get their flat positions overwritten with the master's value
+# inside the model before every forward evaluation. The slave's flat
+# index also lands in `broadcast_fixed` so the SVGD-side `fixed_mask`
+# marks it as not-learnable. Gradients route back to the master via the
+# standard JAX VJP through the `_apply_tying` scatter (asserted in
+# `TestTiedGradient` below — that's the load-bearing batch 3 gate).
+# ---------------------------------------------------------------------------
+
+
+class TestTied:
+    def _build_source_jp(self):
+        """Same fixture as TestPerEpochFixed."""
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g = Graph(cb, indexer=indexer)
+        return g.joint_prob_graph(
+            indexer, mutation_rate=MUTATION_RATE,
+            reward_limit=REWARD_LIMIT, discrete=False,
+        )
+
+    def test_tied_extends_broadcast_fixed_with_slaves(self):
+        """Slaves' flat indices appear in broadcast_fixed with sentinel 0.0."""
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4, 0.9]
+
+        # Tie local_idx=0 across epochs 0 and 2 (master=0, slave=2).
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_tied=[(0, [0, 2])],
+        )
+        # Master at flat 0 stays learnable, slave at flat 2*param_length
+        # gets added to broadcast_fixed with sentinel 0.0.
+        slave_flat = 2 * param_length + 0
+        assert (slave_flat, 0.0) in broadcast_fixed
+        # No user_fixed, so broadcast_fixed has only the slave entry.
+        assert len(broadcast_fixed) == 1
+
+    def test_tied_attaches_info_to_model(self):
+        """The model carries a `_tying_info` attribute with the slave→master map."""
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4, 0.9]
+
+        model, _, _, _ = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_tied=[(0, [0, 2])],
+        )
+        info = getattr(model, '_tying_info', None)
+        assert info is not None
+        # slave at flat = 2*param_length, master at flat = 0.
+        slave_flat = 2 * param_length + 0
+        master_flat = 0
+        assert info['slave_to_master'] == {slave_flat: master_flat}
+
+    def test_tied_none_yields_empty_info(self):
+        """When user_tied is None, slave_to_master is empty and broadcast_fixed
+        is None (no slaves added)."""
+        jp = self._build_source_jp()
+        epoch_starts = [0.0, 0.4]
+
+        model, _, _, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_tied=None,
+        )
+        info = getattr(model, '_tying_info', None)
+        assert info == {'slave_to_master': {}}
+        # No fixed and no tied -> broadcast_fixed stays None.
+        assert broadcast_fixed is None
+
+    def test_tied_with_existing_fixed_keeps_both(self):
+        """`tied` slaves and `fixed` entries coexist in broadcast_fixed."""
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4, 0.9]
+        n_epochs = len(epoch_starts)
+
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_fixed=[(1, 1.5)],          # fix local 1 in every epoch
+            user_tied=[(0, [0, 2])],        # tie local 0 epochs 0 and 2
+        )
+        # Three fixed flat indices (local 1, all 3 epochs) + 1 slave.
+        fixed_flats_from_user_fixed = {
+            epoch * param_length + 1 for epoch in range(n_epochs)
+        }
+        slave_flat = 2 * param_length + 0
+        all_flats = {idx for idx, _ in broadcast_fixed}
+        assert fixed_flats_from_user_fixed.issubset(all_flats)
+        assert slave_flat in all_flats
+        # The master (flat 0) is NOT in broadcast_fixed — it stays learnable.
+        assert 0 not in all_flats
+
+# ---------------------------------------------------------------------------
 # Particle-vmap fusion tests (plan: radiant-giggling-wigderson, path A).
 # Verify that `vmap(grad(loss))(particles)` on Graph.daisy_chain_joint_probs
 # dispatches ONE fat (P, theta_dim) FFI call per FD perturbation instead of

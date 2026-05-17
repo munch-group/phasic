@@ -71,6 +71,15 @@ class SvgdConfig:
     has_regularization: bool
     nr_moments: int
     joint_index_explicit: bool
+    # Tied-parameter introspection.
+    # ``has_tied`` is True iff the user passed a non-empty ``tied=``.
+    # ``tied_groups`` is the parsed, normalised form: a tuple of
+    # ``(local_idx, (master_epoch, slave_epoch_1, ...))`` entries. The
+    # first epoch in each inner tuple is the master, the rest are slaves.
+    # When the user passed ``tied=None`` (or an empty list), both
+    # ``has_tied=False`` and ``tied_groups=None``.
+    has_tied: bool = False
+    tied_groups: Optional[Tuple[Tuple[int, Tuple[int, ...]], ...]] = None
 
 
 def _classify_graph_kind(graph: Any) -> GraphKind:
@@ -175,12 +184,68 @@ def _coerce_fixed_indices(
     )
 
 
+def _coerce_tied_groups(
+    tied: Any,
+) -> Tuple[bool, Optional[Tuple[Tuple[int, Tuple[int, ...]], ...]]]:
+    """Return (has_tied, normalised-tuple-of-groups-or-None).
+
+    Each input entry must be ``(local_idx, sequence_of_epoch_indices)``
+    where the first epoch in the sequence is the master and the rest
+    are slaves. This helper does *shape* coercion only — range checks,
+    duplicate-epoch checks, and overlap-with-``fixed`` checks live in
+    rules R17..R20 so violations carry a recognisable rule name.
+
+    Returns ``(False, None)`` for ``tied=None`` or an empty list.
+    """
+    if tied is None:
+        return False, None
+    if not isinstance(tied, (list, tuple)):
+        raise SvgdConfigError(
+            "tied must be None or a list of "
+            "(local_idx, [epoch_a, epoch_b, ...]) tuples; got "
+            f"{type(tied).__name__}."
+        )
+    if len(tied) == 0:
+        return False, None
+    normalised: list[Tuple[int, Tuple[int, ...]]] = []
+    for entry in tied:
+        if not (isinstance(entry, (list, tuple)) and len(entry) == 2):
+            raise SvgdConfigError(
+                "Each tied entry must be a 2-tuple "
+                "(local_idx, list_of_epoch_indices); got "
+                f"{entry!r}."
+            )
+        local_idx_raw, epochs_raw = entry
+        try:
+            local_idx = int(local_idx_raw)
+        except (TypeError, ValueError) as exc:
+            raise SvgdConfigError(
+                f"tied entry local_idx must be an integer; got "
+                f"{local_idx_raw!r}: {exc}"
+            )
+        if not isinstance(epochs_raw, (list, tuple, np.ndarray)):
+            raise SvgdConfigError(
+                "tied entry epoch list must be a list/tuple/ndarray; "
+                f"got {type(epochs_raw).__name__}."
+            )
+        try:
+            epochs = tuple(int(e) for e in epochs_raw)
+        except (TypeError, ValueError) as exc:
+            raise SvgdConfigError(
+                f"tied entry epoch indices must all be integers; "
+                f"got {list(epochs_raw)!r}: {exc}"
+            )
+        normalised.append((local_idx, epochs))
+    return True, tuple(normalised)
+
+
 def from_svgd_call(
     graph: Any,
     observed_data: Any,
     *,
     rewards: Any = None,
     fixed: Any = None,
+    tied: Any = None,
     epoch_starts: Any = None,
     exposure: Any = None,
     exposure_param_index: Optional[int] = None,
@@ -217,6 +282,7 @@ def from_svgd_call(
             n_epochs = None
 
     has_fixed, fixed_indices = _coerce_fixed_indices(fixed, has_epoch_starts)
+    has_tied, tied_groups = _coerce_tied_groups(tied)
 
     has_exposure = exposure is not None
     exposure_length: Optional[int] = None
@@ -250,6 +316,8 @@ def from_svgd_call(
         has_regularization=float(regularization) > 0.0,
         nr_moments=int(nr_moments),
         joint_index_explicit=bool(joint_index),
+        has_tied=has_tied,
+        tied_groups=tied_groups,
     )
 
 
@@ -453,6 +521,109 @@ def _check_R15_positive_params_xor_param_transform(c: SvgdConfig) -> None:
         )
 
 
+def _check_R16_tied_requires_epoch_starts(c: SvgdConfig) -> None:
+    if c.has_tied and not c.has_epoch_starts:
+        raise SvgdConfigError(
+            "tied=... is only meaningful with epoch_starts=... "
+            "(daisy-chain SVGD). Got tied entries but no "
+            "epoch_starts. Drop tied or pass an epoch_starts list."
+        )
+
+
+def _check_R17_tied_entry_shape(c: SvgdConfig) -> None:
+    if not c.has_tied or c.tied_groups is None:
+        return
+    for local_idx, epochs in c.tied_groups:
+        if len(epochs) < 2:
+            raise SvgdConfigError(
+                f"tied entry (local_idx={local_idx}, epochs={list(epochs)!r}) "
+                "must list at least 2 epochs (a single-epoch tie is a "
+                "no-op and rejected as a likely typo). To pin a slot to "
+                "a constant value across one epoch, use fixed= instead."
+            )
+
+
+def _check_R18_tied_ranges(c: SvgdConfig) -> None:
+    if not c.has_tied or c.tied_groups is None:
+        return
+    if c.n_epochs is None:
+        # Caller will already raise on a malformed epoch_starts before
+        # we get here; skip the range check rather than emit a
+        # confusing secondary error.
+        return
+    for local_idx, epochs in c.tied_groups:
+        if not (0 <= local_idx < c.param_length):
+            raise SvgdConfigError(
+                f"tied entry local_idx={local_idx} out of range "
+                f"[0, param_length) = [0, {c.param_length}). Each "
+                "tied entry uses a per-epoch local index, same as fixed."
+            )
+        bad_epochs = [e for e in epochs if not (0 <= e < c.n_epochs)]
+        if bad_epochs:
+            raise SvgdConfigError(
+                f"tied entry (local_idx={local_idx}) lists epoch indices "
+                f"{bad_epochs!r} that are out of range "
+                f"[0, n_epochs) = [0, {c.n_epochs})."
+            )
+
+
+def _check_R19_tied_no_duplicate_epochs(c: SvgdConfig) -> None:
+    if not c.has_tied or c.tied_groups is None:
+        return
+    for local_idx, epochs in c.tied_groups:
+        if len(set(epochs)) != len(epochs):
+            raise SvgdConfigError(
+                f"tied entry (local_idx={local_idx}, epochs={list(epochs)!r}) "
+                "lists the same epoch more than once. Each epoch may "
+                "appear at most once per tied entry."
+            )
+
+
+def _check_R20_tied_no_overlap_with_fixed_or_other_tied(c: SvgdConfig) -> None:
+    if not c.has_tied or c.tied_groups is None:
+        return
+    if c.n_epochs is None:
+        return
+    # Build the flat-index set for all positions claimed by `tied`
+    # (both masters and slaves). Two failure modes:
+    #   - flat index appears in two different tied entries
+    #   - flat index appears in both tied and fixed
+    seen_flat: dict[int, Tuple[int, Tuple[int, ...]]] = {}
+    for entry in c.tied_groups:
+        local_idx, epochs = entry
+        for epoch in epochs:
+            flat = epoch * c.param_length + local_idx
+            if flat in seen_flat:
+                prev = seen_flat[flat]
+                raise SvgdConfigError(
+                    f"tied position (local_idx={local_idx}, epoch={epoch}, "
+                    f"flat={flat}) is claimed by two tied entries: "
+                    f"{prev!r} and {entry!r}. Each (local_idx, epoch) "
+                    "may appear in at most one tied group."
+                )
+            seen_flat[flat] = entry
+
+    if c.has_fixed and c.fixed_indices is not None and c.has_epoch_starts:
+        # Under daisy-chain, fixed_indices store per-epoch *local*
+        # indices that broadcast to every epoch. So every fixed local
+        # index claims `n_epochs` flat positions.
+        fixed_flat: set[int] = set()
+        for local_idx in c.fixed_indices:
+            if not (0 <= local_idx < c.param_length):
+                # R14 will catch this; skip rather than double-error.
+                continue
+            for epoch in range(c.n_epochs):
+                fixed_flat.add(epoch * c.param_length + local_idx)
+        clashing = sorted(set(seen_flat.keys()) & fixed_flat)
+        if clashing:
+            raise SvgdConfigError(
+                f"tied positions overlap fixed positions at flat "
+                f"indices {clashing!r}. A (local_idx, epoch) slot may "
+                "be either fixed or tied, but not both. Drop the "
+                "overlap from one of the two arguments."
+            )
+
+
 _RULES = (
     _check_R1_epoch_requires_continuous_joint_prob,
     _check_R2_joint_index_requires_joint_prob,
@@ -469,6 +640,11 @@ _RULES = (
     _check_R13_preconditioner_with_joint_prob_warns,
     _check_R14_fixed_with_epoch_starts_local_indices,
     _check_R15_positive_params_xor_param_transform,
+    _check_R16_tied_requires_epoch_starts,
+    _check_R17_tied_entry_shape,
+    _check_R18_tied_ranges,
+    _check_R19_tied_no_duplicate_epochs,
+    _check_R20_tied_no_overlap_with_fixed_or_other_tied,
 )
 
 

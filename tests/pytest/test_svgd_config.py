@@ -303,6 +303,119 @@ class TestR15_PositiveParamsXorParamTransform:
         ))
 
 
+class TestR16_TiedRequiresEpochStarts:
+    def test_rejects_tied_without_epoch_starts(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"tied.*only meaningful"):
+            validate(from_svgd_call(
+                g, [(0, 0), (1, 0)],
+                tied=[(0, [0, 1])],
+            ))
+
+    def test_accepts_tied_with_epoch_starts(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0)] * 2,
+            epoch_starts=[0.0, 1.0],
+            tied=[(0, [0, 1])],
+        ))
+
+
+class TestR17_TiedEntryShape:
+    def test_rejects_single_epoch_tie(self):
+        g = _make_joint_prob_graph()
+        # 1-element list is a no-op; surface as configuration error.
+        with pytest.raises(SvgdConfigError, match=r"at least 2 epochs"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                tied=[(0, [0])],
+            ))
+
+    def test_accepts_two_epoch_tie(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0)] * 2,
+            epoch_starts=[0.0, 1.0],
+            tied=[(0, [0, 1])],
+        ))
+
+
+class TestR18_TiedRanges:
+    def test_rejects_out_of_range_local_idx(self):
+        g = _make_joint_prob_graph()
+        # joint-prob param_length=2; local_idx=5 is out of range.
+        with pytest.raises(SvgdConfigError, match=r"local_idx=5 out of range"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                tied=[(5, [0, 1])],
+            ))
+
+    def test_rejects_out_of_range_epoch(self):
+        g = _make_joint_prob_graph()
+        # epoch_starts has 2 epochs; epoch index 5 is out of range.
+        with pytest.raises(SvgdConfigError, match=r"epoch indices.*out of range"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                tied=[(0, [0, 5])],
+            ))
+
+
+class TestR19_TiedNoDuplicateEpochs:
+    def test_rejects_duplicate_epochs(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"same epoch more than once"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                tied=[(0, [0, 1, 1])],
+            ))
+
+    def test_accepts_distinct_epochs(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0)] * 3,
+            epoch_starts=[0.0, 1.0, 2.0],
+            tied=[(0, [0, 1, 2])],
+        ))
+
+
+class TestR20_TiedNoOverlap:
+    def test_rejects_overlap_with_fixed(self):
+        g = _make_joint_prob_graph()
+        # Under daisy-chain, fixed=[(0, value)] pins local_idx=0 in
+        # every epoch. tied=[(0, [0, 1])] also claims those positions.
+        with pytest.raises(SvgdConfigError, match=r"overlap fixed positions"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 2,
+                epoch_starts=[0.0, 1.0],
+                fixed=[(0, 0.5)],
+                tied=[(0, [0, 1])],
+            ))
+
+    def test_rejects_overlap_between_tied_entries(self):
+        g = _make_joint_prob_graph()
+        # Two tied entries that both claim local_idx=0, epoch=1.
+        with pytest.raises(SvgdConfigError, match=r"claimed by two tied entries"):
+            validate(from_svgd_call(
+                g, [(0, 0)] * 3,
+                epoch_starts=[0.0, 1.0, 2.0],
+                tied=[(0, [0, 1]), (0, [1, 2])],
+            ))
+
+    def test_accepts_disjoint_tied_and_fixed(self):
+        g = _make_joint_prob_graph()
+        # local_idx=0 tied across epochs; local_idx=1 fixed (no overlap).
+        validate(from_svgd_call(
+            g, [(0, 0)] * 2,
+            epoch_starts=[0.0, 1.0],
+            fixed=[(1, 1e-8)],
+            tied=[(0, [0, 1])],
+        ))
+
+
 # ---------------------------------------------------------------------------
 # Positive smoke tests — valid combinations should validate cleanly.
 # ---------------------------------------------------------------------------

@@ -5436,6 +5436,7 @@ extern "C" {{
         t_eval: float | None = None,
         user_prior=None,
         user_fixed=None,
+        user_tied=None,
         sd: float = 5.0,
         verbose: bool = False,
         granularity: int = 0,
@@ -5624,6 +5625,84 @@ extern "C" {{
                     )
             fixed_indices = [idx for idx, _v in broadcast_fixed]
 
+        # Parse user_tied into a flat slave -> master map. By plan
+        # convention the first epoch in each entry's list is the
+        # master; the rest are slaves whose flat positions are
+        # overwritten with the master's value before every forward
+        # evaluation. Validation rules R16..R20 (svgd_config.py) have
+        # already rejected malformed input, out-of-range indices,
+        # duplicates within a group, and overlap with fixed before we
+        # get here, so the parsing below assumes well-formed entries.
+        #
+        # The map is intentionally a plain dict (not a JAX structure):
+        # _apply_tying turns it into static jnp.int32 arrays at model-
+        # build time so the trace closure captures concrete arrays.
+        slave_to_master_flat: dict[int, int] = {}
+        if user_tied is not None:
+            for entry in user_tied:
+                local_idx, epochs = entry
+                local_idx = int(local_idx)
+                epochs_list = [int(e) for e in epochs]
+                master_flat = epochs_list[0] * param_length + local_idx
+                for slave_epoch in epochs_list[1:]:
+                    slave_flat = slave_epoch * param_length + local_idx
+                    slave_to_master_flat[slave_flat] = master_flat
+        tied_slave_indices = set(slave_to_master_flat.keys())
+
+        # Tying introspection returned to Graph.svgd so it can:
+        #   - copy master->slave columns in the post-SVGD theta_init
+        #     consistency step (so the initial particles tensor has
+        #     matching values at master and slave positions);
+        #   - hand the master/slave map to SVGD.summary so the per-
+        #     parameter table can show "Tied->θ[k]" for slave rows.
+        # When user_tied is None, slave_to_master is an empty dict.
+        tying_info = {
+            'slave_to_master': dict(slave_to_master_flat),
+        }
+
+        # Build a JAX-traceable helper that replicates the master's
+        # value into every slave position. Closes over concrete int32
+        # arrays so the trace context sees no leakage; behaves as a
+        # no-op when there are no tied slaves.
+        if tied_slave_indices:
+            _slaves_arr = jnp.asarray(
+                list(slave_to_master_flat.keys()), dtype=jnp.int32,
+            )
+            _masters_arr = jnp.asarray(
+                list(slave_to_master_flat.values()), dtype=jnp.int32,
+            )
+
+            def _apply_tying(theta_flat):
+                return theta_flat.at[_slaves_arr].set(theta_flat[_masters_arr])
+        else:
+            def _apply_tying(theta_flat):
+                return theta_flat
+
+        # Record the truly-fixed flat indices (i.e. user-supplied
+        # `fixed=`) BEFORE we extend broadcast_fixed with slave entries
+        # below. The FD-backward loops in both _autodiff_bwd and
+        # _per_obs_bwd must skip ONLY the truly-fixed positions — slave
+        # positions need their FD partials computed so the
+        # _apply_tying scatter's VJP can route them back into the
+        # master. Mixing the two would zero out the per-slave gradient
+        # contributions and underestimate dL/d(master).
+        fd_skip_indices = (
+            list(fixed_indices) if fixed_indices is not None else []
+        )
+
+        # Extend broadcast_fixed to also lock slave positions. The
+        # sentinel value 0.0 is overwritten by _apply_tying inside the
+        # model on every forward call, so its concrete value is
+        # irrelevant — it only matters that the SVGD-side fixed_mask
+        # marks the slave as not-learnable.
+        if tied_slave_indices:
+            if broadcast_fixed is None:
+                broadcast_fixed = []
+                fixed_indices = []
+            for slave_flat in sorted(tied_slave_indices):
+                broadcast_fixed.append((slave_flat, 0.0))
+                fixed_indices.append(slave_flat)
+
         # Two model variants:
         #   (a) no exposure — one daisy-chain FFI call, then per-obs
         #       indexing into the (n_t,) result vector.
@@ -5681,10 +5760,9 @@ extern "C" {{
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             eps_local = 1e-7
-            fixed_set_local = (
-                set(int(i) for i in fixed_indices)
-                if fixed_indices is not None else set()
-            )
+            # FD backward skips ONLY truly-fixed positions, not slave
+            # positions — see fd_skip_indices computation above.
+            fixed_set_local = set(int(i) for i in fd_skip_indices)
 
             # Forward: wrapped with custom_vmap so that under
             # vmap(grad(loss))(particles), the FD-backward's per-
@@ -5849,7 +5927,9 @@ extern "C" {{
             # FFI call. eps matches the legacy daisy_chain_joint_probs
             # FD pattern.
             eps_local = 1e-7
-            fixed_set_local = set(fixed_indices) if fixed_indices is not None else set()
+            # FD backward skips ONLY truly-fixed positions, not slave
+            # positions — see fd_skip_indices computation above for why.
+            fixed_set_local = set(int(i) for i in fd_skip_indices)
 
             # Precomputed scale matrix: shape (n_unique, theta_dim), 1.0
             # everywhere except in the flat_exposure_indices columns,
@@ -5986,6 +6066,12 @@ extern "C" {{
                 for i, p in enumerate(prior_list)
             ]
 
+        # Attach the tying info to the model so callers (Graph.svgd,
+        # SVGD.summary) can introspect it without changing the public
+        # return-tuple shape. The attribute is always set, including
+        # when no tying is active (slave_to_master is empty).
+        model._tying_info = tying_info
+
         if user_prior is not None:
             # Determine the broadcast pattern.
             if isinstance(user_prior, list):
@@ -6082,6 +6168,7 @@ extern "C" {{
              joint_index: bool = False,
              rewards: ArrayLike | None = None,
              fixed: ArrayLike | None = None,
+             tied: ArrayLike | None = None,
              preconditioner: str | object | None = 'auto',
              epoch_starts: ArrayLike | None = None,
              daisy_chain_t_eval: float | str | None = None,
@@ -6417,6 +6504,7 @@ extern "C" {{
             observed_data,
             rewards=rewards,
             fixed=fixed,
+            tied=tied,
             epoch_starts=epoch_starts,
             exposure=exposure,
             exposure_param_index=exposure_param_index,
@@ -6607,6 +6695,7 @@ extern "C" {{
                     t_eval=resolved_t_eval,
                     user_prior=prior,
                     user_fixed=fixed,
+                    user_tied=tied,
                     sd=5.0,
                     verbose=verbose,
                     granularity=daisy_chain_granularity,
