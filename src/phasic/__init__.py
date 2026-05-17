@@ -10231,6 +10231,7 @@ class EpochContext:
         *,
         tol: float = 1e-3,
         granularity: int = 0,
+        table: bool = False,
     ) -> np.ndarray | pd.DataFrame:
         """Cumulative absorption probability at each t-state by time ``t``.
 
@@ -10244,9 +10245,9 @@ class EpochContext:
         t : float, 1D array-like, or None, default None
             Time(s) at which to evaluate.
 
-            * scalar → :class:`pandas.DataFrame` (``table=True``,
-              default) or 1D array of length ``len(_t_vertex_indices)``
-              (``table=False``).
+            * scalar → 1D array of length ``len(_t_vertex_indices)``
+              (``table=False``, default) or a :class:`pandas.DataFrame`
+              (``table=True``).
             * 1D array → 2D output of shape ``(len(t), n_t_states)``.
               Requires ``table=False`` (an array-valued ``t`` is
               rejected when ``table=True``).
@@ -10262,33 +10263,37 @@ class EpochContext:
             Uniformization granularity forwarded to
             :meth:`Graph.stop_probability`. ``0`` lets the underlying
             implementation auto-pick a safe value.
+        table : bool, default False
+            If True, return a :class:`pandas.DataFrame` matching the
+            layout of :meth:`Graph.joint_prob_table`. Requires scalar
+            (or ``None``) ``t``.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray or pd.DataFrame
             Cumulative probabilities. See ``t`` and ``table`` for
             shape / type.
         """
         if t is None:
             t = self.auto_t(tol=tol, granularity=granularity)
         t_arr = np.asarray(t, dtype=np.float64)
-        # if table and t_arr.ndim != 0:
-        #     raise ValueError(
-        #         "table=True requires a scalar t (or t=None). For an "
-        #         "array of times, call cumulative_probs(...) and build the "
-        #         "frame yourself."
-        #     )
+        if table and t_arr.ndim != 0:
+            raise ValueError(
+                "table=True requires a scalar t (or t=None). For an "
+                "array of times, call cumulative_probs(..., table=False) "
+                "and build the frame yourself."
+            )
         if t_arr.ndim == 0:
             probs = self._collapse_one(float(t_arr), granularity=granularity)
-            # if table:
-            #     outcomes, _, t_vertex_indices = self._source_graph._get_joint_probs()
-            #     records = [
-            #         [*obs, prob, idx]
-            #         for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)
-            #     ]
-            #     return pd.DataFrame(
-            #         records, columns=self._source_graph._joint_prob_columns()
-            #     ).set_index('t_vertex_index')
+            if table:
+                outcomes, _, t_vertex_indices = self._source_graph._get_joint_probs()
+                records = [
+                    [*obs, prob, idx]
+                    for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)
+                ]
+                return pd.DataFrame(
+                    records, columns=self._source_graph._joint_prob_columns()
+                ).set_index('t_vertex_index')
             return probs
         if t_arr.ndim != 1:
             raise ValueError(
@@ -10300,65 +10305,6 @@ class EpochContext:
         for k, tk in enumerate(t_arr):
             out[k] = self._collapse_one(float(tk), granularity=granularity)
         return out
-
-    def joint_prob_table(
-        self,
-        t: float | ArrayLike | None = None,
-        *,
-        tol: float = 1e-3,
-        granularity: int = 0,
-        table: bool = True,
-    ) -> np.ndarray | pd.DataFrame:
-        """Cumulative absorption probability at each t-state by time ``t``.
-
-        For each t-state ``i`` the returned value is
-        ``stop_probability(t)[t_i] + stop_probability(t)[aux(t_i)]`` —
-        the total mass that has ever been trapped in the (t, aux) pair
-        for that state.
-
-        Parameters
-        ----------
-        t : float or None, default None
-            Time at which to evaluate. Defaults to a ``t`` large 
-            enough that the residual transient mass at 
-            non-t / non-aux / non-start vertices falls below ``tol``. 
-            Mirrors the policy used by the C++ daisy-chain handler in
-            SVGD (see :meth:`auto_t` / :meth:`Graph._probe_daisy_t_eval`).
-        tol : float, default 1e-3
-            Residual-mass tolerance used when ``t`` is ``None``. Ignored
-            otherwise.
-        granularity : int, default 0
-            Uniformization granularity forwarded to
-            :meth:`Graph.stop_probability`. ``0`` lets the underlying
-            implementation auto-pick a safe value.
-
-        Returns
-        -------
-        pd.DataFrame
-            A :class:`pandas.DataFrame` with
-            the same layout as :meth:`Graph.joint_prob_table`:
-            rewarded-property columns + ``prob`` column, indexed by
-            ``t_vertex_index``.
-        """
-        if t is None:
-            t = self.auto_t(tol=tol, granularity=granularity)
-        t_arr = np.asarray(t, dtype=np.float64)
-        if t_arr.ndim == 0:
-            probs = self._collapse_one(float(t_arr), granularity=granularity)
-            outcomes, _, t_vertex_indices = self._source_graph._get_joint_probs()
-            records = [
-                [*obs, prob, idx]
-                for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)
-            ]
-            return pd.DataFrame(
-                records, columns=self._source_graph._joint_prob_columns()
-            ).set_index('t_vertex_index')
-        else:
-            raise ValueError(
-                "table=True requires a scalar t (or t=None). For an "
-                "array of times, call cumulative_probs(...) and build the "
-                "frame yourself."
-            )            
 
     def auto_t(
         self,
