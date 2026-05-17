@@ -601,3 +601,223 @@ def test_repr_aic_bic_lrt():
     assert "BICResult" in repr(ms.bic(full))
     assert "LRTResult" in repr(ms.likelihood_ratio_test(full, nested))
     assert "Model comparison by AIC" in repr(ms.compare(full, nested))
+
+
+# -----------------------------------------------------------------------------
+# Tied-parameter tests (plan: typed-riding-truffle)
+#
+# When ``tied=[(local_idx, [epoch_a, ...])]`` is set on a daisy-chain
+# SVGD call, slave epoch positions land in ``fixed_mask`` so SVGD never
+# updates them. The expected consequence for model selection is that
+# ``degrees_of_freedom`` returns the reduced count
+# (theta_dim − n_fixed − n_slaves), and AIC / BIC / compare propagate
+# that through their penalty terms. These tests pin that contract end
+# to end via Graph.svgd → SVGD → ms.{aic,bic,compare}.
+# -----------------------------------------------------------------------------
+
+
+def _build_tied_test_jp():
+    """Tiny coalescent → continuous joint-prob graph for the
+    tied-parameter model-selection tests. Deliberately small
+    (n_samples=3, reward_limit=2) so the tests run in <30s."""
+    from itertools import combinations_with_replacement
+
+    from phasic import StateIndexer, Property, with_ipv
+
+    indexer = StateIndexer(
+        lineages=[Property('descendants', min_value=1, max_value=3)],
+    )
+    ipv = [0] * indexer.state_length
+    ipv[indexer.lineages.props_to_index(descendants=1)] = 3
+
+    @with_ipv(ipv)
+    def cb(state, indexer=None):
+        out = []
+        for i, j in combinations_with_replacement(
+            range(indexer.lineages.state_length), 2
+        ):
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue
+            new = list(state)
+            new[i] -= 1
+            new[j] -= 1
+            sum_idx = indexer.lineages.props_to_index(
+                descendants=(i + 1) + (j + 1)
+            )
+            new[sum_idx] += 1
+            pair = state[i] * (state[j] - same) // (1 + same)
+            out.append((new, [pair, 0]))
+        return out
+
+    g = Graph(cb, indexer=indexer)
+    return g.joint_prob_graph(
+        indexer, mutation_rate=0.1, reward_limit=2, discrete=False,
+    )
+
+
+def _build_tied_test_observations(jp, n_obs=8):
+    """One outcome from the matching discrete joint-prob table,
+    repeated n_obs times. Returns ``(outcomes, observations_list)``."""
+    from itertools import combinations_with_replacement
+
+    from phasic import StateIndexer, Property, with_ipv
+
+    # Build a discrete twin to harvest a valid outcome tuple. The
+    # discrete and continuous joint-prob graphs share topology — only
+    # is_discrete differs — so an outcome from the discrete table is
+    # a valid observation for the continuous fit too.
+    indexer = StateIndexer(
+        lineages=[Property('descendants', min_value=1, max_value=3)],
+    )
+    ipv = [0] * indexer.state_length
+    ipv[indexer.lineages.props_to_index(descendants=1)] = 3
+
+    @with_ipv(ipv)
+    def cb(state, indexer=None):
+        out = []
+        for i, j in combinations_with_replacement(
+            range(indexer.lineages.state_length), 2
+        ):
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue
+            new = list(state)
+            new[i] -= 1
+            new[j] -= 1
+            sum_idx = indexer.lineages.props_to_index(
+                descendants=(i + 1) + (j + 1)
+            )
+            new[sum_idx] += 1
+            pair = state[i] * (state[j] - same) // (1 + same)
+            out.append((new, [pair, 0]))
+        return out
+
+    g = Graph(cb, indexer=indexer)
+    disc = g.joint_prob_graph(
+        indexer, mutation_rate=0.1, reward_limit=2, discrete=True,
+    )
+    disc.update_weights([1.0] * (disc.param_length() - 1) + [0.1])
+    jpt = disc.joint_prob_table()
+    outcome = tuple(int(jpt.iloc[0][c]) for c in list(jpt.columns[:-1]))
+    return [outcome] * n_obs
+
+
+def _fit_daisy_chain(jp, observations, *, tied=None, fixed=None,
+                     epoch_starts=(0.0, 0.4)):
+    """Fit a daisy-chain SVGD with optional ``tied`` and ``fixed``."""
+    from phasic import LogGaussPrior, Adamelia
+
+    return jp.svgd(
+        observations,
+        prior=LogGaussPrior(ci=[1e-6, 1e-2]),
+        n_iterations=2,
+        n_particles=4,
+        optimizer=Adamelia(learning_rate=0.1),
+        epoch_starts=list(epoch_starts),
+        fixed=fixed,
+        tied=tied,
+    )
+
+
+def test_degrees_of_freedom_tied_excludes_slaves():
+    """svgd.degrees_of_freedom must count tied slaves as not-free.
+
+    For a 2-epoch model with param_length=3 (theta_dim=6) and
+    ``tied=[(0, [0, 1])]``, slot 0 epoch 1 is a slave. SVGD's
+    ``fixed_mask`` therefore has one extra 1, and ``degrees_of_freedom``
+    drops from 6 to 5.
+    """
+    jp = _build_tied_test_jp()
+    obs = _build_tied_test_observations(jp, n_obs=8)
+    param_length = jp.param_length()
+
+    free = _fit_daisy_chain(jp, obs)
+    tied = _fit_daisy_chain(jp, obs, tied=[(0, [0, 1])])
+
+    assert free.degrees_of_freedom == 2 * param_length
+    assert tied.degrees_of_freedom == 2 * param_length - 1, (
+        "tying one slot across 2 epochs must remove 1 from k "
+        f"(got {tied.degrees_of_freedom}, expected "
+        f"{2 * param_length - 1})"
+    )
+
+
+def test_degrees_of_freedom_tied_plus_fixed():
+    """fixed + tied combine additively: every tied slave AND every
+    fixed slot drop a degree of freedom."""
+    jp = _build_tied_test_jp()
+    obs = _build_tied_test_observations(jp, n_obs=8)
+    param_length = jp.param_length()
+    n_epochs = 3
+
+    # tied: 1 slave (slot 0 epoch 2). fixed: 3 slot-1 slots (broadcast).
+    svgd = _fit_daisy_chain(
+        jp, obs,
+        fixed=[(1, 1e-8)],
+        tied=[(0, [0, 2])],
+        epoch_starts=(0.0, 0.4, 0.9),
+    )
+    expected_k = n_epochs * param_length - 3 - 1  # = 9 - 4 = 5
+    assert svgd.degrees_of_freedom == expected_k, (
+        f"expected k={expected_k} (theta_dim={n_epochs * param_length} "
+        f"minus 3 fixed minus 1 slave), got {svgd.degrees_of_freedom}"
+    )
+
+
+def test_aic_bic_use_reduced_k_under_tying():
+    """AIC and BIC penalty terms must use the tied-reduced k.
+
+    Pin the arithmetic: AIC = 2k − 2·LL and BIC = k·log(n) − 2·LL,
+    where k is the post-tying degrees_of_freedom.
+    """
+    jp = _build_tied_test_jp()
+    obs = _build_tied_test_observations(jp, n_obs=8)
+
+    svgd = _fit_daisy_chain(jp, obs, tied=[(0, [0, 1])])
+    expected_k = svgd.degrees_of_freedom
+
+    aic_res = ms.aic(svgd)
+    assert aic_res.k == expected_k
+    assert math.isclose(
+        aic_res.aic,
+        2.0 * expected_k - 2.0 * aic_res.log_likelihood,
+        rel_tol=1e-12, abs_tol=1e-12,
+    )
+
+    bic_res = ms.bic(svgd)
+    assert bic_res.k == expected_k
+    assert math.isclose(
+        bic_res.bic,
+        expected_k * math.log(bic_res.n) - 2.0 * bic_res.log_likelihood,
+        rel_tol=1e-12, abs_tol=1e-12,
+    )
+
+
+def test_compare_ranks_tied_against_free_correctly():
+    """ms.compare(free, tied) sees the right k on each row.
+
+    A tied model has fewer free parameters; if the LL is close, the
+    tied model's AIC should be smaller (less complexity penalty).
+    This test doesn't pin which model wins — that depends on the data
+    and the seed — only that compare() correctly threads each model's
+    own k through the table.
+    """
+    jp = _build_tied_test_jp()
+    obs = _build_tied_test_observations(jp, n_obs=8)
+    param_length = jp.param_length()
+
+    free = _fit_daisy_chain(jp, obs)
+    tied = _fit_daisy_chain(jp, obs, tied=[(0, [0, 1])])
+
+    table = ms.compare(("free", free), ("tied", tied), criterion="aic")
+    rows_by_name = {r.name: r for r in table.rows}
+
+    assert rows_by_name["free"].k == 2 * param_length
+    assert rows_by_name["tied"].k == 2 * param_length - 1
+    # Both rows share the same n_observations.
+    assert rows_by_name["free"].n == rows_by_name["tied"].n
