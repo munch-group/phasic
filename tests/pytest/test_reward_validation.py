@@ -148,12 +148,15 @@ def test_shape_3d_raises():
 
 
 def test_coverage_skip_last_row_fails():
-    """`graph.states().T[:-1]` matches the tutorial bug. Validation
-    must raise with diagnostic for the offending feature."""
+    """`graph.states().T[:-1]` matches the tutorial bug. With
+    coverage_mode='raise', validation surfaces the witness-path
+    diagnostic for the offending feature. (The default mode is now
+    'warn'; 'raise' is opt-in for explicit input-rejection workflows.)
+    """
     g = _build_n4_coalescent()
     rewards = g.states().T[:-1].astype(np.float64)
     with pytest.raises(ValueError) as excinfo:
-        g._validate_rewards(rewards, allow_2d=True)
+        g._validate_rewards(rewards, allow_2d=True, coverage_mode="raise")
     msg = str(excinfo.value)
     # The error should mention which features are invalid.
     assert "invalid rewards for features" in msg
@@ -194,7 +197,7 @@ def test_coverage_witness_path_correctness():
     assert rewards.sum() > 0, "Test fixture: no vertex with state (0,1,0) found"
 
     with pytest.raises(ValueError) as excinfo:
-        g._validate_rewards(rewards, allow_2d=False)
+        g._validate_rewards(rewards, allow_2d=False, coverage_mode="raise")
     msg = str(excinfo.value)
     assert "Witness path" in msg
     # Witness path should contain the arrow separator.
@@ -309,8 +312,10 @@ def test_sample_warns_on_partial_coverage_but_returns_zeros():
         samples = g.sample(
             500, rewards=np.array([0, 0, 0, 0, 1, 0], dtype=np.float64),
         )
-    # Should emit a sub-stochastic warning.
-    assert any("sub-stochastic" in str(wi.message) for wi in w)
+    # Should emit the partial-coverage warning (atom + continuous mixture).
+    assert any("zero reward" in str(wi.message) for wi in w), (
+        f"expected partial-coverage warning; got: {[str(wi.message) for wi in w]}"
+    )
     # Some samples must be zero (mixture).
     assert np.any(samples == 0.0)
     # Some samples must be positive.
@@ -345,7 +350,8 @@ def test_reward_transform_warns_but_does_not_raise():
     assert any(issubclass(wi.category, UserWarning) for wi in w), (
         "Expected UserWarning on coverage failure"
     )
-    assert any("sub-stochastic" in str(wi.message) for wi in w)
+    # Match the new atom-as-mixture warning wording.
+    assert any("zero reward" in str(wi.message) for wi in w)
 
     # But a wrong-length 1D reward must still raise.
     with pytest.raises(ValueError, match=r"1D rewards must have shape"):
@@ -555,58 +561,68 @@ def test_validator_still_raises_on_shape_errors():
         g._validate_rewards(np.ones((2, 3, 6)))
 
 
-def test_absorbing_reward_raises():
-    """Rewards on absorbing vertices are a feature-engineering bug;
-    Graph.svgd refuses them with a clear error message naming the
-    offending vertices."""
+def test_absorbing_reward_is_accepted_as_partial_coverage():
+    """Rewards on absorbing vertices are no longer rejected as bugs.
+    A reward on the absorbing vertex contributes zero (because
+    absorbing has zero sojourn time) — equivalent to no reward at
+    all. The resulting reward-transformed distribution is a degenerate
+    point mass at r = 0, which the validator surfaces via the normal
+    coverage warning (not a raise). See the conversation that motivated
+    removing the separate absorbing check.
+    """
     g = _build_n4_coalescent()
-    # graph.states().T includes a row indexing the absorbing state.
-    rewards = g.states().T.astype(np.float64)
-    with pytest.raises(ValueError) as excinfo:
-        g._validate_rewards(rewards, allow_2d=True)
-    msg = str(excinfo.value)
-    assert "absorbing" in msg.lower()
-    # Should suggest the [:-1] idiom.
-    assert "[:-1]" in msg
-
-
-def test_absorbing_reward_1d_raises():
-    """Same as above but for a single 1D reward vector."""
-    g = _build_n4_coalescent()
-    # Reward only the absorbing vertex (last index).
+    # Reward only the absorbing vertex (last index): every trajectory
+    # accumulates 0 reward, so the BFS coverage check fires with the
+    # standard partial-coverage warning.
     n_v = g.vertices_length()
     rewards = np.zeros(n_v, dtype=np.float64)
     rewards[-1] = 1.0
-    with pytest.raises(ValueError, match=r"absorbing"):
-        g._validate_rewards(rewards, allow_2d=False)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        out = g._validate_rewards(rewards, allow_2d=False)
+    assert out.shape == rewards.shape
+    # The coverage warning fires (this is the legitimate partial-
+    # coverage case, not an error).
+    assert any("zero reward" in str(wi.message) for wi in w), (
+        f"expected partial-coverage warning; got: {[str(wi.message) for wi in w]}"
+    )
 
 
-def test_absorbing_reward_opt_out_allows():
-    """validate_rewards=False bypasses the absorbing-vertex check
-    for advanced users who knowingly want a degenerate likelihood."""
+def test_absorbing_reward_via_states_transpose_only_warns():
+    """The classic mistake — passing `graph.states().T` (without
+    `[:-1]`) as a reward matrix — now produces a warning rather than
+    a raise. The absorbing-row reward simply contributes nothing;
+    the other rows behave as before.
+    """
     g = _build_n4_coalescent()
     rewards = g.states().T.astype(np.float64)
-    # check_coverage=False also disables the absorbing-vertex check
-    # (both are coverage-related validations).
-    out = g._validate_rewards(rewards, allow_2d=True, check_coverage=False)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        out = g._validate_rewards(rewards, allow_2d=True)
     assert out.shape == rewards.shape
+    # At least one feature in the transposed matrix is the
+    # absorbing-row reward (last row), which triggers partial coverage.
+    assert any("zero reward" in str(wi.message) for wi in w)
 
 
-def test_svgd_absorbing_reward_raises_at_entry():
-    """End-to-end: Graph.svgd raises immediately when rewards have
-    absorbing-vertex weight, BEFORE any model build / optimization."""
+def test_svgd_absorbing_reward_runs_via_zero_inflation():
+    """End-to-end: Graph.svgd no longer refuses absorbing-vertex
+    rewards. The path that includes an absorbing-row reward triggers
+    the partial-coverage → zero-inflated likelihood mode-switch."""
     g = _build_n4_coalescent()
     rewards = g.states().T.astype(np.float64)  # includes absorbing row
 
-    # Dummy sparse observations (won't be used — should raise first).
     n = 10
     obs = np.full((n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64)
     for i in range(rewards.shape[0]):
         obs[i*n:(i+1)*n, i] = np.random.uniform(0.01, 1.0, n)
     sparse_obs = dense_to_sparse(obs)
 
-    with pytest.raises(ValueError, match=r"absorbing"):
-        g.svgd(
+    # No raise. May emit a zero-inflated UserWarning for the
+    # absorbing-row feature; just confirm the call completes.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        svgd = g.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
             prior=GaussPrior(ci=[1, 20]),
@@ -615,6 +631,7 @@ def test_svgd_absorbing_reward_raises_at_entry():
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
             progress=False,
         )
+    assert svgd.particles is not None
 
 
 def test_partial_coverage_warning_fires_once():

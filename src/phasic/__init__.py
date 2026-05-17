@@ -2691,12 +2691,15 @@ class Graph(_Graph):
         n : int
             Number of samples to generate.
         validate_rewards : bool, default True
-            If True and ``rewards=`` is provided in ``kwargs``, validate
-            that the reward vector has shape ``(n_vertices,)`` and that
-            every absorbing trajectory accumulates positive reward. The
-            latter check prevents silent zero-samples for trajectories
-            that don't visit any rewarded vertex (which would otherwise
-            bias likelihood inference downstream).
+            If True and ``rewards=`` is provided in ``kwargs``, run the
+            coverage check (BFS for a trajectory that skips every
+            rewarded vertex). A coverage failure means the
+            reward-transformed distribution has a point mass at
+            :math:`r = 0`; ``Graph.sample`` will then return some
+            zero-valued samples and emits a ``UserWarning`` so the
+            user knows the mixture shape. Shape errors are always
+            raised regardless of this flag — wrong-length rewards
+            are bugs, not modelling choices.
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation,
             notably ``rewards=`` (a per-vertex reward vector).
@@ -3374,14 +3377,15 @@ class Graph(_Graph):
             Reward vector of length n_vertices. Each element specifies the
             reward associated with visiting the corresponding vertex.
         validate_rewards : bool, default True
-            If True, validate the reward vector's shape and emit a
-            ``UserWarning`` if not every absorbing trajectory accumulates
-            positive reward (which would make the returned graph
-            sub-stochastic). The warning is informational — the
-            transformation still proceeds — because sub-stochastic
-            reward-transformed graphs are legitimate for Laplace
-            transforms and conditional-expectation computations. Set
-            ``False`` to silence the warning.
+            If True, run the coverage check and emit a ``UserWarning``
+            when some trajectories accumulate zero reward — i.e. the
+            transformed distribution has a point mass at :math:`r = 0`.
+            The transformation always proceeds regardless: an (atom +
+            continuous) mixture is a legitimate phase-type distribution,
+            useful for Laplace transforms, conditional expectations,
+            and zero-inflated likelihood inference via ``Graph.svgd``.
+            Set ``False`` to silence the warning. Shape errors are
+            always raised regardless of this flag.
 
         Returns
         -------
@@ -3561,55 +3565,17 @@ class Graph(_Graph):
         n = self.vertices_length()
         return [i for i in range(n) if self.vertex_at(i).edges_length() == 0]
 
-    def _validate_no_absorbing_reward(
-        self, rewards_1d: np.ndarray, *, context: str,
-    ) -> None:
-        """Raise ValueError if rewards has nonzero weight on absorbing vertices.
-
-        Absorbing vertices have zero sojourn time by definition (the
-        chain stops there). Rewarding them contributes a point mass
-        of zero observations that carries no likelihood information
-        but biases the estimator (the continuous-density evaluation
-        at r = 0 is a spurious finite value, not the true atomic
-        mass).
-
-        Assumes ``rewards_1d`` is already shape-validated. Called
-        from ``_validate_rewards`` before the coverage check.
-        """
-        rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
-        absorbing = set(self._absorbing_vertex_indices())
-        nonzero = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
-        bad = sorted(absorbing & nonzero)
-        if not bad:
-            return
-
-        raise ValueError(
-            f"{context}: rewards have nonzero weight on absorbing "
-            f"vertices {bad}.\n"
-            "\n"
-            "Absorbing vertices have zero sojourn time by definition "
-            "(the trajectory absorbs and stops), so rewarding them\n"
-            "produces an identically-zero sample that carries no "
-            "likelihood information about theta. The continuous-\n"
-            "density evaluation at r = 0 is a spurious finite value "
-            "that biases the estimator upward.\n"
-            "\n"
-            "Fix: set rewards[v] = 0 for every absorbing vertex v, "
-            "or build your reward matrix from the non-absorbing\n"
-            "state decomposition. Common idiom:\n"
-            "\n"
-            "    rewards = graph.states().T[:-1]   # drop the row "
-            "indexing the absorbing state\n"
-            "\n"
-            "If you intentionally want to model an atom at r = 0 "
-            "(rare; mathematically degenerate), pass\n"
-            "validate_rewards=False to skip this check."
-        )
-
     def _validate_reward_coverage(
         self, rewards_1d: np.ndarray, *, context: str,
     ) -> None:
-        """Raise ValueError unless every absorbing trajectory accumulates positive reward.
+        """Raise ValueError if some trajectories accumulate zero reward.
+
+        Such trajectories contribute a point mass at :math:`r = 0` to
+        the reward-transformed distribution: a legitimate (atom +
+        continuous) mixture, not an error. Callers decide the response
+        via ``_validate_rewards(..., coverage_mode=...)``; this helper
+        raises so the orchestrator can collect and re-emit the
+        per-feature diagnostics.
 
         Assumes ``rewards_1d`` is already shape-validated (1D, length
         n_vertices). Called from ``_validate_rewards``.
@@ -3617,14 +3583,23 @@ class Graph(_Graph):
         Algorithm: BFS in the subgraph that excludes all rewarded
         vertices. If any absorbing vertex is reachable from any
         starting vertex in the reduced subgraph, a trajectory exists
-        that skips every reward — INVALID. O(V + E).
+        that skips every reward — and an atom at :math:`r = 0` will
+        appear in the reward-transformed distribution. O(V + E).
         """
         from collections import deque
         rewards_arr = np.asarray(rewards_1d, dtype=np.float64)
 
-        rewarded = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
+        rewarded_raw = set(int(v) for v in np.where(rewards_arr > 0.0)[0])
         starts = set(int(v) for v in self._starting_vertex_indices())
         absorbing = set(int(v) for v in self._absorbing_vertex_indices())
+
+        # Absorbing vertices have zero sojourn time, so a reward placed
+        # on an absorbing vertex contributes nothing to the accumulated
+        # reward. Treat absorbing rewards as null for coverage
+        # purposes — otherwise rewarding only the absorbing vertex
+        # would topologically pass the BFS (every trajectory visits
+        # absorbing) while every accumulated reward is actually zero.
+        rewarded = rewarded_raw - absorbing
 
         # BFS over the subgraph excluding rewarded vertices.
         parent: dict[int, int | None] = {v: None for v in starts}
@@ -3660,30 +3635,51 @@ class Graph(_Graph):
             ss = sorted(s)
             return f"{ss[:k]}{'...' if len(ss) > k else ''}"
 
+        # If all of the user's rewarded vertices were absorbing, the
+        # effective rewarded set is empty and *every* trajectory
+        # accumulates zero. Surface this as a specific hint so the
+        # user knows their reward vector did nothing useful.
+        absorbing_only_hint = ""
+        absorbing_rewards = rewarded_raw & absorbing
+        if absorbing_rewards and not rewarded:
+            absorbing_only_hint = (
+                "\n  Note: the supplied rewards land only on absorbing\n"
+                f"  vertices {sorted(absorbing_rewards)!r}. Absorbing\n"
+                "  vertices have zero sojourn time, so they contribute\n"
+                "  nothing to the accumulated reward — equivalent to\n"
+                "  no rewards at all. Move the reward weight onto\n"
+                "  non-absorbing vertices."
+            )
+
         raise ValueError(
-            f"{context}: not all trajectories accumulate positive reward.\n"
+            f"{context}: some trajectories accumulate zero reward.\n"
             "\n"
-            "Every trajectory from a starting vertex to absorption must\n"
-            "visit at least one vertex with reward > 0. Otherwise the\n"
-            "reward-transformed PDF is sub-probability and likelihood\n"
-            "inference is biased upward.\n"
+            "The reward-transformed distribution therefore has a point\n"
+            "mass at r = 0 with weight 1 - P(visit a rewarded vertex).\n"
+            "The continuous density returned by `pdf(t)` integrates to\n"
+            "the complement; the atomic mass equals `cdf(0)` of the\n"
+            "reward-transformed graph. This is a legitimate mixture\n"
+            "distribution, not an error — `Graph.svgd` automatically\n"
+            "combines both into a zero-inflated likelihood.\n"
             "\n"
             f"  Rewarded vertices (count: {len(rewarded)}): {_trunc(rewarded)}\n"
             f"  Starting vertices: {_trunc(starts)}\n"
             f"  Absorbing vertices: {_trunc(absorbing)}\n"
-            f"  Witness path skipping all rewards:\n"
-            f"    {path_str}\n"
+            f"  Witness path producing the atom at r = 0:\n"
+            f"    {path_str}"
+            f"{absorbing_only_hint}\n"
             "\n"
-            "Fix one of:\n"
-            "  (1) Include more states in the reward decomposition so\n"
-            "      every trajectory hits at least one rewarded state.\n"
-            "  (2) Use graph.states().T (full transpose, NO [:-1] slice)\n"
-            "      as your reward matrix - covers every state.\n"
-            "  (3) Merge this reward vector with another so the combined\n"
-            "      vector covers all trajectories.\n"
+            "If you specifically want a strictly continuous reward-\n"
+            "transformed distribution, modify the reward decomposition\n"
+            "so every trajectory visits at least one rewarded vertex:\n"
+            "  (1) Include more states in the decomposition.\n"
+            "  (2) Use `graph.states().T` (full transpose, no slice).\n"
+            "  (3) Merge this reward vector with another that covers\n"
+            "      the missing trajectories.\n"
             "\n"
-            "If you knowingly want a sub-stochastic likelihood (rare),\n"
-            "pass validate_rewards=False to opt out and accept the bias."
+            "To skip this check entirely (e.g. you are scripting a\n"
+            "one-shot read on a known sub-stochastic distribution),\n"
+            "pass `validate_rewards=False` at the public entry point."
         )
 
     def _validate_rewards(
@@ -3692,10 +3688,19 @@ class Graph(_Graph):
         *,
         allow_2d: bool = True,
         check_coverage: bool = True,
-        coverage_mode: str = "raise",
+        coverage_mode: str = "warn",
         context: str = "rewards",
     ) -> np.ndarray:
         """Unified validator for reward arrays (shape + coverage).
+
+        Shape errors always raise (wrong-length rewards is a bug, not a
+        modelling choice). Coverage failures — reward vectors that
+        some trajectories skip entirely, producing a point mass at
+        :math:`r = 0` — are *not* errors: they describe a legitimate
+        mixture distribution (atom + continuous part). The default
+        coverage_mode is ``"warn"``; the SVGD path overrides this to
+        ``"report"`` so it can automatically wire the zero-inflated
+        likelihood without bothering the user.
 
         Parameters
         ----------
@@ -3706,23 +3711,25 @@ class Graph(_Graph):
             ``Graph.expectation``, ``Graph.moments``, or any 1D-only
             entry point).
         check_coverage : bool
-            If True, also run the coverage check (every absorbing
-            trajectory must accumulate positive reward). Set False
-            from ``reward_transform`` (which warns rather than raises
-            on coverage failure).
-        coverage_mode : {"raise", "report", "warn"}, default "raise"
+            If True, run the coverage check (BFS for an unrewarded
+            trajectory). If False, skip the check entirely; callers
+            opt out via ``validate_rewards=False`` at their public
+            entry points.
+        coverage_mode : {"warn", "report", "raise"}, default "warn"
             How to handle coverage failures:
 
-            - ``"raise"`` (default, backwards-compat): raise
-              ``ValueError`` with a witness-path diagnostic.
-            - ``"report"``: never raise; caller inspects the returned
-              array and uses ``_partial_coverage_features`` to decide
-              what to do. Used by ``Graph.svgd`` to switch to a
-              zero-inflated likelihood automatically.
-            - ``"warn"``: emit one ``UserWarning`` per offending
-              feature; no raise. Used by ``Graph.sample`` (which
-              returns mixture samples naturally) and
-              ``Graph.reward_transform`` (Laplace-transform users).
+            - ``"warn"`` (default): emit one ``UserWarning`` per
+              offending feature; no raise. Used by ``Graph.sample``,
+              ``Graph.reward_transform``, and any other ad-hoc path
+              where the atom at zero is correct and the user just
+              needs a heads-up.
+            - ``"report"``: never raise, never warn; caller inspects
+              the returned array via ``_partial_coverage_features``
+              to decide what to do. Used by ``Graph.svgd`` to switch
+              to a zero-inflated likelihood automatically.
+            - ``"raise"``: raise ``ValueError`` with the witness-path
+              diagnostic. Available for explicit input-rejection
+              workflows; no in-tree caller uses this today.
         context : str
             Used to label error / warning messages (e.g. "rewards",
             "feature 2 rewards").
@@ -3736,8 +3743,8 @@ class Graph(_Graph):
         Raises
         ------
         ValueError
-            On shape mismatch (always) or coverage failure (only when
-            ``check_coverage=True`` and ``coverage_mode="raise"``).
+            On shape mismatch (always) or coverage failure when
+            ``check_coverage=True`` and ``coverage_mode="raise"``.
         """
         arr = np.asarray(rewards, dtype=np.float64)
         n_v = self.vertices_length()
@@ -3779,20 +3786,12 @@ class Graph(_Graph):
                 f"got shape {arr.shape}."
             )
 
-        # ---- Absorbing-vertex check (O(V), always raises) ----------
-        # Rewards on absorbing vertices are a feature-engineering bug
-        # (the trajectory absorbs and stops, contributing 0 sojourn
-        # time to any reward there). This check fires before the
-        # coverage check regardless of coverage_mode, because it's
-        # not a modelling choice — it's invalid input.
-        if check_coverage:
-            if arr.ndim == 1:
-                self._validate_no_absorbing_reward(arr, context=context)
-            else:
-                for j in range(arr.shape[0]):
-                    self._validate_no_absorbing_reward(
-                        arr[j], context=f"{context}[feature {j}]"
-                    )
+        # No separate absorbing-vertex check: rewards on absorbing
+        # vertices contribute nothing (zero sojourn) but are not an
+        # error. If the user supplies a reward vector with weight only
+        # on the absorbing vertex, the coverage check below catches
+        # the resulting partial coverage and the caller chooses how
+        # to respond (warn / report / raise).
 
         # ---- Coverage check (O(V+E) per feature, gated) ------------
         if not check_coverage:
@@ -3840,10 +3839,13 @@ class Graph(_Graph):
             for msg in messages:
                 first_line = msg.splitlines()[0]
                 warnings.warn(
-                    f"{first_line} The resulting reward-transformed "
-                    "distribution is sub-stochastic; if you are using "
-                    "it for likelihood inference, Graph.svgd handles "
-                    "this automatically via a zero-inflated likelihood.",
+                    f"{first_line} The reward-transformed distribution "
+                    "has a point mass at r = 0 with weight "
+                    "1 - P(visit a rewarded vertex); the continuous "
+                    "density returned by `pdf(t)` covers only r > 0. "
+                    "Read the atomic mass with `cdf(0)` on the "
+                    "transformed graph. `Graph.svgd` combines both "
+                    "into a zero-inflated likelihood automatically.",
                     UserWarning,
                     stacklevel=3,
                 )
