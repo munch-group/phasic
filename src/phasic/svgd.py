@@ -6251,6 +6251,33 @@ class SVGD:
             )
         return n
 
+    @property
+    def zero_inflated_features(self) -> list[int]:
+        """Feature indices for which a zero-inflated likelihood term is active.
+
+        Empty when the rewards have full coverage (the standard
+        continuous-density-only likelihood is in use). Non-empty when
+        some trajectories in those features absorb without visiting
+        any rewarded vertex: SVGD then adds the point-mass term
+        ``Σ_j n_zero_j · log(1 − p_j(θ))`` to the log-likelihood for
+        each listed feature. See also :attr:`n_zero_per_feature`.
+        """
+        return list(getattr(self.model, '_zero_inflated_features', []))
+
+    @property
+    def n_zero_per_feature(self) -> np.ndarray:
+        """Per-feature count of zero observations.
+
+        Aligned with :attr:`zero_inflated_features`; empty when no
+        feature uses the zero-inflated likelihood. Each entry is the
+        number of zero-valued observations for that feature in the
+        fit's ``observed_data``.
+        """
+        arr = getattr(self.model, '_n_zero_per_feature_np', None)
+        if arr is None:
+            return np.zeros(0, dtype=np.int64)
+        return np.asarray(arr, dtype=np.int64)
+
 
     def plot_posterior(self, true_theta: jnp.ndarray | list | None = None,
                       param_names: list[str] | None = None, bins: int = 20,
@@ -8766,7 +8793,21 @@ class SVGD:
 
         print()
         print(f"Particles: {self.n_particles}, Iterations: {self.n_iterations}")
-    
+        zi_features = self.zero_inflated_features
+        if zi_features:
+            n_zero = self.n_zero_per_feature
+            if len(zi_features) == 1 and len(n_zero) == 1:
+                print(
+                    f"Zero-inflated likelihood: feature {zi_features[0]} "
+                    f"(n_zero = {int(n_zero[0])})"
+                )
+            else:
+                pairs = ", ".join(
+                    f"{f}: n_zero={int(n)}"
+                    for f, n in zip(zi_features, n_zero)
+                )
+                print(f"Zero-inflated likelihood: {pairs}")
+
 
 
 

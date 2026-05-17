@@ -220,19 +220,17 @@ def test_coverage_opt_out_passes_invalid():
 # ---------------------------------------------------------------------------
 
 
-def test_svgd_warns_and_recovers_on_partial_coverage():
+def test_svgd_runs_silently_on_partial_coverage_with_introspection():
     """End-to-end: Graph.svgd with partial-coverage 2D rewards no
-    longer raises; it switches to a zero-inflated likelihood and
-    emits a one-time UserWarning naming the offending features.
-    The recovered theta is within sampling noise of the truth."""
+    longer raises and no longer warns; it switches to a zero-inflated
+    likelihood and exposes the offending feature indices and zero
+    counts on the SVGD object for inspection. The recovered theta
+    is within sampling noise of the truth."""
     g = _build_n4_coalescent()
     rewards = g.states().T[:-1].astype(np.float64)
 
-    # Build sparse observations using the (broken) reward decomposition.
     n = 5_000
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # Suppress the sample warning
-        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
+    per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
     obs = np.full(
         (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
     )
@@ -253,12 +251,24 @@ def test_svgd_warns_and_recovers_on_partial_coverage():
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
             progress=False,
         )
-    # Exactly one partial-coverage warning, naming feature 2.
+    # No partial-coverage warning anywhere.
     partial_warnings = [
-        wi for wi in w if "partial coverage" in str(wi.message)
+        wi for wi in w
+        if "partial coverage" in str(wi.message)
+        or "zero reward" in str(wi.message)
     ]
-    assert len(partial_warnings) >= 1
-    assert "[2]" in str(partial_warnings[0].message)
+    assert len(partial_warnings) == 0, (
+        f"unexpected partial-coverage warning: "
+        f"{[str(wi.message) for wi in partial_warnings]}"
+    )
+    # But the SVGD object exposes the introspection: feature 2 is
+    # the offending one for states().T[:-1] on N=4.
+    assert 2 in svgd.zero_inflated_features, (
+        f"expected feature 2 in svgd.zero_inflated_features; "
+        f"got {svgd.zero_inflated_features}"
+    )
+    assert len(svgd.n_zero_per_feature) == len(svgd.zero_inflated_features)
+    assert int(svgd.n_zero_per_feature[0]) > 0
 
     theta = float(np.asarray(svgd.theta_mean).ravel()[0])
     assert abs(theta - 10.0) < 1.5, (
@@ -267,10 +277,9 @@ def test_svgd_warns_and_recovers_on_partial_coverage():
     )
 
 
-def test_svgd_full_coverage_does_not_emit_warning():
-    """Covering rewards still produce no partial-coverage warning
-    and the legacy continuous-density log-likelihood path runs
-    unchanged."""
+def test_svgd_full_coverage_has_empty_zero_inflated_features():
+    """Covering rewards don't trigger zero-inflation; the
+    introspection list is empty."""
     g = _build_n4_coalescent()
     rewards = g.states().T[[0, 1]].astype(np.float64)
 
@@ -296,25 +305,39 @@ def test_svgd_full_coverage_does_not_emit_warning():
             progress=False,
         )
     partial_warnings = [
-        wi for wi in w if "partial coverage" in str(wi.message)
+        wi for wi in w
+        if "partial coverage" in str(wi.message)
+        or "zero reward" in str(wi.message)
     ]
     assert len(partial_warnings) == 0, (
         "Full-coverage rewards must not trigger partial-coverage warnings"
     )
+    assert svgd.zero_inflated_features == [], (
+        "Full-coverage SVGD must have empty zero_inflated_features; "
+        f"got {svgd.zero_inflated_features}"
+    )
 
 
-def test_sample_warns_on_partial_coverage_but_returns_zeros():
-    """Graph.sample with partial-coverage rewards no longer raises;
-    it warns and returns mixture samples (some zero, some positive)."""
+def test_sample_silent_on_partial_coverage_returns_mixture():
+    """Graph.sample with partial-coverage rewards no longer raises
+    and no longer warns; it returns mixture samples (some zero,
+    some positive) silently."""
     g = _build_n4_coalescent()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         samples = g.sample(
             500, rewards=np.array([0, 0, 0, 0, 1, 0], dtype=np.float64),
         )
-    # Should emit the partial-coverage warning (atom + continuous mixture).
-    assert any("zero reward" in str(wi.message) for wi in w), (
-        f"expected partial-coverage warning; got: {[str(wi.message) for wi in w]}"
+    # No partial-coverage / zero-reward warning.
+    noisy = [
+        wi for wi in w
+        if "zero reward" in str(wi.message)
+        or "partial coverage" in str(wi.message)
+        or "sub-stochastic" in str(wi.message)
+    ]
+    assert len(noisy) == 0, (
+        f"unexpected partial-coverage warning: "
+        f"{[str(wi.message) for wi in noisy]}"
     )
     # Some samples must be zero (mixture).
     assert np.any(samples == 0.0)
@@ -337,21 +360,30 @@ def test_sample_with_validate_false_returns_zeros():
     )
 
 
-def test_reward_transform_warns_but_does_not_raise():
+def test_reward_transform_silent_on_partial_coverage():
     """reward_transform retains its legitimate non-inference uses
-    (Laplace transforms, conditional expectations) so it warns rather
-    than raises on coverage failure. Shape errors still raise."""
+    (Laplace transforms, conditional expectations) and now runs
+    silently on partial-coverage rewards. Shape errors still raise."""
     g = _build_n4_coalescent()
     bad = np.array([0, 0, 0, 0, 1, 0], dtype=np.float64)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         result = g.reward_transform(bad)
     assert result is not None
-    assert any(issubclass(wi.category, UserWarning) for wi in w), (
-        "Expected UserWarning on coverage failure"
+    # No partial-coverage warning emitted by reward_transform.
+    noisy = [
+        wi for wi in w
+        if issubclass(wi.category, UserWarning)
+        and (
+            "zero reward" in str(wi.message)
+            or "partial coverage" in str(wi.message)
+            or "sub-stochastic" in str(wi.message)
+        )
+    ]
+    assert len(noisy) == 0, (
+        f"unexpected partial-coverage warning: "
+        f"{[str(wi.message) for wi in noisy]}"
     )
-    # Match the new atom-as-mixture warning wording.
-    assert any("zero reward" in str(wi.message) for wi in w)
 
     # But a wrong-length 1D reward must still raise.
     with pytest.raises(ValueError, match=r"1D rewards must have shape"):
@@ -634,36 +666,8 @@ def test_svgd_absorbing_reward_runs_via_zero_inflation():
     assert svgd.particles is not None
 
 
-def test_partial_coverage_warning_fires_once():
-    """A single Graph.svgd call emits exactly one partial-coverage
-    warning regardless of n_iterations."""
-    g = _build_n4_coalescent()
-    rewards = g.states().T[:-1].astype(np.float64)
-    n = 200
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        per_feat = [g.sample(n, rewards=rewards[i]) for i in range(rewards.shape[0])]
-    obs = np.full(
-        (n * rewards.shape[0], rewards.shape[0]), np.nan, dtype=np.float64,
-    )
-    for i in range(rewards.shape[0]):
-        obs[i*n:(i+1)*n, i] = per_feat[i]
-    sparse_obs = dense_to_sparse(obs)
-
-    g_svgd = _build_n4_coalescent()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        g_svgd.svgd(
-            observed_data=sparse_obs,
-            rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
-            n_iterations=30,  # many iterations
-            n_particles=4,
-            learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
-            progress=False,
-        )
-    partial = [wi for wi in w if "partial coverage" in str(wi.message)]
-    assert len(partial) == 1, (
-        f"Expected exactly 1 partial-coverage warning, got "
-        f"{len(partial)}"
-    )
+# `test_partial_coverage_warning_fires_once` was removed:
+# `Graph.svgd` no longer emits a partial-coverage warning at all
+# (zero-inflation is silent, with introspection on
+# `svgd.zero_inflated_features`). Silence is covered by
+# `test_svgd_runs_silently_on_partial_coverage_with_introspection`.

@@ -2716,16 +2716,15 @@ class Graph(_Graph):
         distribution context using distribution_context().
         """
         if "rewards" in kwargs and validate_rewards:
-            # Use coverage_mode="warn": partial-coverage reward
-            # vectors are legal here (the C++ sampler naturally
-            # returns 0 for trajectories that don't visit any
-            # rewarded vertex; the resulting samples are a mixture
-            # of point-mass-at-0 and a continuous part). Warn so the
-            # user knows what shape their data has.
+            # Shape errors raise (always); coverage is reported
+            # silently. Partial-coverage reward vectors produce a
+            # mixture of point-mass-at-0 and continuous-positive
+            # samples — that's the correct shape of the data, not
+            # a problem to flag.
             kwargs["rewards"] = self._validate_rewards(
                 kwargs["rewards"],
                 allow_2d=False,
-                coverage_mode="warn",
+                coverage_mode="report",
                 context="rewards",
             )
         if self.is_discrete:
@@ -3413,14 +3412,14 @@ class Graph(_Graph):
             raise ValueError("rewards contains NaN values")
         if validate_rewards:
             # Shape errors always raise (wrong-length rewards is a
-            # bug). Coverage failures warn but do not raise, since
-            # reward_transform has legitimate sub-stochastic uses
-            # (Laplace transforms, conditional expectations).
+            # bug). Coverage is reported silently: a partial-coverage
+            # reward vector produces a (atom + continuous) mixture
+            # graph, which is a legitimate phase-type distribution.
             self._validate_rewards(
                 rewards_arr,
                 allow_2d=False,
                 check_coverage=True,
-                coverage_mode="warn",
+                coverage_mode="report",
                 context="rewards",
             )
 
@@ -4101,6 +4100,14 @@ class Graph(_Graph):
         model._zero_inflated_p_fn = _zero_inflated_p_fn
         model._n_zero_per_feature = jnp.asarray(
             n_zero_per_feature, dtype=jnp.float64,
+        )
+        # Plain-Python introspection: the list of offending feature
+        # indices (which `SVGD.summary` reads to mention zero-
+        # inflation) and the matching zero-count vector. Stored as
+        # numpy / list so users can inspect without depending on jax.
+        model._zero_inflated_features = list(offenders)
+        model._n_zero_per_feature_np = np.asarray(
+            n_zero_per_feature, dtype=np.int64,
         )
 
     def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
@@ -6557,12 +6564,16 @@ extern "C" {{
             # Skipped when joint_index is active (rewards then encode joint
             # observation indices, not vertex-level reward weights).
             #
-            # Coverage failures DO NOT raise here: they're handled by a
-            # zero-inflated likelihood that models the point mass at
-            # r = 0 (trajectories that absorb without visiting any
-            # rewarded vertex) separately from the continuous part. The
-            # mode-switch is informational; users see a one-time
-            # UserWarning naming the offending features.
+            # Partial coverage is handled silently by a zero-inflated
+            # likelihood that models the point mass at r = 0
+            # (trajectories that absorb without visiting any rewarded
+            # vertex) alongside the continuous part. No warning is
+            # emitted: this is the correct distributional response for
+            # any (atom + continuous) mixture, and in many multi-feature
+            # workflows partial coverage is the expected shape of the
+            # data. The list of offending features is recorded on the
+            # SVGD object as `svgd.zero_inflated_features` and surfaced
+            # in `svgd.summary()` so the user can inspect it explicitly.
             _partial_coverage_features_for_zi: list[int] = []
             if rewards is not None and validate_rewards and not joint_index:
                 rewards = self._validate_rewards(
@@ -6574,34 +6585,6 @@ extern "C" {{
                 _partial_coverage_features_for_zi = (
                     self._partial_coverage_features(rewards)
                 )
-                if _partial_coverage_features_for_zi:
-                    import warnings
-                    arr_for_msg = np.asarray(rewards, dtype=np.float64)
-                    if arr_for_msg.ndim == 1:
-                        warnings.warn(
-                            "rewards: partial coverage (some absorbing "
-                            "trajectories do not visit any rewarded "
-                            "vertex). Using zero-inflated likelihood "
-                            "automatically: SVGD models the point mass "
-                            "at r = 0 via p(theta) = "
-                            "P(visit a rewarded vertex). To use the "
-                            "legacy sub-stochastic continuous-only "
-                            "likelihood, pass validate_rewards=False.",
-                            UserWarning,
-                            stacklevel=2,
-                        )
-                    else:
-                        warnings.warn(
-                            f"rewards: features "
-                            f"{_partial_coverage_features_for_zi} have "
-                            f"partial coverage (of {arr_for_msg.shape[0]} "
-                            "total features). Using zero-inflated "
-                            "likelihood automatically for those features. "
-                            "To use the legacy sub-stochastic continuous-"
-                            "only likelihood, pass validate_rewards=False.",
-                            UserWarning,
-                            stacklevel=2,
-                        )
 
             # Validate observed_data: must be 1-D array or SparseObservations
             # (skip for joint probability graphs — they accept lists of tuples)
