@@ -33,7 +33,7 @@ import numpy as np
 
 from .exceptions import SvgdConfigError
 
-GraphKind = Literal['standard', 'joint_prob', 'joint_stop_prob']
+GraphKind = Literal['standard', 'joint_prob', 'joint_stop_prob', 'unknown']
 ObservationKind = Literal[
     '1d_times', '2d_times', 'sparse',
     'joint_outcomes', 'joint_indices',
@@ -53,8 +53,12 @@ class SvgdConfig:
     library would silently coerce them to.
     """
     graph_kind: GraphKind
-    is_discrete: bool
-    param_length: int
+    # ``is_discrete`` and ``param_length`` are ``None`` when the
+    # config is built via ``from_model_call`` (direct ``SVGD(...)``
+    # construction with no graph reference). Rules that depend on
+    # these fields must short-circuit on ``None``.
+    is_discrete: Optional[bool]
+    param_length: Optional[int]
     observation_kind: ObservationKind
     n_observations: int
     rewards_kind: RewardsKind
@@ -329,6 +333,101 @@ def from_svgd_call(
     )
 
 
+def from_model_call(
+    model: Any,
+    observed_data: Any,
+    *,
+    theta_dim: Optional[int] = None,
+    theta_init: Any = None,
+    rewards: Any = None,
+    fixed: Any = None,
+    exposure: Any = None,
+    exposure_param_index: Optional[int] = None,
+    param_transform: Any = None,
+    positive_params: bool = True,
+    preconditioner: Any = 'auto',
+    regularization: float = 0.0,
+    nr_moments: int = 2,
+    **_unused: Any,
+) -> SvgdConfig:
+    """Build an :class:`SvgdConfig` from a direct ``SVGD(...)`` call.
+
+    Companion to :func:`from_svgd_call` for the model-centric path
+    where no live ``Graph`` object is available. The resulting config
+    has ``graph_kind='unknown'`` and ``is_discrete=None``, so rules
+    that gate on those fields no-op; rules that depend only on
+    model-side kwargs (exposure × SparseObservations, fixed shape,
+    exposure_param_index bounds, positive_params × param_transform)
+    still fire.
+
+    ``param_length`` is inferred from ``theta_dim`` if provided, else
+    from ``theta_init.shape[1]`` if provided, else ``None`` (which
+    suppresses bounds-style checks).
+
+    Direct callers cannot pass ``epoch_starts``, ``tied``, or
+    ``callback`` (these are pre-model-construction concerns owned by
+    ``Graph.svgd``), so those fields are hard-coded to absent.
+    """
+    graph_kind: GraphKind = 'unknown'
+    is_discrete: Optional[bool] = None
+
+    param_length: Optional[int] = None
+    if theta_dim is not None:
+        param_length = int(theta_dim)
+    elif theta_init is not None:
+        arr = np.asarray(theta_init)
+        if arr.ndim >= 2:
+            param_length = int(arr.shape[1])
+        elif arr.ndim == 1:
+            param_length = int(arr.shape[0])
+
+    observation_kind, n_observations = _classify_observation_kind(
+        observed_data, graph_kind
+    )
+    rewards_kind = _classify_rewards_kind(rewards)
+
+    has_fixed, fixed_indices = _coerce_fixed_indices(
+        fixed, has_epoch_starts=False
+    )
+
+    has_exposure = exposure is not None
+    exposure_length: Optional[int] = None
+    if has_exposure:
+        try:
+            arr = np.asarray(exposure)
+            exposure_length = int(arr.size) if arr.ndim >= 1 else 1
+        except (TypeError, ValueError):
+            exposure_length = None
+
+    return SvgdConfig(
+        graph_kind=graph_kind,
+        is_discrete=is_discrete,
+        param_length=param_length,
+        observation_kind=observation_kind,
+        n_observations=n_observations,
+        rewards_kind=rewards_kind,
+        has_epoch_starts=False,
+        n_epochs=None,
+        has_fixed=has_fixed,
+        fixed_indices=fixed_indices,
+        has_exposure=has_exposure,
+        exposure_length=exposure_length,
+        exposure_param_index=(
+            int(exposure_param_index)
+            if exposure_param_index is not None else None
+        ),
+        has_param_transform=param_transform is not None,
+        positive_params=bool(positive_params),
+        has_preconditioner=preconditioner is not None and preconditioner != 'none',
+        has_regularization=float(regularization) > 0.0,
+        nr_moments=int(nr_moments),
+        joint_index_explicit=False,
+        has_tied=False,
+        tied_groups=None,
+        has_callback=False,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Rules R1..R15 — each a small named function that raises on violation.
 # ---------------------------------------------------------------------------
@@ -417,6 +516,12 @@ def _check_R7_exposure_and_param_index_paired(c: SvgdConfig) -> None:
 
 def _check_R8_exposure_param_index_in_param_length_range(c: SvgdConfig) -> None:
     if c.exposure_param_index is None:
+        return
+    # ``param_length`` is unknown when the config is built from a
+    # direct ``SVGD(...)`` call without ``theta_dim`` or ``theta_init``.
+    # Skip the bounds check; downstream model construction will catch
+    # an out-of-range index there.
+    if c.param_length is None:
         return
     # exposure_param_index is the *per-epoch local* index, even under daisy-chain.
     if not (0 <= c.exposure_param_index < c.param_length):
@@ -682,5 +787,6 @@ __all__ = [
     'SvgdConfig',
     'SvgdConfigError',
     'from_svgd_call',
+    'from_model_call',
     'validate',
 ]

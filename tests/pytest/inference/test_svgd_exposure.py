@@ -590,6 +590,13 @@ def test_graph_svgd_validation_propagates():
 
 
 def test_validation_sparse_observations_rejected():
+    # Two valid rejection routes are exercised:
+    #   - With rewards omitted, R5 fires first: "SparseObservations
+    #     require explicit rewards".
+    #   - With rewards present, R6 fires: "exposure is not supported
+    #     with SparseObservations".
+    # We accept either rejection via the SvgdConfigError parent class.
+    from phasic.exceptions import SvgdConfigError
     model = _make_model_two_param()
     sparse = SparseObservations(
         values=jnp.array([1.0, 2.0, 3.0]),
@@ -597,7 +604,7 @@ def test_validation_sparse_observations_rejected():
         n_features=2,
         slices=((0, 2), (2, 3)),
     )
-    with pytest.raises(NotImplementedError, match=r"SparseObservations"):
+    with pytest.raises(SvgdConfigError, match=r"[Ss]parse"):
         SVGD(
             model=model,
             observed_data=sparse,

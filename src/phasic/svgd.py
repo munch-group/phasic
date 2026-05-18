@@ -77,10 +77,33 @@ from .exceptions import PTDConfigError
 #     return globals()[class_name]
 
 
-try:
-    from vscodenb import pqdm as tqdm
-    from vscodenb import prange as trange
-except ImportError:
+def _running_in_notebook() -> bool:
+    """Return True iff we are inside a Jupyter/VS Code notebook kernel.
+
+    The ``vscodenb`` HTML progress bar only renders correctly under a
+    notebook display; its CLI fallback iterates zero times (upstream
+    bug). Guard the import so plain pytest / CLI runs keep using
+    ``tqdm.trange`` even when ``vscodenb`` is installed.
+    """
+    try:
+        from IPython import get_ipython
+        shell = get_ipython()
+        if shell is None:
+            return False
+        return 'TerminalInteractiveShell' not in str(type(shell))
+    except (ImportError, NameError):
+        return False
+
+
+if _running_in_notebook():
+    try:
+        from vscodenb import pqdm as tqdm
+        from vscodenb import prange as trange
+    except ImportError:
+        from tqdm import trange, tqdm
+        trange = partial(trange, leave=False)
+        tqdm = partial(tqdm, leave=False)
+else:
     from tqdm import trange, tqdm
     trange = partial(trange, leave=False)
     tqdm = partial(tqdm, leave=False)
@@ -4257,6 +4280,36 @@ class SVGD:
     This class provides an object-oriented interface for SVGD inference with
     automatic result storage and diagnostic plotting capabilities.
 
+    When to use ``Graph.svgd`` vs ``SVGD`` direct
+    --------------------------------------------
+    Use :meth:`phasic.Graph.svgd` when you have a phasic ``Graph`` object —
+    it handles model construction, reward validation, zero-inflation
+    attachment for partial-coverage rewards, daisy-chain epoch wiring,
+    tied parameters, and per-edge weight callbacks for you. The
+    parameters that :meth:`Graph.svgd` and :class:`SVGD` share have
+    identical names, defaults, and semantics.
+
+    Use ``SVGD(model=..., ...)`` direct only when you have a pre-built
+    JAX-compatible model callable (e.g. an external PMF) and a fixed
+    ``theta_dim``. Parameters unique to :meth:`Graph.svgd` —
+    ``discrete``, ``joint_index``, ``tied``, ``callback``,
+    ``epoch_starts``, ``daisy_chain_t_eval``,
+    ``daisy_chain_granularity``, ``daisy_chain_probe_theta``,
+    ``daisy_chain_t_eval_tol``, ``validate_rewards``,
+    ``return_history`` — are pre-model-construction concerns and have
+    no meaning when SVGD is handed an opaque model callable.
+
+    Direct ``SVGD`` callers whose ``model`` carries a ``_source_graph``
+    attribute (stamped by the public PMF builders
+    :meth:`Graph.pmf_from_graph`,
+    :meth:`Graph.pmf_and_moments_from_graph`,
+    :meth:`Graph.pmf_and_moments_from_graph_multivariate`,
+    :meth:`Graph.pmf_from_graph_joint_index`) get the zero-inflated
+    likelihood term auto-attached when ``rewards`` indicates partial
+    coverage. Hand-built models without a source graph reference skip
+    this safety net silently — see
+    :mod:`phasic.zero_inflation` for the underlying helpers.
+
     Parameters
     ----------
     model : callable
@@ -4305,9 +4358,9 @@ class SVGD:
         Dimension of theta parameter vector (required if theta_init is None)
     seed : int, default=42
         Random seed for reproducibility
-    verbose : bool, default=True
+    verbose : bool, default=False
         Print progress information
-    progress : bool, default=False
+    progress : bool, default=True
         Display progress bar during optimization
     jit : bool or None, default=None
         Enable JIT compilation. If None, uses value from phasic.get_config().jit.
@@ -4544,14 +4597,14 @@ class SVGD:
     def __init__(self, model: Callable, observed_data: jnp.ndarray | SparseObservations,
                  prior: Prior | list[Prior | None] | DataPrior | None = None,
                  n_particles: int | None = None,
-                 n_iterations: int = 700,
+                 n_iterations: int = 1000,
                  learning_rate: float | StepSizeSchedule | None = None,
                  bandwidth: str | float = 'median_per_dim',
                  theta_init: jnp.ndarray | None = None,
                  theta_dim: int | None = None,
                  seed: int | None = None,
-                 verbose: bool = True,
-                 progress: bool = False,
+                 verbose: bool = False,
+                 progress: bool = True,
                  jit: bool | None = None,
                  parallel: str | None = None,
                  n_devices: int | None = None,
@@ -4566,7 +4619,70 @@ class SVGD:
                  optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
                  preconditioner: str | _PreconditionerBase = 'auto',
                  exposure: jnp.ndarray | float | None = None,
-                 exposure_param_index: int | None = None) -> None:
+                 exposure_param_index: int | None = None,
+                 _validated: bool = False) -> None:
+
+        # Run the combinational validator unless ``Graph.svgd``
+        # already did so (it sets _validated=True before calling us).
+        # See ``phasic.svgd_config`` for the rule list. This catches
+        # bad combos (exposure x SparseObservations, fixed shape,
+        # exposure_param_index bounds, positive_params x param_transform
+        # exclusivity) before any expensive JIT/compilation work.
+        if not _validated:
+            from .svgd_config import (
+                from_model_call as _svgd_from_model_call,
+                validate as _svgd_validate,
+            )
+            _reg_probe = (
+                float(regularization(0))
+                if isinstance(regularization, RegularizationSchedule)
+                else float(regularization)
+            )
+            _svgd_validate(_svgd_from_model_call(
+                model, observed_data,
+                theta_dim=theta_dim,
+                theta_init=theta_init,
+                rewards=rewards,
+                fixed=fixed,
+                exposure=exposure,
+                exposure_param_index=exposure_param_index,
+                param_transform=param_transform,
+                positive_params=positive_params,
+                preconditioner=preconditioner,
+                regularization=_reg_probe,
+                nr_moments=nr_moments,
+            ))
+
+        # Auto-attach the zero-inflated likelihood term for direct
+        # ``SVGD(...)`` callers who pass partial-coverage rewards
+        # without going through ``Graph.svgd``. Gated on
+        # ``_validated=False`` so this only runs on the direct-construct
+        # path: when ``Graph.svgd`` calls us with ``_validated=True``,
+        # it has already made the attach decision (possibly to skip,
+        # via ``validate_rewards=False`` or ``joint_index=True``), and
+        # we must not second-guess it. Detection requires a
+        # source-graph reference, which the public PMF builders
+        # (``Graph.pmf_from_graph`` etc.) stamp onto the returned
+        # callable as ``_source_graph``. Custom hand-built models
+        # without this attribute silently skip — we cannot reconstruct
+        # the graph topology from an opaque callable.
+        if (not _validated
+                and rewards is not None
+                and getattr(model, '_zero_inflated_p_fn', None) is None):
+            _src_graph = getattr(model, '_source_graph', None)
+            if _src_graph is not None:
+                from .zero_inflation import (
+                    partial_coverage_features as _partial_cov,
+                    attach_zero_inflated_term as _attach_zi,
+                )
+                _offenders = _partial_cov(_src_graph, rewards)
+                if _offenders:
+                    _attach_zi(
+                        _src_graph, model,
+                        rewards=rewards,
+                        offenders=_offenders,
+                        observed_data=observed_data,
+                    )
 
         if n_particles is None:
             n_particles = 20 * theta_dim

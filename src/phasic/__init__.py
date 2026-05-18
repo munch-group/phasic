@@ -2213,6 +2213,155 @@ class Graph(_Graph):
         self._last_ipv = ipv_array
         return super().update_ipv(ipv_array)
 
+    def clear_from_cache(
+        self,
+        graph_cache: bool = True,
+        parameterized_reward_compute: bool = True,
+    ) -> dict[str, int]:
+        """Delete this graph's entries from the on-disk caches.
+
+        Parameters
+        ----------
+        graph_cache : bool, default True
+            If True, remove the serialised Graph entry from
+            ``~/.phasic_cache/graphs/<callback_hash>.json``. Requires
+            that this graph was built from a callback (so the
+            callback + construction kwargs are available to recompute
+            the same hash the constructor used). Manually constructed
+            graphs have no callback-hash key and will raise.
+        parameterized_reward_compute : bool, default True
+            If True, remove this graph's Stage A2 symbolic elimination
+            entry from
+            ``~/.phasic_cache/parameterized_reward_compute/<content_hash>.bin``.
+            Per-SCC entries (``scc_<synth_hash>.bin``) are *not* touched
+            because they are content-addressed by SCC subgraph
+            topology and may be shared with other graphs that have the
+            same substructure.
+
+        Returns
+        -------
+        dict[str, int]
+            ``{'graph_cache': n, 'parameterized_reward_compute': m}``
+            where each value is the number of files actually removed
+            (0 if the entry was not present, or if the flag was False).
+
+        Raises
+        ------
+        ValueError
+            If neither flag is True.
+        RuntimeError
+            If ``graph_cache=True`` was requested but no callback is
+            stored on this instance (e.g. graph built via
+            ``Graph(state_length)`` then populated manually).
+
+        Notes
+        -----
+        Missing files are not an error — they just mean the graph was
+        never cached (or has already been cleared). The only conditions
+        that raise are user errors (no flags, no callback key
+        available).
+
+        For bulk operations across many graphs prefer
+        :func:`phasic.cache.clear_param_compute_cache` and
+        :func:`phasic.clear_all_graph_caches`.
+
+        Examples
+        --------
+        >>> g = Graph(model, indexer=indexer, theta_dim=1)
+        >>> g.update_weights([1.0])
+        >>> _ = g.expectation()  # populates parameterized_reward_compute
+        >>> g.clear_from_cache(graph_cache=False) # keep graph cache
+        {'graph_cache': 0, 'parameterized_reward_compute': 1}
+        """
+        if not graph_cache and not parameterized_reward_compute:
+            raise ValueError(
+                "clear_from_cache: specify at least one of "
+                "graph_cache=True or parameterized_reward_compute=True"
+            )
+
+        removed = {"graph_cache": 0, "parameterized_reward_compute": 0}
+
+        if graph_cache:
+            if self._callback is None:
+                raise RuntimeError(
+                    "clear_from_cache(graph_cache=True): this graph "
+                    "was not built from a callback, so it has no "
+                    "callback-hash key in ~/.phasic_cache/graphs/."
+                )
+            from .graph_cache import GraphCache
+            from .callback_hash import hash_callback
+            cache_key = hash_callback(self._callback, **self._callback_kwargs)
+            cache_path = GraphCache().cache_dir / f"{cache_key}.json"
+            if cache_path.exists():
+                cache_path.unlink()
+                removed["graph_cache"] = 1
+
+        if parameterized_reward_compute:
+            from .phasic_pybind import hash as _hash_mod
+            from .cache import _cache_root
+            hex_hash = _hash_mod.compute_graph_hash(self).hash_hex
+            cache_path = (
+                _cache_root()
+                / "parameterized_reward_compute"
+                / f"{hex_hash}.bin"
+            )
+            if cache_path.exists():
+                cache_path.unlink()
+                removed["parameterized_reward_compute"] = 1
+
+        return removed
+
+    def prewarm_cache(self) -> None:
+        """Populate the on-disk Stage A2 cache for this graph. If parameterized, 
+        update_weights must be called beforehand.
+
+        Triggers the C-side symbolic elimination
+        (``ptd_precompute_reward_compute_graph``) and writes its result to
+        ``~/.phasic_cache/parameterized_reward_compute/<content_hash>.bin``.
+        Subsequent processes (notebook restart, SLURM workers, fresh CLI
+        runs) that build the same graph will load the cached elimination
+        instead of redoing the O(n^3) work.
+
+        If ``phasic.configure(parallel_elimination=True)`` is active and
+        the graph is parameterised, the hierarchical SCC composer takes
+        over: it writes one ``scc_<synth_hash>.bin`` entry per SCC
+        large enough to cache (``PHASIC_MIN_SCC_SIZE_TO_CACHE``) and
+        *skips* the monolithic parent ``<content_hash>.bin``. Future
+        runs that want to benefit from the cache must also have
+        ``parallel_elimination=True`` active — the parent file and SCC
+        files are populated by different code paths and not
+        interchangeable. Run ``prewarm_cache`` once under each
+        configuration you plan to consume from.
+
+        Notes
+        -----
+        Cost is one full elimination plus one waiting-time read; the 
+        cache write is a side effect of the elimination.
+
+        Examples
+        --------
+        Pre-warm on the head node before farming out to SLURM workers:
+
+        >>> g = Graph(model, indexer=indexer, theta_dim=2)
+        >>> g.prewarm_cache()
+        >>> # ~/.phasic_cache/parameterized_reward_compute/<hash>.bin now exists
+        >>> # Workers that rebuild the same graph will load it instantly
+
+        Pre-warm SCC cache too (cyclic graph):
+
+        >>> from phasic import configure
+        >>> with configure(parallel_elimination=True):
+        ...     g.prewarm_cache(theta=[1.0, 0.5])
+        ...     # scc_*.bin entries are now also on disk
+        """
+        if self._last_theta is None:
+            raise RuntimeError(
+                "prewarm_cache: graph is parameterised but no theta "
+                "has been set. Pass theta=... or call "
+                "update_weights(theta) first."
+            )
+        _ = self.expectation()
+
     def _moments_from_trace(self, power: int = 1, rewards: ArrayLike | None = None, discrete: bool = False) -> float:
         """Compute moments using cached elimination trace.
 
@@ -3992,29 +4141,11 @@ class Graph(_Graph):
     def _partial_coverage_features(self, rewards) -> list[int]:
         """Return indices of features (rows) that fail the coverage check.
 
-        For 1D rewards returns ``[0]`` if the single vector fails,
-        otherwise ``[]``. For 2D rewards ``(n_features, n_vertices)``
-        returns the list of offending feature indices. Reuses the
-        existing ``_validate_reward_coverage`` BFS — just catches the
-        ValueError instead of letting it propagate.
+        Thin shim over :func:`phasic.zero_inflation.partial_coverage_features`;
+        see that module for the implementation.
         """
-        arr = np.asarray(rewards, dtype=np.float64)
-        if arr.ndim == 1:
-            try:
-                self._validate_reward_coverage(arr, context="rewards")
-                return []
-            except ValueError:
-                return [0]
-        assert arr.ndim == 2, "expected 1D or 2D rewards after shape check"
-        offenders: list[int] = []
-        for j in range(arr.shape[0]):
-            try:
-                self._validate_reward_coverage(
-                    arr[j], context=f"rewards[feature {j}]"
-                )
-            except ValueError:
-                offenders.append(j)
-        return offenders
+        from .zero_inflation import partial_coverage_features
+        return partial_coverage_features(self, rewards)
 
     def _attach_zero_inflated_term(
         self,
@@ -4026,142 +4157,16 @@ class Graph(_Graph):
     ) -> None:
         """Wire the zero-inflated likelihood term onto an SVGD model.
 
-        Attaches two attributes to ``model``:
-
-        - ``_zero_inflated_p_fn`` : callable ``theta -> jax.Array``,
-          returning a vector of ``p_j(theta) = P(visit a rewarded
-          vertex in feature j | theta)`` for the offending features
-          (length ``len(offenders)``). JAX-differentiable.
-        - ``_n_zero_per_feature`` : np.int64 array of shape
-          ``(len(offenders),)`` counting zero-valued observations per
-          offending feature. Computed once at attach time from the
-          user's ``observed_data``.
-
-        ``SVGD._log_prob_unified`` reads these to add the
-        ``Σ_j n_zero_j * log(1 - p_j(theta))`` term to the
-        log-likelihood.
+        Thin shim over
+        :func:`phasic.zero_inflation.attach_zero_inflated_term`; see
+        that module for the implementation.
         """
-        import jax.numpy as jnp
-        from .svgd import SparseObservations, is_sparse_observations
-
-        arr = np.asarray(rewards, dtype=np.float64)
-        n_v = self.vertices_length()
-        if arr.ndim == 1:
-            offender_reward_rows = [arr]
-        else:
-            offender_reward_rows = [arr[j] for j in offenders]
-
-        # Per-feature zero counts from observed_data.
-        n_zero_per_feature = np.zeros(len(offenders), dtype=np.int64)
-        if is_sparse_observations(observed_data):
-            values = np.asarray(observed_data.values)
-            feat_idx = np.asarray(observed_data.features)
-            for k, j in enumerate(offenders):
-                mask = feat_idx == j
-                if not np.any(mask):
-                    n_zero_per_feature[k] = 0
-                    continue
-                vals_j = values[mask]
-                n_zero_per_feature[k] = int(
-                    np.sum((vals_j == 0.0) & ~np.isnan(vals_j))
-                )
-        else:
-            obs = np.asarray(observed_data)
-            if obs.ndim == 1:
-                # 1D path: rewards must be 1D, single offender == feature 0.
-                n_zero_per_feature[0] = int(np.sum(obs == 0.0))
-            elif obs.ndim == 2:
-                # 2D dense (NaN-padded) observations.
-                for k, j in enumerate(offenders):
-                    col = obs[:, j]
-                    n_zero_per_feature[k] = int(
-                        np.sum((col == 0.0) & ~np.isnan(col))
-                    )
-            else:
-                raise ValueError(
-                    "_attach_zero_inflated_term: observed_data must be "
-                    "1D, 2D, or SparseObservations; got ndim "
-                    f"{obs.ndim}."
-                )
-
-        # Skip the wiring entirely when there are NO zero observations
-        # for any offending feature. The math then contributes nothing
-        # (n_zero * log(1 - p) == 0) and we save the runtime cost of
-        # the extra FFI call. The legacy path is correct in that case.
-        if not np.any(n_zero_per_feature > 0):
-            return
-
-        # Precompute the (concrete) rewarded-vertex index arrays once
-        # so the JAX-traced p(theta) function can use static-sized
-        # int32 arrays inside the FFI call.
-        rewarded_per_feature: list[np.ndarray] = []
-        for row in offender_reward_rows:
-            rewarded = np.where(row > 0.0)[0].astype(np.int32)
-            rewarded_per_feature.append(rewarded)
-
-        alpha = self._initial_probability_vector()
-        structure_json = self.serialize()
-
-        # Prefer the fused `_cdf_zero_fn` exposed by the pybind model
-        # builder (the standard `Graph.svgd` path). It computes the
-        # atomic mass at r = 0 of the reward-transformed distribution,
-        # which is mathematically the complement of `p_j(theta)` =
-        # P(visit a rewarded vertex). One call per particle, sharing
-        # the reward_transform with the model's PDF pass.
-        cdf_zero_fn = getattr(model, '_cdf_zero_fn', None)
-
-        if cdf_zero_fn is not None:
-            # Stack the offender rows into a 2D array (n_offenders, n_v)
-            # so `_cdf_zero_fn` returns one value per offender feature
-            # in the same order as `offender_reward_rows`.
-            offender_stack = np.stack(
-                [np.asarray(r, dtype=np.float64) for r in offender_reward_rows],
-                axis=0,
-            )
-            offender_stack_jax = jnp.asarray(offender_stack, dtype=jnp.float64)
-
-            def _zero_inflated_p_fn(theta):
-                """Return p_j(theta) = 1 - cdf_zero_j(theta) for each
-                offending feature j. Uses the fused pybind path which
-                shares the reward_transform with the model's PDF
-                computation; no separate backward_probabilities solve.
-                """
-                cdf_zeros = cdf_zero_fn(theta, offender_stack_jax)
-                return 1.0 - cdf_zeros
-        else:
-            from .ffi_wrappers import compute_reward_visit_probability_ffi
-
-            def _zero_inflated_p_fn(theta):
-                """Return p_j(theta) for each offending feature j.
-
-                Used when the model was built via the FFI path
-                (`use_ffi=True`) which does not currently expose
-                `_cdf_zero_fn`. Falls back to a separate
-                `backward_probabilities` solve per offender per
-                particle.
-                """
-                alpha_j = jnp.asarray(alpha, dtype=jnp.float64)
-                ps = []
-                for rewarded in rewarded_per_feature:
-                    rewarded_j = jnp.asarray(rewarded, dtype=jnp.int32)
-                    ps.append(
-                        compute_reward_visit_probability_ffi(
-                            structure_json, theta, rewarded_j, alpha_j,
-                        )
-                    )
-                return jnp.stack(ps)
-
-        model._zero_inflated_p_fn = _zero_inflated_p_fn
-        model._n_zero_per_feature = jnp.asarray(
-            n_zero_per_feature, dtype=jnp.float64,
-        )
-        # Plain-Python introspection: the list of offending feature
-        # indices (which `SVGD.summary` reads to mention zero-
-        # inflation) and the matching zero-count vector. Stored as
-        # numpy / list so users can inspect without depending on jax.
-        model._zero_inflated_features = list(offenders)
-        model._n_zero_per_feature_np = np.asarray(
-            n_zero_per_feature, dtype=np.int64,
+        from .zero_inflation import attach_zero_inflated_term
+        attach_zero_inflated_term(
+            self, model,
+            rewards=rewards,
+            offenders=offenders,
+            observed_data=observed_data,
         )
 
     def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
@@ -5007,6 +5012,8 @@ class Graph(_Graph):
                 return jnp.array(theta_bar), None
 
             jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+            # Source graph reference (see ``pmf_and_moments_from_graph``).
+            jax_model._source_graph = graph
             return jax_model
 
         elif has_param_edges:
@@ -5132,6 +5139,8 @@ class Graph(_Graph):
                 return jnp.array(theta_bar), None
 
             jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+            # Source graph reference (see ``pmf_and_moments_from_graph``).
+            jax_model._source_graph = graph
             return jax_model
 
         else:
@@ -5145,6 +5154,8 @@ class Graph(_Graph):
                 # Can't use empty array due to JAX pure_callback limitations
                 dummy_theta = jnp.array([0.0])
                 return base_model(dummy_theta, times)
+            # Source graph reference (see ``pmf_and_moments_from_graph``).
+            non_param_wrapper._source_graph = graph
             return non_param_wrapper
 
     @classmethod
@@ -6221,7 +6232,7 @@ extern "C" {{
              discrete: bool | None = None,
              prior: Callable | None = None,
              n_particles: int | None = None,
-             n_iterations: int = 100,
+             n_iterations: int = 1000,
              optimizer: object | None = None,
              learning_rate: float | None = None,
              bandwidth: str | float | ArrayLike = 'median_per_dim',
@@ -6329,7 +6340,7 @@ extern "C" {{
             If True, return particle positions throughout optimization
         seed : int, default=None
             Random seed for reproducibility
-        verbose : bool, default=True
+        verbose : bool, default=False
             Print progress information
         jit : bool or None, default=None
             Enable JIT compilation. If None, uses value from phasic.get_config().jit.
@@ -6881,6 +6892,7 @@ extern "C" {{
                 preconditioner=preconditioner,
                 exposure=exposure,
                 exposure_param_index=exposure_param_index,
+                _validated=True,  # Graph.svgd ran the validator at the top
             )
 
             # Post-init for tied parameters: copy master column values
@@ -8042,6 +8054,10 @@ extern "C" {{
             model._cdf_zero_fn = _callback_mode_cdf_zero_fn
         elif not use_ffi:
             model._cdf_zero_fn = cdf_zero_fn
+        # Source graph reference for direct ``SVGD(model=...)``
+        # callers; enables auto-attachment of the zero-inflated
+        # likelihood term (see ``zero_inflation.py``).
+        model._source_graph = graph
         return model
 
     @classmethod
@@ -8291,6 +8307,8 @@ extern "C" {{
             return jnp.array(theta_bar), None, None  # gradients for theta, vertex_indices, rewards
 
         model.defvjp(model_fwd, model_bwd)
+        # Source graph reference (see ``pmf_and_moments_from_graph``).
+        model._source_graph = graph
         return model
 
     @classmethod
@@ -8483,6 +8501,8 @@ extern "C" {{
         if hasattr(model_1d, '_cdf_zero_fn'):
             model_multivariate._cdf_zero_fn = model_1d._cdf_zero_fn
 
+        # Source graph reference (see ``pmf_and_moments_from_graph``).
+        model_multivariate._source_graph = graph
         return model_multivariate
 
 
@@ -8878,7 +8898,7 @@ extern "C" {{
                                 cmap: str = 'viridis',
                                 show_indices: bool = True,
                                 annotate_sizes: bool = True,
-                                title: str | None = None,
+                                title: bool = False,
                                 ax: Any = None) -> Any:
         """Visualise the SCC decomposition of this graph as a
         level-wise treemap.
@@ -8924,8 +8944,8 @@ extern "C" {{
             is wide enough.
         annotate_sizes : bool
             Print the vertex count alongside the index.
-        title : str or None
-            Plot title. Defaults to a one-line summary of the
+        title : bool
+            Whether to show a title. Default is False. If True adds a one-line summary of the
             decomposition (number of SCCs, levels, widest row).
         ax : matplotlib.axes.Axes or None
             Existing axes to draw into. If ``None``, a new figure
@@ -9037,11 +9057,11 @@ extern "C" {{
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        if title is None:
-            title = (f"SCC decomposition: {n_sccs} SCCs across "
-                     f"{n_levels} levels (widest {widest}, "
-                     f"{total_vertices} vertices total)")
-        ax.set_title(title, fontsize=11)
+        if title:
+            title = (f"{n_sccs} SCCs across "
+                     f"{n_levels} levels. Widest {widest}, "
+                     f"{total_vertices} vertices total.")
+        ax.set_title(title)
 
         return ax
 
