@@ -116,6 +116,35 @@ def test_joint_index_with_callback_builds_on_discrete_joint_prob():
     assert np.asarray(probs).shape == (1,)
 
 
+def test_nonfinite_callback_returns_actionable_error():
+    """When a user weight_callback returns NaN/inf, the failure used
+    to manifest downstream as a cryptic JSON parse error
+    ("parse error at column 155: invalid literal") because phasic
+    dumped the concrete dict to JSON and the C++ parser rejected
+    `NaN`. After the fix, the failure is caught at the callback
+    boundary with a ValueError that names the offending edge,
+    theta, and coefficients."""
+    g = _make_n2_base_graph()
+
+    def nan_cb(theta, coeffs):
+        return float("nan")
+
+    g.weight_callback = nan_cb
+    model = Graph.pmf_and_moments_from_graph(g, nr_moments=2)
+
+    theta = jnp.array([1.0])
+    times = jnp.array([0.5, 1.0])
+    with pytest.raises(Exception) as exc_info:
+        pmf, _ = model(theta, times)
+    msg = str(exc_info.value)
+    # The error chains through jax.pure_callback so the user-facing
+    # exception type may not be a plain ValueError — match on the
+    # message which carries through the chain.
+    assert "non-finite" in msg, (
+        f"expected 'non-finite' in error message; got: {msg[:200]}"
+    )
+
+
 def test_callback_path_matches_linear_path_on_base_graph():
     """On a graph where the linear path returns finite, well-defined
     values, the callback path (with a callback that reproduces

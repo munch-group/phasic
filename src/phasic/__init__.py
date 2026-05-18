@@ -593,19 +593,46 @@ def _apply_weight_callback(serialized: dict, theta: np.ndarray, callback: Callab
     param_edges = serialized['param_edges']
     start_param_edges = serialized['start_param_edges']
 
+    def _check_weight(w: float, theta_in, coeffs_in, where: str) -> float:
+        # The C++ JSON parser rejects NaN/inf as invalid literals,
+        # producing a cryptic "parse error" downstream. Catch it here
+        # at the callback boundary so the user sees which call to
+        # their callback produced the bad value.
+        if not np.isfinite(w):
+            raise ValueError(
+                "weight_callback returned a non-finite value "
+                f"({w!r}) for {where}.\n"
+                f"  theta = {np.asarray(theta_in).tolist()}\n"
+                f"  coefficients = {np.asarray(coeffs_in).tolist()}\n"
+                "Phase-type edge weights must be finite non-negative "
+                "floats. Inspect your weight_callback for branches "
+                "that produce NaN/inf at typical theta values "
+                "(e.g. binomial pmf called with p outside [0, 1], "
+                "division by near-zero, log of non-positive)."
+            )
+        return w
+
     # Compute concrete weights via callback
     new_edges = list(serialized['edges'].tolist()) if len(serialized['edges']) > 0 else []
     for edge in param_edges:
         from_idx, to_idx = int(edge[0]), int(edge[1])
         coeffs = np.array(edge[2:])
-        weight = float(callback(theta, coeffs))
+        weight = _check_weight(
+            float(callback(theta, coeffs)),
+            theta, coeffs,
+            where=f"edge {from_idx} -> {to_idx}",
+        )
         new_edges.append([from_idx, to_idx, weight])
 
     new_start_edges = list(serialized['start_edges'].tolist()) if len(serialized['start_edges']) > 0 else []
     for edge in start_param_edges:
         to_idx = int(edge[0])
         coeffs = np.array(edge[1:])
-        weight = float(callback(theta, coeffs))
+        weight = _check_weight(
+            float(callback(theta, coeffs)),
+            theta, coeffs,
+            where=f"start edge -> {to_idx}",
+        )
         new_start_edges.append([to_idx, weight])
 
     result = dict(serialized)
