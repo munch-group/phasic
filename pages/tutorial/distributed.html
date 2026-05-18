@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -113,6 +113,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -384,65 +387,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -463,11 +407,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#parallelism-outside-svgd" id="toc-parallelism-outside-svgd" class="nav-link" data-scroll-target="#parallelism-outside-svgd">Parallelism outside SVGD</a></li>
   </ul></li>
-  <li><a href="#context-managersall-phasic-settings-including-the-svgd-particle-parallelism-strategy-pmap-vmap-none-can-be-changed-temporarily-for-a-block-of-code-via-phasic.configure...-used-as-a-context-manager.-the-settings-and-the-corresponding-env-vars-and-dataclass-fields-are-restored-at-the-end-of-the-block.-see-the-configuration-tutorial-for-the-full-surface.for-svgd-specifically-the-relevant-field-is-svgd_strategy--auto-default-pick-pmap-if-multiple-jax-devices-are-visible-else-vmap.--pmap-distribute-particles-across-devices.--vmap-vectorise-particles-on-a-single-device.--none-sequential-particle-evaluation-debugging.graph.svgds-own-parallel-kwarg-overrides-this-on-a-per-call-basis-the-config-field-controls-only-the-default-when-parallelnone." id="toc-context-managersall-phasic-settings-including-the-svgd-particle-parallelism-strategy-pmap-vmap-none-can-be-changed-temporarily-for-a-block-of-code-via-phasic.configure...-used-as-a-context-manager.-the-settings-and-the-corresponding-env-vars-and-dataclass-fields-are-restored-at-the-end-of-the-block.-see-the-configuration-tutorial-for-the-full-surface.for-svgd-specifically-the-relevant-field-is-svgd_strategy--auto-default-pick-pmap-if-multiple-jax-devices-are-visible-else-vmap.--pmap-distribute-particles-across-devices.--vmap-vectorise-particles-on-a-single-device.--none-sequential-particle-evaluation-debugging.graph.svgds-own-parallel-kwarg-overrides-this-on-a-per-call-basis-the-config-field-controls-only-the-default-when-parallelnone." class="nav-link" data-scroll-target="#context-managersall-phasic-settings-including-the-svgd-particle-parallelism-strategy-pmap-vmap-none-can-be-changed-temporarily-for-a-block-of-code-via-phasic.configure...-used-as-a-context-manager.-the-settings-and-the-corresponding-env-vars-and-dataclass-fields-are-restored-at-the-end-of-the-block.-see-the-configuration-tutorial-for-the-full-surface.for-svgd-specifically-the-relevant-field-is-svgd_strategy--auto-default-pick-pmap-if-multiple-jax-devices-are-visible-else-vmap.--pmap-distribute-particles-across-devices.--vmap-vectorise-particles-on-a-single-device.--none-sequential-particle-evaluation-debugging.graph.svgds-own-parallel-kwarg-overrides-this-on-a-per-call-basis-the-config-field-controls-only-the-default-when-parallelnone.">Context managersAll phasic settings — including the SVGD-particle parallelism strategy (<code>pmap</code> / <code>vmap</code> / <code>none</code>) — can be changed temporarily for a block of code via <code>phasic.configure(...)</code> used as a context manager. The settings (and the corresponding env vars and dataclass fields) are restored at the end of the block. See the Configuration tutorial for the full surface.For SVGD specifically, the relevant field is <code>svgd_strategy</code>:- <code>'auto'</code> (default) — pick <code>'pmap'</code> if multiple JAX devices are visible, else <code>'vmap'</code>.- <code>'pmap'</code> — distribute particles across devices.- <code>'vmap'</code> — vectorise particles on a single device.- <code>'none'</code> — sequential particle evaluation (debugging).<code>Graph.svgd()</code>’s own <code>parallel=</code> kwarg overrides this on a per-call basis; the config field controls only the <em>default</em> when <code>parallel=None</code>.</a>
+  <li><a href="#context-managers" id="toc-context-managers" class="nav-link" data-scroll-target="#context-managers">Context managers</a>
   <ul class="collapse">
-  <li><a href="#disabling-parallelismuse-with-configuresvgd_strategynone-to-force-sequential-svgd-execution-inside-a-block-useful-for-debugging-or-when-you-want-predictable-serial-behaviour" id="toc-disabling-parallelismuse-with-configuresvgd_strategynone-to-force-sequential-svgd-execution-inside-a-block-useful-for-debugging-or-when-you-want-predictable-serial-behaviour" class="nav-link" data-scroll-target="#disabling-parallelismuse-with-configuresvgd_strategynone-to-force-sequential-svgd-execution-inside-a-block-useful-for-debugging-or-when-you-want-predictable-serial-behaviour">Disabling parallelismUse <code>with configure(svgd_strategy='none'):</code> to force sequential SVGD execution inside a block — useful for debugging or when you want predictable serial behaviour:</a></li>
-  <li><a href="#switching-strategy-for-one-blocksame-pattern-any-strategy" id="toc-switching-strategy-for-one-blocksame-pattern-any-strategy" class="nav-link" data-scroll-target="#switching-strategy-for-one-blocksame-pattern-any-strategy">Switching strategy for one blockSame pattern, any strategy:</a></li>
-  <li><a href="#temporary-library-wide-configurationphasic.configure...-is-itself-a-context-manager.-use-it-to-toggle-scc-composer-parallelism-mpfr-precision-the-cache-directory-or-any-other-phasicconfig-field-for-a-single-block-of-code.-settings-and-the-backing-env-vars-are-restored-when-the-block-exits." id="toc-temporary-library-wide-configurationphasic.configure...-is-itself-a-context-manager.-use-it-to-toggle-scc-composer-parallelism-mpfr-precision-the-cache-directory-or-any-other-phasicconfig-field-for-a-single-block-of-code.-settings-and-the-backing-env-vars-are-restored-when-the-block-exits." class="nav-link" data-scroll-target="#temporary-library-wide-configurationphasic.configure...-is-itself-a-context-manager.-use-it-to-toggle-scc-composer-parallelism-mpfr-precision-the-cache-directory-or-any-other-phasicconfig-field-for-a-single-block-of-code.-settings-and-the-backing-env-vars-are-restored-when-the-block-exits.">Temporary library-wide configuration<code>phasic.configure(...)</code> is itself a context manager. Use it to toggle SCC-composer parallelism, MPFR precision, the cache directory, or any other <code>PhasicConfig</code> field for a single block of code. Settings (and the backing env vars) are restored when the block exits.</a></li>
+  <li><a href="#disabling-parallelism" id="toc-disabling-parallelism" class="nav-link" data-scroll-target="#disabling-parallelism">Disabling parallelism</a></li>
+  <li><a href="#switching-strategy-for-one-block" id="toc-switching-strategy-for-one-block" class="nav-link" data-scroll-target="#switching-strategy-for-one-block">Switching strategy for one block</a></li>
+  <li><a href="#temporary-library-wide-configuration" id="toc-temporary-library-wide-configuration" class="nav-link" data-scroll-target="#temporary-library-wide-configuration">Temporary library-wide configuration</a></li>
   </ul></li>
   <li><a href="#slurm-clusters" id="toc-slurm-clusters" class="nav-link" data-scroll-target="#slurm-clusters">SLURM clusters</a>
   <ul class="collapse">
@@ -482,7 +426,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#computing-expectations-in-parallel" id="toc-computing-expectations-in-parallel" class="nav-link" data-scroll-target="#computing-expectations-in-parallel">Computing expectations in parallel</a></li>
   </ul></li>
   <li><a href="#environment-variables" id="toc-environment-variables" class="nav-link" data-scroll-target="#environment-variables">Environment variables</a></li>
-  <li><a href="#tips-and-troubleshootingparticle-count-when-using-pmap-the-number-of-particles-must-be-divisible-by-the-number-of-devices.-if-not-svgd-will-raise-a-valueerror.jax-import-timing-import-phasic-no-longer-imports-jax.-the-first-jax-touching-operation-any-of-init_parallel-phasic.configurecomputejax--phasic.svgd-graph.svgd...-etc.-triggers-activation.-if-you-want-jax-ready-before-timing-sensitive-code-call-phasic.init_parallel-near-the-top-of-your-script-or-notebook.debugging-pass-parallelnone-to-graph.svgd-directly-or-wrap-the-call-in-with-phasic.configuresvgd_strategynone.-either-gives-sequential-execution-and-readable-error-messages-parallel-execution-can-obscure-the-source-of-errors.performance-for-small-models-100-vertices-the-overhead-of-pmap-may-outweigh-the-benefit.-use-parallelvmap-or-let-the-auto-detection-choose.slurm-proxies-on-some-hpc-systems-http-proxy-variables-can-interfere-with-jax-distributed-initialization.-phasics-initialize_jax_distributed-temporarily-unsets-proxy-variables-during-initialization.graph-construction-scaling-graph-construction-is-cpu-bound-and-single-threaded.-for-very-large-state-spaces-consider-using-graph_cachetrue-to-avoid-rebuilding-across-sessions." id="toc-tips-and-troubleshootingparticle-count-when-using-pmap-the-number-of-particles-must-be-divisible-by-the-number-of-devices.-if-not-svgd-will-raise-a-valueerror.jax-import-timing-import-phasic-no-longer-imports-jax.-the-first-jax-touching-operation-any-of-init_parallel-phasic.configurecomputejax--phasic.svgd-graph.svgd...-etc.-triggers-activation.-if-you-want-jax-ready-before-timing-sensitive-code-call-phasic.init_parallel-near-the-top-of-your-script-or-notebook.debugging-pass-parallelnone-to-graph.svgd-directly-or-wrap-the-call-in-with-phasic.configuresvgd_strategynone.-either-gives-sequential-execution-and-readable-error-messages-parallel-execution-can-obscure-the-source-of-errors.performance-for-small-models-100-vertices-the-overhead-of-pmap-may-outweigh-the-benefit.-use-parallelvmap-or-let-the-auto-detection-choose.slurm-proxies-on-some-hpc-systems-http-proxy-variables-can-interfere-with-jax-distributed-initialization.-phasics-initialize_jax_distributed-temporarily-unsets-proxy-variables-during-initialization.graph-construction-scaling-graph-construction-is-cpu-bound-and-single-threaded.-for-very-large-state-spaces-consider-using-graph_cachetrue-to-avoid-rebuilding-across-sessions." class="nav-link" data-scroll-target="#tips-and-troubleshootingparticle-count-when-using-pmap-the-number-of-particles-must-be-divisible-by-the-number-of-devices.-if-not-svgd-will-raise-a-valueerror.jax-import-timing-import-phasic-no-longer-imports-jax.-the-first-jax-touching-operation-any-of-init_parallel-phasic.configurecomputejax--phasic.svgd-graph.svgd...-etc.-triggers-activation.-if-you-want-jax-ready-before-timing-sensitive-code-call-phasic.init_parallel-near-the-top-of-your-script-or-notebook.debugging-pass-parallelnone-to-graph.svgd-directly-or-wrap-the-call-in-with-phasic.configuresvgd_strategynone.-either-gives-sequential-execution-and-readable-error-messages-parallel-execution-can-obscure-the-source-of-errors.performance-for-small-models-100-vertices-the-overhead-of-pmap-may-outweigh-the-benefit.-use-parallelvmap-or-let-the-auto-detection-choose.slurm-proxies-on-some-hpc-systems-http-proxy-variables-can-interfere-with-jax-distributed-initialization.-phasics-initialize_jax_distributed-temporarily-unsets-proxy-variables-during-initialization.graph-construction-scaling-graph-construction-is-cpu-bound-and-single-threaded.-for-very-large-state-spaces-consider-using-graph_cachetrue-to-avoid-rebuilding-across-sessions.">Tips and troubleshooting<strong>Particle count</strong>: When using <code>pmap</code>, the number of particles must be divisible by the number of devices. If not, SVGD will raise a <code>ValueError</code>.<strong>JAX import timing</strong>: <code>import phasic</code> no longer imports JAX. The first JAX-touching operation (any of <code>init_parallel()</code>, <code>phasic.configure(compute='jax-*')</code>, <code>phasic.SVGD</code>, <code>Graph.svgd(...)</code>, etc.) triggers activation. If you want JAX ready before timing-sensitive code, call <code>phasic.init_parallel()</code> near the top of your script or notebook.<strong>Debugging</strong>: Pass <code>parallel='none'</code> to <code>Graph.svgd()</code> directly, or wrap the call in <code>with phasic.configure(svgd_strategy='none'):</code>. Either gives sequential execution and readable error messages — parallel execution can obscure the source of errors.<strong>Performance</strong>: For small models (&lt; 100 vertices), the overhead of <code>pmap</code> may outweigh the benefit. Use <code>parallel='vmap'</code> or let the auto-detection choose.<strong>SLURM proxies</strong>: On some HPC systems, HTTP proxy variables can interfere with JAX distributed initialization. Phasic’s <code>initialize_jax_distributed()</code> temporarily unsets proxy variables during initialization.<strong>Graph construction scaling</strong>: Graph construction is CPU-bound and single-threaded. For very large state spaces, consider using <code>graph_cache=True</code> to avoid rebuilding across sessions.</a></li>
+  <li><a href="#tips-and-troubleshooting" id="toc-tips-and-troubleshooting" class="nav-link" data-scroll-target="#tips-and-troubleshooting">Tips and troubleshooting</a></li>
   <li><a href="#slurm-cell-magic" id="toc-slurm-cell-magic" class="nav-link" data-scroll-target="#slurm-cell-magic">SLURM cell magic</a></li>
   <li><a href="#slurm-cell-magic-with-vscodenb" id="toc-slurm-cell-magic-with-vscodenb" class="nav-link" data-scroll-target="#slurm-cell-magic-with-vscodenb">SLURM cell magic with vscodenb</a></li>
   </ul>
@@ -538,36 +482,144 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>JAX is <strong>not</strong> imported eagerly by <code>import phasic</code>. It is loaded on first use — either when you access <code>phasic.SVGD</code>/<code>phasic.MCMC</code>/<code>phasic.BFFG</code>, when you call <code>phasic.configure(compute='jax-cpu')</code>, or when you call <code>phasic.init_parallel()</code>. This makes pure-C++ pipelines (no JAX dep) cheaper to import.</p>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:44.515208Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:44.515108Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:46.537657Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:46.537292Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (    Graph, with_ipv, configure, get_config,    init_parallel,    detect_environment,    EnvironmentInfo, ParallelConfig,    set_log_level,)<span class="im">import</span> numpy <span class="im">as</span> npimport time, sysfrom vscodenb <span class="im">import</span> set_vscode_themeset_vscode_theme()_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules<span class="co"># JAX is imported lazily on first use. To force activation now# (e.g. so the next cell can call jax.devices()), call any of# init_parallel(), phasic.configure(compute='jax-cpu'), or just# access a JAX-dependent attribute like phasic.SVGD.init_parallel()import jax</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:12.602601Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:12.602486Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.730245Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.729772Z&quot;}}" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, configure, get_config,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    init_parallel,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    detect_environment,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    EnvironmentInfo, ParallelConfig,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    set_log_level,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time, sys</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX is imported lazily on first use. To force activation now</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># (e.g. so the next cell can call jax.devices()), call any of</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># init_parallel(), phasic.configure(compute='jax-cpu'), or just</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># access a JAX-dependent attribute like phasic.SVGD.</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>init_parallel()</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
+</div>
+<div class="cell-output cell-output-display">
+
+        <style>
+        .cell-output-ipywidget-background {
+            background-color: transparent !important;
+        }
+       .jp-OutputArea-output {
+           background-color: transparent;
+        }  
+        /*
+        :root {
+            --jp-widgets-color: var(--vscode-editor-foreground);
+            --jp-widgets-font-size: var(--vscode-editor-font-size);
+        }  
+        */
+        /* tqdm styling: */
+        .widget-label,
+        .widget-html,
+        .widget-button,
+        .widget-dropdown,
+        .widget-text,
+        .widget-textarea {
+            font-size: 10px !important;      /* Font size */
+        }
+        div.widget-html-content > progress { /* Outer container */
+            height: 10px !important;
+        
+        }
+        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+            height: 5px !important;
+        }
+        div.progress { /* Jupyter Notebook (classic) */
+            height: 5px !important;
+            min-height: 5px !important;
+            margin-top: 12px !important;    
+        }
+        div.progress-bar { /* inner bar */
+            height: 5px !important;
+            min-height: 5px !important;
+            line-height: 5px !important;
+            color: 'white' !important;
+            padding-bottom: 0px !important;    
+        }
+        </style>                          
+        
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[WARNING] phasic.auto_parallel: JAX already initialized with 1 device(s), but 10 CPU(s) available.
+  To use all CPUs, restart kernel and import phasic first:
+    import phasic as pta
+    pta.init_parallel(cpus=10)</code></pre>
+</div>
 </div>
 <p>We use a simple parameterized coalescent model throughout:</p>
-<div id="model-def" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:46.539596Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:46.539418Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:46.543178Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:46.542717Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)])) </span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">500</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="model-def" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.731823Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.731654Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.735023Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.734675Z&quot;}}" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)])) </span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">500</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="automatic-multi-cpu-setup" class="level2">
 <h2 class="anchored" data-anchor-id="automatic-multi-cpu-setup">Automatic multi-CPU setup</h2>
@@ -586,36 +638,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Accessing any JAX-dependent attribute (<code>phasic.SVGD</code>, <code>phasic.MCMC</code>, <code>Graph.svgd(...)</code>, etc.) — this lazily fires JAX activation.</li>
 </ul>
 <p>You can check the current device setup after activation:</p>
-<div id="auto-devices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:46.544425Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:46.544344Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:46.569572Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:46.569183Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>devices <span class="op">=</span> jax.devices()</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of JAX devices: </span><span class="sc">{</span><span class="bu">len</span>(devices)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device type: </span><span class="sc">{</span>devices[<span class="dv">0</span>]<span class="sc">.</span>platform<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="auto-devices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.736517Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.736428Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.738460Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.738022Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>devices <span class="op">=</span> jax.devices()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of JAX devices: </span><span class="sc">{</span><span class="bu">len</span>(devices)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device type: </span><span class="sc">{</span>devices[<span class="dv">0</span>]<span class="sc">.</span>platform<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Number of JAX devices: 8
+<pre><code>Number of JAX devices: 1
 Device type: cpu</code></pre>
 </div>
 </div>
 <section id="overriding-cpu-count" class="level3">
 <h3 class="anchored" data-anchor-id="overriding-cpu-count">Overriding CPU count</h3>
 <p>To change the number of CPUs phasic uses for JAX, set the <code>PTDALG_CPUS</code> environment variable <em>before</em> JAX activation (i.e.&nbsp;before any call that triggers <code>_ensure_jax_active()</code>):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PTDALG_CPUS</span><span class="op">=</span>4</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_script.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PTDALG_CPUS</span><span class="op">=</span>4</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_script.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Or in a notebook (before any imports or JAX-touching code):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'PTDALG_CPUS'</span>] <span class="op">=</span> <span class="st">'4'</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, init_parallel</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>init_parallel()  <span class="co"># picks up PTDALG_CPUS=4</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'PTDALG_CPUS'</span>] <span class="op">=</span> <span class="st">'4'</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, init_parallel</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>init_parallel()  <span class="co"># picks up PTDALG_CPUS=4</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="inspecting-the-detected-environment" class="level3">
 <h3 class="anchored" data-anchor-id="inspecting-the-detected-environment">Inspecting the detected environment</h3>
 <p>The <code>detect_environment()</code> function returns an <code>EnvironmentInfo</code> object describing the current execution context:</p>
-<div id="detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:46.571026Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:46.570932Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:46.573242Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:46.572840Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>env <span class="op">=</span> detect_environment()</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Environment type:  </span><span class="sc">{</span>env<span class="sc">.</span>env_type<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Interactive:       </span><span class="sc">{</span>env<span class="sc">.</span>is_interactive<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Available CPUs:    </span><span class="sc">{</span>env<span class="sc">.</span>available_cpus<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"SLURM detected:   </span><span class="sc">{</span>env<span class="sc">.</span>slurm_info <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span><span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"JAX imported:      </span><span class="sc">{</span>env<span class="sc">.</span>jax_already_imported<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.739811Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.739723Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.741979Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.741546Z&quot;}}" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>env <span class="op">=</span> detect_environment()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Environment type:  </span><span class="sc">{</span>env<span class="sc">.</span>env_type<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Interactive:       </span><span class="sc">{</span>env<span class="sc">.</span>is_interactive<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Available CPUs:    </span><span class="sc">{</span>env<span class="sc">.</span>available_cpus<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"SLURM detected:   </span><span class="sc">{</span>env<span class="sc">.</span>slurm_info <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"JAX imported:      </span><span class="sc">{</span>env<span class="sc">.</span>jax_already_imported<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Environment type:  jupyter
 Interactive:       True
@@ -628,27 +680,27 @@ JAX imported:      True</code></pre>
 <section id="explicit-initialization-with-init_parallel" class="level3">
 <h3 class="anchored" data-anchor-id="explicit-initialization-with-init_parallel">Explicit initialization with <code>init_parallel()</code></h3>
 <p>For more control, call <code>init_parallel()</code> to explicitly configure parallelism. This is especially useful when you want to set a specific CPU count or when running on a SLURM cluster where automatic detection should be triggered:</p>
-<div id="init-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:46.574507Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:46.574409Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:46.576554Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:46.576231Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel()</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device count:       </span><span class="sc">{</span>config<span class="sc">.</span>device_count<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Local device count: </span><span class="sc">{</span>config<span class="sc">.</span>local_device_count<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strategy:           </span><span class="sc">{</span>config<span class="sc">.</span>strategy<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Environment:        </span><span class="sc">{</span>config<span class="sc">.</span>env_info<span class="sc">.</span>env_type<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="init-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.743246Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.743162Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.745432Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.745078Z&quot;}}" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device count:       </span><span class="sc">{</span>config<span class="sc">.</span>device_count<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Local device count: </span><span class="sc">{</span>config<span class="sc">.</span>local_device_count<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strategy:           </span><span class="sc">{</span>config<span class="sc">.</span>strategy<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Environment:        </span><span class="sc">{</span>config<span class="sc">.</span>env_info<span class="sc">.</span>env_type<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>[WARNING] phasic.auto_parallel: JAX already initialized with 8 device(s), but 10 CPU(s) available.
+<pre><code>[WARNING] phasic.auto_parallel: JAX already initialized with 1 device(s), but 10 CPU(s) available.
   To use all CPUs, restart kernel and import phasic first:
     import phasic as pta
     pta.init_parallel(cpus=10)</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Device count:       8
-Local device count: 8
-Strategy:           pmap
+<pre><code>Device count:       1
+Local device count: 1
+Strategy:           vmap
 Environment:        jupyter</code></pre>
 </div>
 </div>
 <p>You can pass an explicit CPU count:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel(cpus<span class="op">=</span><span class="dv">8</span>)  <span class="co"># Use exactly 8 devices</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel(cpus<span class="op">=</span><span class="dv">8</span>)  <span class="co"># Use exactly 8 devices</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The returned <code>ParallelConfig</code> is stored globally and used by <code>graph.svgd()</code> to select its parallelization strategy.</p>
 </section>
 </section>
@@ -688,32 +740,36 @@ Environment:        jupyter</code></pre>
 <p>With <code>pmap</code>, particles are split evenly across devices. Each device computes log-likelihood and gradients for its particles independently. The SVGD kernel computation and particle updates are also parallelized.</p>
 <p>The <code>n_devices</code> parameter limits how many devices <code>pmap</code> uses (default: all available).</p>
 <p>To explicitly control the strategy:</p>
-<div id="svgd-explicit-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:46.578059Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:46.577958Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:56.497248Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:56.496767Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force pmap with specific device count</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'pmap'</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    n_devices<span class="op">=</span><span class="bu">len</span>(jax.devices()),</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>result_pmap <span class="op">=</span> svgd.get_results()</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"pmap posterior mean: </span><span class="sc">{</span>result_pmap[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Force vmap (single-device vectorization)</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'vmap'</span>,</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>result_vmap <span class="op">=</span> svgd.get_results()</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"vmap posterior mean: </span><span class="sc">{</span>result_vmap[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="svgd-explicit-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.746834Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.746752Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:19.476184Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:19.475684Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force pmap with specific device count</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'pmap'</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    n_devices<span class="op">=</span><span class="bu">len</span>(jax.devices()),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>result_pmap <span class="op">=</span> svgd.get_results()</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"pmap posterior mean: </span><span class="sc">{</span>result_pmap[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Force vmap (single-device vectorization)</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'vmap'</span>,</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>result_vmap <span class="op">=</span> svgd.get_results()</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"vmap posterior mean: </span><span class="sc">{</span>result_vmap[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:6829: UserWarning: parallel='pmap' requested but only 1 JAX device available. Using 'vmap' instead. To use pmap, configure more devices via PTDALG_CPUS environment variable or initialize_distributed().
+  svgd = SVGD(</code></pre>
+</div>
 <div class="cell-output cell-output-stdout">
-<pre><code>pmap posterior mean: [6.85075973]
-vmap posterior mean: [7.02073744]</code></pre>
+<pre><code>pmap posterior mean: [7.09486996]
+vmap posterior mean: [7.11379979]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
@@ -727,72 +783,126 @@ Tip
 </div>
 <div class="callout-body-container callout-body">
 <p>Using the %%slurm magic from the <code>vscodenb</code> package, you can allocate SLURM redources for a single cell. Phasic will automatically pick up the allocated resources.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>slurm <span class="op">-</span>m <span class="dv">4</span><span class="er">G</span> <span class="op">-</span>c <span class="dv">20</span> <span class="op">-</span>t <span class="dv">00</span>:<span class="dv">10</span>:<span class="dv">00</span> <span class="op">-</span>A xy<span class="op">-</span>drive</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate data</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">500</span>)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Auto-parallelized SVGD (uses pmap if multiple devices)</span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> svgd.get_results()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>slurm <span class="op">-</span>m <span class="dv">4</span><span class="er">G</span> <span class="op">-</span>c <span class="dv">20</span> <span class="op">-</span>t <span class="dv">00</span>:<span class="dv">10</span>:<span class="dv">00</span> <span class="op">-</span>A xy<span class="op">-</span>drive</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate data</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">500</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Auto-parallelized SVGD (uses pmap if multiple devices)</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> svgd.get_results()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 <section id="parallelism-outside-svgd" class="level3">
 <h3 class="anchored" data-anchor-id="parallelism-outside-svgd">Parallelism outside SVGD</h3>
 <p>Graph construction is inherently sequential (state-space exploration). Moment / expectation computation <strong>defaults to a single CPU</strong>: the monolithic parameterised reward compute graph (PRC) is built once with a single-threaded Gaussian elimination and cached on disk for subsequent runs.</p>
 <p>For large graphs, opt into the <strong>hierarchical SCC composer</strong> to parallelise the elimination across CPUs. Sibling SCCs within a level run concurrently under OpenMP, and per-SCC PRC artefacts are content-hashed so identical SCCs across different parent graphs share cache entries:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>phasic.configure(</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">8</span>,  <span class="co"># cap simultaneous SCC computes per level</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Or via env var (e.g. in a SLURM job script):</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   export PHASIC_HIERAR_ELIMINATION=1</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   export PHASIC_MAX_PARALLEL_SCCS=8</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>phasic.configure(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">8</span>,  <span class="co"># cap simultaneous SCC computes per level</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Or via env var (e.g. in a SLURM job script):</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   export PHASIC_HIERAR_ELIMINATION=1</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">#   export PHASIC_MAX_PARALLEL_SCCS=8</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For evaluating a model at many parameter values (outside SVGD), use JAX’s <code>vmap</code> or <code>pmap</code> directly:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> graph.pmf_from_graph()</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate at many parameter values in parallel</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>theta_grid <span class="op">=</span> jnp.linspace(<span class="fl">0.5</span>, <span class="fl">10.0</span>, <span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>batch_model <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> theta: model(theta, times))</span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>all_pdfs <span class="op">=</span> batch_model(theta_grid)  <span class="co"># Shape: (100, 3)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> graph.pmf_from_graph()</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate at many parameter values in parallel</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>theta_grid <span class="op">=</span> jnp.linspace(<span class="fl">0.5</span>, <span class="fl">10.0</span>, <span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>batch_model <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> theta: model(theta, times))</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>all_pdfs <span class="op">=</span> batch_model(theta_grid)  <span class="co"># Shape: (100, 3)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For multi-device parallelism, replace <code>vmap</code> with <code>pmap</code> and reshape the input to <code>(n_devices, batch_per_device, ...)</code>.</p>
 </section>
 </section>
-<section id="context-managersall-phasic-settings-including-the-svgd-particle-parallelism-strategy-pmap-vmap-none-can-be-changed-temporarily-for-a-block-of-code-via-phasic.configure...-used-as-a-context-manager.-the-settings-and-the-corresponding-env-vars-and-dataclass-fields-are-restored-at-the-end-of-the-block.-see-the-configuration-tutorial-for-the-full-surface.for-svgd-specifically-the-relevant-field-is-svgd_strategy--auto-default-pick-pmap-if-multiple-jax-devices-are-visible-else-vmap.--pmap-distribute-particles-across-devices.--vmap-vectorise-particles-on-a-single-device.--none-sequential-particle-evaluation-debugging.graph.svgds-own-parallel-kwarg-overrides-this-on-a-per-call-basis-the-config-field-controls-only-the-default-when-parallelnone." class="level2">
-<h2 class="anchored" data-anchor-id="context-managersall-phasic-settings-including-the-svgd-particle-parallelism-strategy-pmap-vmap-none-can-be-changed-temporarily-for-a-block-of-code-via-phasic.configure...-used-as-a-context-manager.-the-settings-and-the-corresponding-env-vars-and-dataclass-fields-are-restored-at-the-end-of-the-block.-see-the-configuration-tutorial-for-the-full-surface.for-svgd-specifically-the-relevant-field-is-svgd_strategy--auto-default-pick-pmap-if-multiple-jax-devices-are-visible-else-vmap.--pmap-distribute-particles-across-devices.--vmap-vectorise-particles-on-a-single-device.--none-sequential-particle-evaluation-debugging.graph.svgds-own-parallel-kwarg-overrides-this-on-a-per-call-basis-the-config-field-controls-only-the-default-when-parallelnone.">Context managersAll phasic settings — including the SVGD-particle parallelism strategy (<code>pmap</code> / <code>vmap</code> / <code>none</code>) — can be changed temporarily for a block of code via <code>phasic.configure(...)</code> used as a context manager. The settings (and the corresponding env vars and dataclass fields) are restored at the end of the block. See the <a href="configuration.qmd">Configuration tutorial</a> for the full surface.For SVGD specifically, the relevant field is <code>svgd_strategy</code>:- <code>'auto'</code> (default) — pick <code>'pmap'</code> if multiple JAX devices are visible, else <code>'vmap'</code>.- <code>'pmap'</code> — distribute particles across devices.- <code>'vmap'</code> — vectorise particles on a single device.- <code>'none'</code> — sequential particle evaluation (debugging).<code>Graph.svgd()</code>’s own <code>parallel=</code> kwarg overrides this on a per-call basis; the config field controls only the <em>default</em> when <code>parallel=None</code>.</h2>
-<section id="disabling-parallelismuse-with-configuresvgd_strategynone-to-force-sequential-svgd-execution-inside-a-block-useful-for-debugging-or-when-you-want-predictable-serial-behaviour" class="level3">
-<h3 class="anchored" data-anchor-id="disabling-parallelismuse-with-configuresvgd_strategynone-to-force-sequential-svgd-execution-inside-a-block-useful-for-debugging-or-when-you-want-predictable-serial-behaviour">Disabling parallelismUse <code>with configure(svgd_strategy='none'):</code> to force sequential SVGD execution inside a block — useful for debugging or when you want predictable serial behaviour:</h3>
-<div id="disable-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:56.498989Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:56.498883Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:10:58.697949Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:10:58.697542Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(svgd_strategy<span class="op">=</span><span class="st">'none'</span>):    svgd <span class="op">=</span> graph.svgd(        observed_data,        n_particles<span class="op">=</span><span class="dv">20</span>,        n_iterations<span class="op">=</span><span class="dv">10</span>,        progress<span class="op">=</span><span class="va">False</span>    )    result <span class="op">=</span> svgd.get_results()    <span class="bu">print</span>(<span class="ss">f"Sequential posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)<span class="co"># Outside the context, the default (auto / pmap / vmap) is restored.print(f"Strategy outside block: {get_config().svgd_strategy}")</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="context-managers" class="level2">
+<h2 class="anchored" data-anchor-id="context-managers">Context managers</h2>
+<p>All phasic settings — including the SVGD-particle parallelism strategy (<code>pmap</code> / <code>vmap</code> / <code>none</code>) — can be changed temporarily for a block of code via <code>phasic.configure(...)</code> used as a context manager. The settings (and the corresponding env vars and dataclass fields) are restored at the end of the block. See the <a href="configuration.qmd">Configuration tutorial</a> for the full surface.</p>
+<p>For SVGD specifically, the relevant field is <code>svgd_strategy</code>:</p>
+<ul>
+<li><code>'auto'</code> (default) — pick <code>'pmap'</code> if multiple JAX devices are visible, else <code>'vmap'</code>.</li>
+<li><code>'pmap'</code> — distribute particles across devices.</li>
+<li><code>'vmap'</code> — vectorise particles on a single device.</li>
+<li><code>'none'</code> — sequential particle evaluation (debugging).</li>
+</ul>
+<p><code>Graph.svgd()</code>’s own <code>parallel=</code> kwarg overrides this on a per-call basis; the config field controls only the <em>default</em> when <code>parallel=None</code>.</p>
+<section id="disabling-parallelism" class="level3">
+<h3 class="anchored" data-anchor-id="disabling-parallelism">Disabling parallelism</h3>
+<p>Use <code>with configure(svgd_strategy='none'):</code> to force sequential SVGD execution inside a block — useful for debugging or when you want predictable serial behaviour:</p>
+<div id="disable-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:19.477903Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:19.477794Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:20.902063Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:20.901607Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(svgd_strategy<span class="op">=</span><span class="st">'none'</span>):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        observed_data,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> svgd.get_results()</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Sequential posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the context, the default (auto / pmap / vmap) is restored.</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strategy outside block: </span><span class="sc">{</span>get_config()<span class="sc">.</span>svgd_strategy<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sequential posterior mean: [7.01191316]
+Strategy outside block: auto</code></pre>
+</div>
 </div>
 </section>
-<section id="switching-strategy-for-one-blocksame-pattern-any-strategy" class="level3">
-<h3 class="anchored" data-anchor-id="switching-strategy-for-one-blocksame-pattern-any-strategy">Switching strategy for one blockSame pattern, any strategy:</h3>
-<div id="parallel-config-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:10:58.699602Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:10:58.699493Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:11:00.130488Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:11:00.130051Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force vmap (single-device vectorisation) for this block only.with configure(svgd_strategy='vmap'):    svgd = graph.svgd(        observed_data,        n_particles=20,        n_iterations=10,        progress=False    )    result = svgd.get_results()    print(f"vmap posterior mean: {result['theta_mean']}")</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="switching-strategy-for-one-block" class="level3">
+<h3 class="anchored" data-anchor-id="switching-strategy-for-one-block">Switching strategy for one block</h3>
+<p>Same pattern, any strategy:</p>
+<div id="parallel-config-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:20.903638Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:20.903524Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.679305Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.678793Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force vmap (single-device vectorisation) for this block only.</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(svgd_strategy<span class="op">=</span><span class="st">'vmap'</span>):</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        observed_data,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        n_particles<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>        n_iterations<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> svgd.get_results()</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"vmap posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>vmap posterior mean: [7.17220925]</code></pre>
+</div>
 </div>
 </section>
-<section id="temporary-library-wide-configurationphasic.configure...-is-itself-a-context-manager.-use-it-to-toggle-scc-composer-parallelism-mpfr-precision-the-cache-directory-or-any-other-phasicconfig-field-for-a-single-block-of-code.-settings-and-the-backing-env-vars-are-restored-when-the-block-exits." class="level3">
-<h3 class="anchored" data-anchor-id="temporary-library-wide-configurationphasic.configure...-is-itself-a-context-manager.-use-it-to-toggle-scc-composer-parallelism-mpfr-precision-the-cache-directory-or-any-other-phasicconfig-field-for-a-single-block-of-code.-settings-and-the-backing-env-vars-are-restored-when-the-block-exits.">Temporary library-wide configuration<code>phasic.configure(...)</code> is itself a context manager. Use it to toggle SCC-composer parallelism, MPFR precision, the cache directory, or any other <code>PhasicConfig</code> field for a single block of code. Settings (and the backing env vars) are restored when the block exits.</h3>
-<div id="94ec41eb" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Temporarily enable parallel SCC elimination just for this block.# Outside the `with`, the previous configuration is restored.with configure(parallel_elimination=True,               parallel_elimination_max_concurrent=4):    # Any moment / expectation call here uses the SCC composer.    graph_big = Graph(coalescent, ipv=[6] + [0] * 5)    graph_big.update_weights([7.0])    print('expectation (SCC composer):', graph_big.expectation())# Outside: parallel_elimination is back to its prior value.print('parallel_elimination after block:',      get_config().parallel_elimination)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="temporary-library-wide-configuration" class="level3">
+<h3 class="anchored" data-anchor-id="temporary-library-wide-configuration">Temporary library-wide configuration</h3>
+<p><code>phasic.configure(...)</code> is itself a context manager. Use it to toggle SCC-composer parallelism, MPFR precision, the cache directory, or any other <code>PhasicConfig</code> field for a single block of code. Settings (and the backing env vars) are restored when the block exits.</p>
+<div id="94ec41eb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.680827Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.680716Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.685254Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.684848Z&quot;}}" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Temporarily enable parallel SCC elimination just for this block.</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the `with`, the previous configuration is restored.</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>               parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Any moment / expectation call here uses the SCC composer.</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    graph_big <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    graph_big.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'expectation (SCC composer):'</span>, graph_big.expectation())</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside: parallel_elimination is back to its prior value.</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'parallel_elimination after block:'</span>,</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>      get_config().parallel_elimination)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>expectation (SCC composer): 0.2142857142857143
+parallel_elimination after block: False</code></pre>
+</div>
 </div>
 </section>
 </section>
@@ -828,107 +938,107 @@ Tip
 <section id="single-node-slurm" class="level3">
 <h3 class="anchored" data-anchor-id="single-node-slurm">Single-node SLURM</h3>
 <p>For single-node jobs, phasic reads <code>SLURM_CPUS_PER_TASK</code> and creates that many JAX devices. The SLURM script is straightforward:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=svgd_inference</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=16</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem-per-cpu=4G</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=01:00:00</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_inference.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=svgd_inference</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=16</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem-per-cpu=4G</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=01:00:00</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_inference.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The Python script needs no special configuration — <code>init_parallel()</code> detects the SLURM allocation:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, init_parallel</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel()  <span class="co"># Detects 16 CPUs from SLURM</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Using </span><span class="sc">{</span>config<span class="sc">.</span>device_count<span class="sc">}</span><span class="ss"> devices"</span>)  <span class="co"># 16</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(my_model)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD automatically uses pmap across 16 devices</span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> graph.svgd(observed_data, n_particles<span class="op">=</span><span class="dv">160</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, init_parallel</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel()  <span class="co"># Detects 16 CPUs from SLURM</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Using </span><span class="sc">{</span>config<span class="sc">.</span>device_count<span class="sc">}</span><span class="ss"> devices"</span>)  <span class="co"># 16</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(my_model)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD automatically uses pmap across 16 devices</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> graph.svgd(observed_data, n_particles<span class="op">=</span><span class="dv">160</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="multi-node-slurm" class="level3">
 <h3 class="anchored" data-anchor-id="multi-node-slurm">Multi-node SLURM</h3>
 <p>For multi-node jobs, phasic uses <code>jax.distributed.initialize()</code> to coordinate computation across machines. The SLURM batch script sets up the coordinator address and launches one process per node via <code>srun</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes=4</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks-per-node=1</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=01:00:00</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="co"># First node becomes the coordinator</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="va">COORDINATOR_NODE</span><span class="op">=</span><span class="va">$(</span><span class="ex">scontrol</span> show hostnames <span class="va">$SLURM_JOB_NODELIST</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-n</span> 1<span class="va">)</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SLURM_COORDINATOR_ADDRESS</span><span class="op">=</span><span class="va">$COORDINATOR_NODE</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_COORDINATOR_PORT</span><span class="op">=</span>12345</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Configure XLA for local CPUs</span></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">XLA_FLAGS</span><span class="op">=</span><span class="st">"--xla_force_host_platform_device_count=</span><span class="va">$SLURM_CPUS_PER_TASK</span><span class="st">"</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_PLATFORMS</span><span class="op">=</span>cpu</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_ENABLE_X64</span><span class="op">=</span>1</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Launch one process per node</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="ex">srun</span> python my_distributed_inference.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes=4</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks-per-node=1</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=8</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time=01:00:00</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># First node becomes the coordinator</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="va">COORDINATOR_NODE</span><span class="op">=</span><span class="va">$(</span><span class="ex">scontrol</span> show hostnames <span class="va">$SLURM_JOB_NODELIST</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-n</span> 1<span class="va">)</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SLURM_COORDINATOR_ADDRESS</span><span class="op">=</span><span class="va">$COORDINATOR_NODE</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_COORDINATOR_PORT</span><span class="op">=</span>12345</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Configure XLA for local CPUs</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">XLA_FLAGS</span><span class="op">=</span><span class="st">"--xla_force_host_platform_device_count=</span><span class="va">$SLURM_CPUS_PER_TASK</span><span class="st">"</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_PLATFORMS</span><span class="op">=</span>cpu</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">JAX_ENABLE_X64</span><span class="op">=</span>1</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Launch one process per node</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="ex">srun</span> python my_distributed_inference.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>With 4 nodes x 8 CPUs each, this creates 32 global JAX devices.</p>
 </section>
 <section id="multi-node-python-script" class="level3">
 <h3 class="anchored" data-anchor-id="multi-node-python-script">Multi-node Python script</h3>
 <p>The Python script uses phasic’s distributed utilities to initialize JAX across nodes:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    Graph, init_parallel,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    detect_slurm_environment,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    get_coordinator_address,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    initialize_jax_distributed</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Detect SLURM environment</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>slurm_env <span class="op">=</span> detect_slurm_environment()</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Process </span><span class="sc">{</span>slurm_env[<span class="st">'process_id'</span>]<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>slurm_env[<span class="st">'num_processes'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"CPUs per task: </span><span class="sc">{</span>slurm_env[<span class="st">'cpus_per_task'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Nodes: </span><span class="sc">{</span>slurm_env[<span class="st">'node_count'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Get coordinator address (first node)</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>coordinator <span class="op">=</span> get_coordinator_address(slurm_env)</span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Coordinator: </span><span class="sc">{</span>coordinator<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Initialize JAX distributed</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>initialize_jax_distributed(</span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    coordinator_address<span class="op">=</span>coordinator,</span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    num_processes<span class="op">=</span>slurm_env[<span class="st">'num_processes'</span>],</span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    process_id<span class="op">=</span>slurm_env[<span class="st">'process_id'</span>]</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Local devices:  </span><span class="sc">{</span><span class="bu">len</span>(jax.local_devices())<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Global devices: </span><span class="sc">{</span><span class="bu">len</span>(jax.devices())<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: Build model and run SVGD</span></span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(my_model)</span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD distributes particles across all 32 global devices</span></span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> graph.svgd(</span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">320</span>,    <span class="co"># Must be divisible by global device count</span></span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'pmap'</span></span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    Graph, init_parallel,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    detect_slurm_environment,</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    get_coordinator_address,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    initialize_jax_distributed</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Detect SLURM environment</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>slurm_env <span class="op">=</span> detect_slurm_environment()</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Process </span><span class="sc">{</span>slurm_env[<span class="st">'process_id'</span>]<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>slurm_env[<span class="st">'num_processes'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"CPUs per task: </span><span class="sc">{</span>slurm_env[<span class="st">'cpus_per_task'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Nodes: </span><span class="sc">{</span>slurm_env[<span class="st">'node_count'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Get coordinator address (first node)</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>coordinator <span class="op">=</span> get_coordinator_address(slurm_env)</span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Coordinator: </span><span class="sc">{</span>coordinator<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Initialize JAX distributed</span></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>initialize_jax_distributed(</span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>    coordinator_address<span class="op">=</span>coordinator,</span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>    num_processes<span class="op">=</span>slurm_env[<span class="st">'num_processes'</span>],</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a>    process_id<span class="op">=</span>slurm_env[<span class="st">'process_id'</span>]</span>
+<span id="cb29-24"><a href="#cb29-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb29-25"><a href="#cb29-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-26"><a href="#cb29-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Local devices:  </span><span class="sc">{</span><span class="bu">len</span>(jax.local_devices())<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-27"><a href="#cb29-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Global devices: </span><span class="sc">{</span><span class="bu">len</span>(jax.devices())<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb29-28"><a href="#cb29-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-29"><a href="#cb29-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: Build model and run SVGD</span></span>
+<span id="cb29-30"><a href="#cb29-30" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(my_model)</span>
+<span id="cb29-31"><a href="#cb29-31" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb29-32"><a href="#cb29-32" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span>
+<span id="cb29-33"><a href="#cb29-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-34"><a href="#cb29-34" aria-hidden="true" tabindex="-1"></a><span class="co"># SVGD distributes particles across all 32 global devices</span></span>
+<span id="cb29-35"><a href="#cb29-35" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> graph.svgd(</span>
+<span id="cb29-36"><a href="#cb29-36" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb29-37"><a href="#cb29-37" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">320</span>,    <span class="co"># Must be divisible by global device count</span></span>
+<span id="cb29-38"><a href="#cb29-38" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="st">'pmap'</span></span>
+<span id="cb29-39"><a href="#cb29-39" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="slurm-detection-api" class="level3">
 <h3 class="anchored" data-anchor-id="slurm-detection-api">SLURM detection API</h3>
 <p>The <code>detect_slurm_environment()</code> function parses SLURM environment variables and returns a dictionary with the allocation details:</p>
-<div id="slurm-detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:11:00.132193Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:11:00.132086Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:11:00.134591Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:11:00.134122Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> detect_slurm_environment</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>slurm_env <span class="op">=</span> detect_slurm_environment()</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Running under SLURM: </span><span class="sc">{</span>slurm_env[<span class="st">'is_slurm'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> slurm_env[<span class="st">'is_slurm'</span>]:</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Job ID:           </span><span class="sc">{</span>slurm_env[<span class="st">'job_id'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Process ID:       </span><span class="sc">{</span>slurm_env[<span class="st">'process_id'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Total processes:  </span><span class="sc">{</span>slurm_env[<span class="st">'num_processes'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"CPUs per task:    </span><span class="sc">{</span>slurm_env[<span class="st">'cpus_per_task'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Nodes:            </span><span class="sc">{</span>slurm_env[<span class="st">'node_count'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="slurm-detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.687082Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.686973Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.689436Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.688978Z&quot;}}" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> detect_slurm_environment</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>slurm_env <span class="op">=</span> detect_slurm_environment()</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Running under SLURM: </span><span class="sc">{</span>slurm_env[<span class="st">'is_slurm'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> slurm_env[<span class="st">'is_slurm'</span>]:</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Job ID:           </span><span class="sc">{</span>slurm_env[<span class="st">'job_id'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Process ID:       </span><span class="sc">{</span>slurm_env[<span class="st">'process_id'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Total processes:  </span><span class="sc">{</span>slurm_env[<span class="st">'num_processes'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"CPUs per task:    </span><span class="sc">{</span>slurm_env[<span class="st">'cpus_per_task'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Nodes:            </span><span class="sc">{</span>slurm_env[<span class="st">'node_count'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Running under SLURM: False</code></pre>
 </div>
@@ -939,49 +1049,52 @@ Tip
 <h2 class="anchored" data-anchor-id="parallelism-and-graph-construction">Parallelism and graph construction</h2>
 <p>Graph construction explores the state space by calling the user-provided callback function repeatedly. This is inherently sequential — there is no automatic parallelization of graph construction.</p>
 <p>However, if you need to build <em>multiple</em> graphs (e.g., for different sample sizes), you can parallelize at the Python level:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_graph(n):</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([n] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coalescent(state):</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ... callback ...</span></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Graph(coalescent, graph_cache<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Build graphs for different sample sizes in parallel</span></span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">4</span>) <span class="im">as</span> pool:</span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    graphs <span class="op">=</span> <span class="bu">list</span>(pool.<span class="bu">map</span>(build_graph, [<span class="dv">4</span>, <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ProcessPoolExecutor</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> build_graph(n):</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([n] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coalescent(state):</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ... callback ...</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Graph(coalescent, graph_cache<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Build graphs for different sample sizes in parallel</span></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> ProcessPoolExecutor(max_workers<span class="op">=</span><span class="dv">4</span>) <span class="im">as</span> pool:</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    graphs <span class="op">=</span> <span class="bu">list</span>(pool.<span class="bu">map</span>(build_graph, [<span class="dv">4</span>, <span class="dv">6</span>, <span class="dv">8</span>, <span class="dv">10</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Using <code>graph_cache=True</code> ensures that each graph is built only once and loaded from cache on subsequent runs.</p>
 </section>
 <section id="parallelism-and-parameterised-prc-evaluation" class="level2">
 <h2 class="anchored" data-anchor-id="parallelism-and-parameterised-prc-evaluation">Parallelism and parameterised PRC evaluation</h2>
 <p>Gaussian elimination is O(n³) and, by default, runs as a single dense computation on one CPU — producing a <em>parameterised reward compute graph</em> (PRC) that is theta-independent and disk-cached at <code>~/.phasic_cache/parameterized_reward_compute/</code>. Once the PRC is built, evaluating it for a specific parameter vector is O(n) and can run in parallel across particles using JAX’s <code>vmap</code> or <code>pmap</code>.</p>
 <p>For large graphs, you can also parallelise the elimination itself. Setting <code>phasic.configure(parallel_elimination=True)</code> (or <code>PHASIC_HIERAR_ELIMINATION=1</code> in the shell) routes the elimination through the hierarchical SCC composer: the graph is decomposed into strongly-connected components and sibling SCCs within a level are eliminated concurrently under OpenMP. Per-SCC artefacts are content-hashed and shared across graphs and processes, so they can also be precomputed on a SLURM cluster via <code>phasic.distributed_scc.precompute_distributed</code>.</p>
-<div id="7a58ca26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-10T23:11:00.136022Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-10T23:11:00.135921Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-10T23:11:05.310410Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-10T23:11:05.309694Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, configure</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">30</span></span>
-<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>[nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
-<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
-<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="7a58ca26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.690911Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.690809Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:26.577218Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:26.576594Z&quot;}}" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, configure</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, [state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)]))</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">30</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>[nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="fl">7.0</span>])</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>0.2761904761904762</code></pre>
+</div>
 </div>
 <p>When you call <code>graph.svgd()</code>, phasic automatically:</p>
 <ol type="1">
@@ -994,18 +1107,18 @@ Tip
 <h3 class="anchored" data-anchor-id="computing-expectations-in-parallel">Computing expectations in parallel</h3>
 <p>Moment and expectation computations (<code>graph.moments()</code>, <code>graph.expected_waiting_time()</code>) operate on a single graph with fixed parameters and are not parallelized.</p>
 <p>To evaluate expectations at many parameter values in parallel, use the model function with <code>vmap</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create parameterized model</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> graph.pmf_and_moments_from_graph(nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate at 100 parameter values in parallel</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>theta_values <span class="op">=</span> jnp.linspace(<span class="fl">0.5</span>, <span class="fl">10.0</span>, <span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eval_at_theta(theta):</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    pmf, moments <span class="op">=</span> model(theta, times)</span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> moments</span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>all_moments <span class="op">=</span> jax.vmap(eval_at_theta)(theta_values)  <span class="co"># (100, 2)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create parameterized model</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> graph.pmf_and_moments_from_graph(nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate at 100 parameter values in parallel</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>theta_values <span class="op">=</span> jnp.linspace(<span class="fl">0.5</span>, <span class="fl">10.0</span>, <span class="dv">100</span>).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> jnp.array([<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>])</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eval_at_theta(theta):</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    pmf, moments <span class="op">=</span> model(theta, times)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> moments</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>all_moments <span class="op">=</span> jax.vmap(eval_at_theta)(theta_values)  <span class="co"># (100, 2)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="environment-variables" class="level2">
@@ -1078,8 +1191,14 @@ Tip
 </tbody>
 </table>
 </section>
-<section id="tips-and-troubleshootingparticle-count-when-using-pmap-the-number-of-particles-must-be-divisible-by-the-number-of-devices.-if-not-svgd-will-raise-a-valueerror.jax-import-timing-import-phasic-no-longer-imports-jax.-the-first-jax-touching-operation-any-of-init_parallel-phasic.configurecomputejax--phasic.svgd-graph.svgd...-etc.-triggers-activation.-if-you-want-jax-ready-before-timing-sensitive-code-call-phasic.init_parallel-near-the-top-of-your-script-or-notebook.debugging-pass-parallelnone-to-graph.svgd-directly-or-wrap-the-call-in-with-phasic.configuresvgd_strategynone.-either-gives-sequential-execution-and-readable-error-messages-parallel-execution-can-obscure-the-source-of-errors.performance-for-small-models-100-vertices-the-overhead-of-pmap-may-outweigh-the-benefit.-use-parallelvmap-or-let-the-auto-detection-choose.slurm-proxies-on-some-hpc-systems-http-proxy-variables-can-interfere-with-jax-distributed-initialization.-phasics-initialize_jax_distributed-temporarily-unsets-proxy-variables-during-initialization.graph-construction-scaling-graph-construction-is-cpu-bound-and-single-threaded.-for-very-large-state-spaces-consider-using-graph_cachetrue-to-avoid-rebuilding-across-sessions." class="level2">
-<h2 class="anchored" data-anchor-id="tips-and-troubleshootingparticle-count-when-using-pmap-the-number-of-particles-must-be-divisible-by-the-number-of-devices.-if-not-svgd-will-raise-a-valueerror.jax-import-timing-import-phasic-no-longer-imports-jax.-the-first-jax-touching-operation-any-of-init_parallel-phasic.configurecomputejax--phasic.svgd-graph.svgd...-etc.-triggers-activation.-if-you-want-jax-ready-before-timing-sensitive-code-call-phasic.init_parallel-near-the-top-of-your-script-or-notebook.debugging-pass-parallelnone-to-graph.svgd-directly-or-wrap-the-call-in-with-phasic.configuresvgd_strategynone.-either-gives-sequential-execution-and-readable-error-messages-parallel-execution-can-obscure-the-source-of-errors.performance-for-small-models-100-vertices-the-overhead-of-pmap-may-outweigh-the-benefit.-use-parallelvmap-or-let-the-auto-detection-choose.slurm-proxies-on-some-hpc-systems-http-proxy-variables-can-interfere-with-jax-distributed-initialization.-phasics-initialize_jax_distributed-temporarily-unsets-proxy-variables-during-initialization.graph-construction-scaling-graph-construction-is-cpu-bound-and-single-threaded.-for-very-large-state-spaces-consider-using-graph_cachetrue-to-avoid-rebuilding-across-sessions.">Tips and troubleshooting<strong>Particle count</strong>: When using <code>pmap</code>, the number of particles must be divisible by the number of devices. If not, SVGD will raise a <code>ValueError</code>.<strong>JAX import timing</strong>: <code>import phasic</code> no longer imports JAX. The first JAX-touching operation (any of <code>init_parallel()</code>, <code>phasic.configure(compute='jax-*')</code>, <code>phasic.SVGD</code>, <code>Graph.svgd(...)</code>, etc.) triggers activation. If you want JAX ready before timing-sensitive code, call <code>phasic.init_parallel()</code> near the top of your script or notebook.<strong>Debugging</strong>: Pass <code>parallel='none'</code> to <code>Graph.svgd()</code> directly, or wrap the call in <code>with phasic.configure(svgd_strategy='none'):</code>. Either gives sequential execution and readable error messages — parallel execution can obscure the source of errors.<strong>Performance</strong>: For small models (&lt; 100 vertices), the overhead of <code>pmap</code> may outweigh the benefit. Use <code>parallel='vmap'</code> or let the auto-detection choose.<strong>SLURM proxies</strong>: On some HPC systems, HTTP proxy variables can interfere with JAX distributed initialization. Phasic’s <code>initialize_jax_distributed()</code> temporarily unsets proxy variables during initialization.<strong>Graph construction scaling</strong>: Graph construction is CPU-bound and single-threaded. For very large state spaces, consider using <code>graph_cache=True</code> to avoid rebuilding across sessions.</h2>
+<section id="tips-and-troubleshooting" class="level2">
+<h2 class="anchored" data-anchor-id="tips-and-troubleshooting">Tips and troubleshooting</h2>
+<p><strong>Particle count</strong>: When using <code>pmap</code>, the number of particles must be divisible by the number of devices. If not, SVGD will raise a <code>ValueError</code>.</p>
+<p><strong>JAX import timing</strong>: <code>import phasic</code> no longer imports JAX. The first JAX-touching operation (any of <code>init_parallel()</code>, <code>phasic.configure(compute='jax-*')</code>, <code>phasic.SVGD</code>, <code>Graph.svgd(...)</code>, etc.) triggers activation. If you want JAX ready before timing-sensitive code, call <code>phasic.init_parallel()</code> near the top of your script or notebook.</p>
+<p><strong>Debugging</strong>: Pass <code>parallel='none'</code> to <code>Graph.svgd()</code> directly, or wrap the call in <code>with phasic.configure(svgd_strategy='none'):</code>. Either gives sequential execution and readable error messages — parallel execution can obscure the source of errors.</p>
+<p><strong>Performance</strong>: For small models (&lt; 100 vertices), the overhead of <code>pmap</code> may outweigh the benefit. Use <code>parallel='vmap'</code> or let the auto-detection choose.</p>
+<p><strong>SLURM proxies</strong>: On some HPC systems, HTTP proxy variables can interfere with JAX distributed initialization. Phasic’s <code>initialize_jax_distributed()</code> temporarily unsets proxy variables during initialization.</p>
+<p><strong>Graph construction scaling</strong>: Graph construction is CPU-bound and single-threaded. For very large state spaces, consider using <code>graph_cache=True</code> to avoid rebuilding across sessions.</p>
 </section>
 <section id="slurm-cell-magic" class="level2">
 <h2 class="anchored" data-anchor-id="slurm-cell-magic">SLURM cell magic</h2>
@@ -1088,14 +1207,14 @@ Tip
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">Pixi</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">Conda</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false" href="">Pip</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> workspace channel add munch-group</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> install vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb36"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> workspace channel add munch-group</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> install vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-c</span> munch-group <span class="at">-c</span> conda-forge vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb37"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-c</span> munch-group <span class="at">-c</span> conda-forge vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb38"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install vscodenb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1103,18 +1222,18 @@ Tip
 <section id="slurm-cell-magic-with-vscodenb" class="level2">
 <h2 class="anchored" data-anchor-id="slurm-cell-magic-with-vscodenb">SLURM cell magic with vscodenb</h2>
 <p>If you use the “Remote Development” extension to work on notebooks on the frontend (or single node) on a SLURM cluster, you can use the <code>%%slurm</code> call magic to run a single cell as a SLURM job with as many resources as you need. Once completed, cell variables are created/updated and output appears in the cell output as if you had executed the cell locally.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>slurm <span class="op">-</span>m <span class="dv">4</span><span class="er">G</span> <span class="op">-</span>c <span class="dv">20</span> <span class="op">-</span>t <span class="dv">00</span>:<span class="dv">10</span>:<span class="dv">00</span> <span class="op">-</span>A xy<span class="op">-</span>drive</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>slurm <span class="op">-</span>m <span class="dv">4</span><span class="er">G</span> <span class="op">-</span>c <span class="dv">20</span> <span class="op">-</span>t <span class="dv">00</span>:<span class="dv">10</span>:<span class="dv">00</span> <span class="op">-</span>A xy<span class="op">-</span>drive</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This makes the <code>results</code> available to subsequent cells:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> svgd.get_results()</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Posterior std:  </span><span class="sc">{</span>result[<span class="st">'theta_std'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> svgd.get_results()</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Posterior std:  </span><span class="sc">{</span>result[<span class="st">'theta_std'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>See the <a href="https://munch-group.github.io/vscodenb">documentation</a> for details on options etc.</p>
 
 

@@ -171,6 +171,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#phasic.svgd.SVGD" id="toc-phasic.svgd.SVGD" class="nav-link active" data-scroll-target="#phasic.svgd.SVGD">SVGD</a>
   <ul class="collapse">
+  <li><a href="#when-to-use-graph.svgd-vs-svgd-direct" id="toc-when-to-use-graph.svgd-vs-svgd-direct" class="nav-link" data-scroll-target="#when-to-use-graph.svgd-vs-svgd-direct">When to use <code>Graph.svgd</code> vs <code>SVGD</code> direct</a></li>
   <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
   <li><a href="#attributes" id="toc-attributes" class="nav-link" data-scroll-target="#attributes">Attributes</a></li>
   <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
@@ -183,6 +184,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#phasic.svgd.SVGD.check_convergence" id="toc-phasic.svgd.SVGD.check_convergence" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.check_convergence">check_convergence</a></li>
   <li><a href="#phasic.svgd.SVGD.estimate_hdr" id="toc-phasic.svgd.SVGD.estimate_hdr" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.estimate_hdr">estimate_hdr</a></li>
   <li><a href="#phasic.svgd.SVGD.get_results" id="toc-phasic.svgd.SVGD.get_results" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.get_results">get_results</a></li>
+  <li><a href="#phasic.svgd.SVGD.log_likelihood" id="toc-phasic.svgd.SVGD.log_likelihood" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.log_likelihood">log_likelihood</a></li>
   <li><a href="#phasic.svgd.SVGD.map_estimate_from_particles" id="toc-phasic.svgd.SVGD.map_estimate_from_particles" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.map_estimate_from_particles">map_estimate_from_particles</a></li>
   <li><a href="#phasic.svgd.SVGD.map_estimate_with_optimization" id="toc-phasic.svgd.SVGD.map_estimate_with_optimization" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.map_estimate_with_optimization">map_estimate_with_optimization</a></li>
   <li><a href="#phasic.svgd.SVGD.optimize" id="toc-phasic.svgd.SVGD.optimize" class="nav-link" data-scroll-target="#phasic.svgd.SVGD.optimize">optimize</a></li>
@@ -211,14 +213,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">700</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">1000</span>,</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    bandwidth<span class="op">=</span><span class="st">'median_per_dim'</span>,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    theta_init<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    jit<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    parallel<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    n_devices<span class="op">=</span><span class="va">None</span>,</span>
@@ -232,9 +234,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'auto'</span>,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    exposure<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    exposure_param_index<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    _validated<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.</p>
 <p>This class provides an object-oriented interface for SVGD inference with automatic result storage and diagnostic plotting capabilities.</p>
+<section id="when-to-use-graph.svgd-vs-svgd-direct" class="level2 doc-section doc-section-when-to-use-graphsvgd-vs-svgd-direct">
+<h2 class="doc-section doc-section-when-to-use-graphsvgd-vs-svgd-direct anchored" data-anchor-id="when-to-use-graph.svgd-vs-svgd-direct">When to use <code>Graph.svgd</code> vs <code>SVGD</code> direct</h2>
+<p>Use :meth:<code>phasic.Graph.svgd</code> when you have a phasic <code>Graph</code> object — it handles model construction, reward validation, zero-inflation attachment for partial-coverage rewards, daisy-chain epoch wiring, tied parameters, and per-edge weight callbacks for you. The parameters that :meth:<code>Graph.svgd</code> and :class:<code>SVGD</code> share have identical names, defaults, and semantics.</p>
+<p>Use <code>SVGD(model=..., ...)</code> direct only when you have a pre-built JAX-compatible model callable (e.g.&nbsp;an external PMF) and a fixed <code>theta_dim</code>. Parameters unique to :meth:<code>Graph.svgd</code> — <code>discrete</code>, <code>joint_index</code>, <code>tied</code>, <code>callback</code>, <code>epoch_starts</code>, <code>daisy_chain_t_eval</code>, <code>daisy_chain_granularity</code>, <code>daisy_chain_probe_theta</code>, <code>daisy_chain_t_eval_tol</code>, <code>validate_rewards</code>, <code>return_history</code> — are pre-model-construction concerns and have no meaning when SVGD is handed an opaque model callable.</p>
+<p>Direct <code>SVGD</code> callers whose <code>model</code> carries a <code>_source_graph</code> attribute (stamped by the public PMF builders :meth:<code>Graph.pmf_from_graph</code>, :meth:<code>Graph.pmf_and_moments_from_graph</code>, :meth:<code>Graph.pmf_and_moments_from_graph_multivariate</code>, :meth:<code>Graph.pmf_from_graph_joint_index</code>) get the zero-inflated likelihood term auto-attached when <code>rewards</code> indicates partial coverage. Hand-built models without a source graph reference skip this safety net silently — see :mod:<code>phasic.zero_inflation</code> for the underlying helpers.</p>
+</section>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
@@ -278,11 +289,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>Random seed for reproducibility</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
 <p>Print progress information</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>progress</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dt><code><span class="parameter-name"><strong>progress</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
 <dd>
 <p>Display progress bar during optimization</p>
 </dd>
@@ -329,6 +340,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dt><code><span class="parameter-name"><strong>optimizer</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">(<code>Adam</code>, <code>SGDMomentum</code>, <code>RMSprop</code>, <code>Adagrad</code>, <code>OptaxOptimizer</code>)</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>Optimizer for adaptive per-parameter learning rates. Default is None. Options include: - Adam: (default)Standard Adam optimizer - SGDMomentum: SGD with momentum - RMSprop: RMSprop optimizer - Adagrad: Adagrad optimizer When an optimizer is provided, the <code>learning_rate</code> parameter is ignored (the optimizer has its own learning rate). Example: &gt;&gt;&gt; from phasic import SVGD, Adam &gt;&gt;&gt; # Default: uses Adam &gt;&gt;&gt; svgd = SVGD(model, data, theta_dim=2) &gt;&gt;&gt; # Explicit optimizer &gt;&gt;&gt; svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>exposure</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float, array-like, or None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Per-observation <strong>exposure</strong> :math:<code>\alpha_i</code> — a known multiplicative scaling on a rate-typed component of :math:<code>\boldsymbol{\theta}</code>. For observation <code>i</code> the model is evaluated at :math:<code>\boldsymbol{\theta}^{(i)}</code> where :math:<code>\theta^{(i)}_j = \theta_j</code> for :math:<code>j \neq k</code> and :math:<code>\theta^{(i)}_k = \theta_k \cdot \alpha_i</code>, with :math:<code>k</code> = <code>exposure_param_index</code>. The exposed rate parameter and :math:<code>\alpha_i</code> jointly determine each observation’s expected event count (or hazard, or PMF, depending on the model). This is the GLM “exposure” / “offset” construct: it linearises the relationship between a rate parameter and an observation-specific outcome that scales with a known quantity. Concrete instances: - <strong>Coalescent-with-mutation</strong>: :math:<code>\alpha_i</code> = segment length :math:<code>L_i</code> in bases; :math:<code>\theta_k</code> is the per-base mutation rate. - <strong>Survival / failure-time</strong>: :math:<code>\alpha_i</code> = time-at-risk for unit :math:<code>i</code>; :math:<code>\theta_k</code> is the hazard rate. - <strong>Spatial Poisson</strong>: :math:<code>\alpha_i</code> = area or volume of region :math:<code>i</code>; :math:<code>\theta_k</code> is the intensity per unit area. - <code>None</code> (default): no exposure correction; existing behaviour. - scalar: same :math:<code>\alpha</code> applied to every observation. - 1D array of length <code>n_observations</code>: per-observation :math:<code>\alpha</code>. For dense 2D <code>observed_data</code> of shape <code>(n_observations, n_features)</code> the same :math:<code>\alpha_i</code> is shared across all features of observation :math:<code>i</code>. Requires <code>exposure_param_index</code>. Rejected for <code>SparseObservations</code> (raises <code>NotImplementedError</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>exposure_param_index</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code> or None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>Index :math:<code>k</code> of the rate-typed parameter in :math:<code>\boldsymbol{\theta}</code> that <code>exposure</code> scales. Required when <code>exposure</code> is set. Must be in <code>[0, param_length)</code>. Under daisy-chain (<code>epoch_starts=[…]</code>), :math:<code>\boldsymbol{\theta}</code> has flat layout <code>(n_epochs * param_length,)</code>; <code>exposure_param_index</code> remains the <em>local</em> per-epoch index and is broadcast across every epoch internally.</p>
 </dd>
 </dl>
 </section>
@@ -461,42 +480,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Get inference results as a dictionary.</td>
 </tr>
 <tr class="even">
+<td><a href="#phasic.svgd.SVGD.log_likelihood">log_likelihood</a></td>
+<td>Maximum log-likelihood at the MAP (or at a supplied theta).</td>
+</tr>
+<tr class="odd">
 <td><a href="#phasic.svgd.SVGD.map_estimate_from_particles">map_estimate_from_particles</a></td>
 <td>Find the MAP estimate from a set of particles by finding the particle</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.svgd.SVGD.map_estimate_with_optimization">map_estimate_with_optimization</a></td>
 <td>Refine MAP estimate by starting from the best particle and performing</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.svgd.SVGD.optimize">optimize</a></td>
 <td>Run SVGD inference with optional moment-based regularization.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.svgd.SVGD.plot_ci">plot_ci</a></td>
 <td>Plot mean parameter trajectory with credible interval ribbon.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.svgd.SVGD.plot_convergence">plot_convergence</a></td>
 <td>Plot convergence diagnostics showing mean and std over iterations.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.svgd.SVGD.plot_hdr">plot_hdr</a></td>
 <td>Plot 2D highest-density region with optional marginal HPD bands.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.svgd.SVGD.plot_pairwise">plot_pairwise</a></td>
 <td>Plot pairwise scatter plots for all parameter pairs.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.svgd.SVGD.plot_posterior">plot_posterior</a></td>
 <td>Plot posterior distributions for each parameter.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.svgd.SVGD.plot_trace">plot_trace</a></td>
 <td>Plot trace plots showing particle evolution over iterations.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.svgd.SVGD.summary">summary</a></td>
 <td>Print a summary of the inference results.</td>
 </tr>
@@ -826,12 +849,68 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dl>
 </section>
 </section>
-<section id="phasic.svgd.SVGD.map_estimate_from_particles" class="level3">
-<h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.map_estimate_from_particles">map_estimate_from_particles</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.map_estimate_from_particles(unconstrained<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Find the MAP estimate from a set of particles by finding the particle with the highest log probability.</p>
+<section id="phasic.svgd.SVGD.log_likelihood" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.log_likelihood">log_likelihood</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.log_likelihood(theta<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>, refine<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Maximum log-likelihood at the MAP (or at a supplied theta).</p>
+<p>Returns the pure log-likelihood <code>Σ log p(x_i | θ̂)</code> with no prior and no moment-regularization penalty. This is the quantity consumed by AIC, BIC, and likelihood-ratio tests.</p>
+<p>For partial-coverage reward models (Graph.svgd attaches a <code>_zero_inflated_p_fn</code> to the model when rewards don’t cover every absorbing trajectory), the returned value also includes the explicit zero-inflation point-mass term <code>Σ_j n_zero_j · log(1 − p_j(θ))</code>, matching the likelihood SVGD optimised against. Prior to v0.28.7 this term was silently dropped here, which biased AIC/BIC for partial-coverage fits.</p>
 <section id="parameters-6" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-6">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>theta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>array</code> - <code>like</code> or None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If None, evaluate at the MAP particle (the one maximizing the log-posterior, found via :meth:<code>map_estimate_from_particles</code>). If <code>refine=True</code>, the MAP is refined via gradient ascent on the log-posterior before LL is evaluated there. The returned value is always pure LL — the prior is used only to locate the MAP, not added to the result. If an array is provided, it is interpreted in CONSTRAINED (model) space — i.e.&nbsp;the same space as <code>theta_mean</code>. The model is evaluated directly without re-applying <code>param_transform</code>. Must have shape <code>(theta_dim,)</code>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>refine</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dd>
+<p>When <code>theta is None</code>, controls whether the MAP is refined via gradient ascent on the log-posterior (70 steps, step size 0.01) before LL is evaluated. Ignored otherwise.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-5" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-5">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code></span></code></dt>
+<dd>
+<p>Σ log p(x_i | θ̂) over all valid observations.</p>
+</dd>
+</dl>
+</section>
+<section id="raises-2" class="level4 doc-section doc-section-raises">
+<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-2">Raises</h4>
+<dl>
+<dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>RuntimeError</code></span></code></dt>
+<dd>
+<p>If the SVGD instance has not been fitted yet.</p>
+</dd>
+<dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>ValueError</code></span></code></dt>
+<dd>
+<p>If <code>theta</code> has wrong shape, or if the observed data has zero valid entries.</p>
+</dd>
+</dl>
+</section>
+<section id="examples-4" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-4">Examples</h4>
+<p>Maximum log-likelihood at the MAP, for AIC/BIC:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> graph.svgd(observed_data, theta_dim<span class="op">=</span><span class="dv">2</span>).optimize()</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ll_map <span class="op">=</span> svgd.log_likelihood()</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ll_refined <span class="op">=</span> svgd.log_likelihood(refine<span class="op">=</span><span class="va">True</span>)  <span class="co"># closer to MLE</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Evaluate LL at a specific θ (constrained space):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> ll_at <span class="op">=</span> svgd.log_likelihood(theta<span class="op">=</span>jnp.array([<span class="fl">1.5</span>, <span class="fl">2.0</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="see-also" class="level4 doc-section doc-section-see-also">
+<h4 class="doc-section doc-section-see-also anchored" data-anchor-id="see-also">See Also</h4>
+<p>phasic.model_selection.aic, phasic.model_selection.bic, phasic.model_selection.likelihood_ratio_test</p>
+</section>
+</section>
+<section id="phasic.svgd.SVGD.map_estimate_from_particles" class="level3">
+<h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.map_estimate_from_particles">map_estimate_from_particles</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.map_estimate_from_particles(unconstrained<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Find the MAP estimate from a set of particles by finding the particle with the highest log probability.</p>
+<section id="parameters-7" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>unconstrained</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
@@ -839,8 +918,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-5" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-5">Returns</h4>
+<section id="returns-6" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>list</code>, <code>float</code>]</span></code></dt>
 <dd>
@@ -851,14 +930,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.map_estimate_with_optimization" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.map_estimate_with_optimization">map_estimate_with_optimization</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.map_estimate_with_optimization(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    n_steps<span class="op">=</span><span class="dv">70</span>,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    step_size<span class="op">=</span><span class="fl">0.01</span>,</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.map_estimate_with_optimization(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    n_steps<span class="op">=</span><span class="dv">70</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    step_size<span class="op">=</span><span class="fl">0.01</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Refine MAP estimate by starting from the best particle and performing gradient ascent on the log probability.</p>
-<section id="parameters-7" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h4>
+<section id="parameters-8" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>n_steps</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>int</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">70</span></code></dt>
 <dd>
@@ -874,8 +953,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-6" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h4>
+<section id="returns-7" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>list</code>, <code>float</code>]</span></code></dt>
 <dd>
@@ -886,11 +965,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.optimize" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.optimize">optimize</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.optimize(rewards<span class="op">=</span><span class="va">None</span>, return_history<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.optimize(rewards<span class="op">=</span><span class="va">None</span>, return_history<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Run SVGD inference with optional moment-based regularization.</p>
 <p>Regularization settings are configured at SVGD initialization via regularization and nr_moments parameters.</p>
-<section id="parameters-8" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h4>
+<section id="parameters-9" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-9">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>rewards</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -902,8 +981,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-7" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h4>
+<section id="returns-8" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-8">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>SVGD</code></span></code></dt>
 <dd>
@@ -911,8 +990,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="raises-2" class="level4 doc-section doc-section-raises">
-<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-2">Raises</h4>
+<section id="raises-3" class="level4 doc-section doc-section-raises">
+<h4 class="doc-section doc-section-raises anchored" data-anchor-id="raises-3">Raises</h4>
 <dl>
 <dt><code><span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>NotImplementedError</code></span></code></dt>
 <dd>
@@ -920,19 +999,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="examples-4" class="level4 doc-section doc-section-examples">
-<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-4">Examples</h4>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Standard SVGD (no regularization)</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">0.0</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># SVGD with moment regularization</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">1.0</span>, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># With custom moments and strong regularization</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">5.0</span>, nr_moments<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="examples-5" class="level4 doc-section doc-section-examples">
+<h4 class="doc-section doc-section-examples anchored" data-anchor-id="examples-5">Examples</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># Standard SVGD (no regularization)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">0.0</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># SVGD with moment regularization</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> model <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">1.0</span>, nr_moments<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> <span class="co"># With custom moments and strong regularization</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd <span class="op">=</span> SVGD(model, observed_data, theta_dim<span class="op">=</span><span class="dv">1</span>, regularization<span class="op">=</span><span class="fl">5.0</span>, nr_moments<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> svgd.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="notes" class="level4 doc-section doc-section-notes">
 <h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h4>
@@ -947,24 +1026,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_ci" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_ci">plot_ci</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_ci(</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>),</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    ci<span class="op">=</span><span class="fl">0.95</span>,</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.2</span>,</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    target<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    median<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    ci_method<span class="op">=</span><span class="st">'hpd'</span>,</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_ci(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>),</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    ci<span class="op">=</span><span class="fl">0.95</span>,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.2</span>,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    target<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    median<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    ci_method<span class="op">=</span><span class="st">'hpd'</span>,</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot mean parameter trajectory with credible interval ribbon.</p>
 <p>Shows the posterior mean over iterations with a shaded region representing the specified credible interval (default 95%).</p>
-<section id="parameters-9" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-9">Parameters</h4>
+<section id="parameters-10" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-10">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>figsize</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">(7, 3)</span></code></dt>
 <dd>
@@ -1016,8 +1095,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-8" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-8">Returns</h4>
+<section id="returns-9" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-9">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>matplotlib</code>.<code>figure</code>.<code>Figure</code>, <code>matplotlib</code>.<code>axes</code>.<code>Axes</code>]</span></code></dt>
 <dd>
@@ -1028,18 +1107,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_convergence" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_convergence">plot_convergence</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_convergence(</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>),</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_convergence(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot convergence diagnostics showing mean and std over iterations.</p>
 <p>Requires fit() to have been called with return_history=True.</p>
-<section id="parameters-10" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-10">Parameters</h4>
+<section id="parameters-11" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-11">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>figsize</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">(7, 4)</span></code></dt>
 <dd>
@@ -1067,8 +1146,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-9" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-9">Returns</h4>
+<section id="returns-10" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-10">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>matplotlib</code>.<code>figure</code>.<code>Figure</code>, <code>numpy</code>.<code>ndarray</code>]</span></code></dt>
 <dd>
@@ -1079,28 +1158,28 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_hdr" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_hdr">plot_hdr</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_hdr(</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    alphas<span class="op">=</span>[<span class="fl">0.95</span>, <span class="fl">0.5</span>],</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    idx<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">4</span>),</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    hexgrid<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    trim<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    n<span class="op">=</span><span class="dv">15</span>,</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    margin<span class="op">=</span><span class="fl">0.1</span>,</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    xlim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    ylim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    palette<span class="op">=</span><span class="st">'viridis'</span>,</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    pad<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    show_hpd<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    hpd_alpha<span class="op">=</span><span class="fl">0.95</span>,</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_hdr(</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    alphas<span class="op">=</span>[<span class="fl">0.95</span>, <span class="fl">0.5</span>],</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    idx<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">4</span>),</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    hexgrid<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    trim<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    n<span class="op">=</span><span class="dv">15</span>,</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    margin<span class="op">=</span><span class="fl">0.1</span>,</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    xlim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    ylim<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    palette<span class="op">=</span><span class="st">'viridis'</span>,</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    pad<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    show_hpd<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    hpd_alpha<span class="op">=</span><span class="fl">0.95</span>,</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot 2D highest-density region with optional marginal HPD bands.</p>
 <p>Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours for two selected parameter dimensions.</p>
-<section id="parameters-11" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-11">Parameters</h4>
+<section id="parameters-12" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-12">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>alphas</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">[0.95, 0.5]</span></code></dt>
 <dd>
@@ -1171,18 +1250,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_pairwise" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_pairwise">plot_pairwise</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_pairwise(</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_pairwise(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot pairwise scatter plots for all parameter pairs.</p>
-<section id="parameters-12" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-12">Parameters</h4>
+<section id="parameters-13" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-13">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>true_theta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -1214,8 +1293,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-10" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-10">Returns</h4>
+<section id="returns-11" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-11">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>matplotlib</code>.<code>figure</code>.<code>Figure</code>, <code>numpy</code>.<code>ndarray</code>]</span></code></dt>
 <dd>
@@ -1226,20 +1305,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_posterior" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_posterior">plot_posterior</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_posterior(</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    bins<span class="op">=</span><span class="dv">20</span>,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    ci_method<span class="op">=</span><span class="st">'hpd'</span>,</span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    ci_level<span class="op">=</span><span class="fl">0.95</span>,</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_posterior(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    true_theta<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    bins<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    ci_method<span class="op">=</span><span class="st">'hpd'</span>,</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>    ci_level<span class="op">=</span><span class="fl">0.95</span>,</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot posterior distributions for each parameter.</p>
-<section id="parameters-13" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-13">Parameters</h4>
+<section id="parameters-14" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-14">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>true_theta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>np</code>.<code>ndarray</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -1279,8 +1358,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-11" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-11">Returns</h4>
+<section id="returns-12" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-12">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>matplotlib</code>.<code>figure</code>.<code>Figure</code>, <code>numpy</code>.<code>ndarray</code>]</span></code></dt>
 <dd>
@@ -1291,20 +1370,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.plot_trace" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_trace">plot_trace</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_trace(</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    max_particles<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_trace(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    max_particles<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot trace plots showing particle evolution over iterations.</p>
 <p>Requires fit() to have been called with return_history=True.</p>
-<section id="parameters-14" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-14">Parameters</h4>
+<section id="parameters-15" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-15">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>param_names</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -1340,8 +1419,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 </dl>
 </section>
-<section id="returns-12" class="level4 doc-section doc-section-returns">
-<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-12">Returns</h4>
+<section id="returns-13" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-13">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code>[<code>matplotlib</code>.<code>figure</code>.<code>Figure</code>, <code>numpy</code>.<code>ndarray</code>]</span></code></dt>
 <dd>
@@ -1352,10 +1431,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="phasic.svgd.SVGD.summary" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.summary">summary</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.summary(ci_method<span class="op">=</span><span class="st">'hpd'</span>, ci_level<span class="op">=</span><span class="fl">0.95</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Print a summary of the inference results.</p>
-<section id="parameters-15" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-15">Parameters</h4>
+<section id="parameters-16" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-16">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>ci_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'hpd'</span></code></dt>
 <dd>

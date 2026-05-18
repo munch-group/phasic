@@ -120,22 +120,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
-  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
-  <script>document.addEventListener("DOMContentLoaded", function () {
- var mathElements = document.getElementsByClassName("math");
- var macros = [];
- for (var i = 0; i < mathElements.length; i++) {
-  var texText = mathElements[i].firstChild;
-  if (mathElements[i].tagName == "SPAN") {
-   katex.render(texText.data, mathElements[i], {
-    displayMode: mathElements[i].classList.contains('display'),
-    throwOnError: false,
-    macros: macros,
-    fleqn: false
-   });
-}}});
-  </script>
-  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -433,65 +419,6 @@ window.Quarto = {
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -502,16 +429,10 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#joint-probability-and-continuous-time-time" id="toc-joint-probability-and-continuous-time-time" class="nav-link active" data-scroll-target="#joint-probability-and-continuous-time-time">Joint probability and continuous time time</a></li>
-  <li><a href="#need-to-check-if-this-convergence-issue-is-because-i-am-not-normalizing-trashabs-correctly---and-if-bug-also-affects-svgd-implementation.-add-a-pytest-to-check-that-the-continuous-approx-is-smaller-than-the-exact-discrete-at-any-time-t" id="toc-need-to-check-if-this-convergence-issue-is-because-i-am-not-normalizing-trashabs-correctly---and-if-bug-also-affects-svgd-implementation.-add-a-pytest-to-check-that-the-continuous-approx-is-smaller-than-the-exact-discrete-at-any-time-t" class="nav-link" data-scroll-target="#need-to-check-if-this-convergence-issue-is-because-i-am-not-normalizing-trashabs-correctly---and-if-bug-also-affects-svgd-implementation.-add-a-pytest-to-check-that-the-continuous-approx-is-smaller-than-the-exact-discrete-at-any-time-t">NEED TO CHECK IF THIS CONVERGENCE ISSUE IS BECAUSE I AM NOT NORMALIZING TRASH/ABS CORRECTLY - AND IF BUG ALSO AFFECTS SVGD IMPLEMENTATION. ADD A PYTEST TO CHECK THAT THE CONTINUOUS APPROX IS SMALLER THAN THE EXACT DISCRETE AT ANY TIME T</a>
+  <li><a href="#joint-probability-and-continuous-time" id="toc-joint-probability-and-continuous-time" class="nav-link active" data-scroll-target="#joint-probability-and-continuous-time">Joint probability and continuous time</a>
   <ul class="collapse">
+  <li><a href="#cumulative-joint-probability" id="toc-cumulative-joint-probability" class="nav-link" data-scroll-target="#cumulative-joint-probability">Cumulative joint probability</a></li>
   <li><a href="#time-inhomogeneous-joint-probability" id="toc-time-inhomogeneous-joint-probability" class="nav-link" data-scroll-target="#time-inhomogeneous-joint-probability">Time-inhomogeneous joint-probability</a></li>
-  <li><a href="#proof-of-correctness" id="toc-proof-of-correctness" class="nav-link" data-scroll-target="#proof-of-correctness">Proof of correctness</a>
-  <ul class="collapse">
-  <li><a href="#part-a-discrete-joint-probability-graph" id="toc-part-a-discrete-joint-probability-graph" class="nav-link" data-scroll-target="#part-a-discrete-joint-probability-graph">Part A — Discrete joint-probability graph</a></li>
-  <li><a href="#part-b-continuous-joint-probability-across-epochs" id="toc-part-b-continuous-joint-probability-across-epochs" class="nav-link" data-scroll-target="#part-b-continuous-joint-probability-across-epochs">Part B — Continuous joint probability across epochs</a></li>
-  <li><a href="#average-theta-check" id="toc-average-theta-check" class="nav-link" data-scroll-target="#average-theta-check">Average theta check</a></li>
-  </ul></li>
   </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/joint-probability.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/joint-probability.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -546,7 +467,7 @@ By carefully constructing the edge weights and using reward transformations, we 
 
 In our rabbit model, we might be interested in the joint distribution of two quantities: the time until the left island is depleted (either by jumping or flooding) and the time until the right island is depleted. These two times are not independent—they are coupled through the rabbits jumping between islands. Let's construct a model that tracks both times simultaneously. 
 -->
-<div id="d2b8d552" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:54.792539Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:54.792444Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.256017Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.255506Z&quot;}}" data-execution_count="1">
+<div id="d2b8d552" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:43.960086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:43.959950Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:46.845573Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:46.825633Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv,</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -651,39 +572,39 @@ table {
         
 </div>
 </div>
-<div id="855e0db0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.257433Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.257276Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.261007Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.260579Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineage):</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer.lineage.index_to_props(i)</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer.lineage.index_to_props(j)</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span> </span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        descendants <span class="op">=</span> p1.descendants <span class="op">+</span> p2.descendants</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineage.props_to_index(descendants<span class="op">=</span>descendants)</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)])</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="855e0db0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:46.848267Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:46.848035Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:46.852598Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:46.851366Z&quot;}}" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineage):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer.lineage.index_to_props(i)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer.lineage.index_to_props(j)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span> </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        descendants <span class="op">=</span> p1.descendants <span class="op">+</span> p2.descendants</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineage.props_to_index(descendants<span class="op">=</span>descendants)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)])</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now lets construct the joint probability graph. In addition to a mutation rate, you must specify an upper bound on the number of discrete rewards you want to account for. You can specify a maximum discrete value of each feature (how many tons of each kind you want to account for) using the <code>reward_limit</code> keyword argument. This takes both a scalar argument for a maximum applied to all features or an array with a maximum for each feature. You can also use the <code>tot_reward_limit</code> keyword argument to specify a maximum on total rewards for each feature combination. Both arguments may be specified to define the upper bound.</p>
 <p>Since we only model a subset of feature combinations, the joint distribution is deficient. The deficit is the total probability of feature combinations beyond the upper bound. You can easily compute this as one minus the sum of joint probabilities.</p>
-<div id="dd98b573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.262258Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.262179Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.521903Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.521170Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="dd98b573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:46.855058Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:46.854925Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.064670Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.063918Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div>
 <figure class="figure">
@@ -692,7 +613,7 @@ table {
 </div>
 </div>
 </div>
-<div id="43b834a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.523662Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.523519Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.531439Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.530932Z&quot;}}" data-execution_count="4">
+<div id="43b834a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.066521Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.066337Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.075852Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.075226Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">0.1</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>joint_prob_graph <span class="op">=</span> graph.joint_prob_graph(indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>, mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -700,18 +621,23 @@ table {
 <pre><code>39</code></pre>
 </div>
 </div>
-<div id="a6a7bc8f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.532798Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.532686Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.689850Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.689400Z&quot;}}" data-execution_count="5">
+<div id="cell-fig-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.077797Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.077671Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.219132Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.218563Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.plot(nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
-<div>
-<figure class="figure">
-<p><a href="joint-probability_files/figure-html/cell-6-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="joint-probability_files/figure-html/cell-6-output-1.svg" class="img-fluid figure-img"></a></p>
+<div id="fig-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="joint-probability_files/figure-html/fig-joint-prob-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;1: "><img src="joint-probability_files/figure-html/fig-joint-prob-graph-output-1.svg" id="fig-joint-prob-graph" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
 <p>Compute the joint probabilities:</p>
-<div id="6c9103d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.691790Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.691666Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.700786Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.700324Z&quot;}}" data-execution_count="6">
+<div id="6c9103d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.221297Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.221114Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.237139Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.236632Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>joint_prob_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -825,30 +751,47 @@ table {
 </div>
 </div>
 <p>Deficit:</p>
-<div id="0f652d5a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.702164Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.702062Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.704510Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.704067Z&quot;}}" data-execution_count="7">
+<div id="0f652d5a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.240418Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.240235Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.243535Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.243092Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>0.016476095092311294</code></pre>
 </div>
 </div>
-<div id="5334ef02" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.705760Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.705665Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.963841Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.963377Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ton_pair <span class="op">=</span> [<span class="st">'descendants_2'</span>, <span class="st">'descendants_3'</span>]</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> joint_prob_table[ton_pair <span class="op">+</span> [<span class="st">'prob'</span>]].groupby(ton_pair).<span class="bu">sum</span>().reset_index()   </span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> plot_df.pivot(index<span class="op">=</span>ton_pair[<span class="dv">1</span>], columns<span class="op">=</span>ton_pair[<span class="dv">0</span>], values<span class="op">=</span><span class="st">'prob'</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> vscode_theme(style<span class="op">=</span><span class="st">'ticks'</span>):</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> sns.heatmap(</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        plot_df,</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        cmap<span class="op">=</span><span class="st">'viridis'</span>,</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Probability'</span>},</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        xticklabels<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        yticklabels<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        norm<span class="op">=</span>LogNorm(),</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    ax.<span class="bu">set</span>(xlabel<span class="op">=</span>ton_pair[<span class="dv">0</span>], ylabel<span class="op">=</span>ton_pair[<span class="dv">1</span>])</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    ax.invert_yaxis()</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
+<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.245434Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.245325Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.674495Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.673299Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>joint_prob_graph <span class="op">=</span> graph.joint_prob_graph(indexer, tot_reward_limit<span class="op">=</span><span class="dv">10</span>, mutation_rate<span class="op">=</span>mutation_rate)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>ton_pair <span class="op">=</span> [<span class="st">'descendants_2'</span>, <span class="st">'descendants_3'</span>]</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> joint_prob_table[ton_pair <span class="op">+</span> [<span class="st">'prob'</span>]].groupby(ton_pair).<span class="bu">sum</span>().reset_index()   </span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> plot_df.pivot(index<span class="op">=</span>ton_pair[<span class="dv">1</span>], columns<span class="op">=</span>ton_pair[<span class="dv">0</span>], values<span class="op">=</span><span class="st">'prob'</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> vscode_theme(style<span class="op">=</span><span class="st">'ticks'</span>):</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> sns.heatmap(</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        plot_df,</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        cmap<span class="op">=</span><span class="st">'viridis'</span>,</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        cbar_kws<span class="op">=</span>{<span class="st">'label'</span>: <span class="st">'Probability'</span>},</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        xticklabels<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        yticklabels<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        norm<span class="op">=</span>LogNorm(),</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    ax.<span class="bu">set</span>(xlabel<span class="op">=</span>ton_pair[<span class="dv">0</span>], ylabel<span class="op">=</span>ton_pair[<span class="dv">1</span>])</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    ax.invert_yaxis()</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="fig-joint-heatmap" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.245434Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.245325Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.674495Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.673299Z&quot;}}">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div id="fig-joint-heatmap-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 
         <style>
         .cell-output-ipywidget-background {
@@ -894,23 +837,39 @@ table {
         </style>                          
         
 </div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a)
+</figcaption>
+</figure>
+</div>
 <div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="joint-probability_files/figure-html/cell-9-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="joint-probability_files/figure-html/cell-9-output-2.png" width="468" height="348" class="figure-img"></a></p>
+<div id="fig-joint-heatmap-2" class="quarto-float quarto-figure quarto-figure-center anchored" width="475" height="348">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="joint-probability_files/figure-html/fig-joint-heatmap-output-2.png" class="lightbox" data-gallery="fig-joint-heatmap" title="Figure&nbsp;2&nbsp;(b): "><img src="joint-probability_files/figure-html/fig-joint-heatmap-output-2.png" id="fig-joint-heatmap-2" data-ref-parent="fig-joint-heatmap" width="475" height="348" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b)
+</figcaption>
 </figure>
 </div>
 </div>
 </div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2
+</figcaption>
+</figure>
+</div>
+</div>
 <p>Note that the joint probability graph does not have meaningful moments and pdf. E.g., the expectation is inf because of the infinite loop between the trash states:</p>
-<div id="71a70b26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.965249Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.965137Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:57.967678Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:57.967223Z&quot;}}" data-execution_count="9">
+<div id="71a70b26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.676822Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.676697Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.681236Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.680462Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>inf</code></pre>
 </div>
 </div>
 <p>The joint probabilities are extracted as the sojourn times of appropriate transient states connecting only to the absorbing state:</p>
-<div id="cdd7037a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:57.969067Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:57.968948Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.032240Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.031746Z&quot;}}" data-execution_count="10">
+<div id="cdd7037a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.683259Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.683017Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.795700Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.794322Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tons <span class="op">=</span> np.arange(<span class="dv">1</span>, nr_samples)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>marginals <span class="op">=</span> [np.<span class="bu">sum</span>(joint_prob_table[<span class="ss">f'descendants_</span><span class="sc">{</span>t<span class="sc">}</span><span class="ss">'</span>] <span class="op">*</span> joint_prob_table[<span class="st">'prob'</span>]) <span class="cf">for</span> t <span class="kw">in</span> tons]</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>sns.barplot(x<span class="op">=</span>tons, y<span class="op">=</span>marginals)<span class="op">;</span></span>
@@ -923,591 +882,203 @@ table {
 </div>
 </div>
 </div>
-<section id="joint-probability-and-continuous-time-time" class="level2">
-<h2 class="anchored" data-anchor-id="joint-probability-and-continuous-time-time">Joint probability and continuous time time</h2>
-<div id="7615080f" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, StateIndexer, Property, with_ipv</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np                              </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd                                           </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_ipv(graph):</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    ipv <span class="op">=</span> np.zeros(graph.vertices_length())</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> edge <span class="kw">in</span> graph.starting_vertex().edges():</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        ipv[edge.to().index()] <span class="op">=</span> edge.weight()</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ipv</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> epoch_joint_prob_graph(jg):  </span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">    Joint prob graph IPV at time t. Made special so that t-states in the join graph are never left once entered.</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>                                                                                       </span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    new <span class="op">=</span> Graph(jg.state_length())                                                              </span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> jg.parameterized():                                                                      </span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        new.set_param_length(jg.param_length())</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>                                                                                                </span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    start_old <span class="op">=</span> jg.starting_vertex()</span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    vmap <span class="op">=</span> {start_old.index(): new.starting_vertex()}                                           </span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> is_trash(v):</span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> v.state().<span class="bu">sum</span>() <span class="kw">and</span> v.edges_length() <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> v.edges()[<span class="dv">0</span>].to()</span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> v.state().<span class="bu">sum</span>() <span class="kw">and</span> child.edges_length() <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> child.edges()[<span class="dv">0</span>].to().index() <span class="op">==</span> v.index()</span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
-<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    t_vertex_indices <span class="op">=</span> []</span>
-<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    trash_indices <span class="op">=</span> []</span>
-<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> v <span class="kw">in</span> jg.vertices():</span>
-<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> v.index() <span class="op">==</span> start_old.index():</span>
-<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> v.edges():</span>
-<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>            abs_index <span class="op">=</span> v.index()  </span>
-<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> edge <span class="kw">in</span> v.edges():</span>
-<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="bu">len</span>(edge.to().edges()) <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>                t_vertex_indices.append(v.index())</span>
-<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
-<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> is_trash(v):</span>
-<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>            trash_indices.append(v.index())</span>
-<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>        vmap[v.index()] <span class="op">=</span> new.create_vertex(<span class="bu">list</span>(v.state()))</span>
-<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>    t_vertex_indices <span class="op">=</span> np.unique(t_vertex_indices)</span>
-<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">len</span>(trash_indices) <span class="op">==</span> <span class="dv">2</span></span>
-<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>    t_vertex_sisters <span class="op">=</span> <span class="bu">dict</span>()</span>
-<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>    <span class="co"># add edges </span></span>
-<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> v <span class="kw">in</span> jg.vertices():                                                                     </span>
-<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> v.edges():</span>
-<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> v.index() <span class="kw">in</span> trash_indices:</span>
-<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span> </span>
-<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>        nv <span class="op">=</span> vmap[v.index()]</span>
-<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> v.index() <span class="kw">in</span> t_vertex_indices:</span>
-<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a>            t_vertex_sister <span class="op">=</span> new.create_vertex([<span class="dv">0</span>]<span class="op">*</span>jg.state_length())</span>
-<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a>            nv.add_edge(t_vertex_sister, [<span class="dv">1</span>]<span class="op">*</span>jg.param_length())</span>
-<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a>            t_vertex_sister.add_edge(nv, [<span class="dv">1</span>]<span class="op">*</span>jg.param_length())</span>
-<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a>            t_vertex_sisters[v.index()] <span class="op">=</span> t_vertex_sister.index()</span>
-<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> e <span class="kw">in</span> v.parameterized_edges():</span>
-<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a>            to_index <span class="op">=</span> e.to().index()</span>
-<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> to_index <span class="kw">in</span> trash_indices:</span>
-<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a>                to_index <span class="op">=</span> abs_index</span>
-<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> jg.parameterized():</span>
-<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a>                nv.add_edge(vmap[to_index], <span class="bu">list</span>(e.edge_state(jg.param_length())))</span>
-<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
-<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a>                nv.add_edge(vmap[to_index], e.weight())</span>
-<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a>                                                                                                </span>
-<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a>    new.is_discrete <span class="op">=</span> jg.is_discrete</span>
-<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a>    new._cache_trace <span class="op">=</span> jg._cache_trace</span>
-<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a>    new._trace <span class="op">=</span> <span class="va">None</span>                                                                           </span>
-<span id="cb14-83"><a href="#cb14-83" aria-hidden="true" tabindex="-1"></a>    new._trace_dirty <span class="op">=</span> <span class="va">True</span></span>
-<span id="cb14-84"><a href="#cb14-84" aria-hidden="true" tabindex="-1"></a>    new._last_theta <span class="op">=</span> <span class="va">None</span>    </span>
-<span id="cb14-85"><a href="#cb14-85" aria-hidden="true" tabindex="-1"></a>    new._joint_prob_base_graph_indexer <span class="op">=</span> jg._joint_prob_base_graph_indexer   </span>
-<span id="cb14-86"><a href="#cb14-86" aria-hidden="true" tabindex="-1"></a>    new._rewarded_props <span class="op">=</span> jg._rewarded_props                                                           </span>
-<span id="cb14-87"><a href="#cb14-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-88"><a href="#cb14-88" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">list</span>(<span class="bu">range</span>(<span class="bu">len</span>(vmap.values()))) <span class="op">==</span> <span class="bu">sorted</span>(v.index() <span class="cf">for</span> v <span class="kw">in</span> vmap.values())</span>
-<span id="cb14-89"><a href="#cb14-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-90"><a href="#cb14-90" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> new, t_vertex_sisters, jg.vertices_length()</span>
-<span id="cb14-91"><a href="#cb14-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-92"><a href="#cb14-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-93"><a href="#cb14-93" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> graph___epoch_stop_prob(<span class="va">self</span>, t, t_vertex_sisters, joint_graph_vertices_length):</span>
-<span id="cb14-94"><a href="#cb14-94" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-95"><a href="#cb14-95" aria-hidden="true" tabindex="-1"></a>    st_with_sisters <span class="op">=</span> np.array(<span class="va">self</span>.stop_probability(t))</span>
-<span id="cb14-96"><a href="#cb14-96" aria-hidden="true" tabindex="-1"></a>    <span class="co"># idx = np.array(sorted(v.index() for v in vmap.values()))</span></span>
-<span id="cb14-97"><a href="#cb14-97" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> np.arange(joint_graph_vertices_length)</span>
-<span id="cb14-98"><a href="#cb14-98" aria-hidden="true" tabindex="-1"></a>    st <span class="op">=</span> st_with_sisters[idx]</span>
-<span id="cb14-99"><a href="#cb14-99" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> t_vertex_sisters:</span>
-<span id="cb14-100"><a href="#cb14-100" aria-hidden="true" tabindex="-1"></a>        st[i] <span class="op">+=</span> st_with_sisters[i]</span>
-<span id="cb14-101"><a href="#cb14-101" aria-hidden="true" tabindex="-1"></a>    st <span class="op">=</span> np.array(st)</span>
-<span id="cb14-102"><a href="#cb14-102" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> st</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
-</div>
-</div>
-<div id="962f7b98" class="cell" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>reward_limit <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> <span class="fl">0.3</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>theta_epoch1 <span class="op">=</span> [<span class="dv">2</span>, mutation_rate]</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>theta_epoch2 <span class="op">=</span> [<span class="dv">2</span>, mutation_rate]</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coal_callback(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> combinations_with_replacement(<span class="bu">range</span>(indexer.lineages.state_length), <span class="dv">2</span>):</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        new[<span class="bu">min</span>(i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>, state.size <span class="op">-</span> <span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        pair_count <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [pair_count]])</span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co"># base graph indexer</span></span>
-<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
-<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>n_samples)],</span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="co"># base graph ipv</span></span>
-<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
-<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>ipv[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> n_samples</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="3467321f" class="cell" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coal_callback, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cont joint prob graph</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>cont_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">False</span>) </span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph, t_sister_map, joint_graph_vertices_length <span class="op">=</span> epoch_joint_prob_graph(cont_joint_graph)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph.update_weights(theta_epoch1)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>t_state_indices <span class="op">=</span> np.array(<span class="bu">list</span>(t_sister_map.keys()), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>cum_hit_probs <span class="op">=</span> []</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">4</span>, <span class="fl">0.1</span>)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> x:</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    epoch_ipv <span class="op">=</span> graph___epoch_stop_prob(cont_epoch_graph, t, t_sister_map, joint_graph_vertices_length)</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    cum_hit_probs.append(epoch_ipv[t_state_indices])</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>disc_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">True</span>) </span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>disc_joint_graph.update_weights(theta_epoch1)</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> disc_joint_graph.joint_prob_table()</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">7</span>))</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>plt.plot(x, cum_hit_probs)</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>[ax.axhline(a, color<span class="op">=</span><span class="st">'k'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, ls<span class="op">=</span><span class="st">'--'</span>) <span class="cf">for</span> a <span class="kw">in</span> df.prob] <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
+<section id="joint-probability-and-continuous-time" class="level2">
+<h2 class="anchored" data-anchor-id="joint-probability-and-continuous-time">Joint probability and continuous time</h2>
+<section id="cumulative-joint-probability" class="level3">
+<h3 class="anchored" data-anchor-id="cumulative-joint-probability">Cumulative joint probability</h3>
+<div id="52b72886" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.798359Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.798155Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.069740Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.068888Z&quot;}}" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> [<span class="dv">7</span>, <span class="dv">1</span>]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>reward_limit <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
 <div>
 <figure class="figure">
-<p><a href="joint-probability_files/figure-html/cell-14-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="joint-probability_files/figure-html/cell-14-output-1.png" width="603" height="582" class="figure-img"></a></p>
+<p><a href="joint-probability_files/figure-html/cell-12-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="joint-probability_files/figure-html/cell-12-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
-<div id="13b57b1a" class="cell" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">zip</span>(<span class="bu">sorted</span>(cum_hit_probs, key<span class="op">=</span><span class="kw">lambda</span> x: <span class="bu">max</span>(x)), <span class="bu">sorted</span>(df.prob)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
-<pre><code>[(array([0., 0., 0., 0., 0., 0., 0., 0.]), 0.004629629629629629),
- (array([2.23004283e-02, 9.24873079e-04, 3.33241148e-03, 3.92071277e-04,
-         5.72731701e-05, 1.26073675e-04, 7.37401522e-06, 1.13286908e-06]),
-  0.005529835390946501),
- (array([8.77908168e-02, 7.32282402e-03, 2.40292833e-02, 3.28874739e-03,
-         9.14494769e-04, 1.85451372e-03, 1.19872595e-04, 3.58765456e-05]),
-  0.04050925925925926),
- (array([0.15535482, 0.01917658, 0.05808055, 0.00909265, 0.00359072,
-         0.00669938, 0.00047401, 0.00020513]),
-  0.041666666666666664),
- (array([0.20344996, 0.03237708, 0.0918021 , 0.01611238, 0.0079959 ,
-         0.0137636 , 0.00105385, 0.00058197]),
-  0.04359567901234568),
- (array([0.23227026, 0.04408376, 0.11846258, 0.02288197, 0.01337889,
-         0.02133577, 0.00174949, 0.00115388]),
-  0.06944444444444445),
- (array([0.24739478, 0.05321072, 0.13696775, 0.02862653, 0.01894663,
-         0.02814227, 0.00244741, 0.00184996]),
-  0.1597222222222222),
- (array([0.2500001 , 0.06944462, 0.15972245, 0.04166682, 0.04050969,
-         0.04359584, 0.00462966, 0.00552992]),
-  0.25)]</code></pre>
+<p>Create a continuous joint probability graph (only meaningful for this particular use):</p>
+<div id="cell-fig-cont-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.073330Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.073196Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.311339Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.310645Z&quot;}}" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>cont_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">False</span>) </span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>cont_joint_graph.update_weights(theta)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>cont_joint_graph.plot(nodesep<span class="op">=</span><span class="fl">0.2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<div id="fig-cont-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="joint-probability_files/figure-html/fig-cont-joint-prob-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;3: "><img src="joint-probability_files/figure-html/fig-cont-joint-prob-graph-output-1.svg" id="fig-cont-joint-prob-graph" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3
+</figcaption>
+</figure>
 </div>
 </div>
-<div id="0283e79c" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> _pytest:</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> cdf, asymptote <span class="kw">in</span> <span class="bu">zip</span>(<span class="bu">sorted</span>(cum_hit_probs, key<span class="op">=</span><span class="kw">lambda</span> x: <span class="bu">max</span>(x)), <span class="bu">sorted</span>(df.prob)):</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">assert</span> cdf.<span class="bu">max</span>() <span class="op">&lt;=</span> asymptote, (cdf.<span class="bu">max</span>(), asymptote)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Create a context object for computing accumulated joint probabilities across continuous time. The context wraps a a modified graph on which stop probabilities are computed.</p>
+<div id="cell-fig-cont-joint-prob-epoch-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.313841Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.313682Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.484262Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.483629Z&quot;}}" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ctx <span class="op">=</span> cont_joint_graph.epoch_context()</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(ctx._t_vertex_indices)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>ctx._graph.plot(nodesep<span class="op">=</span><span class="fl">0.2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[8, 15, 16, 18, 22, 23, 25, 26]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<div id="fig-cont-joint-prob-epoch-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="joint-probability_files/figure-html/fig-cont-joint-prob-epoch-graph-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;4: "><img src="joint-probability_files/figure-html/fig-cont-joint-prob-epoch-graph-output-2.svg" id="fig-cont-joint-prob-epoch-graph" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Compute cumulative joint probabilities and their exact asymptotes for comparison (using a discrete graph):</p>
+<div id="cell-fig-joint-prob-over-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.486016Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.485830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.581840Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.581318Z&quot;}}" data-execution_count="14">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">4</span>, <span class="fl">0.1</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>cum_hit_probs <span class="op">=</span> ctx.cumulative_probs(t)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">True</span>) </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>joint_graph.update_weights(theta)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> joint_graph.joint_prob_table()</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>asymptotes <span class="op">=</span> df.prob</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>plt.plot(t, cum_hit_probs)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>[ax.axhline(a, color<span class="op">=</span><span class="st">'k'</span>, lw<span class="op">=</span><span class="fl">0.5</span>, ls<span class="op">=</span><span class="st">'--'</span>) <span class="cf">for</span> a <span class="kw">in</span> asymptotes]<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div id="fig-joint-prob-over-time" class="quarto-float quarto-figure quarto-figure-center anchored" width="442" height="328">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="joint-probability_files/figure-html/fig-joint-prob-over-time-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;5: "><img src="joint-probability_files/figure-html/fig-joint-prob-over-time-output-1.png" id="fig-joint-prob-over-time" width="442" height="328" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5
+</figcaption>
+</figure>
+</div>
+</div>
 </div>
 </section>
-<section id="need-to-check-if-this-convergence-issue-is-because-i-am-not-normalizing-trashabs-correctly---and-if-bug-also-affects-svgd-implementation.-add-a-pytest-to-check-that-the-continuous-approx-is-smaller-than-the-exact-discrete-at-any-time-t" class="level1">
-<h1>NEED TO CHECK IF THIS CONVERGENCE ISSUE IS BECAUSE I AM NOT NORMALIZING TRASH/ABS CORRECTLY - AND IF BUG ALSO AFFECTS SVGD IMPLEMENTATION. ADD A PYTEST TO CHECK THAT THE CONTINUOUS APPROX IS SMALLER THAN THE EXACT DISCRETE AT ANY TIME T</h1>
 <section id="time-inhomogeneous-joint-probability" class="level3">
 <h3 class="anchored" data-anchor-id="time-inhomogeneous-joint-probability">Time-inhomogeneous joint-probability</h3>
-<div id="38120105" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coal_callback, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cont joint prob graph</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>cont_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">False</span>) </span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>cont_joint_graph.plot(nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The main use of cumulative joint probability is as IPV for a subsequent epoch starting at time <span class="math inline">\(t\)</span>. This way epochs can be daisy chained in effect producing a time-inhomogenous joint probability much like a time-inhomogenous uni-variate PDF can be constructed using the <a href="../../pages/tutorial/time-inhomogeneous.html"><code>distribution-context</code> Graph method</a>.</p>
+<div id="f4944a8a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.583349Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.583231Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.708018Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.693671Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>epoch_starts <span class="op">=</span> [<span class="dv">0</span>, <span class="fl">0.2</span>, <span class="fl">0.5</span>]</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>pop_sizes <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">2</span>]</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>cont_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">False</span>) </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>ctx <span class="op">=</span> cont_joint_graph.epoch_context()</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t, N <span class="kw">in</span> <span class="bu">zip</span>(epoch_starts[<span class="dv">1</span>:], pop_sizes[:<span class="op">-</span><span class="dv">1</span>]):</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    ctx.update_weights([<span class="dv">1</span><span class="op">/</span>N, mutation_rate])</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    epoch_ipv <span class="op">=</span> ctx.next_ipv(t)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    ctx <span class="op">=</span> cont_joint_graph.epoch_context()</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    ctx.update_ipv(epoch_ipv)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> pop_sizes[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>ctx.update_weights([<span class="dv">1</span><span class="op">/</span>N, mutation_rate])</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>ctx.joint_probs_table()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">descendants_1</th>
+<th data-quarto-table-cell-role="th">descendants_2</th>
+<th data-quarto-table-cell-role="th">descendants_3</th>
+<th data-quarto-table-cell-role="th">descendants_4</th>
+<th data-quarto-table-cell-role="th">prob</th>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">t_vertex_index</th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">8</th>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0.032500</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">15</th>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0.014725</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">16</th>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0.030323</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">18</th>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0.009060</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">22</th>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0.014373</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">23</th>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0.016132</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">25</th>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0.001646</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">26</th>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0.003716</td>
+</tr>
+</tbody>
+</table>
+
 </div>
-<div id="00d1f362" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># add extra start edges</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, cont_joint_graph.vertices_length()):</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    vertex <span class="op">=</span> cont_joint_graph.vertex_at(i)</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    cont_joint_graph.starting_vertex().add_edge(vertex, <span class="dv">0</span>)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="co"># new cont_joint_graph ipv</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>epoch_ipv <span class="op">=</span> get_ipv(cont_joint_graph)</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>cont_joint_graph.plot(nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="5317b960" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># epoch cont graph</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph, t_sister_map, joint_graph_vertices_length <span class="op">=</span> epoch_joint_prob_graph(cont_joint_graph)</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph.update_weights(theta_epoch1)</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co"># stop prob at t</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>epoch_ipv <span class="op">=</span> graph___epoch_stop_prob(cont_epoch_graph, t, t_sister_map, joint_graph_vertices_length)</span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph.plot(nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="51bc474f" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># epoch cont graph</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph, t_sister_map, joint_graph_vertices_length <span class="op">=</span> epoch_joint_prob_graph(cont_joint_graph)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># update weights</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph.update_weights(theta_epoch2)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co"># stop prob at ~inf</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>epoch_ipv <span class="op">=</span> graph___epoch_stop_prob(cont_epoch_graph, <span class="dv">999</span>, t_sister_map, joint_graph_vertices_length)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co"># print([f'{round(x, 5):.3g}' for x in epoch_ipv])</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>t_state_indices <span class="op">=</span> np.array(<span class="bu">list</span>(t_sister_map.keys()), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame(cont_epoch_graph.states()[t_state_indices])</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'prob'</span>] <span class="op">=</span> epoch_ipv[t_state_indices]</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.sort_values(<span class="st">'prob'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>df</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="co">#epoch_ipv</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
-<section id="proof-of-correctness" class="level2">
-<h2 class="anchored" data-anchor-id="proof-of-correctness">Proof of correctness</h2>
-<p>The remainder of this notebook is a self-contained proof of correctness for the joint-probability machinery. It is structured in two parts:</p>
-<ul>
-<li><p><strong>Part A</strong> — the <strong>discrete joint-probability graph</strong> built by <code>graph.joint_prob_graph(..., discrete=True)</code>. We state precisely what <code>joint_prob_table()</code> computes, derive it analytically for a tractable model, and verify against a large-sample Monte Carlo simulation.</p></li>
-<li><p><strong>Part B</strong> — the <strong>continuous joint-probability across epochs</strong>, built by chaining <code>joint_prob_graph(..., discrete=False)</code>, <code>joint_stop_prob_graph()</code> and <code>daisy_chain_joint_probs(...)</code>. We state what each step computes, then verify the multi-epoch result against an independent piecewise-time simulation.</p></li>
-</ul>
-<p>Both proofs use the simplest non-trivial coalescent model — <span class="math inline">N=2</span> samples with one descendants Property — because for that model the joint distribution of mutations on the (single) ancestral lineage has a clean closed form against which we can sanity-check the simulator.</p>
-<section id="part-a-discrete-joint-probability-graph" class="level3">
-<h3 class="anchored" data-anchor-id="part-a-discrete-joint-probability-graph">Part A — Discrete joint-probability graph</h3>
-<p><strong>The model.</strong> Two singleton lineages coalesce at rate <span class="math inline">r_c=1</span> (one ordered pair). While both singletons are alive, each accumulates point mutations at rate <span class="math inline">\mu</span> per lineage. After coalescence the only surviving lineage is an ancestor of class <strong>descendants=2</strong> and stops accumulating mutations because the model only tracks mutations on lineages that still exist as singletons. The random variable of interest is the total number of mutations <span class="math inline">K</span> on the descendants=1 reward bin (summed over the two singletons) at the moment of coalescence.</p>
-<p><strong>Closed form.</strong> Conditional on <span class="math inline">T \sim \mathrm{Exp}(r_c)</span>, <span class="math inline">K \mid T \sim \mathrm{Poisson}(2\mu T)</span> (sum of two independent Poissons each with rate <span class="math inline">\mu T</span>). Marginalising over <span class="math inline">T</span>:</p>
-<p><span class="math display">P(K=k) = \int_0^\infty \frac{(2\mu t)^k e^{-2\mu t}}{k!}\, r_c e^{-r_c t}\, dt = \left(\frac{2\mu}{2\mu + r_c}\right)^k \cdot \frac{r_c}{2\mu + r_c}.</span></p>
-<p>So <span class="math inline">K \sim \mathrm{Geom}(p)</span> on <span class="math inline">\{0, 1, 2, \ldots\}</span> with success probability <span class="math inline">p = r_c / (2\mu + r_c)</span>. With <span class="math inline">r_c = 1</span> and <span class="math inline">\mu = 1/2</span> this is <span class="math inline">\mathrm{Geom}(1/2)</span>.</p>
-<p><strong>What <code>joint_prob_table()</code> computes.</strong> For a discrete graph, <code>joint_prob_table()</code> returns, for every <em>t-vertex</em> <span class="math inline">v</span>, the expected number of visits to <span class="math inline">v</span> before final absorption, which for a discrete absorbing chain equals the probability that the chain passes through <span class="math inline">v</span>. Because each t-vertex encodes a distinct outcome (a unique reward state), this is exactly the joint probability of that outcome.</p>
-<p><strong>Convention for the mutation rate.</strong> <code>joint_prob_graph(..., mutation_rate=mu0)</code> bakes <code>mu0 * state[i]</code> into the <strong>coefficient</strong> of every mutation edge (one coefficient per reward bin) and creates a second parameter slot that is a <em>runtime multiplier</em> on top of those coefficients. So with construction-time <code>mu0</code> and runtime <span class="math inline">\theta_\mu</span>, the effective per-lineage mutation rate is <span class="math inline">\mu_0 \cdot \theta_\mu</span>. To get <span class="math inline">\mu = 1/2</span> at runtime, we can either build with <code>mutation_rate=0.5</code> and call <code>update_weights([r_c, 1.0])</code>, or build with <code>mutation_rate=1.0</code> and call <code>update_weights([r_c, 0.5])</code>. We use the second form below because it is closer to how epoch-aware multi-rate inference uses the graph (one construction, multiple per-epoch <span class="math inline">\theta_\mu</span>).</p>
-<div id="61410457ad91" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.392210Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.392071Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.397349Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.396911Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, StateIndexer, Property</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Tiny base coalescent model: N=2 samples, descendants in {1, 2}.</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>indexer_proof <span class="op">=</span> StateIndexer(lineages<span class="op">=</span>[Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>N)])</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> proof_coal(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> []</span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> combinations_with_replacement(<span class="bu">range</span>(indexer.lineages.state_length), <span class="dv">2</span>):</span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>        new[<span class="bu">min</span>(i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>, state.size <span class="op">-</span> <span class="dv">1</span>)] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>        pair_count <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)</span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>        out.append([new, [pair_count]])</span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>proof_ipv <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer_proof.state_length</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>proof_ipv[indexer_proof.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> N</span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>proof_base <span class="op">=</span> Graph(proof_coal, ipv<span class="op">=</span>proof_ipv, indexer<span class="op">=</span>indexer_proof)</span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>proof_base.update_weights([<span class="fl">1.0</span>])  <span class="co"># coalescence rate r_c = 1</span></span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>proof_base.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="cdd501955c89" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.398873Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.398762Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.410433Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.409993Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the discrete joint-probability graph with mutation_rate=1.0 (construction-time)</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># so the runtime theta slot is the effective per-lineage mutation rate mu.</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>disc_jg <span class="op">=</span> proof_base.joint_prob_graph(</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span><span class="fl">1.0</span>,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate at (r_c=1, mu=0.5). For this model that should give Geom(p=1/2) on the</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="co"># descendants_1 column.</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>mu_truth <span class="op">=</span> <span class="fl">0.5</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>disc_jg.update_weights([<span class="fl">1.0</span>, mu_truth])</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>disc_table <span class="op">=</span> disc_jg.joint_prob_table()</span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>disc_table.head(<span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="c3522ab42b2c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.411876Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.411775Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.417114Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.416678Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Closed-form: P(K=k) = (1-p)**k * p with p = r_c / (2*mu + r_c).</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>r_c <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>p_geom <span class="op">=</span> r_c <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> mu_truth <span class="op">+</span> r_c)</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>disc_truth <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k'</span>: np.arange(<span class="dv">12</span>),</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'closed_form'</span>: [(<span class="dv">1</span> <span class="op">-</span> p_geom) <span class="op">**</span> k <span class="op">*</span> p_geom <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">12</span>)],</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'phasic'</span>: disc_table[<span class="st">'prob'</span>].iloc[:<span class="dv">12</span>].values,</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>disc_truth[<span class="st">'abs_err'</span>] <span class="op">=</span> (disc_truth[<span class="st">'closed_form'</span>] <span class="op">-</span> disc_truth[<span class="st">'phasic'</span>]).<span class="bu">abs</span>()</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>disc_truth</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="9905e69e" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> _pytest: <span class="cf">assert</span> disc_truth.abs_err.<span class="bu">sum</span>() <span class="op">==</span> pytest.approx(<span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>The <code>phasic</code> and <code>closed_form</code> columns agree to numerical precision over the first 12 rows. The total mass <code>phasic</code> is missing relative to 1.0 is the <strong>deficit</strong> — the probability of outcomes with more than <code>tot_reward_limit=30</code> mutations, plus any geometric tail beyond the t-vertices that were materialised. The deficit is sub-<span class="math inline">10^{-9}</span> here.</p>
-<p><strong>Monte Carlo cross-check.</strong> A 400 000-replicate simulator of the same model gives an independent confirmation that does not rely on the closed form.</p>
-<div id="f81f7c6e5a91" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.418387Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.418304Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.450531Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.450063Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>nsim <span class="op">=</span> <span class="dv">400_000</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>T_coal <span class="op">=</span> rng.exponential(<span class="fl">1.0</span> <span class="op">/</span> r_c, nsim)</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>mut_lin1 <span class="op">=</span> rng.poisson(mu_truth <span class="op">*</span> T_coal)</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>mut_lin2 <span class="op">=</span> rng.poisson(mu_truth <span class="op">*</span> T_coal)</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>K_sim <span class="op">=</span> mut_lin1 <span class="op">+</span> mut_lin2</span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>emp_pmf <span class="op">=</span> np.bincount(K_sim, minlength<span class="op">=</span><span class="dv">12</span>)[:<span class="dv">12</span>] <span class="op">/</span> nsim</span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>disc_truth[<span class="st">'monte_carlo'</span>] <span class="op">=</span> emp_pmf</span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>disc_truth[<span class="st">'mc_se'</span>] <span class="op">=</span> np.sqrt(emp_pmf <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> emp_pmf) <span class="op">/</span> nsim)</span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>disc_truth[[<span class="st">'k'</span>, <span class="st">'closed_form'</span>, <span class="st">'phasic'</span>, <span class="st">'monte_carlo'</span>, <span class="st">'mc_se'</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Every row of the <code>phasic</code> column agrees with the Monte Carlo column to within <span class="math inline">\approx 2</span> standard errors of the simulator. This establishes Part A: <strong>the discrete <code>joint_prob_table()</code> reports the exact joint probabilities of each reward-state outcome.</strong></p>
-</section>
-<section id="part-b-continuous-joint-probability-across-epochs" class="level3">
-<h3 class="anchored" data-anchor-id="part-b-continuous-joint-probability-across-epochs">Part B — Continuous joint probability across epochs</h3>
-<p>The continuous machinery has three layers:</p>
-<ol type="1">
-<li><p><code>graph.joint_prob_graph(..., discrete=False)</code> constructs the <strong>continuous</strong> joint-prob graph <span class="math inline">G_J</span>. Edge weights are now <em>rates</em> rather than transition probabilities. Each t-vertex still encodes a distinct outcome; absorbing mass at a t-vertex still corresponds to that outcome’s probability.</p></li>
-<li><p><code>G_J.joint_stop_prob_graph()</code> produces the <strong>joint stop-probability graph</strong> <span class="math inline">G_{JSP}</span>: for every t-vertex of <span class="math inline">G_J</span> it wires in a trapping <em>aux loop</em> — an auxiliary vertex with bidirectional unit-weight parameterised edges so mass that reaches the t-vertex shuttles between t-vertex and aux forever instead of being absorbed. As <span class="math inline">t \to \infty</span>, <span class="math inline">\Pr[\text{at t-vertex or its aux at time } t]</span> monotonically approaches the joint probability of that t-vertex’s outcome.</p></li>
-<li><p><code>G_{JSP}.daisy_chain_joint_probs(epoch_thetas, epoch_dts, initial_ipv, t_eval)</code> simulates a piecewise-time-homogeneous model. For epoch <span class="math inline">i \in 0, \ldots, n{-}1</span>:</p>
-<ul>
-<li><code>update_ipv(epoch_ipv_i)</code> sets the initial-probability vector for epoch <span class="math inline">i</span> from the surviving mass at the end of epoch <span class="math inline">i{-}1</span> (or <code>initial_ipv</code> for <span class="math inline">i=0</span>).</li>
-<li><code>update_weights(epoch_thetas[i])</code> sets the rates for epoch <span class="math inline">i</span>.</li>
-<li>For epochs <span class="math inline">i &lt; n{-}1</span>, <code>stop_probability(epoch_dts[i])</code> advances time by <span class="math inline">\Delta t_i</span> and returns the per-vertex probability mass at the end of the epoch; that vector becomes the IPV for the next epoch.</li>
-<li>For the final epoch <span class="math inline">n{-}1</span>, <code>joint_stop_probabilities(t_eval)</code> reads off the trapped mass at each t-vertex (plus its aux), giving the joint probabilities.</li>
-</ul></li>
-</ol>
-<p><strong>What we prove.</strong> For the <span class="math inline">N=2</span> model from Part A in a two-epoch setting — <span class="math inline">(\mu_1, r_1, \Delta t)</span> for <span class="math inline">t \in [0, \Delta t]</span> and <span class="math inline">(\mu_2, r_2)</span> for <span class="math inline">t \in [\Delta t, \infty)</span> — the daisy-chain output, normalised by the initial mass, agrees with an independent piecewise-time simulation of the same model.</p>
-<div id="0a60d930baa3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.451906Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.451806Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.453810Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.453367Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Activate JAX for the daisy-chain path (it uses an FFI handler that requires JAX).</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> _ensure_jax_active</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>_ensure_jax_active()</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>jax.config.update(<span class="st">'jax_enable_x64'</span>, <span class="va">True</span>)</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="fb66079a3342" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.455102Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.454999Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.463984Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.463376Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the continuous joint-prob graph and its joint-stop-prob counterpart.</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>cont_jg <span class="op">=</span> proof_base.joint_prob_graph(</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    mutation_rate<span class="op">=</span><span class="fl">1.0</span>,</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    tot_reward_limit<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>cont_jsp <span class="op">=</span> cont_jg.joint_stop_prob_graph()</span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>cont_jsp.vertices_length(), <span class="bu">len</span>(cont_jsp._t_vertex_indices), <span class="bu">len</span>(cont_jsp._ipv_target_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="193de5a60b3d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.465404Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.465295Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.674502Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.673986Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IPV layout: ipv_target_indices lists every non-aux, non-trash, non-absorbing</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="co"># vertex in starting-vertex-edge order. The very first slot (sorted by new-graph</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co"># index) is the base-graph starting state [N, 0, 0, 0] — i.e. all initial mass.</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>initial_ipv <span class="op">=</span> np.zeros(<span class="bu">len</span>(cont_jsp._ipv_target_indices), dtype<span class="op">=</span>np.float64)</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>initial_ipv[<span class="dv">0</span>] <span class="op">=</span> <span class="bu">float</span>(N)  <span class="co"># N units of mass start at the singleton state</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Two-epoch parameters: (r1, mu1) for [0, dt], (r2, mu2) for [dt, infty).</span></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>r1, mu1 <span class="op">=</span> <span class="fl">1.0</span>, <span class="fl">0.5</span></span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>r2, mu2 <span class="op">=</span> <span class="fl">1.0</span>, <span class="fl">2.0</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>dt <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>epoch_thetas <span class="op">=</span> jnp.array([[r1, mu1], [r2, mu2]], dtype<span class="op">=</span>jnp.float64)</span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>epoch_dts <span class="op">=</span> jnp.array([dt], dtype<span class="op">=</span>jnp.float64)</span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>daisy <span class="op">=</span> cont_jsp.daisy_chain_joint_probs(</span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>    epoch_thetas<span class="op">=</span>epoch_thetas,</span>
-<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>    epoch_dts<span class="op">=</span>epoch_dts,</span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>    initial_ipv<span class="op">=</span>jnp.array(initial_ipv),</span>
-<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>    t_eval<span class="op">=</span><span class="fl">200.0</span>,  <span class="co"># large enough that the t-aux loops have absorbed essentially all surviving mass</span></span>
-<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>daisy_pmf <span class="op">=</span> np.asarray(daisy) <span class="op">/</span> N  <span class="co"># divide out the initial mass to get a probability</span></span>
-<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>daisy_pmf[:<span class="dv">10</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="bc2d502cdb4b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.675996Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.675862Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.748284Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.747789Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Independent Monte Carlo for the same piecewise-time model.</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>nsim2 <span class="op">=</span> <span class="dv">400_000</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescence in epoch 1: Exp(r1). If it doesn't happen by dt, continue in epoch 2 with Exp(r2).</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>T1 <span class="op">=</span> rng.exponential(<span class="fl">1.0</span> <span class="op">/</span> r1, nsim2)</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>coal_in_e1 <span class="op">=</span> T1 <span class="op">&lt;</span> dt</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>t_in_e1 <span class="op">=</span> np.minimum(T1, dt)  <span class="co"># time the two singletons co-exist in epoch 1</span></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Mutations during epoch 1: each lineage Poisson(mu1 * t_in_e1)</span></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>K_e1 <span class="op">=</span> rng.poisson(mu1 <span class="op">*</span> t_in_e1) <span class="op">+</span> rng.poisson(mu1 <span class="op">*</span> t_in_e1)</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="co"># For runs that didn't coalesce in epoch 1: epoch-2 waiting time Exp(r2) and mutations</span></span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>T2 <span class="op">=</span> rng.exponential(<span class="fl">1.0</span> <span class="op">/</span> r2, nsim2)</span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>K_e2 <span class="op">=</span> rng.poisson(mu2 <span class="op">*</span> T2) <span class="op">+</span> rng.poisson(mu2 <span class="op">*</span> T2)</span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>K_total <span class="op">=</span> np.where(coal_in_e1, K_e1, K_e1 <span class="op">+</span> K_e2)</span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>emp2 <span class="op">=</span> np.bincount(K_total, minlength<span class="op">=</span><span class="bu">len</span>(daisy_pmf))[:<span class="bu">len</span>(daisy_pmf)] <span class="op">/</span> nsim2</span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>cont_compare <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k'</span>: np.arange(<span class="bu">len</span>(daisy_pmf)),</span>
-<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">'daisy_chain'</span>: daisy_pmf,</span>
-<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>    <span class="st">'monte_carlo'</span>: emp2,</span>
-<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">'mc_se'</span>: np.sqrt(emp2 <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> emp2) <span class="op">/</span> nsim2),</span>
-<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>cont_compare[<span class="st">'abs_err'</span>] <span class="op">=</span> (cont_compare[<span class="st">'daisy_chain'</span>] <span class="op">-</span> cont_compare[<span class="st">'monte_carlo'</span>]).<span class="bu">abs</span>()</span>
-<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>cont_compare[<span class="st">'err_in_sigmas'</span>] <span class="op">=</span> cont_compare[<span class="st">'abs_err'</span>] <span class="op">/</span> cont_compare[<span class="st">'mc_se'</span>].clip(lower<span class="op">=</span><span class="fl">1e-12</span>)</span>
-<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>cont_compare.head(<span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Every row’s <code>daisy_chain</code> agrees with <code>monte_carlo</code> to within <span class="math inline">\approx 2</span> standard errors. The total deviation across all 21 reported <span class="math inline">k</span>-values is a Monte-Carlo-noise-level <span class="math inline">\chi^2</span>, with no row systematically off in either direction. Combined with the single-epoch check below (which collapses to Geom(1/2) when <span class="math inline">\mu_1 = \mu_2 = 1/2</span>), this establishes Part B:</p>
-<p><strong><code>daisy_chain_joint_probs</code> returns the exact joint probabilities of each t-vertex outcome under the piecewise-time-homogeneous model defined by <code>epoch_thetas</code> / <code>epoch_dts</code>.</strong></p>
-<div id="d6aef387d9a4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-12T17:10:58.749674Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-12T17:10:58.749568Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-12T17:10:58.886402Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-12T17:10:58.885930Z&quot;}}">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Final consistency check: collapse to a single epoch by setting mu1 = mu2 = 0.5,</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="co"># r1 = r2 = 1.0. The daisy-chain output divided by N should match Geom(1/2)</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from Part A within floating-point error.</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>single_eq <span class="op">=</span> cont_jsp.daisy_chain_joint_probs(</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    epoch_thetas<span class="op">=</span>jnp.array([[<span class="fl">1.0</span>, <span class="fl">0.5</span>], [<span class="fl">1.0</span>, <span class="fl">0.5</span>]], dtype<span class="op">=</span>jnp.float64),</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    epoch_dts<span class="op">=</span>jnp.array([<span class="fl">1.0</span>], dtype<span class="op">=</span>jnp.float64),</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    initial_ipv<span class="op">=</span>jnp.array(initial_ipv),</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    t_eval<span class="op">=</span><span class="fl">200.0</span>,</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>single_eq_pmf <span class="op">=</span> np.asarray(single_eq) <span class="op">/</span> N</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>consistency <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'k'</span>: np.arange(<span class="dv">12</span>),</span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'closed_form_geom_1/2'</span>: [(<span class="dv">1</span> <span class="op">-</span> <span class="fl">0.5</span>) <span class="op">**</span> k <span class="op">*</span> <span class="fl">0.5</span> <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">12</span>)],</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'discrete_joint_prob_table'</span>: disc_table[<span class="st">'prob'</span>].iloc[:<span class="dv">12</span>].values,</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'daisy_chain_homogeneous'</span>: single_eq_pmf[:<span class="dv">12</span>],</span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>consistency[<span class="st">'disc_vs_cf'</span>] <span class="op">=</span> (consistency[<span class="st">'discrete_joint_prob_table'</span>]</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>                             <span class="op">-</span> consistency[<span class="st">'closed_form_geom_1/2'</span>]).<span class="bu">abs</span>()</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>consistency[<span class="st">'daisy_vs_cf'</span>] <span class="op">=</span> (consistency[<span class="st">'daisy_chain_homogeneous'</span>]</span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>                              <span class="op">-</span> consistency[<span class="st">'closed_form_geom_1/2'</span>]).<span class="bu">abs</span>()</span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>consistency</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>All three columns — the closed-form <span class="math inline">\mathrm{Geom}(1/2)</span>, the discrete <code>joint_prob_table</code>, and the continuous daisy-chain reduced to time-homogeneous parameters — coincide to numerical precision. The discrete and continuous paths agree with each other, both agree with the closed form, and both agree with Monte Carlo. This concludes the proof of correctness.</p>
-</section>
-<section id="average-theta-check" class="level3">
-<h3 class="anchored" data-anchor-id="average-theta-check">Average theta check</h3>
-<p>In continuous version two thetas going back and forth should produce the same probabilities as the discrete exact version using the harmonic N average or average coal rate.</p>
-<div id="1faf6e20" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>reward_limit <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>N1, N2 <span class="op">=</span> <span class="dv">1</span><span class="op">/</span><span class="dv">1</span>, <span class="dv">1</span><span class="op">/</span><span class="dv">1</span>     <span class="co"># FOR STARTERS </span><span class="al">TEST</span><span class="co"> WHERE BOTH THETAS ARE 1</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>theta1, theta2 <span class="op">=</span> <span class="dv">1</span><span class="op">/</span>N1, <span class="dv">1</span><span class="op">/</span>N2</span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>harmonic_N <span class="op">=</span> <span class="dv">2</span><span class="op">/</span>(<span class="dv">1</span><span class="op">/</span>N1 <span class="op">+</span> <span class="dv">1</span><span class="op">/</span>N2) </span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>arithmetic_theta <span class="op">=</span> (theta1 <span class="op">+</span> theta2) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>arithmetic_theta, <span class="dv">1</span> <span class="op">/</span> harmonic_N</span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>cycles <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>epoch_starts <span class="op">=</span> <span class="bu">list</span>(np.arange(<span class="dv">0</span>, cycles<span class="op">*</span><span class="dv">2</span>, <span class="fl">0.1</span>))</span>
-<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>epoch_theta <span class="op">=</span> [[<span class="dv">1</span><span class="op">/</span>N1, mutation_rate], [<span class="dv">1</span><span class="op">/</span>N2, mutation_rate]] <span class="op">*</span> cycles</span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a><span class="co">#epoch_starts, </span></span>
-<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>epoch_theta</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Disc version:</p>
-<div id="f8cd2f5b" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coal_callback, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer)</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>disc_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">True</span>) </span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>disc_joint_graph.update_weights([<span class="dv">1</span><span class="op">/</span>harmonic_N, mutation_rate])</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> disc_joint_graph.joint_prob_table()</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>joint_prob_exact <span class="op">=</span> df.prob.to_numpy()</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>joint_prob_exact</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Cont version:</p>
-<div id="95cdb5b3" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coal_callback, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer)</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cont joint prob graph</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>cont_joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit, discrete<span class="op">=</span><span class="va">False</span>) </span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="co"># add extra start edges</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, cont_joint_graph.vertices_length()):</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    vertex <span class="op">=</span> cont_joint_graph.vertex_at(i)</span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    cont_joint_graph.starting_vertex().add_edge(vertex, <span class="dv">0</span>)</span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="co"># new cont_joint_graph ipv</span></span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>epoch_ipv <span class="op">=</span> get_ipv(cont_joint_graph)</span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t, theta <span class="kw">in</span> <span class="bu">zip</span>(epoch_starts[<span class="dv">1</span>:], epoch_theta[<span class="dv">1</span>:]):</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># epoch cont graph</span></span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    cont_epoch_graph, t_sister_map, joint_graph_vertices_length <span class="op">=</span> epoch_joint_prob_graph(cont_joint_graph)</span>
-<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>    cont_epoch_graph.update_weights(theta)</span>
-<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># stop prob at t</span></span>
-<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>    epoch_ipv <span class="op">=</span> graph___epoch_stop_prob(cont_epoch_graph, t, t_sister_map, joint_graph_vertices_length)</span>
-<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a><span class="co"># epoch cont graph</span></span>
-<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph, t_sister_map, joint_graph_vertices_length <span class="op">=</span> epoch_joint_prob_graph(cont_joint_graph)</span>
-<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a><span class="co"># update weights</span></span>
-<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a>cont_epoch_graph.update_weights(theta_epoch2)</span>
-<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a><span class="co"># stop prob at ~inf</span></span>
-<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a>epoch_ipv <span class="op">=</span> graph___epoch_stop_prob(cont_epoch_graph, <span class="dv">9999</span>, t_sister_map, joint_graph_vertices_length)</span>
-<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a><span class="co"># print([f'{round(x, 5):.3g}' for x in epoch_ipv])</span></span>
-<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>t_state_indices <span class="op">=</span> np.array(<span class="bu">list</span>(t_sister_map.keys()), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a>epoch_ipv[t_state_indices]</span>
-<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a>epoch_ipv[t_state_indices] <span class="op">-</span> joint_prob_exact</span>
-<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a><span class="co"># import pytest</span></span>
-<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a><span class="co"># assert pytest.approx(epoch_ipv[t_state_indices]) == joint_prob_exact</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
-</section>
 </section>
 </section>
 

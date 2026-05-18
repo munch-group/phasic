@@ -390,65 +390,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -490,7 +431,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, HalfCauchyPrior, </span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    ExpStepSize, ExpRegularization, clear_caches,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Adam, Adagrad, RMSprop, SGDMomentum, </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Adam, Adagrad, RMSprop, SGDMomentum, Adamelia,</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    SparseObservations, dense_to_sparse, is_sparse_observations,</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -505,8 +446,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">17</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -615,7 +555,7 @@ table {
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
 <span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="dv">7</span>]</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="dv">10</span>]</span>
 <span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param) <span class="co"># should check using the graph hash if a trace of the graph is cached or available online</span></span>
 <span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -634,8 +574,8 @@ table {
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>observed_data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>array([0.27273916, 0.47959933, 0.52360616, ..., 0.18967352, 0.33299104,
-       0.59235646], shape=(10000,))</code></pre>
+<pre><code>array([0.21821371, 0.47449114, 0.34667292, ..., 0.56767133, 0.20270889,
+       0.46313372], shape=(10000,))</code></pre>
 </div>
 </div>
 <div id="c79c4cec" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:21.220614Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:21.220506Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:21.451796Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:21.451361Z&quot;}}" data-execution_count="4">
@@ -655,35 +595,32 @@ table {
 <div id="c0866e99" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:36.138331Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:36.137841Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:36.824362Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:36.823854Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
-<pre><code>&lt;Figure size 640x480 with 0 Axes&gt;</code></pre>
-</div>
-<div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-multi-feature_files/figure-html/cell-7-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="svgd-multi-feature_files/figure-html/cell-7-output-2.png" width="487" height="358" class="figure-img"></a></p>
+<p><a href="svgd-multi-feature_files/figure-html/cell-7-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="svgd-multi-feature_files/figure-html/cell-7-output-1.png" width="487" height="358" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="17629668" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:36.825572Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:36.825483Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.476740Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.476153Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         7.0786     7.1443     0.3380     6.7468       7.4504      
+0          No         10.02      10.12      0.3063     9.995        10.69       
 
-Particles: 24, Iterations: 100</code></pre>
+Particles: 20, Iterations: 100</code></pre>
 </div>
 </div>
 <div id="5868dd82" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.478146Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.478033Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.606501Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.606067Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>svgd.get_results()[<span class="st">"theta_mean"</span>].item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>svgd.get_results()[<span class="st">"theta_mean"</span>].item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>7.144326247212178</code></pre>
+<pre><code>10.118619640203688</code></pre>
 </div>
 </div>
 <div id="bb3b83e9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.607868Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.607768Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.846231Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.845821Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>svgd.map_estimate_from_particles()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>svgd.map_estimate_from_particles()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
-<pre><code>([7.078584447911383], -1430.277951388379)</code></pre>
+<pre><code>([10.016633307465085], 2095.3077669038194)</code></pre>
 </div>
 </div>
 </section>
@@ -691,123 +628,544 @@ Particles: 24, Iterations: 100</code></pre>
 <h2 class="anchored" data-anchor-id="multi-feature-observations">Multi-feature observations</h2>
 <p>Observations can be vectors of features, in which case you need to supply a set or rewards for each feature. The example below is the the same as above, except that we pass observations as single-value vectors.</p>
 <div id="976a9e1f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.847660Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.847555Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.851555Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.851143Z&quot;}}" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># same as above</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">10000</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.<span class="bu">sum</span>(rewards, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># same as above</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">10000</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.<span class="bu">sum</span>(rewards, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="2010faca" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.852794Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.852703Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.854451Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.854118Z&quot;}}" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># make reward vector the only row of a 2d array</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.reshape(rewards, (<span class="op">-</span><span class="dv">1</span>, <span class="bu">len</span>(rewards))) </span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># reshape data into a single-column 2d array</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.reshape(observed_data, (<span class="bu">len</span>(observed_data), <span class="op">-</span><span class="dv">1</span>)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># make reward vector the only row of a 2d array</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.reshape(rewards, (<span class="op">-</span><span class="dv">1</span>, <span class="bu">len</span>(rewards))) </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co"># reshape data into a single-column 2d array</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.reshape(observed_data, (<span class="bu">len</span>(observed_data), <span class="op">-</span><span class="dv">1</span>)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cf89771d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.855659Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.855574Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.857106Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.856779Z&quot;}}" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># #graph.compute_trace()</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd = graph.svgd(observed_data=observed_data, rewards=rewards, **params)</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd.get_results()["theta_mean"].item()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># #graph.compute_trace()</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd = graph.svgd(observed_data=observed_data, rewards=rewards, **params)</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd.get_results()["theta_mean"].item()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="79e4eaff" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd.map_estimate_from_particles()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="79e4eaff" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># svgd.map_estimate_from_particles()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>With more than one feature, SVGD computes the likelihood for each feature using the the provided rewards. In this example, sample 1’ton, 2’ton, and 3’ton branch lengths are first, second and third observation features. The reward matrix passed to <code>svgd</code> must have as many rows as your data has features. Three rows in the reward matrix:</p>
-<div id="6c8ebfc0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.858639Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.858544Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.861197Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.860826Z&quot;}}" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> rewards[:<span class="op">-</span><span class="dv">1</span>]</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>rewards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="13">
-<pre><code>array([[0, 4, 2, 0, 1, 0],
-       [0, 0, 1, 2, 0, 0],
-       [0, 0, 0, 0, 1, 0]], dtype=int32)</code></pre>
-</div>
+<div id="6c8ebfc0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.858639Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.858544Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.861197Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.860826Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co"># `graph.states().T` is the (n_features, n_vertices) reward matrix:</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># each ROW is one feature's reward vector. The LAST row indexes the</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># absorbing state — absorbing vertices have zero sojourn time, so</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># rewarding them produces an identically-zero sample that carries no</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co"># information about theta. Drop that row with `[:-1]`; `Graph.svgd`</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="co"># raises with a clear error if you forget.</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Among the remaining three rows, "feature 2" = `[0,0,0,0,1,0]`</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co"># rewards only state 4, which some trajectories never visit. The</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># resulting reward distribution has a point mass at zero;</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># `Graph.svgd` handles this *partial coverage* automatically with a</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co"># zero-inflated likelihood and emits a one-time UserWarning.</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T[:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>rewards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Data must be passed to <code>svgd</code> as a <code>SparseData</code> object. You can create it like this:</p>
-<div id="b41b0cee" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.862628Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.862537Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.870999Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.870703Z&quot;}}" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>idxs <span class="op">=</span> np.arange(rewards.shape[<span class="dv">0</span>])</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>feature_data <span class="op">=</span> np.concatenate([graph.sample(n, rewards<span class="op">=</span>rewards[i]) <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> np.concatenate([[i]<span class="op">*</span>n <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>feature_slices <span class="op">=</span> [(i<span class="op">*</span>n, (i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n) <span class="cf">for</span> i <span class="kw">in</span> idxs]</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> SparseObservations(</span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    values<span class="op">=</span>observed_data,</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    features<span class="op">=</span>features,</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    n_features<span class="op">=</span><span class="dv">3</span>, </span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    slices<span class="op">=</span>feature_slices</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>sparse_observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
+<div id="b41b0cee" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.862628Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.862537Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.870999Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.870703Z&quot;}}" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>idxs <span class="op">=</span> np.arange(rewards.shape[<span class="dv">0</span>])</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>feature_data <span class="op">=</span> np.concatenate([graph.sample(n, rewards<span class="op">=</span>rewards[i]) <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> np.concatenate([[i]<span class="op">*</span>n <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>feature_slices <span class="op">=</span> [(i<span class="op">*</span>n, (i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n) <span class="cf">for</span> i <span class="kw">in</span> idxs]</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> SparseObservations(</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    values<span class="op">=</span>observed_data,</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    features<span class="op">=</span>features,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    n_features<span class="op">=</span><span class="dv">3</span>, </span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    slices<span class="op">=</span>feature_slices</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>sparse_observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/ipykernel_27506/896477865.py:3: UserWarning: rewards: not all trajectories accumulate positive reward. The resulting reward-transformed distribution is sub-stochastic; if you are using it for likelihood inference, Graph.svgd handles this automatically via a zero-inflated likelihood.
+  feature_data = np.concatenate([graph.sample(n, rewards=rewards[i]) for i in idxs])</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>SparseObservations(values=&lt;10000 values&gt;, n_features=&lt;3, features=&lt;10000 values&gt;, slices=&lt;10000 values&gt;)</code></pre>
 </div>
 </div>
 <p>It can also be created from a two-dimensional array where each row is an observation with all but a single non-nan value:</p>
-<div id="32bcbea0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.872415Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.872330Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.896274Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.895810Z&quot;}}" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.zeros((n <span class="op">*</span> (rewards.shape[<span class="dv">0</span>]), rewards.shape[<span class="dv">0</span>]), dtype<span class="op">=</span><span class="bu">float</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>observed_data[:] <span class="op">=</span> np.nan</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    observed_data[(i<span class="op">*</span>n):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n), i] <span class="op">=</span> graph.sample(n, rewards<span class="op">=</span>rewards[i])</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>np.random.shuffle(observed_data)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>observed_data[:nr_observations] <span class="co"># just the first nr_observations rows</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>observed_data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="15">
-<pre><code>array([[0.13558068,        nan,        nan],
-       [       nan,        nan, 0.        ],
-       [       nan,        nan, 0.00406317],
+<div id="32bcbea0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.872415Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.872330Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:37.896274Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:37.895810Z&quot;}}" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.zeros((n <span class="op">*</span> (rewards.shape[<span class="dv">0</span>]), rewards.shape[<span class="dv">0</span>]), dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>observed_data[:] <span class="op">=</span> np.nan</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    observed_data[(i<span class="op">*</span>n):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n), i] <span class="op">=</span> graph.sample(n, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>np.random.shuffle(observed_data)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>observed_data[:nr_observations] <span class="co"># just the first nr_observations rows</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>observed_data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/ipykernel_27506/4284183897.py:5: UserWarning: rewards: not all trajectories accumulate positive reward. The resulting reward-transformed distribution is sub-stochastic; if you are using it for likelihood inference, Graph.svgd handles this automatically via a zero-inflated likelihood.
+  observed_data[(i*n):((i+1)*n), i] = graph.sample(n, rewards=rewards[i])</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>array([[0.0571454 ,        nan,        nan,        nan],
+       [0.19662329,        nan,        nan,        nan],
+       [       nan,        nan,        nan, 0.        ],
        ...,
-       [0.48311256,        nan,        nan],
-       [0.14592201,        nan,        nan],
-       [       nan, 0.06720871,        nan]], shape=(30000, 3))</code></pre>
+       [       nan,        nan,        nan, 0.        ],
+       [       nan,        nan, 0.02484606,        nan],
+       [       nan,        nan,        nan, 0.        ]], shape=(40000, 4))</code></pre>
 </div>
 </div>
-<div id="5035e4d2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.897525Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.897440Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:38.078188Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:38.077618Z&quot;}}" data-execution_count="16">
+<div id="5035e4d2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:37.897525Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:37.897440Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:24:38.078188Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:24:38.077618Z&quot;}}" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> dense_to_sparse(observed_data)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>sparse_observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="16">
-<pre><code>SparseObservations(values=&lt;30000 values&gt;, n_features=&lt;3, features=&lt;30000 values&gt;, slices=&lt;30000 values&gt;)</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<pre><code>SparseObservations(values=&lt;40000 values&gt;, n_features=&lt;4, features=&lt;40000 values&gt;, slices=&lt;40000 values&gt;)</code></pre>
 </div>
 </div>
-<div id="c5c07ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:38.079543Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:38.079442Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:33.819020Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:33.817905Z&quot;}}" data-execution_count="17">
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Reward-vector validity
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>Graph.svgd</code> enforces two structural conditions on every feature:</p>
+<ol type="1">
+<li><p><strong>No absorbing-vertex rewards.</strong> Absorbing vertices have zero sojourn time, so rewarding them carries no information about theta. <code>Graph.svgd</code> raises <code>ValueError</code> with a list of offending vertices. For <code>graph.states().T</code>, the last row indexes the absorbing state — drop it with <code>[:-1]</code>.</p></li>
+<li><p><strong>Partial coverage is auto-handled.</strong> When some absorbing trajectories never visit any vertex with reward &gt; 0 in a feature, that feature’s reward distribution has a point mass at zero. <code>Graph.svgd</code> detects this and switches to a zero-inflated likelihood: <code>n_zero · log(1 − p(θ)) + Σ log(pdf(r))</code>, where <code>p(θ) = P(visit a rewarded vertex)</code>. You see a one-time <code>UserWarning</code> naming the offending features.</p></li>
+</ol>
+<p>To opt out of either check, pass <code>validate_rewards=False</code>.</p>
+</div>
+</div>
+<div id="c5c07ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:24:38.079543Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:24:38.079442Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:33.819020Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:33.817905Z&quot;}}" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data<span class="op">=</span>sparse_observations, </span>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                  rewards<span class="op">=</span>rewards, </span>
 <span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">20</span>]),  </span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">200</span>,                </span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>            learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.01</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>                  )</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         7.7072     8.8156     2.8760     5.0010       12.1878     
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">500</span>,                </span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>            <span class="co"># learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0)</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>                 optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>                      )</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:4136: SyntaxWarning: invalid escape sequence '\c'
+  :math:`\theta^{(i)}_k = \theta_k \cdot \alpha_i`, with</code></pre>
+</div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[18]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> graph = Graph(coalescent_1param)
+<span class="ansi-green-fg">      2</span> 
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> svgd = graph.svgd(observed_data=sparse_observations, 
+<span class="ansi-green-fg">      4</span>                   rewards=rewards,
+<span class="ansi-green-fg">      5</span>                   prior=GaussPrior(ci=[<span class="ansi-green-fg">1</span>, <span class="ansi-green-fg">20</span>]),
+<span class="ansi-green-fg">      6</span>                   n_iterations=<span class="ansi-green-fg">500</span>,
 
-Particles: 24, Iterations: 200</code></pre>
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:6523</span>, in <span class="ansi-cyan-fg">Graph.svgd</span><span class="ansi-blue-fg">(self, observed_data, discrete, prior, n_particles, n_iterations, optimizer, learning_rate, bandwidth, theta_init, theta_dim, return_history, seed, verbose, progress, jit, parallel, n_devices, precompile, compilation_config, regularization, nr_moments, positive_params, param_transform, joint_index, rewards, fixed, preconditioner, epoch_starts, daisy_chain_t_eval, daisy_chain_granularity, daisy_chain_probe_theta, daisy_chain_t_eval_tol, exposure, exposure_param_index, validate_rewards)</span>
+<span class="ansi-green-fg">   6519</span>             exposure_param_index=exposure_param_index,
+<span class="ansi-green-fg">   6520</span>         )
+<span class="ansi-green-fg">   6521</span> 
+<span class="ansi-green-fg">   6522</span>         <span style="font-style:italic;color:rgb(95,135,135)"># Run inference</span>
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6523</span>         svgd.optimize(return_history=return_history)
+<span class="ansi-green-fg">   6524</span> 
+<span class="ansi-green-fg">   6525</span>         <span style="font-style:italic;color:rgb(95,135,135)"># Return results as dictionary for backward compatibility</span>
+<span class="ansi-green-fg">   6526</span>         <span style="font-style:italic;color:rgb(95,135,135)"># return svgd.get_results()</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:5835</span>, in <span class="ansi-cyan-fg">SVGD.optimize</span><span class="ansi-blue-fg">(self, rewards, return_history)</span>
+<span class="ansi-green-fg">   5832</span>         <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">   5833</span>             <span style="color:rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">  Moment regularization: disabled</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">5835</span>     results = <span class="ansi-black-fg ansi-yellow-bg">run_svgd</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">   5836</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">log_prob_fn</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">log_prob_fn</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5837</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">theta_init</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">theta_init</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5838</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">n_steps</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">n_iterations</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5839</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">learning_rate</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">step_schedule</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5840</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">kernel</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">kernel</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5841</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">return_history</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">return_history</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5842</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">verbose</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">verbose</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5843</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">progress</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">progress</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5844</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">compiled_grad</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">compiled_grad</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5845</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">parallel_mode</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">parallel_mode</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5846</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">n_devices</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">n_devices</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5847</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">log_prob_fn_factory</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">None</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5848</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">regularization_schedule</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">None</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5849</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">lr_scale</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">lr_scale</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5850</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">fixed_mask</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">fixed_mask</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5851</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">fixed_values</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">fixed_values</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   5852</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">optimizer</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">optimizer</span>
+<span class="ansi-green-fg">   5853</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   5855</span> <span style="font-style:italic;color:rgb(95,135,135)"># Store results as attributes</span>
+<span class="ansi-green-fg">   5856</span> <span style="color:rgb(0,135,0)">self</span>.particles = results[<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">particles</span><span class="ansi-yellow-fg">'</span>]
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:3826</span>, in <span class="ansi-cyan-fg">run_svgd</span><span class="ansi-blue-fg">(log_prob_fn, theta_init, n_steps, learning_rate, kernel, return_history, verbose, progress, compiled_grad, parallel_mode, n_devices, log_prob_fn_factory, regularization_schedule, lr_scale, fixed_mask, fixed_values, optimizer)</span>
+<span class="ansi-green-fg">   3823</span>     compiled_grad_to_use = compiled_grad
+<span class="ansi-green-fg">   3825</span> <span style="font-style:italic;color:rgb(95,135,135)"># Perform SVGD update</span>
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">3826</span> particles = <span class="ansi-black-fg ansi-yellow-bg">svgd_step</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">particles</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">log_prob_fn</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">kernel</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">current_step_size</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3827</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">compiled_grad</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">compiled_grad_to_use</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3828</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">parallel_mode</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">parallel_mode</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3829</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">n_devices</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">n_devices</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3830</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">fixed_mask</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">fixed_mask</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3831</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">fixed_values</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">fixed_values</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   3832</span> <span class="ansi-black-fg ansi-yellow-bg">                     </span><span class="ansi-black-fg ansi-yellow-bg">optimizer</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">optimizer</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   3834</span> <span style="font-style:italic;color:rgb(95,135,135)"># Store history</span>
+<span class="ansi-green-fg">   3835</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> return_history: <span style="font-style:italic;color:rgb(95,135,135)"># and (step % max(1, n_steps // 20) == 0):</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:3590</span>, in <span class="ansi-cyan-fg">svgd_step</span><span class="ansi-blue-fg">(particles, log_prob_fn, kernel, step_size, compiled_grad, parallel_mode, n_devices, fixed_mask, fixed_values, optimizer)</span>
+<span class="ansi-green-fg">   3587</span> <span style="font-weight:bold;color:rgb(0,135,0)">elif</span> actual_parallel_mode == <span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">vmap</span><span class="ansi-yellow-fg">'</span>:
+<span class="ansi-green-fg">   3588</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Single device vectorization - use vmap only</span>
+<span class="ansi-green-fg">   3589</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> compiled_grad_to_use <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">3590</span>         grad_log_p = <span class="ansi-black-fg ansi-yellow-bg">vmap</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">compiled_grad_to_use</span><span class="ansi-black-fg ansi-yellow-bg">)</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">particles_for_grad</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   3591</span>     <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">   3592</span>         grad_log_p = vmap(grad(log_prob_for_grad))(particles_for_grad)
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/api.py:1114</span>, in <span class="ansi-cyan-fg">vmap.&lt;locals&gt;.vmap_f</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg">   1111</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg">   1112</span>   axis_data = batching.AxisData(axis_name, axis_size_, spmd_axis_name,
+<span class="ansi-green-fg">   1113</span>                                 explicit_mesh_axis)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1114</span>   out_flat = <span class="ansi-black-fg ansi-yellow-bg">batching</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">batch</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">   1115</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">flat_fun</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">axis_data</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">in_axes_flat</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1116</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">lambda</span><span class="ansi-black-fg ansi-yellow-bg">:</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">flatten_axes</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">vmap out_axes</span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">out_tree</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">)</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">out_axes</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   1117</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">)</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">call_wrapped</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args_flat</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   1118</span> <span style="font-weight:bold;color:rgb(0,135,0)">except</span> batching.SpecMatchError <span style="font-weight:bold;color:rgb(0,135,0)">as</span> e:
+<span class="ansi-green-fg">   1119</span>   out_axes_flat = flatten_axes(<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">vmap out_axes</span><span class="ansi-yellow-fg">"</span>, out_tree(), out_axes)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/linear_util.py:212</span>, in <span class="ansi-cyan-fg">WrappedFun.call_wrapped</span><span class="ansi-blue-fg">(self, *args, **kwargs)</span>
+<span class="ansi-green-fg">    210</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">call_wrapped</span>(<span style="color:rgb(0,135,0)">self</span>, *args, **kwargs):
+<span class="ansi-green-fg">    211</span> <span style="color:rgb(188,188,188)">  </span><span style="font-style:italic" class="ansi-yellow-fg">"""Calls the transformed function"""</span>
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">212</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">f_transformed</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/batching.py:644</span>, in <span class="ansi-cyan-fg">_batch_outer</span><span class="ansi-blue-fg">(f, axis_data, in_dims, *in_vals)</span>
+<span class="ansi-green-fg">    642</span> tag = TraceTag()
+<span class="ansi-green-fg">    643</span> <span style="font-weight:bold;color:rgb(0,135,0)">with</span> source_info_util.transform_name_stack(<span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">vmap</span><span class="ansi-yellow-fg">'</span>):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">644</span>   outs, trace = <span class="ansi-black-fg ansi-yellow-bg">f</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">tag</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">in_dims</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">in_vals</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    645</span> <span style="font-weight:bold;color:rgb(0,135,0)">with</span> core.ensure_no_leaks(trace): <span style="font-weight:bold;color:rgb(0,135,0)">del</span> trace
+<span class="ansi-green-fg">    646</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/batching.py:660</span>, in <span class="ansi-cyan-fg">_batch_inner</span><span class="ansi-blue-fg">(f, axis_data, out_dim_dests, tag, in_dims, *in_vals)</span>
+<span class="ansi-green-fg">    656</span>   in_tracers = <span style="color:rgb(0,135,0)">map</span>(partial(to_elt, trace, idx), in_vals, in_dims)
+<span class="ansi-green-fg">    657</span> <span style="font-weight:bold;color:rgb(0,135,0)">with</span> (core.set_current_trace(trace),
+<span class="ansi-green-fg">    658</span>       core.extend_axis_env_nd([(axis_data.name, axis_data.size)]),
+<span class="ansi-green-fg">    659</span>       core.add_spmd_axis_names(axis_data.spmd_name)):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">660</span>   outs = <span class="ansi-black-fg ansi-yellow-bg">f</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">in_tracers</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    661</span>   out_dim_dests = out_dim_dests() <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">callable</span>(out_dim_dests) <span style="font-weight:bold;color:rgb(0,135,0)">else</span> out_dim_dests
+<span class="ansi-green-fg">    662</span>   out_vals = <span style="color:rgb(0,135,0)">map</span>(partial(from_elt, trace, axis_data.size, axis_data.explicit_mesh_axis),
+<span class="ansi-green-fg">    663</span>                  <span style="color:rgb(0,135,0)">range</span>(<span style="color:rgb(0,135,0)">len</span>(outs)), outs, out_dim_dests)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/batching.py:342</span>, in <span class="ansi-cyan-fg">flatten_fun_for_vmap</span><span class="ansi-blue-fg">(f, store, in_tree, *args_flat)</span>
+<span class="ansi-green-fg">    338</span> <span style="color:rgb(175,0,255)">@lu</span>.transformation_with_aux2
+<span class="ansi-green-fg">    339</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">flatten_fun_for_vmap</span>(f: Callable,
+<span class="ansi-green-fg">    340</span>                          store: lu.Store, in_tree: PyTreeDef, *args_flat):
+<span class="ansi-green-fg">    341</span>   py_args, py_kwargs = tree_unflatten(in_tree, args_flat)
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">342</span>   ans = <span class="ansi-black-fg ansi-yellow-bg">f</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">py_args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">py_kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    343</span>   ans, out_tree = tree_flatten(ans, is_leaf=is_vmappable)
+<span class="ansi-green-fg">    344</span>   store.store(out_tree)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/linear_util.py:429</span>, in <span class="ansi-cyan-fg">_get_result_paths_thunk</span><span class="ansi-blue-fg">(_fun, _store, *args, **kwargs)</span>
+<span class="ansi-green-fg">    427</span> <span style="color:rgb(175,0,255)">@transformation_with_aux2</span>
+<span class="ansi-green-fg">    428</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">_get_result_paths_thunk</span>(_fun: Callable, _store: Store, *args, **kwargs):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">429</span>   ans = <span class="ansi-black-fg ansi-yellow-bg">_fun</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    430</span>   result_paths = <span style="color:rgb(0,135,0)">tuple</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">result</span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>_clean_keystr_arg_names(path)<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> path, _ <span style="font-weight:bold;color:rgb(175,0,255)">in</span> generate_key_paths(ans))
+<span class="ansi-green-fg">    431</span>   <span style="font-weight:bold;color:rgb(0,135,0)">if</span> _store:
+<span class="ansi-green-fg">    432</span>     <span style="font-style:italic;color:rgb(95,135,135)"># In some instances a lu.WrappedFun is called multiple times, e.g.,</span>
+<span class="ansi-green-fg">    433</span>     <span style="font-style:italic;color:rgb(95,135,135)"># the bwd function in a custom_vjp</span>
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:268</span>, in <span class="ansi-cyan-fg">_cpp_pjit.&lt;locals&gt;.cache_miss</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg">    263</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> config.no_tracing.value:
+<span class="ansi-green-fg">    264</span>   <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeError</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">re-tracing function </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>jit_info.fun_sourceinfo<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> for </span><span class="ansi-yellow-fg">"</span>
+<span class="ansi-green-fg">    265</span>                      <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">`jit`, but </span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">no_tracing</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg"> is set</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">    267</span> (outs, out_flat, out_tree, args_flat, jaxpr,
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">268</span>  executable, pgle_profiler, const_args) = <span class="ansi-black-fg ansi-yellow-bg">_python_pjit_helper</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">    269</span> <span class="ansi-black-fg ansi-yellow-bg">     </span><span class="ansi-black-fg ansi-yellow-bg">fun</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">jit_info</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    271</span> maybe_fastpath_data = _get_fastpath_data(
+<span class="ansi-green-fg">    272</span>     executable, out_tree, args_flat, out_flat, jaxpr.effects, jaxpr.consts,
+<span class="ansi-green-fg">    273</span>     jit_info.abstracted_axes, pgle_profiler,
+<span class="ansi-green-fg">    274</span>     const_args)
+<span class="ansi-green-fg">    276</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs, maybe_fastpath_data, _need_to_rebuild_with_fdo(pgle_profiler)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:150</span>, in <span class="ansi-cyan-fg">_python_pjit_helper</span><span class="ansi-blue-fg">(fun, jit_info, *args, **kwargs)</span>
+<span class="ansi-green-fg">    147</span>   out_flat, compiled, profiler, const_args = _pjit_call_impl_python(
+<span class="ansi-green-fg">    148</span>       *args_flat, **p.params)
+<span class="ansi-green-fg">    149</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">150</span>   out_flat = <span class="ansi-black-fg ansi-yellow-bg">jit_p</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">bind</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args_flat</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">p</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    151</span>   compiled = <span style="font-weight:bold;color:rgb(0,135,0)">None</span>
+<span class="ansi-green-fg">    152</span>   profiler = <span style="font-weight:bold;color:rgb(0,135,0)">None</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:634</span>, in <span class="ansi-cyan-fg">Primitive.bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg">    632</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">bind</span>(<span style="color:rgb(0,135,0)">self</span>, *args, **params):
+<span class="ansi-green-fg">    633</span>   args = args <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.skip_canonicalization <span style="font-weight:bold;color:rgb(0,135,0)">else</span> <span style="color:rgb(0,135,0)">map</span>(canonicalize_value, args)
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">634</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">_true_bind</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:650</span>, in <span class="ansi-cyan-fg">Primitive._true_bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg">    648</span> trace_ctx.set_trace(eval_trace)
+<span class="ansi-green-fg">    649</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">650</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">bind_with_trace</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">prev_trace</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    651</span> <span style="font-weight:bold;color:rgb(0,135,0)">finally</span>:
+<span class="ansi-green-fg">    652</span>   trace_ctx.set_trace(prev_trace)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:662</span>, in <span class="ansi-cyan-fg">Primitive.bind_with_trace</span><span class="ansi-blue-fg">(self, trace, args, params)</span>
+<span class="ansi-green-fg">    660</span>     <span style="font-weight:bold;color:rgb(0,135,0)">with</span> set_current_trace(trace):
+<span class="ansi-green-fg">    661</span>       <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span>.to_lojax(*args, **params)  <span style="font-style:italic;color:rgb(95,135,135)"># type: ignore</span>
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">662</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">trace</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">process_primitive</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    663</span> trace.process_primitive(<span style="color:rgb(0,135,0)">self</span>, args, params)  <span style="font-style:italic;color:rgb(95,135,135)"># may raise lojax error</span>
+<span class="ansi-green-fg">    664</span> <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">Exception</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">couldn</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">t apply typeof to args: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>args<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/batching.py:524</span>, in <span class="ansi-cyan-fg">BatchTrace.process_primitive</span><span class="ansi-blue-fg">(self, p, tracers, params)</span>
+<span class="ansi-green-fg">    522</span>   <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">    523</span>     <span style="font-weight:bold;color:rgb(0,135,0)">with</span> core.set_current_trace(<span style="color:rgb(0,135,0)">self</span>.parent_trace):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">524</span>       val_out, dim_out = <span class="ansi-black-fg ansi-yellow-bg">fancy_primitive_batchers</span><span class="ansi-black-fg ansi-yellow-bg">[</span><span class="ansi-black-fg ansi-yellow-bg">p</span><span class="ansi-black-fg ansi-yellow-bg">]</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">    525</span> <span class="ansi-black-fg ansi-yellow-bg">          </span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">axis_data</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">vals_in</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">dims_in</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    526</span> <span style="font-weight:bold;color:rgb(0,135,0)">elif</span> args_not_mapped:
+<span class="ansi-green-fg">    527</span>   <span style="font-style:italic;color:rgb(95,135,135)"># no-op shortcut</span>
+<span class="ansi-green-fg">    528</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> p.bind_with_trace(<span style="color:rgb(0,135,0)">self</span>.parent_trace, vals_in, params)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:2111</span>, in <span class="ansi-cyan-fg">_pjit_batcher</span><span class="ansi-blue-fg">(axis_data, vals_in, dims_in, jaxpr, in_shardings, out_shardings, in_layouts, out_layouts, donated_invars, ctx_mesh, name, keep_unused, inline, compiler_options_kvs)</span>
+<span class="ansi-green-fg">   2106</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> (<span style="color:rgb(0,135,0)">all</span>(l <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> l <span style="font-weight:bold;color:rgb(175,0,255)">in</span> in_layouts) <span style="font-weight:bold;color:rgb(175,0,255)">and</span>
+<span class="ansi-green-fg">   2107</span>         <span style="color:rgb(0,135,0)">all</span>(l <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> l <span style="font-weight:bold;color:rgb(175,0,255)">in</span> out_layouts)):
+<span class="ansi-green-fg">   2108</span>   <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">NotImplementedError</span>(
+<span class="ansi-green-fg">   2109</span>       <span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">Concrete layouts are not supported for vmap(jit).</span><span class="ansi-yellow-fg">'</span>)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">2111</span> vals_out = <span class="ansi-black-fg ansi-yellow-bg">jit_p</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">bind</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">   2112</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">vals_in</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2113</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">jaxpr</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">new_jaxpr</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2114</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">in_shardings</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">in_shardings</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2115</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">out_shardings</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">out_shardings</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2116</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">in_layouts</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">in_layouts</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2117</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">out_layouts</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">out_layouts</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2118</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">donated_invars</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">donated_invars</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2119</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">ctx_mesh</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">ctx_mesh</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2120</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">name</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">name</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2121</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">keep_unused</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">keep_unused</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2122</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">inline</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">inline</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   2123</span> <span class="ansi-black-fg ansi-yellow-bg">  </span><span class="ansi-black-fg ansi-yellow-bg">compiler_options_kvs</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">compiler_options_kvs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   2125</span> resolved_axes_out = batching.resolve_ragged_axes_against_inputs_outputs(
+<span class="ansi-green-fg">   2126</span>     vals_in, vals_out, axes_out)
+<span class="ansi-green-fg">   2127</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> vals_out, resolved_axes_out
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:634</span>, in <span class="ansi-cyan-fg">Primitive.bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg">    632</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">bind</span>(<span style="color:rgb(0,135,0)">self</span>, *args, **params):
+<span class="ansi-green-fg">    633</span>   args = args <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.skip_canonicalization <span style="font-weight:bold;color:rgb(0,135,0)">else</span> <span style="color:rgb(0,135,0)">map</span>(canonicalize_value, args)
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">634</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">_true_bind</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:650</span>, in <span class="ansi-cyan-fg">Primitive._true_bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg">    648</span> trace_ctx.set_trace(eval_trace)
+<span class="ansi-green-fg">    649</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">650</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">bind_with_trace</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">prev_trace</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    651</span> <span style="font-weight:bold;color:rgb(0,135,0)">finally</span>:
+<span class="ansi-green-fg">    652</span>   trace_ctx.set_trace(prev_trace)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:662</span>, in <span class="ansi-cyan-fg">Primitive.bind_with_trace</span><span class="ansi-blue-fg">(self, trace, args, params)</span>
+<span class="ansi-green-fg">    660</span>     <span style="font-weight:bold;color:rgb(0,135,0)">with</span> set_current_trace(trace):
+<span class="ansi-green-fg">    661</span>       <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span>.to_lojax(*args, **params)  <span style="font-style:italic;color:rgb(95,135,135)"># type: ignore</span>
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">662</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">trace</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">process_primitive</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    663</span> trace.process_primitive(<span style="color:rgb(0,135,0)">self</span>, args, params)  <span style="font-style:italic;color:rgb(95,135,135)"># may raise lojax error</span>
+<span class="ansi-green-fg">    664</span> <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">Exception</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">couldn</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">t apply typeof to args: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>args<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/core.py:1189</span>, in <span class="ansi-cyan-fg">EvalTrace.process_primitive</span><span class="ansi-blue-fg">(self, primitive, args, params)</span>
+<span class="ansi-green-fg">   1187</span> args = <span style="color:rgb(0,135,0)">map</span>(full_lower, args)
+<span class="ansi-green-fg">   1188</span> check_eval_args(args)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1189</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">primitive</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">impl</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:1829</span>, in <span class="ansi-cyan-fg">_pjit_call_impl</span><span class="ansi-blue-fg">(jaxpr, in_shardings, out_shardings, in_layouts, out_layouts, donated_invars, ctx_mesh, name, keep_unused, inline, compiler_options_kvs, *args)</span>
+<span class="ansi-green-fg">   1821</span> donated_argnums = <span style="color:rgb(0,135,0)">tuple</span>(i <span style="font-weight:bold;color:rgb(0,135,0)">for</span> i, d <span style="font-weight:bold;color:rgb(175,0,255)">in</span> <span style="color:rgb(0,135,0)">enumerate</span>(donated_invars) <span style="font-weight:bold;color:rgb(0,135,0)">if</span> d)
+<span class="ansi-green-fg">   1822</span> cache_key = pxla.JitGlobalCppCacheKeys(
+<span class="ansi-green-fg">   1823</span>     donate_argnums=donated_argnums, donate_argnames=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
+<span class="ansi-green-fg">   1824</span>     device=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>, backend=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   1827</span>     in_layouts_treedef=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>, in_layouts_leaves=in_layouts,
+<span class="ansi-green-fg">   1828</span>     out_layouts_treedef=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>, out_layouts_leaves=out_layouts)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1829</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">xc</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">_xla</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">pjit</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">   1830</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">name</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">f</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">call_impl_cache_miss</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">[</span><span class="ansi-black-fg ansi-yellow-bg">]</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">[</span><span class="ansi-black-fg ansi-yellow-bg">]</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">cache_key</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1831</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">tree_util</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">dispatch_registry</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">pxla</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">cc_shard_arg</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1832</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">_get_cpp_global_cache</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">cache_key</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">contains_explicit_attributes</span><span class="ansi-black-fg ansi-yellow-bg">)</span><span class="ansi-black-fg ansi-yellow-bg">)</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:1805</span>, in <span class="ansi-cyan-fg">_pjit_call_impl.&lt;locals&gt;.call_impl_cache_miss</span><span class="ansi-blue-fg">(*args_, **kwargs_)</span>
+<span class="ansi-green-fg">   1801</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">call_impl_cache_miss</span>(*args_, **kwargs_):
+<span class="ansi-green-fg">   1802</span>   <span style="font-style:italic;color:rgb(95,135,135)"># args_ do not include the const args</span>
+<span class="ansi-green-fg">   1803</span>   <span style="font-style:italic;color:rgb(95,135,135)"># See https://docs.jax.dev/en/latest/internals/constants.html.</span>
+<span class="ansi-green-fg">   1804</span>   <span style="font-style:italic;color:rgb(95,135,135)"># TODO(necula): remove num_const_args when fixing the C++ path</span>
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1805</span>   out_flat, compiled, pgle_profiler, const_args = <span class="ansi-black-fg ansi-yellow-bg">_pjit_call_impl_python</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">   1806</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">jaxpr</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">jaxpr</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">in_shardings</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">in_shardings</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1807</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">out_shardings</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">out_shardings</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">in_layouts</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">in_layouts</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1808</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">out_layouts</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">out_layouts</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">donated_invars</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">donated_invars</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1809</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">ctx_mesh</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">ctx_mesh</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">name</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">name</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">keep_unused</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">keep_unused</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">   1810</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">inline</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">inline</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">compiler_options_kvs</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg">compiler_options_kvs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   1811</span>   fastpath_data = _get_fastpath_data(
+<span class="ansi-green-fg">   1812</span>       compiled, tree_structure(out_flat), args, out_flat,
+<span class="ansi-green-fg">   1813</span>       jaxpr.effects, jaxpr.consts, <span style="font-weight:bold;color:rgb(0,135,0)">None</span>, pgle_profiler,
+<span class="ansi-green-fg">   1814</span>       const_args)
+<span class="ansi-green-fg">   1815</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> out_flat, fastpath_data, _need_to_rebuild_with_fdo(pgle_profiler)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:1780</span>, in <span class="ansi-cyan-fg">_pjit_call_impl_python</span><span class="ansi-blue-fg">(jaxpr, in_shardings, out_shardings, in_layouts, out_layouts, donated_invars, ctx_mesh, name, keep_unused, inline, compiler_options_kvs, *args)</span>
+<span class="ansi-green-fg">   1772</span>     fingerprint = fingerprint.hex()
+<span class="ansi-green-fg">   1773</span>   distributed_debug_log((<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Running pjit</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">d function</span><span class="ansi-yellow-fg">"</span>, name),
+<span class="ansi-green-fg">   1774</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">in_shardings</span><span class="ansi-yellow-fg">"</span>, in_shardings),
+<span class="ansi-green-fg">   1775</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">out_shardings</span><span class="ansi-yellow-fg">"</span>, out_shardings),
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   1778</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">abstract args</span><span class="ansi-yellow-fg">"</span>, <span style="color:rgb(0,135,0)">map</span>(core.abstractify, args)),
+<span class="ansi-green-fg">   1779</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">fingerprint</span><span class="ansi-yellow-fg">"</span>, fingerprint))
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1780</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> (<span class="ansi-black-fg ansi-yellow-bg">compiled</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">unsafe_call</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">computation</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">const_args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">)</span>,
+<span class="ansi-green-fg">   1781</span>         compiled, pgle_profiler, computation.const_args)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/profiler.py:364</span>, in <span class="ansi-cyan-fg">annotate_function.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg">    361</span> <span style="color:rgb(175,0,255)">@wraps</span>(func)
+<span class="ansi-green-fg">    362</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">wrapper</span>(*args, **kwargs):
+<span class="ansi-green-fg">    363</span>   <span style="font-weight:bold;color:rgb(0,135,0)">with</span> TraceAnnotation(name, **decorator_kwargs):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">364</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">func</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/pxla.py:1372</span>, in <span class="ansi-cyan-fg">ExecuteReplicated.__call__</span><span class="ansi-blue-fg">(self, *args)</span>
+<span class="ansi-green-fg">   1369</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> (<span style="color:rgb(0,135,0)">self</span>.ordered_effects <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_unordered_effects
+<span class="ansi-green-fg">   1370</span>     <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_host_callbacks):
+<span class="ansi-green-fg">   1371</span>   input_bufs = <span style="color:rgb(0,135,0)">self</span>._add_tokens_to_inputs(input_bufs)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1372</span>   results = <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">xla_executable</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">execute_sharded</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">input_bufs</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">with_tokens</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">True</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   1374</span>   result_token_bufs = results.disassemble_prefix_into_single_device_arrays(
+<span class="ansi-green-fg">   1375</span>       <span style="color:rgb(0,135,0)">len</span>(<span style="color:rgb(0,135,0)">self</span>.ordered_effects))
+<span class="ansi-green-fg">   1376</span>   sharded_runtime_token = results.consume_token()
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>: </pre>
 </div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-multi-feature_files/figure-html/cell-19-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="svgd-multi-feature_files/figure-html/cell-19-output-2.png" width="687" height="290" class="figure-img"></a></p>
-</figure>
 </div>
 </div>
-</div>
-<div id="c53358b6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:33.825362Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:33.825185Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:34.282174Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:34.281701Z&quot;}}" data-execution_count="18">
+<div id="c53358b6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:25:33.825362Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:25:33.825185Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:25:34.282174Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:25:34.281701Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-multi-feature_files/figure-html/cell-20-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="svgd-multi-feature_files/figure-html/cell-20-output-1.png" width="487" height="358" class="figure-img"></a></p>
+<p><a href="svgd-multi-feature_files/figure-html/cell-20-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="svgd-multi-feature_files/figure-html/cell-20-output-1.png" width="487" height="358" class="figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="12a8d9ce" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior,</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    ExpStepSize, Adamelia,</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    SparseObservations, dense_to_sparse, </span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">17</span>)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="dv">10</span>]</span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-39"><a href="#cb30-39" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">10000</span></span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-41"><a href="#cb30-41" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T</span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> rewards[:<span class="op">-</span><span class="dv">1</span>] <span class="co"># remove row for absorbing</span></span>
+<span id="cb30-43"><a href="#cb30-43" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.<span class="bu">sum</span>(rewards, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb30-44"><a href="#cb30-44" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span>
+<span id="cb30-45"><a href="#cb30-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-46"><a href="#cb30-46" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.reshape(rewards, (<span class="op">-</span><span class="dv">1</span>, <span class="bu">len</span>(rewards))) </span>
+<span id="cb30-47"><a href="#cb30-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-48"><a href="#cb30-48" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.reshape(observed_data, (<span class="bu">len</span>(observed_data), <span class="op">-</span><span class="dv">1</span>)) </span>
+<span id="cb30-49"><a href="#cb30-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-50"><a href="#cb30-50" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb30-51"><a href="#cb30-51" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb30-52"><a href="#cb30-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-53"><a href="#cb30-53" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the full state decomposition. Features with partial coverage</span></span>
+<span id="cb30-54"><a href="#cb30-54" aria-hidden="true" tabindex="-1"></a><span class="co"># (i.e. rows whose reward vector is visited by only some absorbing</span></span>
+<span id="cb30-55"><a href="#cb30-55" aria-hidden="true" tabindex="-1"></a><span class="co"># trajectories) are handled by SVGD's zero-inflated likelihood — no</span></span>
+<span id="cb30-56"><a href="#cb30-56" aria-hidden="true" tabindex="-1"></a><span class="co"># manual feature selection needed.</span></span>
+<span id="cb30-57"><a href="#cb30-57" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> graph.states().T</span>
+<span id="cb30-58"><a href="#cb30-58" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> rewards[:<span class="op">-</span><span class="dv">1</span>] <span class="co"># remove row for absorbing</span></span>
+<span id="cb30-59"><a href="#cb30-59" aria-hidden="true" tabindex="-1"></a>rewards</span>
+<span id="cb30-60"><a href="#cb30-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-61"><a href="#cb30-61" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
+<span id="cb30-62"><a href="#cb30-62" aria-hidden="true" tabindex="-1"></a>idxs <span class="op">=</span> np.arange(rewards.shape[<span class="dv">0</span>])</span>
+<span id="cb30-63"><a href="#cb30-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-64"><a href="#cb30-64" aria-hidden="true" tabindex="-1"></a>feature_data <span class="op">=</span> np.concatenate([graph.sample(n, rewards<span class="op">=</span>rewards[i]) <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
+<span id="cb30-65"><a href="#cb30-65" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> np.concatenate([[i]<span class="op">*</span>n <span class="cf">for</span> i <span class="kw">in</span> idxs])</span>
+<span id="cb30-66"><a href="#cb30-66" aria-hidden="true" tabindex="-1"></a>feature_slices <span class="op">=</span> [(i<span class="op">*</span>n, (i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n) <span class="cf">for</span> i <span class="kw">in</span> idxs]</span>
+<span id="cb30-67"><a href="#cb30-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-68"><a href="#cb30-68" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> SparseObservations(</span>
+<span id="cb30-69"><a href="#cb30-69" aria-hidden="true" tabindex="-1"></a>    values<span class="op">=</span>observed_data,</span>
+<span id="cb30-70"><a href="#cb30-70" aria-hidden="true" tabindex="-1"></a>    features<span class="op">=</span>features,</span>
+<span id="cb30-71"><a href="#cb30-71" aria-hidden="true" tabindex="-1"></a>    n_features<span class="op">=</span>rewards.shape[<span class="dv">0</span>], </span>
+<span id="cb30-72"><a href="#cb30-72" aria-hidden="true" tabindex="-1"></a>    slices<span class="op">=</span>feature_slices</span>
+<span id="cb30-73"><a href="#cb30-73" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-74"><a href="#cb30-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-75"><a href="#cb30-75" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
+<span id="cb30-76"><a href="#cb30-76" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.zeros((n <span class="op">*</span> (rewards.shape[<span class="dv">0</span>]), rewards.shape[<span class="dv">0</span>]), dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb30-77"><a href="#cb30-77" aria-hidden="true" tabindex="-1"></a>observed_data[:] <span class="op">=</span> np.nan</span>
+<span id="cb30-78"><a href="#cb30-78" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
+<span id="cb30-79"><a href="#cb30-79" aria-hidden="true" tabindex="-1"></a>    observed_data[(i<span class="op">*</span>n):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n), i] <span class="op">=</span> graph.sample(n, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb30-80"><a href="#cb30-80" aria-hidden="true" tabindex="-1"></a>np.random.shuffle(observed_data)</span>
+<span id="cb30-81"><a href="#cb30-81" aria-hidden="true" tabindex="-1"></a>observed_data[:nr_observations]</span>
+<span id="cb30-82"><a href="#cb30-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-83"><a href="#cb30-83" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> dense_to_sparse(observed_data)</span>
+<span id="cb30-84"><a href="#cb30-84" aria-hidden="true" tabindex="-1"></a>sparse_observations </span>
+<span id="cb30-85"><a href="#cb30-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-86"><a href="#cb30-86" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb30-87"><a href="#cb30-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-88"><a href="#cb30-88" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data<span class="op">=</span>sparse_observations, </span>
+<span id="cb30-89"><a href="#cb30-89" aria-hidden="true" tabindex="-1"></a>                  rewards<span class="op">=</span>rewards, </span>
+<span id="cb30-90"><a href="#cb30-90" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">20</span>]),  </span>
+<span id="cb30-91"><a href="#cb30-91" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">500</span>,                </span>
+<span id="cb30-92"><a href="#cb30-92" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0)</span></span>
+<span id="cb30-93"><a href="#cb30-93" aria-hidden="true" tabindex="-1"></a>                  optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb30-94"><a href="#cb30-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-95"><a href="#cb30-95" aria-hidden="true" tabindex="-1"></a>                      )</span>
+<span id="cb30-96"><a href="#cb30-96" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span>
+<span id="cb30-97"><a href="#cb30-97" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No         9.952      9.734      0.5404     8.844        10          
+
+Particles: 20, Iterations: 500</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-multi-feature_files/figure-html/cell-21-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="svgd-multi-feature_files/figure-html/cell-21-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="3ce0799b" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-multi-feature_files/figure-html/cell-22-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="svgd-multi-feature_files/figure-html/cell-22-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>

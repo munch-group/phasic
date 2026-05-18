@@ -390,65 +390,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -479,19 +420,58 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="d49a9fe5" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="24">
+<div id="d49a9fe5" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># #| echo: false</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># #| column: margin</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic.utils import download_link</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download_link(__vsc_ipynb_file__) </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="0bd99048" class="cell" data-execution_count="25">
+<div id="0bd99048" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:36.586816Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:36.586711Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:38.812854Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:38.812345Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.utils <span class="im">import</span> tree_illustration</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
+</div>
 <div class="cell-output cell-output-display">
 
         <style>
@@ -592,7 +572,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  -->
 <p>The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.</p>
 <p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages because mutations occurring on those branches produce a singleton mutation in our sample. Similarly with doubletons tripleton and so on.</p>
-<div id="cell-fig-coalescent-intro-branches" class="cell" data-execution_count="27">
+<div id="cell-fig-coalescent-intro-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:38.817550Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:38.817457Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:39.156606Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:39.156134Z&quot;}}" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div id="fig-coalescent-intro-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -607,8 +587,8 @@ Figure&nbsp;1: Mutations on branches with a single descendant produce singleton 
 </div>
 </div>
 <p>We can encode the states of this Markov chain as vectors enumerating the number of live 1’tons, 2’tons, 3’tons, and 4’tons branches (<a href="#fig-coalescent-intro-branches" class="quarto-xref">Figure&nbsp;1</a>). With four samples, the Coalescent jumps starts with a state of four singletons and terminates/absorbs at the state with a single 4’ton (<a href="#fig-coalescent-graph" class="quarto-xref">Figure&nbsp;2</a>).</p>
-<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:40.100531Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:40.100446Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:40.327666Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:40.327149Z&quot;}}" data-execution_count="5">
-<div class="cell-output cell-output-display" data-execution_count="5">
+<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:39.158112Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:39.157995Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:39.339658Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:39.339060Z&quot;}}" data-execution_count="4">
+<div class="cell-output cell-output-display" data-execution_count="4">
 <div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">

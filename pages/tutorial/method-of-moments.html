@@ -120,22 +120,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
-  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
-  <script>document.addEventListener("DOMContentLoaded", function () {
- var mathElements = document.getElementsByClassName("math");
- var macros = [];
- for (var i = 0; i < mathElements.length; i++) {
-  var texText = mathElements[i].firstChild;
-  if (mathElements[i].tagName == "SPAN") {
-   katex.render(texText.data, mathElements[i], {
-    displayMode: mathElements[i].classList.contains('display'),
-    throwOnError: false,
-    macros: macros,
-    fleqn: false
-   });
-}}});
-  </script>
-  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -433,65 +419,6 @@ window.Quarto = {
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -536,16 +463,16 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="data-informed-priors-via-moment-matching">Data-informed priors via moment matching</h2>
 <p>A common challenge in Bayesian inference with SVGD is choosing sensible prior distributions. A vague prior may lead to slow convergence or poor exploration of the posterior, while an overly tight prior can bias the result. The <code>method_of_moments</code> method provides a principled way to construct data-informed priors by finding parameter estimates that match the model’s theoretical moments to the empirical moments of the observed data.</p>
 <p>The method solves the nonlinear least-squares problem:</p>
-<p><span class="math display">
+<p><span class="math display">\[
 \hat{\theta}_{\text{MoM}} = \arg\min_{\theta &gt; 0} \left\| \mathbf{m}(\theta) - \hat{\mathbf{m}} \right\|^2
-</span></p>
-<p>where <span class="math inline">\mathbf{m}(\theta)</span> are the model moments and <span class="math inline">\hat{\mathbf{m}}</span> are the sample moments computed from the data. The standard error of the estimator is obtained via the delta method:</p>
-<p><span class="math display">
+\]</span></p>
+<p>where <span class="math inline">\(\mathbf{m}(\theta)\)</span> are the model moments and <span class="math inline">\(\hat{\mathbf{m}}\)</span> are the sample moments computed from the data. The standard error of the estimator is obtained via the delta method:</p>
+<p><span class="math display">\[
 \text{Cov}(\hat\theta) \;=\; \left(\frac{\partial \mathbf{m}}{\partial \theta}\right)^{-1} \text{Cov}(\hat{\mathbf{m}}) \left(\frac{\partial \mathbf{m}}{\partial \theta}\right)^{-T}
-</span></p>
-<p>where <span class="math inline">\text{Cov}(\hat{\mathbf{m}})</span> is estimated from the data. The point estimate and standard error are then used to construct Gaussian priors centred on the MoM estimate.</p>
+\]</span></p>
+<p>where <span class="math inline">\(\text{Cov}(\hat{\mathbf{m}})\)</span> is estimated from the data. The point estimate and standard error are then used to construct Gaussian priors centred on the MoM estimate.</p>
 <p>This is fast (seconds, not minutes) and gives SVGD a much better starting point than a generic prior.</p>
-<div id="c3d1e2f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:54.013574Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:54.013485Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:56.273043Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:56.272578Z&quot;}}" data-execution_count="1">
+<div id="c3d1e2f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:55.012766Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:55.012644Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:57.208476Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:57.207978Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, MoMResult, ProbMatchResult,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, clear_caches, dense_to_sparse,</span>
@@ -559,8 +486,7 @@ window.Quarto = {
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -649,8 +575,8 @@ table {
 </section>
 <section id="single-parameter-model" class="level2">
 <h2 class="anchored" data-anchor-id="single-parameter-model">Single-parameter model</h2>
-<p>We start with the simplest case: a single-parameter exponential model. The coalescent rate <span class="math inline">\theta</span> governs how quickly lineages coalesce. For an exponential distribution, the method of moments has an analytical solution: <span class="math inline">\hat{\theta} = 1 / \bar{x}</span>.</p>
-<div id="e5f3a4b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:56.274843Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:56.274654Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:56.489833Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:56.489340Z&quot;}}" data-execution_count="2">
+<p>We start with the simplest case: a single-parameter exponential model. The coalescent rate <span class="math inline">\(\theta\)</span> governs how quickly lineages coalesce. For an exponential distribution, the method of moments has an analytical solution: <span class="math inline">\(\hat{\theta} = 1 / \bar{x}\)</span>.</p>
+<div id="e5f3a4b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:57.210402Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:57.210194Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:57.379821Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:57.379227Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
@@ -681,17 +607,17 @@ table {
 </div>
 </div>
 <p>Sample observed data from the model with a known true parameter value:</p>
-<div id="a7b5c6d0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:56.491922Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:56.491783Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:56.494269Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:56.493836Z&quot;}}" data-execution_count="3">
+<div id="a7b5c6d0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:57.381362Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:57.381255Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:57.383578Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:57.383039Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="dv">7</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Run method of moments to find the parameter estimate:</p>
-<div id="c9d7e8f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:56.495768Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:56.495657Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:57.187899Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:57.187403Z&quot;}}" data-execution_count="4">
+<div id="c9d7e8f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:57.384952Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:57.384835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:57.997082Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:57.996546Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mom <span class="op">=</span> graph.method_of_moments(observed_data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The result is a <code>MoMResult</code> dataclass containing the estimate, standard errors, and ready-to-use priors:</p>
-<div id="e1f9a0b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:57.189563Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:57.189451Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:57.191876Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:57.191506Z&quot;}}" data-execution_count="5">
+<div id="e1f9a0b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:57.998868Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:57.998748Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:58.001214Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:58.000748Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimate:   </span><span class="sc">{</span>mom<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std error:      </span><span class="sc">{</span>mom<span class="sc">.</span>std<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -699,26 +625,26 @@ table {
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:       </span><span class="sc">{</span>mom<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>True theta:     [7]
-MoM estimate:   [6.98097735]
-Std error:      [0.15379478]
+MoM estimate:   [6.84583033]
+Std error:      [0.14971531]
 Converged:      True
-Residual:       2.38e-01</code></pre>
+Residual:       3.18e+00</code></pre>
 </div>
 </div>
 <p>The <code>MoMResult</code> also reports how well the model moments match the sample moments:</p>
-<div id="a3b1c2d0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:57.193606Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:57.193484Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:57.195561Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:57.195063Z&quot;}}" data-execution_count="6">
+<div id="a3b1c2d0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:58.002621Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:58.002510Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:58.004592Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:58.004113Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sample moments: </span><span class="sc">{</span>mom<span class="sc">.</span>sample_moments<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Model moments:  </span><span class="sc">{</span>mom<span class="sc">.</span>model_moments<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Sample moments: [[0.21459372 0.06886118 0.03046193]]
-Model moments:  [0.21486963 0.06953843 0.03110812]</code></pre>
+<pre><code>Sample moments: [[0.22134436 0.07369828 0.03314795]]
+Model moments:  [0.21911148 0.07231112 0.0329871 ]</code></pre>
 </div>
 </div>
 </section>
 <section id="multi-parameter-model" class="level2">
 <h2 class="anchored" data-anchor-id="multi-parameter-model">Multi-parameter model</h2>
-<p>Method of moments is especially useful for multi-parameter models where choosing good priors by hand is difficult. Here we use a two-population island model with coalescent rate <span class="math inline">\theta_0</span> and migration rate <span class="math inline">\theta_1</span>.</p>
-<div id="b0c8d9e0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:57.196855Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:57.196758Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:57.345488Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:57.344915Z&quot;}}" data-execution_count="7">
+<p>Method of moments is especially useful for multi-parameter models where choosing good priors by hand is difficult. Here we use a two-population island model with coalescent rate <span class="math inline">\(\theta_0\)</span> and migration rate <span class="math inline">\(\theta_1\)</span>.</p>
+<div id="b0c8d9e0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:58.005921Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:58.005821Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:58.157132Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:58.156458Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> StateIndexer, Property</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
@@ -781,78 +707,75 @@ Model moments:  [0.21486963 0.06953843 0.03110812]</code></pre>
 </div>
 </div>
 </div>
-<div id="c1d9e0f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:57.347007Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:57.346886Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:57.349290Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:57.348809Z&quot;}}" data-execution_count="8">
+<div id="c1d9e0f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:58.158740Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:58.158618Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:58.161096Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:58.160667Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">0.7</span>, <span class="fl">0.9</span>]</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Run method of moments on the two-parameter model:</p>
-<div id="e3f1a2b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:57.350504Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:57.350417Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:58.453704Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:58.453258Z&quot;}}" data-execution_count="9">
+<div id="e3f1a2b0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:58.162456Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:58.162351Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:58.999300Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:58.998709Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>mom <span class="op">=</span> graph.method_of_moments(observed_data)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="f4a2b3c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:58.455283Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:58.455194Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:58.457601Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:58.457172Z&quot;}}" data-execution_count="10">
+<div id="f4a2b3c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:59.001132Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:59.001013Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:59.003437Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:59.002958Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimate:   </span><span class="sc">{</span>mom<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std error:      </span><span class="sc">{</span>mom<span class="sc">.</span>std<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged:      </span><span class="sc">{</span>mom<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>True theta:     [0.7, 0.9]
-MoM estimate:   [0.69989998 1.01410847]
-Std error:      [0.02397823 0.3666464 ]
+MoM estimate:   [0.72839686 1.07621522]
+Std error:      [0.02491898 0.36341645]
 Converged:      True</code></pre>
 </div>
 </div>
-<div id="1a551e55" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:58.459038Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:58.458898Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:19:58.822682Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:19:58.822072Z&quot;}}" data-execution_count="11">
+<div id="1a551e55" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:59.004769Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:59.004670Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:59.364427Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:59.363757Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="bu">len</span>(mom.prior), figsize<span class="op">=</span>(<span class="dv">7</span>,<span class="dv">3</span>))</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, prior <span class="kw">in</span> <span class="bu">enumerate</span>(mom.prior):</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    prior.plot(return_ax<span class="op">=</span><span class="va">True</span>, ax<span class="op">=</span>axes[i])</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>plt.tight_layout() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
-<pre><code>&lt;Figure size 640x480 with 0 Axes&gt;</code></pre>
-</div>
-<div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="method-of-moments_files/figure-html/cell-12-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="method-of-moments_files/figure-html/cell-12-output-2.png" width="689" height="290" class="figure-img"></a></p>
+<p><a href="method-of-moments_files/figure-html/cell-12-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="method-of-moments_files/figure-html/cell-12-output-1.png" width="689" height="290" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Use the MoM priors for SVGD inference:</p>
-<div id="b6c4d5e0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:19:58.824102Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:19:58.824005Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:20.471135Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:20.470240Z&quot;}}" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>mom.prior,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># optimizer=Adam(0.25),</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">20.0</span>),</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="b6c4d5e0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:59.366180Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:59.366053Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:16.135348Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:16.134765Z&quot;}}" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>mom.prior,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># optimizer=Adam(0.25),</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">20.0</span>),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="98e078e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:20.476856Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:20.476629Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:21.793474Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:21.792906Z&quot;}}" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="98e078e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:16.136997Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:16.136858Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:17.322036Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:17.321410Z&quot;}}" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         0.7055     0.6413     0.1321     0.3689       0.7580      
-1          No         0.8606     0.6260     0.3402     0.0000       0.8606      
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             0.7286     0.7111     0.07527    0.7075       0.736       
+1          No             0.7499     0.7137     0.2521     1.072e-06    0.7499      
 
 Particles: 40, Iterations: 100</code></pre>
 </div>
 </div>
-<div id="fe45fdc8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:21.794969Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:21.794861Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:22.351091Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:22.350157Z&quot;}}" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="fe45fdc8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:17.323544Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:17.323422Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:17.792238Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:17.791636Z&quot;}}" data-execution_count="14">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="method-of-moments_files/figure-html/cell-15-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="method-of-moments_files/figure-html/cell-15-output-1.png" width="678" height="290" class="figure-img"></a></p>
+<p><a href="method-of-moments_files/figure-html/cell-15-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="method-of-moments_files/figure-html/cell-15-output-1.png" width="687" height="290" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
-<div id="c7d5e6f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:22.356158Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:22.356003Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:22.878912Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:22.878256Z&quot;}}" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="c7d5e6f0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:17.793821Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:17.793694Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:18.268551Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:18.268005Z&quot;}}" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="method-of-moments_files/figure-html/cell-16-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="method-of-moments_files/figure-html/cell-16-output-1.png" width="595" height="452" class="figure-img"></a></p>
+<p><a href="method-of-moments_files/figure-html/cell-16-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="method-of-moments_files/figure-html/cell-16-output-1.png" width="587" height="447" class="figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -861,16 +784,16 @@ Particles: 40, Iterations: 100</code></pre>
 <section id="multi-feature-observations-with-rewards" class="level2">
 <h2 class="anchored" data-anchor-id="multi-feature-observations-with-rewards">Multi-feature observations with rewards</h2>
 <p>For models where observations are reward-transformed (e.g.&nbsp;branch lengths contributing to different mutation categories in population genetics), method of moments can match moments per feature. Each feature has its own reward vector, and the combined system of equations constrains the parameters.</p>
-<div id="c3d1e2a0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:22.882656Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:22.882530Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:22.885647Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:22.885223Z&quot;}}" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>graph_1p <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>true_theta_1p <span class="op">=</span> [<span class="dv">7</span>]</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>graph_1p.update_weights(true_theta_1p)</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create reward vectors — each row is a feature's reward across all vertices</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> graph_1p.states().T</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> states[:<span class="op">-</span><span class="dv">1</span>]  <span class="co"># one row per feature (e.g. singleton, doubleton, tripleton branch lengths)</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Reward matrix shape: </span><span class="sc">{</span>rewards<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">  (n_features=</span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, n_vertices=</span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Rewards:</span><span class="ch">\n</span><span class="sc">{</span>rewards<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="c3d1e2a0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:18.270214Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:18.270096Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:18.272971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:18.272479Z&quot;}}" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>graph_1p <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>true_theta_1p <span class="op">=</span> [<span class="dv">7</span>]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>graph_1p.update_weights(true_theta_1p)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create reward vectors — each row is a feature's reward across all vertices</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>states <span class="op">=</span> graph_1p.states().T</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> states[:<span class="op">-</span><span class="dv">1</span>]  <span class="co"># one row per feature (e.g. singleton, doubleton, tripleton branch lengths)</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Reward matrix shape: </span><span class="sc">{</span>rewards<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">  (n_features=</span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, n_vertices=</span><span class="sc">{</span>rewards<span class="sc">.</span>shape[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Rewards:</span><span class="ch">\n</span><span class="sc">{</span>rewards<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Reward matrix shape: (3, 6)  (n_features=3, n_vertices=6)
 Rewards:
@@ -880,39 +803,39 @@ Rewards:
 </div>
 </div>
 <p>Sample multi-feature observations (each SNP contributes to one feature)</p>
-<div id="1ad6287b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:22.887306Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:22.887172Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:23.097493Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:23.096948Z&quot;}}" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>n_obs <span class="op">=</span> <span class="dv">10000</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>n_features <span class="op">=</span> rewards.shape[<span class="dv">0</span>]</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>observed_data_2d <span class="op">=</span> np.zeros((n_obs <span class="op">*</span> n_features, n_features), dtype<span class="op">=</span><span class="bu">float</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>observed_data_2d[:] <span class="op">=</span> np.nan</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_features):</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    observed_data_2d[(i<span class="op">*</span>n_obs):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n_obs), i] <span class="op">=</span> graph_1p.sample(n_obs, rewards<span class="op">=</span>rewards[i])</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>sparse_data <span class="op">=</span> dense_to_sparse(observed_data_2d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="1ad6287b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:18.274325Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:18.274220Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:18.473814Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:18.473271Z&quot;}}" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>n_obs <span class="op">=</span> <span class="dv">10000</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>n_features <span class="op">=</span> rewards.shape[<span class="dv">0</span>]</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>observed_data_2d <span class="op">=</span> np.zeros((n_obs <span class="op">*</span> n_features, n_features), dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>observed_data_2d[:] <span class="op">=</span> np.nan</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_features):</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    observed_data_2d[(i<span class="op">*</span>n_obs):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n_obs), i] <span class="op">=</span> graph_1p.sample(n_obs, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>sparse_data <span class="op">=</span> dense_to_sparse(observed_data_2d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="e5f3a4c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:23.099316Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:23.099191Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:24.866834Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:24.860250Z&quot;}}" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>mom_multi <span class="op">=</span> graph_1p.method_of_moments(</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    sparse_data,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    rewards<span class="op">=</span>rewards,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta_1p<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimate:   </span><span class="sc">{</span>mom_multi<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged:      </span><span class="sc">{</span>mom_multi<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sample moments (n_features x nr_moments):</span><span class="ch">\n</span><span class="sc">{</span>mom_multi<span class="sc">.</span>sample_moments<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Model moments (n_features x nr_moments):</span><span class="ch">\n</span><span class="sc">{</span>mom_multi<span class="sc">.</span>model_moments<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="e5f3a4c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:18.475480Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:18.475360Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:19.795624Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:19.794982Z&quot;}}" data-execution_count="18">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>mom_multi <span class="op">=</span> graph_1p.method_of_moments(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    sparse_data,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    rewards<span class="op">=</span>rewards,</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta_1p<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MoM estimate:   </span><span class="sc">{</span>mom_multi<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged:      </span><span class="sc">{</span>mom_multi<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Sample moments (n_features x nr_moments):</span><span class="ch">\n</span><span class="sc">{</span>mom_multi<span class="sc">.</span>sample_moments<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Model moments (n_features x nr_moments):</span><span class="ch">\n</span><span class="sc">{</span>mom_multi<span class="sc">.</span>model_moments<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>True theta:     [7]
-MoM estimate:   [6.96913727]
+MoM estimate:   [7.02672511]
 Converged:      True
 
 Sample moments (n_features x nr_moments):
-[[0.28699847 0.11878561]
- [0.14416538 0.06968601]
- [0.09582756 0.02707689]]
+[[0.28381104 0.11713318]
+ [0.14372514 0.06949767]
+ [0.09536193 0.02731725]]
 
 Model moments (n_features x nr_moments):
-[[0.28697957 0.1189605 ]
- [0.14348978 0.06863106]
- [0.09565986 0.02745242]]</code></pre>
+[[0.28462761 0.1170186 ]
+ [0.14231381 0.06751073]
+ [0.09487587 0.02700429]]</code></pre>
 </div>
 </div>
 </section>
@@ -920,56 +843,56 @@ Model moments (n_features x nr_moments):
 <h2 class="anchored" data-anchor-id="joint-probability-models">Joint probability models</h2>
 <p>For joint probability graphs created using <code>graph.joint_prob_graph()</code>, observations are feature-count tuples (e.g., <code>[0, 1, 0, 0]</code>) rather than continuous times. The model outputs a probability table, not a PDF/PMF with moments, so standard moment matching does not apply.</p>
 <p>The <code>probability_matching()</code> method handles this case by matching the empirical probability distribution to the model probability distribution:</p>
-<p><span class="math display">
+<p><span class="math display">\[
 \hat{\theta}_{\text{PM}} = \arg\min_{\theta &gt; 0} \left\| \mathbf{p}_{\text{model}}(\theta) - \hat{\mathbf{p}} \right\|^2
-</span></p>
-<p>where <span class="math inline">\hat{\mathbf{p}}</span> are the empirical proportions of each observation pattern. Standard errors are obtained via the delta method with the multinomial covariance:</p>
-<p><span class="math display">
+\]</span></p>
+<p>where <span class="math inline">\(\hat{\mathbf{p}}\)</span> are the empirical proportions of each observation pattern. Standard errors are obtained via the delta method with the multinomial covariance:</p>
+<p><span class="math display">\[
 \text{Cov}(\hat{p}_i, \hat{p}_j) = \frac{\delta_{ij} p_i - p_i p_j}{n}
-</span></p>
-<div id="0bcg5h5ub0c5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:24.884404Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:24.884232Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:24.923150Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:24.922145Z&quot;}}" data-execution_count="19">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the coalescent base graph</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples),</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineage):</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer.lineage.index_to_props(i)</span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer.lineage.index_to_props(j)</span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>        descendants <span class="op">=</span> p1.descendants <span class="op">+</span> p2.descendants</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineage.props_to_index(descendants<span class="op">=</span>descendants)</span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>base_graph <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Create joint probability graph</span></span>
-<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> base_graph.joint_prob_graph(</span>
-<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>    indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>, mutation_rate<span class="op">=</span>mutation_rate</span>
-<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>joint_graph.joint_prob_table()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+\]</span></p>
+<div id="0bcg5h5ub0c5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:19.797519Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:19.797356Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:19.820947Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:19.820419Z&quot;}}" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the coalescent base graph</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(indexer.lineage):</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        p1 <span class="op">=</span> indexer.lineage.index_to_props(i)</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        p2 <span class="op">=</span> indexer.lineage.index_to_props(j)</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>        new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>        new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>        descendants <span class="op">=</span> p1.descendants <span class="op">+</span> p2.descendants</span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>        k <span class="op">=</span> indexer.lineage.props_to_index(descendants<span class="op">=</span>descendants)</span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>        new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>base_graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Create joint probability graph</span></span>
+<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> base_graph.joint_prob_graph(</span>
+<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>    indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>, mutation_rate<span class="op">=</span>mutation_rate</span>
+<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a>joint_graph.joint_prob_table()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="19">
 <div>
 
@@ -1041,37 +964,37 @@ Model moments (n_features x nr_moments):
 </div>
 </div>
 <p>Sample observations from the joint probability table:</p>
-<div id="5d0gx9z7ykb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:24.925924Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:24.925775Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:24.936253Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:24.935642Z&quot;}}" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>, mutation_rate]</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>joint_graph.update_weights(true_theta)</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample from the joint probability table</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> joint_graph.joint_prob_table()</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> table[<span class="st">'prob'</span>].to_numpy()</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> p <span class="op">/</span> p.<span class="bu">sum</span>()</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>feature_cols <span class="op">=</span> table.columns[:<span class="op">-</span><span class="dv">1</span>]</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>n_obs <span class="op">=</span> <span class="dv">2000</span></span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>sampled_rows <span class="op">=</span> np.random.choice(<span class="bu">len</span>(table), size<span class="op">=</span>n_obs, p<span class="op">=</span>p)</span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> [<span class="bu">tuple</span>(<span class="bu">int</span>(x) <span class="cf">for</span> x <span class="kw">in</span> row) <span class="cf">for</span> row <span class="kw">in</span> table.iloc[sampled_rows][feature_cols].values]</span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sampled </span><span class="sc">{</span>n_obs<span class="sc">}</span><span class="ss"> observations, first 5: </span><span class="sc">{</span>observations[:<span class="dv">5</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="5d0gx9z7ykb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:19.822503Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:19.822395Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:19.828696Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:19.828181Z&quot;}}" data-execution_count="20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>, mutation_rate]</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>joint_graph.update_weights(true_theta)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample from the joint probability table</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> joint_graph.joint_prob_table()</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> table[<span class="st">'prob'</span>].to_numpy()</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> p <span class="op">/</span> p.<span class="bu">sum</span>()</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>feature_cols <span class="op">=</span> table.columns[:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>n_obs <span class="op">=</span> <span class="dv">2000</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>sampled_rows <span class="op">=</span> np.random.choice(<span class="bu">len</span>(table), size<span class="op">=</span>n_obs, p<span class="op">=</span>p)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> [<span class="bu">tuple</span>(<span class="bu">int</span>(x) <span class="cf">for</span> x <span class="kw">in</span> row) <span class="cf">for</span> row <span class="kw">in</span> table.iloc[sampled_rows][feature_cols].values]</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sampled </span><span class="sc">{</span>n_obs<span class="sc">}</span><span class="ss"> observations, first 5: </span><span class="sc">{</span>observations[:<span class="dv">5</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sampled 2000 observations, first 5: [(0, 0, 0), (2, 0, 0), (1, 0, 0), (0, 0, 0), (0, 0, 0)]</code></pre>
 </div>
 </div>
 <p>Run <code>probability_matching()</code> with the mutation rate fixed:</p>
-<div id="0mkm98h5i7pc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:24.938360Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:24.938179Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:25.041818Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:25.041156Z&quot;}}" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>pm <span class="op">=</span> joint_graph.probability_matching(</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    observations,</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate)],</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PM estimate:    </span><span class="sc">{</span>pm<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std error:      </span><span class="sc">{</span>pm<span class="sc">.</span>std<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged:      </span><span class="sc">{</span>pm<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:       </span><span class="sc">{</span>pm<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="0mkm98h5i7pc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:19.830198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:19.830065Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:19.910965Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:19.910413Z&quot;}}" data-execution_count="21">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>pm <span class="op">=</span> joint_graph.probability_matching(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    observations,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate)],</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"True theta:     </span><span class="sc">{</span>true_theta<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PM estimate:    </span><span class="sc">{</span>pm<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std error:      </span><span class="sc">{</span>pm<span class="sc">.</span>std<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged:      </span><span class="sc">{</span>pm<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Residual:       </span><span class="sc">{</span>pm<span class="sc">.</span>residual<span class="sc">:.2e}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ProbMatch: theta_dim=2, n_free=1, n_obs=2000, n_unique_obs=6
 ProbMatch: initial guess (full theta) = [5.73615251 1.        ]
@@ -1086,13 +1009,13 @@ Residual:       8.48e-04</code></pre>
 </div>
 </div>
 <p>The <code>ProbMatchResult</code> includes the empirical and model probabilities at the solution allowing posterior predictive check:</p>
-<div id="7k5p2jbxvx" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:25.043330Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:25.043208Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:25.048940Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:25.048337Z&quot;}}" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame({</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vertex_index'</span>: pm.unique_indices,</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'empirical_prob'</span>: pm.empirical_probs,</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'model_prob'</span>: pm.model_probs,</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="7k5p2jbxvx" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:19.912482Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:19.912374Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:19.916510Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:19.916030Z&quot;}}" data-execution_count="22">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>pd.DataFrame({</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'vertex_index'</span>: pm.unique_indices,</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'empirical_prob'</span>: pm.empirical_probs,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'model_prob'</span>: pm.model_probs,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="22">
 <div>
 
@@ -1149,11 +1072,11 @@ Residual:       8.48e-04</code></pre>
 </div>
 </div>
 </div>
-<div id="07965b9e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:25.050480Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:25.050363Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:25.175397Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:25.174562Z&quot;}}" data-execution_count="23">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>plt.plot([<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">1</span>], ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'C1'</span>)</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>plt.scatter(pm.empirical_probs, pm.model_probs)</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>plt.xscale(<span class="st">'log'</span>)</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>plt.yscale(<span class="st">'log'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="07965b9e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:19.917864Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:19.917774Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:20.022665Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:20.022173Z&quot;}}" data-execution_count="23">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>plt.plot([<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">1</span>], ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'C1'</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>plt.scatter(pm.empirical_probs, pm.model_probs)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>plt.xscale(<span class="st">'log'</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>plt.yscale(<span class="st">'log'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1163,19 +1086,19 @@ Residual:       8.48e-04</code></pre>
 </div>
 </div>
 <p>The <code>.prior</code> list can be passed directly to <code>graph.svgd()</code>, just like <code>MoMResult.prior</code>:</p>
-<div id="uyv1gdjibi7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:20:25.177036Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:20:25.176909Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:20:38.984446Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:20:38.983719Z&quot;}}" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>svgd_jp <span class="op">=</span> joint_graph.svgd(</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    observations,</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>pm.prior,</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate)],</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>svgd_jp.summary()</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>svgd_jp.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="uyv1gdjibi7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:57:20.024170Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:57:20.024062Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:57:23.809970Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:57:23.809473Z&quot;}}" data-execution_count="24">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>svgd_jp <span class="op">=</span> joint_graph.svgd(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    observations,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>pm.prior,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, mutation_rate)],</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>),</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>svgd_jp.summary()</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>svgd_jp.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         5.6009     5.5818     0.1418     5.0949       5.6476      
-1          Yes        1.0000     NA         NA         NA           NA          
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             5.604      5.582      0.2304     5.013        5.944       
+1          Yes            1          NA         NA         NA           NA          
 
 Particles: 40, Iterations: 100</code></pre>
 </div>

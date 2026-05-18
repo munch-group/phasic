@@ -183,7 +183,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>get_config</h1>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>phasic.get_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Return the current global configuration.</p>
-<p>On first call, reads the relevant phasic env vars (<code>PHASIC_HIERAR_ELIMINATION</code>, <code>PHASIC_DISABLE_CACHE</code>, <code>PHASIC_CACHE_DIR</code>, <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>, <code>PHASIC_MAX_PARALLEL_SCCS</code>, <code>OMP_NUM_THREADS</code>) and seeds the config so its fields agree with the environment that the C layer will observe.</p>
+<p>On first call, reads the relevant phasic env vars (<code>PHASIC_HIERAR_ELIMINATION</code>, <code>PHASIC_REWARD_COMPUTE_CACHE</code>, <code>PHASIC_DISABLE_GRAPH_CACHE</code>, <code>PHASIC_CACHE_DIR</code>, <code>PHASIC_MIN_SCC_SIZE_TO_CACHE</code>, <code>PHASIC_MAX_PARALLEL_SCCS</code>, <code>OMP_NUM_THREADS</code>) and seeds the config so its fields agree with the environment that the C layer will observe.</p>
 <p>Subsequent calls return the cached config object.</p>
 
 

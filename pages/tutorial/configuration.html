@@ -390,65 +390,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -503,7 +444,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <p>Phasic exposes a single <code>configure()</code> entry point for tuning the library’s behaviour: which compute backend to use, how many CPU threads OpenMP should spawn, when to engage high-precision arithmetic, whether to parallelise Gaussian elimination across strongly-connected components, where to put the on-disk cache, and so on. Every public field describes a user-visible <em>outcome</em> — never which third-party library or internal mechanism realises it.</p>
 <p><code>configure()</code> can be called persistently (the settings stay applied until further changes) or used as a context manager (<code>with configure(...): ...</code>) for a single block of code. Each field is also reachable via a <code>PHASIC_*</code> / <code>OMP_NUM_THREADS</code> environment variable, so SLURM job scripts, CI pipelines, and shell aliases can set the same knobs without touching Python. The two interfaces are kept consistent: <code>configure(...)</code> writes to the env var, and <code>get_config()</code> seeds itself from the env var on first call. If a shell-set env var and an explicit <code>configure()</code> argument disagree, the library raises <code>PTDConfigError</code> rather than silently choosing one — every conflict surfaces loudly.</p>
-<div id="imports" class="cell" data-execution_count="1">
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:55:59.498761Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:55:59.498676Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.005132Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.004654Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    configure, get_config, get_available_options, reset_config,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    PhasicConfig, PTDConfigError,</span>
@@ -511,8 +452,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -601,9 +541,49 @@ table {
 <section id="the-defaults" class="level2">
 <h2 class="anchored" data-anchor-id="the-defaults">The defaults</h2>
 <p><code>configure()</code> with no arguments is a no-op; the defaults are already in effect. Inspect them via <code>get_config()</code>:</p>
-<div id="defaults-show" class="cell">
+<div id="defaults-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.006933Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.006753Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.008958Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.008427Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> get_config()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cfg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PhasicConfig:
+{
+  "fields": {
+    "compute": "auto",
+    "cpu_threads": 10,
+    "parallel_elimination": false,
+    "parallel_elimination_min_subgraph": null,
+    "parallel_elimination_max_concurrent": null,
+    "svgd_strategy": "auto",
+    "high_precision_mode": "auto",
+    "high_precision_bits": null,
+    "ill_condition_threshold": 1000000000000.0,
+    "warn_on_ill_conditioning": true,
+    "cache_enabled": true,
+    "cache_dir": null,
+    "strict": true,
+    "verbose": false
+  },
+  "environment": {
+    "OMP_NUM_THREADS": "10",
+    "PHASIC_HIERAR_ELIMINATION": null,
+    "PHASIC_MIN_SCC_SIZE_TO_CACHE": null,
+    "PHASIC_MAX_PARALLEL_SCCS": null,
+    "PHASIC_FORCE_MPFR": null,
+    "PHASIC_MPFR_BITS": null,
+    "PHASIC_CONDITION_THRESHOLD": null,
+    "PHASIC_DISABLE_CONDITION_WARNINGS": null,
+    "PHASIC_DISABLE_CACHE": null,
+    "PHASIC_CACHE_DIR": null
+  },
+  "derived": {
+    "jax_active": false,
+    "mpfr_active": false,
+    "cpu_threads_source": "configure()",
+    "cache_dir_resolved": "/Users/kmt/.phasic_cache",
+    "compute_resolved": "jax-cpu"
+  }
+}</code></pre>
+</div>
 </div>
 <p>Every default is chosen so the library “just works” out of the box on a single laptop:</p>
 <ul>
@@ -822,35 +802,40 @@ table {
 <section id="setting-options" class="level2">
 <h2 class="anchored" data-anchor-id="setting-options">Setting options</h2>
 <p>Call <code>configure()</code> with any subset of the fields above. All updates are validated together and only take effect if no conflicts are detected. Unrecognised kwargs raise <code>PTDConfigError</code> with the full list of valid names.</p>
-<div id="setting-mpfr" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force MPFR for every moment computation, at 256-bit precision.</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to defaults.</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="setting-mpfr" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.010366Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.010270Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.012155Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.011717Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force MPFR for every moment computation, at 256-bit precision.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to defaults.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="setting-scc" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable parallel SCC elimination on a multi-core machine</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># and put the cache on a shared filesystem.</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>shared_cache <span class="op">=</span> tempfile.mkdtemp(prefix<span class="op">=</span><span class="st">'phasic_cache_'</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>configure(</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span>shared_cache,</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-read to confirm the env vars were written.</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_HIERAR_ELIMINATION ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_MAX_PARALLEL_SCCS   ='</span>, os.environ.get(<span class="st">'PHASIC_MAX_PARALLEL_SCCS'</span>))</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_CACHE_DIR           ='</span>, os.environ.get(<span class="st">'PHASIC_CACHE_DIR'</span>))</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil<span class="op">;</span> shutil.rmtree(shared_cache)</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore env vars to a clean state for the next cells.</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> (<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>, <span class="st">'PHASIC_MAX_PARALLEL_SCCS'</span>, <span class="st">'PHASIC_CACHE_DIR'</span>):</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    os.environ.pop(v, <span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="setting-scc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.013291Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.013197Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.016741Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.016279Z&quot;}}" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable parallel SCC elimination on a multi-core machine</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># and put the cache on a shared filesystem.</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>shared_cache <span class="op">=</span> tempfile.mkdtemp(prefix<span class="op">=</span><span class="st">'phasic_cache_'</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>configure(</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span>shared_cache,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-read to confirm the env vars were written.</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_HIERAR_ELIMINATION ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_MAX_PARALLEL_SCCS   ='</span>, os.environ.get(<span class="st">'PHASIC_MAX_PARALLEL_SCCS'</span>))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'PHASIC_CACHE_DIR           ='</span>, os.environ.get(<span class="st">'PHASIC_CACHE_DIR'</span>))</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil<span class="op">;</span> shutil.rmtree(shared_cache)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore env vars to a clean state for the next cells.</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> v <span class="kw">in</span> (<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>, <span class="st">'PHASIC_MAX_PARALLEL_SCCS'</span>, <span class="st">'PHASIC_CACHE_DIR'</span>):</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    os.environ.pop(v, <span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PHASIC_HIERAR_ELIMINATION = 1
+PHASIC_MAX_PARALLEL_SCCS   = 4
+PHASIC_CACHE_DIR           = /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/phasic_cache_n4dzycik</code></pre>
+</div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -870,18 +855,18 @@ Tip
 <h2 class="anchored" data-anchor-id="temporary-settings-with-context-manager">Temporary settings with context manager</h2>
 <p><code>configure(...)</code> returns a context-manager-shaped object. Using it with a <code>with</code> block applies the settings on entry and rolls them back at the end of the block — useful when you want to switch behavior for a single computation without leaking the change to the rest of the script.</p>
 <p>The rollback is comprehensive: every field touched by the <code>configure()</code> call, and every phasic-tracked environment variable, is restored to whatever value it held just before the <code>with</code> statement. If the block raises, the rollback still happens. Conflict checking fires at the <code>with</code> statement, not inside the body. If the settings disagree with the shell environment, <code>configure()</code> raises before the block runs and no rollback is needed.</p>
-<div id="6922204a" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: parallel_elimination is False.</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>):</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Inside the block, the field is set and the env var is written.</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'inside :'</span>, get_config().parallel_elimination,</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>          <span class="st">'env ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the block, everything is rolled back.</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination,</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>      <span class="st">'env ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="6922204a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.018064Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.017985Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.020355Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.019907Z&quot;}}" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: parallel_elimination is False.</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, parallel_elimination_max_concurrent<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Inside the block, the field is set and the env var is written.</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'inside :'</span>, get_config().parallel_elimination,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>          <span class="st">'env ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the block, everything is rolled back.</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>      <span class="st">'env ='</span>, os.environ.get(<span class="st">'PHASIC_HIERAR_ELIMINATION'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>outside: False
 inside : True env = 1
@@ -889,23 +874,23 @@ outside: False env = None</code></pre>
 </div>
 </div>
 <p>You can also bind the live <code>PhasicConfig</code> to inspect or read from inside the block:</p>
-<div id="d1589620" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>) <span class="im">as</span> cfg:</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"inside the block: mode=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_mode<span class="sc">!r}</span><span class="ss">, "</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"bits=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d1589620" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.021668Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.021578Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.023625Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.023218Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>) <span class="im">as</span> cfg:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"inside the block: mode=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_mode<span class="sc">!r}</span><span class="ss">, "</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"bits=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>inside the block: mode='always', bits=256</code></pre>
 </div>
 </div>
-<div id="efc34fa7" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> configure(cpu_threads<span class="op">=</span><span class="dv">4</span>):</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        cfg <span class="op">=</span> get_config()</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">'inner:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    cfg <span class="op">=</span> get_config()</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'outer:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> get_config()</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'after:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="efc34fa7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.024890Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.024798Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.027139Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.026746Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> configure(cpu_threads<span class="op">=</span><span class="dv">4</span>):</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        cfg <span class="op">=</span> get_config()</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">'inner:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    cfg <span class="op">=</span> get_config()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'outer:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> get_config()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'after:'</span>, cfg.parallel_elimination, cfg.cpu_threads)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>inner: True 4
 outer: True 10
@@ -929,26 +914,26 @@ Tip
 <section id="inspecting-the-effective-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-the-effective-configuration">Inspecting the effective configuration</h2>
 <p><code>get_config().effective()</code> returns a dict with three sections: the current public field values, the corresponding environment variables, and a <code>derived</code> section that answers practical questions (“is JAX active right now?”, “where did <code>cpu_threads</code> come from?”, “what does <code>compute='auto'</code> resolve to on this system?”). <code>repr(cfg)</code> pretty-prints the same information.</p>
-<div id="effective-show" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, cpu_threads<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>eff <span class="op">=</span> get_config().effective()</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Fields:'</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'fields'</span>].items():</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Environment:'</span>)</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'environment'</span>].items():</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Derived:'</span>)</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'derived'</span>].items():</span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="effective-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.028590Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.028506Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.031458Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.030950Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, cpu_threads<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>eff <span class="op">=</span> get_config().effective()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Fields:'</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'fields'</span>].items():</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Environment:'</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'environment'</span>].items():</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Derived:'</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> eff[<span class="st">'derived'</span>].items():</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:38s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Fields:
   compute                                = auto
@@ -958,7 +943,7 @@ Tip
   parallel_elimination_max_concurrent    = None
   svgd_strategy                          = auto
   high_precision_mode                    = auto
-  high_precision_bits                    = None
+  high_precision_bits                    = 256
   ill_condition_threshold                = 1000000000000.0
   warn_on_ill_conditioning               = True
   cache_enabled                          = True
@@ -972,7 +957,7 @@ Environment:
   PHASIC_MIN_SCC_SIZE_TO_CACHE           = None
   PHASIC_MAX_PARALLEL_SCCS               = None
   PHASIC_FORCE_MPFR                      = None
-  PHASIC_MPFR_BITS                       = None
+  PHASIC_MPFR_BITS                       = 256
   PHASIC_CONDITION_THRESHOLD             = None
   PHASIC_DISABLE_CONDITION_WARNINGS      = None
   PHASIC_DISABLE_CACHE                   = None
@@ -989,34 +974,34 @@ Derived:
 </section>
 <section id="profiling-scc-decomposability" class="level2">
 <h2 class="anchored" data-anchor-id="profiling-scc-decomposability">Profiling SCC decomposability</h2>
-<p>Before turning <code>parallel_elimination=True</code> on, it’s useful to know whether a graph actually decomposes into many small SCCs (where parallel elimination helps) or into a few large ones (where it doesn’t). <code>Graph.plot_scc_decomposition()</code> draws a level-wise treemap that answers this at a glance:</p>
+<p>Before turning <code>parallel_elimination=True</code> on, it’s useful to know whether a graph actually decomposes into many small SCCs (where parallel elimination helps) or into a few large ones (where it doesn’t). <code>Graph.plot_scc_decomp()</code> draws a level-wise treemap that answers this at a glance:</p>
 <ul>
 <li>Each <strong>row</strong> is a level of the condensation. The <strong>source side</strong> of the chain (the start vertex’s SCC) is drawn at the top; the <strong>sink side</strong> (absorbing state) is at the bottom. Time flows downward.</li>
 <li>Each <strong>tile</strong> within a row is one SCC; its <strong>width</strong> is proportional to the SCC’s vertex count, on an absolute scale shared across all rows. A narrow row genuinely has fewer total vertices than a wide one.</li>
 <li>The label on the left of each row, e.g.&nbsp;<code>L5 (23)</code>, tells you how many parallel-eliminable SCCs that level contains.</li>
 </ul>
 <p>Wide rows mean good parallelism; rows with a single small tile are elimination bottlenecks that the SCC composer can’t speed up.</p>
-<div id="3bcf328e" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A coalescent with 6 lineages — enough to show several levels.</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([<span class="dv">6</span>] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> <span class="dv">5</span>)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)))</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(coalescent)</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>g.plot_scc_decomposition(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="3bcf328e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.032755Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.032668Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.113500Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.112876Z&quot;}}" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A coalescent with 6 lineages — enough to show several levels.</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([<span class="dv">6</span>] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> <span class="dv">5</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>: <span class="cf">continue</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>): <span class="cf">continue</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>            new[i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same)))</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(coalescent)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>g.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1031,32 +1016,32 @@ Derived:
 <section id="conflict-policy-nothing-silently-overrides-anything" class="level2">
 <h2 class="anchored" data-anchor-id="conflict-policy-nothing-silently-overrides-anything">Conflict policy: nothing silently overrides anything</h2>
 <p>If an environment variable was set in the shell (i.e.&nbsp;before phasic was imported) and a later <code>configure()</code> call requests a different value for the matching field, the library raises rather than silently overwriting. This rule applies symmetrically: <code>configure()</code> cannot silently win over the shell, and the shell cannot silently win over <code>configure()</code>.</p>
-<div id="conflict-example" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pretend OMP_NUM_THREADS was set by the shell (i.e. before</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic was imported). The bookkeeping helper below clears</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># the "phasic-assigned" marker so the conflict checker treats</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># the env var as user-set; in a real shell session this is</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co"># automatic.</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.config <span class="im">import</span> _phasic_assigned_env</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>_phasic_assigned_env.discard(<span class="st">'OMP_NUM_THREADS'</span>)</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'OMP_NUM_THREADS'</span>] <span class="op">=</span> <span class="st">'2'</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    configure(cpu_threads<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDConfigError <span class="im">as</span> e:</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'Caught conflict:'</span>)</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">' '</span>, <span class="bu">str</span>(e)[:<span class="dv">200</span>])</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Resolve by aligning the values, or by unsetting the env var.</span></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>configure(cpu_threads<span class="op">=</span><span class="dv">2</span>)  <span class="co"># agrees with shell — no conflict</span></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'After agreement: OMP_NUM_THREADS ='</span>, os.environ[<span class="st">'OMP_NUM_THREADS'</span>])</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean up.</span></span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> os.environ[<span class="st">'OMP_NUM_THREADS'</span>]</span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="conflict-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.115143Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.115038Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.118087Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.117631Z&quot;}}" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pretend OMP_NUM_THREADS was set by the shell (i.e. before</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic was imported). The bookkeeping helper below clears</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># the "phasic-assigned" marker so the conflict checker treats</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># the env var as user-set; in a real shell session this is</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># automatic.</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.config <span class="im">import</span> _phasic_assigned_env</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>_phasic_assigned_env.discard(<span class="st">'OMP_NUM_THREADS'</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'OMP_NUM_THREADS'</span>] <span class="op">=</span> <span class="st">'2'</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    configure(cpu_threads<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDConfigError <span class="im">as</span> e:</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'Caught conflict:'</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">' '</span>, <span class="bu">str</span>(e)[:<span class="dv">200</span>])</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Resolve by aligning the values, or by unsetting the env var.</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>configure(cpu_threads<span class="op">=</span><span class="dv">2</span>)  <span class="co"># agrees with shell — no conflict</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'After agreement: OMP_NUM_THREADS ='</span>, os.environ[<span class="st">'OMP_NUM_THREADS'</span>])</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean up.</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> os.environ[<span class="st">'OMP_NUM_THREADS'</span>]</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Caught conflict:
   Conflicting configuration for cpu_threads: shell sets OMP_NUM_THREADS='2' but configure(cpu_threads=8) would write OMP_NUM_THREADS='8'. Unset OMP_NUM_THREADS before launch, or align the two values.
@@ -1069,10 +1054,10 @@ After agreement: OMP_NUM_THREADS = 2</code></pre>
 <section id="probing-whats-available" class="level2">
 <h2 class="anchored" data-anchor-id="probing-whats-available">Probing what’s available</h2>
 <p>Use <code>get_available_options()</code> to branch on build-time features before configuring:</p>
-<div id="available-show" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>opts <span class="op">=</span> get_available_options()</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> opts.items():</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:14s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="available-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.119453Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.119357Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.134209Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.133735Z&quot;}}" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>opts <span class="op">=</span> get_available_options()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> opts.items():</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:14s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  jax            = True
   cpp            = True
@@ -1080,26 +1065,26 @@ After agreement: OMP_NUM_THREADS = 2</code></pre>
   platforms      = ['cpu']</code></pre>
 </div>
 </div>
-<div id="available-example" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: enable MPFR-always only when MPFR is built.</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> opts[<span class="st">'mpfr'</span>]:</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>)</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="available-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.135476Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.135386Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.137466Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.137011Z&quot;}}" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: enable MPFR-always only when MPFR is built.</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> opts[<span class="st">'mpfr'</span>]:</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="environment-variables" class="level2">
 <h2 class="anchored" data-anchor-id="environment-variables">Environment variables</h2>
 <p>All public fields except <code>compute</code>, <code>strict</code>, and <code>verbose</code> are backed by a <code>PHASIC_*</code> or <code>OMP_NUM_THREADS</code> environment variable. Setting them in the shell has the same effect as calling <code>configure()</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Equivalent to phasic.configure(parallel_elimination=True,</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">#                                parallel_elimination_max_concurrent=8,</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">#                                cache_dir='/scratch/phasic_cache')</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_HIERAR_ELIMINATION</span><span class="op">=</span>1</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_MAX_PARALLEL_SCCS</span><span class="op">=</span>8</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_CACHE_DIR</span><span class="op">=</span>/scratch/phasic_cache</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_script.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Equivalent to phasic.configure(parallel_elimination=True,</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">#                                parallel_elimination_max_concurrent=8,</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">#                                cache_dir='/scratch/phasic_cache')</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_HIERAR_ELIMINATION</span><span class="op">=</span>1</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_MAX_PARALLEL_SCCS</span><span class="op">=</span>8</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PHASIC_CACHE_DIR</span><span class="op">=</span>/scratch/phasic_cache</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> my_script.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>When phasic is imported, <code>get_config()</code> reads each of these env vars and seeds the corresponding field, so the dataclass and the C runtime always agree on what’s enabled. On SLURM clusters this is the recommended path: the job script sets the env vars and the Python code never has to touch <code>configure(...)</code>.</p>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1118,14 +1103,14 @@ Tip
 <section id="resetting" class="level2">
 <h2 class="anchored" data-anchor-id="resetting">Resetting</h2>
 <p><code>reset_config()</code> discards the cached global config object so the next <code>get_config()</code> rebuilds it fresh from the current environment. Useful in tests, less so in production code. <strong>It does not roll back env vars that previous <code>configure(...)</code> calls wrote</strong> — if you need a fully clean environment, unset the relevant <code>PHASIC_*</code> / <code>OMP_NUM_THREADS</code> variables manually in <code>os.environ</code> first.</p>
-<div id="reset-example" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect what's currently in the environment, reset, and confirm.</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Before reset:'</span>, <span class="bu">list</span>(k <span class="cf">for</span> k <span class="kw">in</span> os.environ <span class="cf">if</span> k.startswith(<span class="st">'PHASIC_'</span>)))</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'After reset: '</span>, <span class="bu">list</span>(k <span class="cf">for</span> k <span class="kw">in</span> os.environ <span class="cf">if</span> k.startswith(<span class="st">'PHASIC_'</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="reset-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:02.138770Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:02.138682Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:02.141065Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:02.140625Z&quot;}}" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect what's currently in the environment, reset, and confirm.</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Before reset:'</span>, <span class="bu">list</span>(k <span class="cf">for</span> k <span class="kw">in</span> os.environ <span class="cf">if</span> k.startswith(<span class="st">'PHASIC_'</span>)))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>reset_config()</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'After reset: '</span>, <span class="bu">list</span>(k <span class="cf">for</span> k <span class="kw">in</span> os.environ <span class="cf">if</span> k.startswith(<span class="st">'PHASIC_'</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Before reset: ['PHASIC_HIERAR_ELIMINATION', 'PHASIC_FORCE_MPFR']
-After reset:  ['PHASIC_HIERAR_ELIMINATION', 'PHASIC_FORCE_MPFR']</code></pre>
+<pre><code>Before reset: ['PHASIC_MPFR_BITS', 'PHASIC_HIERAR_ELIMINATION', 'PHASIC_FORCE_MPFR']
+After reset:  ['PHASIC_MPFR_BITS', 'PHASIC_HIERAR_ELIMINATION', 'PHASIC_FORCE_MPFR']</code></pre>
 </div>
 </div>
 

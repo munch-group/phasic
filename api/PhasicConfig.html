@@ -201,11 +201,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    high_precision_bits<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    ill_condition_threshold<span class="op">=</span><span class="fl">1000000000000.0</span>,</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    warn_on_ill_conditioning<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    cache_enabled<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    strict<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    reward_compute_cache<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    graph_cache<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    strict<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Public configuration for phasic. All fields describe USER INTENT. Implementation choices (JAX/MPFR/OpenMP/FFI/SCC) are derived.</p>
 <p>Conflicting settings raise PTDConfigError; no silent coercion.</p>
 <section id="public-fields" class="level2 doc-section doc-section-public-fields">
@@ -219,7 +220,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>high_precision_bits : int or None, default None Precision in bits when high-precision mode is active. None = auto-pick based on the condition number. Must be &gt;= 53 if specified. Backs PHASIC_MPFR_BITS.</p>
 <p>ill_condition_threshold : float, default 1e12 Condition-number threshold above which high-precision mode is engaged automatically. Backs PHASIC_CONDITION_THRESHOLD.</p>
 <p>warn_on_ill_conditioning : bool, default True Emit log warnings when the condition number is high. Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).</p>
-<p>cache_enabled : bool, default True Use the on-disk caches under cache_dir. Backs PHASIC_DISABLE_CACHE (inverted).</p>
+<p>reward_compute_cache : bool, default False Use the on-disk reward-compute caches at <code>cache_dir/parameterized_reward_compute/</code> — both the parent <code>&lt;hash&gt;.bin</code> written by <code>ptd_precompute_reward_compute_graph</code> and the per-SCC <code>scc_&lt;hash&gt;.bin</code> written by the hierarchical composer. Backs PHASIC_REWARD_COMPUTE_CACHE (positive: <code>'1'</code> enables, absent = default = off). Default off because the symbolic elimination it caches is cheap to redo on small graphs, and the cache can grow unboundedly across model variants.</p>
+<p>graph_cache : bool, default True Use the on-disk graph cache at <code>cache_dir/graphs/</code> for serialised <code>Graph</code> objects (callback-built graphs). Backs PHASIC_DISABLE_GRAPH_CACHE (inverted). Per-graph opt-in via <code>Graph(..., graph_cache=...)</code> overrides this global default.</p>
 <p>cache_dir : str or None, default None Override the cache root. None = $HOME/.phasic_cache. Backs PHASIC_CACHE_DIR.</p>
 <p>strict : bool, default True Raise on missing-feature warnings (e.g.&nbsp;JAX requested but not installed) instead of logging a warning. Does NOT affect conflict checking — conflicts always raise.</p>
 <p>verbose : bool, default False Print configuration details and informational logs.</p>
@@ -239,20 +241,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>The type of the None singleton.</td>
 </tr>
 <tr class="even">
-<td><a href="#phasic.PhasicConfig.cache_enabled">cache_enabled</a></td>
-<td>Returns True when the argument is true, False otherwise.</td>
-</tr>
-<tr class="odd">
 <td><a href="#phasic.PhasicConfig.compute">compute</a></td>
 <td>str(object=’’) -&gt; str</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.PhasicConfig.cpu_threads">cpu_threads</a></td>
 <td>The type of the None singleton.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.PhasicConfig.ffi">ffi</a></td>
 <td>Whether the FFI backend is enabled. Derived from <code>compute</code>.</td>
+</tr>
+<tr class="odd">
+<td><a href="#phasic.PhasicConfig.graph_cache">graph_cache</a></td>
+<td>Returns True when the argument is true, False otherwise.</td>
 </tr>
 <tr class="even">
 <td><a href="#phasic.PhasicConfig.high_precision_bits">high_precision_bits</a></td>
@@ -287,18 +289,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>The type of the None singleton.</td>
 </tr>
 <tr class="even">
+<td><a href="#phasic.PhasicConfig.reward_compute_cache">reward_compute_cache</a></td>
+<td>Returns True when the argument is true, False otherwise.</td>
+</tr>
+<tr class="odd">
 <td><a href="#phasic.PhasicConfig.strict">strict</a></td>
 <td>Returns True when the argument is true, False otherwise.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.PhasicConfig.svgd_strategy">svgd_strategy</a></td>
 <td>str(object=’’) -&gt; str</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#phasic.PhasicConfig.verbose">verbose</a></td>
 <td>Returns True when the argument is true, False otherwise.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#phasic.PhasicConfig.warn_on_ill_conditioning">warn_on_ill_conditioning</a></td>
 <td>Returns True when the argument is true, False otherwise.</td>
 </tr>

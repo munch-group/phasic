@@ -171,6 +171,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#phasic.svgd.Prior" id="toc-phasic.svgd.Prior" class="nav-link active" data-scroll-target="#phasic.svgd.Prior">Prior</a>
   <ul class="collapse">
+  <li><a href="#per-dimension-natural-transform" id="toc-per-dimension-natural-transform" class="nav-link" data-scroll-target="#per-dimension-natural-transform">Per-dimension natural transform</a></li>
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
   <ul class="collapse">
   <li><a href="#phasic.svgd.Prior.plot" id="toc-phasic.svgd.Prior.plot" class="nav-link" data-scroll-target="#phasic.svgd.Prior.plot">plot</a></li>
@@ -191,6 +192,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.Prior()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Base class for prior distributions.</p>
 <p>Subclasses must implement <strong>call</strong> (log-probability) and sample methods. The sample method enables SVGD to initialize particles from the prior.</p>
+<section id="per-dimension-natural-transform" class="level2 doc-section doc-section-per-dimension-natural-transform">
+<h2 class="doc-section doc-section-per-dimension-natural-transform anchored" data-anchor-id="per-dimension-natural-transform">Per-dimension natural transform</h2>
+<p>Subclasses may set the class attribute <code>_natural_transform</code> (a callable <code>φ → θ</code>) to declare the constraint they want on their own parameter dimension. <code>None</code> (the default) means “use SVGD’s global choice” (typically softplus when <code>positive_params=True</code>). When <code>Graph.svgd(prior=[...])</code> is called with a list of priors, SVGD assembles a per-dimension composite <code>param_transform</code> using each prior’s natural transform; priors that say <code>None</code> fall back to the global default. Use this to mix positive parameters (Gauss/LogGauss/HalfCauchy → softplus) with probability parameters (:class:<code>BetaPrior</code> → sigmoid) in a single fit.</p>
+</section>
 <section id="methods" class="level2">
 <h2 class="anchored" data-anchor-id="methods">Methods</h2>
 <table class="caption-top table">

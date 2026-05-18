@@ -80,6 +80,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -117,22 +120,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
-  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
-  <script>document.addEventListener("DOMContentLoaded", function () {
- var mathElements = document.getElementsByClassName("math");
- var macros = [];
- for (var i = 0; i < mathElements.length; i++) {
-  var texText = mathElements[i].firstChild;
-  if (mathElements[i].tagName == "SPAN") {
-   katex.render(texText.data, mathElements[i], {
-    displayMode: mathElements[i].classList.contains('display'),
-    throwOnError: false,
-    macros: macros,
-    fleqn: false
-   });
-}}});
-  </script>
-  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -430,65 +419,6 @@ window.Quarto = {
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -499,10 +429,8 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#a-two-parameter-coalescent-example" id="toc-a-two-parameter-coalescent-example" class="nav-link active" data-scroll-target="#a-two-parameter-coalescent-example">A two-parameter coalescent example</a></li>
-  <li><a href="#fit-the-two-rate-model-and-look-at-the-basic-quantities" id="toc-fit-the-two-rate-model-and-look-at-the-basic-quantities" class="nav-link" data-scroll-target="#fit-the-two-rate-model-and-look-at-the-basic-quantities">Fit the two-rate model and look at the basic quantities</a></li>
-  <li><a href="#aic-and-bic-for-a-single-fit" id="toc-aic-and-bic-for-a-single-fit" class="nav-link" data-scroll-target="#aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</a></li>
-  <li><a href="#comparing-several-models-with-compare" id="toc-comparing-several-models-with-compare" class="nav-link" data-scroll-target="#comparing-several-models-with-compare">Comparing several models with <code>compare()</code></a></li>
+  <li><a href="#aic-and-bic-for-a-single-fit" id="toc-aic-and-bic-for-a-single-fit" class="nav-link active" data-scroll-target="#aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</a></li>
+  <li><a href="#model-comparison" id="toc-model-comparison" class="nav-link" data-scroll-target="#model-comparison">Model comparison</a></li>
   <li><a href="#likelihood-ratio-test-for-nested-models" id="toc-likelihood-ratio-test-for-nested-models" class="nav-link" data-scroll-target="#likelihood-ratio-test-for-nested-models">Likelihood-ratio test for nested models</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -531,28 +459,32 @@ window.Quarto = {
 
 <p>Once you have fitted a model with <a href="../../pages/tutorial/svgd-basics.html">SVGD</a>, you typically want to know whether your model is <em>the right shape</em> for the data. Phasic provides three classical recipes built directly on top of a fitted <code>SVGD</code> object:</p>
 <ul>
-<li><strong>AIC</strong> (<span class="math inline">2k - 2\,\log\hat L</span>) for ranking models on a parsimony/fit tradeoff.</li>
-<li><strong>BIC</strong> (<span class="math inline">k \log n - 2\,\log\hat L</span>) for a more aggressive penalty on complexity.</li>
+<li><strong>AIC</strong> (<span class="math inline">\(2k - 2\,\log\hat L\)</span>) for ranking models on a parsimony/fit tradeoff.</li>
+<li><strong>BIC</strong> (<span class="math inline">\(k \log n - 2\,\log\hat L\)</span>) for a more aggressive penalty on complexity.</li>
 <li><strong>Likelihood-ratio test</strong> for two nested models, where one fixes some parameters that the other estimates freely.</li>
 </ul>
 <p>All three rest on the same three quantities exposed on every fitted <code>SVGD</code> instance:</p>
 <ul>
-<li><code>svgd.log_likelihood()</code> — the maximum log-likelihood <span class="math inline">\log \hat L = \sum_i \log p(x_i \mid \hat\theta)</span> at the MAP.</li>
-<li><code>svgd.degrees_of_freedom</code> — the number <span class="math inline">k</span> of free parameters (<code>theta_dim</code> minus the number fixed via <code>fixed=</code>).</li>
-<li><code>svgd.n_observations</code> — the effective sample size <span class="math inline">n</span> (number of non-NaN entries for dense data, or <code>len(values)</code> for <code>SparseObservations</code>).</li>
+<li><code>svgd.log_likelihood()</code> — the maximum log-likelihood <span class="math inline">\(\log \hat L = \sum_i \log p(x_i \mid \hat\theta)\)</span> at the MAP.</li>
+<li><code>svgd.degrees_of_freedom</code> — the number <span class="math inline">\(k\)</span> of free parameters (<code>theta_dim</code> minus the number fixed via <code>fixed=</code>).</li>
+<li><code>svgd.n_observations</code> — the effective sample size <span class="math inline">\(n\)</span> (number of non-NaN entries for dense data, or <code>len(values)</code> for <code>SparseObservations</code>).</li>
 </ul>
-<p>The model-selection functions live under <code>phasic.model_selection</code>:</p>
-<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, GaussPrior, ExpStepSize, clear_caches, set_log_level</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic.model_selection <span class="im">as</span> ms</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'WARNING'</span>)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>clear_caches()</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, SVGD, GaussPrior, ExpStepSize, Adamelia,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    clear_caches, set_log_level, StateIndexer, Property,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    model_selection, </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>phasic.configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, reward_compute_cache<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> combinations_with_replacement</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -591,255 +523,645 @@ table {
 }
 </style>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  Removed 7 file(s), preserved directory structure</code></pre>
+</div>
+<div id="4f074faa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_ghost_island(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    coef_len <span class="op">=</span> <span class="dv">6</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    pop1_coal_idx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    pop1_rec_idx <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    pop1_mig_idx <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    pop2_coal_idx <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    pop2_rec_idx <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    pop2_mig_idx <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    nonzero_idx <span class="op">=</span> np.nonzero(state[:indexer.descendants.state_length])[<span class="dv">0</span>]</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state.<span class="bu">sum</span>() <span class="op">&lt;=</span> <span class="dv">1</span>: <span class="cf">return</span> transitions</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(nonzero_idx):</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># for i in range(indexer.state_length):</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer.descendants.index_to_props(i)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># for j in range(i, indexer.state_length):</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[j] <span class="op">==</span> <span class="dv">0</span>: <span class="cf">continue</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        props_j <span class="op">=</span> indexer.descendants.index_to_props(j)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> props_j.in_pop <span class="op">!=</span> props_i.in_pop:</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>            <span class="co"># skip if in different pops            </span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            <span class="co"># skip if same and less than two lineages</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            <span class="co"># skip if different and either kind has no lineages</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span> </span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># coalescence</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        loc1<span class="op">=</span>props_i.loc1 <span class="op">+</span> props_j.loc1</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        loc2<span class="op">=</span>props_i.loc2 <span class="op">+</span> props_j.loc2</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> loc1 <span class="op">&lt;=</span> nr_samples <span class="kw">and</span> loc2 <span class="op">&lt;=</span> nr_samples:</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>            child[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.descendants.props_to_index(</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>                loc1<span class="op">=</span>props_i.loc1 <span class="op">+</span> props_j.loc1,</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>                loc2<span class="op">=</span>props_i.loc2 <span class="op">+</span> props_j.loc2,</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>            child[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            <span class="co"># validate(child, indexer, state)</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>            coef <span class="op">=</span> np.zeros(coef_len) <span class="co"># +1 to have a slot for transitions between epochs</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>                coef[pop1_coal_idx] <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>                coef[pop2_coal_idx] <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, coef])</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>            <span class="co"># transitions.append([child, [state[i]*(state[j]-same)/(1+same), 0, 0]])</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> nonzero_idx:</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>        props_i <span class="op">=</span> indexer.descendants.index_to_props(i)</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>        <span class="co"># recombination</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>        loc1 <span class="op">=</span> props_i.loc1 </span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>        loc2 <span class="op">=</span> props_i.loc2</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> loc1 <span class="op">&lt;=</span> nr_samples <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> loc2 <span class="op">&lt;=</span> nr_samples:</span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.descendants.props_to_index(</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>                loc1<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>                loc2<span class="op">=</span>props_i.loc2, </span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>            child[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.descendants.props_to_index(</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>                loc1<span class="op">=</span>props_i.loc1,</span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>                loc2<span class="op">=</span><span class="dv">0</span>, </span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>props_i.in_pop</span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>            child[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>            <span class="co"># validate(child, indexer, state)</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>            coef <span class="op">=</span> np.zeros(coef_len) <span class="co"># +1 to have a slot for transitions between epochs</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>                coef[pop1_rec_idx] <span class="op">=</span> state[i]</span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>                coef[pop2_rec_idx] <span class="op">=</span> state[i]</span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, coef])            </span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="co">#            transitions.append([child, [0, state[i], 0]])</span></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>        <span class="co"># migration</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> state[i] <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>            other_pop <span class="op">=</span> <span class="dv">2</span> <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">1</span> <span class="cf">else</span> <span class="dv">1</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>            child <span class="op">=</span> state.copy()</span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>            child[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.descendants.props_to_index(</span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>                loc1<span class="op">=</span>props_i.loc1,</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>                loc2<span class="op">=</span>props_i.loc2, </span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>                in_pop<span class="op">=</span>other_pop</span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>            child[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>            <span class="co"># validate(child, indexer, state)</span></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>            coef <span class="op">=</span> np.zeros(coef_len) <span class="co"># +1 to have a slot for transitions between epochs</span></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> props_i.in_pop <span class="op">==</span> <span class="dv">2</span>:</span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>                 coef[pop1_mig_idx] <span class="op">=</span> state[i]</span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>                coef[pop2_mig_idx] <span class="op">=</span> state[i]</span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>            transitions.append([child, coef])                      </span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>            <span class="co"># transitions.append([child, [0, 0, state[i]]])</span></span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [</span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pop1_coal, pop1_rec, pop1_mig, </span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>,  </span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pop2_coal, pop2_rec, pop2_mig</span></span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, </span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">0.1</span></span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a>reward_limit <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>    descendants<span class="op">=</span>[        </span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc1'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'loc2'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span>nr_samples),</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'in_pop'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="dv">2</span>),</span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a>indexer.state_length</span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a>initial[indexer.descendants.props_to_index(loc1<span class="op">=</span><span class="dv">1</span>, loc2<span class="op">=</span><span class="dv">1</span>, in_pop<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_ghost_island, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)   </span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>graph.plot(nodesep<span class="op">=</span><span class="fl">0.4</span>, ranksep<span class="op">=</span><span class="dv">2</span>, max_nodes<span class="op">=</span><span class="dv">200</span>, </span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>           label_fmt<span class="op">=</span><span class="va">False</span>, size<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">8</span>),</span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a>           )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+<figure class="figure">
+<p><a href="model-selection_files/figure-html/cell-3-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="model-selection_files/figure-html/cell-3-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
 </div>
 </div>
-<section id="a-two-parameter-coalescent-example" class="level2">
-<h2 class="anchored" data-anchor-id="a-two-parameter-coalescent-example">A two-parameter coalescent example</h2>
-<p>We will simulate data under a coalescent model with <strong>two</strong> rate parameters — one for the first coalescent event and another for the rest — and then ask which of three candidate models the data best supports:</p>
-<ol type="1">
-<li><strong>One-rate model</strong> (<span class="math inline">k = 1</span>): one of the two rates is fixed and the other absorbs everything.</li>
-<li><strong>Two-rate model</strong> (<span class="math inline">k = 2</span>): the data-generating model.</li>
-<li><strong>Three-rate model</strong> (<span class="math inline">k = 3</span>): the two-rate model plus a spurious extra parameter.</li>
-</ol>
-<p>The interesting outcome is empirical: with this small graph, the data turn out <em>not</em> to discriminate strongly between the one-rate and two-rate models, so AIC, BIC, and the LRT will tell us so. This is the realistic case — model selection is most informative when it tells you which differences in your model actually matter.</p>
-<div id="mdsel-build-graphs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:12.563044Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:12.562862Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.566668Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.566250Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_2param_builder():</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Coalescent with two rates: first event uses theta[0], later events theta[1]."""</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coalescent(state):</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        transitions <span class="op">=</span> []</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Detect whether this is the very first coalescent event: all lineages still singletons</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        first_event <span class="op">=</span> state[<span class="dv">0</span>] <span class="op">==</span> nr_samples</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>                new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> state[i] <span class="op">*</span> (state[j]<span class="op">-</span>same) <span class="op">/</span> (<span class="dv">1</span><span class="op">+</span>same)</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> first_event:</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>                    coeffs <span class="op">=</span> [rate, <span class="fl">0.0</span>]  <span class="co"># weight = theta[0] * rate</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">else</span>:</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>                    coeffs <span class="op">=</span> [<span class="fl">0.0</span>, rate]  <span class="co"># weight = theta[1] * rate</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, coeffs])</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> coalescent</span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>graph2 <span class="op">=</span> Graph(coalescent_2param_builder())</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co"># param_length is auto-inferred from the coefficient vector length.</span></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> graph2.param_length() <span class="op">==</span> <span class="dv">2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="mdsel-sample" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:12.568260Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:12.568136Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.570966Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.570451Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">3.0</span>, <span class="fl">7.0</span>]</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>graph2.update_weights(true_theta)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">500</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.array(graph2.sample(nr_observations))</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Generated </span><span class="sc">{</span><span class="bu">len</span>(observed_data)<span class="sc">}</span><span class="ss"> samples from coalescent(θ₀=</span><span class="sc">{</span>true_theta[<span class="dv">0</span>]<span class="sc">}</span><span class="ss">, θ₁=</span><span class="sc">{</span>true_theta[<span class="dv">1</span>]<span class="sc">}</span><span class="ss">)"</span>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Sample mean: </span><span class="sc">{</span>observed_data<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss">, sample std: </span><span class="sc">{</span>observed_data<span class="sc">.</span>std()<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Generated 500 samples from coalescent(θ₀=3.0, θ₁=7.0)
-Sample mean: 0.2520, sample std: 0.1493</code></pre>
+<div id="782e025e" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>jp_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>5380</code></pre>
 </div>
 </div>
-</section>
-<section id="fit-the-two-rate-model-and-look-at-the-basic-quantities" class="level2">
-<h2 class="anchored" data-anchor-id="fit-the-two-rate-model-and-look-at-the-basic-quantities">Fit the two-rate model and look at the basic quantities</h2>
-<p>Note the convention: build the model callable <strong>once</strong> with <code>Graph.pmf_and_moments_from_graph</code> and pass it to each <code>SVGD</code> that should share it. This is what lets the likelihood-ratio test verify that two fits truly use the same underlying graph.</p>
-<div id="mdsel-fit-2p-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:12.572369Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:12.572276Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:58.361571Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:58.360938Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> SVGD</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>schedule <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.005</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Build the two-rate model callable ONCE; reuse it for every SVGD that</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># should be comparable via likelihood_ratio_test().</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>model_2p <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph2, nr_moments<span class="op">=</span><span class="dv">2</span>, theta_dim<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>svgd_2p <span class="op">=</span> SVGD(</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model_2p,</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">1500</span>,</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>schedule,</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">11</span>,</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>svgd_2p.optimize()</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>svgd_2p.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         2.805      2.797      0.05594    2.748        2.823       
-1          No         6.515      6.522      0.04758    6.48         6.587       
+<div id="4e7a96fa" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate])</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>0.008802869841632699</code></pre>
+</div>
+</div>
+<div id="3829103d" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_prob_graph, theta, nr_observations):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    joint_prob_graph.update_weights(theta) </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> joint_prob_table[<span class="st">'prob'</span>] <span class="op">/</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> p.to_numpy()</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    sample <span class="op">=</span> np.random.choice(joint_prob_table.index.values, nr_observations, p<span class="op">=</span>p)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>[[0, 0, 0, 0, 0, 0, 0, 0],
+ [0, 1, 0, 0, 0, 0, 0, 1],
+ [0, 0, 0, 0, 0, 0, 0, 0],
+ [0, 0, 0, 0, 0, 0, 0, 0],
+ [0, 0, 0, 0, 0, 0, 0, 0]]</code></pre>
+</div>
+</div>
+<div id="3ea9af86" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>cjp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                                          discrete<span class="op">=</span><span class="va">False</span>) <span class="co"># &lt;-- NB!                                          </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="389edaf2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>svgd_all_tied <span class="op">=</span> cjp_graph.svgd(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">0</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie coal rate in epoch 0 and 1</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1. </span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>svgd_all_tied.summary()    </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[INFO] phasic: Graph was constructed with joint index support. joint_index=True is implied.
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.svgd: SVGD.optimize: no preconditioner configured
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
+[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)</code></pre>
+</div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[8]</span><span class="ansi-green-fg">, line 3</span>
+<span class="ansi-green-fg">      1</span> <span style="font-style:italic;color:rgb(95,135,135)">#%%monitor</span>
+<span class="ansi-green-fg">      2</span> phasic.set_log_level(<span class="ansi-yellow-fg">'DEBUG'</span>)
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> svgd_all_tied = cjp_graph.svgd(
+<span class="ansi-green-fg">      4</span>     observations,
+<span class="ansi-green-fg">      5</span>     preconditioner=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
+<span class="ansi-green-fg">      6</span>     prior=GaussPrior(ci=[<span class="ansi-green-fg">0.1</span>, <span class="ansi-green-fg">7</span>]),
 
-Particles: 60, Iterations: 1500</code></pre>
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:6933</span>, in <span class="ansi-cyan-fg">Graph.svgd</span><span class="ansi-blue-fg">(self, observed_data, discrete, prior, n_particles, n_iterations, optimizer, learning_rate, bandwidth, theta_init, theta_dim, return_history, seed, verbose, progress, jit, parallel, n_devices, precompile, compilation_config, regularization, nr_moments, positive_params, param_transform, joint_index, rewards, fixed, tied, callback, preconditioner, epoch_starts, daisy_chain_t_eval, daisy_chain_granularity, daisy_chain_probe_theta, daisy_chain_t_eval_tol, exposure, exposure_param_index, validate_rewards)</span>
+<span class="ansi-green-fg">   6929</span>             <span style="font-style:italic;color:rgb(95,135,135)"># exception so the graph state is not left mutated by</span>
+<span class="ansi-green-fg">   6930</span>             <span style="font-style:italic;color:rgb(95,135,135)"># a failed SVGD call. When the kwarg was None we skip</span>
+<span class="ansi-green-fg">   6931</span>             <span style="font-style:italic;color:rgb(95,135,135)"># the restore entirely (zero overhead in the common</span>
+<span class="ansi-green-fg">   6932</span>             <span style="font-style:italic;color:rgb(95,135,135)"># path).</span>
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6933</span>             <span style="font-weight:bold;color:rgb(0,135,0)">if</span> _callback_overridden:
+<span class="ansi-green-fg">   6934</span>                 self._weight_callback = _prev_weight_callback
+<span class="ansi-green-fg">   6935</span>                 self._weight_mode = _prev_weight_mode
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:6352</span>, in <span class="ansi-cyan-fg">SVGD.optimize</span><span class="ansi-blue-fg">(self, rewards, return_history)</span>
+<span class="ansi-green-fg">   6348</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">   6349</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Static regularization - use current precompiled approach</span>
+<span class="ansi-green-fg">   6350</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Precompile gradient with caching (if JIT enabled)</span>
+<span class="ansi-green-fg">   6351</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.jit_enabled:
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6352</span>         compiled_grad = <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">_precompile_unified</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">nr_moments</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">sample_moments</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">regularization</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">rewards</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   6353</span>     <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">   6354</span>         <span style="font-style:italic;color:rgb(95,135,135)"># Create log_prob function using partial (no JIT)</span>
+<span class="ansi-green-fg">   6355</span>         log_prob_fn = partial(
+<span class="ansi-green-fg">   6356</span>             <span style="color:rgb(0,135,0)">self</span>._log_prob_unified,
+<span class="ansi-green-fg">   6357</span>             nr_moments=<span style="color:rgb(0,135,0)">self</span>.nr_moments,
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   6360</span>             rewards=rewards
+<span class="ansi-green-fg">   6361</span>         )
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:6127</span>, in <span class="ansi-cyan-fg">SVGD._precompile_unified</span><span class="ansi-blue-fg">(self, nr_moments, sample_moments, regularization, rewards)</span>
+<span class="ansi-green-fg">   6117</span> <span style="font-style:italic;color:rgb(95,135,135)"># Trigger compilation. Using zeros as the dummy theta is unsafe</span>
+<span class="ansi-green-fg">   6118</span> <span style="font-style:italic;color:rgb(95,135,135)"># when the model has per-dim transforms (e.g. BetaPrior →</span>
+<span class="ansi-green-fg">   6119</span> <span style="font-style:italic;color:rgb(95,135,135)"># sigmoid) or fixed-value constraints: zero φ maps to a θ that</span>
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   6124</span> <span style="font-style:italic;color:rgb(95,135,135)"># was sampled from the prior and already has fixed-value</span>
+<span class="ansi-green-fg">   6125</span> <span style="font-style:italic;color:rgb(95,135,135)"># constraints baked in, so the model evaluates cleanly.</span>
+<span class="ansi-green-fg">   6126</span> dummy_theta = <span style="color:rgb(0,135,0)">self</span>.theta_init[<span class="ansi-green-fg">0</span>]
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6127</span> _ = <span class="ansi-black-fg ansi-yellow-bg">compiled_grad</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">dummy_theta</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   6128</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.verbose:
+<span class="ansi-green-fg">   6129</span>     <span style="color:rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">  Gradient JIT compiled in </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>time()<span style="color:rgb(188,188,188)"> </span>-<span style="color:rgb(188,188,188)"> </span>start<span style="font-weight:bold;color:rgb(175,95,135)">:</span><span class="ansi-yellow-fg">.1g</span><span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">s</span><span class="ansi-yellow-fg">"</span>)
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:268</span>, in <span class="ansi-cyan-fg">_cpp_pjit.&lt;locals&gt;.cache_miss</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg">    263</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> config.no_tracing.value:
+<span class="ansi-green-fg">    264</span>   <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeError</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">re-tracing function </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>jit_info.fun_sourceinfo<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> for </span><span class="ansi-yellow-fg">"</span>
+<span class="ansi-green-fg">    265</span>                      <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">`jit`, but </span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">no_tracing</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg"> is set</span><span class="ansi-yellow-fg">"</span>)
+<span class="ansi-green-fg">    267</span> (outs, out_flat, out_tree, args_flat, jaxpr,
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">268</span>  executable, pgle_profiler, const_args) = <span class="ansi-black-fg ansi-yellow-bg">_python_pjit_helper</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">    269</span> <span class="ansi-black-fg ansi-yellow-bg">     </span><span class="ansi-black-fg ansi-yellow-bg">fun</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">jit_info</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    271</span> maybe_fastpath_data = _get_fastpath_data(
+<span class="ansi-green-fg">    272</span>     executable, out_tree, args_flat, out_flat, jaxpr.effects, jaxpr.consts,
+<span class="ansi-green-fg">    273</span>     jit_info.abstracted_axes, pgle_profiler,
+<span class="ansi-green-fg">    274</span>     const_args)
+<span class="ansi-green-fg">    276</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs, maybe_fastpath_data, _need_to_rebuild_with_fdo(pgle_profiler)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:147</span>, in <span class="ansi-cyan-fg">_python_pjit_helper</span><span class="ansi-blue-fg">(fun, jit_info, *args, **kwargs)</span>
+<span class="ansi-green-fg">    145</span>   args_flat = <span style="color:rgb(0,135,0)">map</span>(core.full_lower, args_flat)
+<span class="ansi-green-fg">    146</span>   core.check_eval_args(args_flat)
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">147</span>   out_flat, compiled, profiler, const_args = <span class="ansi-black-fg ansi-yellow-bg">_pjit_call_impl_python</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">    148</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args_flat</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">p</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    149</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">    150</span>   out_flat = jit_p.bind(*args_flat, **p.params)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:1780</span>, in <span class="ansi-cyan-fg">_pjit_call_impl_python</span><span class="ansi-blue-fg">(jaxpr, in_shardings, out_shardings, in_layouts, out_layouts, donated_invars, ctx_mesh, name, keep_unused, inline, compiler_options_kvs, *args)</span>
+<span class="ansi-green-fg">   1772</span>     fingerprint = fingerprint.hex()
+<span class="ansi-green-fg">   1773</span>   distributed_debug_log((<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Running pjit</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">d function</span><span class="ansi-yellow-fg">"</span>, name),
+<span class="ansi-green-fg">   1774</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">in_shardings</span><span class="ansi-yellow-fg">"</span>, in_shardings),
+<span class="ansi-green-fg">   1775</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">out_shardings</span><span class="ansi-yellow-fg">"</span>, out_shardings),
+<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   1778</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">abstract args</span><span class="ansi-yellow-fg">"</span>, <span style="color:rgb(0,135,0)">map</span>(core.abstractify, args)),
+<span class="ansi-green-fg">   1779</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">fingerprint</span><span class="ansi-yellow-fg">"</span>, fingerprint))
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1780</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> (<span class="ansi-black-fg ansi-yellow-bg">compiled</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">unsafe_call</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">computation</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">const_args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">)</span>,
+<span class="ansi-green-fg">   1781</span>         compiled, pgle_profiler, computation.const_args)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/profiler.py:364</span>, in <span class="ansi-cyan-fg">annotate_function.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg">    361</span> <span style="color:rgb(175,0,255)">@wraps</span>(func)
+<span class="ansi-green-fg">    362</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">wrapper</span>(*args, **kwargs):
+<span class="ansi-green-fg">    363</span>   <span style="font-weight:bold;color:rgb(0,135,0)">with</span> TraceAnnotation(name, **decorator_kwargs):
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">364</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">func</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/pxla.py:1372</span>, in <span class="ansi-cyan-fg">ExecuteReplicated.__call__</span><span class="ansi-blue-fg">(self, *args)</span>
+<span class="ansi-green-fg">   1369</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> (<span style="color:rgb(0,135,0)">self</span>.ordered_effects <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_unordered_effects
+<span class="ansi-green-fg">   1370</span>     <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_host_callbacks):
+<span class="ansi-green-fg">   1371</span>   input_bufs = <span style="color:rgb(0,135,0)">self</span>._add_tokens_to_inputs(input_bufs)
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1372</span>   results = <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">xla_executable</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">execute_sharded</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">input_bufs</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">with_tokens</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">True</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">   1374</span>   result_token_bufs = results.disassemble_prefix_into_single_device_arrays(
+<span class="ansi-green-fg">   1375</span>       <span style="color:rgb(0,135,0)">len</span>(<span style="color:rgb(0,135,0)">self</span>.ordered_effects))
+<span class="ansi-green-fg">   1376</span>   sharded_runtime_token = results.consume_token()
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>: </pre>
 </div>
 </div>
-<div id="mdsel-basic-quantities" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:58.363805Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:58.363675Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:59:03.530354Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:59:03.529768Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂        = </span><span class="sc">{</span>svgd_2p<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">True</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_2p<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs)         = </span><span class="sc">{</span>svgd_2p<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="4324d1d5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_tied.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>log L̂        = 294.7818
-k (free params) = 2
-n (obs)         = 500</code></pre>
+<pre><code>log L̂ = -28052.5558
+k (free params) = 9
+n (obs) = 10000</code></pre>
 </div>
 </div>
-</section>
 <section id="aic-and-bic-for-a-single-fit" class="level2">
 <h2 class="anchored" data-anchor-id="aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</h2>
 <p><code>refine=True</code> runs a short gradient-ascent refinement of the MAP particle on the log-posterior before evaluating the log-likelihood. The result is closer to the MLE under weak priors and gives a sharper AIC/BIC.</p>
-<div id="mdsel-aic-bic-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:59:03.531846Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:59:03.531741Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:59:15.461130Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:59:15.460591Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(ms.aic(svgd_2p, refine<span class="op">=</span><span class="va">True</span>))</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(ms.bic(svgd_2p, refine<span class="op">=</span><span class="va">True</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="ae629f6c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_tied, refine=True))</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_tied, refine=True))</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>AICResult(aic=-585.5637, log_likelihood=294.7818, k=2, n=500, refined=True)
-BICResult(bic=-577.1345, log_likelihood=294.7818, k=2, n=500, refined=True)</code></pre>
+<pre><code>AICResult(aic=56123.1117, log_likelihood=-28052.5558, k=9, n=10000, refined=False)
+BICResult(bic=56188.0047, log_likelihood=-28052.5558, k=9, n=10000, refined=False)</code></pre>
 </div>
 </div>
 </section>
-<section id="comparing-several-models-with-compare" class="level2">
-<h2 class="anchored" data-anchor-id="comparing-several-models-with-compare">Comparing several models with <code>compare()</code></h2>
-<p>To rank a set of candidate models we fit each one and pass them to <code>compare()</code>. Below we build a one-rate restriction by <strong>fixing</strong> the second rate to be equal to the first (a clean way to express “the same rate applies everywhere”), and a three-rate model with an extra spurious dimension. All three share <code>n_observations = 500</code>.</p>
-<div id="mdsel-build-1p" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:59:15.462795Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:59:15.462671Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T09:00:07.346656Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T09:00:07.346181Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># One-rate restriction: fix theta[1] = 1.0 and let theta[0] absorb the</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># combined rate. This is a NESTED restriction of model_2p, so we reuse</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># the same model callable.</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>svgd_1p <span class="op">=</span> SVGD(</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model_2p,</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="fl">1.0</span>)],  <span class="co"># nested: pin theta[1]</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">1500</span>,</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>schedule,</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">11</span>,</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>svgd_1p.optimize()</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>svgd_1p.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed      MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No         7.742      7.797      0.9477     5.9          9.319       
-1          Yes        1          NA         NA         NA           NA          
+<section id="model-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="model-comparison">Model comparison</h2>
+<p>Same model but fitting separate coalescence rates for each epoch. If you want to compare models using AIC or BIC, you can fit this model just like the one above. However, to allow an LR test of nested models, you must make the fits on the <em>same model</em> only changing the <code>fixed</code> or <code>tied</code> kwargs. You can extract and reuse the model like this:</p>
+<div id="f37c94fa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free <span class="op">=</span> SVGD(</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>svgd_all_tied.model,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (0, [0, 1]), # tie coal rate in epoch 0 and 1  &lt;--- Commented out to fit a coal rate per epoch</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1.</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.optimize()</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div style="font-family: monospace; font-size: 10px; padding: 10px;"><div style=""><div style="margin-bottom: 6px; font-size: 11px;">perry <span style="font-weight: normal; color: #666666;">(36%/36% mem)</span></div><div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 0: 30.0%">
+                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 1: 30.0%">
+                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 2: 70.0%">
+                            <div style="width: 70.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 3: 60.0%">
+                            <div style="width: 60.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 4: 45.5%">
+                            <div style="width: 45.5%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 5: 50.0%">
+                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 6: 50.0%">
+                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 7: 50.0%">
+                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 8: 50.0%">
+                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 9: 30.0%">
+                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
+                        </div>
+                        </div></div></div>
+</div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">TypeError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[28]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> svgd_all_coal_free = SVGD(
+<span class="ansi-green-fg">      2</span>     model=svgd_all_tied.model,
+<span class="ansi-green-fg">      3</span>     observed_data=observations,
+<span class="ansi-green-fg">      4</span>     preconditioner=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
 
-Particles: 60, Iterations: 1500</code></pre>
+<span class="ansi-red-fg">TypeError</span>: SVGD.__init__() got an unexpected keyword argument 'epoch_starts'</pre>
 </div>
 </div>
-<div id="mdsel-build-3p" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T09:00:07.352905Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T09:00:07.352742Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T09:01:05.387279Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T09:01:05.386547Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Three-rate model: same generative structure but with a third parameter</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># that does not affect any rate. This deliberately overparameterizes the</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># model — AIC/BIC should penalize the extra degree of freedom.</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_3param_builder():</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> coalescent(state):</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        transitions <span class="op">=</span> []</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        first_event <span class="op">=</span> state[<span class="dv">0</span>] <span class="op">==</span> nr_samples</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>                same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>                new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> state[i] <span class="op">*</span> (state[j]<span class="op">-</span>same) <span class="op">/</span> (<span class="dv">1</span><span class="op">+</span>same)</span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> first_event:</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>                    coeffs <span class="op">=</span> [rate, <span class="fl">0.0</span>, <span class="fl">0.0</span>]</span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>                <span class="cf">else</span>:</span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>                    coeffs <span class="op">=</span> [<span class="fl">0.0</span>, rate, <span class="fl">0.0</span>]  <span class="co"># theta[2] never appears</span></span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, coeffs])</span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> transitions</span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> coalescent</span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>graph3 <span class="op">=</span> Graph(coalescent_3param_builder())</span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> graph3.param_length() <span class="op">==</span> <span class="dv">3</span></span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>model_3p <span class="op">=</span> Graph.pmf_and_moments_from_graph(graph3, nr_moments<span class="op">=</span><span class="dv">2</span>, theta_dim<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>svgd_3p <span class="op">=</span> SVGD(</span>
-<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model_3p,</span>
-<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
-<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">3</span>,</span>
-<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">1500</span>,</span>
-<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>schedule,</span>
-<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">11</span>,</span>
-<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>svgd_3p.optimize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>&lt;phasic.svgd.SVGD at 0x3a5abee90&gt;</code></pre>
+</div>
+<div id="8bbe53bc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:405: UserWarning: HPD interval computed from only 5 samples; result may be unreliable.
+  warnings.warn(</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             6.029      5.082      1.5        2.353        6.669       
+1          No             2.611      3.56       0.8558     2.611        4.913       
+2          No             2.222      2.196      1.891      1.492e-06    5.633       
+3          Yes            0.1        NA         NA         NA           NA          
+4          No             1.363      2.808      1.285      1.248        4.495       
+5          No             2.712      3.726      1.82       2.09         7.161       
+6          No             2.081      2.217      0.8956     0.5574       3.079       
+7          No             4.763      5.075      0.5592     4.207        5.788       
+8          Tied→θ[1]      NA         NA         NA         NA           NA          
+9          Tied→θ[2]      NA         NA         NA         NA           NA          
+10         Yes            0.1        NA         NA         NA           NA          
+11         No             1.541      2.244      0.7275     1.378        3.385       
+12         No             1.508      2.903      1.128      1.508        4.505       
+13         No             2.011      3.686      0.9655     2.011        4.735       
+
+Particles: 5, Iterations: 2</code></pre>
 </div>
 </div>
-<div id="mdsel-compare-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T09:01:05.393966Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T09:01:05.393797Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T09:01:37.999505Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T09:01:37.998948Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> ms.compare(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"one-rate"</span>,   svgd_1p),</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"two-rate"</span>,   svgd_2p),</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"three-rate"</span>, svgd_3p),</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="47c60067" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>log L̂ = -25082.3284
+k (free params) = 10
+n (obs) = 10000</code></pre>
+</div>
+</div>
+<div id="24fac709" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>AICResult(aic=50184.6569, log_likelihood=-25082.3284, k=10, n=10000, refined=False)
+BICResult(bic=50256.7603, log_likelihood=-25082.3284, k=10, n=10000, refined=False)</code></pre>
+</div>
+</div>
+<div id="46588b24" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Model comparison by AIC:
 name                          AIC          Δ     weight             LL    k      n
 ----------------------------------------------------------------------------------
-two-rate                -585.5637     0.0000     0.5407       294.7818    2    500
-one-rate                -584.0978     1.4659     0.2598       293.0489    1    500
-three-rate              -583.5703     1.9934     0.1996       294.7852    3    500</code></pre>
+separate-coal-rate-per-epoch   50184.6569     0.0000     1.0000    -25082.3284   10  10000
+all-params-tied-across-epochs   56123.1117  5938.4548     0.0000    -28052.5558    9  10000</code></pre>
 </div>
 </div>
 <p>Reading the table:</p>
 <ul>
 <li>Rows are sorted ascending by AIC — the best model is on top.</li>
 <li><code>Δ</code> is the AIC difference from the best model. Rules of thumb (Burnham &amp; Anderson): Δ &lt; 2 means “essentially equivalent”, 4–7 means “considerably less support”, &gt; 10 means “essentially no support”.</li>
-<li><code>weight</code> is the Akaike weight <span class="math inline">\exp(-\Delta_i / 2) / \sum_j \exp(-\Delta_j / 2)</span> — the probability, under the AIC/Kullback–Leibler approximation, that model <span class="math inline">i</span> is the best of the set.</li>
+<li><code>weight</code> is the Akaike weight <span class="math inline">\(\exp(-\Delta_i / 2) / \sum_j \exp(-\Delta_j / 2)\)</span> — the probability, under the AIC/Kullback–Leibler approximation, that model <span class="math inline">\(i\)</span> is the best of the set.</li>
 </ul>
 <p>The one-rate model wins AIC even though the data were generated from the two-rate model. With Δ ≈ 1.6 between the two, the data are <em>not</em> strong enough to justify the extra parameter — AIC is doing exactly the job it should. The three-rate model is meaningfully worse (Δ ≈ 3.6), which is reassuring: the spurious extra parameter is being penalized.</p>
 <p>Switch to BIC for a more aggressive complexity penalty:</p>
-<div id="mdsel-compare-bic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T09:01:38.003002Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T09:01:38.002885Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T09:02:10.572172Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T09:02:10.571429Z&quot;}}" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(ms.compare(</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"one-rate"</span>,   svgd_1p),</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"two-rate"</span>,   svgd_2p),</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"three-rate"</span>, svgd_3p),</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="67ad7d22" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Model comparison by BIC:
 name                          BIC          Δ     weight             LL    k      n
 ----------------------------------------------------------------------------------
-one-rate                -579.8832     0.0000     0.7909       293.0489    1    500
-two-rate                -577.1345     2.7487     0.2001       294.7818    2    500
-three-rate              -570.9265     8.9567     0.0090       294.7852    3    500</code></pre>
+separate-coal-rate-per-epoch   50256.7603     0.0000     1.0000    -25082.3284   10  10000
+all-params-tied-across-epochs   56188.0047  5931.2444     0.0000    -28052.5558    9  10000</code></pre>
 </div>
 </div>
 </section>
 <section id="likelihood-ratio-test-for-nested-models" class="level2">
 <h2 class="anchored" data-anchor-id="likelihood-ratio-test-for-nested-models">Likelihood-ratio test for nested models</h2>
 <p>Information criteria rank models that may or may not be nested. When you have a <strong>truly nested</strong> restriction (the nested model fixes some parameters of the full model at specific values), the likelihood-ratio test gives a frequentist p-value under the null hypothesis that the restriction holds:</p>
-<p><span class="math display">
+<p><span class="math display">\[
 2 \bigl( \log \hat L_\mathrm{full} - \log \hat L_\mathrm{nested} \bigr) \;\sim\; \chi^2_{\,k_\mathrm{full} - k_\mathrm{nested}}
-</span></p>
+\]</span></p>
 <p>Phasic enforces strict nesting: both fits must use the <strong>same</strong> model callable (the closure returned by one call to <code>Graph.pmf_and_moments_from_graph</code>), the same <code>theta_dim</code>, the same number of observations, and the nested fit’s <code>fixed</code> set must be a strict superset of the full fit’s <code>fixed</code> set. That’s exactly the relationship between <code>svgd_1p</code> (one-rate, <code>fixed=[(1, 1.0)]</code>) and <code>svgd_2p</code> (two-rate, no fixed parameters):</p>
-<div id="mdsel-lrt-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T09:02:10.576150Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T09:02:10.575980Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T09:02:30.258358Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T09:02:30.257751Z&quot;}}" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> ms.likelihood_ratio_test(svgd_2p, svgd_1p, refine<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>LRTResult(statistic=3.4659, df=1, p_value=0.06265, ll_full=294.7818, ll_nested=293.0489, k_full=2, k_nested=1, n=500)</code></pre>
+<div id="08b7536e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[19]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> lrt = model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)
+<span class="ansi-green-fg">      2</span> print(lrt)
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_selection.py:414</span>, in <span class="ansi-cyan-fg">likelihood_ratio_test</span><span class="ansi-blue-fg">(full, nested, refine, strict)</span>
+<span class="ansi-green-fg">    408</span>     _violate(
+<span class="ansi-green-fg">    409</span>         strict,
+<span class="ansi-green-fg">    410</span>         <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">n_observations mismatch: full=</span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>n_full<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">, nested=</span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>n_nested<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>,
+<span class="ansi-green-fg">    411</span>     )
+<span class="ansi-green-fg">    413</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> full.model <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> nested.model:
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">414</span>     <span class="ansi-black-fg ansi-yellow-bg">_violate</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
+<span class="ansi-green-fg">    415</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">strict</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">    416</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">LRT requires both fits to use the SAME model callable. </span><span class="ansi-black-fg ansi-yellow-bg">"</span>
+<span class="ansi-green-fg">    417</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">Build the model once and pass it to both SVGD constructors:</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
+<span class="ansi-green-fg">    418</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    model = Graph.pmf_and_moments_from_graph(graph)</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
+<span class="ansi-green-fg">    419</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    full   = SVGD(model, data, theta_dim=k).optimize()</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
+<span class="ansi-green-fg">    420</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()</span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
+<span class="ansi-green-fg">    421</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">)</span>
+<span class="ansi-green-fg">    423</span> _check_nested_fixed(full, nested, strict)
+<span class="ansi-green-fg">    425</span> k_full = full.degrees_of_freedom
+
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_selection.py:175</span>, in <span class="ansi-cyan-fg">_violate</span><span class="ansi-blue-fg">(strict, msg)</span>
+<span class="ansi-green-fg">    173</span> <span style="font-style:italic" class="ansi-yellow-fg">"""Raise in strict mode, otherwise emit a RuntimeWarning."""</span>
+<span class="ansi-green-fg">    174</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> strict:
+<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">175</span>     <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">ValueError</span>(msg)
+<span class="ansi-green-fg">    176</span> warnings.warn(msg, <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeWarning</span>, stacklevel=<span class="ansi-green-fg">3</span>)
+
+<span class="ansi-red-fg">ValueError</span>: LRT requires both fits to use the SAME model callable. Build the model once and pass it to both SVGD constructors:
+    model = Graph.pmf_and_moments_from_graph(graph)
+    full   = SVGD(model, data, theta_dim=k).optimize()
+    nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()</pre>
+</div>
 </div>
 </div>
 <p>If the p-value is small (the conventional cutoff is 0.05), the data reject the one-rate restriction — the full two-rate model fits significantly better. A large p-value means the restriction is consistent with the data and the simpler one-rate model can be retained.</p>
@@ -1276,8 +1598,40 @@ Warning
   </div>
 </nav>
 </div> <!-- /content -->
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
 
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>
+</body></html>

@@ -387,65 +387,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
       </ul>
   </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text">Popgen experiments</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/coalescent-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent with selection</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/simulate_data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Example data</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/tree-seqs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Tree sequences with RELATE</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-arg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">two-locus-arg.html</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/two-locus-island.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Two-locus Island model</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/arg_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">ARG constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/clade_constraint_example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Coalescent constraints</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/popgen/arg-constraint/example.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Constraints using bipartitions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
     </ul>
     </div>
 </nav>
@@ -506,13 +447,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>1024 bits: 25–40 slower than double.</li>
 </ul>
 <p>The overhead only applies to the moment computation itself. Graph construction, PDF/CDF evaluation, and sampling are unaffected. In most workflows, moment computation is a small fraction of total runtime, so the practical impact is negligible.</p>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:50.941673Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:50.941575Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.324178Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.323645Z&quot;}}" data-execution_count="1">
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:19.452413Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:19.452275Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.359511Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.358602Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, configure, get_config, get_available_options, set_log_level</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>_pytest <span class="op">=</span> <span class="st">"pytest"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
 <style>
@@ -599,7 +539,7 @@ table {
 </div>
 </div>
 <p>MPFR support is compiled into the C backend when <code>libmpfr</code> and <code>libgmp</code> are present at build time. You can check whether it is available on your system:</p>
-<div id="check-available" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.325900Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.325722Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.335610Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.335153Z&quot;}}" data-execution_count="2">
+<div id="check-available" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.362978Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.362467Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.378805Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.378243Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>opts <span class="op">=</span> get_available_options()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MPFR available: </span><span class="sc">{</span>opts[<span class="st">'mpfr'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -607,7 +547,7 @@ table {
 </div>
 </div>
 <p>By default, phasic monitors the condition number of the elimination graph every time it computes moments. If the condition number exceeds the threshold (default <code>1e12</code>), MPFR arithmetic is activated automatically for that computation. The precision is chosen adaptively based on the condition number. This means you do not need to think about MPFR in most cases — it just works. To see it in action, enable info-level logging:</p>
-<div id="auto-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.337166Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.337064Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.342322Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.341918Z&quot;}}" data-execution_count="3">
+<div id="auto-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.383773Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.383323Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.391268Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.390020Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'INFO'</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">10</span></span>
@@ -640,10 +580,10 @@ table {
 Expected waiting time: 1.800000</code></pre>
 </div>
 </div>
-<div id="reset-log" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.343698Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.343600Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.346044Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.345461Z&quot;}}" data-execution_count="4">
+<div id="reset-log" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.394382Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.393967Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.398165Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.397396Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'WARNING'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>&lt;phasic.logging_config.set_log_level at 0x1737f3b10&gt;</code></pre>
+<pre><code>&lt;phasic.logging_config.set_log_level at 0x31122afd0&gt;</code></pre>
 </div>
 </div>
 <p>If the condition number is below the threshold, you will see no MPFR-related log messages and the computation uses fast double-precision arithmetic.</p>
@@ -687,7 +627,7 @@ Expected waiting time: 1.800000</code></pre>
 </tbody>
 </table>
 <p>If you want maximum accuracy for all moment computations regardless of conditioning:</p>
-<div id="force-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.347793Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.347671Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.352921Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.352427Z&quot;}}" data-execution_count="5">
+<div id="force-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.402617Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.402486Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.405815Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.405186Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ewt <span class="op">=</span> graph.expected_waiting_time()</span>
@@ -698,52 +638,64 @@ Expected waiting time: 1.800000</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>Expected waiting time (MPFR forced): 1.800000</code></pre>
 </div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>&lt;phasic.config._ConfigureContext at 0x31122b250&gt;</code></pre>
+</div>
 </div>
 <p>When <code>high_precision_bits=0</code> (the default), the precision is determined automatically as <code>log₂(condition_number) + 64</code> bits, clamped to the range [128, 1024]. You can override this with a specific value:</p>
-<div id="precision-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.354237Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.354145Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.356448Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.356070Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use 256-bit precision explicitly</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>ewt <span class="op">=</span> graph.expected_waiting_time()</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Expected waiting time (256-bit): </span><span class="sc">{</span>ewt[<span class="dv">0</span>]<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>, high_precision_bits<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="precision-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.407948Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.407657Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.413197Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.412285Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use 256-bit precision explicitly</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ewt <span class="op">=</span> graph.expected_waiting_time()</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Expected waiting time (256-bit): </span><span class="sc">{</span>ewt[<span class="dv">0</span>]<span class="sc">:.6f}</span><span class="ss">"</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'auto'</span>, high_precision_bits<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Expected waiting time (256-bit): 1.800000</code></pre>
 </div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>&lt;phasic.config._ConfigureContext at 0x3111ff6f0&gt;</code></pre>
+</div>
 </div>
 <p>The condition threshold controls when MPFR auto-activates. A lower threshold is more conservative (activates MPFR more often), while a higher threshold tolerates more ill-conditioning before switching.</p>
-<div id="threshold-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.357760Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.357661Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.359950Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.359489Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># More conservative: activate MPFR at lower condition numbers</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e8</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Less conservative: only activate for severely ill-conditioned graphs</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e15</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable auto-activation entirely (only manual high_precision_mode='always' works)</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="bu">float</span>(<span class="st">'inf'</span>))</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to default</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="threshold-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.416622Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.416409Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.419521Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.418873Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># More conservative: activate MPFR at lower condition numbers</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e8</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Less conservative: only activate for severely ill-conditioned graphs</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e15</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable auto-activation entirely (only manual high_precision_mode='always' works)</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="bu">float</span>(<span class="st">'inf'</span>))</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to default</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>configure(ill_condition_threshold<span class="op">=</span><span class="fl">1e12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>&lt;phasic.config._ConfigureContext at 0x3112d16a0&gt;</code></pre>
+</div>
 </div>
 <p>If MPFR is not available and a graph is ill-conditioned, phasic logs a warning suggesting you rebuild with MPFR. To silence these:</p>
-<div id="warnings-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.361218Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.361092Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.363300Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.362704Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="warnings-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.423050Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.422644Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.427453Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.425417Z&quot;}}" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>configure(warn_on_ill_conditioning<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>&lt;phasic.config._ConfigureContext at 0x311318a50&gt;</code></pre>
+</div>
 </div>
 <p>You can read back the active MPFR settings at any time:</p>
-<div id="inspect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:33:53.364489Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:33:53.364387Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:33:53.366389Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:33:53.365965Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_config()</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Force MPFR:          </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_mode<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Precision bits:      </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss"> (0 = auto)"</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition threshold: </span><span class="sc">{</span>config<span class="sc">.</span>ill_condition_threshold<span class="sc">:.0e}</span><span class="ss">"</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition warnings:  </span><span class="sc">{</span>config<span class="sc">.</span>warn_on_ill_conditioning<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="inspect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:22.431359Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:22.431152Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:22.434114Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:22.433404Z&quot;}}" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> get_config()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Force MPFR:          </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_mode<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Precision bits:      </span><span class="sc">{</span>config<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss"> (0 = auto)"</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition threshold: </span><span class="sc">{</span>config<span class="sc">.</span>ill_condition_threshold<span class="sc">:.0e}</span><span class="ss">"</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Condition warnings:  </span><span class="sc">{</span>config<span class="sc">.</span>warn_on_ill_conditioning<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Force MPFR:          False
-Precision bits:      0 (0 = auto)
+<pre><code>Force MPFR:          auto
+Precision bits:      None (0 = auto)
 Condition threshold: 1e+12
 Condition warnings:  True</code></pre>
 </div>
@@ -782,8 +734,8 @@ Condition warnings:  True</code></pre>
 </tr>
 </tbody>
 </table>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force 256-bit MPFR for a batch run</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="va">PHASIC_FORCE_MPFR</span><span class="op">=</span>1 <span class="va">PHASIC_MPFR_BITS</span><span class="op">=</span>256 <span class="ex">python</span> my_analysis.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force 256-bit MPFR for a batch run</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="va">PHASIC_FORCE_MPFR</span><span class="op">=</span>1 <span class="va">PHASIC_MPFR_BITS</span><span class="op">=</span>256 <span class="ex">python</span> my_analysis.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Calling <code>configure()</code> in Python sets these environment variables internally, so the C backend picks them up.</p>
 </section>
 <section id="how-it-works" class="level2">
@@ -840,13 +792,13 @@ Condition warnings:  True</code></pre>
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">Pixi</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">Conda</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> add mpfr gmp pkg-config</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> install</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> run install-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> add mpfr gmp pkg-config</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> install</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pixi</span> run install-dev</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install mpfr gmp pkg-config <span class="at">-c</span> conda-forge</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--no-build-isolation</span> <span class="at">--force-reinstall</span> <span class="at">--no-deps</span> .</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install mpfr gmp pkg-config <span class="at">-c</span> conda-forge</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">--no-build-isolation</span> <span class="at">--force-reinstall</span> <span class="at">--no-deps</span> .</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
