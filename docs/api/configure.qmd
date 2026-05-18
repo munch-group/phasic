@@ -21,7 +21,8 @@ Field summary:
   - high_precision_bits: int or None
   - ill_condition_threshold: float
   - warn_on_ill_conditioning: bool
-  - cache_enabled: bool
+  - reward_compute_cache: bool
+  - graph_cache: bool
   - cache_dir: str or None
   - strict: bool
   - verbose: bool

@@ -12,7 +12,8 @@ phasic.PhasicConfig(
     high_precision_bits=None,
     ill_condition_threshold=1000000000000.0,
     warn_on_ill_conditioning=True,
-    cache_enabled=True,
+    reward_compute_cache=False,
+    graph_cache=True,
     cache_dir=None,
     strict=True,
     verbose=False,
@@ -75,9 +76,24 @@ warn_on_ill_conditioning : bool, default True
     Emit log warnings when the condition number is high.
     Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).
 
-cache_enabled : bool, default True
-    Use the on-disk caches under cache_dir. Backs
-    PHASIC_DISABLE_CACHE (inverted).
+reward_compute_cache : bool, default False
+    Use the on-disk reward-compute caches at
+    ``cache_dir/parameterized_reward_compute/`` — both the
+    parent ``<hash>.bin`` written by
+    ``ptd_precompute_reward_compute_graph`` and the per-SCC
+    ``scc_<hash>.bin`` written by the hierarchical composer.
+    Backs PHASIC_REWARD_COMPUTE_CACHE (positive: ``'1'``
+    enables, absent = default = off).
+    Default off because the symbolic elimination it caches is
+    cheap to redo on small graphs, and the cache can grow
+    unboundedly across model variants.
+
+graph_cache : bool, default True
+    Use the on-disk graph cache at ``cache_dir/graphs/`` for
+    serialised ``Graph`` objects (callback-built graphs).
+    Backs PHASIC_DISABLE_GRAPH_CACHE (inverted). Per-graph
+    opt-in via ``Graph(..., graph_cache=...)`` overrides this
+    global default.
 
 cache_dir : str or None, default None
     Override the cache root. None = $HOME/.phasic_cache. Backs
@@ -96,10 +112,10 @@ verbose : bool, default False
 | Name | Description |
 | --- | --- |
 | [cache_dir](#phasic.PhasicConfig.cache_dir) | The type of the None singleton. |
-| [cache_enabled](#phasic.PhasicConfig.cache_enabled) | Returns True when the argument is true, False otherwise. |
 | [compute](#phasic.PhasicConfig.compute) | str(object='') -> str |
 | [cpu_threads](#phasic.PhasicConfig.cpu_threads) | The type of the None singleton. |
 | [ffi](#phasic.PhasicConfig.ffi) | Whether the FFI backend is enabled. Derived from `compute`. |
+| [graph_cache](#phasic.PhasicConfig.graph_cache) | Returns True when the argument is true, False otherwise. |
 | [high_precision_bits](#phasic.PhasicConfig.high_precision_bits) | The type of the None singleton. |
 | [high_precision_mode](#phasic.PhasicConfig.high_precision_mode) | str(object='') -> str |
 | [ill_condition_threshold](#phasic.PhasicConfig.ill_condition_threshold) | Convert a string or number to a floating-point number, if possible. |
@@ -108,6 +124,7 @@ verbose : bool, default False
 | [parallel_elimination](#phasic.PhasicConfig.parallel_elimination) | Returns True when the argument is true, False otherwise. |
 | [parallel_elimination_max_concurrent](#phasic.PhasicConfig.parallel_elimination_max_concurrent) | The type of the None singleton. |
 | [parallel_elimination_min_subgraph](#phasic.PhasicConfig.parallel_elimination_min_subgraph) | The type of the None singleton. |
+| [reward_compute_cache](#phasic.PhasicConfig.reward_compute_cache) | Returns True when the argument is true, False otherwise. |
 | [strict](#phasic.PhasicConfig.strict) | Returns True when the argument is true, False otherwise. |
 | [svgd_strategy](#phasic.PhasicConfig.svgd_strategy) | str(object='') -> str |
 | [verbose](#phasic.PhasicConfig.verbose) | Returns True when the argument is true, False otherwise. |

@@ -151,18 +151,18 @@ website:
             # - pages/topics/state-indexer.ipynb
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
-        - section: "Popgen experiments"
-          collapse-level: 1
-          contents:
-            - pages/popgen/coalescent-selection.ipynb
-            - pages/popgen/combining_pdf_and_moments.md
-            - pages/popgen/simulate_data.ipynb
-            - pages/popgen/tree-seqs.ipynb
-            - pages/popgen/two-locus-arg.ipynb
-            - pages/popgen/two-locus-island.ipynb
-            - pages/popgen/arg-constraint/arg_constraint_example.ipynb
-            - pages/popgen/arg-constraint/clade_constraint_example.ipynb
-            - pages/popgen/arg-constraint/example.ipynb
+        # - section: "Popgen experiments"
+        #   collapse-level: 1
+        #   contents:
+        #     - pages/popgen/coalescent-selection.ipynb
+        #     - pages/popgen/combining_pdf_and_moments.md
+        #     - pages/popgen/simulate_data.ipynb
+        #     - pages/popgen/tree-seqs.ipynb
+        #     - pages/popgen/two-locus-arg.ipynb
+        #     - pages/popgen/two-locus-island.ipynb
+        #     - pages/popgen/arg-constraint/arg_constraint_example.ipynb
+        #     - pages/popgen/arg-constraint/clade_constraint_example.ipynb
+        #     - pages/popgen/arg-constraint/example.ipynb
 
 
 

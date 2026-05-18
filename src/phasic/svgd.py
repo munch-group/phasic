@@ -4274,7 +4274,7 @@ def compute_sample_moments(data: jnp.ndarray | SparseObservations, nr_moments: i
 # ============================================================================
 
 class SVGD:
-    """
+    r"""
     Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
 
     This class provides an object-oriented interface for SVGD inference with

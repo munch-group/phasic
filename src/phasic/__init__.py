@@ -8608,12 +8608,12 @@ extern "C" {{
             Use taillabel instead of xlabel, by default False
         seed : int
             Random seed for graph layout, by default 1.
+        graph_attr : dict
+            graphviz graph attributes to override defaults.
         node_attr : dict
             graphviz node attributes to override defaults.
         edge_attr : dict
             graphviz edge attributes to override defaults.
-        **kwargs : Any
-            graphviz graph attributes to override defaults.
 
         Returns
         -------

@@ -6,14 +6,14 @@ phasic.svgd.SVGD(
     observed_data,
     prior=None,
     n_particles=None,
-    n_iterations=700,
+    n_iterations=1000,
     learning_rate=None,
     bandwidth='median_per_dim',
     theta_init=None,
     theta_dim=None,
     seed=None,
-    verbose=True,
-    progress=False,
+    verbose=False,
+    progress=True,
     jit=None,
     parallel=None,
     n_devices=None,
@@ -27,6 +27,9 @@ phasic.svgd.SVGD(
     fixed=None,
     optimizer=None,
     preconditioner='auto',
+    exposure=None,
+    exposure_param_index=None,
+    _validated=False,
 )
 ```
 
@@ -34,6 +37,36 @@ Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
 
 This class provides an object-oriented interface for SVGD inference with
 automatic result storage and diagnostic plotting capabilities.
+
+## When to use ``Graph.svgd`` vs ``SVGD`` direct {.doc-section .doc-section-when-to-use-graphsvgd-vs-svgd-direct}
+
+Use :meth:`phasic.Graph.svgd` when you have a phasic ``Graph`` object —
+it handles model construction, reward validation, zero-inflation
+attachment for partial-coverage rewards, daisy-chain epoch wiring,
+tied parameters, and per-edge weight callbacks for you. The
+parameters that :meth:`Graph.svgd` and :class:`SVGD` share have
+identical names, defaults, and semantics.
+
+Use ``SVGD(model=..., ...)`` direct only when you have a pre-built
+JAX-compatible model callable (e.g. an external PMF) and a fixed
+``theta_dim``. Parameters unique to :meth:`Graph.svgd` —
+``discrete``, ``joint_index``, ``tied``, ``callback``,
+``epoch_starts``, ``daisy_chain_t_eval``,
+``daisy_chain_granularity``, ``daisy_chain_probe_theta``,
+``daisy_chain_t_eval_tol``, ``validate_rewards``,
+``return_history`` — are pre-model-construction concerns and have
+no meaning when SVGD is handed an opaque model callable.
+
+Direct ``SVGD`` callers whose ``model`` carries a ``_source_graph``
+attribute (stamped by the public PMF builders
+:meth:`Graph.pmf_from_graph`,
+:meth:`Graph.pmf_and_moments_from_graph`,
+:meth:`Graph.pmf_and_moments_from_graph_multivariate`,
+:meth:`Graph.pmf_from_graph_joint_index`) get the zero-inflated
+likelihood term auto-attached when ``rewards`` indicates partial
+coverage. Hand-built models without a source graph reference skip
+this safety net silently — see
+:mod:`phasic.zero_inflation` for the underlying helpers.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
@@ -77,11 +110,11 @@ automatic result storage and diagnostic plotting capabilities.
 
 :   Random seed for reproducibility
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   Print progress information
 
-<code>[**progress**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+<code>[**progress**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   Display progress bar during optimization
 
@@ -128,6 +161,14 @@ automatic result storage and diagnostic plotting capabilities.
 <code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [([Adam](`phasic.svgd.Adam`), [SGDMomentum](`phasic.svgd.SGDMomentum`), [RMSprop](`phasic.svgd.RMSprop`), [Adagrad](`phasic.svgd.Adagrad`), [OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`))]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Optimizer for adaptive per-parameter learning rates. Default is None.  Options include: - Adam: (default)Standard Adam optimizer - SGDMomentum: SGD with momentum - RMSprop: RMSprop optimizer - Adagrad: Adagrad optimizer  When an optimizer is provided, the `learning_rate` parameter is ignored (the optimizer has its own learning rate).  Example:     >>> from phasic import SVGD, Adam     >>> # Default: uses Adam     >>> svgd = SVGD(model, data, theta_dim=2)     >>> # Explicit optimizer     >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
+
+<code>[**exposure**]{.parameter-name} [:]{.parameter-annotation-sep} [float, array-like, or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Per-observation **exposure** :math:`\alpha_i` — a known multiplicative scaling on a rate-typed component of :math:`\boldsymbol{\theta}`. For observation ``i`` the model is evaluated at :math:`\boldsymbol{\theta}^{(i)}` where :math:`\theta^{(i)}_j = \theta_j` for :math:`j \neq k` and :math:`\theta^{(i)}_k = \theta_k \cdot \alpha_i`, with :math:`k` = ``exposure_param_index``. The exposed rate parameter and :math:`\alpha_i` jointly determine each observation's expected event count (or hazard, or PMF, depending on the model).  This is the GLM "exposure" / "offset" construct: it linearises the relationship between a rate parameter and an observation-specific outcome that scales with a known quantity. Concrete instances:  - **Coalescent-with-mutation**: :math:`\alpha_i` = segment length   :math:`L_i` in bases; :math:`\theta_k` is the per-base mutation   rate. - **Survival / failure-time**: :math:`\alpha_i` = time-at-risk   for unit :math:`i`; :math:`\theta_k` is the hazard rate. - **Spatial Poisson**: :math:`\alpha_i` = area or volume of   region :math:`i`; :math:`\theta_k` is the intensity per unit   area.  - ``None`` (default): no exposure correction; existing behaviour. - scalar: same :math:`\alpha` applied to every observation. - 1D array of length ``n_observations``: per-observation   :math:`\alpha`. For dense 2D ``observed_data`` of shape   ``(n_observations, n_features)`` the same :math:`\alpha_i` is   shared across all features of observation :math:`i`.  Requires ``exposure_param_index``. Rejected for ``SparseObservations`` (raises ``NotImplementedError``).
+
+<code>[**exposure_param_index**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Index :math:`k` of the rate-typed parameter in :math:`\boldsymbol{\theta}` that ``exposure`` scales. Required when ``exposure`` is set. Must be in ``[0, param_length)``.  Under daisy-chain (``epoch_starts=[…]``), :math:`\boldsymbol{\theta}` has flat layout ``(n_epochs * param_length,)``; ``exposure_param_index`` remains the *local* per-epoch index and is broadcast across every epoch internally.
 
 ## Attributes {.doc-section .doc-section-attributes}
 
@@ -229,6 +270,7 @@ automatic result storage and diagnostic plotting capabilities.
 | [check_convergence](#phasic.svgd.SVGD.check_convergence) | Monitor convergence of SVGD by tracking statistics for n-dimensional parameters. |
 | [estimate_hdr](#phasic.svgd.SVGD.estimate_hdr) | Estimate the Highest Density Region (HDR) from particles. |
 | [get_results](#phasic.svgd.SVGD.get_results) | Get inference results as a dictionary. |
+| [log_likelihood](#phasic.svgd.SVGD.log_likelihood) | Maximum log-likelihood at the MAP (or at a supplied theta). |
 | [map_estimate_from_particles](#phasic.svgd.SVGD.map_estimate_from_particles) | Find the MAP estimate from a set of particles by finding the particle |
 | [map_estimate_with_optimization](#phasic.svgd.SVGD.map_estimate_with_optimization) | Refine MAP estimate by starting from the best particle and performing |
 | [optimize](#phasic.svgd.SVGD.optimize) | Run SVGD inference with optional moment-based regularization. |
@@ -562,6 +604,74 @@ Get inference results as a dictionary.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
 
 :   Dictionary containing: - 'particles': Final posterior samples (in constrained space if using transformation) - 'theta_mean': Posterior mean (in constrained space if using transformation) - 'theta_std': Posterior standard deviation (in constrained space if using transformation) - 'history': Particle evolution (if available, in constrained space if using transformation) - 'particles_unconstrained': Particles in unconstrained space (only if using transformation)
+
+### log_likelihood { #phasic.svgd.SVGD.log_likelihood }
+
+```python
+phasic.svgd.SVGD.log_likelihood(theta=None, *, refine=False)
+```
+
+Maximum log-likelihood at the MAP (or at a supplied theta).
+
+Returns the pure log-likelihood ``Σ log p(x_i | θ̂)`` with no
+prior and no moment-regularization penalty. This is the quantity
+consumed by AIC, BIC, and likelihood-ratio tests.
+
+For partial-coverage reward models (Graph.svgd attaches a
+``_zero_inflated_p_fn`` to the model when rewards don't cover
+every absorbing trajectory), the returned value also includes
+the explicit zero-inflation point-mass term
+``Σ_j n_zero_j · log(1 − p_j(θ))``, matching the likelihood
+SVGD optimised against. Prior to v0.28.7 this term was silently
+dropped here, which biased AIC/BIC for partial-coverage fits.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) - [like](`like`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If None, evaluate at the MAP particle (the one maximizing the log-posterior, found via :meth:`map_estimate_from_particles`). If `refine=True`, the MAP is refined via gradient ascent on the log-posterior before LL is evaluated there. The returned value is always pure LL — the prior is used only to locate the MAP, not added to the result.  If an array is provided, it is interpreted in CONSTRAINED (model) space — i.e. the same space as `theta_mean`. The model is evaluated directly without re-applying `param_transform`. Must have shape ``(theta_dim,)``.
+
+<code>[**refine**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   When `theta is None`, controls whether the MAP is refined via gradient ascent on the log-posterior (70 steps, step size 0.01) before LL is evaluated. Ignored otherwise.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Σ log p(x_i \| θ̂) over all valid observations.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If the SVGD instance has not been fitted yet.
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If `theta` has wrong shape, or if the observed data has zero valid entries.
+
+#### Examples {.doc-section .doc-section-examples}
+
+Maximum log-likelihood at the MAP, for AIC/BIC:
+
+```python
+>>> svgd = graph.svgd(observed_data, theta_dim=2).optimize()
+>>> ll_map = svgd.log_likelihood()
+>>> ll_refined = svgd.log_likelihood(refine=True)  # closer to MLE
+```
+
+Evaluate LL at a specific θ (constrained space):
+
+```python
+>>> import jax.numpy as jnp
+>>> ll_at = svgd.log_likelihood(theta=jnp.array([1.5, 2.0]))
+```
+
+#### See Also {.doc-section .doc-section-see-also}
+
+phasic.model_selection.aic, phasic.model_selection.bic,
+phasic.model_selection.likelihood_ratio_test
 
 ### map_estimate_from_particles { #phasic.svgd.SVGD.map_estimate_from_particles }
 

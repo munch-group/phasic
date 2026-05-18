@@ -38,6 +38,62 @@ format:
 -->
 ```
 
+## Figure embeds
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+
+
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-aux-vertex echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-geometric echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discretize echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-pmf-cdf echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-graph echo=false >}}
+::::
+
+:::
+
+## adsf
+
+
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-heatmap echo=false >}}
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-cont-joint-prob-graph echo=false >}}
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-cont-joint-prob-epoch-graph echo=false >}}
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-over-time echo=false >}}
+
+{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-transform echo=false >}}
+{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-pdf echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-pdf-cdf echo=false >}}
+
+{{< embed ../pages/tutorial/properties.ipynb#fig-sfs echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-rev-trans echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-rev-trans echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-rev-trans echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-branches echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-branches echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-branches echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-sfs-marginal-pdfs echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-ton-lineages-across-time echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-accumulated-occupancies echo=false >}}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tmrca-sampling-dist echo=false >}}
+
+
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-accumulated-occupancy echo=false >}}
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-distribution-context echo=false >}}
+
+
+
 <!-- ---------------------------------------------------- -->
 
 # Appetizer
@@ -101,9 +157,7 @@ format:
 - **Joint. prob. / Time inhomogeneous**
   - blah blah
 
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-over-time echo=false >}}
 
-fig-joint-prob-over-time
 :::
 :::::
 

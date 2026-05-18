@@ -9,6 +9,19 @@ Base class for prior distributions.
 Subclasses must implement __call__ (log-probability) and sample methods.
 The sample method enables SVGD to initialize particles from the prior.
 
+## Per-dimension natural transform {.doc-section .doc-section-per-dimension-natural-transform}
+
+Subclasses may set the class attribute ``_natural_transform`` (a
+callable ``φ → θ``) to declare the constraint they want on their
+own parameter dimension. ``None`` (the default) means "use SVGD's
+global choice" (typically softplus when ``positive_params=True``).
+When ``Graph.svgd(prior=[...])`` is called with a list of priors,
+SVGD assembles a per-dimension composite ``param_transform``
+using each prior's natural transform; priors that say ``None``
+fall back to the global default. Use this to mix positive
+parameters (Gauss/LogGauss/HalfCauchy → softplus) with probability
+parameters (:class:`BetaPrior` → sigmoid) in a single fit.
+
 ## Methods
 
 | Name | Description |

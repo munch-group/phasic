@@ -1,7 +1,7 @@
 # Graph { #phasic.Graph }
 
 ```python
-phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
+phasic.Graph(arg, ipv=None, graph_cache=None, **kwargs)
 ```
 
 
@@ -29,6 +29,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [as_matrices](#phasic.Graph.as_matrices) | Convert the graph to its matrix representation. |
 | [backward_probabilities](#phasic.Graph.backward_probabilities) | Compute P(reach target \| start at v) for each vertex v. |
 | [cdf](#phasic.Graph.cdf) | Compute cumulative distribution function. |
+| [clear_from_cache](#phasic.Graph.clear_from_cache) | Delete this graph's entries from the on-disk caches. |
 | [clone](#phasic.Graph.clone) | Create a deep copy of this graph. |
 | [compute_trace](#phasic.Graph.compute_trace) | Compute elimination trace with optional hierarchical caching. |
 | [copy](#phasic.Graph.copy) | Returns a deep copy of the graph. |
@@ -37,6 +38,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [discretize](#phasic.Graph.discretize) | Create a discretized copy of this graph. |
 | [distribution_context](#phasic.Graph.distribution_context) | Create a distribution context for efficient repeated sampling. |
 | [eliminate_to_dag](#phasic.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
+| [epoch_context](#phasic.Graph.epoch_context) | Build a single-epoch context for reading cumulative t-state probabilities. |
 | [expectation](#phasic.Graph.expectation) | Compute expected value (first moment) of the phase-type distribution. |
 | [expected_sojourn_time](#phasic.Graph.expected_sojourn_time) | Compute expected sojourn time (residence time) in each state. |
 | [expected_waiting_time](#phasic.Graph.expected_waiting_time) | Compute expected waiting time until absorption. |
@@ -53,18 +55,20 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [normalize](#phasic.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
 | [pdf](#phasic.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
 | [plot](#phasic.Graph.plot) | Plot a graph using graphviz. |
-| [plot_scc_decomposition](#phasic.Graph.plot_scc_decomposition) | Visualise the SCC decomposition of this graph as a |
+| [plot_scc_decomp](#phasic.Graph.plot_scc_decomp) | Visualise the SCC decomposition of this graph as a |
 | [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_and_moments_from_graph_multivariate](#phasic.Graph.pmf_and_moments_from_graph_multivariate) | Create a multivariate phase-type model that handles 2D observations and rewards. |
 | [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
 | [pmf_from_graph](#phasic.Graph.pmf_from_graph) | Convert a Python-built Graph to a JAX-compatible function with full gradient support. |
 | [pmf_from_graph_joint_index](#phasic.Graph.pmf_from_graph_joint_index) | Create a JAX-compatible model for joint index distributions. |
 | [pmf_from_graph_parameterized](#phasic.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
+| [prewarm_cache](#phasic.Graph.prewarm_cache) | Populate the on-disk Stage A2 cache for this graph. If parameterized,  |
 | [probability_matching](#phasic.Graph.probability_matching) | Find parameter estimates by matching model probabilities to empirical probabilities. |
 | [pull_cache](#phasic.Graph.pull_cache) | Download the published compute artifact for this graph if available. |
 | [push_cache](#phasic.Graph.push_cache) | Publish this graph's compute artifact to the phasic-traces registry. |
 | [reward_transform](#phasic.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
 | [reward_transform_discrete](#phasic.Graph.reward_transform_discrete) | Apply reward transformation for discrete-time distributions. |
+| [reward_visit_probability](#phasic.Graph.reward_visit_probability) | Probability of visiting any rewarded vertex before absorption. |
 | [sample](#phasic.Graph.sample) | Generate random samples from the phase-type distribution. |
 | [sample_path](#phasic.Graph.sample_path) | Sample complete path(s) through the Markov chain. |
 | [sample_path_conditioned](#phasic.Graph.sample_path_conditioned) | Sample path(s) conditioned on reaching a target terminal state. |
@@ -342,6 +346,64 @@ Compute cumulative distribution function.
 
 For continuous distributions: F(t) = P(T ≤ t) = 1 - α · exp(S·t) · 1
 For discrete distributions: F(n) = P(N ≤ n) = sum of PMF up to n
+
+### clear_from_cache { #phasic.Graph.clear_from_cache }
+
+```python
+phasic.Graph.clear_from_cache(
+    graph_cache=True,
+    parameterized_reward_compute=True,
+)
+```
+
+Delete this graph's entries from the on-disk caches.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph_cache**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, remove the serialised Graph entry from ``~/.phasic_cache/graphs/<callback_hash>.json``. Requires that this graph was built from a callback (so the callback + construction kwargs are available to recompute the same hash the constructor used). Manually constructed graphs have no callback-hash key and will raise.
+
+<code>[**parameterized_reward_compute**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, remove this graph's Stage A2 symbolic elimination entry from ``~/.phasic_cache/parameterized_reward_compute/<content_hash>.bin``. Per-SCC entries (``scc_<synth_hash>.bin``) are *not* touched because they are content-addressed by SCC subgraph topology and may be shared with other graphs that have the same substructure.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)\[[str](`str`), [int](`int`)\]]{.parameter-annotation}</code>
+
+:   ``{'graph_cache': n, 'parameterized_reward_compute': m}`` where each value is the number of files actually removed (0 if the entry was not present, or if the flag was False).
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If neither flag is True.
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If ``graph_cache=True`` was requested but no callback is stored on this instance (e.g. graph built via ``Graph(state_length)`` then populated manually).
+
+#### Notes {.doc-section .doc-section-notes}
+
+Missing files are not an error — they just mean the graph was
+never cached (or has already been cleared). The only conditions
+that raise are user errors (no flags, no callback key
+available).
+
+For bulk operations across many graphs prefer
+:func:`phasic.cache.clear_param_compute_cache` and
+:func:`phasic.clear_all_graph_caches`.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = Graph(model, indexer=indexer, theta_dim=1)
+>>> g.update_weights([1.0])
+>>> _ = g.expectation()  # populates parameterized_reward_compute
+>>> g.clear_from_cache(graph_cache=False) # keep graph cache
+{'graph_cache': 0, 'parameterized_reward_compute': 1}
+```
 
 ### clone { #phasic.Graph.clone }
 
@@ -691,6 +753,41 @@ parameter vectors.
 
 SymbolicDAG : The returned symbolic DAG class
 SymbolicDAG.instantiate : Create concrete graph from parameters
+
+### epoch_context { #phasic.Graph.epoch_context }
+
+```python
+phasic.Graph.epoch_context()
+```
+
+Build a single-epoch context for reading cumulative t-state probabilities.
+
+Allowed only on **continuous** joint-prob graphs (built via
+``joint_prob_graph(..., discrete=False)``). Builds the
+joint-stop-probability (JSP) graph internally, projects this
+graph's starting-vertex IPV into the JSP graph's IPV layout,
+inherits the current theta (whatever was last passed to this
+graph's ``update_weights``), and returns an :class:`EpochContext`
+ready for ``cumulative_probs`` calls.
+
+If you have not called ``update_weights`` on this graph yet, you
+must call ``ctx.update_weights(theta)`` on the returned context
+before reading probabilities.
+
+For the multi-epoch / daisy-chain reads used by SVGD, see
+:meth:`daisy_chain_joint_probs`.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[EpochContext](`phasic.EpochContext`)]{.parameter-annotation}</code>
+
+:   A context object whose ``cumulative_probs(t)`` returns ``P(absorbed via t-state by time t)`` for each t-state. Converges to :meth:`joint_prob_table` (built with the same settings and ``discrete=True``) as ``t → ∞``.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If this graph is not a joint-prob graph, or is the discrete variant (use :meth:`joint_prob_table` for asymptotes directly).
 
 ### expectation { #phasic.Graph.expectation }
 
@@ -1429,6 +1526,7 @@ phasic.Graph.plot(
     filename=None,
     wrap=True,
     label_fmt=None,
+    rate_fmt=None,
     subgraphfun=None,
     by_state=None,
     by_index=None,
@@ -1442,8 +1540,11 @@ phasic.Graph.plot(
     fontsize=12,
     rainbow=True,
     penwidth=1,
+    taillabel=False,
     seed=1,
-    **kwargs,
+    graph_attr={},
+    node_attr={},
+    edge_attr={},
 )
 ```
 
@@ -1462,6 +1563,14 @@ Plot a graph using graphviz.
 <code>[**wrap**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`) \| [int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   Whether to wrap vertex labels, and if so, the maximum number of characters per line. By default True.
+
+<code>[**label_fmt**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callable for format node labels:
+
+<code>[**rate_fmt**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callable for format edge labels:
 
 <code>[**subgraphfun**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1515,13 +1624,25 @@ Plot a graph using graphviz.
 
 :   Graphviz penwidth attribute, by default 1.
 
+<code>[**taillabel**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Use taillabel instead of xlabel, by default False
+
 <code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
 :   Random seed for graph layout, by default 1.
 
-<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+<code>[**graph_attr**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
-:   Additional graphviz graph attributes.
+:   graphviz graph attributes to override defaults.
+
+<code>[**node_attr**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   graphviz node attributes to override defaults.
+
+<code>[**edge_attr**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   graphviz edge attributes to override defaults.
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -1529,15 +1650,15 @@ Plot a graph using graphviz.
 
 :   Graphviz Digraph object for display in Jupyter notebooks, or ``None`` if the graph exceeds ``max_nodes``.
 
-### plot_scc_decomposition { #phasic.Graph.plot_scc_decomposition }
+### plot_scc_decomp { #phasic.Graph.plot_scc_decomp }
 
 ```python
-phasic.Graph.plot_scc_decomposition(
+phasic.Graph.plot_scc_decomp(
     figsize=(10.0, 6.0),
     cmap='viridis',
     show_indices=True,
     annotate_sizes=True,
-    title=None,
+    title=False,
     ax=None,
 )
 ```
@@ -1591,9 +1712,9 @@ hit/miss behaviour after a compose, use
 
 :   Print the vertex count alongside the index.
 
-<code>[**title**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**title**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
-:   Plot title. Defaults to a one-line summary of the decomposition (number of SCCs, levels, widest row).
+:   Whether to show a title. Default is False. If True adds a one-line summary of the decomposition (number of SCCs, levels, widest row).
 
 <code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1610,7 +1731,7 @@ hit/miss behaviour after a compose, use
 ```python
 >>> import phasic
 >>> g = phasic.Graph(my_callback)
->>> ax = g.plot_scc_decomposition()
+>>> ax = g.plot_scc_decomp()
 >>> ax.figure.savefig('scc.pdf')
 ```
 
@@ -2048,6 +2169,58 @@ or edge weights depend on parameters.
 >>> pdf = model(theta, times)
 ```
 
+### prewarm_cache { #phasic.Graph.prewarm_cache }
+
+```python
+phasic.Graph.prewarm_cache()
+```
+
+Populate the on-disk Stage A2 cache for this graph. If parameterized, 
+update_weights must be called beforehand.
+
+Triggers the C-side symbolic elimination
+(``ptd_precompute_reward_compute_graph``) and writes its result to
+``~/.phasic_cache/parameterized_reward_compute/<content_hash>.bin``.
+Subsequent processes (notebook restart, SLURM workers, fresh CLI
+runs) that build the same graph will load the cached elimination
+instead of redoing the O(n^3) work.
+
+If ``phasic.configure(parallel_elimination=True)`` is active and
+the graph is parameterised, the hierarchical SCC composer takes
+over: it writes one ``scc_<synth_hash>.bin`` entry per SCC
+large enough to cache (``PHASIC_MIN_SCC_SIZE_TO_CACHE``) and
+*skips* the monolithic parent ``<content_hash>.bin``. Future
+runs that want to benefit from the cache must also have
+``parallel_elimination=True`` active — the parent file and SCC
+files are populated by different code paths and not
+interchangeable. Run ``prewarm_cache`` once under each
+configuration you plan to consume from.
+
+#### Notes {.doc-section .doc-section-notes}
+
+Cost is one full elimination plus one waiting-time read; the 
+cache write is a side effect of the elimination.
+
+#### Examples {.doc-section .doc-section-examples}
+
+Pre-warm on the head node before farming out to SLURM workers:
+
+```python
+>>> g = Graph(model, indexer=indexer, theta_dim=2)
+>>> g.prewarm_cache()
+>>> # ~/.phasic_cache/parameterized_reward_compute/<hash>.bin now exists
+>>> # Workers that rebuild the same graph will load it instantly
+```
+
+Pre-warm SCC cache too (cyclic graph):
+
+```python
+>>> from phasic import configure
+>>> with configure(parallel_elimination=True):
+...     g.prewarm_cache(theta=[1.0, 0.5])
+...     # scc_*.bin entries are now also on disk
+```
+
 ### probability_matching { #phasic.Graph.probability_matching }
 
 ```python
@@ -2269,7 +2442,7 @@ prompt inside the notebook.
 ### reward_transform { #phasic.Graph.reward_transform }
 
 ```python
-phasic.Graph.reward_transform(rewards)
+phasic.Graph.reward_transform(rewards, *, validate_rewards=True)
 ```
 
 Apply reward transformation to create a new graph with modified rewards.
@@ -2279,6 +2452,10 @@ Apply reward transformation to create a new graph with modified rewards.
 <code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
 :   Reward vector of length n_vertices. Each element specifies the reward associated with visiting the corresponding vertex.
+
+<code>[**validate_rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, run the coverage check and emit a ``UserWarning`` when some trajectories accumulate zero reward — i.e. the transformed distribution has a point mass at :math:`r = 0`. The transformation always proceeds regardless: an (atom + continuous) mixture is a legitimate phase-type distribution, useful for Laplace transforms, conditional expectations, and zero-inflated likelihood inference via ``Graph.svgd``. Set ``False`` to silence the warning. Shape errors are always raised regardless of this flag.
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -2331,10 +2508,56 @@ For automatic dispatch, use reward_transform() instead.
 
 reward_transform : General reward transformation (dispatches to this for discrete graphs)
 
+### reward_visit_probability { #phasic.Graph.reward_visit_probability }
+
+```python
+phasic.Graph.reward_visit_probability(rewards, theta=None)
+```
+
+Probability of visiting any rewarded vertex before absorption.
+
+For a 1D reward vector ``rewards`` and (parameterized) graph at
+parameter ``theta``, returns the scalar probability that a
+trajectory absorbed from the starting vertex visits at least
+one vertex with reward > 0 before being absorbed. This is the
+phase-type quantity
+
+    p(theta) = sum_{v in starts} alpha_v * h_v(theta)
+
+where ``h_v(theta) = P(reach a rewarded vertex | start at v)``
+and ``alpha`` is the IPV. ``h`` is computed via
+``Graph.backward_probabilities`` using the rewarded vertices
+as the target set; the result depends only on graph topology,
+IPV, and theta — NOT on observed reward times.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [([array](`array`) - [like](`like`), [shape](`shape`)([n_vertices](`n_vertices`)))]{.parameter-annotation}</code>
+
+:   Per-vertex reward; only the nonzero pattern is used.
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) - [like](`like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Parameter vector. If None, uses the graph's current parameter setting. If a JAX tracer is passed, the JAX-differentiable FFI path is used and the return is a jax.Array. Otherwise the result is a Python float.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([float](`float`) or [jax](`phasic.jax`).[Array](`phasic.jax.Array`), [shape](`shape`)())]{.parameter-annotation}</code>
+
+:   Probability p(theta) in [0, 1].
+
+#### Notes {.doc-section .doc-section-notes}
+
+When p < 1, some absorbing trajectories accumulate zero
+cumulative reward. The induced reward distribution is then a
+mixture (point mass at 0 + continuous part for r > 0); use
+``Graph.svgd(..., rewards=...)`` to fit it with a
+zero-inflated likelihood automatically.
+
 ### sample { #phasic.Graph.sample }
 
 ```python
-phasic.Graph.sample(n, **kwargs)
+phasic.Graph.sample(n, *, validate_rewards=True, **kwargs)
 ```
 
 Generate random samples from the phase-type distribution.
@@ -2345,9 +2568,13 @@ Generate random samples from the phase-type distribution.
 
 :   Number of samples to generate.
 
+<code>[**validate_rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True and ``rewards=`` is provided in ``kwargs``, run the coverage check (BFS for a trajectory that skips every rewarded vertex). A coverage failure means the reward-transformed distribution has a point mass at :math:`r = 0`; ``Graph.sample`` will then return some zero-valued samples and emits a ``UserWarning`` so the user knows the mixture shape. Shape errors are always raised regardless of this flag — wrong-length rewards are bugs, not modelling choices.
+
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
-:   Additional keyword arguments passed to C++ implementation.
+:   Additional keyword arguments passed to C++ implementation, notably ``rewards=`` (a per-vertex reward vector).
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -2518,7 +2745,7 @@ phasic.Graph.svgd(
     discrete=None,
     prior=None,
     n_particles=None,
-    n_iterations=100,
+    n_iterations=1000,
     optimizer=None,
     learning_rate=None,
     bandwidth='median_per_dim',
@@ -2540,12 +2767,17 @@ phasic.Graph.svgd(
     joint_index=False,
     rewards=None,
     fixed=None,
+    tied=None,
+    callback=None,
     preconditioner='auto',
     epoch_starts=None,
     daisy_chain_t_eval=None,
     daisy_chain_granularity=0,
     daisy_chain_probe_theta=None,
     daisy_chain_t_eval_tol=0.001,
+    exposure=None,
+    exposure_param_index=None,
+    validate_rewards=True,
 )
 ```
 
@@ -2605,7 +2837,7 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   Random seed for reproducibility
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   Print progress information
 
@@ -2668,6 +2900,14 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 <code>[**daisy_chain_t_eval_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-3]{.parameter-default}</code>
 
 :   Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
+
+<code>[**exposure**]{.parameter-name} [:]{.parameter-annotation-sep} [float, array-like, or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Per-observation **exposure** :math:`\alpha_i` — a known multiplicative scaling on a rate-typed component of :math:`\boldsymbol{\theta}`. For observation ``i`` the model is evaluated at :math:`\boldsymbol{\theta}^{(i)}` where :math:`\theta^{(i)}_j = \theta_j` for :math:`j \neq k` and :math:`\theta^{(i)}_k = \theta_k \cdot \alpha_i`, with :math:`k` = ``exposure_param_index``. The exposed rate parameter and :math:`\alpha_i` jointly determine each observation's expected event count (or hazard, or PMF, depending on the model).  This is the GLM "exposure" / "offset" construct: it linearises the relationship between a rate parameter and an observation-specific outcome that scales with a known quantity. Concrete instances:  - **Coalescent-with-mutation**: :math:`\alpha_i` = segment   length :math:`L_i` in bases; :math:`\theta_k` is the   per-base mutation rate. - **Survival / failure-time**: :math:`\alpha_i` =   time-at-risk for unit :math:`i`; :math:`\theta_k` is the   hazard rate. - **Spatial Poisson**: :math:`\alpha_i` = area or volume   of region :math:`i`; :math:`\theta_k` is the intensity   per unit area.  Forms:  - ``None`` (default): no exposure correction; existing   behaviour. - scalar: same :math:`\alpha` applied to every observation. - 1D array of length ``n_observations``: per-observation   :math:`\alpha`. For dense 2D ``observed_data`` of shape   ``(n_observations, n_features)`` the same   :math:`\alpha_i` is shared across all features of   observation :math:`i`.  Requires ``exposure_param_index`` to be set. Not supported for ``SparseObservations`` (raises ``NotImplementedError``).
+
+<code>[**exposure_param_index**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Index :math:`k` of the rate-typed parameter in :math:`\boldsymbol{\theta}` that ``exposure`` scales. Required when ``exposure`` is set. Must be in ``[0, param_length)``.  Under daisy-chain (``epoch_starts=[…]``), :math:`\boldsymbol{\theta}` has flat layout ``(n_epochs * param_length,)``; ``exposure_param_index`` remains the *local* per-epoch index and is broadcast across every epoch internally.
 
 #### Returns {.doc-section .doc-section-returns}
 

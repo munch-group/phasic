@@ -7,9 +7,10 @@ phasic.get_config()
 Return the current global configuration.
 
 On first call, reads the relevant phasic env vars
-(`PHASIC_HIERAR_ELIMINATION`, `PHASIC_DISABLE_CACHE`,
-`PHASIC_CACHE_DIR`, `PHASIC_MIN_SCC_SIZE_TO_CACHE`,
-`PHASIC_MAX_PARALLEL_SCCS`, `OMP_NUM_THREADS`) and seeds the
+(`PHASIC_HIERAR_ELIMINATION`, `PHASIC_REWARD_COMPUTE_CACHE`,
+`PHASIC_DISABLE_GRAPH_CACHE`, `PHASIC_CACHE_DIR`,
+`PHASIC_MIN_SCC_SIZE_TO_CACHE`, `PHASIC_MAX_PARALLEL_SCCS`,
+`OMP_NUM_THREADS`) and seeds the
 config so its fields agree with the environment that the C
 layer will observe.
 
