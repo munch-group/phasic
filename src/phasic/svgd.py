@@ -343,6 +343,29 @@ def _inverse_softplus(theta: jnp.ndarray) -> jnp.ndarray:
         jnp.log(jnp.expm1(jnp.maximum(theta, 1e-6)))
     )
 
+
+def _sigmoid(phi: jnp.ndarray) -> jnp.ndarray:
+    """Numerically stable logistic sigmoid: θ = 1/(1+exp(-φ)) ∈ (0, 1).
+
+    Used as the natural θ ← φ transform for parameters constrained to
+    the open unit interval (e.g. probabilities, selection coefficients
+    in [0, 1]). Clamped slightly inside (0, 1) so downstream log(θ)
+    and log(1-θ) computations remain finite at the boundary.
+    """
+    return jnp.clip(jax.nn.sigmoid(phi), 1e-9, 1.0 - 1e-9)
+
+
+def _inverse_sigmoid(theta: jnp.ndarray) -> jnp.ndarray:
+    """Inverse logistic / logit: φ = log(θ/(1-θ)).
+
+    Counterpart to :func:`_sigmoid` for converting θ-space samples
+    (in (0, 1)) back to unconstrained φ-space. Clamps θ away from
+    the boundary to avoid -inf / +inf when the sample lands exactly
+    at 0 or 1.
+    """
+    theta_clipped = jnp.clip(theta, 1e-9, 1.0 - 1e-9)
+    return jnp.log(theta_clipped) - jnp.log1p(-theta_clipped)
+
 def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float]:
     """Compute the Highest Posterior Density (HPD) interval.
 
@@ -452,7 +475,24 @@ class Prior:
 
     Subclasses must implement __call__ (log-probability) and sample methods.
     The sample method enables SVGD to initialize particles from the prior.
+
+    Per-dimension natural transform
+    -------------------------------
+    Subclasses may set the class attribute ``_natural_transform`` (a
+    callable ``φ → θ``) to declare the constraint they want on their
+    own parameter dimension. ``None`` (the default) means "use SVGD's
+    global choice" (typically softplus when ``positive_params=True``).
+    When ``Graph.svgd(prior=[...])`` is called with a list of priors,
+    SVGD assembles a per-dimension composite ``param_transform``
+    using each prior's natural transform; priors that say ``None``
+    fall back to the global default. Use this to mix positive
+    parameters (Gauss/LogGauss/HalfCauchy → softplus) with probability
+    parameters (:class:`BetaPrior` → sigmoid) in a single fit.
     """
+
+    # Per-dimension natural θ ← φ transform. ``None`` defers to SVGD's
+    # global ``param_transform``. Subclasses override.
+    _natural_transform = None
 
     def __call__(self, phi: jnp.ndarray) -> float:
         """Compute log-probability of phi.
@@ -976,6 +1016,253 @@ class HalfCauchyPrior(Prior):
             return ax
         else:
             plt.show()
+
+
+class BetaPrior(Prior):
+    """Beta prior distribution for parameters bound to the open unit
+    interval (0, 1).
+
+    The prior is defined in THETA space:
+    θ ~ Beta(α, β) with density  Γ(α+β)/(Γ(α)Γ(β)) · θ^(α-1) · (1-θ)^(β-1).
+
+    Unlike :class:`GaussPrior` / :class:`LogGaussPrior` /
+    :class:`HalfCauchyPrior` (which constrain θ to the positive half-
+    line via SVGD's global softplus transform), ``BetaPrior`` declares
+    its own ``_natural_transform = sigmoid`` so the dimension it owns
+    is mapped to (0, 1) regardless of what the other parameters use.
+    To exploit this, pass it inside a per-dimension ``prior`` list:
+
+        prior=[GaussPrior(ci=[1, 5]),    # positive: softplus
+               BetaPrior(ci=[0.05, 0.5])] # in (0, 1): sigmoid
+
+    SVGD then assembles a composite ``param_transform`` that applies
+    each prior's natural transform to its own slice of θ.
+
+    Can be specified via (alpha, beta), a credible interval, or a
+    mean + concentration. Use ``mean=0.5, concentration=2.0`` for a
+    uniform-like prior; larger concentration (e.g. 20) concentrates
+    mass near the mean.
+
+    Parameters
+    ----------
+    alpha : float, optional
+        Shape parameter α > 0. Required if ``beta`` is provided.
+    beta : float, optional
+        Shape parameter β > 0. Required if ``alpha`` is provided.
+    ci : tuple of (float, float), optional
+        Equal-tailed credible interval (low, high), both in (0, 1).
+        Internally solved for the (α, β) whose central ``prob`` mass
+        falls in this interval.
+    prob : float, default=0.95
+        Probability mass in the credible interval (only used with ci).
+    mean : float, optional
+        Prior mean θ̄ ∈ (0, 1). Used with ``concentration``.
+    concentration : float, optional
+        Prior concentration κ = α + β > 0. Used with ``mean``.
+        Then α = κ · θ̄ and β = κ · (1 − θ̄).
+
+    Examples
+    --------
+    >>> # 95% of the prior mass between 0.05 and 0.5
+    >>> prior = BetaPrior(ci=(0.05, 0.5))
+    >>>
+    >>> # Direct (α, β) — uniform on (0, 1)
+    >>> prior = BetaPrior(alpha=1.0, beta=1.0)
+    >>>
+    >>> # Mean θ̄=0.1 with moderate concentration κ=10
+    >>> prior = BetaPrior(mean=0.1, concentration=10.0)
+    >>>
+    >>> # Inside a per-dim prior list
+    >>> svgd = graph.svgd(
+    ...     data, theta_dim=2,
+    ...     prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.5))],
+    ... )
+    """
+
+    # Declare the natural θ ← φ transform for this prior's dimension.
+    # SVGD composes per-dim transforms when a prior list is supplied.
+    _natural_transform = staticmethod(_sigmoid)
+
+    def __init__(
+        self,
+        alpha: float | None = None,
+        beta: float | None = None,
+        ci: tuple[float, float] | None = None,
+        prob: float = 0.95,
+        mean: float | None = None,
+        concentration: float | None = None,
+    ) -> None:
+        # Resolve to a single (alpha, beta) pair.
+        spec_count = sum(
+            x is not None for x in
+            (alpha if alpha is not None or beta is not None else None,
+             ci, mean if mean is not None or concentration is not None else None)
+        )
+        if spec_count != 1:
+            raise ValueError(
+                "Specify BetaPrior via exactly one of: (alpha, beta), "
+                "ci=(low, high), or (mean, concentration)."
+            )
+
+        if alpha is not None or beta is not None:
+            if alpha is None or beta is None:
+                raise ValueError(
+                    "Both alpha and beta must be provided together."
+                )
+            if alpha <= 0 or beta <= 0:
+                raise ValueError(
+                    f"alpha and beta must be > 0; got alpha={alpha}, "
+                    f"beta={beta}."
+                )
+            self.alpha = float(alpha)
+            self.beta = float(beta)
+        elif mean is not None or concentration is not None:
+            if mean is None or concentration is None:
+                raise ValueError(
+                    "Both mean and concentration must be provided "
+                    "together."
+                )
+            if not 0.0 < mean < 1.0:
+                raise ValueError(
+                    f"mean must be in (0, 1); got {mean}."
+                )
+            if concentration <= 0:
+                raise ValueError(
+                    f"concentration must be > 0; got {concentration}."
+                )
+            self.alpha = float(concentration * mean)
+            self.beta = float(concentration * (1.0 - mean))
+        else:
+            low, high = ci
+            if not 0.0 < low < high < 1.0:
+                raise ValueError(
+                    f"ci must satisfy 0 < low < high < 1; got "
+                    f"({low}, {high})."
+                )
+            if not 0.0 < prob < 1.0:
+                raise ValueError(
+                    f"prob must be in (0, 1); got {prob}."
+                )
+            self.alpha, self.beta = _beta_params_from_ci(low, high, prob)
+
+        self.ci = ci
+        self.prob = prob if ci is not None else None
+        # Transform function set by SVGD when wiring per-dim transforms.
+        self._transform = None
+
+    def __call__(self, phi: jnp.ndarray) -> float:
+        """Log-probability of φ under the Beta prior in θ-space, with
+        Jacobian correction for the sigmoid θ ← φ transform.
+        """
+        if self._transform is not None:
+            # φ → θ via this prior's natural sigmoid transform.
+            theta = self._transform(phi)
+            log_theta = jnp.log(theta)
+            log_one_minus = jnp.log1p(-theta)
+            # Beta log-density (drop the normalising constant — it is
+            # additive and irrelevant to SVGD's posterior gradient).
+            log_prior_theta = jnp.sum(
+                (self.alpha - 1.0) * log_theta
+                + (self.beta - 1.0) * log_one_minus
+            )
+            # Jacobian for θ = sigmoid(φ): log|dθ/dφ| = log(θ) + log(1-θ).
+            log_jacobian = jnp.sum(log_theta + log_one_minus)
+            return log_prior_theta + log_jacobian
+        else:
+            # No transform: φ already in (0, 1). Return -inf outside.
+            log_prob = jnp.where(
+                (phi > 0.0) & (phi < 1.0),
+                (self.alpha - 1.0) * jnp.log(jnp.clip(phi, 1e-9, 1.0 - 1e-9))
+                + (self.beta - 1.0) * jnp.log1p(
+                    -jnp.clip(phi, 1e-9, 1.0 - 1e-9)
+                ),
+                -jnp.inf,
+            )
+            return jnp.sum(log_prob)
+
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
+        """Sample from the prior. With ``_transform`` set, samples are
+        drawn in θ ∈ (0, 1) and inverted to φ via logit; otherwise
+        returned in θ-space directly."""
+        theta_samples = jax.random.beta(
+            key, self.alpha, self.beta, shape=shape,
+        )
+        if self._transform is not None:
+            return _inverse_sigmoid(theta_samples)
+        return theta_samples
+
+    def plot(
+        self,
+        ax: matplotlib.axes.Axes | None = None,
+        return_ax: bool = False,
+        **kwargs,
+    ) -> matplotlib.axes.Axes | None:
+        """Plot the Beta(α, β) density on θ ∈ (0, 1)."""
+        import matplotlib.pyplot as plt
+        from scipy.stats import beta as scipy_beta
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4, 3))
+        x = np.linspace(1e-3, 1.0 - 1e-3, 400)
+        pdf = scipy_beta.pdf(x, self.alpha, self.beta)
+        ax.plot(x, pdf, **kwargs)
+        ax.set_title(f"Beta({self.alpha:.2g}, {self.beta:.2g})")
+        ax.set_xlabel("Parameter value (θ)")
+        ax.set_ylabel("Density")
+        if ax is not None or return_ax:
+            return ax
+        plt.show()
+
+
+def _beta_params_from_ci(
+    low: float, high: float, prob: float,
+) -> tuple[float, float]:
+    """Solve for (α, β) such that the central ``prob`` mass of
+    Beta(α, β) falls in ``[low, high]``.
+
+    Uses scipy's optimiser. Initialised at the mean-matching pair so
+    the search starts close to the answer; if the optimiser fails to
+    converge the call raises rather than returning a silently-bad
+    fit.
+    """
+    from scipy.optimize import least_squares
+    from scipy.stats import beta as scipy_beta
+
+    mean = (low + high) / 2.0
+    # Concentration heuristic: tighter CI → larger concentration.
+    span = high - low
+    init_kappa = max(2.0, 1.0 / max(span, 1e-3))
+    a0 = init_kappa * mean
+    b0 = init_kappa * (1.0 - mean)
+
+    p_lo = (1.0 - prob) / 2.0
+    p_hi = 1.0 - p_lo
+
+    def residuals(log_ab):
+        a, b = np.exp(log_ab)
+        return [
+            scipy_beta.ppf(p_lo, a, b) - low,
+            scipy_beta.ppf(p_hi, a, b) - high,
+        ]
+
+    result = least_squares(
+        residuals, x0=np.log([a0, b0]), method="lm",
+        xtol=1e-10, ftol=1e-10,
+    )
+    if not result.success:
+        raise RuntimeError(
+            "BetaPrior(ci=...) failed to solve for (α, β); the "
+            f"requested ({low}, {high}) at prob={prob} may be "
+            "infeasible. Try specifying alpha/beta directly."
+        )
+    a, b = np.exp(result.x).tolist()
+    if a <= 0 or b <= 0 or not np.isfinite(a) or not np.isfinite(b):
+        raise RuntimeError(
+            f"BetaPrior(ci=...) solver returned non-finite parameters "
+            f"(alpha={a}, beta={b}); the requested credible interval "
+            "may be too extreme."
+        )
+    return a, b
 
 
 class DataPrior(Prior):
@@ -4607,12 +4894,61 @@ class SVGD:
             )
 
         if positive_params:
-            # Clamp minimum to avoid edge weights becoming non-positive
-            # Use 1e-9 as minimum to avoid numerical precision issues in C code
-            # (causing floating-point errors that produce -0.0 weights)
-            self.param_transform = lambda phi: jnp.maximum(jax.nn.softplus(phi), 1e-9)
-            if verbose:
-                print("Using softplus transformation to constrain parameters to positive domain")
+            # Default per-dim transform when a prior doesn't declare its
+            # own. softplus(φ) clamped to a tiny floor so edge weights
+            # passed to the C code stay strictly positive (the C side
+            # treats -0.0 / sub-epsilon weights as numerical errors).
+            default_pos_transform = lambda phi: jnp.maximum(
+                jax.nn.softplus(phi), 1e-9,
+            )
+            # If `prior` is a per-dim list AND at least one prior
+            # declares its own natural transform (`_natural_transform`,
+            # e.g. `BetaPrior` → sigmoid), assemble a vector-valued
+            # composite that applies each prior's natural transform
+            # to its own slice of φ. Priors without an override keep
+            # softplus on their dimension. This lets a user mix
+            # positive params (Gauss/HalfCauchy → softplus) with
+            # probability params (BetaPrior → sigmoid) in one fit.
+            if self.prior_list is not None and any(
+                getattr(p, '_natural_transform', None) is not None
+                for p in self.prior_list if p is not None
+            ):
+                per_dim_transforms = []
+                for prior_i in self.prior_list:
+                    if (
+                        prior_i is not None
+                        and getattr(prior_i, '_natural_transform', None)
+                        is not None
+                    ):
+                        per_dim_transforms.append(prior_i._natural_transform)
+                    else:
+                        per_dim_transforms.append(default_pos_transform)
+
+                def _composite_transform(phi, _fns=tuple(per_dim_transforms)):
+                    # Expect φ to be shape (theta_dim,) or
+                    # (n_particles, theta_dim). Apply each per-dim
+                    # transform on the last axis.
+                    parts = [
+                        _fns[i](phi[..., i:i+1])
+                        for i in range(len(_fns))
+                    ]
+                    return jnp.concatenate(parts, axis=-1)
+
+                self.param_transform = _composite_transform
+                if verbose:
+                    nat_names = ", ".join(
+                        "sigmoid" if getattr(p, '_natural_transform', None) is _sigmoid
+                        else "softplus"
+                        for p in self.prior_list
+                    )
+                    print(
+                        f"Using per-dimension parameter transforms: "
+                        f"[{nat_names}]"
+                    )
+            else:
+                self.param_transform = default_pos_transform
+                if verbose:
+                    print("Using softplus transformation to constrain parameters to positive domain")
         elif param_transform is not None:
             if not callable(param_transform):
                 raise ValueError("param_transform must be a callable function")
@@ -4622,15 +4958,37 @@ class SVGD:
         else:
             self.param_transform = None
 
-        # Wrap priors with transformation info for Jacobian correction
-        # This allows priors to be defined in THETA space while SVGD works in PHI space
+        # Wrap priors with transformation info for Jacobian correction.
+        # The transform a prior sees here is the one it must use to
+        # convert its own φ slice to θ — so we hand each prior in
+        # ``prior_list`` its declared natural transform (or the global
+        # default if it has none). This keeps the per-dim Jacobian
+        # consistent with the per-dim θ ← φ map used by
+        # ``param_transform``.
         if self.param_transform is not None:
             if self.prior_list is not None:
+                # Pick a fallback transform — the one that would have
+                # been used for any single prior without a declared
+                # natural transform.
+                if positive_params:
+                    fallback_transform = lambda phi: jnp.maximum(
+                        jax.nn.softplus(phi), 1e-9,
+                    )
+                else:
+                    fallback_transform = self.param_transform
                 for prior_i in self.prior_list:
-                    if hasattr(prior_i, '_transform'):
-                        prior_i._transform = self.param_transform
+                    if prior_i is None or not hasattr(prior_i, '_transform'):
+                        continue
+                    natural = getattr(prior_i, '_natural_transform', None)
+                    prior_i._transform = (
+                        natural if natural is not None else fallback_transform
+                    )
             elif self.prior is not None and hasattr(self.prior, '_transform'):
-                self.prior._transform = self.param_transform
+                # Single-prior case: hand it the global transform.
+                natural = getattr(self.prior, '_natural_transform', None)
+                self.prior._transform = (
+                    natural if natural is not None else self.param_transform
+                )
 
         # Validate and initialize particles
         if theta_init is None and theta_dim is None:
