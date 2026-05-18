@@ -7993,30 +7993,100 @@ extern "C" {{
         if exclude_vertices is not None:
             exclude_set = set(int(v) for v in exclude_vertices)
             all_terminal_indices = [v for v in all_terminal_indices if v not in exclude_set]
+        all_terminal_indices_np = np.asarray(all_terminal_indices, dtype=np.int32)
         all_terminal_indices = jnp.array(all_terminal_indices, dtype=jnp.int32)
 
-        def _compute_pure(theta, vertex_indices):
-            """Pure computation using FFI for memory-efficient subset computation."""
-            theta = jnp.atleast_1d(theta)
-            vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+        # Callback weight mode: the C++ JSON parser only knows 'linear'
+        # and 'log'. For 'callback', apply the user's weight_callback
+        # per-theta to materialise concrete edge weights and route
+        # through pybind's `Graph.expected_sojourn_time`. Mirrors the
+        # callback handling in `pmf_and_moments_from_graph`.
+        if serialized.get('weight_mode') == 'callback':
+            import json
+            from .ffi_wrappers import _make_json_serializable
+            from . import phasic_pybind as cpp_module
 
-            # Compute sojourn times for observed vertices
-            sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
+            weight_callback = graph.weight_callback
+            if weight_callback is None:
+                raise ValueError(
+                    "Graph has weight_mode='callback' but no "
+                    "weight_callback set. Set graph.weight_callback "
+                    "before calling pmf_from_graph_joint_index() / "
+                    "joint-prob Graph.svgd()."
+                )
 
-            # Compute normalization constant using ALL terminal vertices
-            # This is the total probability mass in the modeled state space
-            all_sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
-            normalization_constant = jnp.sum(all_sojourn_times)
+            _serialized = serialized
 
-            # Normalize to get conditional probabilities P(obs | obs ∈ modeled space)
-            # This correctly handles the deficit without biasing toward θ values
-            # that minimize deficit
-            sojourn_probs = sojourn_times / normalization_constant
+            def _compute_callback(theta_np, vertex_indices_np):
+                concrete = _apply_weight_callback(
+                    _serialized, theta_np, weight_callback,
+                )
+                json_str = json.dumps(_make_json_serializable(concrete))
+                builder_local = cpp_module.parameterized.GraphBuilder(json_str)
+                concrete_graph = builder_local.build(np.zeros(0))
+                # Sojourn times for the observed-vertex subset.
+                obs_idx = [int(v) for v in vertex_indices_np.tolist()]
+                obs_sojourn = np.asarray(
+                    concrete_graph.expected_sojourn_time(obs_idx),
+                    dtype=np.float64,
+                )
+                all_sojourn = np.asarray(
+                    concrete_graph.expected_sojourn_time(
+                        all_terminal_indices_np.tolist(),
+                    ),
+                    dtype=np.float64,
+                )
+                return obs_sojourn, all_sojourn
 
-            # Dummy moments (not supported in joint_index mode)
-            dummy_moments = jnp.zeros(2)
+            def _compute_pure(theta, vertex_indices):
+                theta = jnp.atleast_1d(theta)
+                vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+                obs_shape = jax.ShapeDtypeStruct(
+                    vertex_indices.shape, jnp.float64,
+                )
+                all_shape = jax.ShapeDtypeStruct(
+                    (int(all_terminal_indices_np.size),), jnp.float64,
+                )
 
-            return sojourn_probs, dummy_moments
+                def _cb(t, vi):
+                    return _compute_callback(
+                        np.asarray(t, dtype=np.float64),
+                        np.asarray(vi, dtype=np.int32),
+                    )
+
+                obs_sojourn, all_sojourn = jax.pure_callback(
+                    _cb, (obs_shape, all_shape),
+                    theta, vertex_indices,
+                    vmap_method='sequential',
+                )
+                normalization_constant = jnp.sum(all_sojourn)
+                sojourn_probs = obs_sojourn / normalization_constant
+                dummy_moments = jnp.zeros(2)
+                return sojourn_probs, dummy_moments
+
+        else:
+            def _compute_pure(theta, vertex_indices):
+                """Pure computation using FFI for memory-efficient subset computation."""
+                theta = jnp.atleast_1d(theta)
+                vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+
+                # Compute sojourn times for observed vertices
+                sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
+
+                # Compute normalization constant using ALL terminal vertices
+                # This is the total probability mass in the modeled state space
+                all_sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
+                normalization_constant = jnp.sum(all_sojourn_times)
+
+                # Normalize to get conditional probabilities P(obs | obs ∈ modeled space)
+                # This correctly handles the deficit without biasing toward θ values
+                # that minimize deficit
+                sojourn_probs = sojourn_times / normalization_constant
+
+                # Dummy moments (not supported in joint_index mode)
+                dummy_moments = jnp.zeros(2)
+
+                return sojourn_probs, dummy_moments
 
         @jax.custom_vjp
         def model(theta, vertex_indices, rewards=None):
@@ -8046,7 +8116,6 @@ extern "C" {{
         # This avoids JAX tracing issues with boolean comparisons on arrays
         fixed_indices_set = set()
         if fixed_mask is not None:
-            import numpy as np
             fixed_mask_np = np.asarray(fixed_mask)
             fixed_indices_set = set(np.where(fixed_mask_np == 1)[0].tolist())
 
@@ -10806,7 +10875,7 @@ class EpochContext:
             out[i] = p
         return out
 
-    def cumulative_probs_table(
+    def joint_probs_table(
         self,
         t: float | None = None,
         *,
