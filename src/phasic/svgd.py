@@ -4924,7 +4924,9 @@ class SVGD:
                     else:
                         per_dim_transforms.append(default_pos_transform)
 
-                def _composite_transform(phi, _fns=tuple(per_dim_transforms)):
+                _per_dim_fns_tuple = tuple(per_dim_transforms)
+
+                def _composite_transform(phi, _fns=_per_dim_fns_tuple):
                     # Expect φ to be shape (theta_dim,) or
                     # (n_particles, theta_dim). Apply each per-dim
                     # transform on the last axis.
@@ -4934,6 +4936,11 @@ class SVGD:
                     ]
                     return jnp.concatenate(parts, axis=-1)
 
+                # Expose the per-dim functions on the closure itself
+                # so downstream code (e.g. the preconditioner's
+                # learnable-subset wrapper) can build a slice of the
+                # full transform.
+                _composite_transform._per_dim_fns = _per_dim_fns_tuple
                 self.param_transform = _composite_transform
                 if verbose:
                     nat_names = ", ".join(
@@ -5259,11 +5266,17 @@ class SVGD:
         # All models must use Graph.pmf_and_moments_from_graph()
         try:
             test_theta = self.theta_init[0]
-            # Use abs() to ensure positive test values when param_transform is set
-            # (Actual transformation applied in _log_prob methods during optimization)
-            # This avoids negative edge weights and FFI initialization crashes
+            # The optimisation loop applies `param_transform` to every
+            # particle before passing it to the model
+            # (`_log_prob_unified` etc.). For the smoke-validation call
+            # below we must do the same so the model receives a θ in
+            # the same space it will see during optimisation. Without
+            # this, validators run in φ-space and fail on legitimate
+            # callbacks that expect θ in the constrained (model)
+            # space — e.g. a binomial sampling-prob computed from a
+            # `BetaPrior`-controlled parameter blows up on raw φ.
             if self.param_transform is not None:
-                test_theta = jnp.abs(test_theta)
+                test_theta = self.param_transform(test_theta)
 
             # Extract test times (handle sparse vs dense format)
             if self._sparse_format:
@@ -5985,8 +5998,16 @@ class SVGD:
         start = time()
         grad_fn = jax.grad(log_prob_fn)
         compiled_grad = jax.jit(grad_fn)
-        # Trigger compilation with dummy call
-        dummy_theta = jnp.zeros((self.theta_dim,))
+        # Trigger compilation. Using zeros as the dummy theta is unsafe
+        # when the model has per-dim transforms (e.g. BetaPrior →
+        # sigmoid) or fixed-value constraints: zero φ maps to a θ that
+        # may not be in the model's valid domain (e.g. sigmoid(0)=0.5,
+        # softplus(0)=0.693), so the trace would invoke the user
+        # callback at an out-of-domain θ and crash with NaN before
+        # JIT finishes. Use the first initial particle instead — it
+        # was sampled from the prior and already has fixed-value
+        # constraints baked in, so the model evaluates cleanly.
+        dummy_theta = self.theta_init[0]
         _ = compiled_grad(dummy_theta)
         if self.verbose:
             print(f"  Gradient JIT compiled in {time() - start:.1g}s")
@@ -6085,11 +6106,39 @@ class SVGD:
                     logger.debug("SVGD.optimize: no fixed params, "
                                   "all %d dims learnable", n_learnable)
 
+                # When the model uses per-dimension transforms
+                # (composite assembled from a `prior=[...]` list with
+                # mixed natural transforms), the preconditioner runs
+                # on the *learnable* subset of θ — so its
+                # `param_transform` must apply each learnable
+                # dimension's own transform, not the dim-0 transform
+                # uniformly. Construct a slicing wrapper around the
+                # full composite that picks out only the per-dim
+                # transforms at the learnable indices.
+                if (
+                    learnable_indices is not None
+                    and getattr(self.param_transform, '_per_dim_fns', None)
+                    is not None
+                ):
+                    full_fns = self.param_transform._per_dim_fns
+                    learnable_fns = tuple(full_fns[i] for i in learnable_indices)
+                    def _learnable_param_transform(
+                        phi, _fns=learnable_fns,
+                    ):
+                        parts = [
+                            _fns[i](phi[..., i:i+1])
+                            for i in range(len(_fns))
+                        ]
+                        return jnp.concatenate(parts, axis=-1)
+                    preconditioner_param_transform = _learnable_param_transform
+                else:
+                    preconditioner_param_transform = self.param_transform
+
                 preconditioner_kwargs = dict(
                     model=self.model,
                     observed_data=self.observed_data,
                     theta_dim=n_learnable,
-                    param_transform=self.param_transform,
+                    param_transform=preconditioner_param_transform,
                     rewards=rewards
                 )
                 if self.preconditioner_method == 'jacobian':

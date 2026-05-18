@@ -174,6 +174,59 @@ def test_svgd_param_transform_is_per_dim_when_betaprior_present():
         )
 
 
+def test_svgd_callback_mode_with_betaprior_and_fixed_dim_runs_end_to_end():
+    """End-to-end: a weight_callback-mode graph with `fixed=[(0, V)]`
+    and `prior=[None, BetaPrior(...)]` runs through SVGD without
+    raising and converges with the fixed parameter held exactly at
+    V in θ-space.
+
+    Pins three integrations that were originally broken:
+      1. Smoke-validation applies `param_transform` so the callback
+         sees θ-space rather than raw φ.
+      2. The preconditioner's moment-matching sweep uses the right
+         per-dim transforms when running on the learnable subset
+         (uses `sigmoid` for dim 1, not the dim-0 softplus).
+      3. JIT precompilation triggers compilation with a real prior
+         particle (which has `fixed_values` baked in) rather than
+         zeros (which would map to invalid θ values for dim 0).
+    """
+    g = Graph(1)
+    v0 = g.starting_vertex()
+    v1 = g.find_or_create_vertex([1])
+    v_abs = g.find_or_create_vertex([2])
+    v0.add_edge(v1, [1.0, 0.0])
+    v1.add_edge(v_abs, [0.0, 1.0])
+
+    def cb(param, coef):
+        coal_rate, s = param
+        c0, c1 = coef
+        return float(c0 * coal_rate + c1 * s)
+
+    g.weight_callback = cb
+    g.update_weights(np.array([0.5, 0.3]))
+
+    svgd = g.svgd(
+        observed_data=jnp.array([1.5, 2.0, 2.5, 3.0, 1.0]),
+        callback=cb,
+        theta_dim=2,
+        fixed=[(0, 0.5)],
+        prior=[None, BetaPrior(ci=(0.05, 0.95))],
+        n_iterations=3,
+        n_particles=4,
+        progress=False,
+    )
+    theta = np.asarray(svgd.get_results()['theta_mean'])
+    assert theta.shape == (2,)
+    # Dim 0 was fixed at 0.5 — θ-space value must round-trip exactly.
+    assert abs(theta[0] - 0.5) < 1e-6, (
+        f"fixed dim 0 expected = 0.5; got {theta[0]}"
+    )
+    # Dim 1 must be in (0, 1) — BetaPrior constraint.
+    assert 0.0 < theta[1] < 1.0, (
+        f"BetaPrior dim 1 must be in (0, 1); got {theta[1]}"
+    )
+
+
 def test_svgd_without_betaprior_keeps_uniform_softplus():
     """Backwards compat: when no prior in the list declares a natural
     transform, the global softplus is used (single lambda, unchanged

@@ -7600,20 +7600,48 @@ extern "C" {{
                 )
 
             def _compute_pure(theta, times, rewards=None):
-                pmf_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
-                moments_shape = jax.ShapeDtypeStruct((nr_moments,), times.dtype)
-
-                def _cb(t, tm):
-                    pmf, moments = _compute_callback(
-                        np.asarray(t, dtype=np.float64),
-                        np.asarray(tm, dtype=np.float64),
-                        np.asarray(rewards, dtype=np.float64) if rewards is not None else None
+                # Determine output shapes based on rewards dimensionality.
+                # Match the FFI / pybind paths (univariate vs multivariate).
+                if rewards is not None and jnp.asarray(rewards).ndim == 2:
+                    n_features = jnp.asarray(rewards).shape[0]
+                    pmf_shape = jax.ShapeDtypeStruct(
+                        (times.shape[0], n_features), jnp.float64,
                     )
-                    return pmf.astype(times.dtype), moments.astype(times.dtype)
+                    moments_shape = jax.ShapeDtypeStruct(
+                        (n_features, nr_moments), jnp.float64,
+                    )
+                else:
+                    pmf_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+                    moments_shape = jax.ShapeDtypeStruct(
+                        (nr_moments,), times.dtype,
+                    )
+
+                # Pass `rewards` as a pure_callback argument (rather than
+                # capturing via closure) so this path survives jit /
+                # vmap tracing — captured Python-level numpy arrays
+                # turn into JAX tracers under jit and trigger
+                # TracerArrayConversionError when np.asarray runs.
+                # Empty-array sentinel for None mirrors the FFI path.
+                if rewards is not None:
+                    rewards_jax = jnp.atleast_1d(rewards).astype(jnp.float64)
+                else:
+                    rewards_jax = jnp.array([], dtype=jnp.float64)
+
+                def _cb(t, tm, rw):
+                    t_np = np.asarray(t, dtype=np.float64)
+                    tm_np = np.asarray(tm, dtype=np.float64)
+                    rw_np = np.asarray(rw, dtype=np.float64)
+                    if rw_np.size == 0:
+                        rw_np = None
+                    pmf, moments = _compute_callback(t_np, tm_np, rw_np)
+                    return (
+                        pmf.astype(jnp.float64),
+                        moments.astype(jnp.float64),
+                    )
 
                 return jax.pure_callback(
                     _cb, (pmf_shape, moments_shape),
-                    theta, times,
+                    theta, times, rewards_jax,
                     vmap_method='sequential'
                 )
 
