@@ -227,6 +227,84 @@ def test_svgd_callback_mode_with_betaprior_and_fixed_dim_runs_end_to_end():
     )
 
 
+def test_svgd_callback_mode_partial_coverage_avoids_legacy_visit_prob():
+    """When a callback-weight graph has partial-coverage 2D rewards
+    (some features whose rewarded vertices aren't reached by every
+    trajectory), `_attach_zero_inflated_term` would historically fall
+    back to `compute_reward_visit_probability_ffi`, which sends the
+    raw `weight_mode='callback'` JSON to the C++ parser — and the
+    parser raises ``Unknown weight_mode: callback``. After the fix,
+    the callback path exposes its own `_cdf_zero_fn` and the legacy
+    visit-probability call is never invoked."""
+    g = Graph(1)
+    v0 = g.starting_vertex()
+    v_a = g.find_or_create_vertex([1])
+    v_b = g.find_or_create_vertex([2])
+    v_abs = g.find_or_create_vertex([3])
+    v0.add_edge(v_a, [1.0, 0.0])
+    v0.add_edge(v_b, [1.0, 0.0])
+    v_a.add_edge(v_abs, [0.0, 1.0])
+    v_b.add_edge(v_abs, [0.0, 1.0])
+
+    def cb(param, coef):
+        rate1, rate2 = param
+        c0, c1 = coef
+        return float(c0 * rate1 + c1 * rate2)
+
+    g.weight_callback = cb
+    g.update_weights(np.array([1.0, 0.5]))
+
+    # Partial-coverage rewards: feature 0 rewards only state [1]
+    # (B-branch trajectories accumulate zero → atom at r=0). Feature 1
+    # rewards both [1] and [2] (full coverage).
+    rewards_2d = jnp.array([
+        [0.0, 1.0, 0.0, 0.0],   # partial coverage
+        [0.0, 1.0, 1.0, 0.0],   # full coverage
+    ])
+    from phasic import dense_to_sparse
+    rng = np.random.default_rng(0)
+    n = 4
+    # 2D dense observations (n_obs, n_features) with NaN padding for
+    # the partial-coverage feature, then convert to sparse format.
+    dense = np.full((n, 2), np.nan, dtype=np.float64)
+    dense[:, 0] = np.concatenate([np.zeros(2), rng.exponential(1.0, n - 2)])
+    dense[:, 1] = rng.exponential(1.0, n)
+    obs = dense_to_sparse(jnp.asarray(dense))
+
+    # Patch the legacy entry point so a fallthrough triggers a clear
+    # test failure rather than re-raising the C++ "Unknown weight_mode".
+    import phasic.ffi_wrappers as fw
+    sentinel = []
+    original = fw.compute_reward_visit_probability_ffi
+
+    def _trip(*a, **kw):
+        sentinel.append(True)
+        return original(*a, **kw)
+
+    fw.compute_reward_visit_probability_ffi = _trip
+    try:
+        svgd = g.svgd(
+            observed_data=obs,
+            rewards=rewards_2d,
+            callback=cb,
+            theta_dim=2,
+            prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.95))],
+            n_iterations=2,
+            n_particles=3,
+            progress=False,
+        )
+    finally:
+        fw.compute_reward_visit_probability_ffi = original
+
+    assert not sentinel, (
+        f"compute_reward_visit_probability_ffi was called "
+        f"{len(sentinel)} time(s); the callback-mode `_cdf_zero_fn` "
+        "should have routed the zero-inflated term through the "
+        "fused pybind path instead."
+    )
+    assert 0 in svgd.zero_inflated_features
+
+
 def test_svgd_without_betaprior_keeps_uniform_softplus():
     """Backwards compat: when no prior in the list declares a natural
     transform, the global softplus is used (single lambda, unchanged

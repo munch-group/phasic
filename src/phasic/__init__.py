@@ -7645,12 +7645,92 @@ extern "C" {{
                     vmap_method='sequential'
                 )
 
+            # Companion closure: compute only cdf_zero (per-feature
+            # atom mass at r = 0 of the reward-transformed
+            # distribution) under callback weight mode. Mirrors the
+            # linear/log pybind branch's `_cdf_zero_fn` so
+            # `_attach_zero_inflated_term` can route through the fused
+            # path rather than the legacy
+            # `compute_reward_visit_probability_ffi`, which can't parse
+            # a `weight_mode='callback'` JSON.
+            def _compute_callback_cdf_zero(theta_np, rewards_np):
+                """Apply the user's weight_callback to materialise a
+                concrete graph at this theta, then call the same fused
+                pybind method used by the linear/log path."""
+                concrete = _apply_weight_callback(
+                    _serialized, theta_np, weight_callback,
+                )
+                json_str = json.dumps(_make_json_serializable(concrete))
+                builder_cb = cpp_module.parameterized.GraphBuilder(json_str)
+                times_dummy = np.array([1.0], dtype=np.float64)
+                _, _, cz = builder_cb.compute_pmf_moments_and_cdf_zero(
+                    np.zeros(0), times_dummy,
+                    nr_moments=1, discrete=discrete,
+                    granularity=0, rewards=rewards_np,
+                )
+                return cz
+
+            def _cdf_zero_pure_cb(theta, rewards):
+                theta = jnp.atleast_1d(theta)
+                rewards_arr = jnp.atleast_1d(rewards).astype(jnp.float64)
+                if rewards_arr.ndim == 2:
+                    n_features = rewards_arr.shape[0]
+                    out_shape = jax.ShapeDtypeStruct(
+                        (n_features,), jnp.float64,
+                    )
+                else:
+                    out_shape = jax.ShapeDtypeStruct((1,), jnp.float64)
+
+                def callback_fn(theta_jax, rewards_jax):
+                    theta_np = np.asarray(theta_jax, dtype=np.float64)
+                    rewards_np = np.asarray(rewards_jax, dtype=np.float64)
+                    return _compute_callback_cdf_zero(theta_np, rewards_np)
+
+                return jax.pure_callback(
+                    callback_fn,
+                    out_shape,
+                    theta, rewards_arr,
+                    vmap_method='sequential',
+                )
+
+            @jax.custom_vjp
+            def cdf_zero_fn_cb(theta, rewards):
+                return _cdf_zero_pure_cb(theta, rewards)
+
+            def cdf_zero_fwd_cb(theta, rewards):
+                cz = _cdf_zero_pure_cb(theta, rewards)
+                return cz, (theta, rewards)
+
+            def cdf_zero_bwd_cb(res, g_cz):
+                theta, rewards = res
+                n_params = theta.shape[0]
+                eps = 1e-7
+                min_theta = 1e-9
+                grads = []
+                for i in range(n_params):
+                    theta_plus = theta.at[i].add(eps)
+                    theta_minus = theta.at[i].set(
+                        jnp.maximum(theta[i] - eps, min_theta)
+                    )
+                    actual_diff = theta_plus[i] - theta_minus[i]
+                    cz_plus = _cdf_zero_pure_cb(theta_plus, rewards)
+                    cz_minus = _cdf_zero_pure_cb(theta_minus, rewards)
+                    grad_i = jnp.sum(
+                        g_cz * (cz_plus - cz_minus) / actual_diff
+                    )
+                    grads.append(grad_i)
+                return jnp.array(grads), None
+
+            cdf_zero_fn_cb.defvjp(cdf_zero_fwd_cb, cdf_zero_bwd_cb)
+
             # Jump to the VJP wrapping below (shared with FFI/pybind paths)
             # Fall through to the VJP code at the end of this method
             use_ffi = False
             _callback_mode = True
+            _callback_mode_cdf_zero_fn = cdf_zero_fn_cb
         else:
             _callback_mode = False
+            _callback_mode_cdf_zero_fn = None
 
         if not _callback_mode:
             # Check if FFI is available - respect parameter, allow config override
@@ -7945,14 +8025,22 @@ extern "C" {{
             return jnp.array(theta_bar), None, None  # gradients for theta, times, rewards
 
         model.defvjp(model_fwd, model_bwd)
-        # Expose the per-feature cdf_zero closure on the pybind path
+        # Expose the per-feature cdf_zero closure on the pybind paths
         # (the default for Graph.svgd). Consumed by
         # _attach_zero_inflated_term to evaluate p(θ) = 1 - cdf_zero(θ)
         # without a separate backward_probabilities solve. The FFI path
         # (use_ffi=True) does not expose this attribute; its zero-
         # inflation wiring continues to use the legacy
         # compute_reward_visit_probability_ffi solve.
-        if not _callback_mode and not use_ffi:
+        if _callback_mode:
+            # Callback mode also exposes the fused cdf_zero closure
+            # (built above against the same concrete-graph machinery
+            # the model uses). Without this, the legacy fallback in
+            # _attach_zero_inflated_term would feed the raw
+            # ``weight_mode='callback'`` JSON to the C++ parser, which
+            # only accepts 'linear' and 'log'.
+            model._cdf_zero_fn = _callback_mode_cdf_zero_fn
+        elif not use_ffi:
             model._cdf_zero_fn = cdf_zero_fn
         return model
 
@@ -8386,6 +8474,14 @@ extern "C" {{
                     f"Rewards must be 1D (n_vertices,) or 2D (n_features, n_vertices). "
                     f"Got shape: {rewards_arr.shape}"
                 )
+
+        # Forward `_cdf_zero_fn` from the underlying 1D model so the
+        # zero-inflated likelihood path in `_attach_zero_inflated_term`
+        # can use it. Without this, partial-coverage 2D-rewards SVGD
+        # falls back to `compute_reward_visit_probability_ffi`, which
+        # can't parse a `weight_mode='callback'` JSON.
+        if hasattr(model_1d, '_cdf_zero_fn'):
+            model_multivariate._cdf_zero_fn = model_1d._cdf_zero_fn
 
         return model_multivariate
 
