@@ -982,10 +982,13 @@ error:
 struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex) {
     if (hash_hex == NULL) return NULL;
 
-    // Check if cache is disabled via environment variable
-    const char *disable_cache = getenv("PHASIC_DISABLE_CACHE");
-    if (disable_cache != NULL && strcmp(disable_cache, "1") == 0) {
-        return NULL;  // Cache disabled
+    // Cache is off by default (see ptd_pcg_cache_disabled at line ~3231).
+    // Only the positive opt-in PHASIC_REWARD_COMPUTE_CACHE="1" enables.
+    {
+        const char *enable = getenv("PHASIC_REWARD_COMPUTE_CACHE");
+        if (enable == NULL || strcmp(enable, "1") != 0) {
+            return NULL;  // Cache disabled (default policy)
+        }
     }
 
     // Get cache directory
@@ -1048,10 +1051,13 @@ struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex) {
 bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
     if (hash_hex == NULL || trace == NULL) return false;
 
-    // Check if cache is disabled via environment variable
-    const char *disable_cache = getenv("PHASIC_DISABLE_CACHE");
-    if (disable_cache != NULL && strcmp(disable_cache, "1") == 0) {
-        return false;  // Cache disabled
+    // Cache is off by default; only the positive opt-in
+    // PHASIC_REWARD_COMPUTE_CACHE="1" enables writes.
+    {
+        const char *enable = getenv("PHASIC_REWARD_COMPUTE_CACHE");
+        if (enable == NULL || strcmp(enable, "1") != 0) {
+            return false;
+        }
     }
 
     // Get cache directory
@@ -1896,8 +1902,9 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                  * coefficients via ptd_graph_content_hash. On a hit,
                  * we save an O(n^3) Gaussian elimination per fresh
                  * process. On a miss, the elimination runs as before
-                 * and we populate the cache. PHASIC_DISABLE_CACHE=1
-                 * skips both directions. */
+                 * and we populate the cache. Off by default; opt in
+                 * via phasic.configure(reward_compute_cache=True),
+                 * backed by PHASIC_REWARD_COMPUTE_CACHE=1. */
                 int cache_used = 0;
                 if (!ptd_pcg_cache_disabled()) {
                     char cache_path[PATH_MAX];
@@ -3225,12 +3232,15 @@ static int64_t ptd_pcg_chain_offset_of(
     return result;
 }
 
-// Return non-zero if the user has disabled all phasic disk caches via
-// PHASIC_DISABLE_CACHE=1. Matches the convention in
-// src/phasic/trace_serialization.py:81.
+// Return non-zero if the reward-compute disk cache is disabled.
+// The Python field `phasic.configure(reward_compute_cache=...)`
+// defaults to False (caching OFF). The positive env var
+// PHASIC_REWARD_COMPUTE_CACHE is set to "1" by configure() when
+// the user opts in; absence means "default policy" = disabled.
 static int ptd_pcg_cache_disabled(void) {
-    const char *v = getenv("PHASIC_DISABLE_CACHE");
-    return v != NULL && v[0] == '1' && v[1] == '\0';
+    const char *v = getenv("PHASIC_REWARD_COMPUTE_CACHE");
+    if (v == NULL) return 1;
+    return !(v[0] == '1' && v[1] == '\0');
 }
 
 // Build the path to the per-graph cache file:

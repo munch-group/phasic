@@ -12,7 +12,8 @@ These tests verify:
    bit-identical results.
 2. Cross-process — a subprocess populates the cache, then a fresh
    subprocess loads it.
-3. ``PHASIC_DISABLE_CACHE=1`` round-trips correctly (no read, no write).
+3. Disabling the reward-compute cache (the default policy) round-trips
+   correctly (no read, no write).
 4. Format-version mismatch falls back to rebuild without surfacing as
    a user-visible error.
 5. The in-memory persistent graph (Stage A1) and the disk cache
@@ -59,10 +60,16 @@ def _cache_root():
 @pytest.fixture
 def empty_cache(monkeypatch):
     """Run the test against a fresh, empty cache directory under a
-    HOME pointing at a temporary directory. Restores HOME after the
-    test."""
+    HOME pointing at a temporary directory. Also opts in to the
+    reward-compute cache (off by default) so the cache writes
+    happen. Restores HOME after the test."""
+    # PHASIC_CACHE_DIR takes priority over HOME in
+    # ``ptd_cache_root_dir``; clear any leak from other tests so the
+    # HOME redirection below actually takes effect.
+    monkeypatch.delenv("PHASIC_CACHE_DIR", raising=False)
     with tempfile.TemporaryDirectory() as tmp:
         monkeypatch.setenv("HOME", tmp)
+        monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
         yield Path(tmp) / ".phasic_cache" / "parameterized_reward_compute"
 
 
@@ -92,7 +99,7 @@ def test_cached_and_fresh_produce_identical_results(empty_cache, monkeypatch):
     np.testing.assert_allclose(m2, m1, rtol=1e-12)
 
     # Fresh builder with cache disabled → fresh elimination.
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     b3 = GraphBuilder(structure_json)
     m3 = b3.compute_moments(theta, 3)
     np.testing.assert_allclose(m3, m1, rtol=1e-12)
@@ -174,12 +181,14 @@ def test_cross_process_cache_round_trip(empty_cache):
 
 
 # ---------------------------------------------------------------------------
-# PHASIC_DISABLE_CACHE
+# Reward-compute cache disabled (the default policy)
 # ---------------------------------------------------------------------------
 
 
 def test_disable_cache_skips_writes(empty_cache, monkeypatch):
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    # empty_cache fixture sets PHASIC_REWARD_COMPUTE_CACHE=1; override
+    # to the default-disabled policy.
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     structure_json = _build_chain_json(20)
     b = GraphBuilder(structure_json)
     b.compute_moments(np.array([1.0]), 2)
@@ -190,19 +199,19 @@ def test_disable_cache_skips_writes(empty_cache, monkeypatch):
 
 
 def test_disable_cache_skips_reads(empty_cache, monkeypatch):
-    """Pre-populate the cache, then run with the env var set; verify
-    that we still get correct results (the load is skipped, so we go
-    through fresh elimination)."""
+    """Pre-populate the cache, then run with the cache disabled;
+    verify that we still get correct results (the load is skipped,
+    so we go through fresh elimination)."""
     structure_json = _build_chain_json(20)
 
-    # Populate
+    # Populate (the empty_cache fixture has the cache enabled).
     b1 = GraphBuilder(structure_json)
     m1 = b1.compute_moments(np.array([1.0]), 2)
     files = list(empty_cache.glob("*.bin")) if empty_cache.exists() else []
     assert len(files) == 1
 
-    # Now set the disable flag and verify correctness still holds.
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    # Now disable the cache and verify correctness still holds.
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     b2 = GraphBuilder(structure_json)
     m2 = b2.compute_moments(np.array([1.0]), 2)
     np.testing.assert_allclose(m2, m1, rtol=1e-12)

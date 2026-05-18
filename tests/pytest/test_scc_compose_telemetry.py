@@ -109,7 +109,7 @@ def test_first_compose_records_only_misses(monkeypatch):
     """With cleared disk cache, the first compose call records
     only misses (one per SCC, no hits)."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     _clear_disk_cache()
     cache.reset_scc_compose_stats()
 
@@ -128,7 +128,7 @@ def test_repeat_compose_records_only_hits(monkeypatch):
     """Once the disk cache is populated, subsequent composes for
     the same graph record only hits (no misses)."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     _clear_disk_cache()
 
     # Warm-up (populates disk cache).
@@ -151,7 +151,7 @@ def test_hits_plus_misses_equals_n_sccs_per_call(monkeypatch):
     """For toy_b (5 SCCs), each compose call records exactly 5
     hit-or-miss events."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     _clear_disk_cache()
     cache.reset_scc_compose_stats()
 
@@ -171,10 +171,11 @@ def test_hits_plus_misses_equals_n_sccs_per_call(monkeypatch):
 
 
 def test_disabled_cache_records_no_hits_or_misses(monkeypatch):
-    """With PHASIC_DISABLE_CACHE=1, the cache load/save path is
-    skipped, so no hits or misses are recorded."""
+    """When the reward-compute cache is disabled (the default
+    policy; PHASIC_REWARD_COMPUTE_CACHE unset), the load/save path
+    is skipped, so no hits or misses are recorded."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     cache.reset_scc_compose_stats()
 
     g = build_toy_b()
@@ -191,7 +192,7 @@ def test_counters_accumulate_across_calls(monkeypatch):
     """Counters accumulate across multiple compose calls without
     a reset in between."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     _clear_disk_cache()
     cache.reset_scc_compose_stats()
 

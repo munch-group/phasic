@@ -60,10 +60,16 @@
  * places. */
 #define sizeof_ptd_err 4096
 
-/* Match phasic.c's PHASIC_DISABLE_CACHE convention. */
+/* Match phasic.c's ptd_pcg_cache_disabled() convention: the
+ * Python field `reward_compute_cache` defaults to False, so an
+ * unset PHASIC_REWARD_COMPUTE_CACHE means "disabled"; the cache is
+ * enabled only when the env var is set to "1" (which happens when
+ * the user calls `phasic.configure(reward_compute_cache=True)`).
+ */
 static int ptd_scc_cache_disabled(void) {
-    const char *v = getenv("PHASIC_DISABLE_CACHE");
-    return v != NULL && v[0] == '1' && v[1] == '\0';
+    const char *v = getenv("PHASIC_REWARD_COMPUTE_CACHE");
+    if (v == NULL) return 1;
+    return !(v[0] == '1' && v[1] == '\0');
 }
 
 /* Read PHASIC_MIN_SCC_SIZE_TO_CACHE: SCCs whose synthetic graph

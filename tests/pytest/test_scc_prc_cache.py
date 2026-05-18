@@ -7,7 +7,8 @@ Verifies ``ptd_scc_get_or_compute_prc`` (exposed as
 - Cross-graph reuse: two parents sharing an SCC structurally
   produce the same cache key, so the second parent's compute
   hits the first parent's cache.
-- ``PHASIC_DISABLE_CACHE=1`` skips both load and save.
+- Removing PHASIC_REWARD_COMPUTE_CACHE skips both load and save
+  (the default policy).
 - Toy-D's aux SCC round-trips through the cache.
 
 See wp4-plan.md for the design.
@@ -32,8 +33,10 @@ from toy_model import (
 
 @pytest.fixture(autouse=True)
 def _force_cache_all_sccs(monkeypatch):
-    """Override the size threshold so every SCC produces a cache
-    file; this file's tests assert on cache file existence."""
+    """This file's tests assert on cache file existence, so the
+    reward-compute cache must be enabled (it is off by default) and
+    the per-SCC size threshold must allow every SCC to be cached."""
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
 
 
@@ -185,37 +188,41 @@ def test_toy_c_unshared_scc_uses_different_cache_key():
 # Cache disable
 # ---------------------------------------------------------------------------
 
-def test_phasic_disable_cache_skips_save(monkeypatch):
-    """With PHASIC_DISABLE_CACHE=1, get_or_compute_prc must not
-    create or update the cache file."""
+def test_disabled_reward_compute_cache_skips_save(monkeypatch):
+    """When the reward-compute cache is disabled (the default
+    policy, i.e. PHASIC_REWARD_COMPUTE_CACHE unset),
+    ``get_or_compute_prc`` must not create or update the cache
+    file."""
     g = build_toy_base()
     scc = _scc_with_external_anchors(g)
     path = scc.cache_file_path()
     _ensure_clean(path)
 
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
 
     scc.get_or_compute_prc()
     assert not os.path.exists(path), (
-        "PHASIC_DISABLE_CACHE=1 did not skip cache save"
+        "Disabled cache still saved a file"
     )
 
 
-def test_phasic_disable_cache_skips_load(monkeypatch):
-    """With PHASIC_DISABLE_CACHE=1, an existing cache file is
-    ignored — every call recomputes."""
+def test_disabled_reward_compute_cache_skips_load(monkeypatch):
+    """When the reward-compute cache is disabled, an existing
+    cache file is ignored — every call recomputes without
+    touching it."""
     g = build_toy_base()
     scc = _scc_with_external_anchors(g)
     path = scc.cache_file_path()
     _ensure_clean(path)
 
-    # Pre-populate the cache.
+    # Pre-populate the cache (autouse fixture has set
+    # PHASIC_REWARD_COMPUTE_CACHE=1).
     scc.get_or_compute_prc()
     assert os.path.exists(path)
     mtime_before = os.path.getmtime(path)
 
     # Now disable cache and compute again.
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     time.sleep(0.05)
     scc.get_or_compute_prc()
 
@@ -223,7 +230,7 @@ def test_phasic_disable_cache_skips_load(monkeypatch):
     # unchanged because the disabled-cache path doesn't touch it.
     mtime_after = os.path.getmtime(path)
     assert mtime_before == mtime_after, (
-        "PHASIC_DISABLE_CACHE=1 still touched the cache file"
+        "Disabled cache still touched the cache file"
     )
 
 

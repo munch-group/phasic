@@ -32,6 +32,19 @@ logger = get_logger(__name__)
 DEFAULT_CACHE_DIR = Path.home() / ".phasic_cache" / "graphs"
 
 
+def is_graph_cache_disabled() -> bool:
+    """True when the graph cache is globally disabled.
+
+    Backs the ``PHASIC_DISABLE_GRAPH_CACHE`` env var (set by
+    ``phasic.configure(graph_cache=False)`` via the standard
+    inverted-bool convention). The cache defaults to **on**, so an
+    unset env var means enabled. Per-graph
+    ``Graph(..., graph_cache=True/False)`` overrides this global
+    default.
+    """
+    return os.environ.get("PHASIC_DISABLE_GRAPH_CACHE") == "1"
+
+
 class GraphCache:
     """
     Manages persistent disk cache for Graph objects.
@@ -101,6 +114,13 @@ class GraphCache:
         IOError
             If cache write fails
         """
+        # Honour the global graph-cache disable env var; this returns
+        # early so the call is a no-op when the user has disabled the
+        # cache globally (per-graph kwargs are checked in
+        # ``Graph.__init__`` before we get here).
+        if is_graph_cache_disabled():
+            return ""
+
         # Compute cache key
         try:
             cache_key = hash_callback(callback, **params)
@@ -154,6 +174,10 @@ class GraphCache:
         Graph or None
             Cached graph if found, None otherwise
         """
+        # Honour the global graph-cache disable env var.
+        if is_graph_cache_disabled():
+            return None
+
         # Compute cache key
         try:
             cache_key = hash_callback(callback, **params)

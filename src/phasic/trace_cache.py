@@ -300,11 +300,14 @@ def verify_cache_working() -> dict[str, object]:
         "readable": False,
         "test_passed": False,
         "error": None,
-        "disabled": os.environ.get('PHASIC_DISABLE_CACHE') == '1'
+        "disabled": os.environ.get('PHASIC_REWARD_COMPUTE_CACHE') != '1'
     }
 
     if status["disabled"]:
-        status["error"] = "Cache disabled via PHASIC_DISABLE_CACHE=1"
+        status["error"] = (
+            "Reward-compute cache disabled (default policy). "
+            "Enable via phasic.configure(reward_compute_cache=True)."
+        )
         return status
 
     # Check if directory exists
@@ -357,7 +360,9 @@ def save_trace_to_cache_python(graph, trace) -> None:
     Raises
     ------
     RuntimeError
-        If cache save fails (unless PHASIC_DISABLE_CACHE=1).
+        If cache save fails (unless the reward-compute cache is
+        disabled — the default policy; see
+        ``phasic.configure(reward_compute_cache=...)``).
     """
     # Compute hash from graph
     graph_data = graph.serialize()

@@ -937,7 +937,8 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
     # NOTE: Caching is handled at C level in ptd_graph_update_weights()
     # No need for Python-level caching - C level is more efficient
     # Cache location: ~/.phasic_cache/traces/
-    # Disable cache: Set PHASIC_DISABLE_CACHE=1 environment variable
+    # Cache control: phasic.configure(reward_compute_cache=True/False)
+    # (default False — opt-in). Backs PHASIC_REWARD_COMPUTE_CACHE.
 
     logger.info("Trace recording complete: %d vertices, %d operations, phase %d, param_length=%d, reward_length=%d",
                 trace.n_vertices, len(trace.operations), trace.metadata["phase"],

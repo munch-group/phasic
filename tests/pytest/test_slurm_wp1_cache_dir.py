@@ -60,7 +60,7 @@ def test_c_cache_writes_to_override_dir(tmp_path, monkeypatch):
     custom = tmp_path / "shared_cache"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(custom))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     cache.reset_scc_compose_stats()
 
     g = build_toy_b()
@@ -87,7 +87,7 @@ def test_c_cache_does_not_touch_home_when_override_set(tmp_path, monkeypatch):
 
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(custom))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     cache.reset_scc_compose_stats()
 
     g = build_toy_b()
@@ -107,7 +107,7 @@ def test_cache_hit_across_processes_via_override(tmp_path, monkeypatch):
     custom = tmp_path / "shared_cache"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(custom))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     cache.reset_scc_compose_stats()
     g1 = build_toy_b(); g1.update_weights(THETA)
@@ -133,7 +133,7 @@ def test_clear_cache_uses_override(tmp_path, monkeypatch):
     custom = tmp_path / "shared_cache"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(custom))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b(); g.update_weights(THETA)
     _ = g.expected_waiting_time()
@@ -151,7 +151,7 @@ def test_cache_info_uses_override(tmp_path, monkeypatch):
     custom = tmp_path / "shared_cache"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(custom))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b(); g.update_weights(THETA)
     _ = g.expected_waiting_time()

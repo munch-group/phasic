@@ -12,8 +12,11 @@ making traces compatible across Python, C++, and R.
 
 Environment Variables
 ---------------------
-PHASIC_DISABLE_CACHE : str
-    Set to "1" to disable all cache operations
+PHASIC_REWARD_COMPUTE_CACHE : str
+    Set to "1" to enable the reward-compute / trace cache. Unset (or
+    any other value) leaves the cache disabled — that is the default
+    policy. Use ``phasic.configure(reward_compute_cache=True)`` to set
+    this from Python.
 """
 
 from __future__ import annotations
@@ -81,16 +84,22 @@ _PYTHON_OP_TYPE_MAP = {v: k for k, v in _C_OP_TYPE_MAP.items()}
 
 def is_cache_disabled() -> bool:
     """
-    Check if cache is disabled via environment variable.
+    Check if the reward-compute / trace cache family is disabled.
+
+    The cache is **off by default**; opt in via
+    ``phasic.configure(reward_compute_cache=True)`` (which sets
+    ``PHASIC_REWARD_COMPUTE_CACHE=1``). Absence of the env var means
+    "default policy" = disabled.
 
     Returns
     -------
     bool
-        True if PHASIC_DISABLE_CACHE=1 or C bindings unavailable
+        True if the cache is disabled (env var unset or any value
+        other than ``'1'``, or C bindings unavailable).
     """
     if not _HAS_C_BINDINGS:
         return True
-    return os.environ.get("PHASIC_DISABLE_CACHE", "0") == "1"
+    return os.environ.get("PHASIC_REWARD_COMPUTE_CACHE") != "1"
 
 
 def _c_trace_to_python(trace_ptr: int) -> EliminationTrace | None:

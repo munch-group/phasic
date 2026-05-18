@@ -1641,7 +1641,7 @@ class SymbolicDAG:
 
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool = False, **kwargs: Any) -> None:
+    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool | None = None, **kwargs: Any) -> None:
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1656,11 +1656,18 @@ class Graph(_Graph):
         callback :
             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-        graph_cache : bool, optional
-            If True, attempts to load graph from disk cache. If not cached, builds graph and saves to cache.
-            Cache is keyed by callback function source code + parameters, enabling instant loading of
-            previously built graphs. Useful for expensive graph constructions.
-            Default: False (no caching)
+        graph_cache : bool or None, optional
+            Per-graph override for the on-disk graph cache at
+            ``~/.phasic_cache/graphs/``. The cache is keyed by callback
+            source code + parameters, enabling instant loading of
+            previously built graphs.
+
+            - ``True``: opt in to caching for this graph (load on
+              construction, save after build).
+            - ``False``: opt out for this graph even if the global
+              default is on.
+            - ``None`` (default): use the global default from
+              ``phasic.configure(graph_cache=...)`` — on by default.
         theta_dim : int, optional
             Number of model parameters (θ). This sets the expected length of parameter vectors
             passed to update_weights(theta).
@@ -1802,6 +1809,14 @@ class Graph(_Graph):
                 # Wrap with IPV now so cache hash includes it
                 callback_for_cache = _callback(ipv)(arg)
 
+        # Resolve the per-graph graph_cache flag against the global
+        # default once: graph_cache=None means "use phasic.configure
+        # (graph_cache=...)" (defaults True). Explicit True/False
+        # bypasses the global.
+        if graph_cache is None:
+            from .config import get_config
+            graph_cache = bool(get_config().graph_cache)
+
         # Try loading from cache if requested
         if callable(arg) and graph_cache:
             from .graph_cache import GraphCache
@@ -1822,6 +1837,13 @@ class Graph(_Graph):
                     self._trace = None
                     self._trace_dirty = True
                     self._last_theta = None
+                    # Match the attribute set established by the
+                    # non-cache-hit path further down (lines ~1901+).
+                    # Without these, calling ``serialize()`` on the
+                    # cache-loaded instance raises AttributeError.
+                    self._weight_mode = getattr(cached_graph, '_weight_mode', 'linear')
+                    self._weight_callback = getattr(cached_graph, '_weight_callback', None)
+                    self._last_callback_vertices_length = self.vertices_length()
                     logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
 
                     return
@@ -8893,7 +8915,7 @@ extern "C" {{
         return dot
 
 
-    def plot_scc_decomposition(self,
+    def plot_scc_decomp(self,
                                 figsize: tuple[float, float] = (10.0, 6.0),
                                 cmap: str = 'viridis',
                                 show_indices: bool = True,
@@ -8960,7 +8982,7 @@ extern "C" {{
         --------
         >>> import phasic
         >>> g = phasic.Graph(my_callback)
-        >>> ax = g.plot_scc_decomposition()
+        >>> ax = g.plot_scc_decomp()
         >>> ax.figure.savefig('scc.pdf')
 
         See Also

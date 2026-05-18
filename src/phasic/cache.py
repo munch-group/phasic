@@ -16,8 +16,12 @@ phasic maintains two on-disk caches under ``~/.phasic_cache/``:
   :func:`param_compute_cache_info`.
 
 Both caches are user-owned. Phasic does not auto-prune or
-size-cap. Both honour ``PHASIC_DISABLE_CACHE=1`` to skip reads and
-writes.
+size-cap. The reward-compute family is **off by default**; opt in
+via ``phasic.configure(reward_compute_cache=True)`` (which sets
+``PHASIC_REWARD_COMPUTE_CACHE=1``). The graph cache at
+``~/.phasic_cache/graphs/`` is **on by default**; disable via
+``phasic.configure(graph_cache=False)`` (sets
+``PHASIC_DISABLE_GRAPH_CACHE=1``).
 
 Example
 -------
@@ -150,8 +154,9 @@ def param_compute_cache_info() -> dict[str, Any]:
           (filenames starting with ``scc_``).
         - ``total_size`` (int): total size in bytes across all
           files.
-        - ``disabled`` (bool): whether ``PHASIC_DISABLE_CACHE=1``
-          is set.
+        - ``disabled`` (bool): whether the reward-compute cache is
+          off (the default; flip via
+          ``phasic.configure(reward_compute_cache=True)``).
 
     Examples
     --------

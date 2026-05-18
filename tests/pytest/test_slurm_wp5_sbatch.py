@@ -134,7 +134,7 @@ def test_run_workers_locally_sequential_pipeline(tmp_path, monkeypatch):
     same cache state as a SLURM array would."""
     cache_dir = tmp_path / "cache"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc_decomp = g.scc_decomposition()
@@ -159,7 +159,7 @@ def test_run_workers_locally_parallel_pipeline(tmp_path, monkeypatch):
     write-then-rename in the cache write path is atomic."""
     cache_dir = tmp_path / "cache"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
 
     g = build_toy_b()

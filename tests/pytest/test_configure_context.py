@@ -18,20 +18,32 @@ from phasic.config import _phasic_assigned_env, reset_config
 from phasic.exceptions import PTDConfigError
 
 
+_PHASIC_ENV_VARS = (
+    'OMP_NUM_THREADS', 'PHASIC_HIERAR_ELIMINATION',
+    'PHASIC_REWARD_COMPUTE_CACHE', 'PHASIC_DISABLE_GRAPH_CACHE',
+    'PHASIC_CACHE_DIR',
+    'PHASIC_MIN_SCC_SIZE_TO_CACHE',
+    'PHASIC_MAX_PARALLEL_SCCS', 'PHASIC_FORCE_MPFR',
+    'PHASIC_MPFR_BITS', 'PHASIC_CONDITION_THRESHOLD',
+    'PHASIC_DISABLE_CONDITION_WARNINGS',
+)
+
+
 @pytest.fixture(autouse=True)
 def _reset(monkeypatch):
     reset_config()
     _phasic_assigned_env.clear()
-    for v in ('OMP_NUM_THREADS', 'PHASIC_HIERAR_ELIMINATION',
-              'PHASIC_DISABLE_CACHE', 'PHASIC_CACHE_DIR',
-              'PHASIC_MIN_SCC_SIZE_TO_CACHE',
-              'PHASIC_MAX_PARALLEL_SCCS', 'PHASIC_FORCE_MPFR',
-              'PHASIC_MPFR_BITS', 'PHASIC_CONDITION_THRESHOLD',
-              'PHASIC_DISABLE_CONDITION_WARNINGS'):
+    for v in _PHASIC_ENV_VARS:
         monkeypatch.delenv(v, raising=False)
     yield
     reset_config()
     _phasic_assigned_env.clear()
+    # See test_config_scc_controls.py for rationale: phasic.configure
+    # bypasses monkeypatch by writing os.environ directly, so we
+    # scrub directly on cleanup.
+    import os
+    for v in _PHASIC_ENV_VARS:
+        os.environ.pop(v, None)
 
 
 def test_context_manager_rolls_back_field():

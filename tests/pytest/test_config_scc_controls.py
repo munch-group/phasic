@@ -34,22 +34,36 @@ THETA = [1.0, 1.0, 1.0, 1.0]
 
 @pytest.fixture(autouse=True)
 def _reset_config_and_env(monkeypatch):
-    """Reset the global config and clear PHASIC_* env vars
-    before each test. Also clear _phasic_assigned_env so that
-    env vars set by previous tests are NOT treated as
-    phasic-owned (which would let configure() silently
-    overwrite them and bypass the conflict-check)."""
+    """Reset the global config and clear PHASIC_* env vars before
+    each test (and after, since ``phasic.configure`` writes to
+    ``os.environ`` directly — bypassing pytest's monkeypatch
+    tracking — so leaked env vars would otherwise contaminate
+    subsequent tests / modules)."""
     from phasic.config import _phasic_assigned_env
+
+    _PHASIC_ENV_VARS = (
+        "PHASIC_HIERAR_ELIMINATION",
+        "PHASIC_MIN_SCC_SIZE_TO_CACHE",
+        "PHASIC_MAX_PARALLEL_SCCS",
+        "PHASIC_REWARD_COMPUTE_CACHE",
+        "PHASIC_DISABLE_GRAPH_CACHE",
+        "PHASIC_CACHE_DIR",
+    )
+
     reset_config()
     _phasic_assigned_env.clear()
-    monkeypatch.delenv("PHASIC_HIERAR_ELIMINATION", raising=False)
-    monkeypatch.delenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", raising=False)
-    monkeypatch.delenv("PHASIC_MAX_PARALLEL_SCCS", raising=False)
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
-    monkeypatch.delenv("PHASIC_CACHE_DIR", raising=False)
+    for v in _PHASIC_ENV_VARS:
+        monkeypatch.delenv(v, raising=False)
     yield
     reset_config()
     _phasic_assigned_env.clear()
+    # Belt-and-braces: scrub env vars that ``phasic.configure(...)``
+    # may have written via ``os.environ[...] = ...`` (which pytest's
+    # monkeypatch does not track). Without this, the leftovers leak
+    # into the next test module and break tests that assume a clean
+    # default-config environment.
+    for v in _PHASIC_ENV_VARS:
+        os.environ.pop(v, None)
 
 
 # ---------------------------------------------------------------
@@ -89,9 +103,20 @@ def test_configure_max_parallel_sccs_sets_env():
     assert os.environ.get("PHASIC_MAX_PARALLEL_SCCS") == "4"
 
 
-def test_configure_disable_cache_sets_env():
-    phasic.configure(cache_enabled=False)
-    assert os.environ.get("PHASIC_DISABLE_CACHE") == "1"
+def test_configure_disable_graph_cache_sets_env():
+    phasic.configure(graph_cache=False)
+    assert os.environ.get("PHASIC_DISABLE_GRAPH_CACHE") == "1"
+
+
+def test_configure_enable_reward_compute_cache_sets_env():
+    phasic.configure(reward_compute_cache=True)
+    assert os.environ.get("PHASIC_REWARD_COMPUTE_CACHE") == "1"
+
+
+def test_configure_default_reward_compute_cache_unsets_env():
+    # Default policy is OFF; the field at its default removes the env var.
+    phasic.configure(reward_compute_cache=False)
+    assert os.environ.get("PHASIC_REWARD_COMPUTE_CACHE") is None
 
 
 def test_configure_cache_dir_sets_env(tmp_path):
@@ -191,6 +216,7 @@ def test_configure_threshold_affects_cache_bypass(tmp_path):
     phasic.configure(
             parallel_elimination=True,
             cache_dir=str(tmp_path),
+            reward_compute_cache=True,  # opt in (default is off)
             parallel_elimination_min_subgraph=1000,  # bypass everything
     )
     cache.reset_scc_compose_stats()
@@ -209,6 +235,7 @@ def test_configure_zero_threshold_caches_everything(tmp_path):
     phasic.configure(
             parallel_elimination=True,
             cache_dir=str(tmp_path),
+            reward_compute_cache=True,  # opt in (default is off)
             parallel_elimination_min_subgraph=0,
     )
     cache.reset_scc_compose_stats()
@@ -222,12 +249,12 @@ def test_configure_zero_threshold_caches_everything(tmp_path):
     assert s["cache_misses"] == 5
 
 
-def test_configure_disable_cache_end_to_end(tmp_path):
-    """configure(cache_enabled=False) bypasses load and save."""
+def test_configure_disable_reward_compute_cache_end_to_end(tmp_path):
+    """reward_compute_cache=False (the default) bypasses load + save."""
     phasic.configure(
             parallel_elimination=True,
             cache_dir=str(tmp_path),
-            cache_enabled=False,
+            reward_compute_cache=False,
             parallel_elimination_min_subgraph=0,
     )
     cache.reset_scc_compose_stats()

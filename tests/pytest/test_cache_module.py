@@ -35,8 +35,11 @@ def isolated_cache(monkeypatch, tmp_path):
     """Run each test against a clean ``~/.phasic_cache`` rooted at a
     pytest tmp_path. Every helper in ``phasic.cache`` resolves the
     cache directory from ``HOME`` at call time, so this isolates the
-    test from the user's real cache."""
+    test from the user's real cache. Also opts in to the
+    reward-compute cache (off by default) since this file's tests
+    exercise the cache machinery."""
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     yield tmp_path
 
 
@@ -66,7 +69,9 @@ def test_info_with_files(isolated_cache):
 
 
 def test_info_reflects_disable_env(isolated_cache, monkeypatch):
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    # Override the isolated_cache fixture's opt-in; the default
+    # policy is "disabled".
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
     info = cache_mod.param_compute_cache_info()
     assert info["disabled"] is True
 

@@ -88,7 +88,7 @@ def test_cache_synth_prc_writes_cache_file(tmp_path, monkeypatch):
     """cache_synth_prc creates a cache file for the synth's
     content hash."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc = g.scc_decomposition().scc_at(1)
@@ -108,7 +108,7 @@ def test_worker_cache_hit_at_orchestrator(tmp_path, monkeypatch):
     then orchestrator's hierarchical compose hits that entry."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     # Phase 1: orchestrator-side serialisation.
     g_orch = build_toy_b()

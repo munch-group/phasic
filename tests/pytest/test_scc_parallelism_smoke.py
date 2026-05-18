@@ -103,7 +103,7 @@ def _isolated_cache(tmp_path, monkeypatch):
     elimination path, not load from a previous run's cache."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path / "cache"))
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
 
 def test_hierar_env_var_takes_the_parallel_path(parallel_friendly_graph,

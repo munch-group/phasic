@@ -27,13 +27,13 @@ from phasic.exceptions import PTDBackendError, PTDFormatError
 
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch):
-    """Defend against test-isolation leakage: other test files
-    (notably test_config_scc_controls.py) leave PHASIC_DISABLE_CACHE
-    or similar set on ``os.environ`` directly, which would cause the
-    C path to refuse to write a .bin and the fixture's
-    ``assert local_bin.exists()`` to fail. Clear them before each
-    test in this file."""
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    """Defend against test-isolation leakage. This file's tests
+    require the reward-compute cache to be **on** (the C path must
+    write a .bin for the fixture's ``assert local_bin.exists()`` to
+    pass). The cache is off by default since the cache-policy split;
+    we explicitly opt in here and clear any leaks from other env
+    knobs that might interfere."""
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     monkeypatch.delenv("PHASIC_HIERAR_ELIMINATION", raising=False)
     monkeypatch.delenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", raising=False)
     monkeypatch.delenv("PHASIC_MAX_PARALLEL_SCCS", raising=False)

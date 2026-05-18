@@ -52,7 +52,7 @@ def _make_work_unit(tmp_path: Path, scc_idx: int = 1) -> Path:
 
 def test_run_worker_returns_zero_on_success(tmp_path, monkeypatch):
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path / "cache"))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     wu = _make_work_unit(tmp_path)
     rc = scc_worker.run_worker(str(wu))
@@ -62,7 +62,7 @@ def test_run_worker_returns_zero_on_success(tmp_path, monkeypatch):
 def test_run_worker_writes_cache_file(tmp_path, monkeypatch):
     cache_dir = tmp_path / "cache"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     wu = _make_work_unit(tmp_path)
     scc_worker.run_worker(str(wu))
@@ -117,7 +117,7 @@ def test_subprocess_invocation_succeeds(tmp_path, monkeypatch):
 
     env = os.environ.copy()
     env["PHASIC_CACHE_DIR"] = str(cache_dir)
-    env.pop("PHASIC_DISABLE_CACHE", None)
+    env["PHASIC_REWARD_COMPUTE_CACHE"] = "1"
 
     result = subprocess.run(
             [sys.executable, "-m", "phasic.scc_worker", str(wu)],
@@ -139,7 +139,7 @@ def test_worker_then_orchestrator_full_pipeline(tmp_path, monkeypatch):
     cache_dir = tmp_path / "cache"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     # Phase 1: orchestrator writes work units.
     g = build_toy_b()

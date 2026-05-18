@@ -43,7 +43,7 @@ def test_precompute_distributed_local_populates_cache(tmp_path, monkeypatch):
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)
@@ -77,7 +77,7 @@ def test_precompute_distributed_partial_cache(tmp_path, monkeypatch):
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     # Cache exactly SCC 1.
     g_pre = build_toy_b()
@@ -106,7 +106,7 @@ def test_precompute_distributed_fully_cached_no_op(tmp_path, monkeypatch):
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     # Pre-populate with a hierarchical compose run.
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
@@ -133,7 +133,7 @@ def test_precompute_distributed_creates_work_dir(tmp_path, monkeypatch):
     work_dir = tmp_path / "nested" / "work"
     assert not work_dir.exists()
 
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     g = build_toy_b()
     g.update_weights(THETA)
 
@@ -152,7 +152,7 @@ def test_precompute_distributed_writes_work_unit_files(tmp_path, monkeypatch):
     under work_dir/level_<l>/ (as a paper trail / for debug)."""
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)
@@ -201,7 +201,7 @@ def test_precompute_distributed_returns_metadata(tmp_path, monkeypatch):
     """The returned dict carries the expected keys."""
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)
@@ -223,7 +223,7 @@ def test_precompute_distributed_uses_existing_cache_dir_env(tmp_path, monkeypatc
     cache_dir = tmp_path / "cache"
     work_dir = tmp_path / "work"
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(cache_dir))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)

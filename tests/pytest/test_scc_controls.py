@@ -32,7 +32,7 @@ def test_default_threshold_bypasses_small_synth(tmp_path, monkeypatch):
     SCC (synth=3 vertices) is bypassed; the rest are cached."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     monkeypatch.delenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", raising=False)
 
     cache.reset_scc_compose_stats()
@@ -53,7 +53,7 @@ def test_threshold_zero_caches_everything(tmp_path, monkeypatch):
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     cache.reset_scc_compose_stats()
     g = build_toy_b()
@@ -71,7 +71,7 @@ def test_threshold_high_bypasses_all(tmp_path, monkeypatch):
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "1000")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     cache.reset_scc_compose_stats()
     g = build_toy_b()
@@ -90,7 +90,7 @@ def test_threshold_invalid_falls_back_to_default(tmp_path, monkeypatch):
         monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
         monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path / f"c_{bad or 'empty'}"))
         monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", bad)
-        monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+        monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
         cache.reset_scc_compose_stats()
         g = build_toy_b()
@@ -108,7 +108,7 @@ def test_threshold_correctness_unchanged(tmp_path, monkeypatch):
     the math."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     results = {}
     for thresh in ["0", "4", "1000"]:
@@ -126,7 +126,7 @@ def test_bypassed_synths_do_not_write_cache_files(tmp_path, monkeypatch):
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "1000")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)

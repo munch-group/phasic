@@ -3466,8 +3466,9 @@ str
                return py::cast(path);
            },
            "Return the absolute path of this SCC's cache file.\n"
-           "The file may not exist yet (compute hasn't run, or\n"
-           "PHASIC_DISABLE_CACHE=1).")
+           "The file may not exist yet (compute hasn't run, or the\n"
+           "reward-compute cache is off — the default policy; opt in\n"
+           "via phasic.configure(reward_compute_cache=True)).")
       .def("internal_vertex_indices", &phasic::SCCVertex::internal_vertex_indices,
            "Get indices of internal vertices in original graph")
       .def("hash", &phasic::SCCVertex::hash,
@@ -3638,7 +3639,8 @@ int
 Notes
 -----
 - Caller must call _c_elimination_trace_destroy to free memory
-- Cache can be disabled via PHASIC_DISABLE_CACHE=1 environment variable
+- Cache is off by default; enable via PHASIC_REWARD_COMPUTE_CACHE=1 (or
+  phasic.configure(reward_compute_cache=True)).
 - This is an internal function, use trace_serialization.load_trace_from_cache instead
 )delim");
 
@@ -3672,7 +3674,8 @@ bool
 
 Notes
 -----
-- Cache can be disabled via PHASIC_DISABLE_CACHE=1 environment variable
+- Cache is off by default; enable via PHASIC_REWARD_COMPUTE_CACHE=1 (or
+  phasic.configure(reward_compute_cache=True)).
 - This is an internal function, use trace_serialization.save_trace_to_cache instead
 )delim");
 

@@ -40,8 +40,9 @@ def test_compose_matches_monolithic(toy_name, theta_idx, monkeypatch):
     ``expected_waiting_time``."""
     # Disable the disk cache to avoid stale entries from prior
     # test runs. WP-5 itself works with caching, but determinism
-    # in tests is easier without it.
-    monkeypatch.setenv("PHASIC_DISABLE_CACHE", "1")
+    # in tests is easier without it. Cache defaults to off; remove
+    # any opt-in left by a prior test.
+    monkeypatch.delenv("PHASIC_REWARD_COMPUTE_CACHE", raising=False)
 
     builder = BUILDERS[toy_name]
     theta = THETAS[theta_idx]
@@ -65,10 +66,11 @@ def test_compose_matches_monolithic(toy_name, theta_idx, monkeypatch):
 
 
 @pytest.mark.parametrize("toy_name", list(BUILDERS.keys()))
-def test_compose_with_disk_cache(toy_name):
+def test_compose_with_disk_cache(toy_name, monkeypatch):
     """The composer must work end-to-end with the disk cache
-    enabled (no PHASIC_DISABLE_CACHE), exercising the
-    cache-write and cache-read code paths."""
+    enabled (opt in via PHASIC_REWARD_COMPUTE_CACHE=1), exercising
+    the cache-write and cache-read code paths."""
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
     builder = BUILDERS[toy_name]
     theta = [1.0, 1.0, 1.0, 1.0]
 

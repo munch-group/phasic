@@ -100,7 +100,7 @@ def test_cache_path_matches_what_c_writes(tmp_path, monkeypatch):
     """scc_cache_path_for_synth predicts the exact path the C
     composer writes when caching a synth's PRC."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc = g.scc_decomposition().scc_at(1)
@@ -119,7 +119,7 @@ def test_cache_path_matches_what_c_writes(tmp_path, monkeypatch):
 def test_find_missing_when_cache_empty(tmp_path, monkeypatch):
     """All SCCs missing when cache is empty."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc_decomp = g.scc_decomposition()
@@ -133,7 +133,7 @@ def test_find_missing_after_full_population(tmp_path, monkeypatch):
     populate the cache."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)
@@ -147,7 +147,7 @@ def test_find_missing_after_full_population(tmp_path, monkeypatch):
 def test_find_missing_partial(tmp_path, monkeypatch):
     """Compute one specific SCC, others remain missing."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc_decomp = g.scc_decomposition()
@@ -167,7 +167,7 @@ def test_plan_only_missing_drops_cached(tmp_path, monkeypatch):
     """plan_distributed_work(only_missing=True) returns levels
     with cached SCCs filtered out."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc_decomp = g.scc_decomposition()
@@ -187,7 +187,7 @@ def test_plan_only_missing_drops_cached(tmp_path, monkeypatch):
 def test_plan_no_filter_returns_all(tmp_path, monkeypatch):
     """only_missing=False returns all levels regardless of cache."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     scc_decomp = g.scc_decomposition()
@@ -202,7 +202,7 @@ def test_plan_when_fully_cached_is_empty(tmp_path, monkeypatch):
     """After populating all SCCs, the plan has no work units."""
     monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    monkeypatch.delenv("PHASIC_DISABLE_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
 
     g = build_toy_b()
     g.update_weights(THETA)

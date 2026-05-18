@@ -191,7 +191,8 @@ def _snapshot_config_for_context() -> _ConfigureContext:
         'PHASIC_MPFR_BITS',
         'PHASIC_CONDITION_THRESHOLD',
         'PHASIC_DISABLE_CONDITION_WARNINGS',
-        'PHASIC_DISABLE_CACHE',
+        'PHASIC_REWARD_COMPUTE_CACHE',
+        'PHASIC_DISABLE_GRAPH_CACHE',
         'PHASIC_CACHE_DIR',
     }
     saved_env = {v: os.environ.get(v) for v in env_vars}
@@ -228,7 +229,8 @@ def configure(**kwargs) -> _ConfigureContext:
       - high_precision_bits: int or None
       - ill_condition_threshold: float
       - warn_on_ill_conditioning: bool
-      - cache_enabled: bool
+      - reward_compute_cache: bool
+      - graph_cache: bool
       - cache_dir: str or None
       - strict: bool
       - verbose: bool
@@ -296,9 +298,10 @@ def get_config() -> "PhasicConfig":
     Return the current global configuration.
 
     On first call, reads the relevant phasic env vars
-    (`PHASIC_HIERAR_ELIMINATION`, `PHASIC_DISABLE_CACHE`,
-    `PHASIC_CACHE_DIR`, `PHASIC_MIN_SCC_SIZE_TO_CACHE`,
-    `PHASIC_MAX_PARALLEL_SCCS`, `OMP_NUM_THREADS`) and seeds the
+    (`PHASIC_HIERAR_ELIMINATION`, `PHASIC_REWARD_COMPUTE_CACHE`,
+    `PHASIC_DISABLE_GRAPH_CACHE`, `PHASIC_CACHE_DIR`,
+    `PHASIC_MIN_SCC_SIZE_TO_CACHE`, `PHASIC_MAX_PARALLEL_SCCS`,
+    `OMP_NUM_THREADS`) and seeds the
     config so its fields agree with the environment that the C
     layer will observe.
 
@@ -311,8 +314,10 @@ def get_config() -> "PhasicConfig":
 
         if os.getenv('PHASIC_HIERAR_ELIMINATION') == '1':
             kwargs['parallel_elimination'] = True
-        if os.getenv('PHASIC_DISABLE_CACHE') == '1':
-            kwargs['cache_enabled'] = False
+        if os.getenv('PHASIC_REWARD_COMPUTE_CACHE') == '1':
+            kwargs['reward_compute_cache'] = True
+        if os.getenv('PHASIC_DISABLE_GRAPH_CACHE') == '1':
+            kwargs['graph_cache'] = False
         cache_dir_env = os.getenv('PHASIC_CACHE_DIR')
         if cache_dir_env:
             kwargs['cache_dir'] = cache_dir_env
@@ -430,7 +435,7 @@ from typing import Literal as _Literal
 # field_name -> (env_var_name, invert_bool, default_value_means_unset)
 #
 # invert_bool: if True, the env var is "off" semantics (e.g.
-# PHASIC_DISABLE_CACHE=1 disables, but the field cache_enabled
+# PHASIC_DISABLE_GRAPH_CACHE=1 disables, but the field graph_cache
 # is the positive form). When writing: True -> env unset,
 # False -> env set to "1". When reading: presence of env -> False.
 #
@@ -446,7 +451,12 @@ _ENV_VAR_FOR_FIELD = {
     'high_precision_bits':                  ('PHASIC_MPFR_BITS', False, None),
     'ill_condition_threshold':              ('PHASIC_CONDITION_THRESHOLD', False, 1e12),
     'warn_on_ill_conditioning':             ('PHASIC_DISABLE_CONDITION_WARNINGS', True, True),
-    'cache_enabled':                        ('PHASIC_DISABLE_CACHE', True, True),
+    # reward_compute_cache defaults to OFF; the env var is positive
+    # ("enable") to match that polarity — absent env = default = off.
+    'reward_compute_cache':                 ('PHASIC_REWARD_COMPUTE_CACHE', False, False),
+    # graph_cache defaults to ON; inverted "disable" env-var matches
+    # the convention used by `cache_enabled` previously.
+    'graph_cache':                          ('PHASIC_DISABLE_GRAPH_CACHE', True, True),
     'cache_dir':                            ('PHASIC_CACHE_DIR', False, None),
 }
 
@@ -510,9 +520,24 @@ class PhasicConfig:
         Emit log warnings when the condition number is high.
         Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).
 
-    cache_enabled : bool, default True
-        Use the on-disk caches under cache_dir. Backs
-        PHASIC_DISABLE_CACHE (inverted).
+    reward_compute_cache : bool, default False
+        Use the on-disk reward-compute caches at
+        ``cache_dir/parameterized_reward_compute/`` — both the
+        parent ``<hash>.bin`` written by
+        ``ptd_precompute_reward_compute_graph`` and the per-SCC
+        ``scc_<hash>.bin`` written by the hierarchical composer.
+        Backs PHASIC_REWARD_COMPUTE_CACHE (positive: ``'1'``
+        enables, absent = default = off).
+        Default off because the symbolic elimination it caches is
+        cheap to redo on small graphs, and the cache can grow
+        unboundedly across model variants.
+
+    graph_cache : bool, default True
+        Use the on-disk graph cache at ``cache_dir/graphs/`` for
+        serialised ``Graph`` objects (callback-built graphs).
+        Backs PHASIC_DISABLE_GRAPH_CACHE (inverted). Per-graph
+        opt-in via ``Graph(..., graph_cache=...)`` overrides this
+        global default.
 
     cache_dir : str or None, default None
         Override the cache root. None = $HOME/.phasic_cache. Backs
@@ -552,7 +577,12 @@ class PhasicConfig:
     warn_on_ill_conditioning: bool = True
 
     # --- caching ---
-    cache_enabled: bool = True
+    # Two independent caches, separately controlled. Their disk
+    # paths are siblings under ``cache_dir``:
+    #   ``cache_dir/parameterized_reward_compute/`` (reward_compute_cache)
+    #   ``cache_dir/graphs/``                       (graph_cache)
+    reward_compute_cache: bool = False
+    graph_cache: bool = True
     cache_dir: str | None = None
 
     # --- runtime behaviour ---
@@ -758,11 +788,20 @@ class PhasicConfig:
         if errors:
             raise PTDConfigError("\n\n".join(errors))
 
-        # 11. Write env vars for non-default fields.
+        # 11. Sync env vars to the field values.
         for field_name, (env_var, invert, default) in _ENV_VAR_FOR_FIELD.items():
             field_value = getattr(self, field_name)
             if field_value == default:
-                # Leave the env var alone (don't overwrite shell value).
+                # Field at its default: roll back any env-var write
+                # phasic itself made on a previous configure() call
+                # (so re-configuring to default truly clears the env).
+                # Pre-existing shell values are protected by the
+                # conflict check at step 9; that runs first so a
+                # genuine shell override either raised or was bypassed
+                # by the user already.
+                if _env_was_set_by_phasic(env_var):
+                    os.environ.pop(env_var, None)
+                    _phasic_assigned_env.discard(env_var)
                 continue
             new_str = _field_to_env_value(field_name, field_value, invert)
             previous = os.environ.get(env_var)
@@ -834,7 +873,8 @@ class PhasicConfig:
             'high_precision_bits': self.high_precision_bits,
             'ill_condition_threshold': self.ill_condition_threshold,
             'warn_on_ill_conditioning': self.warn_on_ill_conditioning,
-            'cache_enabled': self.cache_enabled,
+            'reward_compute_cache': self.reward_compute_cache,
+            'graph_cache': self.graph_cache,
             'cache_dir': self.cache_dir,
             'strict': self.strict,
             'verbose': self.verbose,
@@ -849,7 +889,8 @@ class PhasicConfig:
             'PHASIC_MPFR_BITS',
             'PHASIC_CONDITION_THRESHOLD',
             'PHASIC_DISABLE_CONDITION_WARNINGS',
-            'PHASIC_DISABLE_CACHE',
+            'PHASIC_REWARD_COMPUTE_CACHE',
+            'PHASIC_DISABLE_GRAPH_CACHE',
             'PHASIC_CACHE_DIR',
         ]
         environment = {var: os.environ.get(var) for var in env_vars}
@@ -914,8 +955,10 @@ def _field_to_env_value(field_name: str, value: Any, invert: bool) -> str | None
         return None
     if isinstance(value, bool):
         if invert:
-            # E.g. cache_enabled=False -> PHASIC_DISABLE_CACHE='1'.
-            #      cache_enabled=True  -> remove PHASIC_DISABLE_CACHE.
+            # E.g. graph_cache=False -> PHASIC_DISABLE_GRAPH_CACHE='1'.
+            #      graph_cache=True  -> remove PHASIC_DISABLE_GRAPH_CACHE.
+            # Same shape for reward_compute_cache /
+            # PHASIC_DISABLE_REWARD_COMPUTE_CACHE.
             return '1' if not value else None
         return '1' if value else None
     if isinstance(value, str):
