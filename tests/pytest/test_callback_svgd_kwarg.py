@@ -182,6 +182,56 @@ def test_callback_kwarg_preserves_user_attribute_form():
     )
 
 
+def test_callback_kwarg_requires_explicit_theta_dim_or_theta_init():
+    """`callback=` without either `theta_dim=` or `theta_init=` is
+    rejected so the user's assumed parameter dimensionality is never
+    silently replaced by `graph.param_length()` (which reflects the
+    edge coefficient length, not necessarily what the callback treats
+    as parameters)."""
+    np.random.seed(0)
+    data = np.random.exponential(scale=1.0, size=20)
+
+    g = _build_exp_graph()
+    pre_mode = g._weight_mode
+    assert g.weight_callback is None
+
+    with pytest.raises(
+        SvgdConfigError,
+        match=r"callback= requires an explicit theta_dim= or theta_init=",
+    ):
+        g.svgd(
+            data,
+            n_iterations=2, n_particles=4, seed=1,
+            positive_params=True,
+            callback=_linear_callback,
+            # NB: no theta_dim, no theta_init.
+        )
+
+    # Error fired before the kwarg's attribute override, so the
+    # graph's weight_callback / weight_mode are untouched.
+    assert g.weight_callback is None
+    assert g._weight_mode == pre_mode
+
+
+def test_callback_kwarg_accepts_theta_init_alone():
+    """Supplying `theta_init` (without `theta_dim`) is sufficient: its
+    second dim defines the parameter dimensionality unambiguously."""
+    np.random.seed(0)
+    data = np.random.exponential(scale=1.0, size=20)
+
+    g = _build_exp_graph()
+    theta_init = np.abs(np.random.randn(4, 1)) + 0.1  # (n_particles, theta_dim)
+
+    res = g.svgd(
+        data,
+        n_iterations=2, n_particles=4, seed=1,
+        positive_params=True,
+        callback=_linear_callback,
+        theta_init=theta_init,
+    )
+    assert np.asarray(res.particles).shape[1] == 1
+
+
 def test_callback_kwarg_rejects_epoch_starts(tmp_path):
     """Validator R21 fires before any graph mutation when the kwarg is
     combined with epoch_starts=... (daisy-chain SVGD)."""
