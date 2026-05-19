@@ -805,11 +805,56 @@ ffi::Error ComputeSojournTimesFfiImpl(
                 }
             }
 
-            // OpenMP parallel processing
-            #pragma omp parallel for if(batch_size > 1)
+            // OpenMP parallel processing. Cap the thread count at the
+            // batch size — there's no point spawning more workers than
+            // elements to process. Also cap at 4 threads for memory-
+            // bound work: each batch element holds a per-thread Graph
+            // + symbolic compute graph (~30 MB for a 5k-vertex graph)
+            // and runs a tight memory-bound consumer loop. Empirically
+            // on Apple Silicon, fanning out beyond ~4 threads triggers
+            // L2/L3 contention and saturates the LPDDR bus, so
+            // additional threads add no parallelism but pay
+            // synchronization barrier cost. The 4-thread cap matches
+            // the perf-core sweet spot measured on M1 Pro.
+            int sojourn_num_threads = 1;
+#ifdef PHASIC_HAVE_OPENMP
+            sojourn_num_threads = omp_get_max_threads();
+            if (sojourn_num_threads > 4) sojourn_num_threads = 4;
+            if (static_cast<int>(batch_size) < sojourn_num_threads)
+                sojourn_num_threads = static_cast<int>(batch_size);
+            if (sojourn_num_threads < 1) sojourn_num_threads = 1;
+#endif
+            #pragma omp parallel for if(batch_size > 1) num_threads(sojourn_num_threads)
             for (size_t b = 0; b < batch_size; b++) {
                 const double* theta_b = theta_data + (b * theta_len);
-                Graph g = builder->build(theta_b, theta_len);
+
+                // Per-thread Graph reuse: build once on first use, then
+                // mutate edge weights via update_weights on every later
+                // batch element. The symbolic reward-compute graph
+                // (parameterized_reward_compute_graph) is topology- and
+                // coefficient-keyed, not theta-keyed, so it survives
+                // update_weights, and the O(commands) replay path in
+                // ptd_expected_sojourn_time_subset runs without an
+                // O(n^3) symbolic rebuild on every batch element.
+                // Mirrors the daisy-chain handler's reuse pattern.
+                phasic::Graph* g_ptr = nullptr;
+                {
+                    auto& slot = per_thread_graph_cache[builder.get()];
+                    if (!slot) {
+                        std::vector<double> dummy_theta(theta_len, 1.0);
+                        slot = std::make_unique<phasic::Graph>(
+                            builder->build(dummy_theta.data(), theta_len)
+                        );
+                    }
+                    g_ptr = slot.get();
+                }
+                phasic::Graph& g = *g_ptr;
+                ptd_graph_update_weights(
+                    g.c_graph(),
+                    const_cast<double*>(theta_b),
+                    theta_len,
+                    /*use_log=*/false
+                );
 
                 std::vector<size_t> indices_b(n_indices);
                 if (indices_is_broadcast) {
@@ -845,8 +890,25 @@ ffi::Error ComputeSojournTimesFfiImpl(
             }
 
         } else {
-            // Not batched
-            Graph g = builder->build(theta_data, theta_len);
+            // Not batched — same per-thread reuse as the batched branch.
+            phasic::Graph* g_ptr = nullptr;
+            {
+                auto& slot = per_thread_graph_cache[builder.get()];
+                if (!slot) {
+                    std::vector<double> dummy_theta(theta_len, 1.0);
+                    slot = std::make_unique<phasic::Graph>(
+                        builder->build(dummy_theta.data(), theta_len)
+                    );
+                }
+                g_ptr = slot.get();
+            }
+            phasic::Graph& g = *g_ptr;
+            ptd_graph_update_weights(
+                g.c_graph(),
+                const_cast<double*>(theta_data),
+                theta_len,
+                /*use_log=*/false
+            );
 
             std::vector<size_t> indices_vec(n_indices);
             for (size_t i = 0; i < n_indices; i++) {

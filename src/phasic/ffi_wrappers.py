@@ -1008,11 +1008,29 @@ def compute_sojourn_times_ffi(structure_json: str | dict, theta: jax.Array,
         )
 
     # Validate shapes
-    if len(indices.shape) != 1:
-        raise ValueError(f"indices must be 1D, got shape {indices.shape}")
+    # Allow indices to be 1D (legacy / single particle) or 2D (broadcast or
+    # batched alongside a 2D theta). The C++ handler at
+    # `graph_builder_ffi.cpp:760-806` accepts either.
+    if len(indices.shape) not in (1, 2):
+        raise ValueError(
+            f"indices must be 1D or 2D, got shape {indices.shape}"
+        )
 
-    # Output shape matches indices length
-    result_shape = jax.ShapeDtypeStruct(indices.shape, jnp.float64)
+    # Output shape: when theta is 2D (batch, theta_dim) — typically because
+    # the caller is dispatching its own batched call via a custom_vmap rule
+    # rather than through JAX's vmap — the C++ handler returns
+    # (batch, n_indices). Detect 2D theta or 2D indices and reflect that in
+    # the declared result_shape; otherwise fall back to the 1D output that
+    # JAX's `vmap_method="expand_dims"` rule extends automatically when
+    # vmap is in play. Mirrors compute_daisy_chain_joint_probs_ffi.
+    n_indices = indices.shape[-1]
+    if theta.ndim == 2 or indices.ndim == 2:
+        batch_size = theta.shape[0] if theta.ndim == 2 else indices.shape[0]
+        result_shape = jax.ShapeDtypeStruct(
+            (batch_size, n_indices), jnp.float64,
+        )
+    else:
+        result_shape = jax.ShapeDtypeStruct((n_indices,), jnp.float64)
 
     # Call JAX FFI target
     # NOTE: JSON passed as attribute (static), theta/indices as buffers (batched)

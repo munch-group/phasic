@@ -186,6 +186,13 @@ struct ptd_graph {
      * longer needed. */
     struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // DEPRECATED: see MPFR-A
     bool was_dph;
+    /* Latches when the graph becomes discrete (was_dph false→true) so the
+     * compute-graph wipe in ptd_precompute_reward_compute_graph runs once
+     * and then stays off. Originally that wipe was gated on was_dph and
+     * was_dph itself was reset to false after the first call; making
+     * was_dph permanent (to keep auto-normalisation in update_weights)
+     * accidentally turned the wipe into a per-call O(n^3) rebuild. */
+    bool dph_compute_invalidated;
 
     /* Elimination ordering strategy */
     bool use_dyn_ordering;  // If true, use dynamic minimum-degree ordering within SCCs

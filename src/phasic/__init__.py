@@ -61,7 +61,10 @@ def _detect_omp_num_threads() -> int:
       1. SLURM_CPUS_PER_TASK (the per-task allocation under SLURM)
       2. SLURM_CPUS_ON_NODE (full node allocation under SLURM)
       3. os.sched_getaffinity(0) (respects Linux cgroup limits)
-      4. os.cpu_count() (last resort: full machine logical CPUs)
+      4. Apple Silicon performance cores only (avoids efficiency-core
+         oversubscription, which causes severe OMP stalls under FFI
+         batched fanout — see commit notes)
+      5. os.cpu_count() (last resort: full machine logical CPUs)
     """
     for var in ("SLURM_CPUS_PER_TASK", "SLURM_CPUS_ON_NODE"):
         val = os.environ.get(var)
@@ -73,6 +76,26 @@ def _detect_omp_num_threads() -> int:
     try:
         return max(len(os.sched_getaffinity(0)), 1)
     except (AttributeError, OSError):
+        pass
+    # Apple Silicon has both performance and efficiency cores; using all
+    # of them via OpenMP `#pragma omp parallel for` produces a
+    # catastrophic slowdown when batch_size is comparable to total core
+    # count, because OMP's barrier waits for the slowest thread and the
+    # efficiency cores are ~3x slower per element. Measured on M1 Pro
+    # (8 perf + 2 efficiency cores): batched FFI sojourn-time call with
+    # P=10 takes ~26 s at OMP=10 vs ~1 s at OMP=4. Prefer perf cores
+    # only when we can identify them.
+    try:
+        if os.uname().sysname == 'Darwin':
+            perf_cores = subprocess.check_output(
+                ['sysctl', '-n', 'hw.perflevel0.physicalcpu'],
+                stderr=subprocess.DEVNULL,
+            ).decode().strip()
+            n = int(perf_cores)
+            if n >= 1:
+                return n
+    except (AttributeError, subprocess.SubprocessError, ValueError,
+            FileNotFoundError):
         pass
     return os.cpu_count() or 1
 
@@ -6935,10 +6958,20 @@ extern "C" {{
                                 fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
                         else:
                             fixed_mask_for_model = jnp.array(fixed)
-                    # Use joint_index specific model with fixed_mask
+                    # Use joint_index specific model with fixed_mask.
+                    # Bake observed_data (already mapped to vertex
+                    # indices above) into the model when no per-observation
+                    # exposure is in play — this enables the dedup +
+                    # custom_vmap fast path (see pmf_from_graph_joint_index
+                    # docstring under observed_indices). With per-obs
+                    # exposure, every observation is intentionally distinct
+                    # in theta-space, so dedup is invalid and we fall back
+                    # to the legacy path.
+                    _bake_obs = observed_data if exposure is None else None
                     model = Graph.pmf_from_graph_joint_index(
                         self, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
+                        observed_indices=_bake_obs,
                     )
             # Auto-detect if we need multivariate model (2D rewards)
             elif rewards is not None:
@@ -8178,7 +8211,8 @@ extern "C" {{
     @classmethod
     def pmf_from_graph_joint_index(cls, graph: Graph, theta_dim: int | None = None,
                                     fixed_mask: Any = None,
-                                    exclude_vertices: list[int] | None = None) -> Callable:
+                                    exclude_vertices: list[int] | None = None,
+                                    observed_indices: Any = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -8209,6 +8243,20 @@ extern "C" {{
             zero-mutation terminal state when conditioning on observing at
             least one mutation. The excluded vertices are removed from the
             denominator, so the model returns P(s | s not in excluded set).
+        observed_indices : array-like of int, optional
+            When supplied, enables baked observation dedup: the model will
+            be built around the unique vertex indices in ``observed_indices``
+            (typically far fewer than the number of observations, with many
+            repeats). The FFI sojourn-times call sees ``k = n_unique`` instead
+            of ``k = n_obs`` (the FFI consumer's inner loop scales linearly
+            in ``k``), and the returned per-observation array is reconstructed
+            via a scatter through the inverse-index mapping. The model also
+            wraps its forward in a ``custom_vmap`` rule so that under
+            ``vmap(grad(loss))(particles)`` the per-particle dispatch fuses
+            into a single batched FFI call.
+            When ``observed_indices`` is ``None`` (default), the legacy path
+            is used and ``vertex_indices`` is read from the model's runtime
+            argument as before.
 
         Returns
         -------
@@ -8218,7 +8266,9 @@ extern "C" {{
 
             Where:
             - theta: Parameter vector
-            - vertex_indices: Array of vertex indices (integers)
+            - vertex_indices: Array of vertex indices (integers). Ignored when
+              ``observed_indices`` was supplied at construction time; the
+              baked indices are used instead.
             - rewards: Ignored (must be None for joint_index mode)
             - sojourn_times: Expected sojourn times for the specified vertices
             - dummy_moments: Zeros array (moments not supported in joint_index mode)
@@ -8229,6 +8279,9 @@ extern "C" {{
         - Much faster than iterating accumulated_visiting_time() until convergence
         - Moment regularization is not supported (regularization must be 0)
         - Reward transformation is not supported (rewards must be None)
+        - When ``observed_indices`` is supplied, dedup typically gives a
+          10-100x wall-clock win for SVGD on joint-prob graphs with many
+          repeated observations. See ``Graph.svgd`` joint_index path.
         """
         # Check if JAX is available
         try:
@@ -8269,6 +8322,31 @@ extern "C" {{
             all_terminal_indices = [v for v in all_terminal_indices if v not in exclude_set]
         all_terminal_indices_np = np.asarray(all_terminal_indices, dtype=np.int32)
         all_terminal_indices = jnp.array(all_terminal_indices, dtype=jnp.int32)
+
+        # Dedup mapping: when SVGD supplies observed_indices, precompute
+        # unique vertex indices + inverse-index mapping once at construction.
+        # The FFI's per-call cost is O(commands * k); k drops from n_obs to
+        # n_unique (often a 10-100x win for joint-prob SVGD). The forward
+        # then scatters the small unique result back to n_obs shape so that
+        # downstream consumers (SVGD's _log_lik_from_pmf) see the same
+        # per-observation pmf vector as before. Mirrors the same dedup
+        # pattern used in _daisy_chain_svgd_model for the per-observation
+        # exposure path.
+        _baked = observed_indices is not None
+        if _baked:
+            _obs_idx_np = np.asarray(observed_indices, dtype=np.int32).ravel()
+            _uniq_idx_np, _inverse_idx_np = np.unique(
+                _obs_idx_np, return_inverse=True,
+            )
+            _uniq_idx_jnp = jnp.asarray(_uniq_idx_np, dtype=jnp.int32)
+            _inverse_idx_jnp = jnp.asarray(_inverse_idx_np, dtype=jnp.int32)
+            _n_obs_baked = int(_obs_idx_np.size)
+        else:
+            _uniq_idx_np = None
+            _inverse_idx_np = None
+            _uniq_idx_jnp = None
+            _inverse_idx_jnp = None
+            _n_obs_baked = None
 
         # Callback weight mode: the C++ JSON parser only knows 'linear'
         # and 'log'. For 'callback', apply the user's weight_callback
@@ -8312,55 +8390,160 @@ extern "C" {{
                 )
                 return obs_sojourn, all_sojourn
 
-            def _compute_pure(theta, vertex_indices):
-                theta = jnp.atleast_1d(theta)
-                vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
-                obs_shape = jax.ShapeDtypeStruct(
-                    vertex_indices.shape, jnp.float64,
-                )
-                all_shape = jax.ShapeDtypeStruct(
-                    (int(all_terminal_indices_np.size),), jnp.float64,
-                )
+            if _baked:
+                # Baked mode: ignore runtime vertex_indices; the FFI
+                # callback works on the precomputed unique indices and
+                # the result is scattered back via _inverse_idx_jnp.
+                _baked_uniq_for_cb = _uniq_idx_np  # captured by closure
 
-                def _cb(t, vi):
-                    return _compute_callback(
-                        np.asarray(t, dtype=np.float64),
-                        np.asarray(vi, dtype=np.int32),
+                def _compute_pure(theta, _vertex_indices_ignored):
+                    theta = jnp.atleast_1d(theta)
+                    uniq_shape = jax.ShapeDtypeStruct(
+                        (int(_baked_uniq_for_cb.size),), jnp.float64,
+                    )
+                    all_shape = jax.ShapeDtypeStruct(
+                        (int(all_terminal_indices_np.size),), jnp.float64,
                     )
 
-                obs_sojourn, all_sojourn = jax.pure_callback(
-                    _cb, (obs_shape, all_shape),
-                    theta, vertex_indices,
-                    vmap_method='sequential',
-                )
-                normalization_constant = jnp.sum(all_sojourn)
-                sojourn_probs = obs_sojourn / normalization_constant
-                dummy_moments = jnp.zeros(2)
-                return sojourn_probs, dummy_moments
+                    def _cb(t):
+                        return _compute_callback(
+                            np.asarray(t, dtype=np.float64),
+                            _baked_uniq_for_cb,
+                        )
+
+                    uniq_sojourn, all_sojourn = jax.pure_callback(
+                        _cb, (uniq_shape, all_shape),
+                        theta,
+                        vmap_method='sequential',
+                    )
+                    normalization_constant = jnp.sum(all_sojourn)
+                    uniq_probs = uniq_sojourn / normalization_constant
+                    # Scatter from (n_unique,) back to (n_obs,) so that
+                    # downstream _log_lik_from_pmf sees the same per-obs
+                    # shape it always did. inverse_idx[i] = position of
+                    # obs i in the unique array.
+                    sojourn_probs = uniq_probs[_inverse_idx_jnp]
+                    dummy_moments = jnp.zeros(2)
+                    return sojourn_probs, dummy_moments
+            else:
+                def _compute_pure(theta, vertex_indices):
+                    theta = jnp.atleast_1d(theta)
+                    vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+                    obs_shape = jax.ShapeDtypeStruct(
+                        vertex_indices.shape, jnp.float64,
+                    )
+                    all_shape = jax.ShapeDtypeStruct(
+                        (int(all_terminal_indices_np.size),), jnp.float64,
+                    )
+
+                    def _cb(t, vi):
+                        return _compute_callback(
+                            np.asarray(t, dtype=np.float64),
+                            np.asarray(vi, dtype=np.int32),
+                        )
+
+                    obs_sojourn, all_sojourn = jax.pure_callback(
+                        _cb, (obs_shape, all_shape),
+                        theta, vertex_indices,
+                        vmap_method='sequential',
+                    )
+                    normalization_constant = jnp.sum(all_sojourn)
+                    sojourn_probs = obs_sojourn / normalization_constant
+                    dummy_moments = jnp.zeros(2)
+                    return sojourn_probs, dummy_moments
 
         else:
-            def _compute_pure(theta, vertex_indices):
-                """Pure computation using FFI for memory-efficient subset computation."""
-                theta = jnp.atleast_1d(theta)
-                vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+            if _baked:
+                # Baked mode: precompute unique indices + inverse map at
+                # construction; wrap the two FFI calls in custom_vmap rules
+                # so that under SVGD's vmap(grad(loss))(particles), each
+                # FD-perturbation dispatch fuses into ONE batched FFI call
+                # of theta shape (P, theta_dim) instead of P serial calls.
+                # Mirrors the no-exposure branch of _daisy_chain_svgd_model.
+                from jax import custom_batching as _cb_jix
 
-                # Compute sojourn times for observed vertices
-                sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
+                @_cb_jix.custom_vmap
+                def _obs_forward(theta_flat):
+                    return compute_sojourn_times_ffi(
+                        structure_dict, theta_flat, _uniq_idx_jnp,
+                    )
 
-                # Compute normalization constant using ALL terminal vertices
-                # This is the total probability mass in the modeled state space
-                all_sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
-                normalization_constant = jnp.sum(all_sojourn_times)
+                @_obs_forward.def_vmap
+                def _obs_forward_vmap_rule(axis_size, in_batched, theta_flat):
+                    # theta_flat: (axis_size, theta_dim). Dispatch as one
+                    # batched FFI call. The C handler parallelises across
+                    # the batch dim with OpenMP (within the per-call thread
+                    # cap from ComputeSojournTimesFfiImpl).
+                    del axis_size, in_batched
+                    return (
+                        compute_sojourn_times_ffi(
+                            structure_dict, theta_flat, _uniq_idx_jnp,
+                        ),
+                        True,  # batched along axis 0
+                    )
 
-                # Normalize to get conditional probabilities P(obs | obs ∈ modeled space)
-                # This correctly handles the deficit without biasing toward θ values
-                # that minimize deficit
-                sojourn_probs = sojourn_times / normalization_constant
+                @_cb_jix.custom_vmap
+                def _all_forward(theta_flat):
+                    return compute_sojourn_times_ffi(
+                        structure_dict, theta_flat, all_terminal_indices,
+                    )
 
-                # Dummy moments (not supported in joint_index mode)
-                dummy_moments = jnp.zeros(2)
+                @_all_forward.def_vmap
+                def _all_forward_vmap_rule(axis_size, in_batched, theta_flat):
+                    del axis_size, in_batched
+                    return (
+                        compute_sojourn_times_ffi(
+                            structure_dict, theta_flat, all_terminal_indices,
+                        ),
+                        True,
+                    )
 
-                return sojourn_probs, dummy_moments
+                def _compute_pure(theta, _vertex_indices_ignored):
+                    """Baked-dedup FFI path. The runtime vertex_indices
+                    argument is ignored — the unique indices precomputed
+                    from observed_indices at construction are used instead,
+                    and the result is scattered back to n_obs shape via the
+                    inverse-index mapping."""
+                    theta = jnp.atleast_1d(theta)
+
+                    # Compute sojourn at unique observed vertices (small k).
+                    uniq_sojourn = _obs_forward(theta)
+
+                    # Normalisation over all terminal vertices.
+                    all_sojourn = _all_forward(theta)
+                    normalization_constant = jnp.sum(all_sojourn)
+
+                    # Probabilities at unique vertices, then scatter back.
+                    uniq_probs = uniq_sojourn / normalization_constant
+                    sojourn_probs = uniq_probs[_inverse_idx_jnp]
+
+                    # Dummy moments (not supported in joint_index mode)
+                    dummy_moments = jnp.zeros(2)
+
+                    return sojourn_probs, dummy_moments
+            else:
+                def _compute_pure(theta, vertex_indices):
+                    """Pure computation using FFI for memory-efficient subset computation."""
+                    theta = jnp.atleast_1d(theta)
+                    vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+
+                    # Compute sojourn times for observed vertices
+                    sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
+
+                    # Compute normalization constant using ALL terminal vertices
+                    # This is the total probability mass in the modeled state space
+                    all_sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
+                    normalization_constant = jnp.sum(all_sojourn_times)
+
+                    # Normalize to get conditional probabilities P(obs | obs ∈ modeled space)
+                    # This correctly handles the deficit without biasing toward θ values
+                    # that minimize deficit
+                    sojourn_probs = sojourn_times / normalization_constant
+
+                    # Dummy moments (not supported in joint_index mode)
+                    dummy_moments = jnp.zeros(2)
+
+                    return sojourn_probs, dummy_moments
 
         @jax.custom_vjp
         def model(theta, vertex_indices, rewards=None):

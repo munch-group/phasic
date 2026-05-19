@@ -1363,6 +1363,13 @@ str
 
     .def("set_was_dph",
       [](phasic::Graph &g, bool value) {
+          // Flag any previously-built compute graphs as invalidated on
+          // the false→true transition. ptd_precompute_reward_compute_graph
+          // consumes this flag once and clears it so we don't pay an
+          // O(n^3) rebuild on every subsequent call.
+          if (value && !g.c_graph()->was_dph) {
+              g.c_graph()->dph_compute_invalidated = true;
+          }
           g.c_graph()->was_dph = value;
       }, py::arg("value"), R"delim(
       Set the was_dph flag to indicate this is a discrete phase-type distribution.

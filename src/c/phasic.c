@@ -1120,6 +1120,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
     new_graph->param_length_locked = graph->param_length_locked;
     new_graph->edge_mode = graph->edge_mode;
     new_graph->was_dph = graph->was_dph;
+    new_graph->dph_compute_invalidated = graph->dph_compute_invalidated;
 
     // Create mapping from old vertices to new vertices
     struct ptd_vertex **vertex_map = (struct ptd_vertex **)calloc(
@@ -1873,9 +1874,14 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
         PTD_MUTEX_LOCK(&graph->compute_graph_lock);
     }
 
-    if (graph->was_dph) {
-        // Note: was_dph remains true - it's a permanent flag indicating this is a discrete graph
-        // This ensures auto-normalization continues to work in update_weights()
+    if (graph->dph_compute_invalidated) {
+        // One-shot wipe: drops any compute graphs that were built against
+        // the pre-discretization topology (set_was_dph(true) flips this
+        // flag, this branch clears it). Originally the wipe was gated on
+        // was_dph and was_dph was reset to false after the first call;
+        // making was_dph permanent (so update_weights keeps normalising)
+        // would have turned the wipe into a per-call O(n^3) rebuild,
+        // which dominated SVGD wall time on discrete joint-prob graphs.
 
         if (graph->reward_compute_graph != NULL) {
             free(graph->reward_compute_graph->commands);
@@ -1890,6 +1896,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
 
         graph->reward_compute_graph = NULL;
         graph->parameterized_reward_compute_graph = NULL;
+        graph->dph_compute_invalidated = false;
     }
 
     if (graph->reward_compute_graph == NULL) {
@@ -2815,6 +2822,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
+    graph->dph_compute_invalidated = false;
     graph->use_dyn_ordering = (getenv("PHASIC_DYN_ORDERING") != NULL);
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
@@ -3836,6 +3844,58 @@ ptd_load_parameterized_reward_compute_graph_impl(
                     free(mem_node);
                     return NULL;
                 }
+            }
+            // Resolved-pointer liveness check: every command type
+            // dereferences a specific subset of fromT / toT /
+            // multiplierptr (see ptd_graph_build_ex_absorbation_time_
+            // comp_graph_parameterized at the consume site). If the
+            // encoder said the pointer is live (non-NULL kind) but the
+            // decoder couldn't resolve it (out-of-range vertex/edge
+            // index, mismatched topology), treat the whole file as a
+            // cache miss instead of letting the consumer segfault on
+            // *NULL. Two graphs can pass the topology-hash and
+            // memr_length checks above and still disagree on edge
+            // ordering — this is the catch.
+            //
+            // Liveness per command type (mirrors the consume switch):
+            //   NEW_ADD: multiplierptr
+            //   P:       fromT, toT
+            //   PP:      fromT, toT, multiplierptr
+            //   INV:     fromT
+            //   ONE_MINUS: fromT
+            //   DIVIDE:  fromT, toT
+            //   ZERO:    fromT
+            int t = commands[i].type;
+            int need_from = (t == 1 /*P*/ || t == 3 /*PP*/ || t == 2 /*INV*/
+                             || t == 4 /*ONE_MINUS*/ || t == 5 /*DIVIDE*/
+                             || t == 6 /*ZERO*/);
+            int need_to = (t == 1 /*P*/ || t == 3 /*PP*/ || t == 5 /*DIVIDE*/);
+            int need_mptr = (t == 0 /*NEW_ADD*/ || t == 3 /*PP*/);
+            const char *bad_field = NULL;
+            if (need_from && commands[i].fromT == NULL
+                    && encoded_cmds[i].fromT.kind != PTD_PCG_PTR_NULL) {
+                bad_field = "fromT";
+            } else if (need_to && commands[i].toT == NULL
+                    && encoded_cmds[i].toT.kind != PTD_PCG_PTR_NULL) {
+                bad_field = "toT";
+            } else if (need_mptr && commands[i].multiplierptr == NULL
+                    && encoded_cmds[i].multiplierptr.kind != PTD_PCG_PTR_NULL) {
+                bad_field = "multiplierptr";
+            }
+            if (bad_field != NULL) {
+                snprintf((char *)ptd_err, sizeof(ptd_err),
+                         "ptd_load: %s command %zu (type=%d) %s "
+                         "pointer failed to resolve against current "
+                         "graph topology (likely stale cache from "
+                         "a different graph build). Treating as "
+                         "cache miss.",
+                         path, i, t, bad_field);
+                free(commands);
+                free(encoded_cmds);
+                free(memr_offsets);
+                free(flat_mem);
+                free(mem_node);
+                return NULL;
             }
         }
     }
@@ -8797,26 +8857,17 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
     size_t n = graph->vertices_length;
     struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
 
-    // Allocate results matrix: results[vertex_idx][reward_idx]
-    // Layout: results[v][r] = accumulated reward at vertex v for reward vector r
-    // Only allocate k columns instead of n (memory efficient!)
-    double **results = (double **) malloc(n * sizeof(double *));
-    if (results == NULL) {
-        PTD_LOG_ERROR("Failed to allocate results matrix");
+    // Allocate results matrix as a single flat block of n*k doubles,
+    // row-major: results_flat[v*k + r] = accumulated reward at vertex
+    // v for reward vector r. Previously this was n separate calloc(k)
+    // allocations which produced 5380 mallocs per call on a 5380-vertex
+    // graph — under OpenMP fanout that's the dominant cost (allocator
+    // arena lock contention on macOS libmalloc). One calloc removes
+    // the contention and keeps the working set contiguous.
+    double *results_flat = (double *) calloc(n * k, sizeof(double));
+    if (results_flat == NULL) {
+        PTD_LOG_ERROR("Failed to allocate results matrix (%zu x %zu doubles)", n, k);
         return NULL;
-    }
-
-    for (size_t i = 0; i < n; i++) {
-        results[i] = (double *) calloc(k, sizeof(double));
-        if (results[i] == NULL) {
-            PTD_LOG_ERROR("Failed to allocate results row %zu", i);
-            // Free previously allocated rows
-            for (size_t j = 0; j < i; j++) {
-                free(results[j]);
-            }
-            free(results);
-            return NULL;
-        }
     }
 
     // Initialize with one-hot vectors for each target index
@@ -8825,13 +8876,10 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
         size_t vertex_idx = indices[r];
         if (vertex_idx >= n) {
             PTD_LOG_ERROR("Invalid vertex index %zu (graph has %zu vertices)", vertex_idx, n);
-            for (size_t i = 0; i < n; i++) {
-                free(results[i]);
-            }
-            free(results);
+            free(results_flat);
             return NULL;
         }
-        results[vertex_idx][r] = 1.0;
+        results_flat[vertex_idx * k + r] = 1.0;
     }
 
     // Apply all elimination trace commands to k reward vectors
@@ -8845,8 +8893,8 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
             continue;
         }
 
-        double *from_row = results[cmd.from];
-        double *to_row = results[cmd.to];
+        double *from_row = results_flat + cmd.from * k;
+        double *to_row = results_flat + cmd.to * k;
         double multiplier = cmd.multiplier;
 
         // Check if multiplier is infinite
@@ -8877,22 +8925,15 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
     double *sojourn_times = (double *) malloc(k * sizeof(double));
     if (sojourn_times == NULL) {
         PTD_LOG_ERROR("Failed to allocate sojourn times array");
-        for (size_t i = 0; i < n; i++) {
-            free(results[i]);
-        }
-        free(results);
+        free(results_flat);
         return NULL;
     }
 
     for (size_t r = 0; r < k; r++) {
-        sojourn_times[r] = results[0][r];  // Starting vertex index = 0
+        sojourn_times[r] = results_flat[0 * k + r];  // Starting vertex index = 0
     }
 
-    // Free intermediate results matrix
-    for (size_t i = 0; i < n; i++) {
-        free(results[i]);
-    }
-    free(results);
+    free(results_flat);
 
     // PTD_LOG_DEBUG("Computed sojourn times for %zu target states (out of %zu total)", k, n);
     return sojourn_times;
