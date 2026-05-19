@@ -6412,6 +6412,107 @@ extern "C" {{
             - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature
               dimension. Requires use of pmf_and_moments_from_graph_multivariate() model.
             For multivariate models, observed_data should also be 2D (n_times, n_features).
+        fixed : list of (index, value) tuples or 1D array, optional
+            Pin selected parameters at known constants so SVGD only
+            optimises the *learnable* dimensions. Equivalent to a
+            point-mass prior at ``value`` on the pinned slots, with
+            those positions removed from the kernel and the gradient
+            computation. Two accepted forms:
+
+            **(a) Index/value tuples** (recommended) —
+            ``[(idx, value), ...]``. Each tuple pins parameter ``idx``
+            at ``value``::
+
+                fixed=[(1, 0.01)]              # theta[1] = 0.01, rest learned
+                fixed=[(0, 2.5), (2, 0.1)]     # theta[0]=2.5, theta[2]=0.1
+
+            **(b) Binary mask** (legacy) — a 1D array of length
+            ``theta_dim`` where ``1`` pins the slot at the value ``1.0``
+            and ``0`` leaves it learnable. Use form (a) whenever the
+            fix value is not ``1.0``::
+
+                fixed=[0, 1]                   # theta[1] pinned at 1.0
+
+            **When to use.** Fix a parameter when its value is known
+            from prior data, when you want to test sensitivity to a
+            single dimension while holding the rest at MLE, or when a
+            slot is structurally unidentifiable from the observed data
+            alone (e.g. a global rate scale that the model absorbs into
+            another parameter).
+
+            **Interaction with ``prior``.** If ``prior`` is a per-slot
+            list, the entries at fixed indices **must** be ``None``;
+            mismatches raise at construction time. A scalar ``prior``
+            callable is fine and is auto-masked at the fixed slots.
+
+            **Daisy-chain semantics** (``epoch_starts=[...]``). The
+            flattened theta has shape ``(n_epochs * param_length,)``,
+            but ``fixed`` entries still use the *local* per-epoch index
+            (``[0, param_length)``) and are broadcast across all
+            epochs. To pin a parameter at *different* values per epoch,
+            pass a list/array of length ``n_epochs`` as the value::
+
+                fixed=[(1, 1.0)]              # local_idx=1 pinned at 1.0 in EVERY epoch
+                fixed=[(1, [1.0, 2.5])]       # local_idx=1: 1.0 in epoch 0, 2.5 in epoch 1
+                fixed=[(0, 5.0), (1, [2.0, 8.0])]  # mix scalar and per-epoch values
+
+            **Combination with ``tied``.** Compatible, with one rule:
+            a given ``(local_idx, epoch)`` slot may be either ``fixed``
+            *or* a member of a ``tied`` group, not both. Overlaps raise
+            at construction time (rule R20).
+        tied : list of (local_idx, [epoch_a, epoch_b, ...]) tuples, optional
+            **Daisy-chain only.** Tie a parameter slot across two or
+            more epochs so SVGD treats them as a *single* learnable
+            value. Within each entry the first epoch is the **master**
+            (the slot SVGD actually optimises); every subsequent epoch
+            is a **slave** whose value is replaced with the master's
+            on every forward evaluation, and whose gradient is routed
+            back into the master.
+
+            Examples::
+
+                tied=[(0, [0, 1])]                  # local_idx 0 shared across epochs 0 and 1
+                tied=[(1, [0, 2, 3])]               # local_idx 1 shared across epochs 0, 2, 3
+                tied=[(0, [0, 1]), (1, [1, 2])]     # two independent ties
+
+            **When to use.** Use ``tied`` when a population parameter
+            (e.g. mutation rate per base, baseline hazard) is
+            biologically constant across a subset of epochs while other
+            parameters change. Tying reduces dimensionality, improves
+            identifiability, and makes posteriors tighter without
+            silently fusing epochs whose other parameters should
+            differ.
+
+            **Requirements.**
+
+            - Requires ``epoch_starts=...`` (rule R16); a tie within a
+              single epoch is meaningless and rejected with rule R17.
+            - ``local_idx`` is the *per-epoch* index in
+              ``[0, param_length)`` (rule R18); the epoch indices are
+              in ``[0, n_epochs)``.
+            - Each epoch index may appear at most once per tied entry
+              (rule R19).
+            - Each ``(local_idx, epoch)`` slot may belong to at most
+              one tied group, and may not also be ``fixed`` (rule R20).
+
+            **Combination with ``fixed``.** Compatible as long as no
+            slot is claimed by both — see the rule R20 note in
+            ``fixed`` above. To pin a parameter at the same value in
+            every epoch use ``fixed=[(local_idx, value)]`` (broadcast).
+            To pin a parameter at *different* values per epoch use the
+            per-epoch list form of ``fixed``. Use ``tied`` only when
+            the shared value should be *learned* rather than known a
+            priori.
+
+            **Combination with ``exposure``.** Compatible. The exposed
+            parameter (``exposure_param_index``) may itself be tied
+            across epochs; the per-observation exposure scaling
+            multiplies the tied (shared) value in every epoch where
+            the slot appears as master or slave.
+
+            **Not available on the direct ``SVGD(model=...)`` path** —
+            tying is a pre-model-construction concern owned by
+            ``Graph.svgd``.
         preconditioner : str, preconditioner instance, or None, default='auto'
             Preconditioning method for multi-scale parameters:
             - 'auto' or 'jacobian': Moment Jacobian preconditioning (default, recommended).
@@ -6426,16 +6527,8 @@ extern "C" {{
             subsequent entries are the start times of additional epochs. ``n_epochs =
             len(epoch_starts)``. Each epoch fits its own ``param_length`` parameters,
             so the flattened theta has length ``n_epochs * param_length``. Requires
-            a continuous-time joint-prob graph (``discrete=False``).
-
-            **Daisy-chain ``fixed`` semantics**: when ``epoch_starts`` is set, each
-            ``(local_idx, value)`` entry in ``fixed`` is broadcast across all epochs.
-            To pin a parameter at *different* values per epoch, pass a list/array of
-            length ``n_epochs`` as the value::
-
-                fixed=[(1, 1.0)]            # local_idx=1 fixed at 1.0 in every epoch
-                fixed=[(1, [1.0, 2.5])]     # local_idx=1 fixed at 1.0 in epoch 0, 2.5 in epoch 1
-                fixed=[(0, 5.0), (1, [2.0, 8.0])]  # mix scalar and per-epoch
+            a continuous-time joint-prob graph (``discrete=False``). See ``fixed`` and
+            ``tied`` for how those kwargs interpret indices under daisy-chain.
         daisy_chain_t_eval : float, str, or None, default=None
             Time at which the final-epoch joint stop-probabilities are read off the
             JSP graph's t-vertices. Only used when ``epoch_starts`` is set.
@@ -8916,7 +9009,7 @@ extern "C" {{
 
 
     def plot_scc_decomp(self,
-                                figsize: tuple[float, float] = (10.0, 6.0),
+                                figsize: tuple[float, float] | None = None,
                                 cmap: str = 'viridis',
                                 show_indices: bool = True,
                                 annotate_sizes: bool = True,
@@ -9079,11 +9172,12 @@ extern "C" {{
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        if title:
+        if title is None:
             title = (f"{n_sccs} SCCs across "
                      f"{n_levels} levels. Widest {widest}, "
                      f"{total_vertices} vertices total.")
-        ax.set_title(title)
+        if title:
+            ax.set_title(title)
 
         return ax
 

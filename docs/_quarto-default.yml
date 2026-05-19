@@ -121,15 +121,14 @@ website:
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/parametrization.ipynb
-            - pages/tutorial/time-inhomogeneous.ipynb
-            - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/laplace.ipynb
-            - pages/tutorial/finite-markov-chains.ipynb
+            # - pages/tutorial/finite-markov-chains.ipynb
+            - pages/tutorial/joint-probability.ipynb
+            - pages/tutorial/time-inhomogeneous.ipynb
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
-            - pages/tutorial/trace-and-jax-caching-c-path.ipynb
             - pages/tutorial/method-of-moments.ipynb
             - pages/tutorial/svgd-basics.ipynb
             - pages/tutorial/svgd-priors-and-schedules.ipynb
@@ -140,6 +139,7 @@ website:
         - section: "Computation"
           contents:
             - pages/tutorial/configuration.ipynb
+            - pages/tutorial/trace-and-jax-caching-c-path.ipynb
             - pages/tutorial/mpfr.ipynb
             - pages/tutorial/scc-decomposition.ipynb
             - pages/tutorial/distributed.ipynb
