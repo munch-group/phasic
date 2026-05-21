@@ -16,6 +16,8 @@ format:
 execute:
   freeze: auto
   echo: false
+  fig-format: svg  
+
 
 project:
   output-dir: ../_build/slides  

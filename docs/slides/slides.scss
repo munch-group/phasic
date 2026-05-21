@@ -4,7 +4,7 @@
 
 $jet: #131516;
 $accent: #107895;
-$accent2: #9a2515;
+$accent2: #de3823;
 // $accent2: #e64173;
 $right-arrow: "\2192"; // Unicode character for right arrow
 
@@ -139,7 +139,12 @@ $selection-bg: #26351c !default;
 // alerts etc.
 
 .alert {
-  color: $accent2;
+  // color: $accent2;
+  color: black;
+  background-color: var(--col, #E60072aa);
+  padding: 0.2em;
+  border-radius: 5px;
+  display: inline-block;  
 }
 
 .fg {
@@ -192,21 +197,33 @@ $selection-bg: #26351c !default;
   }
 }
 
-// Move "hamburger" menu button to top right
 
-.reveal .slide-menu-button {
-  position: fixed;
-  top: 6px;
-  right: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  pointer-events: none;
+.reveal .slide-number {
+  color: #aaaaaa;
+  // position: fixed;
+  // bottom: 6px;
+  // left: 10px;
+  // display: flex;
+  // justify-content: flex-end;
+  // align-items: flex-start;
+  // pointer-events: none;
 }
 
-.reveal .slide-menu-button > * {
-  pointer-events: auto;
-}
+
+// // Move "hamburger" menu button to top right
+// .reveal .slide-menu-button {
+//   position: fixed;
+//   top: 6px;
+//   right: 0;
+//   display: flex;
+//   justify-content: flex-end;
+//   align-items: flex-start;
+//   pointer-events: none;
+// }
+
+// .reveal .slide-menu-button > * {
+//   pointer-events: auto;
+// }
 
 
 // Same for chalkboard buttons (with an offset)

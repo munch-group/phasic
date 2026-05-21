@@ -7,6 +7,8 @@ format:
   revealjs: 
     logo: images/au_segl.svg
     # footer: "Kasper Munch"  
+    controls-layout: bottom-right    
+    slide-number: c
     classoption: fleqn
     fleqn: true
     # margin: 0.03
@@ -38,11 +40,17 @@ format:
 -->
 ```
 
-## Figure embeds
+## TODO
+
+- Model comparison / LR test
+- SMC'
+- epoch joint prob
+
+[important note]{.alert}
+
+## Figure embeds 1
 
 ::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
-
-
 :::: {.column .r-stretch }
 {{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-aux-vertex echo=false >}}
 ::::
@@ -59,38 +67,99 @@ format:
 {{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-pmf-cdf echo=false >}}
 ::::
 :::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-singleton-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-marginal-pmf-cdf echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-graph echo=false >}}
 ::::
+:::::
 
-:::
+##  Figure embeds 2
 
-## adsf
-
-
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-heatmap echo=false >}}
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-cont-joint-prob-graph echo=false >}}
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-cont-joint-prob-epoch-graph echo=false >}}
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-over-time echo=false >}}
-
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-epoch-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-joint-prob-over-time echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-transform echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-pdf echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-pdf-cdf echo=false >}}
-
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-sfs echo=false >}}
+::::
+:::::
+
+##  Figure embeds 3
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-singleton-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-singleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-sfs-marginal-pdfs echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-ton-lineages-across-time echo=false >}}
+::::
+:::::
+
+
+##  Figure embeds 4
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-accumulated-occupancies echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/properties.ipynb#fig-tmrca-sampling-dist echo=false >}}
-
-
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-accumulated-occupancy echo=false >}}
+::::
+:::: {.column .r-stretch }
 {{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-distribution-context echo=false >}}
+::::
+:::: {.column .r-stretch }
+
+::::
+:::: {.column .r-stretch }
+
+::::
+:::::
+
+
 
 
 
@@ -167,7 +236,7 @@ format:
 
 <!-- ---------------------------------------------------- -->
 
-## The coalescent as a **Markov jump process**
+## The coalescent is a **Markov jump process**
 
 ::: spacer-2
 :::
@@ -184,7 +253,44 @@ format:
 ![](./images/coal_mc_jump_anim_5.svg){.nostretch .fragment width="100%" fig-align="left"}
 :::
 
-## The coalescent as a **Markov jump process**
+## The coalescent is a **Markov jump process**
+
+:::::::::: {layout="[0.55,-0.05,0.4]"}
+:::: column
+::: spacer-2
+:::
+
+![](./images/coal_mc_jump_anim_5.svg){.nostretch height="30%" fig-align="left"}
+::::
+
+::::::: column
+::: fragment
+$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})$
+:::
+
+::: fragment
+$\boldsymbol{\alpha} = (1, 0, 0, 0)$
+:::
+
+::: fragment
+$\boldsymbol{T} =
+\begin{bmatrix}
+{\color{blue} -6 &  6  &  & } \\
+   & -3  & 1  & 2 \\
+   &     & -1  & \\
+   &     &  & -1 \\
+\end{bmatrix}$
+:::
+
+::: fragment
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}$
+
+$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
+:::
+:::::::
+::::::::::
+
+## The coalescent is a **Markov jump process**
 
 :::::::::: {layout="[0.55,-0.05,0.4]"}
 :::: column
@@ -227,7 +333,7 @@ $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
 
 <!-- ---------------------------------------------------- -->
 
-## The coalescent as a **Markov jump process**
+## The coalescent is a **Markov jump process**
 
 ::::::::::: {layout="[0.55,-0.05,0.4]"}
 :::: column
@@ -298,17 +404,23 @@ $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\col
 
 ## Singleton branch length using **reward transformation**
 
+::: {.absolute bottom=0 left=0 width="50%"}
 ![](./images/coalescent-1ton-revtrans-operations.svg)
+:::
 
 Null rewarded node is removed and edge is created or updated:
 
 $w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x } w(v \rightarrow x)}$
 
+::: {.absolute top="50%" left="50%" width="30%"}
 ![](./images/coalescent-1ton-revtrans.svg)
+:::
 
 ## Doubleton branch length using **reward transformation**
 
+::: {.absolute top="50%" left="20%" width="50%"}
 ![](./images/coalescent-2ton-revtrans-operations.svg)
+:::
 
 <!-- ---------------------------------------------------- -->
 
