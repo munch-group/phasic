@@ -8970,21 +8970,17 @@ extern "C" {{
             
             if wrap is True:
 
-                target = math.isqrt(n // 2) or 1
-                best = (1, n)                                                                     
-                for b in range(max(1, target - 100), target + 101):                               
-                    if n % b == 0:                                                                
-                        a = n // b                                                                
-                        if abs(a - 2 * b) < abs(best[0] - 2 * best[1]):                           
-                            best = (a, b)   
-                rows, cols = best
 
-                # for i in range(int(math.sqrt(n)), 0, -1):
-                #     if n % i == 0:
-                #         rows, cols = i, n // i
-                #         break
-
-                cols = cols if cols < max_cols else int(math.sqrt(n)+2)
+                best = None
+                for c in range(1, n + 1):
+                    rows = -(-n // c)                 # ceil(n / c)
+                    last = n - (rows - 1) * c         # items in last row, in [1, c]
+                    if 2 * last < c:                  # last row must be at least half full
+                        continue
+                    score = abs(c - 2 * rows)         # cols closest to twice rows
+                    if best is None or score < best[0]:
+                        best = (score, rows, c)
+                _, rows, cols = best
             elif isinstance(wrap, int):
                 cols = wrap
             else:
