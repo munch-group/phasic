@@ -261,25 +261,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/discrete.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Discrete phase-type distributions</span></a>
+ <span class="menu-text">Discrete distributions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/parametrization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Parameterized models</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Time inhomogeneity</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Joint probability</span></a>
+ <span class="menu-text">Parameterization</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -290,8 +278,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/finite-markov-chains.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Finite Markov chains</span></a>
+  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
   </div>
 </li>
       </ul>
@@ -305,12 +299,6 @@ window.Quarto = {
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Multi-level caching (C path)</span></a>
-  </div>
-</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/method-of-moments.html" class="sidebar-item-text sidebar-link">
@@ -368,6 +356,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-level caching (C path)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -964,8 +958,8 @@ Figure&nbsp;6: Generated from only matrices.
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>, graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 11.6 s, sys: 294 ms, total: 11.9 s
-Wall time: 12.4 s</code></pre>
+<pre><code>CPU times: user 10.5 s, sys: 648 ms, total: 11.2 s
+Wall time: 12 s</code></pre>
 </div>
 </div>
 <p>Reconstructing it from cache is only <span class="math inline">\(O(|V|)\)</span>.</p>
@@ -973,8 +967,8 @@ Wall time: 12.4 s</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>, graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.86 s, sys: 78.9 ms, total: 1.94 s
-Wall time: 2.08 s</code></pre>
+<pre><code>CPU times: user 1.89 s, sys: 94.2 ms, total: 1.98 s
+Wall time: 2.04 s</code></pre>
 </div>
 </div>
 <p>If <code>graph_cache=True</code> is not passed, the graph is built from scratch:</p>
@@ -982,8 +976,8 @@ Wall time: 2.08 s</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 8.18 s, sys: 59.6 ms, total: 8.24 s
-Wall time: 8.27 s</code></pre>
+<pre><code>CPU times: user 1.83 s, sys: 78.2 ms, total: 1.91 s
+Wall time: 1.92 s</code></pre>
 </div>
 </div>
 <section id="cache-inspection" class="level3">
@@ -992,15 +986,15 @@ Wall time: 8.27 s</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>print_graph_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Cache directory: /Users/kmt/.phasic_cache/graphs
-Cached graphs: 1
+Cached graphs: 2
 Total size: 50.93 MB</code></pre>
 </div>
 </div>
 <div id="c8ad2ded" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:07.735345Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:07.735250Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.737553Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.737177Z&quot;}}" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>get_graph_cache_stats()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="22">
-<pre><code>{'num_graphs': 1,
- 'total_size_mb': 50.92813014984131,
+<pre><code>{'num_graphs': 2,
+ 'total_size_mb': 50.9302978515625,
  'cache_dir': '/Users/kmt/.phasic_cache/graphs'}</code></pre>
 </div>
 </div>
@@ -1201,14 +1195,14 @@ Total size: 50.93 MB</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>8.4 s ± 229 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+<pre><code>1.63 s ± 48.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
 <div id="e9cb0287" class="cell" data-execution_count="27">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_state_spaces.coalescent(nr_samples))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>1.18 s ± 258 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+<pre><code>881 ms ± 22.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
 

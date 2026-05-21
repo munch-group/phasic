@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="en"><head>
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../site_libs/quarto-html/tabby.min.js"></script>
-<script src="../site_libs/quarto-html/popper.min.js"></script>
-<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
-<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
-<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
-<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet"><meta charset="utf-8">
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="index_files/libs/clipboard/clipboard.min.js"></script>
+<script src="index_files/libs/quarto-html/tabby.min.js"></script>
+<script src="index_files/libs/quarto-html/popper.min.js"></script>
+<script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="index_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.9.37">
 
   <meta name="author" content="Kasper Munch">
@@ -17,8 +14,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
-  <link rel="stylesheet" href="../site_libs/revealjs/dist/reset.css">
-  <link rel="stylesheet" href="../site_libs/revealjs/dist/reveal.css">
+  <link rel="stylesheet" href="index_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="index_files/libs/revealjs/dist/reveal.css">
   <style>
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -101,17 +98,11 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="../site_libs/revealjs/dist/theme/quarto-11d7bf058e746c2d496258608987f752.css">
-  <link href="../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
-  <link href="../site_libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
-  <link href="../site_libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
-  <link href="../site_libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
-  <script async="" src="https://hypothes.is/embed.js"></script>
-  <script>
-    window.document.addEventListener("DOMContentLoaded", function (_event) {
-      document.body.classList.add('hypothesis-enabled');
-    });
-  </script>
+  <link rel="stylesheet" href="index_files/libs/revealjs/dist/theme/quarto-f106e3a96704ae963388b7d27058153f.css">
+  <link href="index_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="index_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="index_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="index_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
   <style type="text/css">
     .reveal div.sourceCode {
       margin: 0;
@@ -234,18 +225,28 @@ Kasper Munch
 ⭠ ⭢ ⭤ ⭡ ⭣ ⭥ 
 -->
 </section>
-<section id="figure-embeds" class="slide level2">
-<h2>Figure embeds</h2>
+<section>
+<section id="todo" class="title-slide slide level1 center">
+<h1>TODO</h1>
+<ul>
+<li>Model comparison / LR test</li>
+<li>SMC’</li>
+<li>epoch joint prob</li>
+</ul>
+<p><span class="alert">important note</span></p>
+</section>
+<section id="figure-embeds-1" class="slide level2">
+<h2>Figure embeds 1</h2>
 <div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
 <div class="quarto-layout-row">
 <div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete phase-type distributions" data-notebook-cellid="cell-fig-discrete-aux-vertex">
-<div id="cell-fig-discrete-aux-vertex" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:08.044596Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:08.044473Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:08.248894Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:08.248314Z&quot;}}" data-execution_count="5">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-aux-vertex">
+<div id="cell-fig-discrete-aux-vertex" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:25.704449Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:25.704333Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:25.830961Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:25.830357Z&quot;}}" data-execution_count="5">
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div id="fig-discrete-aux-vertex" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-aux-vertex-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-aux-vertex-output-1.svg" id="fig-discrete-aux-vertex"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-aux-vertex-output-1.svg" id="fig-discrete-aux-vertex">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1
@@ -256,13 +257,13 @@ Figure&nbsp;1
 </div>
 </div>
 </div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete phase-type distributions" data-notebook-cellid="cell-fig-geometric">
-<div id="cell-fig-geometric" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:08.250456Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:08.250331Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:08.322320Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:08.321807Z&quot;}}" data-execution_count="6">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-geometric">
+<div id="cell-fig-geometric" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:25.832592Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:25.832468Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:25.980015Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:25.979492Z&quot;}}" data-execution_count="6">
 <div class="cell-output cell-output-display">
 <div id="fig-geometric" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-geometric-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;2: Continuous (exponential) distribution"><img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-geometric-output-1.png" width="439" height="328"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-geometric-output-1.svg">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Continuous (exponential) distribution
@@ -273,13 +274,13 @@ Figure&nbsp;2: Continuous (exponential) distribution
 </div>
 </div>
 </div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete phase-type distributions" data-notebook-cellid="cell-fig-discretize">
-<div id="cell-fig-discretize" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:08.530114Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:08.530014Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:08.663324Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:08.662822Z&quot;}}" data-execution_count="10">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discretize">
+<div id="cell-fig-discretize" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.223924Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.223836Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.348544Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.347884Z&quot;}}" data-execution_count="10">
 <div class="cell-output cell-output-display" data-execution_count="10">
 <div id="fig-discretize" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discretize-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discretize-output-1.svg" id="fig-discretize"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discretize-output-1.svg" id="fig-discretize">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3
@@ -290,13 +291,13 @@ Figure&nbsp;3
 </div>
 </div>
 </div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete phase-type distributions" data-notebook-cellid="cell-fig-discrete-rev-trans">
-<div id="cell-fig-discrete-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:08.820948Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:08.820846Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:08.948680Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:08.948046Z&quot;}}" data-execution_count="17">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-rev-trans">
+<div id="cell-fig-discrete-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.500030Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.499945Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.626586Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.625971Z&quot;}}" data-execution_count="17">
 <div class="cell-output cell-output-display" data-execution_count="17">
 <div id="fig-discrete-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-rev-trans-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;4: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-rev-trans-output-1.svg" id="fig-discrete-rev-trans"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-rev-trans-output-1.svg" id="fig-discrete-rev-trans">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4
@@ -309,13 +310,13 @@ Figure&nbsp;4
 </div></div>
 <div class="quarto-layout-row">
 <div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete phase-type distributions" data-notebook-cellid="cell-fig-discrete-pmf-cdf">
-<div id="cell-fig-discrete-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:08.950309Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:08.950178Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:09.069109Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:09.068562Z&quot;}}" data-execution_count="18">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-pmf-cdf">
+<div id="cell-fig-discrete-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.628279Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.628169Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.816667Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.816153Z&quot;}}" data-execution_count="18">
 <div class="cell-output cell-output-display">
-<div id="fig-discrete-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center" height="313" width="672">
+<div id="fig-discrete-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-pmf-cdf-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;5: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-pmf-cdf-output-1.png" id="fig-discrete-pmf-cdf" width="672" height="313"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-pmf-cdf-output-1.svg" id="fig-discrete-pmf-cdf">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;5
@@ -326,16 +327,50 @@ Figure&nbsp;5
 </div>
 </div>
 </div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-singleton-graph">
+<div id="cell-fig-discrete-singleton-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.960936Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.960832Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:27.087872Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:27.087295Z&quot;}}" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div id="fig-discrete-singleton-graph" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-singleton-graph-output-1.svg" id="fig-discrete-singleton-graph">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-marginal-pmf-cdf">
+<div id="cell-fig-discrete-marginal-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:27.089441Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:27.089316Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:27.580640Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:27.580122Z&quot;}}" data-execution_count="24">
+<div class="cell-output cell-output-display">
+<div id="fig-discrete-marginal-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-marginal-pmf-cdf-output-1.svg" id="fig-discrete-marginal-pmf-cdf">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-prob-graph">
-<div id="cell-fig-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.077797Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.077671Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.219132Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.218563Z&quot;}}" data-execution_count="5">
+<div id="cell-fig-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.822757Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.822646Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:55.959559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:55.959012Z&quot;}}" data-execution_count="5">
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div id="fig-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;6: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-graph-output-1.svg" id="fig-joint-prob-graph"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-graph-output-1.svg" id="fig-joint-prob-graph">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6
+Figure&nbsp;8
 </figcaption>
 </figure>
 </div>
@@ -345,11 +380,14 @@ Figure&nbsp;6
 </div></div>
 </div>
 </section>
-<section id="adsf" class="slide level2">
-<h2>adsf</h2>
+<section id="figure-embeds-2" class="slide level2">
+<h2>Figure embeds 2</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-heatmap">
-<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.245434Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.245325Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.674495Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.673299Z&quot;}}" data-execution_count="8">
-<div id="fig-joint-heatmap" class="cell quarto-float quarto-figure quarto-figure-center" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:47.245434Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:47.245325Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:47.674495Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:47.673299Z&quot;}}">
+<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.978257Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.978147Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:56.451946Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:56.451431Z&quot;}}" data-execution_count="8">
+<div id="fig-joint-heatmap" class="cell quarto-float quarto-figure quarto-figure-center" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.978257Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.978147Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:56.451946Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:56.451431Z&quot;}}">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div id="fig-joint-heatmap-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center">
@@ -406,10 +444,10 @@ Figure&nbsp;6
 </figure>
 </div>
 <div class="cell-output cell-output-display">
-<div id="fig-joint-heatmap-2" class="quarto-float quarto-figure quarto-figure-center" height="348" width="475">
+<div id="fig-joint-heatmap-2" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-subfloat-fig">
 <div aria-describedby="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-heatmap-output-2.png" class="lightbox" data-gallery="fig-joint-heatmap" title="Figure&nbsp;7&nbsp;(b): "><img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-heatmap-output-2.png" id="fig-joint-heatmap-2" data-ref-parent="fig-joint-heatmap" width="475" height="348"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-heatmap-output-2.svg" id="fig-joint-heatmap-2" data-ref-parent="fig-joint-heatmap">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 (b)
@@ -419,56 +457,22 @@ Figure&nbsp;6
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-cont-joint-prob-graph">
-<div id="cell-fig-cont-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.073330Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.073196Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.311339Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.310645Z&quot;}}" data-execution_count="12">
-<div class="cell-output cell-output-display" data-execution_count="12">
-<div id="fig-cont-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-cont-joint-prob-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;8: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-cont-joint-prob-graph-output-1.svg" id="fig-cont-joint-prob-graph"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-cont-joint-prob-epoch-graph">
-<div id="cell-fig-cont-joint-prob-epoch-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.313841Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.313682Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.484262Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.483629Z&quot;}}" data-execution_count="13">
-<div class="cell-output cell-output-stdout">
-<pre><code>[8, 15, 16, 18, 22, 23, 25, 26]</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="13">
-<div id="fig-cont-joint-prob-epoch-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-cont-joint-prob-epoch-graph-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;9: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-cont-joint-prob-epoch-graph-output-2.svg" id="fig-cont-joint-prob-epoch-graph"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;9
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-</div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-prob-over-time">
-<div id="cell-fig-joint-prob-over-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:36:48.486016Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:36:48.485830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:36:48.581840Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:36:48.581318Z&quot;}}" data-execution_count="14">
-<div class="cell-output cell-output-display">
-<div id="fig-joint-prob-over-time" class="quarto-float quarto-figure quarto-figure-center" height="328" width="442">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-graph">
+<div id="cell-fig-cont-joint-prob-graph" class="cell" data-execution_count="15">
+<div class="cell-output cell-output-display" data-execution_count="15">
+<div id="fig-cont-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-over-time-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-10" title="Figure&nbsp;10: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-over-time-output-1.png" id="fig-joint-prob-over-time" width="442" height="328"></a>
+<div aria-describedby="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-graph-output-1.svg" id="fig-cont-joint-prob-graph">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;10
 </figcaption>
 </figure>
@@ -476,15 +480,16 @@ Figure&nbsp;10
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-transform">
-<div id="cell-fig-laplace-transform" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:51.443379Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:51.443209Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:51.575259Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:51.574638Z&quot;}}" data-execution_count="7">
-<div class="cell-output cell-output-display" data-execution_count="7">
-<div id="fig-laplace-transform" class="quarto-float quarto-figure quarto-figure-center">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-epoch-graph">
+<div id="cell-fig-cont-joint-prob-epoch-graph" class="cell" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div id="fig-cont-joint-prob-epoch-graph" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-transform-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11" title="Figure&nbsp;11: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-transform-output-1.svg" id="fig-laplace-transform"></a>
+<div aria-describedby="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-epoch-graph-output-1.svg" id="fig-cont-joint-prob-epoch-graph">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;11
 </figcaption>
 </figure>
@@ -492,15 +497,16 @@ Figure&nbsp;11
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-pdf">
-<div id="cell-fig-laplace-pdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:51.588616Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:51.588527Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:51.810744Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:51.810057Z&quot;}}" data-execution_count="11">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-joint-prob-over-time">
+<div id="cell-fig-joint-prob-over-time" class="cell" data-execution_count="18">
 <div class="cell-output cell-output-display">
-<div id="fig-laplace-pdf" class="quarto-float quarto-figure quarto-figure-center" height="328" width="439">
+<div id="fig-joint-prob-over-time" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-pdf-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-12" title="Figure&nbsp;12: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-pdf-output-1.png" id="fig-laplace-pdf" width="439" height="328"></a>
+<div aria-describedby="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-joint-prob-over-time-output-1.svg" id="fig-joint-prob-over-time">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;12
 </figcaption>
 </figure>
@@ -508,15 +514,18 @@ Figure&nbsp;12
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-pdf-cdf">
-<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.885069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.884996Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.063216Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.062722Z&quot;}}" data-execution_count="135">
-<div class="cell-output cell-output-display">
-<div id="fig-pdf-cdf" class="quarto-float quarto-figure quarto-figure-center" height="294" width="672">
+</div></div>
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-transform">
+<div id="cell-fig-laplace-transform" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:03:02.127966Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:03:02.127830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:03:02.257894Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:03:02.257235Z&quot;}}" data-execution_count="7">
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div id="fig-laplace-transform" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-pdf-cdf-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-13" title="Figure&nbsp;13: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-pdf-cdf-output-1.png" id="fig-pdf-cdf" width="672" height="294"></a>
+<div aria-describedby="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-transform-output-1.svg" id="fig-laplace-transform">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;13
 </figcaption>
 </figure>
@@ -524,15 +533,16 @@ Figure&nbsp;13
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs">
-<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.071959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.071857Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.127984Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.127633Z&quot;}}" data-execution_count="138">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-pdf">
+<div id="cell-fig-laplace-pdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:03:02.271143Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:03:02.271044Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:03:02.604424Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:03:02.603880Z&quot;}}" data-execution_count="11">
 <div class="cell-output cell-output-display">
-<div id="fig-sfs" class="quarto-float quarto-figure quarto-figure-center" height="274" width="361">
+<div id="fig-laplace-pdf" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-14" title="Figure&nbsp;14: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-output-1.png" id="fig-sfs" width="361" height="274"></a>
+<div aria-describedby="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-pdf-output-1.svg" id="fig-laplace-pdf">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;14
 </figcaption>
 </figure>
@@ -540,15 +550,16 @@ Figure&nbsp;14
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-rev-trans">
-<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.223202Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.222895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.415444Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.412026Z&quot;}}" data-execution_count="139">
-<div class="cell-output cell-output-display" data-execution_count="139">
-<div id="fig-singleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-pdf-cdf">
+<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.885069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.884996Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.063216Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.062722Z&quot;}}" data-execution_count="16">
+<div class="cell-output cell-output-display">
+<div id="fig-pdf-cdf" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-rev-trans-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15" title="Figure&nbsp;15: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-rev-trans-output-1.svg" id="fig-singleton-rev-trans"></a>
+<div aria-describedby="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-pdf-cdf-output-1.svg" id="fig-pdf-cdf">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;15
 </figcaption>
 </figure>
@@ -556,15 +567,16 @@ Figure&nbsp;15
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-rev-trans">
-<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.571184Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.571067Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.748770Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.746788Z&quot;}}" data-execution_count="142">
-<div class="cell-output cell-output-display" data-execution_count="142">
-<div id="fig-doubleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs">
+<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.071959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.071857Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.127984Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.127633Z&quot;}}" data-execution_count="19">
+<div class="cell-output cell-output-display">
+<div id="fig-sfs" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-rev-trans-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16" title="Figure&nbsp;16: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-rev-trans-output-1.svg" id="fig-doubleton-rev-trans"></a>
+<div aria-describedby="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-output-1.svg" id="fig-sfs">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;16
 </figcaption>
 </figure>
@@ -572,15 +584,23 @@ Figure&nbsp;16
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-rev-trans">
-<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.909181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.908782Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.069393Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.067673Z&quot;}}" data-execution_count="144">
-<div class="cell-output cell-output-display" data-execution_count="144">
-<div id="fig-tripleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-rev-trans-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-17" title="Figure&nbsp;17: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-rev-trans-output-1.svg" id="fig-tripleton-rev-trans"></a>
+</div></div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+</section>
+<section id="figure-embeds-3" class="slide level2">
+<h2>Figure embeds 3</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-rev-trans">
+<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.223202Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.222895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.415444Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.412026Z&quot;}}" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div id="fig-singleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-rev-trans-output-1.svg" id="fig-singleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;17
 </figcaption>
 </figure>
@@ -588,95 +608,103 @@ Figure&nbsp;17
 </div>
 </div>
 </div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-rev-trans">
+<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.571184Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.571067Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.748770Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.746788Z&quot;}}" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div id="fig-doubleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-rev-trans-output-1.svg" id="fig-doubleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;18
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-rev-trans">
+<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.909181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.908782Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.069393Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.067673Z&quot;}}" data-execution_count="25">
+<div class="cell-output cell-output-display" data-execution_count="25">
+<div id="fig-tripleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-rev-trans-output-1.svg" id="fig-tripleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;19
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-branches">
-<div id="cell-fig-singleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.423198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.422903Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.569745Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.569151Z&quot;}}" data-execution_count="140">
+<div id="cell-fig-singleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.423198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.422903Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.569745Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.569151Z&quot;}}" data-execution_count="21">
 <div class="cell-output cell-output-display column-margin">
 <div id="fig-singleton-branches" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-18" title="Figure&nbsp;18: Singleton branch length"><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-branches-output-1.png" width="590" height="790"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-branches-output-1.svg">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;18: Singleton branch length
+Figure&nbsp;20: Singleton branch length
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
+</div></div>
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-branches">
-<div id="cell-fig-doubleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.752248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.752074Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.904513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.901972Z&quot;}}" data-execution_count="143">
+<div id="cell-fig-doubleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.752248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.752074Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.904513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.901972Z&quot;}}" data-execution_count="24">
 <div class="cell-output cell-output-display column-margin">
 <div id="fig-doubleton-branches" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-19" title="Figure&nbsp;19: Double branch length"><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-branches-output-1.png" width="590" height="790"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-branches-output-1.svg">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;19: Double branch length
+Figure&nbsp;21: Double branch length
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-branches">
-<div id="cell-fig-tripleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.073656Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.073449Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.136765Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.134350Z&quot;}}" data-execution_count="145">
+<div id="cell-fig-tripleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.073656Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.073449Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.136765Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.134350Z&quot;}}" data-execution_count="26">
 <div class="cell-output cell-output-display column-margin">
 <div id="fig-tripleton-branches" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-20" title="Figure&nbsp;20: Tripleton branch length"><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-branches-output-1.png" width="590" height="390"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-branches-output-1.svg">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;20: Tripleton branch length
+Figure&nbsp;22: Tripleton branch length
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
 <div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs-marginal-pdfs">
-<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.113754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.113652Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.237523Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.236208Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="166">
+<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.113754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.113652Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.237523Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.236208Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="32">
 <div class="cell-output cell-output-display">
-<div id="fig-sfs-marginal-pdfs" class="quarto-float quarto-figure quarto-figure-center" height="328" width="448">
+<div id="fig-sfs-marginal-pdfs" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
 <div aria-describedby="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-marginal-pdfs-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-21" title="Figure&nbsp;21: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-marginal-pdfs-output-1.png" id="fig-sfs-marginal-pdfs" width="448" height="328"></a>
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-marginal-pdfs-output-1.svg" id="fig-sfs-marginal-pdfs">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;21
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-ton-lineages-across-time">
-<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.395676Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.395541Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.511483Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.510817Z&quot;}}" data-execution_count="34">
-<div class="cell-output cell-output-display">
-<div id="fig-ton-lineages-across-time" class="quarto-float quarto-figure quarto-figure-center" height="274" width="658">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-ton-lineages-across-time-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-22" title="Figure&nbsp;22: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-ton-lineages-across-time-output-1.png" id="fig-ton-lineages-across-time" width="658" height="274"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;22
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-accumulated-occupancies">
-<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.531932Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.531737Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.640609Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.638779Z&quot;}}" data-execution_count="36">
-<div class="cell-output cell-output-display">
-<div id="fig-accumulated-occupancies" class="quarto-float quarto-figure quarto-figure-center" height="328" width="439">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-accumulated-occupancies-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-23" title="Figure&nbsp;23: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-accumulated-occupancies-output-1.png" id="fig-accumulated-occupancies" width="439" height="328"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;23
 </figcaption>
 </figure>
@@ -684,135 +712,481 @@ Figure&nbsp;23
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tmrca-sampling-dist">
-<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.655650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.654994Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.903431Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.901842Z&quot;}}" data-execution_count="38">
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-ton-lineages-across-time">
+<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.395676Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.395541Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.511483Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.510817Z&quot;}}" data-execution_count="37">
 <div class="cell-output cell-output-display">
-<div id="fig-tmrca-sampling-dist" class="quarto-float quarto-figure quarto-figure-center">
+<div id="fig-ton-lineages-across-time" class="quarto-float quarto-figure quarto-figure-center">
 <figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tmrca-sampling-dist-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-24" title="Figure&nbsp;24: Sampling distribution."><img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tmrca-sampling-dist-output-1.png" width="455" height="328"></a>
+<div aria-describedby="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-ton-lineages-across-time-output-1.svg" id="fig-ton-lineages-across-time">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;24: Sampling distribution.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;24
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-accumulated-occupancy">
-<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:47.200814Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:47.200717Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.290181Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.289699Z&quot;}}" data-execution_count="8">
-<div id="fig-accumulated-occupancy" class="cell quarto-float quarto-figure quarto-figure-center" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:47.200814Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:47.200717Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.290181Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.289699Z&quot;}}">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div id="fig-accumulated-occupancy-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-subfloat-fig">
-<div aria-describedby="fig-accumulated-occupancy-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
+</div></div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-accumulated-occupancy-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a)
-</figcaption>
-</figure>
-</div>
+</section>
+<section id="figure-embeds-4" class="slide level2">
+<h2>Figure embeds 4</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-accumulated-occupancies">
+<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.531932Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.531737Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.640609Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.638779Z&quot;}}" data-execution_count="39">
 <div class="cell-output cell-output-display">
-<div id="fig-accumulated-occupancy-2" class="quarto-float quarto-figure quarto-figure-center" height="299" width="511">
-<figure class="quarto-float quarto-subfloat-fig">
-<div aria-describedby="fig-accumulated-occupancy-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-accumulated-occupancy-output-2.png" class="lightbox" data-gallery="fig-accumulated-occupancy" title="Figure&nbsp;25&nbsp;(b): "><img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-accumulated-occupancy-output-2.png" id="fig-accumulated-occupancy-2" data-ref-parent="fig-accumulated-occupancy" width="511" height="299"></a>
+<div id="fig-accumulated-occupancies" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-accumulated-occupancies-output-1.svg" id="fig-accumulated-occupancies">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-accumulated-occupancy-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b)
-</figcaption>
-</figure>
-</div>
-</div>
-<div id="fig-accumulated-occupancy-3" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-subfloat-fig">
-<div aria-describedby="fig-accumulated-occupancy-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<pre><code>&lt;Figure size 500x370 with 0 Axes&gt;</code></pre>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-accumulated-occupancy-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(c)
-</figcaption>
-</figure>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;25
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-distribution-context">
-<div id="cell-fig-distribution-context" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:46.937496Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:46.937405Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.146729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.146230Z&quot;}}" data-execution_count="4">
-<div class="cell-output cell-output-display">
-<div id="fig-distribution-context" class="quarto-float quarto-figure quarto-figure-center" height="328" width="439">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-distribution-context-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-26" title="Figure&nbsp;26: "><img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-distribution-context-output-1.png" id="fig-distribution-context" width="439" height="328"></a>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;26
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tmrca-sampling-dist">
+<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.655650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.654994Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.903431Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.901842Z&quot;}}" data-execution_count="41">
+<div class="cell-output cell-output-display">
+<div id="fig-tmrca-sampling-dist" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tmrca-sampling-dist-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;26: Sampling distribution.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </div>
-<!-- ---------------------------------------------------- -->
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-accumulated-occupancy">
+<div id="cell-fig-accumulated-occupancy" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:47.200814Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:47.200717Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.290181Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.289699Z&quot;}}">
+<div class="cell-output cell-output-display">
+<div id="fig-accumulated-occupancy" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-accumulated-occupancy-output-1.svg" id="fig-accumulated-occupancy">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;27
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-distribution-context">
+<div id="cell-fig-distribution-context" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:46.937496Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:46.937405Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.146729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.146230Z&quot;}}" data-execution_count="24">
+<div class="cell-output cell-output-display">
+<div id="fig-distribution-context" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-distribution-context-output-1.svg" id="fig-distribution-context">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;28
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+
+</div></div>
+</div>
+<!-- =============================================================================== -->
 </section>
+<section id="some-extra-things-you-can-do-with-the-clean-theme" class="slide level2">
+<h2>Some extra things you can do with the clean theme</h2>
+<p>Special classes for emphasis</p>
+<ul>
+<li><code>.alert</code> class for default emphasis, e.g.&nbsp;<span class="alert">important note</span>.</li>
+<li><code>.fg</code> class for custom colour, e.g.&nbsp;<span class="fg" style="--col: #e64173">important note</span>.</li>
+<li><code>.bg</code> class for custom background, e.g.&nbsp;<span class="bg" style="--col: #e64173">important note</span>.</li>
+</ul>
+<p>Slide content</p>
+
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+<aside><div>
+<p>Schumer et al.&nbsp;(2018)</p>
+</div></aside></section></section>
 <section>
-<section id="appetizer" class="title-slide slide level1 center">
-<h1>Appetizer</h1>
-<!-- ---------------------------------------------------- -->
+<section id="phase-type-distributions" class="title-slide slide level1 center">
+<h1>Phase-type distributions</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="when-to-use-phase-type-distributions" class="slide level2">
+<h2>When to Use Phase-Type Distributions</h2>
+<p>Phase-type distributions are particularly useful when:</p>
+<ol type="1">
+<li><strong>Modeling absorption times</strong>: Time until system reaches terminal state</li>
+<li><strong>Sparse state spaces</strong>: Many states but few transitions per state</li>
+<li><strong>Complex phenomena</strong>: Iterative construction from simple rules</li>
+<li><strong>Multiple quantities</strong>: Multivariate distributions with correlated outcomes</li>
+<li><strong>Large state spaces</strong>: Thousands to millions of states</li>
+</ol>
+<p><strong>Applications</strong>: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)</p>
+<!-- =============================================================================== -->
+</section>
+<section id="the-coalescent-is-a-markov-jump-process" class="slide level2">
+<h2>The coalescent is a <strong>Markov jump process</strong></h2>
+<div class="absolute" style="top: 25%; ">
+<div class="r-stack">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_2-nostart.svg" class="nostretch fragment quarto-figure quarto-figure-center" style="width:100.0%"></p>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_3-nostart.svg" class="nostretch fragment quarto-figure quarto-figure-center" style="width:100.0%"></p>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_4-nostart.svg" class="nostretch fragment quarto-figure quarto-figure-center" style="width:100.0%"></p>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_5-nostart.svg" class="nostretch fragment quarto-figure quarto-figure-center" style="width:100.0%"></p>
+</figure>
+</div>
+</div>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="the-coalescent-is-a-markov-jump-process-1" class="slide level2">
+<h2>The coalescent is a <strong>Markov jump process</strong></h2>
+<div class="absolute" style="top: 30%; left: 0%; width: 50%; ">
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_5-nostart.svg" class="quarto-figure quarto-figure-left" style="height:30.0%"></p>
+</figure>
+</div>
+</div>
+<div class="absolute" style="top: 25%; left: 60%; ">
+<p><span class="math inline">\(\boldsymbol{Q} =
+\begin{bmatrix}
+{\color{blue}-6} &amp;  {\color{blue}6}  &amp;  &amp;  &amp;  0 \\
+   &amp; {\color{blue}-3}  &amp; {\color{blue}1}  &amp; {\color{blue}2}  &amp;   0 \\
+   &amp;     &amp; {\color{blue}-1}  &amp;  &amp;  1 \\
+   &amp;     &amp;   &amp; {\color{blue}-1}  &amp;  1 \\
+  0 &amp; 0   &amp; 0 &amp; 0                 &amp; 0
+\end{bmatrix}\)</span></p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="the-coalescent-is-a-markov-jump-process-2" class="slide level2">
+<h2>The coalescent is a <strong>Markov jump process</strong></h2>
+<div class="absolute" style="top: 30%; left: 0%; width: 50%; ">
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_5.svg" class="quarto-figure quarto-figure-left" style="height:30.0%"></p>
+</figure>
+</div>
+</div>
+<div class="absolute" style="top: 25%; left: 60%; ">
+<p><span class="math inline">\(\boldsymbol{Q} =
+\begin{bmatrix}
+{\color{blue}-6} &amp;  {\color{blue}6}  &amp;  &amp;  &amp;  0 \\
+   &amp; {\color{blue}-3}  &amp; {\color{blue}1}  &amp; {\color{blue}2}  &amp;   0 \\
+   &amp;     &amp; {\color{blue}-1}  &amp;  &amp;  1 \\
+   &amp;     &amp;   &amp; {\color{blue}-1}  &amp;  1 \\
+  0 &amp; 0   &amp; 0 &amp; 0                 &amp; 0
+\end{bmatrix}\)</span></p>
+</div>
+<div class="absolute" style="top: 65%; left: 60%; ">
+<p><span class="math inline">\(\boldsymbol{\alpha} = (1,\; 0, \; 0, \; 0)\)</span></p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="waiting-time-in-the-coalescent-is-a-phase-type-distributed" class="slide level2">
+<h2>Waiting time in the coalescent is a <strong>phase-type distributed</strong></h2>
+<div class="absolute" style="top: 30%; left: 0%; width: 50%; ">
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="./images/coal_mc_jump_anim_5.svg" class="quarto-figure quarto-figure-left"></p>
+</figure>
+</div>
+</div>
+<div class="absolute" style="top: 25%; left: 60%; ">
+<p><span class="math inline">\(\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})\)</span></p>
+<p><span class="math inline">\(\boldsymbol{\alpha} = (1,\; 0, \; 0, \; 0)\)</span></p>
+<p><span class="math inline">\({\color{blue}\boldsymbol{S}} =
+\begin{bmatrix}
+-6 &amp;  6  &amp;  &amp; \\
+   &amp; -3  &amp; 1  &amp; 2 \\
+   &amp;     &amp; -1  &amp; \\
+   &amp;     &amp;  &amp; -1 \\
+\end{bmatrix}\)</span></p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="moments" class="slide level2">
+<h2>Moments</h2>
+<div class="absolute larger" style="top: 25%; left: 10%; ">
+<p><span class="math display">\[
+\mathbb{E}[\tau] = \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}} \boldsymbol{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
+\]</span></p>
+</div>
+<div class="absolute larger" style="top: 50%; left: 10%; ">
+<p><span class="math display">\[\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}}^k \boldsymbol{e}\]</span></p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="distribution" class="slide level2">
+<h2>Distribution</h2>
+<div class="absolute larger" style="top: 25%; left: 10%; ">
+<p><span class="math display">\[F(t) = 1 - \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} \boldsymbol{e}, \quad t \geq 0\]</span></p>
+</div>
+<div class="absolute larger" style="top: 50%; left: 10%; ">
+<p><span class="math display">\[f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{S}) \boldsymbol{e}, \quad t \geq 0\]</span></p>
+</div>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="rewards" class="title-slide slide level1 center">
+<h1>Rewards</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="phase-type-distribution-with-rewards" class="slide level2">
+<h2>Phase-type distribution with rewards</h2>
+<div class="quarto-layout-panel" data-layout="[0.55,-0.05,0.4]">
+<div class="quarto-layout-row">
+<div class="column quarto-layout-cell" style="flex-basis: 55.0%;justify-content: center;">
+<div class="spacer-2">
+
+</div>
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="./images/coalescent-tot-brlen-rewards.svg" class="quarto-figure quarto-figure-left"></p>
+</figure>
+</div>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
+<p><span class="math inline">\(\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})\)</span></p>
+<p><span class="math inline">\(\boldsymbol{\alpha} = (1,\; 0, \; 0, \; 0)\)</span></p>
+<p><span class="math inline">\({\color{blue}\boldsymbol{S}} =
+\begin{bmatrix}
+-6 &amp;  6  &amp;  &amp; \\
+   &amp; -3  &amp; 1  &amp; 2 \\
+   &amp;     &amp; -1  &amp; \\
+   &amp;     &amp;  &amp; -1 \\
+\end{bmatrix}\)</span></p>
+<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
+</div></div>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="moments-with-rewards" class="slide level2">
+<h2>Moments with rewards</h2>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
+<p><span class="math inline">\(\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}\)</span></p>
+<!-- =============================================================================== -->
+</section>
+<section id="marginal-moments" class="slide level2">
+<h2>Marginal moments</h2>
+<p>The <span class="math inline">\(k\)</span>-th moment of the reward-transformed distribution:</p>
+<p><span class="math display">\[\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \boldsymbol{e}\]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{\Delta}(\boldsymbol{r})\)</span> is a diagonal matrix with rewards on the diagonal.</p>
+<!-- =============================================================================== -->
+<!-- 
+## Multivariate Phase-Type Distributions
+
+**Multivariate phase-type distributions** assign a vector of rewards to each state, resulting in a vector-valued outcome:
+
+$$\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})$$
+
+where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
+ -->
+<!-- =============================================================================== -->
+</section>
+<section id="phase-type-distributed-waiting-time" class="slide level2">
+<h2><strong>Phase-type</strong> distributed waiting time</h2>
+<div class="quarto-layout-panel" data-layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]">
+<div class="quarto-layout-row">
+<div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 45.0%;justify-content: center;">
+<p><img data-src="./images/coalescent-unit-rewards.svg"></p>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
+<p><strong>TMRCA (tree height):</strong></p>
+<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
+</div></div>
+<div class="quarto-layout-row">
+<div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 45.0%;justify-content: center;">
+<p><img data-src="./images/coalescent-tot-brlen-rewards.svg"></p>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
+<p><strong>Total branch length:</strong></p>
+<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
+</div></div>
+</div>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="graph-representation" class="title-slide slide level1 center">
+<h1>Graph Representation</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="matrix-formulation-of-phase-type-distributions" class="slide level2">
+<h2><strong>Matrix formulation</strong> of phase-type distributions</h2>
+<div class="quarto-layout-panel" data-layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]">
+<div class="quarto-layout-row">
+<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
+<p>😀 Proofs and well-described properties:</p>
+<p>CDF: <span class="math inline">\(\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0\)</span></p>
+<p>MGF: <span class="math inline">\(\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}\)</span></p>
+<div class="spacer-1">
+
+</div>
+<p>😱 Complexity:</p>
+<p>Matrix operations (<span class="math inline">\({\boldsymbol{S}}^{-1}\)</span> and <span class="math inline">\({\boldsymbol{S}}^{t}\)</span>) limit applicability. Needlessly so for sparse matrices.</p>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.3%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
+<p>Coalescent n=10:</p>
+<div class="r-stack">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/sparse-matrix.png" class="nostretch disappear quarto-figure quarto-figure-center" style="height:30.0%"></p>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch fragment quarto-figure quarto-figure-center" style="height:30.0%"></p>
+</figure>
+</div>
+</div>
+</div></div>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="a-graph-formulation-of-phase-type-distributions" class="slide level2">
+<h2>A <strong>graph-formulation</strong> of phase-type distributions</h2>
+<p>Coalescent n=10:</p>
+<div class="quarto-layout-panel" data-layout="[0.40,-0.05,0.1,-0.05,0.40]">
+<div class="quarto-layout-row">
+<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
+<p>😱</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/sparse-matrix.png" class="nostretch quarto-figure quarto-figure-center"></p>
+</figure>
+</div>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
+<div class="r-fit-text center">
+<p>⮕</p>
+</div>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
+<p>😀</p>
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch quarto-figure quarto-figure-center"></p>
+</figure>
+</div>
+</div></div>
+</div>
+<p>::::::::</p>
+<!-- =============================================================================== -->
+</section>
+<section id="advantages-of-graph-representation" class="slide level2">
+<h2>Advantages of Graph Representation</h2>
+<ol type="1">
+<li><strong>Memory efficiency</strong>: Store only existing transitions (not full <span class="math inline">\(p \times p\)</span> matrix)
+<ul>
+<li>For sparse systems: <span class="math inline">\(O(|E|)\)</span> vs <span class="math inline">\(O(p^2)\)</span> memory</li>
+</ul></li>
+<li><strong>Computational efficiency</strong>: Operations on edges only
+<ul>
+<li>Many algorithms: <span class="math inline">\(O(|V|^2)\)</span> vs <span class="math inline">\(O(p^3)\)</span> for matrix operations</li>
+</ul></li>
+<li><strong>Iterative construction</strong>: Build state space incrementally
+<ul>
+<li>Add vertices and edges as needed</li>
+<li>Natural for complex phenomena</li>
+</ul></li>
+<li><strong>Intuitive modeling</strong>: Specify transitions from each state independently
+<ul>
+<li>Markov property: next state depends only on current state</li>
+<li>Easy to encode complex models</li>
+</ul></li>
+</ol>
+<!-- =============================================================================== -->
+</section>
+<section id="graph-computation-stages" class="slide level2">
+<h2>Graph computation stages</h2>
+<!-- =============================================================================== -->
+<div class="absolute" style="top: 20%; left: 10%; width: 70%; ">
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="./images/graph-alg-overview.svg" class="quarto-figure quarto-figure-left"></p>
+</figure>
+</div>
+</div>
+<div class="absolute" style="top: 20%; left: 37%; width: 70%; ">
+<p>Standardization</p>
+</div>
+<div class="absolute" style="top: 50%; left: 78%; width: 70%; ">
+<p>Elimination</p>
+</div>
+<div class="absolute" style="top: 80%; left: 39%; width: 70%; ">
+<p>Recursion</p>
+</div>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="why-do-this-at-all" class="title-slide slide level1 center">
+<h1>Why do this at all?</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="math-algorithms-inference" class="slide level2">
 <h2>Math / Algorithms / Inference</h2>
+<p><span class="alert">important note</span></p>
 <div class="quarto-layout-panel" data-layout="[0.55,-0.05,0.4]">
 <div class="quarto-layout-row">
 <div class="column quarto-layout-cell" style="flex-basis: 55.0%;justify-content: flex-start;">
@@ -849,6 +1223,7 @@ Figure&nbsp;26
 </ul>
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
 <section id="applications" class="slide level2">
 <h2>Applications</h2>
@@ -901,305 +1276,30 @@ Figure&nbsp;26
 </ul>
 </div></div>
 </div>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
-<section id="phase-type-distributions" class="title-slide slide level1 center">
-<h1>Phase-type distributions</h1>
-<!-- ---------------------------------------------------- -->
+<section id="dag-construction" class="title-slide slide level1 center">
+<h1>DAG construction</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
-<section id="the-coalescent-as-a-markov-jump-process" class="slide level2">
-<h2>The coalescent as a <strong>Markov jump process</strong></h2>
-<div class="spacer-2">
+<section id="dag-construction-1" class="slide level2">
+<h2>DAG construction</h2>
+<p>Constructing an <strong>acyclic graph</strong> retaining the expected accumulated rewards</p>
+<p>Turns out this is Gaussian elimination on the graph - in effect solving a linear system.</p>
+<!-- =============================================================================== -->
+</section>
+<section id="rate-standardization" class="slide level2">
+<h2>Rate <strong>standardization</strong></h2>
 
-</div>
-<div class="r-stack">
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-27"><img data-src="./images/coal_mc_jump_anim_1.svg" class="nostretch quarto-figure quarto-figure-left" style="width:100.0%"></a></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-28"><img data-src="./images/coal_mc_jump_anim_2.svg" class="nostretch fragment quarto-figure quarto-figure-left" style="width:100.0%"></a></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_3.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-29"><img data-src="./images/coal_mc_jump_anim_3.svg" class="nostretch fragment quarto-figure quarto-figure-left" style="width:100.0%"></a></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_4.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-30"><img data-src="./images/coal_mc_jump_anim_4.svg" class="nostretch fragment quarto-figure quarto-figure-left" style="width:100.0%"></a></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_5.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-31"><img data-src="./images/coal_mc_jump_anim_5.svg" class="nostretch fragment quarto-figure quarto-figure-left" style="width:100.0%"></a></p>
-</figure>
-</div>
-</div>
-</section>
-<section id="the-coalescent-as-a-markov-jump-process-1" class="slide level2">
-<h2>The coalescent as a <strong>Markov jump process</strong></h2>
-<div class="quarto-layout-panel" data-layout="[0.55,-0.05,0.4]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 55.0%;justify-content: center;">
-<div class="spacer-2">
-
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coal_mc_jump_anim_5.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-32"><img data-src="./images/coal_mc_jump_anim_5.svg" class="quarto-figure quarto-figure-left"></a></p>
-</figure>
-</div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
-<div class="fragment">
-<p><span class="math inline">\(\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\(\boldsymbol{\alpha} = (1, 0, 0, 0)\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\({\color{blue}\boldsymbol{S}} =
-\begin{bmatrix}
--6 &amp;  6  &amp;  &amp; \\
-   &amp; -3  &amp; 1  &amp; 2 \\
-   &amp;     &amp; -1  &amp; \\
-   &amp;     &amp;  &amp; -1 \\
-\end{bmatrix}\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}\)</span></p>
-<p><span class="math inline">\(\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}\)</span></p>
-</div>
-</div></div>
-</div>
-<!-- ---------------------------------------------------- -->
-</section></section>
-<section>
-<section id="reward-transforms" class="title-slide slide level1 center">
-<h1>Reward transforms</h1>
-<!-- ---------------------------------------------------- -->
-</section>
-<section id="the-coalescent-as-a-markov-jump-process-2" class="slide level2">
-<h2>The coalescent as a <strong>Markov jump process</strong></h2>
-<div class="quarto-layout-panel" data-layout="[0.55,-0.05,0.4]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 55.0%;justify-content: center;">
-<div class="spacer-2">
-
-</div>
-<div class="quarto-figure quarto-figure-left">
-<figure>
-<p><a href="./images/coalescent-tot-brlen-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-33"><img data-src="./images/coalescent-tot-brlen-rewards.svg" class="quarto-figure quarto-figure-left"></a></p>
-</figure>
-</div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
-<div class="fragment">
-<p><span class="math inline">\(\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\(\boldsymbol{\alpha} = (1, 0, 0, 0)\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\({\color{blue}\boldsymbol{S}} =
-\begin{bmatrix}
--6 &amp;  6  &amp;  &amp; \\
-   &amp; -3  &amp; 1  &amp; 2 \\
-   &amp;     &amp; -1  &amp; \\
-   &amp;     &amp;  &amp; -1 \\
-\end{bmatrix}\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
-</div>
-<div class="fragment">
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
-<p><span class="math inline">\(\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}\)</span></p>
-</div>
-</div></div>
-</div>
-</section>
-<section id="phase-type-distributed-waiting-time" class="slide level2">
-<h2><strong>Phase-type</strong> distributed waiting time</h2>
-<div class="quarto-layout-panel" data-layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]">
-<div class="quarto-layout-row">
-<div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 45.0%;justify-content: center;">
-<p><a href="./images/coalescent-unit-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-34"><img data-src="./images/coalescent-unit-rewards.svg"></a></p>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column fragment quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
-<p><strong>TMRCA (tree height):</strong></p>
-<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)\)</span></p>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
-</div></div>
-<div class="quarto-layout-row">
-<div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column fragment quarto-layout-cell" style="flex-basis: 45.0%;justify-content: center;">
-<p><a href="./images/coalescent-tot-brlen-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-35"><img data-src="./images/coalescent-tot-brlen-rewards.svg"></a></p>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column fragment quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
-<p><strong>Total branch length:</strong></p>
-<p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
-</div></div>
-</div>
-</section>
-<section id="singleton-branch-length-using-reward-transformation" class="slide level2">
-<h2>Singleton branch length using <strong>reward transformation</strong></h2>
-<p><a href="./images/coalescent-1ton-revtrans-operations.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-36"><img data-src="./images/coalescent-1ton-revtrans-operations.svg"></a></p>
-<p>Null rewarded node is removed and edge is created or updated:</p>
-<p><span class="math inline">\(w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x } w(v \rightarrow x)}\)</span></p>
-<p><a href="./images/coalescent-1ton-revtrans.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-37"><img data-src="./images/coalescent-1ton-revtrans.svg"></a></p>
-</section>
-<section id="doubleton-branch-length-using-reward-transformation" class="slide level2">
-<h2>Doubleton branch length using <strong>reward transformation</strong></h2>
-<p><a href="./images/coalescent-2ton-revtrans-operations.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-38"><img data-src="./images/coalescent-2ton-revtrans-operations.svg"></a></p>
-<!-- ---------------------------------------------------- -->
-</section></section>
-<section>
-<section id="graph-algorithms" class="title-slide slide level1 center">
-<h1>Graph Algorithms</h1>
-<!-- ---------------------------------------------------- -->
-</section>
-<section id="matrix-formulation-of-phase-type-distributions" class="slide level2">
-<h2><strong>Matrix formulation</strong> of phase-type distributions</h2>
-<div class="quarto-layout-panel" data-layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
-<p>😀 Proofs and well-described properties:</p>
-<p>CDF: <span class="math inline">\(\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0\)</span></p>
-<p>MGF: <span class="math inline">\(\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}\)</span></p>
-<div class="spacer-1">
-
-</div>
-<p>😱 Complexity:</p>
-<p>Matrix operations (<span class="math inline">\({\boldsymbol{S}}^{-1}\)</span> and <span class="math inline">\({\boldsymbol{S}}^{t}\)</span>) limit applicability. Needlessly so for sparse matrices.</p>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.3%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
-<p>Coalescent n=10:</p>
-<div class="r-stack">
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/sparse-matrix.png" class="lightbox" data-gallery="quarto-lightbox-gallery-39"><img data-src="./images/sparse-matrix.png" class="nostretch disappear quarto-figure quarto-figure-center" style="height:30.0%"></a></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/sparse-matrix-as-graph.png" class="lightbox" data-gallery="quarto-lightbox-gallery-40"><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch fragment quarto-figure quarto-figure-center" style="height:30.0%"></a></p>
-</figure>
-</div>
-</div>
-</div></div>
-</div>
-</section>
-<section id="a-graph-formulation-of-phase-type-distributions" class="slide level2">
-<h2>A <strong>graph-formulation</strong> of phase-type distributions</h2>
-<div class="quarto-layout-panel" data-layout="[0.40,-0.05,0.1,-0.05,0.40]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
-<div class="spacer-3">
-
-</div>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/sparse-matrix.png" class="lightbox" data-gallery="quarto-lightbox-gallery-41"><img data-src="./images/sparse-matrix.png" class="nostretch quarto-figure quarto-figure-center"></a></p>
-</figure>
-</div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 10.0%;justify-content: center;">
-<p><a href="./images/tobias.png" class="lightbox" data-gallery="quarto-lightbox-gallery-42"><img data-src="./images/tobias.png"></a></p>
-<div class="r-fit-text center">
-<p>⮕</p>
-</div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/sparse-matrix-as-graph.png" class="lightbox" data-gallery="quarto-lightbox-gallery-43"><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch quarto-figure quarto-figure-center"></a></p>
-</figure>
-</div>
-</div></div>
-</div>
-</section>
-<section id="a-graph-formulation-of-phase-type-distributions-1" class="slide level2">
-<h2>A <strong>graph-formulation</strong> of phase-type distributions</h2>
-<ul>
-<li>DAG construction from graph with cycles.</li>
-<li>Exact moments by graph recursion.</li>
-<li>Exact marginal moments by reward transformation.</li>
-<li>Discrete PtD from continuous PtD.</li>
-<li>CDF for discrete and continuous PtDs</li>
-<li>C implementation exposed in R</li>
-<li>Intuitive state-space construction.</li>
-</ul>
-</section>
-<section id="computing-moments-from-the-graph" class="slide level2">
-<h2>Computing <strong>moments</strong> from the graph</h2>
-<div class="quarto-layout-panel" data-layout="[0.40,-0.05,0.1,-0.05,0.40]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
-<ul>
-<li>Acyclic graphs:
-<ul>
-<li>Standardization of the graph.</li>
-<li>Recursion in reverse topological order.</li>
-</ul></li>
-<li>Graphs with cycles:
-<ul>
-<li>Standardization of the graph.</li>
-<li>Construction of a corresponding acyclic graph</li>
-<li>Recursion in reverse topological order.</li>
-</ul></li>
-</ul>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 10.0%;justify-content: center;">
-<p><a href="./images/cyclic-graph.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-44"><img data-src="./images/cyclic-graph.svg"></a></p>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-</div>
-</div>
-</section>
-<section id="computing-moments-from-the-graph-1" class="slide level2">
-<h2>Computing <strong>moments</strong> from the graph</h2>
-</section>
-<section id="standardization-of-the-graph" class="slide level2">
-<h2><strong>Standardization</strong> of the graph</h2>
-<p><a href="./images/normalization.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-45"><img data-src="./images/normalization.svg"></a></p>
-</section>
-<section id="constructing-an-acyclic-graph-retaining-the-expected-accumulated-rewards" class="slide level2">
-<h2>Constructing an <strong>acyclic graph</strong> retaining the expected accumulated rewards</h2>
-</section>
+<!-- =============================================================================== -->
+<img data-src="./images/normalization.svg" class="r-stretch"></section>
 <section id="constructing-an-acyclic-graph" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong></h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/elimination1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-46"><img data-src="./images/elimination1.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
+<p><img data-src="./images/elimination1.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></p>
 </figure>
 </div>
 <div class="quarto-layout-panel" data-layout="[-0.05,0.4,-0.05,0.4]">
@@ -1223,12 +1323,13 @@ T_C &amp;= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\
 \end{align*}\)</span></p>
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
 <section id="constructing-an-acyclic-graph-1" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong></h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/elimination2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-47"><img data-src="./images/elimination2.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
+<p><img data-src="./images/elimination2.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></p>
 </figure>
 </div>
 <div class="quarto-layout-panel" data-layout="[-0.1,0.4,-0.05,0.4]">
@@ -1250,12 +1351,13 @@ T_C &amp;= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\
 \end{align*}\)</span></p>
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
 <section id="constructing-an-acyclic-graph-2" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong></h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/elimination3.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-48"><img data-src="./images/elimination3.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
+<p><img data-src="./images/elimination3.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></p>
 </figure>
 </div>
 <div class="quarto-layout-panel" data-layout="[-0.1,0.4,-0.05,0.4]">
@@ -1276,12 +1378,13 @@ T_C &amp;= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
 \end{align*}\)</span></p>
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
 <section id="constructing-an-acyclic-graph-3" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong></h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/elimination4.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-49"><img data-src="./images/elimination4.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
+<p><img data-src="./images/elimination4.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></p>
 </figure>
 </div>
 <div class="quarto-layout-panel" data-layout="[-0.1,0.4,-0.05,0.4]">
@@ -1298,12 +1401,13 @@ T_C &amp;= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
 
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
 <section id="constructing-an-acyclic-graph-4" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong></h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/elimination5.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-50"><img data-src="./images/elimination5.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
+<p><img data-src="./images/elimination5.svg" class="quarto-figure quarto-figure-center" style="width:80.0%"></p>
 </figure>
 </div>
 <div class="quarto-layout-panel" data-layout="[-0.1,0.4,-0.05,0.4]">
@@ -1320,8 +1424,9 @@ T_C &amp;= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
 
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
-<section id="constructing-an-acyclic-graph-retaining-the-expected-accumulated-rewards-1" class="slide level2">
+<section id="constructing-an-acyclic-graph-retaining-the-expected-accumulated-rewards" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong> retaining the expected accumulated rewards</h2>
 <div class="quarto-layout-panel" data-layout="[0.24,-0.05,0.4,-0.05,0.25]">
 <div class="quarto-layout-row">
@@ -1369,30 +1474,97 @@ T_D &amp;= 16
 <p><span class="math display">\[x_\mathrm{C} +\!\,= x_\mathrm{C} \left ( \frac{1}{1-w(\mathrm{C}\rightarrow \mathrm{C})} - 1\right)\]</span></p>
 </div></div>
 </div>
+<!-- =============================================================================== -->
 </section>
-<section id="constructing-an-acyclic-graph-retaining-the-expected-accumulated-rewards-2" class="slide level2">
+<section id="constructing-an-acyclic-graph-retaining-the-expected-accumulated-rewards-1" class="slide level2">
 <h2>Constructing an <strong>acyclic graph</strong> retaining the expected accumulated rewards</h2>
-<p><a href="./images/elimination.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-51"><img data-src="./images/elimination.svg"></a></p>
-<p><a href="./images/graph_elimination_example.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-52"><img data-src="./images/graph_elimination_example.svg"></a></p>
+<p><img data-src="./images/elimination.svg"></p>
+<p><img data-src="./images/graph_elimination_example.svg"></p>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="moments-on-the-graph" class="title-slide slide level1 center">
+<h1>Moments on the graph</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
-<section id="gauss-elimination---reinvented" class="slide level2">
-<h2>Gauss elimination - reinvented</h2>
-</section>
-<section id="compute-expectation-by-recursion-in-reverse-topological-order" class="slide level2">
-<h2>Compute <strong>expectation</strong> by recursion in reverse topological order</h2>
-<p><a href="./images/expectation.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-53"><img data-src="./images/expectation.svg"></a></p>
-</section>
-<section id="compute-expectation-by-recursion-in-reverse-topological-order-1" class="slide level2">
-<h2>Compute <strong>expectation</strong> by recursion in reverse topological order</h2>
-<p><a href="./images/expected_waiting_time.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-54"><img data-src="./images/expected_waiting_time.svg"></a></p>
-<p>Computed by <code>expected_waiting_time(graph, [rewards])</code></p>
+<section id="expectation" class="slide level2">
+<h2>Expectation</h2>
+<p>Compute <strong>expectation</strong> by recursion in reverse topological order:</p>
+
+<!-- =============================================================================== -->
+<img data-src="./images/expectation.svg" class="r-stretch"></section>
+<section id="expectation-1" class="slide level2">
+<h2>Expectation</h2>
+<div class="absolute" style="top: 15%; width: 50%; ">
+<p><img data-src="./images/expected_waiting_time.svg"></p>
+</div>
+<div class="absolute" style="top: 25%; left: 55%; width: 50%; ">
 <p>(11, 10, 16) are the row sums of the Green matrix. I.e. the expected waiting times starting at each vertex.</p>
+</div>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="reward-transformation" class="title-slide slide level1 center">
+<h1>Reward transformation</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
-<section id="higher-order-moments" class="slide level2">
-<h2>Higher-order <strong>moments</strong></h2>
-<p><a href="./images/moment_computation_example.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-55"><img data-src="./images/moment_computation_example.svg"></a></p>
+<section id="singleton-branch-length-using-reward-transformation" class="slide level2">
+<h2>Singleton branch length using <strong>reward transformation</strong></h2>
+<div class="absolute" style="left: 0px; bottom: 0px; width: 50%; ">
+<p><img data-src="./images/coalescent-1ton-revtrans-operations.svg"></p>
+</div>
+<p>Null rewarded node is removed and edge is created or updated:</p>
+<p><span class="math inline">\(w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x } w(v \rightarrow x)}\)</span></p>
+<div class="absolute" style="top: 50%; left: 50%; width: 30%; ">
+<p><img data-src="./images/coalescent-1ton-revtrans.svg"></p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="doubleton-branch-length-using-reward-transformation" class="slide level2">
+<h2>Doubleton branch length using <strong>reward transformation</strong></h2>
+<div class="absolute" style="top: 50%; left: 20%; width: 50%; ">
+<p><img data-src="./images/coalescent-2ton-revtrans-operations.svg"></p>
+</div>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="discrete-phase-type-distributions" class="title-slide slide level1 center">
+<h1>Discrete Phase-Type Distributions</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="discrete-phase-type-distributions-1" class="slide level2">
+<h2>Discrete Phase-Type Distributions</h2>
+<p>For discrete phase-type distributions with sub-transition matrix <span class="math inline">\(\boldsymbol{T}\)</span> and initial distribution <span class="math inline">\(\boldsymbol{\pi}\)</span>:</p>
+<p>Green Matrix</p>
+<p><span class="math display">\[\boldsymbol{U} = -(\boldsymbol{T} - \boldsymbol{I})^{-1}\]</span></p>
+<p>CDF (Probability Mass Function)</p>
+<p>The probability of absorption at exactly jump <span class="math inline">\(t\)</span>:</p>
+<p><span class="math display">\[F(t) = 1 - \boldsymbol{\pi} \boldsymbol{T}^t \boldsymbol{e}\]</span></p>
+<p>Moments</p>
+<p>The expectation:</p>
+<p><span class="math display">\[\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \boldsymbol{e}\]</span></p>
+<!-- =============================================================================== -->
+</section></section>
+<section>
+<section id="higher-order-moments" class="title-slide slide level1 center">
+<h1>Higher-order moments</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="higher-order-moments-1" class="slide level2">
+<h2>Higher-order <strong>moments</strong></h2>
+
+<!-- =============================================================================== -->
+<img data-src="./images/moment_computation_example.svg" class="r-stretch"></section>
+<section id="the-variance" class="slide level2">
+<h2>The variance</h2>
+<p><span class="math display">\[\text{Var}(\tau) = 2\boldsymbol{\alpha} \boldsymbol{U}^2 \boldsymbol{e} - (\boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e})^2\]</span></p>
+<!-- =============================================================================== -->
+</section>
+<section id="higher-order-moments-2" class="slide level2">
 <h2>Higher-order <strong>moments</strong></h2>
 <p>k’th moment: <span class="math inline">\(\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle(\boldsymbol{r}))^{k}\boldsymbol{e}\)</span></p>
 <p>Expectation: <span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{e}\)</span></p>
@@ -1400,8 +1572,9 @@ T_D &amp;= 16
 <p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\! \triangle\!\,(\boldsymbol{r}) \boldsymbol{e} = \boldsymbol{\alpha} \boldsymbol{U}  \boldsymbol{e}\)</span> (assuming unit rewards for simplicity).</p>
 <p><span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\boldsymbol{U}\boldsymbol{e}\)</span></p>
 <p><span class="math inline">\(\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}\)</span>. So the variance can be written as: <span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\!\triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}\)</span>, where <span class="math inline">\(\boldsymbol{r'}\)</span> are the waiting times computed for the first moment.</p>
+<!-- =============================================================================== -->
 </section>
-<section id="higher-order-moments-2" class="slide level2">
+<section id="higher-order-moments-3" class="slide level2">
 <h2>Higher-order <strong>moments</strong></h2>
 <ul>
 <li>Higher-order moments are the expectation with different rewards.</li>
@@ -1409,69 +1582,80 @@ T_D &amp;= 16
 <li>Rewards are applied as scalars and do not require recomputation.</li>
 <li>Additional moments can then be computed in O(V2) time.</li>
 </ul>
+<!-- =============================================================================== -->
 </section>
-<section id="higher-order-moments-3" class="slide level2">
+<section id="higher-order-moments-4" class="slide level2">
 <h2>Higher-order <strong>moments</strong></h2>
 <p><strong>1’ moment: 3</strong></p>
 <div class="quarto-figure quarto-figure-left">
 <figure>
-<p><a href="./images/first-moment.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-56"><img data-src="./images/first-moment.svg" class="nostretch quarto-figure quarto-figure-left" style="width:50.0%"></a></p>
+<p><img data-src="./images/first-moment.svg" class="nostretch quarto-figure quarto-figure-left" style="width:50.0%"></p>
 </figure>
 </div>
 <p><code>expected_waiting_time(graph)</code> → <span class="math inline">\((\boldsymbol{3},\ 3,\ 2,\ 1,\ 0)\)</span></p>
 <p><strong>2’ moment: 12</strong></p>
 <div class="quarto-figure quarto-figure-left">
 <figure>
-<p><a href="./images/second-moment.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-57"><img data-src="./images/second-moment.svg" class="nostretch quarto-figure quarto-figure-left" style="width:50.0%"></a></p>
+<p><img data-src="./images/second-moment.svg" class="nostretch quarto-figure quarto-figure-left" style="width:50.0%"></p>
 </figure>
 </div>
 <p><code>expected_waiting_time(graph, expected_waiting_time(graph))</code> → <span class="math inline">\((\boldsymbol{6},\ 6,\ 3,\ 1,\ 0)\)</span></p>
+<!-- =============================================================================== -->
 </section>
-<section id="discrete-phase-type-distributions" class="slide level2">
+<section id="joint-moments" class="slide level2">
+<h2>Joint moments</h2>
+<p>The covariance between dimensions <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span>:</p>
+<p><span class="math display">\[\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e} + \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} - \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} \cdot \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e}\]</span></p>
+<!-- =============================================================================== -->
+</section>
+<section id="discrete-phase-type-distributions-2" class="slide level2">
 <h2><strong>Discrete</strong> phase-type distributions</h2>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/discrete1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-58"><img data-src="./images/discrete1.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></a></p>
+<p><img data-src="./images/discrete1.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></p>
 </figure>
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/discrete2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-59"><img data-src="./images/discrete2.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></a></p>
+<p><img data-src="./images/discrete2.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></p>
 </figure>
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure>
-<p><a href="./images/discrete3.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-60"><img data-src="./images/discrete3.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></a></p>
+<p><img data-src="./images/discrete3.svg" class="nostretch quarto-figure quarto-figure-center" style="height:30.0%"></p>
 </figure>
 </div>
 <!-- ![](./images/discrete4.svg) -->
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="laplace-transform" class="title-slide slide level1 center">
 <h1>Laplace Transform</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="laplace-transform-1" class="slide level2">
 <h2><strong>Laplace</strong> Transform</h2>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="joint-probability-of-discrete-events" class="title-slide slide level1 center">
 <h1>Joint probability of discrete events</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section>
 <section id="joint-probability-of-discrete-events-1" class="slide level2">
 <h2><strong>Joint probability</strong> of discrete events</h2>
+<!-- =============================================================================== -->
 </section>
 <section id="truncated-multivariate-discrete-phase-type-distributions" class="slide level2">
 <h2><strong>Truncated</strong> multivariate discrete phase-type distributions</h2>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="state-lumping" class="title-slide slide level1 center">
 <h1>State Lumping</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="the-block-coalescent" class="slide level2">
 <h2>The <strong>block</strong> coalescent</h2>
@@ -1490,47 +1674,52 @@ T_D &amp;= 16
 <li>Left column left column left column</li>
 </ul>
 </div><div class="column" style="width:50%;">
-<p><a href="./images/block-coal-totbrlen-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-61"><img data-src="./images/block-coal-totbrlen-rewards.svg"></a></p>
+<p><img data-src="./images/block-coal-totbrlen-rewards.svg"></p>
 <div class="spacer-1">
 
 </div>
-<p><a href="./images/block-coal-unit-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-62"><img data-src="./images/block-coal-unit-rewards.svg"></a></p>
+<p><img data-src="./images/block-coal-unit-rewards.svg"></p>
 <div class="spacer-1">
 
 </div>
-<p><a href="./images/block-coal1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-63"><img data-src="./images/block-coal1.svg"></a></p>
+<p><img data-src="./images/block-coal1.svg"></p>
 </div></div>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="time-inhomogeneous-models-with-phase-type-distributions" class="title-slide slide level1 center">
 <h1>Time-inhomogeneous models with phase-type distributions</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="time-inhomogeneous-models" class="slide level2">
 <h2><strong>Time-inhomogeneous</strong> models</h2>
+<!-- =============================================================================== -->
 </section>
 <section id="cdf-for-time-inhomogeneous-models" class="slide level2">
 <h2><strong>CDF</strong> for Time-inhomogeneous models</h2>
+<!-- =============================================================================== -->
 </section>
 <section id="van-loen-graph-trick" class="slide level2">
 <h2><strong>van Loen</strong> graph trick</h2>
-<p><a href="./images/time-inhom-trick.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-64"><img data-src="./images/time-inhom-trick.svg"></a></p>
-<!-- ---------------------------------------------------- -->
-</section></section>
+
+<!-- =============================================================================== -->
+<img data-src="./images/time-inhom-trick.svg" class="r-stretch"></section></section>
 <section>
 <section id="performance" class="title-slide slide level1 center">
 <h1>Performance</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="coalescent-100-marginal-moments" class="slide level2">
 <h2>Coalescent 100 marginal moments</h2>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="popgen-models" class="title-slide slide level1 center">
 <h1>Popgen models</h1>
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
 </section>
 <section id="statistical-properties-of-the-standard-coalescent" class="slide level2">
 <h2>Statistical properties of the standard coalescent</h2>
@@ -1543,400 +1732,44 @@ T_D &amp;= 16
 </section>
 <section id="the-coalescent-with-selection" class="slide level2">
 <h2>The coalescent with selection</h2>
-<p><a href="./images/coal_with_derived_freq.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-65"><img data-src="./images/coal_with_derived_freq.svg"></a></p>
-<!-- ---------------------------------------------------- -->
-</section></section>
-<section>
+
+<!-- =============================================================================== -->
+<img data-src="./images/coal_with_derived_freq.svg" class="r-stretch"></section></section>
 <section id="inference-with-svgd" class="title-slide slide level1 center">
 <h1>Inference with SVGD</h1>
-<!-- ---------------------------------------------------- -->
-<!-- ---------------------------------------------------- -->
-<!-- ---------------------------------------------------- -->
-<!-- ---------------------------------------------------- -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
-<section id="header" class="slide level2">
-<h2>Header</h2>
-<ul>
-<li>blah blah blah…</li>
-<li>blah blah blah…</li>
-</ul>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/block-coal-unit-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-66"><img data-src="./images/block-coal-unit-rewards.svg" class="quarto-figure quarto-figure-center" style="width:50.0%"></a></p>
-</figure>
-</div>
-</section>
-<section id="header-1" class="slide level2">
-<h2>Header</h2>
-<div class="columns">
-<div class="column" style="width:40%;">
-<ul>
-<li>Left column left column left column</li>
-<li>Left column left column left column</li>
-<li>Left column left column left column</li>
-<li>Left column left column left column</li>
-</ul>
-</div><div class="column" style="width:60%;">
-<p><a href="./images/block-coal1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-67"><img data-src="./images/block-coal1.svg"></a></p>
-</div></div>
-<div class="spacer-2">
 
-</div>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><a href="./images/block-coal-unit-rewards.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-68"><img data-src="./images/block-coal-unit-rewards.svg" class="nostretch quarto-figure quarto-figure-center" style="width:80.0%"></a></p>
-</figure>
-</div>
-</section>
-<section id="header-2" class="slide level2">
-<h2>Header</h2>
-<p><a href="./images/coalescent-1ton-revtrans-operations.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-69"><img data-src="./images/coalescent-1ton-revtrans-operations.svg"></a></p>
-</section>
-<section id="header-3" class="slide level2">
-<h2>Header</h2>
-<p><a href="./images/coalescent-1ton-revtrans.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-70"><img data-src="./images/coalescent-1ton-revtrans.svg"></a></p>
-</section>
-<section id="header-4" class="slide level2">
-<h2>Header</h2>
-<p><a href="./images/coalescent-2ton-revtrans-operations.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-71"><img data-src="./images/coalescent-2ton-revtrans-operations.svg"></a></p>
-<p><span class="math display">\[\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].\]</span></p>
-</section>
-<section id="admixture-displacement-in-each-geographical-region" class="slide level2 smaller">
-<h2>Admixture displacement in each <br><strong>geographical region</strong></h2>
-<div class="spacer-md">
-
-</div>
-<p>Here we have some text that may run over several lines of the slide frame, depending on how long it is.</p>
-<ul>
-<li>first item
-<ul>
-<li>A sub item</li>
-</ul></li>
-</ul>
-<p>Next, we’ll brief review some theme-specific components.</p>
-<ul>
-<li>Note that <em>all</em> of the standard Reveal.js <a href="https://quarto.org/docs/presentations/revealjs/">features</a> can be used with this theme, even if we don’t highlight them here.</li>
-</ul>
-</section>
-<section id="additional-theme-classes" class="slide level2">
-<h2>Additional theme classes</h2>
-<h3 id="some-extra-things-you-can-do-with-the-clean-theme">Some extra things you can do with the clean theme</h3>
-<p>Special classes for emphasis</p>
-<ul>
-<li><code>.alert</code> class for default emphasis, e.g.&nbsp;<span class="alert">important note</span>.</li>
-<li><code>.fg</code> class for custom colour, e.g.&nbsp;<span class="fg" style="--col: #e64173">important note</span>.</li>
-<li><code>.bg</code> class for custom background, e.g.&nbsp;<span class="bg" style="--col: #e64173">important note</span>.</li>
-</ul>
-<p>Cross-references</p>
-<ul>
-<li><code>.button</code> class provides a Beamer-like button, e.g.&nbsp;<span class="button"><a href="#/sec-summary">Summary</a></span></li>
-</ul>
-</section>
-<section class="slide level2">
-
-<div style="margin-top: 2em;">
-
-</div>
-<p>In Denmark, the workplace interaction is very informal and largely unaffected by seniority and age.</p>
-<p><span class="math display">\[\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t) + \lambda \sum_k a_k \]</span></p>
-</section>
-<section id="social-norms" class="slide level2">
-<h2>Social norms</h2>
-<h3 id="neither-academic-seniority-or-age-affected-interaction">Neither academic seniority or age affected interaction</h3>
-<!-- a bug in quarto does not allow successive embeds witout somthing in between (like this) -->
-</section>
-<section id="slide-title" class="slide level2">
-<h2>Slide title</h2>
-<ul>
-<li class="fragment">Eat spaghetti</li>
-<li class="fragment">Drink wine</li>
-</ul>
-</section>
-<section id="slide-title-1" class="slide level2">
-<h2>Slide title</h2>
-<div class="columns">
-<div class="column" style="width:40%;">
-<p>Left column</p>
-</div><div class="column" style="width:60%;">
-<ul>
-<li>One</li>
-<li>Two</li>
-<li>Three</li>
-</ul>
-</div></div>
-</section>
-<section id="header-5" class="slide level2">
-<h2>header</h2>
-<div class="">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/state-space.ipynb" data-notebook-title="State-space construction" data-notebook-cellid="cell-fig-coalescent-graph">
-<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.263770Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.263683Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.406319Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.405787Z&quot;}}" data-execution_count="6">
-<div class="cell-output cell-output-display" data-execution_count="6">
-<div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="index_files/figure-revealjs/..-pages-tutorial-state-space-fig-coalescent-graph-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-72" title="Figure&nbsp;27: State space graph."><img data-src="index_files/figure-revealjs/..-pages-tutorial-state-space-fig-coalescent-graph-output-1.svg"></a>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;27: State space graph.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<section id="slide-title-2" class="slide level2">
-<h2>Slide Title</h2>
-<p>Slide content</p>
-
-<aside><div>
-<p>Schumer et al.&nbsp;(2018)</p>
-</div></aside></section></section>
 <section>
-<section id="introduction-to-phase-type-distributions" class="title-slide slide level1 center">
-<h1>Introduction to Phase-Type Distributions</h1>
-<p>Phase-type distributions are a powerful class of probability distributions that model the time until absorption in continuous or discrete-time Markov chains on a finite state space. They find diverse applications in statistical modeling, including physics, telecommunications, queuing theory, and recently, population genetics.</p>
-<p>This page provides an introduction to phase-type distributions, their mathematical formulation, and the correspondence between traditional matrix representations and the graph-based approach implemented in phasic.</p>
-</section>
-<section id="what-is-a-phase-type-distribution" class="slide level2">
-<h2>What is a Phase-Type Distribution?</h2>
-<p>A <strong>phase-type distribution</strong> represents the time until a Markov process reaches an absorbing state. The process moves through various “phases” (transient states) before eventually being absorbed.</p>
-<h3 id="continuous-phase-type-distributions">Continuous Phase-Type Distributions</h3>
-<p>In a continuous phase-type distribution, the underlying process is a continuous-time Markov jump process.</p>
-<p><strong>Example</strong>: Consider a system with 3 transient states and 1 absorbing state. The system starts in state 1, transitions between states at exponential rates, and eventually reaches the absorbing state. The time until absorption follows a phase-type distribution.</p>
-<p><strong>Key characteristics:</strong> - Transient states: temporary states the process can visit - Absorbing state: terminal state from which the process cannot escape - Transition rates: exponential rates governing state transitions - Time until absorption: the random variable of interest</p>
-<h3 id="discrete-phase-type-distributions-1">Discrete Phase-Type Distributions</h3>
-<p>A <strong>discrete phase-type distribution</strong> models the number of jumps in a discrete-time Markov chain until reaching the absorbing state.</p>
-<p><strong>Example</strong>: Number of steps in a random walk before hitting a boundary.</p>
-</section>
-<section id="mathematical-formulation" class="slide level2">
-<h2>Mathematical Formulation</h2>
-<h3 id="continuous-phase-type-distributions-1">Continuous Phase-Type Distributions</h3>
-<p>Let <span class="math inline">\(\tau\)</span> be a phase-type distributed random variable with <span class="math inline">\(p\)</span> transient states. We write <span class="math inline">\(\tau \sim PH_p(\boldsymbol{\alpha}, \mathbf{S})\)</span> where:</p>
-<ul>
-<li><span class="math inline">\(\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)\)</span>: Initial probability vector
-<ul>
-<li><span class="math inline">\(\alpha_i\)</span> is the probability of starting in state <span class="math inline">\(i\)</span></li>
-<li>Potential defect: <span class="math inline">\(\alpha_0 = 1 - \sum_{i=1}^p \alpha_i\)</span> (probability of starting in absorbing state)</li>
-</ul></li>
-<li><span class="math inline">\(\mathbf{S}\)</span>: Sub-intensity matrix (rate matrix excluding absorbing states)
-<ul>
-<li>Entry <span class="math inline">\(s_{ij}\)</span> is the rate of transition from state <span class="math inline">\(i\)</span> to state <span class="math inline">\(j\)</span></li>
-<li>Diagonal entries are negative: <span class="math inline">\(s_{ii} = -\sum_{j \neq i} s_{ij}\)</span></li>
-</ul></li>
-<li><span class="math inline">\(\mathbf{U} = (-\mathbf{S})^{-1}\)</span>: Green matrix
-<ul>
-<li>Entry <span class="math inline">\(u_{ij}\)</span> is the expected total time spent in state <span class="math inline">\(j\)</span> when starting in state <span class="math inline">\(i\)</span></li>
-</ul></li>
-</ul>
-<h4 id="cumulative-distribution-function-cdf">Cumulative Distribution Function (CDF)</h4>
-<p>The probability that absorption occurs by time <span class="math inline">\(t\)</span>:</p>
-<p><span class="math display">\[F(t) = 1 - \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0\]</span></p>
-<p>where <span class="math inline">\(e^{\mathbf{S}t}\)</span> is the matrix exponential and <span class="math inline">\(\mathbf{e}\)</span> is a vector of ones.</p>
-<h4 id="probability-density-function-pdf">Probability Density Function (PDF)</h4>
-<p>The density function is:</p>
-<p><span class="math display">\[f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} (-\mathbf{S}) \mathbf{e}, \quad t \geq 0\]</span></p>
-<h4 id="moments">Moments</h4>
-<p>The expectation (first moment):</p>
-<p><span class="math display">\[\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}\]</span></p>
-<p>Higher-order moments:</p>
-<p><span class="math display">\[\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}\]</span></p>
-<p>The variance:</p>
-<p><span class="math display">\[\text{Var}(\tau) = 2\boldsymbol{\alpha} \mathbf{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \mathbf{U} \mathbf{e})^2\]</span></p>
-<h3 id="discrete-phase-type-distributions-2">Discrete Phase-Type Distributions</h3>
-<p>For discrete phase-type distributions with sub-transition matrix <span class="math inline">\(\mathbf{T}\)</span> and initial distribution <span class="math inline">\(\boldsymbol{\pi}\)</span>:</p>
-<h4 id="green-matrix">Green Matrix</h4>
-<p><span class="math display">\[\mathbf{U} = -(\mathbf{T} - \mathbf{I})^{-1}\]</span></p>
-<h4 id="cdf-probability-mass-function">CDF (Probability Mass Function)</h4>
-<p>The probability of absorption at exactly jump <span class="math inline">\(t\)</span>:</p>
-<p><span class="math display">\[F(t) = 1 - \boldsymbol{\pi} \mathbf{T}^t \mathbf{e}\]</span></p>
-<h4 id="moments-1">Moments</h4>
-<p>The expectation:</p>
-<p><span class="math display">\[\mathbb{E}[\tau] = \boldsymbol{\pi} \mathbf{U} \mathbf{e}\]</span></p>
-<h3 id="reward-transformed-distributions">Reward-Transformed Distributions</h3>
-<p>Phase-type distributions can be <strong>reward-transformed</strong> by assigning rewards <span class="math inline">\(r_i &gt; 0\)</span> to each state <span class="math inline">\(i\)</span>. Instead of measuring time until absorption, the distribution represents accumulated reward until absorption.</p>
-<h4 id="mathematical-interpretation">Mathematical Interpretation</h4>
-<p><strong>Intuition</strong>: Rewards scale the “waiting time” in each state. If state <span class="math inline">\(i\)</span> has reward <span class="math inline">\(r_i = 2\)</span>, then spending time <span class="math inline">\(t\)</span> in that state accumulates reward <span class="math inline">\(2t\)</span>. This is like earning interest at different rates in different states.</p>
-<p>Given rewards <span class="math inline">\(\mathbf{r} = (r_1, \ldots, r_p)\)</span>, the reward-transformed variable is:</p>
-<p><span class="math display">\[Y = \int_0^\tau r(X_t) dt\]</span></p>
-<p>where <span class="math inline">\(\{X_t\}\)</span> is the underlying Markov process and <span class="math inline">\(\tau\)</span> is the time until absorption.</p>
-<p><strong>Example</strong>: Consider a system where: - State 1 has reward <span class="math inline">\(r_1 = 1\)</span> (baseline accumulation rate) - State 2 has reward <span class="math inline">\(r_2 = 5\)</span> (accumulates 5× faster) - The process spends time <span class="math inline">\(t_1\)</span> in state 1 and <span class="math inline">\(t_2\)</span> in state 2</p>
-<p>Then the total accumulated reward is <span class="math inline">\(Y = 1 \cdot t_1 + 5 \cdot t_2\)</span>.</p>
-<p>The <span class="math inline">\(k\)</span>-th moment of the reward-transformed distribution:</p>
-<p><span class="math display">\[\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\mathbf{U} \boldsymbol{\Delta}(\mathbf{r}))^k \mathbf{e}\]</span></p>
-<p>where <span class="math inline">\(\boldsymbol{\Delta}(\mathbf{r})\)</span> is a diagonal matrix with rewards on the diagonal.</p>
-<h4 id="graph-interpretation">Graph Interpretation</h4>
-<p>In the graph representation, <strong>rewards are vertex scalars</strong> that modify what we measure:</p>
-<ul>
-<li><strong>Without rewards</strong>: Measure time until absorption (standard phase-type distribution)</li>
-<li><strong>With rewards</strong>: Each vertex <span class="math inline">\(v\)</span> has an associated reward <span class="math inline">\(r_v\)</span> (a positive scalar)</li>
-<li><strong>Accumulation</strong>: While the process resides in vertex <span class="math inline">\(v\)</span>, reward accumulates at rate <span class="math inline">\(r_v\)</span> per unit time</li>
-<li><strong>Edge weights unchanged</strong>: Transition rates (edge weights) remain the same; only the “value” of time in each state changes</li>
-</ul>
-<p>Think of rewards as <strong>time multipliers</strong> at each vertex: spending time <span class="math inline">\(\Delta t\)</span> in vertex <span class="math inline">\(v\)</span> contributes <span class="math inline">\(r_v \cdot \Delta t\)</span> to the total accumulated reward.</p>
-<p><strong>Key insight</strong>: Rewards don’t change the transition structure of the graph—they only change what we’re measuring. The same stochastic process gives different distributions depending on the rewards.</p>
-<p><strong>Practical uses</strong>: - <strong>Population genetics</strong>: Counting mutations (reward = mutation rate per lineage) - <strong>Queuing theory</strong>: Accumulated cost (reward = cost per unit time in each state) - <strong>Physics</strong>: Energy or distance (reward = rate of energy/distance change in each state)</p>
-<p><strong>Example</strong>: In a population genetics model: - Each state represents a configuration of genealogical lineages - State with <span class="math inline">\(k\)</span> lineages has reward <span class="math inline">\(r_k = \binom{k}{2}\)</span> (number of pairs that could coalesce) - The reward-transformed distribution represents total branch length, not just time</p>
-<h3 id="multivariate-phase-type-distributions">Multivariate Phase-Type Distributions</h3>
-<p><strong>Multivariate phase-type distributions</strong> assign a vector of rewards to each state, resulting in a vector-valued outcome:</p>
-<p><span class="math display">\[\mathbf{Y} \sim MPH^*(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})\]</span></p>
-<p>where <span class="math inline">\(\mathbf{R}\)</span> is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).</p>
-<p><strong>Applications</strong>: Modeling multiple correlated quantities accumulated along the same stochastic process.</p>
-<p><strong>Marginal moments</strong>: Computed independently for each dimension.</p>
-<p><strong>Joint moments</strong>: The covariance between dimensions <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span>:</p>
-<p><span class="math display">\[\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e}\]</span></p>
-</section>
-<section id="graph-based-representation" class="slide level2">
-<h2>Graph-Based Representation</h2>
-<p>Traditional matrix-based formulations become computationally infeasible for systems with thousands of states. However, many real-world systems have <strong>sparse state spaces</strong> where each state connects to only a few others. This sparseness makes a <strong>graph-based representation</strong> more natural and efficient.</p>
-<h3 id="graph-representation">Graph Representation</h3>
-<p>A phase-type distribution can be represented as a <strong>weighted directed graph</strong> <span class="math inline">\(G = (V, E)\)</span> where:</p>
-<ul>
-<li><strong>Vertices (</strong><span class="math inline">\(V\)</span>): Represent states in the Markov chain
-<ul>
-<li>Special <strong>starting vertex</strong> <span class="math inline">\(S\)</span>: initial state</li>
-<li><strong>Transient vertices</strong>: states the process can visit</li>
-<li><strong>Absorbing vertices</strong>: terminal states (no outgoing edges)</li>
-</ul></li>
-<li><strong>Edges (</strong><span class="math inline">\(E\)</span>): Represent transitions between states
-<ul>
-<li>An edge <span class="math inline">\((v \to z)\)</span> connects vertex <span class="math inline">\(v\)</span> to vertex <span class="math inline">\(z\)</span></li>
-<li>Each edge has a <strong>weight</strong> <span class="math inline">\(w(v \to z)\)</span> representing the transition rate</li>
-</ul></li>
-<li><strong>Edge weights</strong>:
-<ul>
-<li>For continuous distributions: transition rates (positive real numbers)</li>
-<li>For discrete distributions: transition probabilities (between 0 and 1)</li>
-</ul></li>
-</ul>
-<h3 id="correspondence-matrices-graphs">Correspondence: Matrices ↔︎ Graphs</h3>
-<p>The graph representation directly corresponds to the matrix formulation:</p>
-<table class="caption-top">
-<colgroup>
-<col style="width: 51%">
-<col style="width: 48%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Matrix Concept</th>
-<th>Graph Concept</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>State <span class="math inline">\(i\)</span></td>
-<td>Vertex <span class="math inline">\(v\)</span></td>
-</tr>
-<tr class="even">
-<td>Initial probability <span class="math inline">\(\alpha_i\)</span></td>
-<td>Weight <span class="math inline">\(w(S \to v_i)\)</span> from starting vertex</td>
-</tr>
-<tr class="odd">
-<td>Sub-intensity entry <span class="math inline">\(s_{ij}\)</span></td>
-<td>Edge weight <span class="math inline">\(w(v_i \to v_j)\)</span></td>
-</tr>
-<tr class="even">
-<td>Absorbing state</td>
-<td>Vertex with no outgoing edges</td>
-</tr>
-<tr class="odd">
-<td>Total exit rate from state <span class="math inline">\(i\)</span></td>
-<td><span class="math inline">\(\lambda_v = \sum_{z \in \text{children}(v)} w(v \to z)\)</span></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Example</strong>: The sub-intensity matrix</p>
-<p><span class="math display">\[\mathbf{S} = \begin{pmatrix}
--5 &amp; 1 &amp; 4 \\
-1 &amp; -8 &amp; 2 \\
-0 &amp; 1 &amp; -3
-\end{pmatrix}\]</span></p>
-<p>corresponds to a graph with: - Vertex A with edges: (A → B, weight=1), (A → C, weight=4) - Vertex B with edges: (B → A, weight=1), (B → C, weight=2) - Vertex C with edges: (C → B, weight=1) - Total exit rates: <span class="math inline">\(\lambda_A = 5\)</span>, <span class="math inline">\(\lambda_B = 8\)</span>, <span class="math inline">\(\lambda_C = 3\)</span></p>
-<h3 id="advantages-of-graph-representation">Advantages of Graph Representation</h3>
-<ol type="1">
-<li><strong>Memory efficiency</strong>: Store only existing transitions (not full <span class="math inline">\(p \times p\)</span> matrix)
-<ul>
-<li>For sparse systems: <span class="math inline">\(O(|E|)\)</span> vs <span class="math inline">\(O(p^2)\)</span> memory</li>
-</ul></li>
-<li><strong>Computational efficiency</strong>: Operations on edges only
-<ul>
-<li>Many algorithms: <span class="math inline">\(O(|V|^2)\)</span> vs <span class="math inline">\(O(p^3)\)</span> for matrix operations</li>
-</ul></li>
-<li><strong>Iterative construction</strong>: Build state space incrementally
-<ul>
-<li>Add vertices and edges as needed</li>
-<li>Natural for complex phenomena</li>
-</ul></li>
-<li><strong>Intuitive modeling</strong>: Specify transitions from each state independently
-<ul>
-<li>Markov property: next state depends only on current state</li>
-<li>Easy to encode complex models</li>
-</ul></li>
-<li><strong>Numerical stability</strong>: Avoid matrix inversions and exponentials</li>
-</ol>
-<h3 id="example-rabbit-island-model">Example: Rabbit Island Model</h3>
-<p>Consider rabbits jumping between two islands at rate 1. Islands flood at rates 2 and 4, drowning all rabbits on that island. The absorbing state is when all rabbits have drowned.</p>
-<p><strong>State representation</strong>: Vector <span class="math inline">\((n_1, n_2)\)</span> where <span class="math inline">\(n_i\)</span> is the number of rabbits on island <span class="math inline">\(i\)</span>.</p>
-<p><strong>Graph construction</strong>: - Start with state <span class="math inline">\((2, 0)\)</span>: 2 rabbits on island 1 - From state <span class="math inline">\((i, j)\)</span>: - If <span class="math inline">\(i &gt; 0\)</span>: transition to <span class="math inline">\((i-1, j+1)\)</span> at rate <span class="math inline">\(i\)</span> (rabbit jumps left to right) - If <span class="math inline">\(j &gt; 0\)</span>: transition to <span class="math inline">\((i+1, j-1)\)</span> at rate <span class="math inline">\(j\)</span> (rabbit jumps right to left) - If <span class="math inline">\(i &gt; 0\)</span>: transition to <span class="math inline">\((0, j)\)</span> at rate 2 (island 1 floods) - If <span class="math inline">\(j &gt; 0\)</span>: transition to <span class="math inline">\((i, 0)\)</span> at rate 4 (island 2 floods) - Absorbing state: <span class="math inline">\((0, 0)\)</span></p>
-<p>This naturally sparse structure makes graphs ideal for representation.</p>
-</section>
-<section id="computational-algorithms" class="slide level2">
-<h2>Computational Algorithms</h2>
-<p>phasic implements efficient graph-based algorithms for:</p>
-<ol type="1">
-<li><strong>State space construction</strong>: Iterative building of the graph</li>
-<li><strong>Reward transformation</strong>: Modifying distributions by assigning rewards</li>
-<li><strong>Moment computation</strong>: Computing expectations, variances, higher moments</li>
-<li><strong>Distribution functions</strong>: Computing PMF/PDF and CDF</li>
-<li><strong>Multivariate distributions</strong>: Joint and marginal moments</li>
-</ol>
-<h3 id="key-algorithmic-innovations">Key Algorithmic Innovations</h3>
-<p>From Røikjer, Hobolth, and Munch (2022):</p>
-<ul>
-<li><strong>Acyclic graph transformation</strong>: Convert cyclic graphs to acyclic form for recursive computation</li>
-<li><strong>Cached operations</strong>: Compute moments in <span class="math inline">\(O(|V|^2)\)</span> time after initial <span class="math inline">\(O(|V|^3)\)</span> setup</li>
-<li><strong>Discrete approximation</strong>: Approximate continuous distributions with arbitrary precision</li>
-<li><strong>Parallel computation</strong>: Natural parallelization over graph structure</li>
-</ul>
-<p><strong>Performance</strong>: Orders of magnitude faster than matrix-based methods for sparse systems.</p>
+<section id="api" class="title-slide slide level1 center">
+<h1>API</h1>
+<!-- =============================================================================== -->
 </section>
 <section id="practical-example" class="slide level2">
 <h2>Practical Example</h2>
 <p>Let’s compute properties of an Erlang distribution (sum of exponential random variables):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb3-2"><a></a></span>
-<span id="cb3-3"><a></a><span class="co"># Build Erlang(3) distribution: sum of 3 exponentials with rate 1</span></span>
-<span id="cb3-4"><a></a>g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
-<span id="cb3-5"><a></a>start <span class="op">=</span> g.starting_vertex()</span>
-<span id="cb3-6"><a></a></span>
-<span id="cb3-7"><a></a><span class="co"># Create chain: S -&gt; v1 -&gt; v2 -&gt; v3 -&gt; absorbing</span></span>
-<span id="cb3-8"><a></a>v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb3-9"><a></a>v2 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">2</span>])</span>
-<span id="cb3-10"><a></a>v3 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">3</span>])</span>
-<span id="cb3-11"><a></a></span>
-<span id="cb3-12"><a></a>start.add_edge(v1, <span class="fl">1.0</span>)  <span class="co"># Start in state 1 with probability 1</span></span>
-<span id="cb3-13"><a></a>v1.add_edge(v2, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
-<span id="cb3-14"><a></a>v2.add_edge(v3, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
-<span id="cb3-15"><a></a>v3.add_edge(g.find_or_create_vertex([<span class="dv">4</span>]), <span class="fl">1.0</span>)  <span class="co"># To absorbing state</span></span>
-<span id="cb3-16"><a></a></span>
-<span id="cb3-17"><a></a><span class="co"># Compute properties</span></span>
-<span id="cb3-18"><a></a><span class="bu">print</span>(<span class="ss">f"Expectation: </span><span class="sc">{</span>g<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">"</span>)      <span class="co"># Should be 3.0</span></span>
-<span id="cb3-19"><a></a><span class="bu">print</span>(<span class="ss">f"Variance: </span><span class="sc">{</span>g<span class="sc">.</span>variance()<span class="sc">}</span><span class="ss">"</span>)            <span class="co"># Should be 3.0</span></span>
-<span id="cb3-20"><a></a><span class="bu">print</span>(<span class="ss">f"PDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>pdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb3-21"><a></a><span class="bu">print</span>(<span class="ss">f"CDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>cdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
-<section id="when-to-use-phase-type-distributions" class="slide level2">
-<h2>When to Use Phase-Type Distributions</h2>
-<p>Phase-type distributions are particularly useful when:</p>
-<ol type="1">
-<li><strong>Modeling absorption times</strong>: Time until system reaches terminal state</li>
-<li><strong>Sparse state spaces</strong>: Many states but few transitions per state</li>
-<li><strong>Complex phenomena</strong>: Iterative construction from simple rules</li>
-<li><strong>Multiple quantities</strong>: Multivariate distributions with correlated outcomes</li>
-<li><strong>Large state spaces</strong>: Thousands to millions of states</li>
-</ol>
-<p><strong>Applications</strong>: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href=""></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb1-2"><a href=""></a></span>
+<span id="cb1-3"><a href=""></a><span class="co"># Build Erlang(3) distribution: sum of 3 exponentials with rate 1</span></span>
+<span id="cb1-4"><a href=""></a>g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb1-5"><a href=""></a>start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb1-6"><a href=""></a></span>
+<span id="cb1-7"><a href=""></a><span class="co"># Create chain: S -&gt; v1 -&gt; v2 -&gt; v3 -&gt; absorbing</span></span>
+<span id="cb1-8"><a href=""></a>v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb1-9"><a href=""></a>v2 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb1-10"><a href=""></a>v3 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">3</span>])</span>
+<span id="cb1-11"><a href=""></a></span>
+<span id="cb1-12"><a href=""></a>start.add_edge(v1, <span class="fl">1.0</span>)  <span class="co"># Start in state 1 with probability 1</span></span>
+<span id="cb1-13"><a href=""></a>v1.add_edge(v2, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb1-14"><a href=""></a>v2.add_edge(v3, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb1-15"><a href=""></a>v3.add_edge(g.find_or_create_vertex([<span class="dv">4</span>]), <span class="fl">1.0</span>)  <span class="co"># To absorbing state</span></span>
+<span id="cb1-16"><a href=""></a></span>
+<span id="cb1-17"><a href=""></a><span class="co"># Compute properties</span></span>
+<span id="cb1-18"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Expectation: </span><span class="sc">{</span>g<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">"</span>)      <span class="co"># Should be 3.0</span></span>
+<span id="cb1-19"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Variance: </span><span class="sc">{</span>g<span class="sc">.</span>variance()<span class="sc">}</span><span class="ss">"</span>)            <span class="co"># Should be 3.0</span></span>
+<span id="cb1-20"><a href=""></a><span class="bu">print</span>(<span class="ss">f"PDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>pdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-21"><a href=""></a><span class="bu">print</span>(<span class="ss">f"CDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>cdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="further-reading" class="slide level2">
 <h2>Further Reading</h2>
@@ -1957,7 +1790,6 @@ Figure&nbsp;27: State space graph.
 <p><strong>Statements and Declarations:</strong><br>
 The authors received no support from any organization for the submitted work and have no relevant financial or non-financial interests to disclose.</p>
 
-
 </section></section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
@@ -1968,19 +1800,19 @@ The authors received no support from any organization for the submitted work and
 </div></div>
 
   <script>window.backupDefine = window.define; window.define = undefined;</script>
-  <script src="../site_libs/revealjs/dist/reveal.js"></script>
+  <script src="index_files/libs/revealjs/dist/reveal.js"></script>
   <!-- reveal.js plugins -->
-  <script src="../site_libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
-  <script src="../site_libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
-  <script src="../site_libs/revealjs/plugin/reveal-menu/menu.js"></script>
-  <script src="../site_libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
-  <script src="../site_libs/revealjs/plugin/quarto-support/support.js"></script>
+  <script src="index_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="index_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="index_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="index_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="index_files/libs/revealjs/plugin/quarto-support/support.js"></script>
   
 
-  <script src="../site_libs/revealjs/plugin/notes/notes.js"></script>
-  <script src="../site_libs/revealjs/plugin/search/search.js"></script>
-  <script src="../site_libs/revealjs/plugin/zoom/zoom.js"></script>
-  <script src="../site_libs/revealjs/plugin/math/math.js"></script>
+  <script src="index_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="index_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="index_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="index_files/libs/revealjs/plugin/math/math.js"></script>
   <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
 
   <script>
@@ -1996,7 +1828,7 @@ The authors received no support from any organization for the submitted work and
 'autoAnimateUnmatched': true,
 'jumpToSlide': true,
 'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
-'smaller': false,
+'smaller': true,
  
         // Display controls in the bottom right corner
         controls: false,
@@ -2006,7 +1838,7 @@ The authors received no support from any organization for the submitted work and
         controlsTutorial: false,
 
         // Determines where controls appear, "edges" or "bottom-right"
-        controlsLayout: 'edges',
+        controlsLayout: 'bottom-right',
 
         // Visibility rule for backwards navigation arrows; "faded", "hidden"
         // or "visible"
@@ -2016,7 +1848,7 @@ The authors received no support from any organization for the submitted work and
         progress: true,
 
         // Display the page number of the current slide
-        slideNumber: false,
+        slideNumber: 'c',
 
         // 'all', 'print', or 'speaker'
         showSlideNumber: 'all',
@@ -2149,7 +1981,7 @@ The authors received no support from any organization for the submitted work and
         margin: 0.1,
 
         math: {
-          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
           config: 'TeX-AMS_HTML-full',
           tex2jax: {
             inlineMath: [['\\(','\\)']],
@@ -2245,7 +2077,7 @@ The authors received no support from any organization for the submitted work and
         }
           var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
           var mailtoRegex = new RegExp(/^mailto:/);
-            var filterRegex = new RegExp("https:\/\/munch-group\.github\.io\/phasic\/");
+            var filterRegex = new RegExp('/' + window.location.host + '/');
           var isInternal = (href) => {
               return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
           }
@@ -2343,38 +2175,6 @@ The authors received no support from any organization for the submitted work and
         }
       });
       </script>
-    <script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
-    (function() {
-      let previousOnload = window.onload;
-      window.onload = () => {
-        if (previousOnload) {
-          previousOnload();
-        }
-        lightboxQuarto.on('slide_before_load', (data) => {
-          const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-          const href = trigger.getAttribute('href');
-          if (href !== null) {
-            const imgEl = window.document.querySelector(`a[href="${href}"] img`);
-            if (imgEl !== null) {
-              const srcAttr = imgEl.getAttribute("src");
-              if (srcAttr && srcAttr.startsWith("data:")) {
-                slideConfig.href = srcAttr;
-              }
-            }
-          } 
-        });
-      
-        lightboxQuarto.on('slide_after_load', (data) => {
-          const { slideIndex, slideNode, slideConfig, player, trigger } = data;
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(slideNode);
-          }
-        });
-      
-      };
-      
-    })();
-              </script>
     
 
 </body></html>

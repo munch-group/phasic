@@ -232,25 +232,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/discrete.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Discrete phase-type distributions</span></a>
+ <span class="menu-text">Discrete distributions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/parametrization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Parameterized models</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Time inhomogeneity</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Joint probability</span></a>
+ <span class="menu-text">Parameterization</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -261,8 +249,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/finite-markov-chains.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Finite Markov chains</span></a>
+  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
   </div>
 </li>
       </ul>
@@ -276,12 +270,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Multi-level caching (C path)</span></a>
-  </div>
-</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/method-of-moments.html" class="sidebar-item-text sidebar-link">
@@ -339,6 +327,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-level caching (C path)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -426,7 +420,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># from phasic.utils import download_link</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download_link(__vsc_ipynb_file__) </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="0bd99048" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:36.586816Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:36.586711Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:38.812854Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:38.812345Z&quot;}}" data-execution_count="1">
+<div id="0bd99048" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:47.444739Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:47.444642Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:49.700287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:49.699769Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.utils <span class="im">import</span> tree_illustration</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -572,12 +566,12 @@ table {
  -->
 <p>The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.</p>
 <p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages because mutations occurring on those branches produce a singleton mutation in our sample. Similarly with doubletons tripleton and so on.</p>
-<div id="cell-fig-coalescent-intro-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:38.817550Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:38.817457Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:39.156606Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:39.156134Z&quot;}}" data-execution_count="3">
+<div id="cell-fig-coalescent-intro-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:49.705028Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:49.704919Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:50.165249Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:50.164718Z&quot;}}" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div id="fig-coalescent-intro-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample."><img src="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.png" width="674" height="328" class="figure-img"></a>
+<a href="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample."><img src="introduction_files/figure-html/fig-coalescent-intro-branches-output-1.svg" class="img-fluid figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coalescent-intro-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Mutations on branches with a single descendant produce singleton variants in the sample.
@@ -587,7 +581,7 @@ Figure&nbsp;1: Mutations on branches with a single descendant produce singleton 
 </div>
 </div>
 <p>We can encode the states of this Markov chain as vectors enumerating the number of live 1’tons, 2’tons, 3’tons, and 4’tons branches (<a href="#fig-coalescent-intro-branches" class="quarto-xref">Figure&nbsp;1</a>). With four samples, the Coalescent jumps starts with a state of four singletons and terminates/absorbs at the state with a single 4’ton (<a href="#fig-coalescent-graph" class="quarto-xref">Figure&nbsp;2</a>).</p>
-<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:39.158112Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:39.157995Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:39.339658Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:39.339060Z&quot;}}" data-execution_count="4">
+<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:50.166808Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:50.166701Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:50.372623Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:50.372040Z&quot;}}" data-execution_count="4">
 <div class="cell-output cell-output-display" data-execution_count="4">
 <div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">

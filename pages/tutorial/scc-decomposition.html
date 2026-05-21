@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -116,9 +116,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
-
-<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -232,25 +229,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/discrete.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Discrete phase-type distributions</span></a>
+ <span class="menu-text">Discrete distributions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/parametrization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Parameterized models</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Time inhomogeneity</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Joint probability</span></a>
+ <span class="menu-text">Parameterization</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -261,8 +246,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/finite-markov-chains.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Finite Markov chains</span></a>
+  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
   </div>
 </li>
       </ul>
@@ -276,12 +267,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Multi-level caching (C path)</span></a>
-  </div>
-</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/method-of-moments.html" class="sidebar-item-text sidebar-link">
@@ -339,6 +324,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-level caching (C path)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -468,89 +459,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  sum of row widths:   </span><span class="sc">{</span>total<span class="sc">}</span><span class="ss">  (== total vertex count)"</span>)</span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  widest row:          </span><span class="sc">{</span><span class="bu">max</span>(widths)<span class="sc">}</span><span class="ss"> vertices, "</span></span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"</span><span class="sc">{</span><span class="bu">max</span>(<span class="bu">map</span>(<span class="bu">len</span>, levels))<span class="sc">}</span><span class="ss"> parallel SCCs"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 1</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> from phasic import (
+<span class="ansi-green-fg">      2</span>     Graph, Property, StateIndexer, with_ipv,
+<span class="ansi-green-fg">      3</span>     cache, configure, clear_caches
+<span class="ansi-green-fg">      4</span> )
 
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
+<span class="ansi-red-fg">ImportError</span>: cannot import name 'Graph' from 'phasic' (unknown location)</pre>
 </div>
-<div class="cell-output cell-output-display">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
 </div>
 </div>
 </section>
@@ -558,7 +478,7 @@ table {
 <h2 class="anchored" data-anchor-id="example-1-a-tiny-graph-with-one-cycle">Example 1: A tiny graph with one cycle</h2>
 <p>The smallest interesting case: 5 vertices, with vertices 1→2→3 forming a back-loop (vertex 3 has a chance of falling back to vertex 1). Vertex 0 is the start; vertex 4 is the absorbing sink.</p>
 <p>Decomposition: <code>{0}</code>, <code>{1, 2, 3}</code>, <code>{4}</code> — three SCCs, the middle one is cyclic (size 3), the other two are singletons. You can verify the row widths by counting on your fingers.</p>
-<div id="tiny-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:57.944963Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:57.943750Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:57.958466Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:57.953287Z&quot;}}" data-execution_count="2">
+<div id="tiny-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:57.944963Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:57.943750Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:57.958466Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:57.953287Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>g_tiny <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_tiny.starting_vertex()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g_tiny.find_or_create_vertex([<span class="dv">1</span>])</span>
@@ -598,7 +518,7 @@ table {
 <h2 class="anchored" data-anchor-id="example-2-a-coalescent-no-cycles">Example 2: A coalescent (no cycles)</h2>
 <p>The standard coalescent is a strictly forward-in-time process: every transition reduces <code>state.sum()</code> by one. There are no cycles, so every vertex is its own SCC and the condensation is just the original graph relabelled.</p>
 <p>The “diamond” shape of the treemap reflects the <strong>state-space size profile</strong>: only one configuration with all lineages active (top), many configurations as lineages merge into intermediate-size combinations (middle), one configuration with everything coalesced (bottom). We use <code>nr_samples = 10</code> here so the diamond is visible — at 4 samples the graph has only 6 vertices and the shape is degenerate.</p>
-<div id="coal-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.030986Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.030842Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:58.035736Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:58.034975Z&quot;}}" data-execution_count="4">
+<div id="coal-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.030986Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.030842Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:58.035736Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:58.034975Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([<span class="dv">10</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent10(state):</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
@@ -645,7 +565,7 @@ table {
 <h2 class="anchored" data-anchor-id="example-3-a-two-locus-arg-recombination-cycles">Example 3: A two-locus ARG (recombination = cycles)</h2>
 <p>The ancestral recombination graph (ARG) on two loci is the coalescent’s cyclic cousin. Recombination splits one lineage into two, so the lineage count can <em>go up</em> as well as down. That introduces real cycles in the state-space graph: the same configuration of <code>(loc1, loc2)</code> lineage counts can be reached by both coalescing and recombining.</p>
 <p>The result is many small cyclic SCCs at intermediate levels — exactly the structure the hierarchical SCC composer is designed for.</p>
-<div id="arg-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.197045Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.196755Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:04.882700Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:04.879853Z&quot;}}" data-execution_count="6">
+<div id="arg-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.197045Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.196755Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:04.882700Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:04.879853Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -716,7 +636,7 @@ table {
 </div>
 <p>Now the tiles inside each row are clearly multi-vertex (e.g.&nbsp;<code>34v</code>, <code>25v</code>, <code>21v</code>). The wide bands in the middle of the diamond — L5 with 23 parallel SCCs, L6 with 20 — are where most of the elimination work lives, and they are highly parallelisable.</p>
 <p>With <code>parallel_elimination=True</code>, each of the ~120 SCCs is small enough that its O(k³) elimination is cheap, and there are many siblings per level for OpenMP to fan out across. The bottleneck rows L0, L1, L11, L12 (single 1-vertex SCCs) cost essentially nothing.</p>
-<div id="arg-speedup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.165095Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.164263Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.174027Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.171943Z&quot;}}" data-execution_count="8">
+<div id="arg-speedup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.165095Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.164263Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.174027Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.171943Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict the speedup ceiling from the plot:</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># total compute time scales with sum(k^3) over SCCs.</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Sequential = sum(k^3); parallel = sum over levels of max(k^3 within level).</span></span>
@@ -741,7 +661,7 @@ theoretical speedup:    2.6x</code></pre>
 <h2 class="anchored" data-anchor-id="example-4-a-migration-chain-with-coalescence">Example 4: A migration chain with coalescence</h2>
 <p>Spatial-style models combine a “where” axis (which cell each lineage occupies) with a “when” axis (how many lineages remain). Within one lineage-count slice, lineages migrate between neighbouring cells — that’s cyclic. Across slices, lineages coalesce — that’s acyclic. The result is many SCCs (the migration cycles) stacked along an outer DAG (the coalescence levels).</p>
 <p>We use a 1D chain of cells with 2 lineages so the example is small and easy to inspect; the principle is the same on a 2D hex grid or a real geographic region.</p>
-<div id="mig-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.181361Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.181065Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.188625Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.186277Z&quot;}}" data-execution_count="9">
+<div id="mig-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.181361Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.181065Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.188625Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.186277Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1D chain of 4 cells, 2 lineages. State = list of per-cell</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># lineage counts. Migration: a lineage moves between adjacent</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cells. Coalescence: if two lineages share a cell, they merge.</span></span>
@@ -799,7 +719,7 @@ theoretical speedup:    2.6x</code></pre>
 </section>
 <section id="example-5-coalescent-with-selection" class="level2">
 <h2 class="anchored" data-anchor-id="example-5-coalescent-with-selection">Example 5: Coalescent with selection</h2>
-<div id="5aff4e64" class="cell" data-execution_count="11">
+<div id="5aff4e64" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    Graph, StateIndexer, Property, SparseObservations, ExpStepSize,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    GaussPrior, LogGaussPrior, BetaPrior, HalfCauchyPrior, Adamelia, dense_to_sparse,</span>
@@ -978,7 +898,7 @@ theoretical speedup:    2.6x</code></pre>
 <section id="live-example" class="level2">
 <h2 class="anchored" data-anchor-id="live-example">Live example</h2>
 <p>Lets try the ARG model with a larger sample size:</p>
-<div id="7b17eaf0" class="cell" data-execution_count="13">
+<div id="7b17eaf0" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">7</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -999,7 +919,7 @@ theoretical speedup:    2.6x</code></pre>
 <pre><code>{'graph_cache': 0, 'parameterized_reward_compute': 0}</code></pre>
 </div>
 </div>
-<div id="22c7756b" class="cell" data-execution_count="16">
+<div id="22c7756b" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co"># cache parameterized reward compute for graph</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>g_arg.prewarm_cache(theta<span class="op">=</span>[<span class="dv">1</span>, <span class="fl">0.7</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

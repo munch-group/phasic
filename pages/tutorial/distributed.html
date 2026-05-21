@@ -229,25 +229,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/discrete.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Discrete phase-type distributions</span></a>
+ <span class="menu-text">Discrete distributions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/parametrization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Parameterized models</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Time inhomogeneity</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Joint probability</span></a>
+ <span class="menu-text">Parameterization</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -258,8 +246,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/finite-markov-chains.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Finite Markov chains</span></a>
+  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
   </div>
 </li>
       </ul>
@@ -273,12 +267,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Multi-level caching (C path)</span></a>
-  </div>
-</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/method-of-moments.html" class="sidebar-item-text sidebar-link">
@@ -336,6 +324,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-level caching (C path)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -482,7 +476,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>JAX is <strong>not</strong> imported eagerly by <code>import phasic</code>. It is loaded on first use — either when you access <code>phasic.SVGD</code>/<code>phasic.MCMC</code>/<code>phasic.BFFG</code>, when you call <code>phasic.configure(compute='jax-cpu')</code>, or when you call <code>phasic.init_parallel()</code>. This makes pure-C++ pipelines (no JAX dep) cheaper to import.</p>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:12.602601Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:12.602486Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.730245Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.729772Z&quot;}}" data-execution_count="1">
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:31.470262Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:31.470157Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:34.135633Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:34.134951Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, configure, get_config,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    init_parallel,</span>
@@ -594,7 +588,7 @@ table {
 </div>
 </div>
 <p>We use a simple parameterized coalescent model throughout:</p>
-<div id="model-def" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.731823Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.731654Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.735023Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.734675Z&quot;}}" data-execution_count="2">
+<div id="model-def" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:34.137948Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:34.137689Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:34.145993Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:34.145324Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples] <span class="op">+</span> [<span class="dv">0</span>] <span class="op">*</span> (nr_samples <span class="op">-</span> <span class="dv">1</span>))</span>
@@ -638,7 +632,7 @@ table {
 <li>Accessing any JAX-dependent attribute (<code>phasic.SVGD</code>, <code>phasic.MCMC</code>, <code>Graph.svgd(...)</code>, etc.) — this lazily fires JAX activation.</li>
 </ul>
 <p>You can check the current device setup after activation:</p>
-<div id="auto-devices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.736517Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.736428Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.738460Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.738022Z&quot;}}" data-execution_count="3">
+<div id="auto-devices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:34.147915Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:34.147762Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:34.150580Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:34.149773Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>devices <span class="op">=</span> jax.devices()</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of JAX devices: </span><span class="sc">{</span><span class="bu">len</span>(devices)<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device type: </span><span class="sc">{</span>devices[<span class="dv">0</span>]<span class="sc">.</span>platform<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -661,7 +655,7 @@ Device type: cpu</code></pre>
 <section id="inspecting-the-detected-environment" class="level3">
 <h3 class="anchored" data-anchor-id="inspecting-the-detected-environment">Inspecting the detected environment</h3>
 <p>The <code>detect_environment()</code> function returns an <code>EnvironmentInfo</code> object describing the current execution context:</p>
-<div id="detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.739811Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.739723Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.741979Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.741546Z&quot;}}" data-execution_count="4">
+<div id="detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:34.152678Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:34.152493Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:34.155355Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:34.154857Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>env <span class="op">=</span> detect_environment()</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Environment type:  </span><span class="sc">{</span>env<span class="sc">.</span>env_type<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Interactive:       </span><span class="sc">{</span>env<span class="sc">.</span>is_interactive<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -680,7 +674,7 @@ JAX imported:      True</code></pre>
 <section id="explicit-initialization-with-init_parallel" class="level3">
 <h3 class="anchored" data-anchor-id="explicit-initialization-with-init_parallel">Explicit initialization with <code>init_parallel()</code></h3>
 <p>For more control, call <code>init_parallel()</code> to explicitly configure parallelism. This is especially useful when you want to set a specific CPU count or when running on a SLURM cluster where automatic detection should be triggered:</p>
-<div id="init-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.743246Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.743162Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:14.745432Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:14.745078Z&quot;}}" data-execution_count="5">
+<div id="init-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:34.157460Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:34.157332Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:34.160410Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:34.159732Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> init_parallel()</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Device count:       </span><span class="sc">{</span>config<span class="sc">.</span>device_count<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Local device count: </span><span class="sc">{</span>config<span class="sc">.</span>local_device_count<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -740,7 +734,7 @@ Environment:        jupyter</code></pre>
 <p>With <code>pmap</code>, particles are split evenly across devices. Each device computes log-likelihood and gradients for its particles independently. The SVGD kernel computation and particle updates are also parallelized.</p>
 <p>The <code>n_devices</code> parameter limits how many devices <code>pmap</code> uses (default: all available).</p>
 <p>To explicitly control the strategy:</p>
-<div id="svgd-explicit-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:14.746834Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:14.746752Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:19.476184Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:19.475684Z&quot;}}" data-execution_count="6">
+<div id="svgd-explicit-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:34.162561Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:34.162418Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:39.505832Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:39.505217Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force pmap with specific device count</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
@@ -764,12 +758,12 @@ Environment:        jupyter</code></pre>
 <span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>result_vmap <span class="op">=</span> svgd.get_results()</span>
 <span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"vmap posterior mean: </span><span class="sc">{</span>result_vmap[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:6829: UserWarning: parallel='pmap' requested but only 1 JAX device available. Using 'vmap' instead. To use pmap, configure more devices via PTDALG_CPUS environment variable or initialize_distributed().
+<pre><code>/Users/kmt/phasic/src/phasic/__init__.py:7021: UserWarning: parallel='pmap' requested but only 1 JAX device available. Using 'vmap' instead. To use pmap, configure more devices via PTDALG_CPUS environment variable or initialize_distributed().
   svgd = SVGD(</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>pmap posterior mean: [7.09486996]
-vmap posterior mean: [7.11379979]</code></pre>
+<pre><code>pmap posterior mean: [7.3000609]
+vmap posterior mean: [7.1616425]</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
@@ -845,7 +839,7 @@ Tip
 <section id="disabling-parallelism" class="level3">
 <h3 class="anchored" data-anchor-id="disabling-parallelism">Disabling parallelism</h3>
 <p>Use <code>with configure(svgd_strategy='none'):</code> to force sequential SVGD execution inside a block — useful for debugging or when you want predictable serial behaviour:</p>
-<div id="disable-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:19.477903Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:19.477794Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:20.902063Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:20.901607Z&quot;}}" data-execution_count="7">
+<div id="disable-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:39.507492Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:39.507380Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:41.072692Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:41.072233Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(svgd_strategy<span class="op">=</span><span class="st">'none'</span>):</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> graph.svgd(</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        observed_data,</span>
@@ -859,7 +853,7 @@ Tip
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the context, the default (auto / pmap / vmap) is restored.</span></span>
 <span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strategy outside block: </span><span class="sc">{</span>get_config()<span class="sc">.</span>svgd_strategy<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Sequential posterior mean: [7.01191316]
+<pre><code>Sequential posterior mean: [7.0767403]
 Strategy outside block: auto</code></pre>
 </div>
 </div>
@@ -867,7 +861,7 @@ Strategy outside block: auto</code></pre>
 <section id="switching-strategy-for-one-block" class="level3">
 <h3 class="anchored" data-anchor-id="switching-strategy-for-one-block">Switching strategy for one block</h3>
 <p>Same pattern, any strategy:</p>
-<div id="parallel-config-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:20.903638Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:20.903524Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.679305Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.678793Z&quot;}}" data-execution_count="8">
+<div id="parallel-config-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:41.074221Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:41.074109Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:41.941790Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:41.941297Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force vmap (single-device vectorisation) for this block only.</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(svgd_strategy<span class="op">=</span><span class="st">'vmap'</span>):</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    svgd <span class="op">=</span> graph.svgd(</span>
@@ -879,14 +873,14 @@ Strategy outside block: auto</code></pre>
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> svgd.get_results()</span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"vmap posterior mean: </span><span class="sc">{</span>result[<span class="st">'theta_mean'</span>]<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>vmap posterior mean: [7.17220925]</code></pre>
+<pre><code>vmap posterior mean: [7.52532537]</code></pre>
 </div>
 </div>
 </section>
 <section id="temporary-library-wide-configuration" class="level3">
 <h3 class="anchored" data-anchor-id="temporary-library-wide-configuration">Temporary library-wide configuration</h3>
 <p><code>phasic.configure(...)</code> is itself a context manager. Use it to toggle SCC-composer parallelism, MPFR precision, the cache directory, or any other <code>PhasicConfig</code> field for a single block of code. Settings (and the backing env vars) are restored when the block exits.</p>
-<div id="94ec41eb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.680827Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.680716Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.685254Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.684848Z&quot;}}" data-execution_count="9">
+<div id="94ec41eb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:41.943357Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:41.943243Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:41.948419Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:41.947967Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Temporarily enable parallel SCC elimination just for this block.</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Outside the `with`, the previous configuration is restored.</span></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>,</span>
@@ -1027,7 +1021,7 @@ parallel_elimination after block: False</code></pre>
 <section id="slurm-detection-api" class="level3">
 <h3 class="anchored" data-anchor-id="slurm-detection-api">SLURM detection API</h3>
 <p>The <code>detect_slurm_environment()</code> function parses SLURM environment variables and returns a dictionary with the allocation details:</p>
-<div id="slurm-detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.687082Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.686973Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:21.689436Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:21.688978Z&quot;}}" data-execution_count="10">
+<div id="slurm-detect-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:41.949959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:41.949861Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:41.952399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:41.951888Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> detect_slurm_environment</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>slurm_env <span class="op">=</span> detect_slurm_environment()</span>
@@ -1067,7 +1061,7 @@ parallel_elimination after block: False</code></pre>
 <h2 class="anchored" data-anchor-id="parallelism-and-parameterised-prc-evaluation">Parallelism and parameterised PRC evaluation</h2>
 <p>Gaussian elimination is O(n³) and, by default, runs as a single dense computation on one CPU — producing a <em>parameterised reward compute graph</em> (PRC) that is theta-independent and disk-cached at <code>~/.phasic_cache/parameterized_reward_compute/</code>. Once the PRC is built, evaluating it for a specific parameter vector is O(n) and can run in parallel across particles using JAX’s <code>vmap</code> or <code>pmap</code>.</p>
 <p>For large graphs, you can also parallelise the elimination itself. Setting <code>phasic.configure(parallel_elimination=True)</code> (or <code>PHASIC_HIERAR_ELIMINATION=1</code> in the shell) routes the elimination through the hierarchical SCC composer: the graph is decomposed into strongly-connected components and sibling SCCs within a level are eliminated concurrently under OpenMP. Per-SCC artefacts are content-hashed and shared across graphs and processes, so they can also be precomputed on a SLURM cluster via <code>phasic.distributed_scc.precompute_distributed</code>.</p>
-<div id="7a58ca26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T19:56:21.690911Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T19:56:21.690809Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T19:56:26.577218Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T19:56:26.576594Z&quot;}}" data-execution_count="11">
+<div id="7a58ca26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:41.953783Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:41.953680Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:43.737741Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:43.737138Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, configure</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>)</span>

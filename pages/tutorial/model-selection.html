@@ -201,7 +201,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/trace-and-jax-caching-c-path.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/model-selection.html">Model selection (AIC, BIC, likelihood-ratio tests)</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/method-of-moments.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/model-selection.html">Model selection (AIC, BIC, likelihood-ratio tests)</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -261,25 +261,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/discrete.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Discrete phase-type distributions</span></a>
+ <span class="menu-text">Discrete distributions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/parametrization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Parameterized models</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Time inhomogeneity</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Joint probability</span></a>
+ <span class="menu-text">Parameterization</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -290,8 +278,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/finite-markov-chains.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Finite Markov chains</span></a>
+  <a href="../../pages/tutorial/joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
   </div>
 </li>
       </ul>
@@ -305,12 +299,6 @@ window.Quarto = {
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Multi-level caching (C path)</span></a>
-  </div>
-</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/method-of-moments.html" class="sidebar-item-text sidebar-link">
@@ -368,6 +356,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-level caching (C path)</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -432,13 +426,14 @@ window.Quarto = {
   <li><a href="#aic-and-bic-for-a-single-fit" id="toc-aic-and-bic-for-a-single-fit" class="nav-link active" data-scroll-target="#aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</a></li>
   <li><a href="#model-comparison" id="toc-model-comparison" class="nav-link" data-scroll-target="#model-comparison">Model comparison</a></li>
   <li><a href="#likelihood-ratio-test-for-nested-models" id="toc-likelihood-ratio-test-for-nested-models" class="nav-link" data-scroll-target="#likelihood-ratio-test-for-nested-models">Likelihood-ratio test for nested models</a></li>
+  <li><a href="#continuous-time-epoch-models" id="toc-continuous-time-epoch-models" class="nav-link" data-scroll-target="#continuous-time-epoch-models">Continuous time epoch models</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/trace-and-jax-caching-c-path.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/model-selection.html">Model selection (AIC, BIC, likelihood-ratio tests)</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/method-of-moments.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/model-selection.html">Model selection (AIC, BIC, likelihood-ratio tests)</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Model selection (AIC, BIC, likelihood-ratio tests)</h1>
 </div>
@@ -469,7 +464,7 @@ window.Quarto = {
 <li><code>svgd.degrees_of_freedom</code> — the number <span class="math inline">\(k\)</span> of free parameters (<code>theta_dim</code> minus the number fixed via <code>fixed=</code>).</li>
 <li><code>svgd.n_observations</code> — the effective sample size <span class="math inline">\(n\)</span> (number of non-NaN entries for dense data, or <code>len(values)</code> for <code>SparseObservations</code>).</li>
 </ul>
-<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}">
+<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, SVGD, GaussPrior, ExpStepSize, Adamelia,</span>
@@ -484,47 +479,58 @@ window.Quarto = {
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>all_pairs <span class="op">=</span> partial(combinations_with_replacement, r<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
+        <style>
+        .cell-output-ipywidget-background {
+            background-color: transparent !important;
+        }
+       .jp-OutputArea-output {
+           background-color: transparent;
+        }  
+        /*
+        :root {
+            --jp-widgets-color: var(--vscode-editor-foreground);
+            --jp-widgets-font-size: var(--vscode-editor-font-size);
+        }  
+        */
+        /* tqdm styling: */
+        .widget-label,
+        .widget-html,
+        .widget-button,
+        .widget-dropdown,
+        .widget-text,
+        .widget-textarea {
+            font-size: 10px !important;      /* Font size */
+        }
+        div.widget-html-content > progress { /* Outer container */
+            height: 10px !important;
+        
+        }
+        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+            height: 5px !important;
+        }
+        div.progress { /* Jupyter Notebook (classic) */
+            height: 5px !important;
+            min-height: 5px !important;
+            margin-top: 12px !important;    
+        }
+        div.progress-bar { /* inner bar */
+            height: 5px !important;
+            min-height: 5px !important;
+            line-height: 5px !important;
+            color: 'white' !important;
+            padding-bottom: 0px !important;    
+        }
+        </style>                          
+        
 </div>
 </div>
-<div id="4f074faa" class="cell">
+<div id="4f074faa" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_ghost_island(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    coef_len <span class="op">=</span> <span class="dv">6</span></span>
@@ -668,7 +674,7 @@ table {
 <span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>graph.plot(nodesep<span class="op">=</span><span class="fl">0.4</span>, ranksep<span class="op">=</span><span class="dv">2</span>, max_nodes<span class="op">=</span><span class="dv">200</span>, </span>
 <span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>           label_fmt<span class="op">=</span><span class="va">False</span>, size<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">8</span>),</span>
 <span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a>           )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="2">
+<div class="cell-output cell-output-display" data-execution_count="10">
 <div>
 <figure class="figure">
 <p><a href="model-selection_files/figure-html/cell-3-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="model-selection_files/figure-html/cell-3-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -676,23 +682,23 @@ table {
 </div>
 </div>
 </div>
-<div id="782e025e" class="cell" data-execution_count="3">
+<div id="782e025e" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>jp_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="3">
+<div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>5380</code></pre>
 </div>
 </div>
-<div id="4e7a96fa" class="cell" data-execution_count="4">
+<div id="4e7a96fa" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>0.008802869841632699</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>0.008802869841632255</code></pre>
 </div>
 </div>
-<div id="3829103d" class="cell" data-execution_count="5">
+<div id="3829103d" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_prob_graph, theta, nr_observations):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    joint_prob_graph.update_weights(theta) </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
@@ -704,7 +710,7 @@ table {
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>[[0, 0, 0, 0, 0, 0, 0, 0],
  [0, 1, 0, 0, 0, 0, 0, 1],
  [0, 0, 0, 0, 0, 0, 0, 0],
@@ -712,384 +718,92 @@ table {
  [0, 0, 0, 0, 0, 0, 0, 0]]</code></pre>
 </div>
 </div>
-<div id="3ea9af86" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>cjp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate,</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                                          discrete<span class="op">=</span><span class="va">False</span>) <span class="co"># &lt;-- NB!                                          </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="25a59181" class="cell" data-execution_count="14">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                                   mutation_rate<span class="op">=</span>mutation_rate)                                        </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="389edaf2" class="cell">
+<div id="ed6c328b" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>svgd_all_tied <span class="op">=</span> cjp_graph.svgd(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> jp_graph.svgd(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">0</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie coal rate in epoch 0 and 1</span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1. </span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>svgd_all_tied.summary()    </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>[INFO] phasic: Graph was constructed with joint index support. joint_index=True is implied.
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.svgd: SVGD.optimize: no preconditioner configured
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: DaisyChainJointProbsFfiImpl: batch_size=1, omp_get_max_threads()=10
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
-[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)</code></pre>
-</div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[8]</span><span class="ansi-green-fg">, line 3</span>
-<span class="ansi-green-fg">      1</span> <span style="font-style:italic;color:rgb(95,135,135)">#%%monitor</span>
-<span class="ansi-green-fg">      2</span> phasic.set_log_level(<span class="ansi-yellow-fg">'DEBUG'</span>)
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> svgd_all_tied = cjp_graph.svgd(
-<span class="ansi-green-fg">      4</span>     observations,
-<span class="ansi-green-fg">      5</span>     preconditioner=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
-<span class="ansi-green-fg">      6</span>     prior=GaussPrior(ci=[<span class="ansi-green-fg">0.1</span>, <span class="ansi-green-fg">7</span>]),
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:6933</span>, in <span class="ansi-cyan-fg">Graph.svgd</span><span class="ansi-blue-fg">(self, observed_data, discrete, prior, n_particles, n_iterations, optimizer, learning_rate, bandwidth, theta_init, theta_dim, return_history, seed, verbose, progress, jit, parallel, n_devices, precompile, compilation_config, regularization, nr_moments, positive_params, param_transform, joint_index, rewards, fixed, tied, callback, preconditioner, epoch_starts, daisy_chain_t_eval, daisy_chain_granularity, daisy_chain_probe_theta, daisy_chain_t_eval_tol, exposure, exposure_param_index, validate_rewards)</span>
-<span class="ansi-green-fg">   6929</span>             <span style="font-style:italic;color:rgb(95,135,135)"># exception so the graph state is not left mutated by</span>
-<span class="ansi-green-fg">   6930</span>             <span style="font-style:italic;color:rgb(95,135,135)"># a failed SVGD call. When the kwarg was None we skip</span>
-<span class="ansi-green-fg">   6931</span>             <span style="font-style:italic;color:rgb(95,135,135)"># the restore entirely (zero overhead in the common</span>
-<span class="ansi-green-fg">   6932</span>             <span style="font-style:italic;color:rgb(95,135,135)"># path).</span>
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6933</span>             <span style="font-weight:bold;color:rgb(0,135,0)">if</span> _callback_overridden:
-<span class="ansi-green-fg">   6934</span>                 self._weight_callback = _prev_weight_callback
-<span class="ansi-green-fg">   6935</span>                 self._weight_mode = _prev_weight_mode
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:6352</span>, in <span class="ansi-cyan-fg">SVGD.optimize</span><span class="ansi-blue-fg">(self, rewards, return_history)</span>
-<span class="ansi-green-fg">   6348</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
-<span class="ansi-green-fg">   6349</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Static regularization - use current precompiled approach</span>
-<span class="ansi-green-fg">   6350</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Precompile gradient with caching (if JIT enabled)</span>
-<span class="ansi-green-fg">   6351</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.jit_enabled:
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6352</span>         compiled_grad = <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">_precompile_unified</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">nr_moments</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">sample_moments</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">regularization</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">rewards</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">   6353</span>     <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
-<span class="ansi-green-fg">   6354</span>         <span style="font-style:italic;color:rgb(95,135,135)"># Create log_prob function using partial (no JIT)</span>
-<span class="ansi-green-fg">   6355</span>         log_prob_fn = partial(
-<span class="ansi-green-fg">   6356</span>             <span style="color:rgb(0,135,0)">self</span>._log_prob_unified,
-<span class="ansi-green-fg">   6357</span>             nr_moments=<span style="color:rgb(0,135,0)">self</span>.nr_moments,
-<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   6360</span>             rewards=rewards
-<span class="ansi-green-fg">   6361</span>         )
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:6127</span>, in <span class="ansi-cyan-fg">SVGD._precompile_unified</span><span class="ansi-blue-fg">(self, nr_moments, sample_moments, regularization, rewards)</span>
-<span class="ansi-green-fg">   6117</span> <span style="font-style:italic;color:rgb(95,135,135)"># Trigger compilation. Using zeros as the dummy theta is unsafe</span>
-<span class="ansi-green-fg">   6118</span> <span style="font-style:italic;color:rgb(95,135,135)"># when the model has per-dim transforms (e.g. BetaPrior →</span>
-<span class="ansi-green-fg">   6119</span> <span style="font-style:italic;color:rgb(95,135,135)"># sigmoid) or fixed-value constraints: zero φ maps to a θ that</span>
-<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   6124</span> <span style="font-style:italic;color:rgb(95,135,135)"># was sampled from the prior and already has fixed-value</span>
-<span class="ansi-green-fg">   6125</span> <span style="font-style:italic;color:rgb(95,135,135)"># constraints baked in, so the model evaluates cleanly.</span>
-<span class="ansi-green-fg">   6126</span> dummy_theta = <span style="color:rgb(0,135,0)">self</span>.theta_init[<span class="ansi-green-fg">0</span>]
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">6127</span> _ = <span class="ansi-black-fg ansi-yellow-bg">compiled_grad</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">dummy_theta</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">   6128</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span>.verbose:
-<span class="ansi-green-fg">   6129</span>     <span style="color:rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">  Gradient JIT compiled in </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>time()<span style="color:rgb(188,188,188)"> </span>-<span style="color:rgb(188,188,188)"> </span>start<span style="font-weight:bold;color:rgb(175,95,135)">:</span><span class="ansi-yellow-fg">.1g</span><span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">s</span><span class="ansi-yellow-fg">"</span>)
-
-    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:268</span>, in <span class="ansi-cyan-fg">_cpp_pjit.&lt;locals&gt;.cache_miss</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
-<span class="ansi-green-fg">    263</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> config.no_tracing.value:
-<span class="ansi-green-fg">    264</span>   <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeError</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">re-tracing function </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>jit_info.fun_sourceinfo<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg"> for </span><span class="ansi-yellow-fg">"</span>
-<span class="ansi-green-fg">    265</span>                      <span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">`jit`, but </span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">no_tracing</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg"> is set</span><span class="ansi-yellow-fg">"</span>)
-<span class="ansi-green-fg">    267</span> (outs, out_flat, out_tree, args_flat, jaxpr,
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">268</span>  executable, pgle_profiler, const_args) = <span class="ansi-black-fg ansi-yellow-bg">_python_pjit_helper</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
-<span class="ansi-green-fg">    269</span> <span class="ansi-black-fg ansi-yellow-bg">     </span><span class="ansi-black-fg ansi-yellow-bg">fun</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">jit_info</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">    271</span> maybe_fastpath_data = _get_fastpath_data(
-<span class="ansi-green-fg">    272</span>     executable, out_tree, args_flat, out_flat, jaxpr.effects, jaxpr.consts,
-<span class="ansi-green-fg">    273</span>     jit_info.abstracted_axes, pgle_profiler,
-<span class="ansi-green-fg">    274</span>     const_args)
-<span class="ansi-green-fg">    276</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs, maybe_fastpath_data, _need_to_rebuild_with_fdo(pgle_profiler)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:147</span>, in <span class="ansi-cyan-fg">_python_pjit_helper</span><span class="ansi-blue-fg">(fun, jit_info, *args, **kwargs)</span>
-<span class="ansi-green-fg">    145</span>   args_flat = <span style="color:rgb(0,135,0)">map</span>(core.full_lower, args_flat)
-<span class="ansi-green-fg">    146</span>   core.check_eval_args(args_flat)
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">147</span>   out_flat, compiled, profiler, const_args = <span class="ansi-black-fg ansi-yellow-bg">_pjit_call_impl_python</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
-<span class="ansi-green-fg">    148</span> <span class="ansi-black-fg ansi-yellow-bg">      </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args_flat</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">p</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">params</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">    149</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
-<span class="ansi-green-fg">    150</span>   out_flat = jit_p.bind(*args_flat, **p.params)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/pjit.py:1780</span>, in <span class="ansi-cyan-fg">_pjit_call_impl_python</span><span class="ansi-blue-fg">(jaxpr, in_shardings, out_shardings, in_layouts, out_layouts, donated_invars, ctx_mesh, name, keep_unused, inline, compiler_options_kvs, *args)</span>
-<span class="ansi-green-fg">   1772</span>     fingerprint = fingerprint.hex()
-<span class="ansi-green-fg">   1773</span>   distributed_debug_log((<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">Running pjit</span><span class="ansi-yellow-fg">'</span><span class="ansi-yellow-fg">d function</span><span class="ansi-yellow-fg">"</span>, name),
-<span class="ansi-green-fg">   1774</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">in_shardings</span><span class="ansi-yellow-fg">"</span>, in_shardings),
-<span class="ansi-green-fg">   1775</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">out_shardings</span><span class="ansi-yellow-fg">"</span>, out_shardings),
-<span class="ansi-green-fg">   (...)</span><span class="ansi-green-fg">   1778</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">abstract args</span><span class="ansi-yellow-fg">"</span>, <span style="color:rgb(0,135,0)">map</span>(core.abstractify, args)),
-<span class="ansi-green-fg">   1779</span>                         (<span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">fingerprint</span><span class="ansi-yellow-fg">"</span>, fingerprint))
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1780</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> (<span class="ansi-black-fg ansi-yellow-bg">compiled</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">unsafe_call</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">computation</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">const_args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">)</span>,
-<span class="ansi-green-fg">   1781</span>         compiled, pgle_profiler, computation.const_args)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/profiler.py:364</span>, in <span class="ansi-cyan-fg">annotate_function.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
-<span class="ansi-green-fg">    361</span> <span style="color:rgb(175,0,255)">@wraps</span>(func)
-<span class="ansi-green-fg">    362</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span><span style="color:rgb(188,188,188)"> </span><span class="ansi-blue-fg">wrapper</span>(*args, **kwargs):
-<span class="ansi-green-fg">    363</span>   <span style="font-weight:bold;color:rgb(0,135,0)">with</span> TraceAnnotation(name, **decorator_kwargs):
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">364</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span class="ansi-black-fg ansi-yellow-bg">func</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">args</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">*</span><span class="ansi-black-fg ansi-yellow-bg">kwargs</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/interpreters/pxla.py:1372</span>, in <span class="ansi-cyan-fg">ExecuteReplicated.__call__</span><span class="ansi-blue-fg">(self, *args)</span>
-<span class="ansi-green-fg">   1369</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> (<span style="color:rgb(0,135,0)">self</span>.ordered_effects <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_unordered_effects
-<span class="ansi-green-fg">   1370</span>     <span style="font-weight:bold;color:rgb(175,0,255)">or</span> <span style="color:rgb(0,135,0)">self</span>.has_host_callbacks):
-<span class="ansi-green-fg">   1371</span>   input_bufs = <span style="color:rgb(0,135,0)">self</span>._add_tokens_to_inputs(input_bufs)
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">1372</span>   results = <span class="ansi-black-fg ansi-yellow-bg">self</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">xla_executable</span><span class="ansi-black-fg ansi-yellow-bg">.</span><span class="ansi-black-fg ansi-yellow-bg">execute_sharded</span><span class="ansi-black-fg ansi-yellow-bg">(</span><span class="ansi-black-fg ansi-yellow-bg">input_bufs</span><span class="ansi-black-fg ansi-yellow-bg">,</span><span class="ansi-black-fg ansi-yellow-bg"> </span><span class="ansi-black-fg ansi-yellow-bg">with_tokens</span><span class="ansi-black-fg ansi-yellow-bg">=</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">True</span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">   1374</span>   result_token_bufs = results.disassemble_prefix_into_single_device_arrays(
-<span class="ansi-green-fg">   1375</span>       <span style="color:rgb(0,135,0)">len</span>(<span style="color:rgb(0,135,0)">self</span>.ordered_effects))
-<span class="ansi-green-fg">   1376</span>   sharded_runtime_token = results.consume_token()
-
-<span class="ansi-red-fg">KeyboardInterrupt</span>: </pre>
-</div>
-</div>
-</div>
-<div id="4324d1d5" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_tied.log_likelihood(refine=True):.4f}")</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>svgd.summary()  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>log L̂ = -28052.5558
-k (free params) = 9
-n (obs) = 10000</code></pre>
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             3.763      2.681      2.286      0.2233       6.891       
+1          No             2.934      3.938      1.897      0.03527      7.299       
+2          No             0.7139     1.69       0.9029     0.4305       3.287       
+3          Yes            0.1        NA         NA         NA           NA          
+4          No             0.02513    1.316      1.915      0.02513      5.418       
+5          No             2.421      6.521      1.608      4.07         9.744       
+6          No             0.06117    1.516      1.139      0.0171       3.046       
+
+Particles: 50, Iterations: 50</code></pre>
 </div>
+</div>
+<div id="a79ed3c9" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="aic-and-bic-for-a-single-fit" class="level2">
 <h2 class="anchored" data-anchor-id="aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</h2>
 <p><code>refine=True</code> runs a short gradient-ascent refinement of the MAP particle on the log-posterior before evaluating the log-likelihood. The result is closer to the MLE under weak priors and gives a sharper AIC/BIC.</p>
-<div id="ae629f6c" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_tied, refine=True))</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_tied, refine=True))</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>AICResult(aic=56123.1117, log_likelihood=-28052.5558, k=9, n=10000, refined=False)
-BICResult(bic=56188.0047, log_likelihood=-28052.5558, k=9, n=10000, refined=False)</code></pre>
-</div>
+<div id="3fa02b2c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd, refine=True))</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd, refine=True))</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="model-comparison" class="level2">
 <h2 class="anchored" data-anchor-id="model-comparison">Model comparison</h2>
 <p>Same model but fitting separate coalescence rates for each epoch. If you want to compare models using AIC or BIC, you can fit this model just like the one above. However, to allow an LR test of nested models, you must make the fits on the <em>same model</em> only changing the <code>fixed</code> or <code>tied</code> kwargs. You can extract and reuse the model like this:</p>
-<div id="f37c94fa" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free <span class="op">=</span> SVGD(</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>svgd_all_tied.model,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (0, [0, 1]), # tie coal rate in epoch 0 and 1  &lt;--- Commented out to fit a coal rate per epoch</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1.</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.optimize()</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div style="font-family: monospace; font-size: 10px; padding: 10px;"><div style=""><div style="margin-bottom: 6px; font-size: 11px;">perry <span style="font-weight: normal; color: #666666;">(36%/36% mem)</span></div><div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 0: 30.0%">
-                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 1: 30.0%">
-                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 2: 70.0%">
-                            <div style="width: 70.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 3: 60.0%">
-                            <div style="width: 60.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 4: 45.5%">
-                            <div style="width: 45.5%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 5: 50.0%">
-                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 6: 50.0%">
-                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 7: 50.0%">
-                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 8: 50.0%">
-                            <div style="width: 50.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 9: 30.0%">
-                            <div style="width: 30.0%; height: 100%; background: #666666; transition: width 0.3s;"></div>
-                        </div>
-                        </div></div></div>
+<div id="cbb28ac5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>svgd_no_mig <span class="op">=</span> SVGD(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>graph.model,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="dv">0</span>), (<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>svgd_no_mig.optimize()</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>svgd_no_mig.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">TypeError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[28]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> svgd_all_coal_free = SVGD(
-<span class="ansi-green-fg">      2</span>     model=svgd_all_tied.model,
-<span class="ansi-green-fg">      3</span>     observed_data=observations,
-<span class="ansi-green-fg">      4</span>     preconditioner=<span style="font-weight:bold;color:rgb(0,135,0)">None</span>,
-
-<span class="ansi-red-fg">TypeError</span>: SVGD.__init__() got an unexpected keyword argument 'epoch_starts'</pre>
+<div id="d166600d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div id="9d4efd9e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_no_mig, refine=True))</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_no_mig, refine=True))</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</div>
-<div id="8bbe53bc" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:405: UserWarning: HPD interval computed from only 5 samples; result may be unreliable.
-  warnings.warn(</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             6.029      5.082      1.5        2.353        6.669       
-1          No             2.611      3.56       0.8558     2.611        4.913       
-2          No             2.222      2.196      1.891      1.492e-06    5.633       
-3          Yes            0.1        NA         NA         NA           NA          
-4          No             1.363      2.808      1.285      1.248        4.495       
-5          No             2.712      3.726      1.82       2.09         7.161       
-6          No             2.081      2.217      0.8956     0.5574       3.079       
-7          No             4.763      5.075      0.5592     4.207        5.788       
-8          Tied→θ[1]      NA         NA         NA         NA           NA          
-9          Tied→θ[2]      NA         NA         NA         NA           NA          
-10         Yes            0.1        NA         NA         NA           NA          
-11         No             1.541      2.244      0.7275     1.378        3.385       
-12         No             1.508      2.903      1.128      1.508        4.505       
-13         No             2.011      3.686      0.9655     2.011        4.735       
-
-Particles: 5, Iterations: 2</code></pre>
-</div>
-</div>
-<div id="47c60067" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>log L̂ = -25082.3284
-k (free params) = 10
-n (obs) = 10000</code></pre>
-</div>
-</div>
-<div id="24fac709" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_coal_free, refine=True))</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_coal_free, refine=True))</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>AICResult(aic=50184.6569, log_likelihood=-25082.3284, k=10, n=10000, refined=False)
-BICResult(bic=50256.7603, log_likelihood=-25082.3284, k=10, n=10000, refined=False)</code></pre>
-</div>
-</div>
-<div id="46588b24" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Model comparison by AIC:
-name                          AIC          Δ     weight             LL    k      n
-----------------------------------------------------------------------------------
-separate-coal-rate-per-epoch   50184.6569     0.0000     1.0000    -25082.3284   10  10000
-all-params-tied-across-epochs   56123.1117  5938.4548     0.0000    -28052.5558    9  10000</code></pre>
-</div>
+<p>Compare the two models:</p>
+<div id="3b13a1b1" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Reading the table:</p>
 <ul>
@@ -1099,21 +813,14 @@ all-params-tied-across-epochs   56123.1117  5938.4548     0.0000    -28052.5558 
 </ul>
 <p>The one-rate model wins AIC even though the data were generated from the two-rate model. With Δ ≈ 1.6 between the two, the data are <em>not</em> strong enough to justify the extra parameter — AIC is doing exactly the job it should. The three-rate model is meaningfully worse (Δ ≈ 3.6), which is reassuring: the spurious extra parameter is being penalized.</p>
 <p>Switch to BIC for a more aggressive complexity penalty:</p>
-<div id="67ad7d22" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Model comparison by BIC:
-name                          BIC          Δ     weight             LL    k      n
-----------------------------------------------------------------------------------
-separate-coal-rate-per-epoch   50256.7603     0.0000     1.0000    -25082.3284   10  10000
-all-params-tied-across-epochs   56188.0047  5931.2444     0.0000    -28052.5558    9  10000</code></pre>
-</div>
+<div id="c095b3c6" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="likelihood-ratio-test-for-nested-models" class="level2">
@@ -1123,46 +830,9 @@ all-params-tied-across-epochs   56188.0047  5931.2444     0.0000    -28052.5558 
 2 \bigl( \log \hat L_\mathrm{full} - \log \hat L_\mathrm{nested} \bigr) \;\sim\; \chi^2_{\,k_\mathrm{full} - k_\mathrm{nested}}
 \]</span></p>
 <p>Phasic enforces strict nesting: both fits must use the <strong>same</strong> model callable (the closure returned by one call to <code>Graph.pmf_and_moments_from_graph</code>), the same <code>theta_dim</code>, the same number of observations, and the nested fit’s <code>fixed</code> set must be a strict superset of the full fit’s <code>fixed</code> set. That’s exactly the relationship between <code>svgd_1p</code> (one-rate, <code>fixed=[(1, 1.0)]</code>) and <code>svgd_2p</code> (two-rate, no fixed parameters):</p>
-<div id="08b7536e" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[19]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> lrt = model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)
-<span class="ansi-green-fg">      2</span> print(lrt)
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_selection.py:414</span>, in <span class="ansi-cyan-fg">likelihood_ratio_test</span><span class="ansi-blue-fg">(full, nested, refine, strict)</span>
-<span class="ansi-green-fg">    408</span>     _violate(
-<span class="ansi-green-fg">    409</span>         strict,
-<span class="ansi-green-fg">    410</span>         <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">"</span><span class="ansi-yellow-fg">n_observations mismatch: full=</span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>n_full<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">, nested=</span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>n_nested<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span class="ansi-yellow-fg">"</span>,
-<span class="ansi-green-fg">    411</span>     )
-<span class="ansi-green-fg">    413</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> full.model <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> nested.model:
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">414</span>     <span class="ansi-black-fg ansi-yellow-bg">_violate</span><span class="ansi-black-fg ansi-yellow-bg">(</span>
-<span class="ansi-green-fg">    415</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">strict</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">    416</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">LRT requires both fits to use the SAME model callable. </span><span class="ansi-black-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    417</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">Build the model once and pass it to both SVGD constructors:</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    418</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    model = Graph.pmf_and_moments_from_graph(graph)</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    419</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    full   = SVGD(model, data, theta_dim=k).optimize()</span><span class="ansi-black-fg ansi-yellow-bg ansi-bold">\n</span><span class="ansi-black-fg ansi-yellow-bg">"</span>
-<span class="ansi-green-fg">    420</span> <span class="ansi-black-fg ansi-yellow-bg">        </span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">    nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()</span><span class="ansi-black-fg ansi-yellow-bg">"</span><span class="ansi-black-fg ansi-yellow-bg">,</span>
-<span class="ansi-green-fg">    421</span> <span class="ansi-black-fg ansi-yellow-bg">    </span><span class="ansi-black-fg ansi-yellow-bg">)</span>
-<span class="ansi-green-fg">    423</span> _check_nested_fixed(full, nested, strict)
-<span class="ansi-green-fg">    425</span> k_full = full.degrees_of_freedom
-
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_selection.py:175</span>, in <span class="ansi-cyan-fg">_violate</span><span class="ansi-blue-fg">(strict, msg)</span>
-<span class="ansi-green-fg">    173</span> <span style="font-style:italic" class="ansi-yellow-fg">"""Raise in strict mode, otherwise emit a RuntimeWarning."""</span>
-<span class="ansi-green-fg">    174</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> strict:
-<span class="ansi-green-fg">--&gt; </span><span class="ansi-green-fg">175</span>     <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">ValueError</span>(msg)
-<span class="ansi-green-fg">    176</span> warnings.warn(msg, <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeWarning</span>, stacklevel=<span class="ansi-green-fg">3</span>)
-
-<span class="ansi-red-fg">ValueError</span>: LRT requires both fits to use the SAME model callable. Build the model once and pass it to both SVGD constructors:
-    model = Graph.pmf_and_moments_from_graph(graph)
-    full   = SVGD(model, data, theta_dim=k).optimize()
-    nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()</pre>
-</div>
-</div>
+<div id="4c947371" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If the p-value is small (the conventional cutoff is 0.05), the data reject the one-rate restriction — the full two-rate model fits significantly better. A large p-value means the restriction is consistent with the data and the simpler one-rate model can be retained.</p>
 <p>In our example p ≈ 0.51 — the test fails to reject the one-rate restriction, in agreement with the AIC/BIC ranking. This is the typical outcome when the two rates are <em>similar</em> relative to the sample size: the likelihood under the two-rate fit is barely better than under the one-rate fit, the statistic 2·(LL_full − LL_nested) is small, and χ²₁ assigns it a large p-value.</p>
@@ -1179,6 +849,114 @@ Warning
 <p><strong>Strict nesting is enforced.</strong> If you try to LRT two fits that were built from separate <code>Graph.pmf_and_moments_from_graph</code> calls — even on the same underlying graph — <code>likelihood_ratio_test</code> raises a <code>ValueError</code>. The rule of thumb: build the model callable once, then pass it to every <code>SVGD</code> you intend to compare.</p>
 <p>If you want to compare two models that aren’t strictly nested (e.g.&nbsp;different graphs entirely), use <code>compare()</code> with AIC or BIC instead — these don’t require nesting, only the same data.</p>
 </div>
+</div>
+</section>
+<section id="continuous-time-epoch-models" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-time-epoch-models">Continuous time epoch models</h2>
+<div id="3ea9af86" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>cjp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                                          discrete<span class="op">=</span><span class="va">False</span>) <span class="co"># &lt;-- NB!                                          </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="bab94909" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'DEBUG'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="389edaf2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>svgd_all_tied <span class="op">=</span> cjp_graph.svgd(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">0</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie coal rate in epoch 0 and 1</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1. </span></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="st">'auto'</span>,</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co">#    daisy_chain_granularity=50,</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>svgd_all_tied.summary()    </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="4324d1d5" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_tied.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="ae629f6c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_tied, refine=True))</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_tied, refine=True))</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Same model but fitting separate coalescence rates for each epoch. If you want to compare models using AIC or BIC, you can fit this model just like the one above. However, to allow an LR test of nested models, you must make the fits on the <em>same model</em> only changing the <code>fixed</code> or <code>tied</code> kwargs. You can extract and reuse the model like this:</p>
+<div id="f37c94fa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free <span class="op">=</span> SVGD(</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>svgd_all_tied.model,</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (0, [0, 1]), # tie coal rate in epoch 0 and 1  &lt;--- Commented out to fit a coal rate per epoch</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1.</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.optimize()</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="47c60067" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="24fac709" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="46588b24" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="67ad7d22" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="08b7536e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
