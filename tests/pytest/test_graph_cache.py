@@ -340,3 +340,115 @@ class TestGraphHashing:
         hash2 = phasic_hash.compute_graph_hash(g2)
 
         assert hash1.hash_hex == hash2.hash_hex, "Identical graphs should have same hash"
+
+
+class TestCacheHitPreservesCallback:
+    """A graph-cache hit must keep the live callback usable.
+
+    Regression: ``GraphCache.load_graph`` rebuilds via
+    ``Graph.from_serialized``, which restores graph *structure* only —
+    a Python callback cannot be serialized to disk, so the deserialized
+    graph's ``_callback`` is always ``None``. ``Graph.__init__`` used to
+    copy that ``None`` into the new instance on a cache hit, breaking
+    every subsequent callback-based operation (``extend``/``add_epoch``)
+    with "No callback available" even though the caller passed a valid
+    callback. The fix stores the live ``callback_for_cache`` instead.
+    """
+
+    @staticmethod
+    def _isolate_cache(monkeypatch, tmp_path):
+        import phasic.graph_cache as gc
+        monkeypatch.setattr(gc, "DEFAULT_CACHE_DIR", tmp_path / "graphs")
+
+    def test_cache_hit_keeps_callback_and_add_epoch_works(self, tmp_path, monkeypatch):
+        from phasic import Graph, StateIndexer, Property
+        from functools import partial
+        from itertools import combinations_with_replacement
+        all_pairs = partial(combinations_with_replacement, r=2)
+
+        self._isolate_cache(monkeypatch, tmp_path)
+
+        def coalescent(state, indexer=None):
+            transitions = []
+            for i, j in all_pairs(indexer.lineages):
+                pi = indexer.lineages.index_to_props(i)
+                pj = indexer.lineages.index_to_props(j)
+                if state.sum() <= 1:
+                    continue
+                same = int(pi.ton == pj.ton)
+                if same and state[i] < 2:
+                    continue
+                if not same and (state[i] < 1 or state[j] < 1):
+                    continue
+                new = state.copy()
+                new[i] -= 1
+                new[j] -= 1
+                k = indexer.props_to_index(ton=pi.ton + pj.ton)
+                new[k] += 1
+                transitions.append([new, [state[i] * (state[j] - same) / (1 + same)]])
+            return transitions
+
+        nr_samples = 6
+
+        def build():
+            indexer = StateIndexer(
+                lineages=[Property('ton', min_value=1, max_value=nr_samples)]
+            )
+            ipv = [0] * indexer.state_length
+            ipv[indexer.props_to_index(ton=1)] = nr_samples
+            return Graph(coalescent, ipv=ipv, indexer=indexer, graph_cache=True)
+
+        # First build is a cache MISS (constructs + writes to disk).
+        g_miss = build()
+        assert g_miss._callback is not None, "miss path must keep callback"
+
+        # Second build is a cache HIT (loads structure from disk) — this is
+        # the path that previously dropped the callback.
+        g_hit = build()
+        assert g_hit._callback is not None, (
+            "cache hit dropped the callback (regression): add_epoch/extend "
+            "would raise 'No callback available'"
+        )
+        assert g_hit._indexer is not None, "cache hit must keep the indexer"
+
+        # The whole point: add_epoch must succeed on a cache-hit graph.
+        g_hit.update_weights([1.0])
+        g_epoch = g_hit.add_epoch(1)
+        g_epoch.update_weights([1.0, 1.0, 1.0, 1.0])
+
+        # And the cache-hit graph must compute identically to a fresh,
+        # un-cached build of the same model.
+        indexer = StateIndexer(
+            lineages=[Property('ton', min_value=1, max_value=nr_samples)]
+        )
+        ipv = [0] * indexer.state_length
+        ipv[indexer.props_to_index(ton=1)] = nr_samples
+        g_nocache = Graph(coalescent, ipv=ipv, indexer=indexer, graph_cache=False)
+        g_nocache.update_weights([1.0])
+        g_nocache_epoch = g_nocache.add_epoch(1)
+        g_nocache_epoch.update_weights([1.0, 1.0, 1.0, 1.0])
+
+        times = np.array([0.25, 1.0, 3.0])
+        pdf_hit = np.asarray(g_epoch.pdf(times, granularity=100))
+        pdf_nocache = np.asarray(g_nocache_epoch.pdf(times, granularity=100))
+        np.testing.assert_allclose(pdf_hit, pdf_nocache, rtol=1e-12, atol=1e-14)
+
+    def test_cache_hit_keeps_callback_for_extend(self, tmp_path, monkeypatch):
+        from phasic import Graph, callback
+
+        self._isolate_cache(monkeypatch, tmp_path)
+
+        @callback(ipv=[([5], 1.0)])
+        def coalescent_callback(state, **kwargs):
+            n = state[0]
+            if n <= 1:
+                return []
+            return [([n - 1], [n * (n - 1) / 2])]
+
+        g_miss = Graph(coalescent_callback, graph_cache=True)
+        assert g_miss._callback is not None
+
+        g_hit = Graph(coalescent_callback, graph_cache=True)
+        assert g_hit._callback is not None, "cache hit dropped the callback"
+        # extend() relies on the stored callback; must not raise.
+        g_hit.extend()

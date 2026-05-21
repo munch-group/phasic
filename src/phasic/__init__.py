@@ -1852,9 +1852,15 @@ class Graph(_Graph):
                 if cached_graph is not None:
                     # Cache hit - initialize from cached graph
                     super().__init__(cached_graph)
-                    # Copy Python attributes
-                    self._callback = cached_graph._callback if hasattr(cached_graph, '_callback') else None
-                    self._callback_kwargs = cached_graph._callback_kwargs if hasattr(cached_graph, '_callback_kwargs') else {}
+                    # Copy Python attributes.
+                    # The deserialized cached graph only restores graph *structure*;
+                    # its _callback is always None because a Python function cannot
+                    # be serialized to disk. Use the live callback/kwargs in hand
+                    # (callback_for_cache is the same value the non-cache path stores
+                    # below) so that extend()/add_epoch() keep working after a cache
+                    # hit instead of raising "No callback available".
+                    self._callback = callback_for_cache
+                    self._callback_kwargs = kwargs.copy()
                     self.is_discrete = cached_graph.is_discrete if hasattr(cached_graph, 'is_discrete') else False
                     self._cache_trace = cache_trace
                     self._trace = None
