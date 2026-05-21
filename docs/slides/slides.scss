@@ -33,7 +33,7 @@ $presentation-heading-color: $jet !default;
 $presentation-heading-font-weight: lighter;
 //$presentation-heading-line-height: 2;
 $presentation-block-margin: 16px;
-$presentation-font-size-root: 33px;
+$presentation-font-size-root: 35px;
 $presentation-h2-font-size: 1.5em; 
 
 // colors
@@ -44,6 +44,11 @@ $selection-bg: #26351c !default;
 
 
 /*-- scss:rules --*/
+
+.reveal mjx-container[display="true"] {
+  font-size: 1.4em !important;
+}
+
 
 .reveal a {
   line-height: 1.5em;
@@ -156,6 +161,10 @@ $selection-bg: #26351c !default;
   padding: 0.1em;
   border-radius: 5px;
   display: inline-block;
+}
+
+.reveal .larger {
+  font-size: 1.5em; /* Makes the slide text 25% larger */
 }
 
 // lists

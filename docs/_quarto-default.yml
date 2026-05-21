@@ -3,6 +3,7 @@ project:
   output-dir: _build
   pre-render: 
     - quarto render mathref/
+  post-render:
     - quarto render slides/
     - quarto render manuscript/ 
 
@@ -18,12 +19,12 @@ project:
   render:
     - "**/*.qmd"  # render all qmd files
     - "**/*.ipynb"  # render all qmd files
-    # - "!draft-*.qmd"  # except those starting with draft-
-    - "!internals/"  # exclude entire directories
-    - "!pages/benchmarks/**"
-    - "!pages/topics/R/"
-    - "!mathref/"  # Mathematical Reference is a separate Quarto book project with its own _quarto.yml
-    - "!pages/vignettes/"  
+    - "!mathref/"  # excluded as it is pre-render book
+    - "!slides/index.qmd" # excluded as it is post-render risejs
+    - "!pages/vignettes/" # just excluded
+    - "!internals/" # just excluded
+    - "!pages/benchmarks/**" # just excluded
+    - "!pages/topics/R/" # just excluded
 
 comments:
   hypothesis: true
