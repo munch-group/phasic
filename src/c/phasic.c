@@ -9027,9 +9027,27 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         }
     }
 
-    // Apply all elimination trace commands to all reward vectors
-    // Command: results[from][r] += results[to][r] * multiplier for all r
-    // Using Kahan summation for numerical stability
+    // Apply all elimination trace commands to all reward vectors.
+    // Command: results[from][r] += results[to][r] * multiplier for all r,
+    // with Kahan summation for numerical stability.
+    //
+    // The n reward-vector columns are independent: a command only reads/writes
+    // column r within itself, so the whole command trace for a given column is
+    // self-contained. We parallelise over columns. One `omp parallel` region
+    // wraps the command loop; `omp for schedule(static) nowait` hands each
+    // thread a fixed contiguous column slice for EVERY command (static => the
+    // same slice each time), so a thread runs the entire trace for its columns
+    // with no cross-thread sharing and no per-command barrier (the parallel
+    // region's closing barrier syncs before extraction). Per-column arithmetic
+    // and order are unchanged, so the result is identical for any thread count.
+    // Gated on parallel_elimination=True (PHASIC_HIERAR_ELIMINATION) and a size
+    // threshold; otherwise the region runs single-threaded (== prior behaviour).
+    const char *hierar_env = getenv("PHASIC_HIERAR_ELIMINATION");
+    const bool use_par = (hierar_env != NULL && hierar_env[0] == '1'
+                          && hierar_env[1] == '\0' && n >= 512);
+    (void) use_par;  // referenced only by the OpenMP if() clause
+    #pragma omp parallel if(use_par)
+    {
     for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
         struct ptd_reward_increase cmd = compute->commands[cmd_idx];
 
@@ -9047,7 +9065,8 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         // Check if multiplier is infinite
         bool mult_is_inf = isinf(multiplier);
 
-        // Inner loop: contiguous memory access + Kahan summation
+        // Inner loop: each thread takes a fixed static slice of the columns.
+        #pragma omp for schedule(static) nowait
         for (size_t r = 0; r < n; r++) {
             // Handle inf × 0 = 0 (limit interpretation)
             if (mult_is_inf && to_row[r] == 0.0) {
@@ -9062,6 +9081,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
 
         // Debug: check for NaN
         #ifdef DEBUG
+        #pragma omp for schedule(static) nowait
         for (size_t r = 0; r < n; r++) {
             if (isnan(from_row[r])) {
                 PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
@@ -9069,6 +9089,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
             }
         }
         #endif
+    }
     }
 
     // Free Kahan compensation arrays
