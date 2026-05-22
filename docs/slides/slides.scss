@@ -164,7 +164,10 @@ $selection-bg: #26351c !default;
 }
 
 .reveal .larger {
-  font-size: 1.5em; /* Makes the slide text 25% larger */
+  font-size: 1.4em;
+}
+.reveal .huge {
+  font-size: 1.8em; 
 }
 
 // lists

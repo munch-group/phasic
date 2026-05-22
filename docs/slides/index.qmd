@@ -297,23 +297,23 @@ ${\color{blue}\boldsymbol{S}} =
 
 ::: {.absolute top="25%" left="10%" .larger }
 $$
-\mathbb{E}[\tau] = \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}} \boldsymbol{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
+\mathbb{E}[\tau] = \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}} \mathbf{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
 $$
 :::
 
 ::: {.absolute top="50%" left="10%" .larger}
-$$\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}}^k \boldsymbol{e}$$
+$$\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}}^k \mathbf{e}$$
 :::
 
 <!-- =============================================================================== -->
 ## Distribution
 
 ::: {.absolute top="25%" left="10%" .larger }
-$$F(t) = 1 - \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} \boldsymbol{e}, \quad t \geq 0$$
+$$F(t) = 1 - \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} \mathbf{e}, \quad t \geq 0$$
 :::
 
 ::: {.absolute top="50%" left="10%" .larger}
-$$f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{S}) \boldsymbol{e}, \quad t \geq 0$$
+$$f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{S}) \mathbf{e}, \quad t \geq 0$$
 :::
 
 
@@ -323,7 +323,7 @@ $$f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
-## Phase-type distribution with rewards
+## Phase-type distribution with **rewards**
 
 :::: {layout="[0.55,-0.05,0.4]"}
 :::: column
@@ -349,38 +349,16 @@ ${\color{blue}\boldsymbol{S}} =
 ${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
 
 ::::
+
+::: { .feature .larger }
+But why?
+:::
+
 :::::
 
-<!-- =============================================================================== -->
-## Moments with rewards
-
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
-
-$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
-
 
 <!-- =============================================================================== -->
-## Marginal moments
-
-The $k$-th moment of the reward-transformed distribution:
-
-$$\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \boldsymbol{e}$$
-
-where $\boldsymbol{\Delta}(\boldsymbol{r})$ is a diagonal matrix with rewards on the diagonal.
-
-<!-- =============================================================================== -->
-<!-- 
-## Multivariate Phase-Type Distributions
-
-**Multivariate phase-type distributions** assign a vector of rewards to each state, resulting in a vector-valued outcome:
-
-$$\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})$$
-
-where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
- -->
-
-<!-- =============================================================================== -->
-## **Phase-type** distributed waiting time
+## Phase-type distribution with **rewards**
 
 ::::::: {layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]"}
 ::: column
@@ -392,7 +370,7 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 
 ${\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)$
 
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}$
 :::
 
 ::: {.column }
@@ -404,9 +382,38 @@ $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\col
 
 ${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
 
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}$
 :::
 :::::::
+
+<!-- =============================================================================== -->
+## Moments with rewards
+
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}$
+
+$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
+
+
+<!-- =============================================================================== -->
+## Marginal moments
+
+The $k$-th moment of the reward-transformed distribution:
+
+$$\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \mathbf{e}$$
+
+where $\boldsymbol{\Delta}(\boldsymbol{r})$ is a diagonal matrix with rewards on the diagonal.
+
+<!-- =============================================================================== -->
+
+## Multivariate Phase-Type Distributions
+
+**Multivariate phase-type distributions** assign a vector of rewards to each state, resulting in a vector-valued outcome:
+
+$$\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})$$
+
+where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
+
+
 
 
 
@@ -415,37 +422,75 @@ $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\col
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
-## **Matrix formulation** of phase-type distributions
-
-::::::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
-:::: column
-😀 Proofs and well-described properties:
-
-CDF: $\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0$
-
-MGF: $\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}$
+## **Matrix** formulation
 
 ::: spacer-1
 :::
 
-😱 Complexity:
+::::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
+:::: column
+**Analytically tractable** 😀 
 
-Matrix operations (${\boldsymbol{S}}^{-1}$ and ${\boldsymbol{S}}^{t}$) limit applicability. Needlessly so for sparse matrices.
+::: spacer-2
+:::
+
+::: larger
+$F_\tau(t) = 1 - \boldsymbol{\alpha}{\color{magenta}e^{\boldsymbol{S}t}}\mathbf{e}, \;\; t\geq 0$
+
+$\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} ({\color{magenta}\boldsymbol{U}}\triangle({\color{black}\boldsymbol{r}}))^{k}\mathbf{e}$
+:::
+
+::::
+:::: column
+
+**Scale poorly** 😱
+
+![](./images/sparse-matrix.png){.nostretch width="80%"}
+
+::: {.absolute top="90%" left="5%" }
+(Coalescent n=10)
+:::
+
+::::
+:::::
+
+
+<!-- =============================================================================== -->
+## **Graph** formulation
+
+::: spacer-1
+:::
+
+:::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
+:::: column
+**Analytically tractable** 😀 
+
+::: spacer-3
+:::
+
+- Graph algorithms
+  - Elimination
+  - Parametrization
+  - Parallelization
+  - Cashing
+  - Sharing
+
 ::::
 
 :::: column
-Coalescent n=10:
+**Scale** 😀 
 
-::: r-stack
-![](./images/sparse-matrix.png){.nostretch .disappear height="30%" fig-align="center"}
+![](./images/sparse-matrix-as-graph.png){.nostretch width="100%"}
 
-![](./images/sparse-matrix-as-graph.png){.nostretch .fragment height="30%" fig-align="center"}
+::: {.absolute top="90%" left="5%" }
+(Coalescent n=10)
 :::
+
 ::::
-:::::::
+:::::
 
 <!-- =============================================================================== -->
-## A **graph-formulation** of phase-type distributions
+## **Graph** formulation
 
 Coalescent n=10:
 
@@ -511,6 +556,43 @@ Recursion
 <!-- =============================================================================== -->
 # Why do this at all?
 <!-- =============================================================================== -->
+
+
+<!-- =============================================================================== -->
+## Use case
+
+```{python}
+#| echo: true
+#| code-line-numbers: "1-10|11-13"
+#| output-location: column-fragment
+
+from phasic import Graph
+
+def coalescent(state):
+    transitions = []
+    for i in range(state.size):
+        for j in range(i, state.size):            
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue 
+            new = state.copy()
+            new[i] -= 1
+            new[j] -= 1
+            new[i+j+1] += 1
+            rate = state[i]*(state[j]-same)/(1+same)
+            transitions.append((new, rate))
+    return transitions
+
+nr_samples = 4
+initial_state = [nr_samples]+[0]*(nr_samples-1)
+graph = Graph(coalescent, ipv=initial_state)
+#graph.plot()
+graph.expectation()
+
+```
+
 
 <!-- =============================================================================== -->
 ## Math / Algorithms / Inference
@@ -817,13 +899,13 @@ CDF (Probability Mass Function)
 
 The probability of absorption at exactly jump $t$:
 
-$$F(t) = 1 - \boldsymbol{\pi} \boldsymbol{T}^t \boldsymbol{e}$$
+$$F(t) = 1 - \boldsymbol{\pi} \boldsymbol{T}^t \mathbf{e}$$
 
 Moments
 
 The expectation:
 
-$$\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \boldsymbol{e}$$
+$$\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \mathbf{e}$$
 
 
 <!-- =============================================================================== -->
@@ -838,22 +920,22 @@ $$\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \boldsymbol{e}$$
 <!-- =============================================================================== -->
 ## The variance
 
-$$\text{Var}(\tau) = 2\boldsymbol{\alpha} \boldsymbol{U}^2 \boldsymbol{e} - (\boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e})^2$$
+$$\text{Var}(\tau) = 2\boldsymbol{\alpha} \boldsymbol{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \boldsymbol{U} \mathbf{e})^2$$
 
 <!-- =============================================================================== -->
 ## Higher-order **moments**
 
-k’th moment: $\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle(\boldsymbol{r}))^{k}\boldsymbol{e}$
+k’th moment: $\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle(\boldsymbol{r}))^{k}\mathbf{e}$
 
-Expectation: $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{e}$
+Expectation: $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\mathbf{e}$
 
-2'nd moment: $\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{e}$
+2'nd moment: $\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{U}\triangle(\boldsymbol{r})\mathbf{e}$
 
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\! \triangle\!\,(\boldsymbol{r}) \boldsymbol{e} = \boldsymbol{\alpha} \boldsymbol{U}  \boldsymbol{e}$ (assuming unit rewards for simplicity).
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\! \triangle\!\,(\boldsymbol{r}) \mathbf{e} = \boldsymbol{\alpha} \boldsymbol{U}  \mathbf{e}$ (assuming unit rewards for simplicity).
 
-$\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\boldsymbol{U}\boldsymbol{e}$
+$\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\boldsymbol{U}\mathbf{e}$
 
-$\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}$. So the variance can be written as: $\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\!\triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}$, where $\boldsymbol{r'}$ are the waiting times computed for the first moment.
+$\boldsymbol{U}\mathbf{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'}) \mathbf{e}$. So the variance can be written as: $\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\!\triangle\!\,(\boldsymbol{r'}) \mathbf{e}$, where $\boldsymbol{r'}$ are the waiting times computed for the first moment.
 
 <!-- =============================================================================== -->
 ## Higher-order **moments**
@@ -883,7 +965,7 @@ $\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'})
 
 The covariance between dimensions $i$ and $j$:
 
-$$\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e} + \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} - \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} \cdot \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e}$$
+$$\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\mathbf{e}$$
 
 
 <!-- =============================================================================== -->
