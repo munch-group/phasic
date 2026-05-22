@@ -1670,7 +1670,7 @@ str
 
     .def("moments", &_moments,
       py::arg("power"), py::arg("rewards")=std::vector<double>(), 
-      py::return_value_policy::move, 
+      py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
       R"delim(
       Computes the first `power` moments of the phase-type distribution. This function invokes 
       `Graph.expected_waiting_times()` consecutively to find the first moments, given by the `power` argument.
@@ -1705,7 +1705,7 @@ str
 
     .def("expectation", &_expectation,
       py::arg("rewards")=std::vector<double>(), 
-      py::return_value_policy::move, 
+      py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
       R"delim(
 
       Computes the expectation (mean) of the phase-type distribution.
@@ -1739,7 +1739,7 @@ str
 
     .def("variance", &_variance,
         py::arg("rewards")=std::vector<double>(), 
-        py::return_value_policy::move, 
+        py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
         R"delim(
     Computes the variance of the phase-type distribution.
 
@@ -1773,7 +1773,7 @@ str
       .def("covariance", &_covariance,
         py::arg("rewards1")=std::vector<double>(), 
         py::arg("rewards2")=std::vector<double>(), 
-        py::return_value_policy::move, 
+        py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
         R"delim(
     Computes the covariance of the phase-type distribution.
 
@@ -1809,7 +1809,7 @@ str
     .def("covariance_discrete", &_covariance_discrete,
           py::arg("rewards1")=std::vector<double>(), 
           py::arg("rewards2")=std::vector<double>(), 
-          py::return_value_policy::move, 
+          py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
           R"delim(
     Computes the covariance of the discrete phase-type distribution.
 
@@ -1844,7 +1844,7 @@ str
 
 
     .def("expected_waiting_time", &phasic::Graph::expected_waiting_time, py::arg("rewards")=std::vector<double>(), 
-      py::return_value_policy::move, R"delim(
+      py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(
     Computes the expected waiting time of the phase-type distribution.
 
     This function computes the expected waiting time for the given rewards.
@@ -1874,7 +1874,7 @@ str
 
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::arg("indices") = std::vector<size_t>(),
-      py::return_value_policy::move, R"delim(
+      py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(
     Compute expected sojourn time for all states or a subset.
 
     Computes the expected time spent in each state before absorption,
@@ -2897,7 +2897,7 @@ str
 
     .def("expectation_discrete", &_expectation_discrete,
       py::arg("rewards")=std::vector<double>(), 
-      py::return_value_policy::move, 
+      py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
       R"delim(
     Computes the expectation (mean) of the discrete phase-type distribution.
 
@@ -2923,7 +2923,7 @@ str
 
       .def("variance_discrete", &_variance_discrete,
         py::arg("rewards")=std::vector<double>(), 
-        py::return_value_policy::move, 
+        py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), 
         R"delim(    
     Computes the variance of the discrete phase-type distribution.
 
