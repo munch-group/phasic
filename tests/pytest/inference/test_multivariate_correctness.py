@@ -11,7 +11,6 @@ the pybind11 implementation (always available) with various scenarios:
 import numpy as np
 import json
 import phasic
-phasic.configure(ffi=True) 
 
 from phasic import Graph
 
