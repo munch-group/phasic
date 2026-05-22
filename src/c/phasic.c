@@ -8665,23 +8665,42 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
                              && hierar_env[1] == '\0'
                              && !ptd_scc_compose_in_progress);
     if (use_hierarchical && graph->parameterized && rewards == NULL
-        && graph->current_params != NULL && graph->param_length > 0) {
-        struct ptd_scc_graph *scc_graph =
-                ptd_find_strongly_connected_components(graph);
-        if (scc_graph == NULL) {
-            /* Fall through to monolithic on SCC failure. */
-            ptd_err[0] = '\0';
-        } else {
-            double *result = ptd_compose_scc_prcs(
-                    graph, scc_graph,
-                    graph->current_params, graph->param_length);
-            ptd_scc_graph_destroy(scc_graph);
-            if (result != NULL) {
-                return result;
+        && graph->param_length > 0) {
+        /* Default-theta unlock: construction initialises edge weights at
+         * theta=1 (sum of coefficients * 1.0, see ptd_graph_add_edge) and
+         * leaves current_params NULL until the first update_weights(). When no
+         * theta has been set explicitly the live weights correspond to
+         * theta=ones, so compose at ones; ptd_compose_scc_prcs re-derives
+         * weights from coefficients * theta, reproducing the monolithic
+         * default-weight result exactly. If theta was set, use it unchanged. */
+        const double *compose_theta = graph->current_params;
+        double *ones = NULL;
+        if (compose_theta == NULL) {
+            ones = (double *) malloc(graph->param_length * sizeof(double));
+            if (ones != NULL) {
+                for (size_t i = 0; i < graph->param_length; i++) {
+                    ones[i] = 1.0;
+                }
+                compose_theta = ones;
             }
-            /* On compose failure, clear error and fall through. */
+        }
+        if (compose_theta != NULL) {
+            struct ptd_scc_graph *scc_graph =
+                    ptd_find_strongly_connected_components(graph);
+            if (scc_graph != NULL) {
+                double *result = ptd_compose_scc_prcs(
+                        graph, scc_graph,
+                        compose_theta, graph->param_length);
+                ptd_scc_graph_destroy(scc_graph);
+                if (result != NULL) {
+                    free(ones);
+                    return result;
+                }
+            }
+            /* SCC or compose failed: clear error, fall through to monolithic. */
             ptd_err[0] = '\0';
         }
+        free(ones);
     }
 
     if (ptd_precompute_reward_compute_graph(graph)) {
