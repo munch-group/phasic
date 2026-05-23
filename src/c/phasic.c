@@ -3336,6 +3336,95 @@ static int ptd_pcg_build_cache_path(
     return 0;
 }
 
+// Encode a single command into its on-disk form. Factored out of the
+// save path so the writer can stream commands in fixed-size chunks
+// (O(chunk) memory) instead of materialising the whole length-sized
+// array (O(commands_length * 128B) — multi-GB for large parameterized
+// models). `out` is fully zeroed here, so unused fields and the struct
+// padding are 0, matching the previous calloc'd-array layout byte-for-byte.
+// Returns 0 on success, -1 on an unencodable pointer (ptd_err set).
+static int ptd_pcg_encode_one_disk_command(
+        const struct ptd_comp_graph_parameterized *cmd,
+        size_t cmd_index,
+        const struct ll_of_a *mem,
+        const struct ptd_pcg_edge_anchor *anchors,
+        size_t n_anchors,
+        const double *const *external_anchors,
+        size_t n_external,
+        struct ptd_pcg_disk_command *out)
+{
+    /* Per-type which-fields-are-live table. Mirrors the replay loop in
+     * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized. The
+     * recorder doesn't initialise unused fields, so encoding them would
+     * dereference uninitialised memory ("neither mem nor edge" failure). */
+    enum { NEW_ADD_T = 0, P_T = 1, INV_T = 2, PP_T = 3, ONE_MINUS_T = 4,
+           DIVIDE_T = 5, ZERO_T = 6 };
+    memset(out, 0, sizeof(*out));
+    out->type = (int32_t)cmd->type;
+    out->from = (uint64_t)cmd->from;
+    out->to = (uint64_t)cmd->to;
+    out->multiplier = cmd->multiplier;
+
+    bool live_fromT = false, live_toT = false, live_multptr = false;
+    switch (cmd->type) {
+        case NEW_ADD_T:    live_multptr = true; break;
+        case P_T:          live_fromT = true; live_toT = true; break;
+        case PP_T:         live_fromT = true; live_toT = true; live_multptr = true; break;
+        case INV_T:        live_fromT = true; break;
+        case ONE_MINUS_T:  live_fromT = true; break;
+        case DIVIDE_T:     live_fromT = true; live_toT = true; break;
+        case ZERO_T:       live_fromT = true; break;
+        default:
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_save: command %zu has unknown type %d", cmd_index, cmd->type);
+            return -1;
+    }
+
+    if (live_fromT) {
+        ptd_pcg_encode_ptr_impl(cmd->fromT, mem, anchors, n_anchors,
+                                external_anchors, n_external, &out->fromT);
+    } else {
+        out->fromT.kind = PTD_PCG_PTR_NULL;
+    }
+    if (live_toT) {
+        ptd_pcg_encode_ptr_impl(cmd->toT, mem, anchors, n_anchors,
+                                external_anchors, n_external, &out->toT);
+    } else {
+        out->toT.kind = PTD_PCG_PTR_NULL;
+    }
+    if (live_multptr) {
+        ptd_pcg_encode_ptr_impl(cmd->multiplierptr, mem, anchors, n_anchors,
+                                external_anchors, n_external, &out->multiplierptr);
+    } else {
+        out->multiplierptr.kind = PTD_PCG_PTR_NULL;
+    }
+
+    // Verify each LIVE pointer was successfully encoded. A live pointer
+    // that was non-NULL at record time but ended up PTD_PCG_PTR_NULL is
+    // unencodable — abort rather than silently produce a corrupt file.
+    if ((live_fromT && cmd->fromT != NULL && out->fromT.kind == PTD_PCG_PTR_NULL) ||
+            (live_toT && cmd->toT != NULL && out->toT.kind == PTD_PCG_PTR_NULL) ||
+            (live_multptr && cmd->multiplierptr != NULL
+                    && out->multiplierptr.kind == PTD_PCG_PTR_NULL)) {
+        const char *which = "?";
+        const void *bad = NULL;
+        if (live_fromT && cmd->fromT != NULL && out->fromT.kind == PTD_PCG_PTR_NULL) {
+            which = "fromT"; bad = (const void *)cmd->fromT;
+        } else if (live_toT && cmd->toT != NULL && out->toT.kind == PTD_PCG_PTR_NULL) {
+            which = "toT"; bad = (const void *)cmd->toT;
+        } else if (live_multptr && cmd->multiplierptr != NULL && out->multiplierptr.kind == PTD_PCG_PTR_NULL) {
+            which = "multiplierptr"; bad = (const void *)cmd->multiplierptr;
+        }
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save: command %zu (type=%d) field=%s pointer=%p "
+                 "is neither in the mem buffer nor near a known edge weight; "
+                 "cache save aborted to avoid a corrupt file.",
+                 cmd_index, cmd->type, which, bad);
+        return -1;
+    }
+    return 0;
+}
+
 // Shared implementation for the v1 and v2 save entry points. Pass
 // external_anchors=NULL, n_external=0 to write a v1 file (no
 // EXTERNAL pointers; format_revision is forced to 1 in that case
@@ -3386,109 +3475,15 @@ static int ptd_save_parameterized_reward_compute_graph_impl(
     header.mem_total_doubles = (uint64_t)mem_total;
     header.memr_length = (uint64_t)graph->vertices_length;
 
-    // Build encoded commands array up-front so we can detect
-    // pointer-encoding failures before opening any file.
-    struct ptd_pcg_disk_command *encoded_cmds = NULL;
-    if (compute->length > 0) {
-        encoded_cmds = (struct ptd_pcg_disk_command *)
-                calloc(compute->length, sizeof(*encoded_cmds));
-        if (encoded_cmds == NULL) {
-            snprintf((char *)ptd_err, sizeof(ptd_err),
-                     "ptd_save: failed to allocate encoded commands");
-            free(flat_mem);
-            free(anchors);
-            return -1;
-        }
-    }
-    /* Per-type which-fields-are-live table. Mirrors the replay loop in
-     * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized
-     * (around line 6985). The recorder doesn't initialise unused
-     * fields, so encoding them would dereference uninitialised memory
-     * and produce a "neither mem nor edge" failure. */
-    enum { NEW_ADD_T = 0, P_T = 1, INV_T = 2, PP_T = 3, ONE_MINUS_T = 4,
-           DIVIDE_T = 5, ZERO_T = 6 };
-    for (size_t i = 0; i < compute->length; i++) {
-        const struct ptd_comp_graph_parameterized *cmd = &compute->commands[i];
-        encoded_cmds[i].type = (int32_t)cmd->type;
-        encoded_cmds[i].from = (uint64_t)cmd->from;
-        encoded_cmds[i].to = (uint64_t)cmd->to;
-        encoded_cmds[i].multiplier = cmd->multiplier;
-
-        bool live_fromT = false, live_toT = false, live_multptr = false;
-        switch (cmd->type) {
-            case NEW_ADD_T:    live_multptr = true; break;
-            case P_T:          live_fromT = true; live_toT = true; break;
-            case PP_T:         live_fromT = true; live_toT = true; live_multptr = true; break;
-            case INV_T:        live_fromT = true; break;
-            case ONE_MINUS_T:  live_fromT = true; break;
-            case DIVIDE_T:     live_fromT = true; live_toT = true; break;
-            case ZERO_T:       live_fromT = true; break;
-            default:
-                snprintf((char *)ptd_err, sizeof(ptd_err),
-                         "ptd_save: command %zu has unknown type %d", i, cmd->type);
-                free(encoded_cmds);
-                free(flat_mem);
-                free(anchors);
-                return -1;
-        }
-
-        if (live_fromT) {
-            ptd_pcg_encode_ptr_impl(cmd->fromT,
-                               (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors,
-                               external_anchors, n_external,
-                               &encoded_cmds[i].fromT);
-        } else {
-            encoded_cmds[i].fromT.kind = PTD_PCG_PTR_NULL;
-        }
-        if (live_toT) {
-            ptd_pcg_encode_ptr_impl(cmd->toT,
-                               (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors,
-                               external_anchors, n_external,
-                               &encoded_cmds[i].toT);
-        } else {
-            encoded_cmds[i].toT.kind = PTD_PCG_PTR_NULL;
-        }
-        if (live_multptr) {
-            ptd_pcg_encode_ptr_impl(cmd->multiplierptr,
-                               (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors,
-                               external_anchors, n_external,
-                               &encoded_cmds[i].multiplierptr);
-        } else {
-            encoded_cmds[i].multiplierptr.kind = PTD_PCG_PTR_NULL;
-        }
-
-        // Verify each LIVE pointer was successfully encoded. A live
-        // pointer that was non-NULL at record time but ended up as
-        // PTD_PCG_PTR_NULL after encoding is an unencodable pointer
-        // (somewhere we don't know how to find) — abort save rather
-        // than silently produce a corrupt file.
-        if ((live_fromT && cmd->fromT != NULL && encoded_cmds[i].fromT.kind == PTD_PCG_PTR_NULL) ||
-                (live_toT && cmd->toT != NULL && encoded_cmds[i].toT.kind == PTD_PCG_PTR_NULL) ||
-                (live_multptr && cmd->multiplierptr != NULL
-                        && encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_NULL)) {
-            const char *which = "?";
-            const void *bad = NULL;
-            if (live_fromT && cmd->fromT != NULL && encoded_cmds[i].fromT.kind == PTD_PCG_PTR_NULL) {
-                which = "fromT"; bad = (const void *)cmd->fromT;
-            } else if (live_toT && cmd->toT != NULL && encoded_cmds[i].toT.kind == PTD_PCG_PTR_NULL) {
-                which = "toT"; bad = (const void *)cmd->toT;
-            } else if (live_multptr && cmd->multiplierptr != NULL && encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_NULL) {
-                which = "multiplierptr"; bad = (const void *)cmd->multiplierptr;
-            }
-            snprintf((char *)ptd_err, sizeof(ptd_err),
-                     "ptd_save: command %zu (type=%d) field=%s pointer=%p "
-                     "is neither in the mem buffer nor near a known edge weight; "
-                     "cache save aborted to avoid a corrupt file.",
-                     i, cmd->type, which, bad);
-            free(encoded_cmds);
-            free(flat_mem);
-            free(anchors);
-            return -1;
-        }
-    }
+    // Commands are encoded and written in fixed-size chunks at write
+    // time (below) via ptd_pcg_encode_one_disk_command, instead of one
+    // length-sized array, so the transient memory is O(chunk) not
+    // O(commands_length * sizeof(disk_command)) — which is multiple GB
+    // for large parameterized models. The on-disk byte layout is
+    // unchanged (identical per-command encoding, identical order). The
+    // atomic tmp+rename below already guards against a partial file if
+    // encoding fails mid-stream, so deferring encoding past fopen() is safe.
+    struct ptd_pcg_disk_command *encoded_cmds = NULL;  // chunk buffer (alloc'd below)
 
     // Encode memr (rates) as doubles offsets into flat_mem.
     int64_t *memr_offsets = NULL;
@@ -3566,8 +3561,46 @@ static int ptd_save_parameterized_reward_compute_graph_impl(
     } while (0)
 
     WRITE_OR_FAIL(&header, sizeof(header));
+    // Stream-encode the commands in fixed-size chunks (one reused buffer)
+    // rather than holding the whole length-sized array in memory. Output
+    // bytes are identical to the previous one-shot write.
     if (compute->length > 0) {
-        WRITE_OR_FAIL(encoded_cmds, compute->length * sizeof(*encoded_cmds));
+        const size_t PTD_PCG_WRITE_CHUNK = 8192;
+        size_t buf_n = (compute->length < PTD_PCG_WRITE_CHUNK)
+                     ? compute->length : PTD_PCG_WRITE_CHUNK;
+        encoded_cmds = (struct ptd_pcg_disk_command *)
+                calloc(buf_n, sizeof(*encoded_cmds));
+        if (encoded_cmds == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_save: failed to allocate command write chunk");
+            fclose(fp);
+            unlink(tmp_path);
+            free(memr_offsets);
+            free(flat_mem);
+            free(anchors);
+            return -1;
+        }
+        for (size_t base = 0; base < compute->length; base += buf_n) {
+            size_t this_n = (compute->length - base < buf_n)
+                          ? (compute->length - base) : buf_n;
+            for (size_t j = 0; j < this_n; j++) {
+                if (ptd_pcg_encode_one_disk_command(
+                        &compute->commands[base + j], base + j,
+                        (const struct ll_of_a *)compute->mem,
+                        anchors, n_anchors, external_anchors, n_external,
+                        &encoded_cmds[j]) != 0) {
+                    // ptd_err already set by the helper.
+                    fclose(fp);
+                    unlink(tmp_path);
+                    free(encoded_cmds);
+                    free(memr_offsets);
+                    free(flat_mem);
+                    free(anchors);
+                    return -1;
+                }
+            }
+            WRITE_OR_FAIL(encoded_cmds, this_n * sizeof(*encoded_cmds));
+        }
     }
     if (mem_total > 0) {
         WRITE_OR_FAIL(flat_mem, mem_total * sizeof(double));
