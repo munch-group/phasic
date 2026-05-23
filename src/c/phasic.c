@@ -1954,12 +1954,24 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                         char cache_path[PATH_MAX];
                         if (ptd_pcg_build_cache_path(graph, cache_path,
                                                      sizeof(cache_path)) == 0) {
-                            (void)ptd_save_parameterized_reward_compute_graph(
+                            if (ptd_save_parameterized_reward_compute_graph(
                                     cache_path,
                                     graph->parameterized_reward_compute_graph,
-                                    graph);
-                            ptd_err[0] = '\0';  /* swallow save errors */
+                                    graph) != 0) {
+                                /* Non-fatal: the elimination is recomputed
+                                 * next process. Warn (rather than swallow
+                                 * silently) so a full disk / unwritable
+                                 * cache dir is diagnosable. */
+                                PTD_LOG_WARNING(
+                                    "reward-compute cache save failed "
+                                    "(non-fatal, will recompute next run): %s",
+                                    ptd_err);
+                            }
+                            ptd_err[0] = '\0';  /* swallow into return path */
                         } else {
+                            PTD_LOG_WARNING(
+                                "reward-compute cache save skipped: "
+                                "could not build cache path");
                             ptd_err[0] = '\0';
                         }
                     }
@@ -5787,6 +5799,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_pp(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = PP;
 
     if (from != to) {
@@ -5821,6 +5834,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_p(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = P;
 
     if (from != to) {
@@ -5852,6 +5866,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_inverse(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = INV;
     cmd[index].fromT = from;
 
@@ -5874,6 +5889,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_zero(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = ZERO;
     cmd[index].fromT = from;
 
@@ -5898,6 +5914,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_p_divide(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = DIVIDE;
     cmd[index].fromT = from;
     cmd[index].toT = to;
@@ -5922,6 +5939,7 @@ static struct ptd_comp_graph_parameterized *add_command_param_one__ptd_minus(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = ONE_MINUS;
     cmd[index].fromT = from;
 
@@ -5947,6 +5965,7 @@ static struct ptd_comp_graph_parameterized *add_command_param(
         );
     }
 
+    memset(&cmd[index], 0, sizeof(cmd[index]));   /* zero unused fields -> deterministic .bin */
     cmd[index].type = NEW_ADD;
 
     cmd[index].from = from;
@@ -7290,6 +7309,38 @@ static struct ll_of_a *add_mem(struct ll_of_a *current_mem_ll, double what) {
     return n;
 }
 
+/* Deterministic elimination ordering helpers.
+ *
+ * The adjacency-list sorted-merge in the parameterized builders below
+ * historically ordered by vertex POINTER ADDRESS (`child_vertex <
+ * parent_child_vertex`), which is non-reproducible run-to-run (heap layout
+ * varies) -> the elimination trace length and FP rounding wobble between
+ * runs. We order by the re-assigned vertex ->index instead (deterministic;
+ * every vertex gets a unique index in [0, vertices_length) during the
+ * SCC-topological re-indexing). dummy__ptd_min/max are fake sentinel
+ * pointers (not real vertices), so they are special-cased to -inf/+inf. */
+static inline size_t ptd_vtx_order_key(const struct ptd_vertex *v,
+                                       const struct ptd_vertex *dmin,
+                                       const struct ptd_vertex *dmax) {
+    if (v == dmin) return (size_t) 0;
+    if (v == dmax) return SIZE_MAX;
+    return (size_t) v->index + 1;
+}
+
+/* Key for sorting a vertex's out-edges by target ->index; ties (parallel
+ * edges to the same target) are broken by original array position so the
+ * order is stable/deterministic. */
+struct ptd_edge_order_key { uint64_t to_index; uint32_t orig; };
+static int ptd_edge_order_cmp(const void *a, const void *b) {
+    const struct ptd_edge_order_key *x = (const struct ptd_edge_order_key *) a;
+    const struct ptd_edge_order_key *y = (const struct ptd_edge_order_key *) b;
+    if (x->to_index < y->to_index) return -1;
+    if (x->to_index > y->to_index) return 1;
+    if (x->orig < y->orig) return -1;
+    if (x->orig > y->orig) return 1;
+    return 0;
+}
+
 struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp_graph_parameterized(
         struct ptd_graph *graph
 ) {
@@ -7414,18 +7465,34 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
 
         struct ll_c2 *last = dummy_first;
 
-        for (size_t j = 0; j < vertex->edges_length; ++j) {
+        /* Build this vertex's child list in target-index order so it is
+         * sorted by the same key the merge below uses (was: edge-array
+         * order, merged by pointer address -> non-deterministic). */
+        struct ptd_edge_order_key *edge_order = NULL;
+        if (vertex->edges_length > 0) {
+            edge_order = (struct ptd_edge_order_key *) malloc(
+                    vertex->edges_length * sizeof(*edge_order));
+            for (size_t j = 0; j < vertex->edges_length; ++j) {
+                edge_order[j].to_index = (uint64_t) vertex->edges[j]->to->index;
+                edge_order[j].orig = (uint32_t) j;
+            }
+            qsort(edge_order, vertex->edges_length, sizeof(*edge_order),
+                  ptd_edge_order_cmp);
+        }
+
+        for (size_t jj = 0; jj < vertex->edges_length; ++jj) {
+            struct ptd_edge *e = vertex->edges[edge_order[jj].orig];
             struct ll_p2 *n = ll_p2_alloc(0);
 
-            n->next = parents[vertex->edges[j]->to->index];
+            n->next = parents[e->to->index];
             n->p = vertex;
             n->prev = NULL;
 
-            if (parents[vertex->edges[j]->to->index] != NULL) {
-                parents[vertex->edges[j]->to->index]->prev = n;
+            if (parents[e->to->index] != NULL) {
+                parents[e->to->index]->prev = n;
             }
 
-            parents[vertex->edges[j]->to->index] = n;
+            parents[e->to->index] = n;
 
             struct ll_c2 *nc = ll_c2_alloc(0);
             nc->next = NULL;
@@ -7444,18 +7511,19 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
             commands = add_command_param_pp(
                     commands,
                     current_mem_ll->current_mem_position,
-                    &(vertex->edges[j]->weight),
+                    &(e->weight),
                     rates[i],
                     command_index++
             );
 
             nc->weight = current_mem_ll->current_mem_position;
 
-            nc->c = vertex->edges[j]->to;
+            nc->c = e->to;
             nc->ll_p = n;
             n->ll_c = nc;
             last = nc;
         }
+        free(edge_order);
 
         struct ll_c2 *dummy_last = ll_c2_alloc(0);
         dummy_last->next = NULL;
@@ -7594,7 +7662,8 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
 
                     l++;
                     parent_child = parent_child->next;
-                } else if (child_vertex < parent_child_vertex) {
+                } else if (ptd_vtx_order_key(child_vertex, dummy__ptd_min, dummy__ptd_max)
+                           < ptd_vtx_order_key(parent_child_vertex, dummy__ptd_min, dummy__ptd_max)) {
                     current_mem_ll = add_mem(current_mem_ll, 0);
                     double *p = current_mem_ll->current_mem_position;
                     commands = add_command_param_zero(
@@ -7914,18 +7983,34 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
 
         struct ll_c2 *last = dummy_first;
 
-        for (size_t j = 0; j < vertex->edges_length; ++j) {
+        /* Build this vertex's child list in target-index order so it is
+         * sorted by the same key the merge below uses (was: edge-array
+         * order, merged by pointer address -> non-deterministic). */
+        struct ptd_edge_order_key *edge_order = NULL;
+        if (vertex->edges_length > 0) {
+            edge_order = (struct ptd_edge_order_key *) malloc(
+                    vertex->edges_length * sizeof(*edge_order));
+            for (size_t j = 0; j < vertex->edges_length; ++j) {
+                edge_order[j].to_index = (uint64_t) vertex->edges[j]->to->index;
+                edge_order[j].orig = (uint32_t) j;
+            }
+            qsort(edge_order, vertex->edges_length, sizeof(*edge_order),
+                  ptd_edge_order_cmp);
+        }
+
+        for (size_t jj = 0; jj < vertex->edges_length; ++jj) {
+            struct ptd_edge *e = vertex->edges[edge_order[jj].orig];
             struct ll_p2 *n = ll_p2_alloc(0);
 
-            n->next = parents[vertex->edges[j]->to->index];
+            n->next = parents[e->to->index];
             n->p = vertex;
             n->prev = NULL;
 
-            if (parents[vertex->edges[j]->to->index] != NULL) {
-                parents[vertex->edges[j]->to->index]->prev = n;
+            if (parents[e->to->index] != NULL) {
+                parents[e->to->index]->prev = n;
             }
 
-            parents[vertex->edges[j]->to->index] = n;
+            parents[e->to->index] = n;
 
             struct ll_c2 *nc = ll_c2_alloc(0);
             nc->next = NULL;
@@ -7944,18 +8029,19 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
             commands = add_command_param_pp(
                     commands,
                     current_mem_ll->current_mem_position,
-                    &(vertex->edges[j]->weight),
+                    &(e->weight),
                     rates[i],
                     command_index++
             );
 
             nc->weight = current_mem_ll->current_mem_position;
 
-            nc->c = vertex->edges[j]->to;
+            nc->c = e->to;
             nc->ll_p = n;
             n->ll_c = nc;
             last = nc;
         }
+        free(edge_order);
 
         struct ll_c2 *dummy_last = ll_c2_alloc(0);
         dummy_last->next = NULL;
@@ -8119,7 +8205,8 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
 
                     l++;
                     parent_child = parent_child->next;
-                } else if (child_vertex < parent_child_vertex) {
+                } else if (ptd_vtx_order_key(child_vertex, dummy__ptd_min, dummy__ptd_max)
+                           < ptd_vtx_order_key(parent_child_vertex, dummy__ptd_min, dummy__ptd_max)) {
                     current_mem_ll = add_mem(current_mem_ll, 0);
                     double *p = current_mem_ll->current_mem_position;
                     commands = add_command_param_zero(
