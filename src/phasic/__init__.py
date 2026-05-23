@@ -4419,6 +4419,11 @@ class Graph(_Graph):
             'state_length': state_length,
             'n_vertices': n_vertices,
             'weight_mode': self._weight_mode,
+            # Carry the elimination-ordering flag so the FFI/pybind
+            # GraphBuilder that rebuilds this graph inherits it. Without
+            # this, graph.dyn_ordering=True does NOT reach the rebuilt
+            # graph (only the PHASIC_DYN_ORDERING env var did).
+            'dyn_ordering': bool(self.dyn_ordering),
         }
 
     @classmethod
@@ -4795,6 +4800,11 @@ class Graph(_Graph):
                 graph.set_param_length(param_length)
             except Exception:
                 pass  # May fail if no parameterized edges exist, which is fine
+
+        # Restore the elimination-ordering flag (default False for
+        # backward compatibility with caches serialized before this field
+        # existed).
+        graph.dyn_ordering = bool(data.get('dyn_ordering', False))
 
         return graph
 

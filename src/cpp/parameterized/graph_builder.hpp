@@ -303,6 +303,7 @@ private:
     int state_length_;      // Dimension of state vectors
     int n_vertices_;        // Number of vertices (excluding starting vertex)
     WeightMode weight_mode_ = WeightMode::LINEAR;
+    bool dyn_ordering_ = false;   // dynamic min-degree elimination ordering
 
     // Vertex states: (n_vertices, state_length)
     std::vector<std::vector<int>> states_;

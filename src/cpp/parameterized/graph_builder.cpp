@@ -35,6 +35,12 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
             }
         }
 
+        // Elimination ordering flag (default false). Lets graph.dyn_ordering
+        // propagate to this rebuilt graph (applied to the ptd_graph in build()).
+        if (j.contains("dyn_ordering")) {
+            dyn_ordering_ = j.at("dyn_ordering").get<bool>();
+        }
+
         // Parse states
         states_.reserve(n_vertices_);
         auto states_json = j.at("states");
@@ -144,6 +150,12 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
 
     // Create graph with proper state dimension
     Graph g(state_length_);
+
+    // Inherit the elimination-ordering flag from the serialized graph so
+    // ptd_precompute_reward_compute_graph picks the dynamic min-degree
+    // variant for this rebuilt graph (matches PHASIC_DYN_ORDERING / the
+    // dyn_ordering property on the originating Graph).
+    g.c_graph()->use_dyn_ordering = dyn_ordering_;
 
     // Get starting vertex
     Vertex* start = g.starting_vertex_p();
