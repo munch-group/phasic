@@ -1891,7 +1891,9 @@ struct ptd_desc_reward_compute_parameterized_off {
     int mem_is_mmap;       /* 0 = heap (free), 1 = mmap (munmap) — set by B3 loader */
     double **inputs;       /* inputs[k] -> live &edge->weight (+byte) or external coeff */
     size_t n_inputs;
-    struct ptd_pcg_input_spec *input_specs;  /* n_inputs entries; for save/re-bind */
+    struct ptd_pcg_input_spec *input_specs;  /* n_inputs entries; for save/re-bind (heap-load only) */
+    void *mmap_base;       /* B3: mmap'd file base (mem_is_mmap=1); else NULL */
+    size_t mmap_len;       /* B3: mapping length for munmap */
 };
 static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offset(
         const struct ptd_desc_reward_compute_parameterized *raw,
@@ -3006,6 +3008,9 @@ void ptd_parameterized_reward_compute_graph_destroy(
 
 #include <fcntl.h>
 #include <errno.h>
+#ifndef _WIN32
+#include <sys/mman.h>   /* B3: zero-copy mmap load (POSIX) */
+#endif
 
 #define PTD_PCG_MAGIC "PTDPRMC1"
 #define PTD_PCG_VERSION 1u
@@ -3349,19 +3354,28 @@ static int64_t ptd_pcg_chain_offset_of(
     }
     int64_t off = 0;
     int64_t result = -1;
+    int64_t onepast = -1;   // fallback: ptr exactly one past a block's last slot
     for (size_t i = 0; i < chain_len; i++) {
         const double *base = nodes[i]->mem;
         size_t n = nodes[i]->current_mem_index;
-        // Accept ptr exactly one past the last filled slot (writers
-        // hold pointers eagerly into the head node).
-        if (ptr >= base && ptr <= base + n) {
+        // Prefer a STRICT-interior match (base <= ptr < base+n): unambiguous,
+        // and immune to the adjacency hazard below. Only if no block strictly
+        // contains ptr do we accept a one-past match (ptr == base+n) — writers
+        // hold end pointers eagerly. The old code accepted one-past inline,
+        // which let a pointer at the start of an adjacent (later) block falsely
+        // match the previous block's one-past slot — a wrong-but-in-bounds
+        // offset, intermittent with malloc layout. (See zero-copy-cache-plan.md.)
+        if (ptr >= base && ptr < base + n) {
             result = off + (int64_t)(ptr - base);
             break;
+        }
+        if (ptr == base + n && onepast < 0) {
+            onepast = off + (int64_t)(ptr - base);
         }
         off += (int64_t)n;
     }
     free(nodes);
-    return result;
+    return (result >= 0) ? result : onepast;
 }
 
 /* B1: convert a freshly-built raw-pointer parameterized PRC to the offset form.
@@ -3552,10 +3566,10 @@ static int ptd_save_pcg_rev3(const char *path,
     return 0;
 }
 
-/* Load a rev-3 file into the offset descriptor (B2: read+copy). Binds inputs[]
- * against the supplied graph; an out-of-range (v,e) means the file is stale for
- * this graph -> return NULL (cache miss, caller rebuilds). */
-static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
+/* Load a rev-3 file into the offset descriptor by READ+COPY (the mmap-free
+ * fallback). Binds inputs[] against the supplied graph; an out-of-range (v,e)
+ * means the file is stale for this graph -> return NULL (cache miss). */
+static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_copy(
         const char *path, const struct ptd_graph *graph) {
     FILE *fp = fopen(path, "rb");
     if (fp == NULL) return NULL;
@@ -3616,10 +3630,90 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
         return NULL;
     }
     if (getenv("PHASIC_PCG_LOADLOG") != NULL) {
-        PTD_LOG_WARNING("rev3 LOAD hit: n_cmds=%zu n_inputs=%zu",
+        PTD_LOG_WARNING("rev3 LOAD(copy) hit: n_cmds=%zu n_inputs=%zu",
                         off->length, off->n_inputs);
     }
     return off;
+}
+
+#ifndef _WIN32
+/* B3: zero-copy load — mmap the rev-3 file (MAP_PRIVATE so the mem section is
+ * copy-on-write writable for the executor's *fromT stores; the file is never
+ * modified). commands/mem/input-specs are pointed directly into the mapping
+ * (no fread, no per-command fixup); only inputs[] is bound (heap, O(n_inputs)).
+ * Returns NULL on any failure -> dispatcher falls back to the copy loader. */
+static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_mmap(
+        const char *path, const struct ptd_graph *graph) {
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) return NULL;
+    struct stat st;
+    if (fstat(fd, &st) != 0
+            || (size_t)st.st_size < sizeof(struct ptd_pcg3_header)) {
+        close(fd); return NULL;
+    }
+    size_t fsize = (size_t)st.st_size;
+    void *base = mmap(NULL, fsize, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (base == MAP_FAILED) return NULL;
+    const struct ptd_pcg3_header *h = (const struct ptd_pcg3_header *)base;
+    if (memcmp(h->magic, PTD_PCG3_MAGIC, 8) != 0) { munmap(base, fsize); return NULL; }
+    size_t n_cmds = (size_t)h->n_commands;
+    size_t mem_d = (size_t)h->mem_doubles;
+    size_t n_in = (size_t)h->n_inputs;
+    /* Section offsets (sizes are 8-byte multiples; mmap base is page-aligned, so
+     * the casts below are naturally aligned). Verify the file holds them all. */
+    size_t off_cmds = sizeof(struct ptd_pcg3_header);
+    size_t off_mem = off_cmds + n_cmds * sizeof(struct ptd_pcg_command_off);
+    size_t off_specs = off_mem + mem_d * sizeof(double);
+    size_t need = off_specs + n_in * sizeof(struct ptd_pcg3_dinput);
+    if (need > fsize) { munmap(base, fsize); return NULL; }
+    struct ptd_desc_reward_compute_parameterized_off *o =
+        (struct ptd_desc_reward_compute_parameterized_off *)calloc(1, sizeof(*o));
+    if (o == NULL) { munmap(base, fsize); return NULL; }
+    o->mem_is_mmap = 1;
+    o->mmap_base = base;
+    o->mmap_len = fsize;
+    o->length = n_cmds;
+    o->commands = (struct ptd_pcg_command_off *)((char *)base + off_cmds);
+    o->mem_doubles = mem_d;
+    o->mem_base = (double *)((char *)base + off_mem);
+    o->n_inputs = n_in;
+    o->input_specs = NULL;   /* a loaded descriptor is never re-saved */
+    if (n_in > 0) {
+        o->inputs = (double **)malloc(n_in * sizeof(double *));
+        if (o->inputs == NULL) { ptd_pcg_desc_off_destroy(o); return NULL; }
+        const struct ptd_pcg3_dinput *di =
+            (const struct ptd_pcg3_dinput *)((char *)base + off_specs);
+        for (size_t i = 0; i < n_in; i++) {
+            if (di[i].kind != PTD_PCG_PTR_EDGE) { ptd_pcg_desc_off_destroy(o); return NULL; }
+            if (di[i].v >= graph->vertices_length) { ptd_pcg_desc_off_destroy(o); return NULL; }
+            struct ptd_vertex *vx = graph->vertices[di[i].v];
+            if (di[i].e >= vx->edges_length) { ptd_pcg_desc_off_destroy(o); return NULL; }
+            char *eb = (char *)&vx->edges[di[i].e]->weight;
+            o->inputs[i] = (double *)(eb + di[i].byte);
+        }
+    }
+    if (getenv("PHASIC_PCG_LOADLOG") != NULL) {
+        PTD_LOG_WARNING("rev3 LOAD(mmap) hit: n_cmds=%zu n_inputs=%zu", n_cmds, n_in);
+    }
+    return o;
+}
+#endif
+
+/* B3 dispatcher: try the zero-copy mmap load; on any failure fall back to the
+ * read+copy loader (identical descriptor, identical results). Fallback is
+ * explicit (env PHASIC_PCG_DISABLE_MMAP forces it; Windows always uses copy). */
+static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
+        const char *path, const struct ptd_graph *graph) {
+#ifndef _WIN32
+    if (getenv("PHASIC_PCG_DISABLE_MMAP") == NULL) {
+        struct ptd_desc_reward_compute_parameterized_off *o =
+            ptd_load_pcg_rev3_mmap(path, graph);
+        if (o != NULL) return o;
+        ptd_err[0] = '\0';   /* mmap miss/failure -> fall back, not an error */
+    }
+#endif
+    return ptd_load_pcg_rev3_copy(path, graph);
 }
 
 // Return non-zero if the reward-compute disk cache is disabled.
@@ -8828,9 +8922,15 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
 static void ptd_pcg_desc_off_destroy(
         struct ptd_desc_reward_compute_parameterized_off *off) {
     if (off == NULL) return;
-    if (off->commands && !off->mem_is_mmap) free(off->commands);
-    if (off->mem_base && !off->mem_is_mmap) free(off->mem_base);
-    if (off->input_specs && !off->mem_is_mmap) free(off->input_specs);
+    if (off->mem_is_mmap) {
+#ifndef _WIN32
+        if (off->mmap_base) munmap(off->mmap_base, off->mmap_len);
+#endif
+    } else {
+        if (off->commands) free(off->commands);
+        if (off->mem_base) free(off->mem_base);
+        if (off->input_specs) free(off->input_specs);
+    }
     if (off->inputs) free(off->inputs);   /* inputs[] is always heap (bound at load) */
     free(off);
 }
