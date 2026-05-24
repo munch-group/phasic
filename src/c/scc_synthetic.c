@@ -1163,16 +1163,21 @@ ptd_synth_get_or_compute_prc(struct ptd_graph *synth)
         }
     }
 
-    /* Try to load. */
+    /* Try to load (rev-3 zero-copy offset format). On a HIT, install the offset
+     * PRC on the synth's _off field — the executor fork in precompute runs it,
+     * and inputs[] are bound to this synth's live edges (which the composer then
+     * rebinds via ptd_edge_update_weight). Return NULL; callers detect the hit
+     * via synth->parameterized_reward_compute_graph_off, distinguishing it from
+     * an error (NULL + ptd_err set). */
     if (have_path) {
-        struct ptd_desc_reward_compute_parameterized *loaded =
-                ptd_load_parameterized_reward_compute_graph(
-                        cache_path, synth);
+        struct ptd_desc_reward_compute_parameterized_off *loaded =
+                ptd_load_pcg_rev3(cache_path, synth);
         ptd_err[0] = '\0';  /* swallow load-miss error message */
 
         if (loaded != NULL) {
+            synth->parameterized_reward_compute_graph_off = loaded;
             ptd_scc_compose_stats_record_hit();  /* WP-8 */
-            return loaded;
+            return NULL;
         }
         ptd_scc_compose_stats_record_miss();  /* WP-8 */
     }
@@ -1188,10 +1193,9 @@ ptd_synth_get_or_compute_prc(struct ptd_graph *synth)
         return NULL;
     }
 
-    /* Best-effort save. */
+    /* Best-effort save (rev-3 zero-copy offset format). */
     if (have_path) {
-        (void)ptd_save_parameterized_reward_compute_graph(
-                cache_path, prc, synth);
+        (void)ptd_save_pcg_rev3(cache_path, prc, synth);
         ptd_err[0] = '\0';
     }
     return prc;
@@ -1220,10 +1224,13 @@ ptd_scc_get_or_compute_prc(
         return NULL;
     }
 
-    /* Delegate cache-or-compute to the synth-only helper. */
+    /* Delegate cache-or-compute to the synth-only helper. A rev-3 cache HIT
+     * returns NULL but installs synth->parameterized_reward_compute_graph_off;
+     * that is success, not failure. A real failure is NULL with no _off. */
     struct ptd_desc_reward_compute_parameterized *prc =
             ptd_synth_get_or_compute_prc(synth);
-    if (prc == NULL) {
+    if (prc == NULL
+            && synth->parameterized_reward_compute_graph_off == NULL) {
         ptd_graph_destroy(synth);
         ptd_scc_synthetic_metadata_destroy(*metadata_out);
         *metadata_out = NULL;

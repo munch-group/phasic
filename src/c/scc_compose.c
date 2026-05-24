@@ -163,7 +163,11 @@ static int ptd_compose_scc_one(
     struct ptd_scc_synthetic_metadata *meta = NULL;
     struct ptd_desc_reward_compute_parameterized *prc =
             ptd_scc_get_or_compute_prc(scc_graph, i, &synth, &meta);
-    if (prc == NULL || synth == NULL || meta == NULL) {
+    /* prc==NULL with synth->_off set is a rev-3 cache HIT (offset form), not a
+     * failure. A real failure is NULL synth/meta, or prc==NULL with no _off. */
+    if (synth == NULL || meta == NULL
+            || (prc == NULL
+                && synth->parameterized_reward_compute_graph_off == NULL)) {
         snprintf(err_msg, err_msg_size,
                  "ptd_compose_scc_one: per-SCC compute failed for SCC %zu", i);
         rc = -1;
@@ -227,12 +231,16 @@ static int ptd_compose_scc_one(
         free(synth->reward_compute_graph);
         synth->reward_compute_graph = NULL;
     }
-    if (synth->parameterized_reward_compute_graph != NULL) {
-        ptd_parameterized_reward_compute_graph_destroy(
-                synth->parameterized_reward_compute_graph);
+    if (prc != NULL) {
+        if (synth->parameterized_reward_compute_graph != NULL) {
+            ptd_parameterized_reward_compute_graph_destroy(
+                    synth->parameterized_reward_compute_graph);
+        }
+        synth->parameterized_reward_compute_graph = prc;
+        prc = NULL;  /* transferred to synth */
     }
-    synth->parameterized_reward_compute_graph = prc;
-    prc = NULL;  /* transferred to synth */
+    /* On a rev-3 cache hit, synth->parameterized_reward_compute_graph_off is
+     * already installed; the executor fork in precompute uses it. */
 
     double *synth_result = ptd_expected_waiting_time(synth, NULL);
     if (synth_result == NULL) {

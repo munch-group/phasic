@@ -563,6 +563,20 @@ ptd_load_parameterized_reward_compute_graph(
         const char *path,
         const struct ptd_graph *graph);
 
+/* rev-3 zero-copy cache (see zero-copy-cache-plan.md). ptd_save_pcg_rev3 converts
+ * the raw PRC to the offset form and writes the rev-3 layout (magic PTDPRMC3).
+ * ptd_load_pcg_rev3 mmaps it (or falls back to read+copy) and returns the offset
+ * descriptor, with inputs[] bound against `graph`'s live edge weights; NULL on a
+ * miss/stale file. Defined in phasic.c; declared here so the per-SCC cache in
+ * scc_synthetic.c uses the same format. ptd_desc_reward_compute_parameterized_off
+ * is opaque to callers (only handled by pointer). */
+int ptd_save_pcg_rev3(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *raw,
+        const struct ptd_graph *graph);
+struct ptd_desc_reward_compute_parameterized_off *
+ptd_load_pcg_rev3(const char *path, const struct ptd_graph *graph);
+
 /**
  * v2 save: write a parameterised reward compute graph with
  * EXTERNAL pointer support.

@@ -1904,12 +1904,8 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
         const struct ptd_desc_reward_compute_parameterized_off *off);
 static void ptd_pcg_desc_off_destroy(
         struct ptd_desc_reward_compute_parameterized_off *off);
-/* rev-3 zero-copy cache I/O (B2: read+copy load; B3: mmap). */
-static int ptd_save_pcg_rev3(const char *path,
-        const struct ptd_desc_reward_compute_parameterized *raw,
-        const struct ptd_graph *graph);
-static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
-        const char *path, const struct ptd_graph *graph);
+/* ptd_save_pcg_rev3 / ptd_load_pcg_rev3 are declared in phasic.h (non-static)
+ * so scc_synthetic.c shares the rev-3 format. */
 
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     /* Take the per-graph mutex unconditionally. A double-checked-lock
@@ -3508,7 +3504,7 @@ struct ptd_pcg3_dinput {     /* fixed on-disk form of ptd_pcg_input_spec */
     uint8_t  pad[7];
 };
 
-static int ptd_save_pcg_rev3(const char *path,
+int ptd_save_pcg_rev3(const char *path,
         const struct ptd_desc_reward_compute_parameterized *raw,
         const struct ptd_graph *graph) {
     struct ptd_desc_reward_compute_parameterized_off *off =
@@ -3703,7 +3699,7 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_mmap(
 /* B3 dispatcher: try the zero-copy mmap load; on any failure fall back to the
  * read+copy loader (identical descriptor, identical results). Fallback is
  * explicit (env PHASIC_PCG_DISABLE_MMAP forces it; Windows always uses copy). */
-static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
+struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
         const char *path, const struct ptd_graph *graph) {
 #ifndef _WIN32
     if (getenv("PHASIC_PCG_DISABLE_MMAP") == NULL) {

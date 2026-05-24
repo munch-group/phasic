@@ -3407,7 +3407,13 @@ str
                    ptd_scc_get_or_compute_prc(
                        self.parent_scc_graph()->c_ptr(),
                        self.index(), &synth_c, &meta);
-               if (prc == NULL) {
+               // A rev-3 cache HIT returns NULL but installs ->_off on synth_c
+               // (offset form); that is success. A real failure is a NULL
+               // synth/meta, or prc==NULL with no _off installed.
+               if (synth_c == NULL || meta == NULL
+                   || (prc == NULL
+                       && synth_c->parameterized_reward_compute_graph_off
+                          == NULL)) {
                    std::string err((const char *)ptd_err);
                    ptd_err[0] = '\0';
                    if (synth_c) ptd_graph_destroy(synth_c);
@@ -3427,11 +3433,14 @@ str
                phasic::Graph synth_cpp(synth_c);
                auto meta_holder = std::make_unique<SccSyntheticMetadataPy>();
                meta_holder->meta = meta;
-               // Destroy the PRC. The persistent state we care
-               // about is (a) the cache file written to disk
-               // (observable via stat), (b) the synthetic graph
-               // (returned), (c) the metadata (returned).
-               ptd_parameterized_reward_compute_graph_destroy(prc);
+               // Destroy the raw PRC if one was computed (miss). The persistent
+               // state we care about is (a) the cache file on disk, (b) the
+               // synth (returned), (c) the metadata (returned). On a rev-3 hit
+               // prc is NULL and the offset form is owned by synth_c (freed when
+               // synth_cpp is destroyed).
+               if (prc != NULL) {
+                   ptd_parameterized_reward_compute_graph_destroy(prc);
+               }
                return py::make_tuple(std::move(synth_cpp),
                                      std::move(meta_holder),
                                      n_anchors);
@@ -3579,16 +3588,24 @@ str
             ptd_err[0] = '\0';
             struct ptd_desc_reward_compute_parameterized *prc =
                     ptd_synth_get_or_compute_prc(synth.c_graph());
-            if (prc == NULL) {
+            // A rev-3 cache HIT returns NULL but installs ->_off on the synth;
+            // that is success (cache populated/loaded). Only NULL with no _off
+            // installed is a real failure.
+            if (prc == NULL
+                    && synth.c_graph()->parameterized_reward_compute_graph_off
+                       == NULL) {
                 std::string err((const char *)ptd_err);
                 ptd_err[0] = '\0';
                 throw std::runtime_error(
                         std::string("synth_get_or_compute_prc failed: ") + err);
             }
-            // We don't return the PRC to Python — workers don't
-            // need it; the side effect (cache file written) is
-            // the contract. Free it here.
-            ptd_parameterized_reward_compute_graph_destroy(prc);
+            // Workers don't consume the PRC — the side effect (cache file
+            // written or already present) is the contract. Free the raw PRC if
+            // one was computed; an _off form loaded on a hit is owned by the
+            // synth and freed when it is destroyed.
+            if (prc != NULL) {
+                ptd_parameterized_reward_compute_graph_destroy(prc);
+            }
             return py::none();
         },
         py::arg("synth"),
