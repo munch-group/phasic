@@ -1856,6 +1856,48 @@ static int ptd_pcg_cache_disabled(void);
 static int ptd_pcg_build_cache_path(
         const struct ptd_graph *graph, char *buf, size_t buf_len);
 
+/* --- B1 (zero-copy plan): offset/index form of the parameterized PRC.
+ * Dual-form: the raw-pointer build+executor stay untouched (default path);
+ * this offset form + executor run only on loaded PRCs (and an env-gated
+ * self-check). Structs use fixed-width + natural alignment so B3 can cast
+ * them directly from an mmap. EDGE and EXTERNAL operands both collapse to a
+ * single `inputs[]` indirection bound once. See zero-copy-cache-plan.md. */
+enum ptd_pcg_op_kind { PTD_PCG_OP_NULL = 0, PTD_PCG_OP_MEM = 1, PTD_PCG_OP_INPUT = 2 };
+struct ptd_pcg_operand {
+    int64_t  mem_offset;   /* PTD_PCG_OP_MEM: doubles offset into mem_base */
+    uint32_t input_idx;    /* PTD_PCG_OP_INPUT: index into inputs[] */
+    uint8_t  kind;         /* enum ptd_pcg_op_kind */
+    uint8_t  pad[3];
+};
+struct ptd_pcg_command_off {
+    int32_t  type;
+    uint32_t pad;
+    uint64_t from;
+    uint64_t to;
+    double   multiplier;
+    struct ptd_pcg_operand fromT;        /* always MEM (write target) */
+    struct ptd_pcg_operand toT;
+    struct ptd_pcg_operand multiplierptr;
+};
+struct ptd_desc_reward_compute_parameterized_off {
+    size_t length;
+    struct ptd_pcg_command_off *commands;
+    double *mem_base;      /* flat scratch+const doubles (writable; COW under mmap) */
+    size_t mem_doubles;
+    int mem_is_mmap;       /* 0 = heap (free), 1 = mmap (munmap) — set by B3 loader */
+    double **inputs;       /* inputs[k] -> live &edge->weight (+byte) or external coeff */
+    size_t n_inputs;
+};
+static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offset(
+        const struct ptd_desc_reward_compute_parameterized *raw,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors, size_t n_external);
+static struct ptd_desc_reward_compute *
+ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
+        const struct ptd_desc_reward_compute_parameterized_off *off);
+static void ptd_pcg_desc_off_destroy(
+        struct ptd_desc_reward_compute_parameterized_off *off);
+
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     /* Take the per-graph mutex unconditionally. A double-checked-lock
      * fast path on graph->reward_compute_graph would need acquire/release
@@ -1987,6 +2029,49 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                     ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
                             graph->parameterized_reward_compute_graph
                     );
+            /* B1 self-check (env-gated): convert to the offset form, run the
+             * offset executor, and confirm it is bit-identical to the raw one;
+             * also time the convert (the canonical-vs-dual cost question). */
+            if (getenv("PHASIC_PCG_SELFCHECK") != NULL) {
+                struct timespec _c0, _c1;
+                clock_gettime(CLOCK_MONOTONIC, &_c0);
+                struct ptd_desc_reward_compute_parameterized_off *_off =
+                    ptd_pcg_convert_to_offset(
+                        graph->parameterized_reward_compute_graph, graph, NULL, 0);
+                clock_gettime(CLOCK_MONOTONIC, &_c1);
+                double _cs = (_c1.tv_sec - _c0.tv_sec)
+                             + (_c1.tv_nsec - _c0.tv_nsec) / 1e9;
+                size_t _n = graph->parameterized_reward_compute_graph->length;
+                if (_off == NULL) {
+                    PTD_LOG_ERROR("PCG_SELFCHECK: convert_to_offset returned NULL "
+                                  "(n_cmds=%zu)", _n);
+                } else {
+                    struct ptd_desc_reward_compute *_ro = graph->reward_compute_graph;
+                    struct ptd_desc_reward_compute *_oo =
+                        ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(_off);
+                    int _id = (_ro != NULL && _oo != NULL
+                               && _ro->length == _oo->length);
+                    if (_id) {
+                        for (size_t _i = 0; _i < _ro->length; _i++) {
+                            if (_ro->commands[_i].from != _oo->commands[_i].from
+                                || _ro->commands[_i].to != _oo->commands[_i].to
+                                || _ro->commands[_i].multiplier
+                                       != _oo->commands[_i].multiplier) {
+                                _id = 0; break;
+                            }
+                        }
+                    }
+                    PTD_LOG_WARNING("PCG_SELFCHECK n_cmds=%zu n_inputs=%zu "
+                                    "convert_s=%.4f offset_vs_raw=%s",
+                                    _n, _off->n_inputs, _cs,
+                                    _id ? "IDENTICAL" : "DIFFERS");
+                    if (_oo != NULL) {
+                        if (_oo->commands) free(_oo->commands);
+                        free(_oo);
+                    }
+                    ptd_pcg_desc_off_destroy(_off);
+                }
+            }
         } else {
             if (graph->use_dyn_ordering) {
                 graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph_dyn(graph);
@@ -3250,6 +3335,100 @@ static int64_t ptd_pcg_chain_offset_of(
     }
     free(nodes);
     return result;
+}
+
+/* B1: convert a freshly-built raw-pointer parameterized PRC to the offset form.
+ * Reuses ptd_pcg_flatten_mem / ptd_pcg_build_anchors / ptd_pcg_encode_ptr_impl
+ * (the same classifier the save path uses). MEM operands -> doubles offset into
+ * the flattened mem; EDGE/EXTERNAL operands -> a deduped inputs[] index bound to
+ * the live address. Returns NULL on OOM or an unencodable pointer (no silent
+ * fallback). */
+static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offset(
+        const struct ptd_desc_reward_compute_parameterized *raw,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors, size_t n_external)
+{
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        (struct ptd_desc_reward_compute_parameterized_off *)calloc(1, sizeof(*off));
+    if (off == NULL) return NULL;
+    off->length = raw->length;
+    off->mem_base = ptd_pcg_flatten_mem((const struct ll_of_a *)raw->mem,
+                                        &off->mem_doubles);
+    size_t n_anchors = 0;
+    struct ptd_pcg_edge_anchor *anchors = ptd_pcg_build_anchors(graph, &n_anchors);
+    off->commands = (struct ptd_pcg_command_off *)calloc(
+            raw->length ? raw->length : 1, sizeof(*off->commands));
+    if (off->commands == NULL) { free(anchors); ptd_pcg_desc_off_destroy(off); return NULL; }
+    /* Dedup table of distinct EDGE/EXTERNAL references -> input_idx. */
+    struct ptd_pcg_input_spec { uint8_t kind; uint32_t v; uint32_t e; int64_t byte; };
+    struct ptd_pcg_input_spec *spec = NULL;
+    size_t n_spec = 0, cap_spec = 0;
+    int ok = 1;
+    for (size_t i = 0; i < raw->length && ok; i++) {
+        const struct ptd_comp_graph_parameterized *c = &raw->commands[i];
+        off->commands[i].type = (int32_t)c->type;
+        off->commands[i].from = (uint64_t)c->from;
+        off->commands[i].to = (uint64_t)c->to;
+        off->commands[i].multiplier = c->multiplier;
+        const double *ptrs[3] = { c->fromT, c->toT, c->multiplierptr };
+        struct ptd_pcg_operand *outs[3] = {
+            &off->commands[i].fromT, &off->commands[i].toT, &off->commands[i].multiplierptr };
+        for (int k = 0; k < 3 && ok; k++) {
+            outs[k]->kind = PTD_PCG_OP_NULL;
+            if (ptrs[k] == NULL) continue;
+            struct ptd_pcg_disk_ptr dp;
+            ptd_pcg_encode_ptr_impl(ptrs[k], (const struct ll_of_a *)raw->mem,
+                                    anchors, n_anchors, external_anchors, n_external, &dp);
+            if (dp.kind == PTD_PCG_PTR_MEM) {
+                outs[k]->kind = PTD_PCG_OP_MEM;
+                outs[k]->mem_offset = dp.doubles_offset;
+            } else if (dp.kind == PTD_PCG_PTR_EDGE || dp.kind == PTD_PCG_PTR_EXTERNAL) {
+                uint8_t kk = dp.kind;
+                uint32_t vv = dp.vertex_idx, ee = dp.edge_idx;
+                int64_t bb = (dp.kind == PTD_PCG_PTR_EDGE)
+                             ? dp.byte_offset_from_edge_weight : 0;
+                size_t found = (size_t)-1;
+                for (size_t s = 0; s < n_spec; s++)
+                    if (spec[s].kind == kk && spec[s].v == vv
+                            && spec[s].e == ee && spec[s].byte == bb) { found = s; break; }
+                if (found == (size_t)-1) {
+                    if (n_spec == cap_spec) {
+                        size_t nc = cap_spec ? cap_spec * 2 : 16;
+                        struct ptd_pcg_input_spec *np =
+                            (struct ptd_pcg_input_spec *)realloc(spec, nc * sizeof(*spec));
+                        if (np == NULL) { ok = 0; break; }
+                        spec = np; cap_spec = nc;
+                    }
+                    spec[n_spec].kind = kk; spec[n_spec].v = vv;
+                    spec[n_spec].e = ee; spec[n_spec].byte = bb;
+                    found = n_spec++;
+                }
+                outs[k]->kind = PTD_PCG_OP_INPUT;
+                outs[k]->input_idx = (uint32_t)found;
+            } else {
+                /* encoder returned NULL kind = unencodable pointer: fail. */
+                ok = 0;
+            }
+        }
+    }
+    free(anchors);
+    if (!ok) { free(spec); ptd_pcg_desc_off_destroy(off); return NULL; }
+    off->n_inputs = n_spec;
+    if (n_spec > 0) {
+        off->inputs = (double **)malloc(n_spec * sizeof(double *));
+        if (off->inputs == NULL) { free(spec); ptd_pcg_desc_off_destroy(off); return NULL; }
+        for (size_t s = 0; s < n_spec; s++) {
+            if (spec[s].kind == PTD_PCG_PTR_EDGE) {
+                struct ptd_vertex *v = graph->vertices[spec[s].v];
+                char *base = (char *)&v->edges[spec[s].e]->weight;
+                off->inputs[s] = (double *)(base + spec[s].byte);
+            } else { /* EXTERNAL: the raw ptr == external_anchors[v] (live coeff) */
+                off->inputs[s] = (double *)external_anchors[spec[s].v];
+            }
+        }
+    }
+    free(spec);
+    return off;
 }
 
 // Return non-zero if the reward-compute disk cache is disabled.
@@ -8402,6 +8581,59 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
     res->memr = rates;
 
     return res;
+}
+
+/* B1: offset-form executor — byte-identical arithmetic to the raw
+ * parameterized executor below, resolving operands via mem_base+offset /
+ * inputs[idx]. fromT is always MEM (a writable scratch slot); toT/multiplierptr
+ * are MEM or INPUT (read). */
+static inline double *ptd_pcg_resolve(
+        const struct ptd_desc_reward_compute_parameterized_off *off,
+        const struct ptd_pcg_operand *op) {
+    switch (op->kind) {
+        case PTD_PCG_OP_MEM:   return off->mem_base + op->mem_offset;
+        case PTD_PCG_OP_INPUT: return off->inputs[op->input_idx];
+        default:               return NULL;
+    }
+}
+static struct ptd_desc_reward_compute *
+ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
+        const struct ptd_desc_reward_compute_parameterized_off *off) {
+    struct ptd_reward_increase *commands = NULL;
+    size_t command_index = 0;
+    enum command_types { PP = 3, P = 1, INV = 2, ZERO = 6, DIVIDE = 5, ONE_MINUS = 4, NEW_ADD = 0 };
+    for (size_t i = 0; i < off->length; ++i) {
+        const struct ptd_pcg_command_off *c = &off->commands[i];
+        double *fromT = ptd_pcg_resolve(off, &c->fromT);
+        double *toT = ptd_pcg_resolve(off, &c->toT);
+        double *mptr = ptd_pcg_resolve(off, &c->multiplierptr);
+        switch (c->type) {
+            case NEW_ADD:
+                commands = add_command(commands, (size_t)c->from, (size_t)c->to,
+                                       *mptr, command_index++);
+                break;
+            case P:         *fromT = *fromT + *toT * c->multiplier; break;
+            case PP:        *fromT = *fromT + *toT * *mptr; break;
+            case INV:       *fromT = 1 / *fromT; break;
+            case ONE_MINUS: *fromT = 1 - *fromT; break;
+            case DIVIDE:    *fromT /= *toT; break;
+            case ZERO:      *fromT = 0; break;
+            default: DIE_ERROR(1, "Unknown command\n");
+        }
+    }
+    struct ptd_desc_reward_compute *res =
+        (struct ptd_desc_reward_compute *)malloc(sizeof(*res));
+    res->length = command_index;
+    res->commands = commands;
+    return res;
+}
+static void ptd_pcg_desc_off_destroy(
+        struct ptd_desc_reward_compute_parameterized_off *off) {
+    if (off == NULL) return;
+    if (off->commands) free(off->commands);
+    if (off->mem_base && !off->mem_is_mmap) free(off->mem_base);
+    if (off->inputs) free(off->inputs);
+    free(off);
 }
 
 struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
