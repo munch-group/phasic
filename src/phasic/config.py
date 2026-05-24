@@ -118,6 +118,9 @@ def _check_mpfr_available() -> bool:
 # Global configuration instance.
 _global_config: "PhasicConfig | None" = None
 
+# One-shot guard for the reward_compute_cache advisory (see validate()).
+_reward_compute_cache_advised: bool = False
+
 
 class _ConfigureContext:
     """Return value of ``configure(...)`` that can also be used as
@@ -528,9 +531,14 @@ class PhasicConfig:
         ``scc_<hash>.bin`` written by the hierarchical composer.
         Backs PHASIC_REWARD_COMPUTE_CACHE (positive: ``'1'``
         enables, absent = default = off).
-        Default off because the symbolic elimination it caches is
-        cheap to redo on small graphs, and the cache can grow
-        unboundedly across model variants.
+        Default off, and recommended off: since the 2026-05
+        elimination determinism fix, recomputing the elimination is
+        typically faster than loading this cache for any model large
+        enough to matter (it only affects the first call per process —
+        the in-memory Stage-A1 graph amortises later theta updates,
+        the SVGD inner loop), and the cache can grow unboundedly
+        across model variants. See ``scratch/svgd_path_bench.py``.
+        Enabling it emits a one-time advisory.
 
     graph_cache : bool, default True
         Use the on-disk graph cache at ``cache_dir/graphs/`` for
@@ -840,6 +848,29 @@ class PhasicConfig:
             os.environ.pop('PHASIC_CONDITION_THRESHOLD', None)
 
         self._validated = True
+
+        # Advisory: the Stage-A2 reward_compute_cache rarely pays since the
+        # elimination determinism fix made recompute cheaper than disk I/O.
+        # Benchmarks (scratch/svgd_path_bench.py) on the SVGD paths
+        # (pmf_and_moments and joint-prob expected_sojourn_time) show
+        # rebuilding the trace beats loading it at every size measured
+        # (incl. nr=8: build 2.9 s vs load 7.2 s); the cache only affects the
+        # first call (no per-theta inner-loop benefit); and enabling it makes
+        # the cold build much slower (it must produce the cacheable artifact).
+        # One-time, WARNING level, suppressible via the 'phasic' logger.
+        global _reward_compute_cache_advised
+        if self.reward_compute_cache and not _reward_compute_cache_advised:
+            _reward_compute_cache_advised = True
+            import logging
+            logging.getLogger("phasic").warning(
+                "reward_compute_cache=True: this Stage-A2 disk cache is usually "
+                "COUNTERPRODUCTIVE since the elimination determinism fix — "
+                "recomputing the parameterized elimination is typically faster "
+                "than loading the cached trace, and enabling it also slows the "
+                "first build. It is off by default; leave it off unless you have "
+                "measured a win for your model. (Silence: raise the 'phasic' "
+                "logger level.)"
+            )
 
         if self.verbose:
             print(f"PhasicConfig: {self.effective()}")

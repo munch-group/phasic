@@ -776,13 +776,23 @@ hits the same key regardless of theta history. Re-running SVGD
 with new theta values does not produce new cache entries.
 
 **Stage A2 specifically** persists the symbolic elimination across
-processes, so a fresh process (notebook restart, SLURM worker, CLI
-run) skips the O(n³) Gaussian elimination after the first run. On
-a 500-vertex coalescent the cache hit cuts elimination cost from
-~6 ms to ~1 ms (5× speedup); for smaller models the disk I/O can
-dominate the elimination so the speedup is modest or negative.
-Stage A1's in-memory persistent graph still amortises within a
-single process, so the disk cache only matters at process start.
+processes so a fresh process (notebook restart, SLURM worker, CLI
+run) *could* skip the O(n³) Gaussian elimination. **As of the
+2026-05 elimination determinism fix this cache is usually a net loss
+and should stay off (the default).** Benchmarking the real SVGD paths
+(`scratch/svgd_path_bench.py` — `pmf_and_moments_from_graph` and the
+joint-prob `expected_sojourn_time`) shows that for any model big
+enough to matter, *recomputing* the elimination beats *loading* the
+cache: e.g. two-locus ARG nr=8 (8407 vertices) rebuilds in 2.9 s vs a
+7.2 s cache load, and enabling the cache makes the *first* build ~33×
+slower (96 s — it must build the symbolic artifact and write ~7 GB).
+The cache also only ever affects the **first** call in a process: the
+in-memory Stage-A1 persistent graph already amortises the elimination
+across all later θ updates (the SVGD inner loop), so there is no
+per-θ benefit. Leave `reward_compute_cache` off unless you have
+measured a win for your specific model. *(The earlier "~6 ms → ~1 ms,
+5× speedup" figure predates the determinism fix, which cut recompute
+~85% and shrank the trace, inverting the economics.)*
 
 **Behaviour & opt-out**:
 - Both caches honour `PHASIC_DISABLE_CACHE=1` to skip reads and writes.
