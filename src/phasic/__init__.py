@@ -365,6 +365,8 @@ from . import model_selection
 # On-disk cache management (~/.phasic_cache/) — symbolic compute
 # graph cache (Stage A2) and Python trace cache.
 from . import cache
+# Graph profiler — recommends parallel_elimination / dyn_ordering / eval path.
+from .profile import profile_graph, GraphProfile
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 # from .cloud_cache import (
 #     S3Backend,
@@ -9202,6 +9204,18 @@ extern "C" {{
 
         return dot
 
+
+    def profile(self, theta: Any = None, probe_dyn: bool | str = "auto") -> Any:
+        """Profile this graph and recommend ``parallel_elimination``,
+        ``dyn_ordering``, and the evaluation path (forward-PDF vs joint/sojourn).
+
+        Thin wrapper around :func:`phasic.profile_graph`; see that function for
+        details. Returns a :class:`~phasic.profile.GraphProfile`.
+
+        >>> print(graph.profile())
+        """
+        from .profile import profile_graph
+        return profile_graph(self, theta=theta, probe_dyn=probe_dyn)
 
     def plot_scc_decomp(self,
                                 figsize: tuple[float, float] | None = None,
