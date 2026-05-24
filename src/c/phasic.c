@@ -2025,22 +2025,28 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                 free(graph->reward_compute_graph);
             }
 
+            /* B1 self-check (env-gated): convert the PRISTINE PRC to the offset
+             * form BEFORE the raw executor mutates the mem chain (the raw
+             * executor writes *fromT into compute->mem; flatten must capture the
+             * mem state the executor STARTS from, not the post-execution state.
+             * This is the same point at which the rev-2 save runs, line ~1999). */
+            struct ptd_desc_reward_compute_parameterized_off *_off = NULL;
+            double _cs = 0.0;
+            int _sc = (getenv("PHASIC_PCG_SELFCHECK") != NULL);
+            if (_sc) {
+                struct timespec _c0, _c1;
+                clock_gettime(CLOCK_MONOTONIC, &_c0);
+                _off = ptd_pcg_convert_to_offset(
+                        graph->parameterized_reward_compute_graph, graph, NULL, 0);
+                clock_gettime(CLOCK_MONOTONIC, &_c1);
+                _cs = (_c1.tv_sec - _c0.tv_sec) + (_c1.tv_nsec - _c0.tv_nsec) / 1e9;
+            }
+
             graph->reward_compute_graph =
                     ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
                             graph->parameterized_reward_compute_graph
                     );
-            /* B1 self-check (env-gated): convert to the offset form, run the
-             * offset executor, and confirm it is bit-identical to the raw one;
-             * also time the convert (the canonical-vs-dual cost question). */
-            if (getenv("PHASIC_PCG_SELFCHECK") != NULL) {
-                struct timespec _c0, _c1;
-                clock_gettime(CLOCK_MONOTONIC, &_c0);
-                struct ptd_desc_reward_compute_parameterized_off *_off =
-                    ptd_pcg_convert_to_offset(
-                        graph->parameterized_reward_compute_graph, graph, NULL, 0);
-                clock_gettime(CLOCK_MONOTONIC, &_c1);
-                double _cs = (_c1.tv_sec - _c0.tv_sec)
-                             + (_c1.tv_nsec - _c0.tv_nsec) / 1e9;
+            if (_sc) {
                 size_t _n = graph->parameterized_reward_compute_graph->length;
                 if (_off == NULL) {
                     PTD_LOG_ERROR("PCG_SELFCHECK: convert_to_offset returned NULL "
