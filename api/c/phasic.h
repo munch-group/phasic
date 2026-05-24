@@ -177,6 +177,10 @@ struct ptd_graph {
     enum ptd_edge_mode edge_mode;  // Locked after first non-IPV edge added
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
+    /* Zero-copy offset form (dual-form cache load path; defined in phasic.c).
+     * When set (cache HIT), the offset executor runs against it and the raw
+     * parameterized_reward_compute_graph stays NULL. See zero-copy-cache-plan.md. */
+    struct ptd_desc_reward_compute_parameterized_off *parameterized_reward_compute_graph_off;
     /* DEPRECATED (MPFR-A-WP-3): the MPFR-precision compute
      * graph. Used only when PHASIC_USE_MPFR_LEGACY=1 selects
      * the old re-elimination path. The default (and recommended)

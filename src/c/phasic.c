@@ -1879,6 +1879,10 @@ struct ptd_pcg_command_off {
     struct ptd_pcg_operand toT;
     struct ptd_pcg_operand multiplierptr;
 };
+/* One inputs[] binding spec: which live double an input slot resolves to.
+ * Carried in the descriptor so the rev-3 save can serialize it and the load
+ * can re-bind inputs[] against the current graph. */
+struct ptd_pcg_input_spec { uint8_t kind; uint32_t v; uint32_t e; int64_t byte; };
 struct ptd_desc_reward_compute_parameterized_off {
     size_t length;
     struct ptd_pcg_command_off *commands;
@@ -1887,6 +1891,7 @@ struct ptd_desc_reward_compute_parameterized_off {
     int mem_is_mmap;       /* 0 = heap (free), 1 = mmap (munmap) — set by B3 loader */
     double **inputs;       /* inputs[k] -> live &edge->weight (+byte) or external coeff */
     size_t n_inputs;
+    struct ptd_pcg_input_spec *input_specs;  /* n_inputs entries; for save/re-bind */
 };
 static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offset(
         const struct ptd_desc_reward_compute_parameterized *raw,
@@ -1897,6 +1902,12 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
         const struct ptd_desc_reward_compute_parameterized_off *off);
 static void ptd_pcg_desc_off_destroy(
         struct ptd_desc_reward_compute_parameterized_off *off);
+/* rev-3 zero-copy cache I/O (B2: read+copy load; B3: mmap). */
+static int ptd_save_pcg_rev3(const char *path,
+        const struct ptd_desc_reward_compute_parameterized *raw,
+        const struct ptd_graph *graph);
+static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
+        const char *path, const struct ptd_graph *graph);
 
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     /* Take the per-graph mutex unconditionally. A double-checked-lock
@@ -1935,15 +1946,20 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                     graph->parameterized_reward_compute_graph
             );
         }
+        if (graph->parameterized_reward_compute_graph_off != NULL) {
+            ptd_pcg_desc_off_destroy(graph->parameterized_reward_compute_graph_off);
+        }
 
         graph->reward_compute_graph = NULL;
         graph->parameterized_reward_compute_graph = NULL;
+        graph->parameterized_reward_compute_graph_off = NULL;
         graph->dph_compute_invalidated = false;
     }
 
     if (graph->reward_compute_graph == NULL) {
         if (graph->parameterized) {
-            if (graph->parameterized_reward_compute_graph == NULL) {
+            if (graph->parameterized_reward_compute_graph == NULL
+                    && graph->parameterized_reward_compute_graph_off == NULL) {
                 /* Stage A2: try the on-disk symbolic-elimination cache
                  * first. The cache is theta-independent (Stage A0
                  * showed multiplierptr is dereferenced at replay
@@ -1959,18 +1975,14 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                     char cache_path[PATH_MAX];
                     if (ptd_pcg_build_cache_path(graph, cache_path,
                                                  sizeof(cache_path)) == 0) {
-                        struct ptd_desc_reward_compute_parameterized *loaded =
-                                ptd_load_parameterized_reward_compute_graph(
-                                        cache_path, graph);
-                        /* ptd_load returns NULL on either a true cache
-                         * miss (file absent) or a corrupt/version-
-                         * mismatched file. Either way, fall through
-                         * to the rebuild path. Clear ptd_err so the
-                         * cache miss does not look like a real error
-                         * to subsequent calls. */
+                        struct ptd_desc_reward_compute_parameterized_off *loaded =
+                                ptd_load_pcg_rev3(cache_path, graph);
+                        /* NULL = cache miss (file absent / not rev-3 / stale
+                         * for this graph). Fall through to rebuild; clear
+                         * ptd_err so the miss isn't seen as a real error. */
                         ptd_err[0] = '\0';
                         if (loaded != NULL) {
-                            graph->parameterized_reward_compute_graph = loaded;
+                            graph->parameterized_reward_compute_graph_off = loaded;
                             cache_used = 1;
                         }
                     } else {
@@ -1996,7 +2008,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                         char cache_path[PATH_MAX];
                         if (ptd_pcg_build_cache_path(graph, cache_path,
                                                      sizeof(cache_path)) == 0) {
-                            if (ptd_save_parameterized_reward_compute_graph(
+                            if (ptd_save_pcg_rev3(
                                     cache_path,
                                     graph->parameterized_reward_compute_graph,
                                     graph) != 0) {
@@ -2032,7 +2044,8 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
              * This is the same point at which the rev-2 save runs, line ~1999). */
             struct ptd_desc_reward_compute_parameterized_off *_off = NULL;
             double _cs = 0.0;
-            int _sc = (getenv("PHASIC_PCG_SELFCHECK") != NULL);
+            int _sc = (getenv("PHASIC_PCG_SELFCHECK") != NULL
+                       && graph->parameterized_reward_compute_graph != NULL);
             if (_sc) {
                 struct timespec _c0, _c1;
                 clock_gettime(CLOCK_MONOTONIC, &_c0);
@@ -2042,10 +2055,17 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                 _cs = (_c1.tv_sec - _c0.tv_sec) + (_c1.tv_nsec - _c0.tv_nsec) / 1e9;
             }
 
-            graph->reward_compute_graph =
-                    ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
-                            graph->parameterized_reward_compute_graph
-                    );
+            /* Dual-form executor fork: cache HIT (offset form loaded) runs the
+             * offset executor; otherwise the freshly-built raw PRC. */
+            if (graph->parameterized_reward_compute_graph_off != NULL) {
+                graph->reward_compute_graph =
+                        ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
+                                graph->parameterized_reward_compute_graph_off);
+            } else {
+                graph->reward_compute_graph =
+                        ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
+                                graph->parameterized_reward_compute_graph);
+            }
             if (_sc) {
                 size_t _n = graph->parameterized_reward_compute_graph->length;
                 if (_off == NULL) {
@@ -2922,6 +2942,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->vertices = NULL;
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
+    graph->parameterized_reward_compute_graph_off = NULL;
     graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
@@ -3366,10 +3387,15 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offs
             raw->length ? raw->length : 1, sizeof(*off->commands));
     if (off->commands == NULL) { free(anchors); ptd_pcg_desc_off_destroy(off); return NULL; }
     /* Dedup table of distinct EDGE/EXTERNAL references -> input_idx. */
-    struct ptd_pcg_input_spec { uint8_t kind; uint32_t v; uint32_t e; int64_t byte; };
     struct ptd_pcg_input_spec *spec = NULL;
     size_t n_spec = 0, cap_spec = 0;
     int ok = 1;
+    /* Open-addressing dedup table: hashed (kind,v,e,byte) -> (spec index + 1);
+     * 0 = empty. Sized for a low load factor. */
+    size_t htcap = 16;
+    while (htcap < (n_anchors + n_external) * 4 + 64) htcap <<= 1;
+    size_t *ht = (size_t *)calloc(htcap, sizeof(size_t));
+    if (ht == NULL) { free(anchors); ptd_pcg_desc_off_destroy(off); return NULL; }
     for (size_t i = 0; i < raw->length && ok; i++) {
         const struct ptd_comp_graph_parameterized *c = &raw->commands[i];
         off->commands[i].type = (int32_t)c->type;
@@ -3393,10 +3419,19 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offs
                 uint32_t vv = dp.vertex_idx, ee = dp.edge_idx;
                 int64_t bb = (dp.kind == PTD_PCG_PTR_EDGE)
                              ? dp.byte_offset_from_edge_weight : 0;
+                uint64_t _hh = 1469598103934665603ULL;
+                _hh = (_hh ^ kk) * 1099511628211ULL;
+                _hh = (_hh ^ vv) * 1099511628211ULL;
+                _hh = (_hh ^ ee) * 1099511628211ULL;
+                _hh = (_hh ^ (uint64_t)bb) * 1099511628211ULL;
+                size_t _slot = (size_t)(_hh & (htcap - 1));
                 size_t found = (size_t)-1;
-                for (size_t s = 0; s < n_spec; s++)
-                    if (spec[s].kind == kk && spec[s].v == vv
-                            && spec[s].e == ee && spec[s].byte == bb) { found = s; break; }
+                while (ht[_slot] != 0) {
+                    size_t si = ht[_slot] - 1;
+                    if (spec[si].kind == kk && spec[si].v == vv
+                            && spec[si].e == ee && spec[si].byte == bb) { found = si; break; }
+                    _slot = (_slot + 1) & (htcap - 1);
+                }
                 if (found == (size_t)-1) {
                     if (n_spec == cap_spec) {
                         size_t nc = cap_spec ? cap_spec * 2 : 16;
@@ -3408,6 +3443,7 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offs
                     spec[n_spec].kind = kk; spec[n_spec].v = vv;
                     spec[n_spec].e = ee; spec[n_spec].byte = bb;
                     found = n_spec++;
+                    ht[_slot] = found + 1;
                 }
                 outs[k]->kind = PTD_PCG_OP_INPUT;
                 outs[k]->input_idx = (uint32_t)found;
@@ -3418,6 +3454,7 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offs
         }
     }
     free(anchors);
+    free(ht);
     if (!ok) { free(spec); ptd_pcg_desc_off_destroy(off); return NULL; }
     off->n_inputs = n_spec;
     if (n_spec > 0) {
@@ -3433,7 +3470,155 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_pcg_convert_to_offs
             }
         }
     }
-    free(spec);
+    off->input_specs = spec;   /* descriptor owns spec (freed in destroy) */
+    return off;
+}
+
+/* ===== rev-3 zero-copy cache format =====================================
+ * File = [header | commands_off[] | mem doubles | input-specs[]]. The commands
+ * are the offset/index POD form, so load is fixup-free (B2: read+copy; B3: mmap).
+ * Distinct magic "PTDPRMC3" so a stale rev-1/2 file at the same path is a miss. */
+#define PTD_PCG3_MAGIC "PTDPRMC3"
+struct ptd_pcg3_header {
+    char     magic[8];
+    uint64_t n_commands;
+    uint64_t mem_doubles;
+    uint64_t n_inputs;
+    uint64_t reserved;
+};
+struct ptd_pcg3_dinput {     /* fixed on-disk form of ptd_pcg_input_spec */
+    int64_t  byte;
+    uint32_t v;
+    uint32_t e;
+    uint8_t  kind;
+    uint8_t  pad[7];
+};
+
+static int ptd_save_pcg_rev3(const char *path,
+        const struct ptd_desc_reward_compute_parameterized *raw,
+        const struct ptd_graph *graph) {
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(raw, graph, NULL, 0);
+    if (off == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save_pcg_rev3: convert_to_offset failed");
+        return -1;
+    }
+    char tmp[PATH_MAX];
+    snprintf(tmp, sizeof(tmp), "%s.tmp.%d", path, (int)getpid());
+    FILE *fp = fopen(tmp, "wb");
+    if (fp == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save_pcg_rev3: fopen %s failed", tmp);
+        ptd_pcg_desc_off_destroy(off);
+        return -1;
+    }
+    struct ptd_pcg3_header h;
+    memset(&h, 0, sizeof(h));
+    memcpy(h.magic, PTD_PCG3_MAGIC, 8);
+    h.n_commands = off->length;
+    h.mem_doubles = off->mem_doubles;
+    h.n_inputs = off->n_inputs;
+    int werr = (fwrite(&h, sizeof(h), 1, fp) != 1);
+    if (!werr && off->length > 0)
+        werr = (fwrite(off->commands, sizeof(*off->commands), off->length, fp)
+                != off->length);
+    if (!werr && off->mem_doubles > 0)
+        werr = (fwrite(off->mem_base, sizeof(double), off->mem_doubles, fp)
+                != off->mem_doubles);
+    for (size_t i = 0; i < off->n_inputs && !werr; i++) {
+        struct ptd_pcg3_dinput di;
+        memset(&di, 0, sizeof(di));
+        di.byte = off->input_specs[i].byte;
+        di.v = off->input_specs[i].v;
+        di.e = off->input_specs[i].e;
+        di.kind = off->input_specs[i].kind;
+        werr = (fwrite(&di, sizeof(di), 1, fp) != 1);
+    }
+    ptd_pcg_desc_off_destroy(off);
+    if (werr || fclose(fp) != 0) {
+        if (!werr) werr = 1; else fclose(fp);
+        remove(tmp);
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save_pcg_rev3: write/close failed for %s", tmp);
+        return -1;
+    }
+    if (rename(tmp, path) != 0) {
+        remove(tmp);
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save_pcg_rev3: rename %s -> %s failed", tmp, path);
+        return -1;
+    }
+    return 0;
+}
+
+/* Load a rev-3 file into the offset descriptor (B2: read+copy). Binds inputs[]
+ * against the supplied graph; an out-of-range (v,e) means the file is stale for
+ * this graph -> return NULL (cache miss, caller rebuilds). */
+static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3(
+        const char *path, const struct ptd_graph *graph) {
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) return NULL;
+    struct ptd_pcg3_header h;
+    if (fread(&h, sizeof(h), 1, fp) != 1
+            || memcmp(h.magic, PTD_PCG3_MAGIC, 8) != 0) {
+        fclose(fp);
+        return NULL;   /* absent / not a rev-3 file -> miss */
+    }
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        (struct ptd_desc_reward_compute_parameterized_off *)calloc(1, sizeof(*off));
+    if (off == NULL) { fclose(fp); return NULL; }
+    off->length = (size_t)h.n_commands;
+    off->mem_doubles = (size_t)h.mem_doubles;
+    off->n_inputs = (size_t)h.n_inputs;
+    int err = 0;
+    if (h.n_commands > 0) {
+        off->commands = (struct ptd_pcg_command_off *)
+            malloc((size_t)h.n_commands * sizeof(*off->commands));
+        err = (off->commands == NULL
+               || fread(off->commands, sizeof(*off->commands),
+                        (size_t)h.n_commands, fp) != h.n_commands);
+    }
+    if (!err && h.mem_doubles > 0) {
+        off->mem_base = (double *)malloc((size_t)h.mem_doubles * sizeof(double));
+        err = (off->mem_base == NULL
+               || fread(off->mem_base, sizeof(double),
+                        (size_t)h.mem_doubles, fp) != h.mem_doubles);
+    }
+    if (!err && h.n_inputs > 0) {
+        off->input_specs = (struct ptd_pcg_input_spec *)
+            malloc((size_t)h.n_inputs * sizeof(*off->input_specs));
+        off->inputs = (double **)malloc((size_t)h.n_inputs * sizeof(double *));
+        if (off->input_specs == NULL || off->inputs == NULL) err = 1;
+        for (size_t i = 0; i < h.n_inputs && !err; i++) {
+            struct ptd_pcg3_dinput di;
+            if (fread(&di, sizeof(di), 1, fp) != 1) { err = 1; break; }
+            off->input_specs[i].kind = di.kind;
+            off->input_specs[i].v = di.v;
+            off->input_specs[i].e = di.e;
+            off->input_specs[i].byte = di.byte;
+            if (di.kind == PTD_PCG_PTR_EDGE) {
+                if (di.v >= graph->vertices_length) { err = 1; break; }
+                struct ptd_vertex *vx = graph->vertices[di.v];
+                if (di.e >= vx->edges_length) { err = 1; break; }
+                char *base = (char *)&vx->edges[di.e]->weight;
+                off->inputs[i] = (double *)(base + di.byte);
+            } else {
+                /* EXTERNAL not expected for the monolith cache (B5). */
+                err = 1; break;
+            }
+        }
+    }
+    fclose(fp);
+    if (err) {
+        ptd_pcg_desc_off_destroy(off);
+        ptd_err[0] = '\0';   /* treat as a cache miss, not an error */
+        return NULL;
+    }
+    if (getenv("PHASIC_PCG_LOADLOG") != NULL) {
+        PTD_LOG_WARNING("rev3 LOAD hit: n_cmds=%zu n_inputs=%zu",
+                        off->length, off->n_inputs);
+    }
     return off;
 }
 
@@ -4216,6 +4401,9 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
                 graph->parameterized_reward_compute_graph
         );
     }
+    if (graph->parameterized_reward_compute_graph_off != NULL) {
+        ptd_pcg_desc_off_destroy(graph->parameterized_reward_compute_graph_off);
+    }
 
 #ifdef HAVE_MPFR
     if (graph->reward_compute_graph_mpfr != NULL) {
@@ -4529,9 +4717,13 @@ struct ptd_edge *ptd_graph_add_edge(
                 from->graph->parameterized_reward_compute_graph
         );
     }
+    if (from->graph->parameterized_reward_compute_graph_off != NULL) {
+        ptd_pcg_desc_off_destroy(from->graph->parameterized_reward_compute_graph_off);
+    }
 
     from->graph->reward_compute_graph = NULL;
     from->graph->parameterized_reward_compute_graph = NULL;
+    from->graph->parameterized_reward_compute_graph_off = NULL;
 
 #ifdef HAVE_MPFR
     if (from->graph->reward_compute_graph_mpfr != NULL) {
@@ -8636,9 +8828,10 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(
 static void ptd_pcg_desc_off_destroy(
         struct ptd_desc_reward_compute_parameterized_off *off) {
     if (off == NULL) return;
-    if (off->commands) free(off->commands);
+    if (off->commands && !off->mem_is_mmap) free(off->commands);
     if (off->mem_base && !off->mem_is_mmap) free(off->mem_base);
-    if (off->inputs) free(off->inputs);
+    if (off->input_specs && !off->mem_is_mmap) free(off->input_specs);
+    if (off->inputs) free(off->inputs);   /* inputs[] is always heap (bound at load) */
     free(off);
 }
 
