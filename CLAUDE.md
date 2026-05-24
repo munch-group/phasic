@@ -30,6 +30,12 @@ Traditional matrix-based methods become computationally infeasible for systems w
 - Always use pixi environment.
 - Use "pixi run install-dev" for development install.
 - Do not ever implement silent fallbacks. Code should work as specified or fail.
+- In any response making claims about the code (signatures, behavior, file
+  contents, line numbers, whether an API exists), explicitly state for each claim
+  whether it is **grounded** — verified by reading the actual source this session
+  (cite `file:line`) — or a **guess/recollection/inference**. Prefer reading the
+  source over guessing; when you have not verified, say so plainly rather than
+  presenting speculation as fact.
 
 
 ## Key Concepts
@@ -207,6 +213,55 @@ results = Graph.svgd(
 print(f"Posterior mean: {results['theta_mean']}")
 print(f"Posterior std: {results['theta_std']}")
 ```
+
+### Profiling a model & choosing settings
+
+Before committing to an expensive first evaluation of a large parameterized
+graph, `phasic.profile_graph(graph)` (or `graph.profile()`) analyses it and
+recommends — **with reasons** — the three settings that otherwise have to be
+guessed:
+
+```python
+import phasic
+prof = phasic.profile_graph(graph)      # or graph.profile()
+print(prof)
+# phasic graph profile — 1044 vertices, 8099 edges, param_length=2
+#   SCC structure : 123 SCCs, largest 34 (3%), 13 levels, widest level 23
+#   parallel_elim : RECOMMEND ON (23 independent SCCs at the widest level, 10 cores; ceiling ~6.1x; ...)
+#   dyn_ordering  : leave OFF (largest SCC only 34 vertices — elimination <10 ms, ordering is immaterial)
+#   eval path     : forward-PDF OK (max_rate 66 -> granularity 132)
+#   -> phasic.configure(parallel_elimination=True)
+
+prof.recommendations            # {'parallel_elimination': (bool, why), 'dyn_ordering': (bool|False, why), 'path': (str, why)}
+prof.apply_snippet              # ready-to-paste configure(...) line
+```
+
+How each recommendation is derived:
+- **`parallel_elimination`** — *structural* (cheap, O(V+E)): from the SCC
+  condensation (`scc_decomposition` + level sets). ON only when there are
+  independent SCCs to run concurrently and the work is not Amdahl-dominated by one
+  giant SCC. A linear chain (e.g. single-locus coalescent) → OFF; the SCC-rich
+  two-locus ARG → ON.
+- **`dyn_ordering`** — *measured*: the largest SCC's synthetic graph is eliminated
+  twice (default vs min-out-degree) and wall-times compared. dyn's fill benefit is
+  model-dependent and not predictable statically, so phasic probes rather than
+  guesses. Sub-10 ms eliminations are treated as "ordering immaterial".
+- **eval path** — from `max_rate` → forward-PDF auto-granularity (`2·max_rate`).
+  A high `max_rate` (stiff model) makes the forward-PDF likelihood slow per
+  evaluation; **if your likelihood is over a joint/discrete index rather than
+  continuous observation times**, use the `max_rate`-independent joint/sojourn
+  path (`Graph.pmf_from_graph_joint_index` → `expected_sojourn_time`) instead.
+  The forward-PDF path is only mandatory when you need the continuous density
+  f(t) at observed times. `pass probe_dyn=True/False` to force/skip the dyn probe.
+
+The dyn probe costs two eliminations of the *largest* SCC only (skipped by default
+when that SCC is very large). The structural and path tiers are effectively free.
+
+> **Import phasic before importing jax / creating jax arrays.** phasic enables
+> `jax_enable_x64` on import; the C FFI requires float64 buffers. jax arrays
+> created *before* `import phasic` are float32 and trip the FFI check "Wrong
+> buffer dtype: expected F64 but got F32". If you hit this, restart the kernel
+> and import phasic first (or recreate the arrays).
 
 ### Per-Observation Exposure (`exposure` / `exposure_param_index`)
 
@@ -777,22 +832,37 @@ with new theta values does not produce new cache entries.
 
 **Stage A2 specifically** persists the symbolic elimination across
 processes so a fresh process (notebook restart, SLURM worker, CLI
-run) *could* skip the O(n³) Gaussian elimination. **As of the
-2026-05 elimination determinism fix this cache is usually a net loss
-and should stay off (the default).** Benchmarking the real SVGD paths
-(`scratch/svgd_path_bench.py` — `pmf_and_moments_from_graph` and the
-joint-prob `expected_sojourn_time`) shows that for any model big
-enough to matter, *recomputing* the elimination beats *loading* the
-cache: e.g. two-locus ARG nr=8 (8407 vertices) rebuilds in 2.9 s vs a
-7.2 s cache load, and enabling the cache makes the *first* build ~33×
-slower (96 s — it must build the symbolic artifact and write ~7 GB).
-The cache also only ever affects the **first** call in a process: the
-in-memory Stage-A1 persistent graph already amortises the elimination
-across all later θ updates (the SVGD inner loop), so there is no
-per-θ benefit. Leave `reward_compute_cache` off unless you have
-measured a win for your specific model. *(The earlier "~6 ms → ~1 ms,
-5× speedup" figure predates the determinism fix, which cut recompute
-~85% and shrank the trace, inverting the economics.)*
+run) can skip the O(n³) Gaussian elimination. **The cache uses the
+rev-3 zero-copy format (magic `PTDPRMC3`, 2026-05):** the trace is
+stored as offset/index-based commands that the loader `mmap`s
+directly (`MAP_PRIVATE` copy-on-write) and the offset executor runs
+in place — **no per-command pointer fixup, no copy**. This roughly
+**halved the load CPU** vs the old rev-2 fixup format (two-locus
+nr=7: load 1.095 s → 0.525 s, `scratch/io_overlap_probe.py`),
+bringing it to ≈ the recompute cost.
+
+Practical guidance (post-rev-3):
+- Enable `reward_compute_cache=True` for models that are **re-run
+  across processes** AND whose **recompute (elimination) is
+  expensive** — large / stiff models where the elimination dwarfs the
+  trace page-in. There the per-process load is much cheaper than
+  re-eliminating.
+- For **small / one-shot** models leave it off: the per-process load
+  is ≈ recompute, and the **first (cold)** build pays a one-time
+  convert + write of the trace.
+- It only ever affects the **first** call per process — the in-memory
+  Stage-A1 persistent graph amortises the elimination across all later
+  θ updates (the SVGD inner loop), so there is no per-θ benefit.
+- For `parallel_elimination=True` (hierarchical) the per-SCC cache
+  (`scc_<hash>.bin`) uses the same rev-3 zero-copy format, so the win
+  applies there too — and that is the *only* cache for such models
+  (the monolithic `<hash>.bin` is skipped). *(EXTERNAL/`_ex`
+  distributed-worker path is still rev-2 pending migration.)*
+- Fallback (no silent fallback): if `mmap` is unavailable
+  (`PHASIC_PCG_DISABLE_MMAP=1`, Windows, or a map failure) the loader
+  logs and falls back to an explicit read+copy with identical results.
+*(The pre-2026-05 "~6 ms → ~1 ms, 5× speedup" figure predates the
+determinism fix; the rev-2 "net loss" assessment predates rev-3.)*
 
 **Behaviour & opt-out**:
 - Both caches honour `PHASIC_DISABLE_CACHE=1` to skip reads and writes.

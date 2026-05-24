@@ -16,12 +16,13 @@ phasic maintains two on-disk caches under ``~/.phasic_cache/``:
   :func:`param_compute_cache_info`.
 
 Both caches are user-owned. Phasic does not auto-prune or
-size-cap. The reward-compute family is **off by default** and
-recommended off: since the 2026-05 elimination determinism fix,
-recomputing the elimination usually beats loading this cache (see
-the ``reward_compute_cache`` note in :mod:`phasic.config`). Opt in
-via ``phasic.configure(reward_compute_cache=True)`` (which sets
-``PHASIC_REWARD_COMPUTE_CACHE=1``). The graph cache at
+size-cap. The reward-compute family is **off by default**. It uses
+the rev-3 zero-copy mmap format, so the per-process load is ~as cheap
+as recompute; enable it (``phasic.configure(reward_compute_cache=True)``,
+sets ``PHASIC_REWARD_COMPUTE_CACHE=1``) for models re-run across
+processes whose recompute is expensive, and leave it off for small or
+one-shot models — see the ``reward_compute_cache`` note in
+:mod:`phasic.config`. The graph cache at
 ``~/.phasic_cache/graphs/`` is **on by default**; disable via
 ``phasic.configure(graph_cache=False)`` (sets
 ``PHASIC_DISABLE_GRAPH_CACHE=1``).
