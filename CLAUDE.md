@@ -841,23 +841,35 @@ in place — **no per-command pointer fixup, no copy**. This roughly
 nr=7: load 1.095 s → 0.525 s, `scratch/io_overlap_probe.py`),
 bringing it to ≈ the recompute cost.
 
-Practical guidance (post-rev-3):
-- Enable `reward_compute_cache=True` for models that are **re-run
-  across processes** AND whose **recompute (elimination) is
-  expensive** — large / stiff models where the elimination dwarfs the
-  trace page-in. There the per-process load is much cheaper than
-  re-eliminating.
-- For **small / one-shot** models leave it off: the per-process load
-  is ≈ recompute, and the **first (cold)** build pays a one-time
-  convert + write of the trace.
+Practical guidance (post-rev-3) — the decision hinges on **SCC size**,
+because under `parallel_elimination=True` the cache competes with
+*parallel* recompute:
+- The per-SCC load is **I/O-bound and does not parallelize** (one
+  disk), while recompute parallelizes across cores. So for models that
+  decompose into **small SCCs**, parallel recompute *beats* the cache —
+  measured ~11× faster at the plain two-locus nr8 (8407 states,
+  maxSCC ≤ 102): warm load 5.0 s vs recompute 0.43 s
+  (`scratch/overlap_bench.py`, controlled). Leave the cache **off** for
+  these (the common sparse case; `profile_graph` flags it via the SCC
+  structure).
+- The cache pays only when **per-SCC recompute is expensive** = **large
+  SCCs** (elimination is ~O(maxSCC³)). Migration / multi-population
+  models reach this: the two-locus *ghost-island* model's base maxSCC
+  grows 56 → 224 → 620 at nr_samples 3 → 5 (`scratch/base_scc_sweep.py`;
+  the joint graph's maxSCC equals the base's). For such models, re-run
+  across processes, the per-process load can beat re-eliminating.
+  *(The exact maxSCC crossover, and a recompute-some / load-rest
+  **hybrid** that overlaps parallel recompute with near-zero-CPU mmap
+  loads, are an open follow-up — see `recompute-load-hybrid-plan.md`.)*
 - It only ever affects the **first** call per process — the in-memory
   Stage-A1 persistent graph amortises the elimination across all later
   θ updates (the SVGD inner loop), so there is no per-θ benefit.
-- For `parallel_elimination=True` (hierarchical) the per-SCC cache
-  (`scc_<hash>.bin`) uses the same rev-3 zero-copy format, so the win
-  applies there too — and that is the *only* cache for such models
-  (the monolithic `<hash>.bin` is skipped). *(EXTERNAL/`_ex`
-  distributed-worker path is still rev-2 pending migration.)*
+- For `parallel_elimination=True` the per-SCC cache (`scc_<hash>.bin`)
+  uses the rev-3 zero-copy format and is the *only* cache (the monolith
+  `<hash>.bin` is skipped); the distributed SLURM path
+  (`precompute_distributed` → `scc_worker`) populates it. *(The
+  EXTERNAL/`_ex` WP-3 path is dead/unused — superseded by WP-5
+  edge-weight overrides — not a pending migration.)*
 - Fallback (no silent fallback): if `mmap` is unavailable
   (`PHASIC_PCG_DISABLE_MMAP=1`, Windows, or a map failure) the loader
   logs and falls back to an explicit read+copy with identical results.
