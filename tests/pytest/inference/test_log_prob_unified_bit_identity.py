@@ -35,6 +35,19 @@ from phasic.svgd import SVGD
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _reset_jax_state():
+    """Reset JAX's order-sensitive in-process JIT/compilation cache around every
+    test. These bit-identity checks compare exact bit-level output, so an
+    unrelated test compiling first can flip a cached program and make an
+    assertion flake in full-suite order (the test passes in isolation). Mirrors
+    the _reset_jax_state fixture in test_svgd_correctness.py."""
+    import jax
+    jax.clear_caches()
+    yield
+    jax.clear_caches()
+
+
 def _build_n4_coalescent() -> Graph:
     nr_samples = 4
 
