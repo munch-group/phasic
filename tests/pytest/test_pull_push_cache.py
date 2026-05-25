@@ -340,7 +340,8 @@ def test_push_cache_dry_run_returns_valid_json(tmp_path: Path):
         parsed = json.loads(out)
         assert "demo_chain_v1" in parsed
         entry = parsed["demo_chain_v1"]
-        assert entry["format_revision"] == 2
+        # rev-3 zero-copy is now the local format the build writes/records.
+        assert entry["format_revision"] == 3
         assert len(entry["graph_hash"]) == 64
         assert entry["metadata"]["domain"] == "demo"
         assert entry["metadata"]["model_type"] == "chain"

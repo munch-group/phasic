@@ -88,12 +88,14 @@ class TestCPrimitive:
         weights = [e.weight() for e in g.starting_vertex().edges()]
         assert weights == [pytest.approx(0.4), pytest.approx(0.6)]
 
-    def test_preserves_symbolic_cache(self):
+    def test_preserves_symbolic_cache(self, monkeypatch):
         # Plan: test_update_ipv_preserves_symbolic_cache.c
         # Stage A0 invariant: the symbolic compute graph survives IPV updates.
         # We assert via the on-disk cache file count: a single elimination
         # produces one file; subsequent update_ipv + expectation calls must
-        # not produce additional cache entries.
+        # not produce additional cache entries. The reward-compute cache is
+        # off by default, so opt in to observe the file count.
+        monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
         cache.clear_param_compute_cache()
         g = _build_cyclic_param_graph()
         g.update_weights([1.5, 2.5])
@@ -220,10 +222,11 @@ class TestEndToEnd:
 
         assert e_updated == pytest.approx(e_ref, rel=1e-10)
 
-    def test_symbolic_cache_survives_full_cycle(self):
+    def test_symbolic_cache_survives_full_cycle(self, monkeypatch):
         # Same shape as TestCPrimitive::test_preserves_symbolic_cache, but
         # via the Python surface — the Stage A0 invariant must hold all
-        # the way through.
+        # the way through. Opt into the (default-off) reward-compute cache.
+        monkeypatch.setenv("PHASIC_REWARD_COMPUTE_CACHE", "1")
         cache.clear_param_compute_cache()
         g = _build_cyclic_param_graph()
         g.update_weights([1.5, 2.5]); g.expectation()

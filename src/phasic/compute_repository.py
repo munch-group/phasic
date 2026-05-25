@@ -59,16 +59,21 @@ logger = get_logger(__name__)
 # parameterized_reward_compute_graph layout changes incompatibly.
 _REGISTRY_FORMAT = "ptd_pcg"
 
-# Maximum format_revision this build can load. Must track the C-side
-# ``PTD_PCG_FORMAT_REVISION`` constant (currently 2 — rev-1 = monolithic
-# parent file, rev-2 = SCC file with EXTERNAL anchors).
-_LOCAL_FORMAT_REVISION = 2
+# Maximum format_revision this build can load. rev-1 = monolithic parent
+# file, rev-2 = SCC file with EXTERNAL anchors (both magic PTDPRMC1, with a
+# format_revision header field); rev-3 = zero-copy mmap format (magic
+# PTDPRMC3, a different header layout — see src/c/phasic.c ptd_pcg3_header).
+_LOCAL_FORMAT_REVISION = 3
 
-# On-disk header layout — matches the C ``ptd_pcg_disk_header`` struct
-# in src/c/phasic.c. ``magic`` (8 bytes) + uint32 version + uint32
+# On-disk header layout for rev-1/2 — matches the C ``ptd_pcg_disk_header``
+# struct in src/c/phasic.c. ``magic`` (8 bytes) + uint32 version + uint32
 # format_revision + uint64 graph_hash_truncated + 3 × uint64.
 _PCG_HEADER_STRUCT = struct.Struct("<8sIIQQQQ")
 _PCG_HEADER_MAGIC = b"PTDPRMC1"
+# rev-3 zero-copy format: magic + 4 × uint64 (n_commands, mem_doubles,
+# n_inputs, reserved); no separate version/format_revision fields — the
+# magic alone identifies it as rev-3.
+_PCG3_HEADER_MAGIC = b"PTDPRMC3"
 
 
 # ============================================================================
@@ -92,13 +97,22 @@ def _peek_format_revision(path: Path) -> tuple[int, int]:
             buf = fh.read(_PCG_HEADER_STRUCT.size)
     except OSError as e:
         raise PTDFormatError(f"cannot read header from {path}: {e}") from e
+    if len(buf) < 8:
+        raise PTDFormatError(
+            f"{path}: file too short to contain a PCG header")
+    magic = buf[:8]
+    if magic == _PCG3_HEADER_MAGIC:
+        # rev-3 zero-copy: identified by magic alone (no version /
+        # format_revision header fields). Treat as format_revision 3.
+        return 0, 3
+    if magic != _PCG_HEADER_MAGIC:
+        raise PTDFormatError(
+            f"{path}: bad magic {magic!r}, expected "
+            f"{_PCG_HEADER_MAGIC!r} or {_PCG3_HEADER_MAGIC!r}")
     if len(buf) < _PCG_HEADER_STRUCT.size:
         raise PTDFormatError(
             f"{path}: file too short to contain a PTDPRMC1 header")
-    magic, version, format_revision, *_ = _PCG_HEADER_STRUCT.unpack(buf)
-    if magic != _PCG_HEADER_MAGIC:
-        raise PTDFormatError(
-            f"{path}: bad magic {magic!r}, expected {_PCG_HEADER_MAGIC!r}")
+    _magic, version, format_revision, *_ = _PCG_HEADER_STRUCT.unpack(buf)
     return version, format_revision
 
 

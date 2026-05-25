@@ -18,18 +18,13 @@ from pytest import approx
 from phasic import Graph
 
 
-SELF_LOOP_XFAIL = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Self-loop correction in trace elimination is not implemented "
-        "(see trace_elimination.py CASE A). Trace recording now raises "
-        "RuntimeError on cyclic graphs that would require the 1/(1-q) "
-        "correction. Remove this marker once the correction lands."
-    ),
-)
+# These tests were previously xfail(strict): the Python trace-elimination path
+# lacked the 1/(1-q) self-loop correction. That path is now retired (cache_trace
+# is a deprecated no-op) and moments/expectation/variance route to the C++
+# implementation, which handles self-loops correctly — so the tests now pass and
+# the marker was removed (it had become a strict-XPASS failure).
 
 
-@SELF_LOOP_XFAIL
 def test_cyclic_graph_expectation_cache_trace_vs_direct():
     """
     Build a parameterized graph with a cycle (v1 -> v2 -> v1)
@@ -82,7 +77,6 @@ def test_cyclic_graph_expectation_cache_trace_vs_direct():
     )
 
 
-@SELF_LOOP_XFAIL
 def test_high_self_loop_probability():
     """
     Test with parameter values that produce high self-loop probability
@@ -119,7 +113,6 @@ def test_high_self_loop_probability():
     assert exp_cached == approx(exp_direct, rel=1e-10)
 
 
-@SELF_LOOP_XFAIL
 def test_variance_with_self_loop():
     """
     Verify variance() also works correctly with self-loops and cache_trace.

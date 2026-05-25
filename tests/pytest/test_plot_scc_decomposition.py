@@ -31,7 +31,7 @@ def test_plot_title_matches_decomposition():
     from phasic.distributed_scc import compute_scc_levels
     levels = compute_scc_levels(scc)
 
-    ax = g.plot_scc_decomp()
+    ax = g.plot_scc_decomp(title=True)  # title is opt-in (default False)
     title = ax.get_title()
     assert f"{len(scc)} SCCs" in title
     assert f"{len(levels)} levels" in title
@@ -69,7 +69,7 @@ def test_plot_works_for_every_toy(toy_name):
     """Smoke test: every toy model in the regression set
     produces a valid plot."""
     g = BUILDERS[toy_name]()
-    ax = g.plot_scc_decomp()
+    ax = g.plot_scc_decomp(title=True)  # title is opt-in (default False)
     title = ax.get_title()
     # Title always names at least one SCC.
     assert "SCCs" in title

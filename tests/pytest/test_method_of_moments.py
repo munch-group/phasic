@@ -761,7 +761,8 @@ def test_svgd_rejects_sparse_without_rewards():
         jnp.array([4.0, 5.0, 6.0]),
     ]))
 
-    with pytest.raises(ValueError, match="rewards must be provided"):
+    # Message changed to "SparseObservations require explicit rewards...".
+    with pytest.raises(ValueError, match="require explicit rewards"):
         g.svgd(sparse, n_particles=4, n_iterations=1, verbose=False)
 
 

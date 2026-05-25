@@ -6359,6 +6359,11 @@ extern "C" {{
             (5x the asymptotic standard error).  Falls back to standard normal
             if DataPrior construction fails.
 
+            Note: this data-driven default differs from the lower-level ``SVGD``
+            class, whose ``prior=None`` is a plain standard normal
+            (``-0.5 * sum(theta**2)``). Pass an explicit ``prior=`` to either API
+            for identical behaviour.
+
             **With fixed parameters**:
             When using a list of priors with the `fixed` parameter, you must provide None
             at indices corresponding to fixed parameters. This is validated at initialization.
@@ -6366,8 +6371,9 @@ extern "C" {{
             Example:
                 prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],
                 fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
-        n_particles : int, default=50
-            Number of SVGD particles. More particles = better posterior approximation but slower.
+        n_particles : int or None, default None
+            Number of SVGD particles. ``None`` resolves to ``20 * theta_dim``.
+            More particles = better posterior approximation but slower.
         n_iterations : int, default=1000
             Number of SVGD optimization steps
         optimizer : object, optional
@@ -7729,6 +7735,11 @@ extern "C" {{
         - More efficient than separate calls to pmf_from_graph() and moments_from_graph()
         - Required for using moment-based regularization in SVGD.fit_regularized()
         - The moments are always computed from the same graph used for PMF/PDF
+        - **Import phasic before importing jax / creating jax arrays.** phasic
+          enables ``jax_enable_x64`` on import; the C FFI requires float64 buffers.
+          jax arrays created *before* ``import phasic`` are float32 and trip the
+          FFI check "Wrong buffer dtype: expected F64 but got F32". If you hit
+          this, restart the kernel and import phasic first (or recreate the arrays).
         """
         # Activate JAX on demand if we're going to use it.
         if not use_ffi:
@@ -9381,9 +9392,13 @@ extern "C" {{
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        if title is None:
+        # title=True -> auto-summary (as documented); a string -> verbatim;
+        # False/None -> no title. (Previously checked `is None`, which never
+        # fired once the default became the bool False, so title=True wrongly
+        # set the literal "True".)
+        if title is True:
             title = (f"{n_sccs} SCCs across "
-                     f"{n_levels} levels. Widest {widest}, "
+                     f"{n_levels} levels. widest {widest}, "
                      f"{total_vertices} vertices total.")
         if title:
             ax.set_title(title)

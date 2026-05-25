@@ -3560,6 +3560,15 @@ str
                return py_result;
            },
            py::arg("parent"), py::arg("theta"),
+           // Release the GIL around the C composer: it runs an OpenMP
+           // parallel region, and C log calls from worker threads go
+           // through the Python logging bridge (gil_scoped_acquire). If
+           // the main thread held the GIL here, a logging worker would
+           // block on it while the main thread waits for the parallel
+           // region -> deadlock (observed with PHASIC_LOG_LEVEL<=INFO).
+           // The sibling expected_waiting_time/expected_sojourn_time
+           // bindings already release the GIL for the same reason.
+           py::call_guard<py::gil_scoped_release>(),
            "WP-5: compose per-SCC PRCs to compute parent-level "
            "expected_waiting_time. Returns a list of doubles, one "
            "per parent vertex.")

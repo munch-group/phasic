@@ -57,6 +57,16 @@ def _serialize_pybind_graph(g) -> dict[str, Any]:
         def __init__(self, inner):
             object.__setattr__(self, "_inner", inner)
 
+        @property
+        def dyn_ordering(self):
+            # Graph.serialize() reads self.dyn_ordering (added when the
+            # dyn_ordering flag was propagated through serialize). The
+            # Python Graph wrapper exposes it as a property; this shim
+            # wraps a *raw* pybind Graph, which exposes it only as the
+            # get_dyn_ordering() method — map it explicitly, mirroring
+            # how _weight_mode is provided above.
+            return self._inner.get_dyn_ordering()
+
         def __getattr__(self, name):
             return getattr(self._inner, name)
 

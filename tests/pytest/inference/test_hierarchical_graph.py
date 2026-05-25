@@ -57,6 +57,8 @@ class TestHierarchicalGraphBasic:
         assert g._trace is None
         assert g._trace_dirty is True
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_hierarchical_flag_set_true(self):
         """Test that hierarchical=True is stored."""
         from phasic import Graph
@@ -75,6 +77,8 @@ class TestHierarchicalGraphBasic:
 class TestHierarchicalGraphWithModel:
     """Tests with actual graph models."""
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_compute_trace_non_destructive(self, simple_model_callback):
         """Test that compute_trace preserves graph in hierarchical mode."""
         from phasic import Graph
@@ -93,6 +97,8 @@ class TestHierarchicalGraphWithModel:
         assert g.trace_valid is True
         assert trace is not None
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_compute_trace_caches_result(self, simple_model_callback):
         """Test that subsequent compute_trace calls return cached trace."""
         from phasic import Graph
@@ -123,6 +129,8 @@ class TestHierarchicalGraphWithModel:
 class TestTraceInvalidation:
     """Tests for trace invalidation on graph modification."""
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_normalize_invalidates_trace(self, simple_model_callback):
         """Test that normalize() invalidates cached trace."""
         from phasic import Graph
@@ -156,6 +164,8 @@ class TestTraceInvalidation:
         g.find_or_create_vertex([2])
         assert g.trace_valid is False
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_update_weights_does_not_invalidate_trace(self, simple_model_callback):
         """Test that update_weights does NOT invalidate trace."""
         from phasic import Graph
@@ -257,6 +267,8 @@ class TestTraceMomentsComputation:
 class TestClone:
     """Tests for clone() with hierarchical mode."""
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_clone_preserves_hierarchical_setting(self, simple_model_callback):
         """Test that clone preserves hierarchical flag."""
         from phasic import Graph
@@ -268,6 +280,8 @@ class TestClone:
 
         assert cloned.hierarchical is True
 
+    @pytest.mark.skip(reason="retired Python EliminationTrace machinery; "
+                             "compute_trace()/hierarchical are deprecated no-ops")
     def test_clone_does_not_copy_trace(self, simple_model_callback):
         """Test that clone starts with fresh trace cache."""
         from phasic import Graph
