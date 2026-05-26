@@ -170,7 +170,70 @@ class TestJointProbAfterEpoch:
                 indexer, mutation_rate=MUTATION_RATE, reward_limit=REWARD_LIMIT,
             )
 
+    def test_joint_indexer_epoch_slot_matches_actual_state_vector(self):
+        """The joint indexer must locate the epoch slot where it really sits.
 
+        The joint state vector is the concatenation [base_block, reward_block],
+        and the base block keeps its epoch slot in place. Regression: the epoch
+        slot used to be relocated to the end of the combined indexer (it
+        reported ``self.state_length`` past its true index), so reads via
+        ``jg._indexer.epoch`` pointed into the reward block instead.
+        """
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g_epochs = Graph(cb, indexer=indexer).add_epoch(time=EPOCH_BOUNDARY)
+        g_epochs.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
+
+        # In the augmented (base) graph the epoch dim is the last state entry.
+        epoch_idx = g_epochs._epoch_state_index
+        assert g_epochs._indexer.epoch == epoch_idx
+
+        jg = g_epochs.joint_prob_graph(
+            mutation_rate=MUTATION_RATE, reward_limit=REWARD_LIMIT,
+        )
+
+        # The base block (incl. the epoch slot) is kept contiguous at the front
+        # of the joint state vector, so the epoch slot is at the same index.
+        assert jg._indexer.epoch == epoch_idx
+
+        # Cross-check against actual joint vertices: the column the indexer
+        # calls 'epoch' is the only base-block column that ever takes the value
+        # of a later epoch (1), whereas reward columns count mutations.
+        states = jg.states()
+        assert states[:, jg._indexer.epoch].max() == g_epochs._n_epochs
+
+        # The reward block starts immediately after the base block, and the
+        # combined total is unchanged (only the offsets are corrected).
+        base_len = g_epochs._indexer.state_length
+        reward_ranges = [
+            jg._indexer.index_ranges[ps.name]
+            for ps in jg._indexer.property_sets()
+            if ps.name != indexer.property_sets()[0].name
+        ]
+        assert reward_ranges, "expected at least one reward PropertySet"
+        assert min(start for start, _ in reward_ranges) == base_len
+        assert jg._indexer.state_length == jg.state_length()
+
+    def test_add_epoch_on_joint_prob_graph_is_rejected(self):
+        """joint -> epoch is disallowed with a clear, actionable error.
+
+        Epochs must be added to the base graph before the joint distribution is
+        built (epoch -> joint). The reverse order would apply the epoch
+        transition to the reward-augmented joint state space.
+        """
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g = Graph(cb, indexer=indexer)
+        g.update_weights([TRUE_THETA1])
+
+        jg = g.joint_prob_graph(mutation_rate=MUTATION_RATE, reward_limit=REWARD_LIMIT)
+
+        with raises(ValueError, match="not supported on a joint-probability graph"):
+            jg.add_epoch(time=EPOCH_BOUNDARY)
+
+        # Passing a callback explicitly must not bypass the guard either.
+        with raises(ValueError, match="epoch -> joint"):
+            jg.add_epoch(time=EPOCH_BOUNDARY, callback=cb)
 
 
 def _make_coalescent(nr_samples=4):

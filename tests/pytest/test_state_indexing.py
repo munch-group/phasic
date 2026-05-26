@@ -571,5 +571,120 @@ def test_all_scenarios_comprehensive():
                 )
 
 
+# ============================================================================
+# Concatenated layout: append / + preserves each operand's block layout
+# (so a slot that is not at the end of self stays put, rather than being
+# relocated past the appended block). Regression for joint_prob_graph mis-
+# indexing the epoch slot after add_epoch.
+# ============================================================================
+
+def test_append_preserves_self_trailing_slot_position():
+    """A trailing slot of self stays in place; other's psets follow after it."""
+    # self mimics an epoch-augmented base indexer: one PropertySet then a slot.
+    base = StateIndexer(
+        'epoch',
+        lineages=[Property('ton', min_value=1, max_value=4)],  # 4 states: 0..3
+    )
+    assert base.epoch == 4  # slot at the end of self (default layout)
+
+    # other mimics the reward indexer appended by joint_prob_graph.
+    reward = StateIndexer(
+        lineages_ton=[Property('lineages_ton', min_value=1, max_value=4)],  # 4 states
+    )
+
+    combined = base + reward
+
+    # Each operand keeps its layout as a contiguous block:
+    #   self  : lineages(0..3), epoch(4)             -> indices [0, base.state_length)
+    #   other : lineages_ton(5..8)                   -> offset by base.state_length
+    assert combined.epoch == 4                       # NOT relocated to the end
+    assert combined.index_ranges['lineages'] == (0, 4)
+    assert combined.index_ranges['lineages_ton'] == (5, 9)
+    assert combined.index_ranges['epoch'] == (4, 4)
+    assert combined.state_length == base.state_length + reward.state_length == 9
+
+
+def test_append_offsets_match_concatenated_state_vector():
+    """combined offsets index np.append(self_block, other_block) correctly."""
+    base = StateIndexer(
+        'epoch',
+        lineages=[Property('ton', min_value=1, max_value=4)],
+    )
+    reward = StateIndexer(
+        lineages_ton=[Property('lineages_ton', min_value=1, max_value=4)],
+    )
+    combined = base + reward
+
+    # The slot index decodes back to the slot, the reward indices decode to the
+    # reward PropertySet, and the base indices decode to the base PropertySet.
+    assert combined.index_to_props(combined.epoch).epoch is True
+    assert combined.index_to_props(0).lineages is not None
+    # First reward index sits immediately after the epoch slot.
+    first_reward = combined.index_ranges['lineages_ton'][0]
+    assert first_reward == base.state_length
+    assert combined.index_to_props(first_reward).lineages_ton is not None
+
+
+def test_append_roundtrips_interleaved_layout_through_to_dict():
+    """to_dict/from_dict preserve a non-default (interleaved) layout."""
+    base = StateIndexer(
+        'epoch',
+        lineages=[Property('ton', min_value=1, max_value=4)],
+    )
+    reward = StateIndexer(
+        lineages_ton=[Property('lineages_ton', min_value=1, max_value=4)],
+    )
+    combined = base + reward
+
+    restored = StateIndexer.from_dict(combined.to_dict())
+    assert restored.index_ranges == combined.index_ranges
+    assert restored.epoch == combined.epoch
+    assert restored.state_length == combined.state_length
+    assert restored == combined
+
+
+def test_default_layout_still_psets_then_slots():
+    """Plain construction is unchanged: slots come after the PropertySet block."""
+    indexer = StateIndexer(
+        'epoch', 'branch_id',
+        lineage=[Property('descendants', max_value=10)],  # 11 states
+    )
+    assert indexer.epoch == 11
+    assert indexer.branch_id == 12
+    # to_dict records the default layout order explicitly.
+    assert indexer.to_dict()['entity_order'] == ['lineage', 'epoch', 'branch_id']
+
+
+def test_interleaved_layout_distinct_from_default_eq_hash():
+    """Two indexers with the same psets/slots but different layouts differ."""
+    base = StateIndexer('epoch', lineage=[Property('a', min_value=1, max_value=4)])
+    reward = StateIndexer(reward=[Property('reward', min_value=1, max_value=4)])
+    interleaved = base + reward  # layout: lineage, epoch, reward
+
+    # A default-layout indexer with the same psets and slot: lineage, reward, epoch
+    default_like = StateIndexer(
+        'epoch',
+        lineage=[Property('a', min_value=1, max_value=4)],
+        reward=[Property('reward', min_value=1, max_value=4)],
+    )
+
+    assert interleaved._layout_order() == ['lineage', 'epoch', 'reward']
+    assert default_like._layout_order() == ['lineage', 'reward', 'epoch']
+    assert interleaved != default_like
+    # Equality is reflexive and layout-preserving across a round-trip.
+    assert interleaved == StateIndexer.from_dict(interleaved.to_dict())
+
+
+def test_default_layout_hash_unchanged_by_entity_order():
+    """The hash of a conventionally-built indexer omits the (default) layout."""
+    # Two structurally identical default-layout indexers hash equal, and the
+    # hash does not include an entity_order component (no cache-key churn).
+    a = StateIndexer('epoch', lineage=[Property('d', max_value=3)])
+    b = StateIndexer('epoch', lineage=[Property('d', max_value=3)])
+    assert hash(a) == hash(b)
+    assert a == b
+    assert 'layout=' not in repr(a)
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

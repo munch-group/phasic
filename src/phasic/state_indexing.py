@@ -788,6 +788,7 @@ class StateIndexer:
         object.__setattr__(self, '_offsets', {})
         object.__setattr__(self, '_pset_order', [])  # Preserve insertion order
         object.__setattr__(self, '_slot_order', [])  # Preserve insertion order
+        object.__setattr__(self, '_entity_order', [])  # Unified layout order (psets/slots interleaved)
 
         # Handle positional slot names
         for slot_name in slot_names:
@@ -851,22 +852,75 @@ class StateIndexer:
         if not self._property_sets and not self._slots:
             raise ValueError("Must provide at least one PropertySet or Slot")
 
-        # Compute cumulative offsets for concatenated index space
-        # Strategy: PropertySets first (in order), then slots (in order)
-        current_offset = 0
-        for name in self._pset_order:
-            self._offsets[name] = current_offset
-            current_offset += self._property_sets[name].state_length
-
-        for name in self._slot_order:
-            self._offsets[name] = current_offset
-            current_offset += 1  # Each slot occupies exactly 1 index
-
-        # Store total number of states across all PropertySets and slots
-        object.__setattr__(self, '_total_state_length', current_offset)
+        # Compute cumulative offsets for the concatenated index space.
+        # Default layout: PropertySets first (in order), then slots (in order),
+        # which reproduces the historical "slots at the end" offsets exactly.
+        # A different interleaving may be applied afterwards (by from_dict /
+        # append) via _apply_entity_order, so that slots can sit anywhere — this
+        # is required when combining indexers whose state vectors concatenate as
+        # blocks (see __add__).
+        self._apply_entity_order(list(self._pset_order) + list(self._slot_order))
 
         # Create and cache result class for index_to_props
         object.__setattr__(self, '_result_class', self._create_result_class())
+
+    def _apply_entity_order(self, entity_order: list[str]) -> None:
+        """
+        Set the concatenated layout order and recompute offsets accordingly.
+
+        Each PropertySet occupies ``state_length`` consecutive indices and each
+        Slot occupies one, laid out in ``entity_order``. Unlike the default
+        "PropertySets first, then slots" layout, this allows a slot to sit
+        anywhere — needed when combining indexers whose state vectors are
+        concatenated as contiguous blocks (e.g. ``base_indexer + reward_indexer``
+        in :meth:`Graph.joint_prob_graph`, where the base block keeps its epoch
+        slot in place rather than having it pushed past the appended block).
+
+        Parameters
+        ----------
+        entity_order : list[str]
+            A permutation of the union of this indexer's PropertySet and Slot
+            names, giving the order in which they occupy the concatenated index
+            space.
+
+        Raises
+        ------
+        ValueError
+            If ``entity_order`` is not exactly a permutation of the indexer's
+            PropertySet and Slot names.
+        """
+        order = list(entity_order)
+        expected = set(self._pset_order) | set(self._slot_order)
+        if len(order) != len(expected) or set(order) != expected:
+            raise ValueError(
+                f"entity_order {order} must be a permutation of the indexer's "
+                f"PropertySet and Slot names {sorted(expected)}."
+            )
+
+        offsets = {}
+        current_offset = 0
+        for name in order:
+            offsets[name] = current_offset
+            if name in self._property_sets:
+                current_offset += self._property_sets[name].state_length
+            else:  # slot — occupies exactly one index
+                current_offset += 1
+
+        object.__setattr__(self, '_entity_order', order)
+        object.__setattr__(self, '_offsets', offsets)
+        object.__setattr__(self, '_total_state_length', current_offset)
+
+    def _layout_order(self) -> list[str]:
+        """
+        Return the concatenated layout order of PropertySets and Slots.
+
+        Falls back to the default psets-then-slots order for objects predating
+        the ``_entity_order`` attribute (e.g. older pickles).
+        """
+        return list(
+            getattr(self, '_entity_order', None)
+            or (list(self._pset_order) + list(self._slot_order))
+        )
 
     def property_sets(self) -> list[PropertySet]:
         """Return all PropertySets in insertion order.
@@ -1516,6 +1570,13 @@ class StateIndexer:
         for name in self._slot_order:
             components.append(f"{name}=slot")
 
+        # Only surface the layout order when it interleaves slots and
+        # PropertySets differently from the default psets-then-slots layout, so
+        # the repr (and any cache key derived from it) is unchanged for
+        # conventionally-constructed indexers.
+        layout = self._layout_order()
+        if layout != list(self._pset_order) + list(self._slot_order):
+            return f"StateIndexer({', '.join(components)}; layout={layout})"
         return f"StateIndexer({', '.join(components)})"
 
     def __hash__(self) -> int:
@@ -1545,6 +1606,13 @@ class StateIndexer:
         for name in self._slot_order:
             hash_components.append(('slot', name))
 
+        # Distinguish a non-default (interleaved) layout. Omitted for the
+        # default psets-then-slots layout so the hash is byte-for-byte unchanged
+        # for conventionally-constructed indexers.
+        layout = self._layout_order()
+        if layout != list(self._pset_order) + list(self._slot_order):
+            hash_components.append(('entity_order', tuple(layout)))
+
         return hash(tuple(hash_components))
 
     def __eq__(self, other: object) -> bool:
@@ -1565,6 +1633,10 @@ class StateIndexer:
         if self._pset_order != other._pset_order:
             return False
         if self._slot_order != other._slot_order:
+            return False
+        # Same concatenated layout (two indexers with identical PropertySets and
+        # Slots but different interleavings index the state vector differently).
+        if self._layout_order() != other._layout_order():
             return False
 
         # Check each PropertySet
@@ -1611,10 +1683,16 @@ class StateIndexer:
         """
         Create new StateIndexer by appending another's PropertySets and Slots.
 
-        The resulting indexer has:
-        - All PropertySets from self (indices 0 to self.state_length - 1)
-        - All PropertySets from other (indices offset by self.state_length)
-        - Slots from both indexers
+        The resulting indexer concatenates the two layouts as contiguous blocks:
+        - All of self's PropertySets and Slots keep their layout, occupying
+          indices 0 to self.state_length - 1
+        - All of other's PropertySets and Slots follow, offset by
+          self.state_length
+
+        Because each operand's layout is preserved verbatim, a Slot of self that
+        is not at the very end (e.g. an ``epoch`` slot followed by appended
+        reward PropertySets) stays at its original index rather than being
+        relocated past other's block.
 
         Parameters
         ----------
@@ -1680,6 +1758,9 @@ class StateIndexer:
             other_dict['slots'] = [f"{prefix_other}{name}" for name in other_dict['slots']]
             other_dict['slot_order'] = [f"{prefix_other}{name}" for name in other_dict['slot_order']]
 
+            # Prefix unified layout order names
+            other_dict['entity_order'] = [f"{prefix_other}{name}" for name in other_dict['entity_order']]
+
         # Check for name collisions
         self_pset_names = set(self_dict['property_sets'].keys())
         other_pset_names = set(other_dict['property_sets'].keys())
@@ -1700,12 +1781,18 @@ class StateIndexer:
                 f"Use prefix_other parameter to avoid collisions."
             )
 
-        # Merge the dicts
+        # Merge the dicts. The unified layout order is concatenated so that
+        # each operand keeps its own internal layout as a contiguous block:
+        # self's entities occupy [0, self.state_length), other's follow at
+        # offset self.state_length. This mirrors how the actual state vectors
+        # are concatenated (e.g. np.append(base_state, reward_state)), so a
+        # slot of self stays put instead of being relocated past other's block.
         merged = {
             'property_sets': {**self_dict['property_sets'], **other_dict['property_sets']},
             'pset_order': self_dict['pset_order'] + other_dict['pset_order'],
             'slots': self_dict['slots'] + other_dict['slots'],
-            'slot_order': self_dict['slot_order'] + other_dict['slot_order']
+            'slot_order': self_dict['slot_order'] + other_dict['slot_order'],
+            'entity_order': self_dict['entity_order'] + other_dict['entity_order'],
         }
 
         # Reconstruct using from_dict
@@ -1787,7 +1874,15 @@ class StateIndexer:
             },
             'slots': list(self._slots.keys()),
             'pset_order': self._pset_order,
-            'slot_order': self._slot_order
+            'slot_order': self._slot_order,
+            # Unified layout order, so a round-trip preserves an interleaved
+            # layout (e.g. a slot sitting before a PropertySet after append).
+            # Falls back to the default psets-then-slots order for objects
+            # predating this field.
+            'entity_order': list(
+                getattr(self, '_entity_order', None)
+                or (list(self._pset_order) + list(self._slot_order))
+            ),
         }
 
     @classmethod
@@ -1831,10 +1926,21 @@ class StateIndexer:
             property_lists[name] = properties
 
         # Reconstruct with slots in correct order
-        return cls(
+        indexer = cls(
             *data['slot_order'],  # Positional slot arguments
             **property_lists      # Named PropertySet arguments
         )
+
+        # Re-apply the stored layout order if it interleaves slots and
+        # PropertySets differently from the default psets-then-slots layout
+        # (e.g. an indexer produced by append()). Absent for older dicts.
+        entity_order = data.get('entity_order')
+        if entity_order is not None:
+            default_order = list(indexer._pset_order) + list(indexer._slot_order)
+            if list(entity_order) != default_order:
+                indexer._apply_entity_order(list(entity_order))
+
+        return indexer
 
 
 

@@ -3408,6 +3408,28 @@ class Graph(_Graph):
         Graph
             New graph with epoch transitions wired up.
         """
+        # Reject the joint -> epoch composition order. add_epoch wires epoch
+        # transitions from stop_probability/accumulated_occupancy and extends
+        # the next epoch via a per-state callback — machinery defined for the
+        # base coalescent graph, not for a joint-probability graph whose state
+        # space already folds in reward-count dimensions, trash states, and a
+        # discrete absorbing layout. Adding an epoch here would apply the epoch
+        # transition to the reward-augmented joint state space, encoding a
+        # different model. Epochs must be added to the base graph first; the
+        # joint distribution is built last (epoch -> joint).
+        if getattr(self, '_joint_prob_base_graph_indexer', None) is not None:
+            raise ValueError(
+                "add_epoch() is not supported on a joint-probability graph (one "
+                "built via joint_prob_graph). Add epoch boundaries to the base "
+                "graph BEFORE building the joint distribution, i.e. epoch -> joint:\n"
+                "    base  = Graph(callback, indexer=indexer)\n"
+                "    base  = base.add_epoch(t1)            # epoch(s) on the base graph\n"
+                "    joint = base.joint_prob_graph(...)    # fold mutations in last\n"
+                "The reverse order (joint_prob_graph then add_epoch) is rejected "
+                "because the epoch transition would be applied to the reward-"
+                "augmented joint state space, which encodes a different model."
+            )
+
         if callback is None and self._callback is None:
             raise RuntimeError(
                 "No callback available. Either construct the graph with a callback "
