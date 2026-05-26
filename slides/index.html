@@ -6,8 +6,8 @@
 <script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
 <link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="index_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.9.37">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.9.38">
 
   <meta name="author" content="Kasper Munch">
   <title>Phase-type distribution graphs for population genetics</title>
@@ -98,7 +98,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="index_files/libs/revealjs/dist/theme/quarto-f106e3a96704ae963388b7d27058153f.css">
+  <link rel="stylesheet" href="index_files/libs/revealjs/dist/theme/quarto-156624f35a8659fbd1f0a8c7a7a1a1cf.css">
   <link href="index_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
   <link href="index_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
   <link href="index_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
@@ -224,628 +224,35 @@ Kasper Munch
 ➛ ➜ ➔ ➝ ➞ ➟ ➠ ➧ ➨
 ⭠ ⭢ ⭤ ⭡ ⭣ ⭥ 
 -->
+<!-- Red text: -->
+<!-- [important note]{.alert} -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section>
-<section id="todo" class="title-slide slide level1 center">
-<h1>TODO</h1>
+<section id="introduction" class="title-slide slide level1 center">
+<h1>Introduction</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="phase-type-distributions" class="slide level2">
+<h2>Phase-type distributions</h2>
+<div class="absolute" style="top: 25%; ">
 <ul>
-<li>Model comparison / LR test</li>
-<li>SMC’</li>
-<li>epoch joint prob</li>
+<li><strong>“Distribution of time to absorption of a discrete space Markov jump process.”</strong></li>
 </ul>
-<p><span class="alert">important note</span></p>
-</section>
-<section id="figure-embeds-1" class="slide level2">
-<h2>Figure embeds 1</h2>
-<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-aux-vertex">
-<div id="cell-fig-discrete-aux-vertex" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:25.704449Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:25.704333Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:25.830961Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:25.830357Z&quot;}}" data-execution_count="5">
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div id="fig-discrete-aux-vertex" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-aux-vertex-output-1.svg" id="fig-discrete-aux-vertex">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-geometric">
-<div id="cell-fig-geometric" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:25.832592Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:25.832468Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:25.980015Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:25.979492Z&quot;}}" data-execution_count="6">
-<div class="cell-output cell-output-display">
-<div id="fig-geometric" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-geometric-output-1.svg">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Continuous (exponential) distribution
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discretize">
-<div id="cell-fig-discretize" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.223924Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.223836Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.348544Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.347884Z&quot;}}" data-execution_count="10">
-<div class="cell-output cell-output-display" data-execution_count="10">
-<div id="fig-discretize" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discretize-output-1.svg" id="fig-discretize">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-rev-trans">
-<div id="cell-fig-discrete-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.500030Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.499945Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.626586Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.625971Z&quot;}}" data-execution_count="17">
-<div class="cell-output cell-output-display" data-execution_count="17">
-<div id="fig-discrete-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-rev-trans-output-1.svg" id="fig-discrete-rev-trans">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-pmf-cdf">
-<div id="cell-fig-discrete-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.628279Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.628169Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:26.816667Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:26.816153Z&quot;}}" data-execution_count="18">
-<div class="cell-output cell-output-display">
-<div id="fig-discrete-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-pmf-cdf-output-1.svg" id="fig-discrete-pmf-cdf">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-singleton-graph">
-<div id="cell-fig-discrete-singleton-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:26.960936Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:26.960832Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:27.087872Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:27.087295Z&quot;}}" data-execution_count="23">
-<div class="cell-output cell-output-display" data-execution_count="23">
-<div id="fig-discrete-singleton-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-singleton-graph-output-1.svg" id="fig-discrete-singleton-graph">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-marginal-pmf-cdf">
-<div id="cell-fig-discrete-marginal-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:27.089441Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:27.089316Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:27.580640Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:27.580122Z&quot;}}" data-execution_count="24">
-<div class="cell-output cell-output-display">
-<div id="fig-discrete-marginal-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-marginal-pmf-cdf-output-1.svg" id="fig-discrete-marginal-pmf-cdf">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-prob-graph">
-<div id="cell-fig-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.822757Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.822646Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:55.959559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:55.959012Z&quot;}}" data-execution_count="5">
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div id="fig-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-graph-output-1.svg" id="fig-joint-prob-graph">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-</div>
-</section>
-<section id="figure-embeds-2" class="slide level2">
-<h2>Figure embeds 2</h2>
-<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-heatmap">
-<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.978257Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.978147Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:56.451946Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:56.451431Z&quot;}}" data-execution_count="8">
-<div id="fig-joint-heatmap" class="cell quarto-float quarto-figure quarto-figure-center" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:55.978257Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:55.978147Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:56.451946Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:56.451431Z&quot;}}">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div id="fig-joint-heatmap-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-subfloat-fig">
-<div aria-describedby="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a)
-</figcaption>
-</figure>
-</div>
-<div class="cell-output cell-output-display">
-<div id="fig-joint-heatmap-2" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-subfloat-fig">
-<div aria-describedby="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-heatmap-output-2.svg" id="fig-joint-heatmap-2" data-ref-parent="fig-joint-heatmap">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b)
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;9
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-graph">
-<div id="cell-fig-cont-joint-prob-graph" class="cell" data-execution_count="15">
-<div class="cell-output cell-output-display" data-execution_count="15">
-<div id="fig-cont-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-graph-output-1.svg" id="fig-cont-joint-prob-graph">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;10
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-epoch-graph">
-<div id="cell-fig-cont-joint-prob-epoch-graph" class="cell" data-execution_count="20">
-<div class="cell-output cell-output-display" data-execution_count="20">
-<div id="fig-cont-joint-prob-epoch-graph" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-epoch-graph-output-1.svg" id="fig-cont-joint-prob-epoch-graph">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;11
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-joint-prob-over-time">
-<div id="cell-fig-joint-prob-over-time" class="cell" data-execution_count="18">
-<div class="cell-output cell-output-display">
-<div id="fig-joint-prob-over-time" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-joint-prob-over-time-output-1.svg" id="fig-joint-prob-over-time">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;12
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-transform">
-<div id="cell-fig-laplace-transform" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:03:02.127966Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:03:02.127830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:03:02.257894Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:03:02.257235Z&quot;}}" data-execution_count="7">
-<div class="cell-output cell-output-display" data-execution_count="7">
-<div id="fig-laplace-transform" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-transform-output-1.svg" id="fig-laplace-transform">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;13
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-pdf">
-<div id="cell-fig-laplace-pdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:03:02.271143Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:03:02.271044Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:03:02.604424Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:03:02.603880Z&quot;}}" data-execution_count="11">
-<div class="cell-output cell-output-display">
-<div id="fig-laplace-pdf" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-pdf-output-1.svg" id="fig-laplace-pdf">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;14
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-pdf-cdf">
-<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.885069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.884996Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.063216Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.062722Z&quot;}}" data-execution_count="16">
-<div class="cell-output cell-output-display">
-<div id="fig-pdf-cdf" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-pdf-cdf-output-1.svg" id="fig-pdf-cdf">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;15
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs">
-<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.071959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.071857Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.127984Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.127633Z&quot;}}" data-execution_count="19">
-<div class="cell-output cell-output-display">
-<div id="fig-sfs" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-output-1.svg" id="fig-sfs">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;16
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-</div>
-</section>
-<section id="figure-embeds-3" class="slide level2">
-<h2>Figure embeds 3</h2>
-<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-rev-trans">
-<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.223202Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.222895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.415444Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.412026Z&quot;}}" data-execution_count="20">
-<div class="cell-output cell-output-display" data-execution_count="20">
-<div id="fig-singleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-rev-trans-output-1.svg" id="fig-singleton-rev-trans">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;17
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-rev-trans">
-<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.571184Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.571067Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.748770Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.746788Z&quot;}}" data-execution_count="23">
-<div class="cell-output cell-output-display" data-execution_count="23">
-<div id="fig-doubleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-rev-trans-output-1.svg" id="fig-doubleton-rev-trans">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;18
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-rev-trans">
-<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.909181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.908782Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.069393Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.067673Z&quot;}}" data-execution_count="25">
-<div class="cell-output cell-output-display" data-execution_count="25">
-<div id="fig-tripleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-rev-trans-output-1.svg" id="fig-tripleton-rev-trans">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;19
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-branches">
-<div id="cell-fig-singleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.423198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.422903Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.569745Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.569151Z&quot;}}" data-execution_count="21">
-<div class="cell-output cell-output-display column-margin">
-<div id="fig-singleton-branches" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-branches-output-1.svg">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;20: Singleton branch length
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-branches">
-<div id="cell-fig-doubleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.752248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.752074Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.904513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.901972Z&quot;}}" data-execution_count="24">
-<div class="cell-output cell-output-display column-margin">
-<div id="fig-doubleton-branches" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-branches-output-1.svg">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;21: Double branch length
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-branches">
-<div id="cell-fig-tripleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.073656Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.073449Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.136765Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.134350Z&quot;}}" data-execution_count="26">
-<div class="cell-output cell-output-display column-margin">
-<div id="fig-tripleton-branches" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-branches-output-1.svg">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;22: Tripleton branch length
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs-marginal-pdfs">
-<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.113754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.113652Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.237523Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.236208Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="32">
-<div class="cell-output cell-output-display">
-<div id="fig-sfs-marginal-pdfs" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-marginal-pdfs-output-1.svg" id="fig-sfs-marginal-pdfs">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;23
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-ton-lineages-across-time">
-<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.395676Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.395541Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.511483Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.510817Z&quot;}}" data-execution_count="37">
-<div class="cell-output cell-output-display">
-<div id="fig-ton-lineages-across-time" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-ton-lineages-across-time-output-1.svg" id="fig-ton-lineages-across-time">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;24
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-</div>
-</section>
-<section id="figure-embeds-4" class="slide level2">
-<h2>Figure embeds 4</h2>
-<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-accumulated-occupancies">
-<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.531932Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.531737Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.640609Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.638779Z&quot;}}" data-execution_count="39">
-<div class="cell-output cell-output-display">
-<div id="fig-accumulated-occupancies" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-accumulated-occupancies-output-1.svg" id="fig-accumulated-occupancies">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;25
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tmrca-sampling-dist">
-<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.655650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.654994Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.903431Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.901842Z&quot;}}" data-execution_count="41">
-<div class="cell-output cell-output-display">
-<div id="fig-tmrca-sampling-dist" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tmrca-sampling-dist-output-1.svg">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;26: Sampling distribution.
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-accumulated-occupancy">
-<div id="cell-fig-accumulated-occupancy" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:47.200814Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:47.200717Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.290181Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.289699Z&quot;}}">
-<div class="cell-output cell-output-display">
-<div id="fig-accumulated-occupancy" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-accumulated-occupancy-output-1.svg" id="fig-accumulated-occupancy">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;27
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-distribution-context">
-<div id="cell-fig-distribution-context" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-17T01:22:46.937496Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-17T01:22:46.937405Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-17T01:22:47.146729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-17T01:22:47.146230Z&quot;}}" data-execution_count="24">
-<div class="cell-output cell-output-display">
-<div id="fig-distribution-context" class="quarto-float quarto-figure quarto-figure-center">
-<figure class="quarto-float quarto-float-fig">
-<div aria-describedby="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-distribution-context-output-1.svg" id="fig-distribution-context">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;28
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-</div></div>
-<div class="quarto-layout-row">
-<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-
-</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
-
-</div></div>
-</div>
-<!-- =============================================================================== -->
-</section>
-<section id="some-extra-things-you-can-do-with-the-clean-theme" class="slide level2">
-<h2>Some extra things you can do with the clean theme</h2>
-<p>Special classes for emphasis</p>
+<div class="absolute" style="top: 40%; ">
 <ul>
-<li><code>.alert</code> class for default emphasis, e.g.&nbsp;<span class="alert">important note</span>.</li>
-<li><code>.fg</code> class for custom colour, e.g.&nbsp;<span class="fg" style="--col: #e64173">important note</span>.</li>
-<li><code>.bg</code> class for custom background, e.g.&nbsp;<span class="bg" style="--col: #e64173">important note</span>.</li>
+<li><strong>Lots</strong> of other applications
+<ul>
+<li>“What is the distribution of time water molecules spend in each tank of a sewage treatment plant?”</li>
+<li>“How likely are all packets of data to reach a server in less than some time?”</li>
+<li>“How much time do lineages of a coalescent or ARG spend spend in different states?”</li>
+</ul></li>
 </ul>
-<p>Slide content</p>
-
-<!-- =============================================================================== -->
-<!-- =============================================================================== -->
-<aside><div>
-<p>Schumer et al.&nbsp;(2018)</p>
-</div></aside></section></section>
-<section>
-<section id="phase-type-distributions" class="title-slide slide level1 center">
-<h1>Phase-type distributions</h1>
-<!-- =============================================================================== -->
-<!-- =============================================================================== -->
-</section>
-<section id="when-to-use-phase-type-distributions" class="slide level2">
-<h2>When to Use Phase-Type Distributions</h2>
-<p>Phase-type distributions are particularly useful when:</p>
-<ol type="1">
-<li><strong>Modeling absorption times</strong>: Time until system reaches terminal state</li>
-<li><strong>Sparse state spaces</strong>: Many states but few transitions per state</li>
-<li><strong>Complex phenomena</strong>: Iterative construction from simple rules</li>
-<li><strong>Multiple quantities</strong>: Multivariate distributions with correlated outcomes</li>
-<li><strong>Large state spaces</strong>: Thousands to millions of states</li>
-</ol>
-<p><strong>Applications</strong>: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)</p>
+</div>
 <!-- =============================================================================== -->
 </section>
 <section id="the-coalescent-is-a-markov-jump-process" class="slide level2">
@@ -921,8 +328,8 @@ Figure&nbsp;28
 </div>
 <!-- =============================================================================== -->
 </section>
-<section id="waiting-time-in-the-coalescent-is-a-phase-type-distributed" class="slide level2">
-<h2>Waiting time in the coalescent is a <strong>phase-type distributed</strong></h2>
+<section id="waiting-time-in-the-coalescent-isphase-type-distributed" class="slide level2">
+<h2>Waiting time in the coalescent is*phase-type distributed**</h2>
 <div class="absolute" style="top: 30%; left: 0%; width: 50%; ">
 <div class="quarto-figure quarto-figure-left">
 <figure>
@@ -943,26 +350,27 @@ Figure&nbsp;28
 </div>
 <!-- =============================================================================== -->
 </section>
-<section id="moments" class="slide level2">
-<h2>Moments</h2>
+<section id="moments-of-a-phase-type-distribution" class="slide level2">
+<h2><strong>Moments</strong> of a phase-type distribution</h2>
 <div class="absolute larger" style="top: 25%; left: 10%; ">
 <p><span class="math display">\[
-\mathbb{E}[\tau] = \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}} \boldsymbol{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
+\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \mathbf{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
 \]</span></p>
 </div>
 <div class="absolute larger" style="top: 50%; left: 10%; ">
-<p><span class="math display">\[\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}}^k \boldsymbol{e}\]</span></p>
+<p><span class="math display">\[\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \boldsymbol{U}^k \mathbf{e}\]</span></p>
 </div>
 <!-- =============================================================================== -->
 </section>
-<section id="distribution" class="slide level2">
-<h2>Distribution</h2>
+<section id="cdfpdf-for-a-phase-type-distribution" class="slide level2">
+<h2><strong>CDF/PDF</strong> for a phase-type distribution</h2>
 <div class="absolute larger" style="top: 25%; left: 10%; ">
-<p><span class="math display">\[F(t) = 1 - \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} \boldsymbol{e}, \quad t \geq 0\]</span></p>
+<p><span class="math display">\[F(t) = 1 - \boldsymbol{\alpha} e^{\boldsymbol{S}t} \mathbf{e}, \quad t \geq 0\]</span></p>
 </div>
 <div class="absolute larger" style="top: 50%; left: 10%; ">
-<p><span class="math display">\[f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{S}) \boldsymbol{e}, \quad t \geq 0\]</span></p>
+<p><span class="math display">\[f(t) = \boldsymbol{\alpha} e^{\boldsymbol{S}t} (-\boldsymbol{S}) \mathbf{e}, \quad t \geq 0\]</span></p>
 </div>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section></section>
 <section>
@@ -972,7 +380,7 @@ Figure&nbsp;28
 <!-- =============================================================================== -->
 </section>
 <section id="phase-type-distribution-with-rewards" class="slide level2">
-<h2>Phase-type distribution with rewards</h2>
+<h2>Phase-type distribution with <strong>rewards</strong></h2>
 <div class="quarto-layout-panel" data-layout="[0.55,-0.05,0.4]">
 <div class="quarto-layout-row">
 <div class="column quarto-layout-cell" style="flex-basis: 55.0%;justify-content: center;">
@@ -999,34 +407,19 @@ Figure&nbsp;28
 \end{bmatrix}\)</span></p>
 <p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
 </div></div>
+<div class="quarto-layout-row">
+<div class="feature larger quarto-layout-cell" style="flex-basis: 55.0%;justify-content: flex-start;">
+<p>But why?</p>
+</div>
+<div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+</div>
 </div>
 <!-- =============================================================================== -->
 </section>
-<section id="moments-with-rewards" class="slide level2">
-<h2>Moments with rewards</h2>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
-<p><span class="math inline">\(\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}\)</span></p>
-<!-- =============================================================================== -->
-</section>
-<section id="marginal-moments" class="slide level2">
-<h2>Marginal moments</h2>
-<p>The <span class="math inline">\(k\)</span>-th moment of the reward-transformed distribution:</p>
-<p><span class="math display">\[\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \boldsymbol{e}\]</span></p>
-<p>where <span class="math inline">\(\boldsymbol{\Delta}(\boldsymbol{r})\)</span> is a diagonal matrix with rewards on the diagonal.</p>
-<!-- =============================================================================== -->
-<!-- 
-## Multivariate Phase-Type Distributions
-
-**Multivariate phase-type distributions** assign a vector of rewards to each state, resulting in a vector-valued outcome:
-
-$$\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})$$
-
-where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
- -->
-<!-- =============================================================================== -->
-</section>
-<section id="phase-type-distributed-waiting-time" class="slide level2">
-<h2><strong>Phase-type</strong> distributed waiting time</h2>
+<section id="phase-type-distribution-with-rewards-1" class="slide level2">
+<h2>Phase-type distribution with <strong>rewards</strong></h2>
 <div class="quarto-layout-panel" data-layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]">
 <div class="quarto-layout-row">
 <div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
@@ -1040,7 +433,7 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 <div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
 <p><strong>TMRCA (tree height):</strong></p>
 <p><span class="math inline">\({\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)\)</span></p>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}\)</span></p>
 </div></div>
 <div class="quarto-layout-row">
 <div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
@@ -1054,9 +447,30 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 <div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: flex-start;">
 <p><strong>Total branch length:</strong></p>
 <p><span class="math inline">\({\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)\)</span></p>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}\)</span></p>
 </div></div>
 </div>
+<!-- =============================================================================== -->
+</section>
+<section id="marginal-moments" class="slide level2">
+<h2>Marginal moments</h2>
+<div class="absolute" style="top: 20%; ">
+<p><span class="math inline">\(k\)</span>-th moment of the reward-transformed distribution:</p>
+</div>
+<div class="absolute larger" style="top: 30%; left: 10%; ">
+<p><span class="math display">\[\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \mathbf{e}\]</span></p>
+</div>
+<div class="absolute" style="top: 50%; ">
+<p>where <span class="math inline">\(\boldsymbol{\Delta}(\boldsymbol{r})\)</span> is a diagonal matrix with rewards on the diagonal.</p>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="multivariate-phase-type-distributions" class="slide level2">
+<h2>Multivariate Phase-Type Distributions</h2>
+<p><strong>Multivariate phase-type distributions</strong> assign a vector of rewards to each state, resulting in a vector-valued outcome:</p>
+<p><span class="math display">\[\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})\]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{R}\)</span> is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).</p>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section></section>
 <section>
@@ -1065,80 +479,86 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
-<section id="matrix-formulation-of-phase-type-distributions" class="slide level2">
-<h2><strong>Matrix formulation</strong> of phase-type distributions</h2>
-<div class="quarto-layout-panel" data-layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
-<p>😀 Proofs and well-described properties:</p>
-<p>CDF: <span class="math inline">\(\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0\)</span></p>
-<p>MGF: <span class="math inline">\(\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}\)</span></p>
+<section id="matrix-formulation" class="slide level2">
+<h2><strong>Matrix</strong> formulation</h2>
 <div class="spacer-1">
 
 </div>
-<p>😱 Complexity:</p>
-<p>Matrix operations (<span class="math inline">\({\boldsymbol{S}}^{-1}\)</span> and <span class="math inline">\({\boldsymbol{S}}^{t}\)</span>) limit applicability. Needlessly so for sparse matrices.</p>
+<div class="quarto-layout-panel" data-layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]">
+<div class="quarto-layout-row">
+<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
+<p><strong>Analytically tractable</strong> 😀</p>
+<div class="spacer-2">
+
+</div>
+<div class="larger">
+<p><span class="math inline">\(F_\tau(t) = 1 - \boldsymbol{\alpha}{\color{magenta}e^{\boldsymbol{S}t}}\mathbf{e}, \;\; t\geq 0\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} ({\color{magenta}\boldsymbol{U}}\triangle({\color{black}\boldsymbol{r}}))^{k}\mathbf{e}\)</span></p>
+</div>
+</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.3%;justify-content: flex-start;">
+<p>&nbsp;</p>
+</div>
+<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: center;">
+<p><strong>Scale poorly</strong> 😱</p>
+<p><img data-src="./images/sparse-matrix.png" class=""></p>
+<div class="absolute" style="top: 90%; left: 5%; ">
+<p>(Coalescent n=10)</p>
+</div>
+</div></div>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="graph-formulation" class="slide level2">
+<h2><strong>Graph</strong> formulation</h2>
+<div class="absolute" style="top: 15%; left: 50%; width: 60%; ">
+<p><img data-src="./images/sparse-matrix-as-graph.png" class="" style="width:100.0%"></p>
+</div>
+<div class="spacer-1">
+
+</div>
+<div class="quarto-layout-panel" data-layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]">
+<div class="quarto-layout-row">
+<div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
+<p><strong>Analytically tractable</strong> 😀</p>
+<div class="spacer-1">
+
+</div>
+<ul>
+<li>As graph algorithms:
+<ul>
+<li>Elimination</li>
+<li>Exponentiation</li>
+</ul></li>
+<li>Allows:
+<ul>
+<li>Decomposition</li>
+<li>Parallelization</li>
+<li>Parametrization</li>
+<li>Cashing</li>
+<li>Sharing</li>
+<li>Inference</li>
+</ul></li>
+</ul>
 </div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.3%;justify-content: flex-start;">
 <p>&nbsp;</p>
 </div>
 <div class="column quarto-layout-cell" style="flex-basis: 47.4%;justify-content: flex-start;">
-<p>Coalescent n=10:</p>
-<div class="r-stack">
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><img data-src="./images/sparse-matrix.png" class="nostretch disappear quarto-figure quarto-figure-center" style="height:30.0%"></p>
-</figure>
-</div>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch fragment quarto-figure quarto-figure-center" style="height:30.0%"></p>
-</figure>
-</div>
-</div>
+<p><strong>Scale</strong> 😀</p>
+<!-- ![](./images/sparse-matrix-as-graph.png){.nostretch width="100%"} -->
 </div></div>
 </div>
-<!-- =============================================================================== -->
-</section>
-<section id="a-graph-formulation-of-phase-type-distributions" class="slide level2">
-<h2>A <strong>graph-formulation</strong> of phase-type distributions</h2>
-<p>Coalescent n=10:</p>
-<div class="quarto-layout-panel" data-layout="[0.40,-0.05,0.1,-0.05,0.40]">
-<div class="quarto-layout-row">
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
-<p>😱</p>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><img data-src="./images/sparse-matrix.png" class="nostretch quarto-figure quarto-figure-center"></p>
-</figure>
+<div class="absolute" style="top: 90%; left: 55%; ">
+<p>(Coalescent n=10)</p>
 </div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 10.0%;justify-content: flex-start;">
-<div class="r-fit-text center">
-<p>⮕</p>
-</div>
-</div><div class="quarto-figure-spacer quarto-layout-cell" style="flex-basis: 5.0%;justify-content: flex-start;">
-<p>&nbsp;</p>
-</div>
-<div class="column quarto-layout-cell" style="flex-basis: 40.0%;justify-content: center;">
-<p>😀</p>
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><img data-src="./images/sparse-matrix-as-graph.png" class="nostretch quarto-figure quarto-figure-center"></p>
-</figure>
-</div>
-</div></div>
-</div>
-<p>::::::::</p>
 <!-- =============================================================================== -->
 </section>
 <section id="advantages-of-graph-representation" class="slide level2">
 <h2>Advantages of Graph Representation</h2>
-<ol type="1">
-<li><strong>Memory efficiency</strong>: Store only existing transitions (not full <span class="math inline">\(p \times p\)</span> matrix)
+<p>Sparsely connected state spaces:</p>
 <ul>
-<li>For sparse systems: <span class="math inline">\(O(|E|)\)</span> vs <span class="math inline">\(O(p^2)\)</span> memory</li>
+<li><strong>Memory efficiency</strong>:
+<ul>
+<li>Store only existing transitions (not full <span class="math inline">\(p \times p\)</span> matrix)</li>
 </ul></li>
 <li><strong>Computational efficiency</strong>: Operations on edges only
 <ul>
@@ -1154,7 +574,13 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 <li>Markov property: next state depends only on current state</li>
 <li>Easy to encode complex models</li>
 </ul></li>
-</ol>
+</ul>
+<div class="todo">
+<ul>
+<li>Big O notation for algorithms</li>
+</ul>
+</div>
+<p>As var as the interaction between two adjacent epochs, it does not matter if the former epoch comprise multiple epoch or not. So for starters we just need to consider a two epoch model.</p>
 <!-- =============================================================================== -->
 </section>
 <section id="graph-computation-stages" class="slide level2">
@@ -1177,11 +603,62 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 <p>Recursion</p>
 </div>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="why-do-this-at-all" class="title-slide slide level1 center">
 <h1>Why do this at all?</h1>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="uses" class="slide level2">
+<h2>Uses</h2>
+<div class="todo">
+<ul>
+<li>Motivations:
+<ul>
+<li>Exact computation for reference</li>
+<li>Exploration of statistical properties (where is the tradeoff between nr of samples / phased or not / model “completeness”).</li>
+<li>Can we do with less data if you model more of its properties?</li>
+<li>How far can we take inference on unphased data?</li>
+<li>Can we exploit tree sequences for general inference?</li>
+<li>What can be computed given enough time and money? And can we share such precomputed models?</li>
+</ul></li>
+</ul>
+</div>
+<!-- =============================================================================== -->
+</section>
+<section id="use-case" class="slide level2">
+<h2>Use case</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href=""></a><span class="co">#| echo: true</span></span>
+<span id="cb1-2"><a href=""></a><span class="co">#| code-line-numbers: "1-10|11-13"</span></span>
+<span id="cb1-3"><a href=""></a><span class="co">#| output-location: column-fragment</span></span>
+<span id="cb1-4"><a href=""></a></span>
+<span id="cb1-5"><a href=""></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb1-6"><a href=""></a></span>
+<span id="cb1-7"><a href=""></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb1-8"><a href=""></a>    transitions <span class="op">=</span> []</span>
+<span id="cb1-9"><a href=""></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb1-10"><a href=""></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
+<span id="cb1-11"><a href=""></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb1-12"><a href=""></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb1-13"><a href=""></a>                <span class="cf">continue</span></span>
+<span id="cb1-14"><a href=""></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb1-15"><a href=""></a>                <span class="cf">continue</span> </span>
+<span id="cb1-16"><a href=""></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb1-17"><a href=""></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb1-18"><a href=""></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb1-19"><a href=""></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-20"><a href=""></a>            rate <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb1-21"><a href=""></a>            transitions.append((new, rate))</span>
+<span id="cb1-22"><a href=""></a>    <span class="cf">return</span> transitions</span>
+<span id="cb1-23"><a href=""></a></span>
+<span id="cb1-24"><a href=""></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb1-25"><a href=""></a>initial_state <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb1-26"><a href=""></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial_state)</span>
+<span id="cb1-27"><a href=""></a><span class="co">#graph.plot()</span></span>
+<span id="cb1-28"><a href=""></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <!-- =============================================================================== -->
 </section>
 <section id="math-algorithms-inference" class="slide level2">
@@ -1277,10 +754,12 @@ where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, 
 </div></div>
 </div>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="dag-construction" class="title-slide slide level1 center">
 <h1>DAG construction</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1481,11 +960,233 @@ T_D &amp;= 16
 <p><img data-src="./images/elimination.svg"></p>
 <p><img data-src="./images/graph_elimination_example.svg"></p>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="moments-on-the-graph" class="title-slide slide level1 center">
 <h1>Moments on the graph</h1>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="figures" class="slide level2">
+<h2>Figures</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-pdf-cdf">
+<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.686365Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.686289Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.064535Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.064020Z&quot;}}" data-execution_count="16">
+<div class="cell-output cell-output-display">
+<div id="fig-pdf-cdf" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-pdf-cdf-output-1.svg" id="fig-pdf-cdf">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-pdf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs">
+<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.074762Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.074681Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.155011Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.154538Z&quot;}}" data-execution_count="19">
+<div class="cell-output cell-output-display">
+<div id="fig-sfs" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-output-1.svg" id="fig-sfs">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-rev-trans">
+<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.156447Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.156349Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.281911Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.281249Z&quot;}}" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div id="fig-singleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-rev-trans-output-1.svg" id="fig-singleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-singleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-rev-trans">
+<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.408799Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.408702Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.531153Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.530554Z&quot;}}" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div id="fig-doubleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-rev-trans-output-1.svg" id="fig-doubleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-doubleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
+</section>
+<section id="figures-1" class="slide level2">
+<h2>Figures</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-rev-trans">
+<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.654236Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.654131Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.779479Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.778870Z&quot;}}" data-execution_count="25">
+<div class="cell-output cell-output-display" data-execution_count="25">
+<div id="fig-tripleton-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-rev-trans-output-1.svg" id="fig-tripleton-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-tripleton-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-singleton-branches">
+<div id="cell-fig-singleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.283382Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.283265Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.403882Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.403469Z&quot;}}" data-execution_count="21">
+<div class="cell-output cell-output-display column-margin">
+<div id="fig-singleton-branches" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-singleton-branches-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-singleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Singleton branch length
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-doubleton-branches">
+<div id="cell-fig-doubleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.532673Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.532566Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.652847Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.652400Z&quot;}}" data-execution_count="24">
+<div class="cell-output cell-output-display column-margin">
+<div id="fig-doubleton-branches" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-doubleton-branches-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-doubleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Double branch length
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tripleton-branches">
+<div id="cell-fig-tripleton-branches" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.780940Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.780826Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.838708Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.838243Z&quot;}}" data-execution_count="26">
+<div class="cell-output cell-output-display column-margin">
+<div id="fig-tripleton-branches" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tripleton-branches-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tripleton-branches-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Tripleton branch length
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-sfs-marginal-pdfs">
+<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.441505Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.441397Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.578600Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.578024Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="32">
+<div class="cell-output cell-output-display">
+<div id="fig-sfs-marginal-pdfs" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-sfs-marginal-pdfs-output-1.svg" id="fig-sfs-marginal-pdfs">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-sfs-marginal-pdfs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-ton-lineages-across-time">
+<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.862386Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.862268Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.986974Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.986445Z&quot;}}" data-execution_count="37">
+<div class="cell-output cell-output-display">
+<div id="fig-ton-lineages-across-time" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-ton-lineages-across-time-output-1.svg" id="fig-ton-lineages-across-time">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-ton-lineages-across-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-accumulated-occupancies">
+<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.991993Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.991897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.196738Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.196224Z&quot;}}" data-execution_count="39">
+<div class="cell-output cell-output-display">
+<div id="fig-accumulated-occupancies" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-accumulated-occupancies-output-1.svg" id="fig-accumulated-occupancies">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/properties.ipynb" data-notebook-title="Moments and distributions" data-notebook-cellid="cell-fig-tmrca-sampling-dist">
+<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:10.203471Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:10.203376Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.416400Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.415889Z&quot;}}" data-execution_count="41">
+<div class="cell-output cell-output-display">
+<div id="fig-tmrca-sampling-dist" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-properties-fig-tmrca-sampling-dist-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tmrca-sampling-dist-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: Sampling distribution.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
 <!-- =============================================================================== -->
 </section>
 <section id="expectation" class="slide level2">
@@ -1503,10 +1204,12 @@ T_D &amp;= 16
 <p>(11, 10, 16) are the row sums of the Green matrix. I.e. the expected waiting times starting at each vertex.</p>
 </div>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="reward-transformation" class="title-slide slide level1 center">
 <h1>Reward transformation</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1528,10 +1231,12 @@ T_D &amp;= 16
 <p><img data-src="./images/coalescent-2ton-revtrans-operations.svg"></p>
 </div>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="discrete-phase-type-distributions" class="title-slide slide level1 center">
 <h1>Discrete Phase-Type Distributions</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1542,15 +1247,139 @@ T_D &amp;= 16
 <p><span class="math display">\[\boldsymbol{U} = -(\boldsymbol{T} - \boldsymbol{I})^{-1}\]</span></p>
 <p>CDF (Probability Mass Function)</p>
 <p>The probability of absorption at exactly jump <span class="math inline">\(t\)</span>:</p>
-<p><span class="math display">\[F(t) = 1 - \boldsymbol{\pi} \boldsymbol{T}^t \boldsymbol{e}\]</span></p>
+<p><span class="math display">\[F(t) = 1 - \boldsymbol{\pi} \boldsymbol{T}^t \mathbf{e}\]</span></p>
 <p>Moments</p>
 <p>The expectation:</p>
-<p><span class="math display">\[\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \boldsymbol{e}\]</span></p>
+<p><span class="math display">\[\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \mathbf{e}\]</span></p>
 <!-- =============================================================================== -->
-</section></section>
-<section>
+</section>
+<section id="figures-2" class="slide level2">
+<h2>Figures</h2>
+<div data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-aux-vertex">
+<div id="cell-fig-discrete-aux-vertex" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:44.585446Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:44.585309Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:44.717931Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:44.717317Z&quot;}}" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div id="fig-discrete-aux-vertex" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-aux-vertex-output-1.svg" id="fig-discrete-aux-vertex">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-aux-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-geometric">
+<div id="cell-fig-geometric" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:44.719496Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:44.719379Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:44.840250Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:44.839859Z&quot;}}" data-execution_count="6">
+<div class="cell-output cell-output-display">
+<div id="fig-geometric" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-geometric-output-1.svg">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-geometric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14: Continuous (exponential) distribution
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discretize">
+<div id="cell-fig-discretize" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:45.091481Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:45.091397Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:45.222282Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:45.221704Z&quot;}}" data-execution_count="10">
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div id="fig-discretize" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discretize-output-1.svg" id="fig-discretize">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discretize-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;15
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-rev-trans">
+<div id="cell-fig-discrete-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:45.380862Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:45.380775Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:45.513905Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:45.513255Z&quot;}}" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="17">
+<div id="fig-discrete-rev-trans" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-rev-trans-output-1.svg" id="fig-discrete-rev-trans">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-rev-trans-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-pmf-cdf">
+<div id="cell-fig-discrete-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:45.515615Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:45.515500Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:45.710718Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:45.710176Z&quot;}}" data-execution_count="18">
+<div class="cell-output cell-output-display">
+<div id="fig-discrete-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-pmf-cdf-output-1.svg" id="fig-discrete-pmf-cdf">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-singleton-graph">
+<div id="cell-fig-discrete-singleton-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:45.859399Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:45.859296Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:45.990710Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:45.990195Z&quot;}}" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div id="fig-discrete-singleton-graph" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-singleton-graph-output-1.svg" id="fig-discrete-singleton-graph">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-singleton-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;18
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/discrete.ipynb" data-notebook-title="Discrete distributions" data-notebook-cellid="cell-fig-discrete-marginal-pmf-cdf">
+<div id="cell-fig-discrete-marginal-pmf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:45.992403Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:45.992300Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:46.491154Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:46.490653Z&quot;}}" data-execution_count="24">
+<div class="cell-output cell-output-display">
+<div id="fig-discrete-marginal-pmf-cdf" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-discrete-fig-discrete-marginal-pmf-cdf-output-1.svg" id="fig-discrete-marginal-pmf-cdf">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-discrete-marginal-pmf-cdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;19
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><!-- =============================================================================== -->
+<!-- =============================================================================== -->
 <section id="higher-order-moments" class="title-slide slide level1 center">
 <h1>Higher-order moments</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1561,17 +1390,17 @@ T_D &amp;= 16
 <img data-src="./images/moment_computation_example.svg" class="r-stretch"></section>
 <section id="the-variance" class="slide level2">
 <h2>The variance</h2>
-<p><span class="math display">\[\text{Var}(\tau) = 2\boldsymbol{\alpha} \boldsymbol{U}^2 \boldsymbol{e} - (\boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e})^2\]</span></p>
+<p><span class="math display">\[\text{Var}(\tau) = 2\boldsymbol{\alpha} \boldsymbol{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \boldsymbol{U} \mathbf{e})^2\]</span></p>
 <!-- =============================================================================== -->
 </section>
 <section id="higher-order-moments-2" class="slide level2">
 <h2>Higher-order <strong>moments</strong></h2>
-<p>k’th moment: <span class="math inline">\(\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle(\boldsymbol{r}))^{k}\boldsymbol{e}\)</span></p>
-<p>Expectation: <span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{e}\)</span></p>
-<p>2’nd moment: <span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{e}\)</span></p>
-<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\! \triangle\!\,(\boldsymbol{r}) \boldsymbol{e} = \boldsymbol{\alpha} \boldsymbol{U}  \boldsymbol{e}\)</span> (assuming unit rewards for simplicity).</p>
-<p><span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\boldsymbol{U}\boldsymbol{e}\)</span></p>
-<p><span class="math inline">\(\boldsymbol{U}\boldsymbol{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}\)</span>. So the variance can be written as: <span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\!\triangle\!\,(\boldsymbol{r'}) \boldsymbol{e}\)</span>, where <span class="math inline">\(\boldsymbol{r'}\)</span> are the waiting times computed for the first moment.</p>
+<p>k’th moment: <span class="math inline">\(\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle(\boldsymbol{r}))^{k}\mathbf{e}\)</span></p>
+<p>Expectation: <span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\mathbf{e}\)</span></p>
+<p>2’nd moment: <span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\triangle(\boldsymbol{r})\boldsymbol{U}\triangle(\boldsymbol{r})\mathbf{e}\)</span></p>
+<p><span class="math inline">\(\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\! \triangle\!\,(\boldsymbol{r}) \mathbf{e} = \boldsymbol{\alpha} \boldsymbol{U}  \mathbf{e}\)</span> (assuming unit rewards for simplicity).</p>
+<p><span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\boldsymbol{U}\mathbf{e}\)</span></p>
+<p><span class="math inline">\(\boldsymbol{U}\mathbf{e} = \boldsymbol{r'} = \triangle\!\,(\boldsymbol{r'}) \mathbf{e}\)</span>. So the variance can be written as: <span class="math inline">\(\mathbb{E}[\tau^2] = 2\cdot\boldsymbol{\alpha} \boldsymbol{U}\!\triangle\!\,(\boldsymbol{r'}) \mathbf{e}\)</span>, where <span class="math inline">\(\boldsymbol{r'}\)</span> are the waiting times computed for the first moment.</p>
 <!-- =============================================================================== -->
 </section>
 <section id="higher-order-moments-3" class="slide level2">
@@ -1605,7 +1434,7 @@ T_D &amp;= 16
 <section id="joint-moments" class="slide level2">
 <h2>Joint moments</h2>
 <p>The covariance between dimensions <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span>:</p>
-<p><span class="math display">\[\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e} + \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} - \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{e} \cdot \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{e}\]</span></p>
+<p><span class="math display">\[\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot j})\mathbf{e}\]</span></p>
 <!-- =============================================================================== -->
 </section>
 <section id="discrete-phase-type-distributions-2" class="slide level2">
@@ -1627,33 +1456,203 @@ T_D &amp;= 16
 </div>
 <!-- ![](./images/discrete4.svg) -->
 <!-- =============================================================================== -->
-</section></section>
-<section>
+<!-- =============================================================================== -->
+</section>
+
 <section id="laplace-transform" class="title-slide slide level1 center">
 <h1>Laplace Transform</h1>
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="figures-3" class="slide level2">
+<h2>Figures</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-transform">
+<div id="cell-fig-laplace-transform" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:12:20.005877Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:12:20.005766Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:12:20.132877Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:12:20.132355Z&quot;}}" data-execution_count="7">
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div id="fig-laplace-transform" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-transform-output-1.svg" id="fig-laplace-transform">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-transform-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;20
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/laplace.ipynb" data-notebook-title="Laplace transform" data-notebook-cellid="cell-fig-laplace-pdf">
+<div id="cell-fig-laplace-pdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:12:20.145783Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:12:20.145682Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:12:20.477485Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:12:20.477010Z&quot;}}" data-execution_count="11">
+<div class="cell-output cell-output-display">
+<div id="fig-laplace-pdf" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-laplace-fig-laplace-pdf-output-1.svg" id="fig-laplace-pdf">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-laplace-pdf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;21
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
+<!-- =============================================================================== -->
 </section>
 <section id="laplace-transform-1" class="slide level2">
 <h2><strong>Laplace</strong> Transform</h2>
+<div class="todo">
+<ul>
+<li>Interpretation</li>
+<li>Casper siu / Aylwin Scally IBD</li>
+</ul>
+</div>
 <!-- =============================================================================== -->
-</section></section>
-<section>
+<!-- =============================================================================== -->
+</section>
+
 <section id="joint-probability-of-discrete-events" class="title-slide slide level1 center">
 <h1>Joint probability of discrete events</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="figures-4" class="slide level2">
+<h2>Figures</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-prob-graph">
+<div id="cell-fig-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:12:13.872577Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:12:13.872465Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:12:14.008416Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:12:14.007671Z&quot;}}" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div id="fig-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-prob-graph-output-1.svg" id="fig-joint-prob-graph">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;22
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="column r-stretch">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/joint-probability.ipynb" data-notebook-title="Joint probability" data-notebook-cellid="cell-fig-joint-heatmap">
+<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:12:14.029955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:12:14.029835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:12:14.486844Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:12:14.486290Z&quot;}}" data-execution_count="8">
+<div id="fig-joint-heatmap" class="cell quarto-float quarto-figure quarto-figure-center" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:12:14.029955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:12:14.029835Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:12:14.486844Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:12:14.486290Z&quot;}}">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div id="fig-joint-heatmap-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-subfloat-fig">
+<div aria-describedby="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+
+        <style>
+        .cell-output-ipywidget-background {
+            background-color: transparent !important;
+        }
+       .jp-OutputArea-output {
+           background-color: transparent;
+        }  
+        /*
+        :root {
+            --jp-widgets-color: var(--vscode-editor-foreground);
+            --jp-widgets-font-size: var(--vscode-editor-font-size);
+        }  
+        */
+        /* tqdm styling: */
+        .widget-label,
+        .widget-html,
+        .widget-button,
+        .widget-dropdown,
+        .widget-text,
+        .widget-textarea {
+            font-size: 10px !important;      /* Font size */
+        }
+        div.widget-html-content > progress { /* Outer container */
+            height: 10px !important;
+        
+        }
+        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+            height: 5px !important;
+        }
+        div.progress { /* Jupyter Notebook (classic) */
+            height: 5px !important;
+            min-height: 5px !important;
+            margin-top: 12px !important;    
+        }
+        div.progress-bar { /* inner bar */
+            height: 5px !important;
+            min-height: 5px !important;
+            line-height: 5px !important;
+            color: 'white' !important;
+            padding-bottom: 0px !important;    
+        }
+        </style>                          
+        
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a)
+</figcaption>
+</figure>
+</div>
+<div class="cell-output cell-output-display">
+<div id="fig-joint-heatmap-2" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-subfloat-fig">
+<div aria-describedby="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-joint-probability-fig-joint-heatmap-output-2.svg" id="fig-joint-heatmap-2" data-ref-parent="fig-joint-heatmap">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-joint-heatmap-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b)
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-heatmap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;23
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div></section>
+
+</div>
 <!-- =============================================================================== -->
 </section>
 <section id="joint-probability-of-discrete-events-1" class="slide level2">
 <h2><strong>Joint probability</strong> of discrete events</h2>
+<div class="todo">
+<p>Include how (counter-intuitively) the joint prob path becomes the viable one for time inhomogeneous models.</p>
+<ul>
+<li>asdf</li>
+<li>asdf</li>
+<li>asdf</li>
+</ul>
+</div>
 <!-- =============================================================================== -->
 </section>
 <section id="truncated-multivariate-discrete-phase-type-distributions" class="slide level2">
 <h2><strong>Truncated</strong> multivariate discrete phase-type distributions</h2>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="state-lumping" class="title-slide slide level1 center">
 <h1>State Lumping</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1686,11 +1685,108 @@ T_D &amp;= 16
 </div></div>
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="time-inhomogeneous-models-with-phase-type-distributions" class="title-slide slide level1 center">
 <h1>Time-inhomogeneous models with phase-type distributions</h1>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+</section>
+<section id="figures-5" class="slide level2">
+<h2>Figures</h2>
+<div class="quarto-layout-panel" data-layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]">
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-graph">
+<div id="cell-fig-cont-joint-prob-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-24T15:57:55.443404Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-24T15:57:55.443272Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-24T15:57:55.575185Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-24T15:57:55.574463Z&quot;}}" data-execution_count="15">
+<div class="cell-output cell-output-display" data-execution_count="15">
+<div id="fig-cont-joint-prob-graph" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-graph-output-1.svg" id="fig-cont-joint-prob-graph">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;24
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-cont-joint-prob-epoch-graph">
+<div id="cell-fig-cont-joint-prob-epoch-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-24T15:57:55.581547Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-24T15:57:55.581441Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-24T15:57:55.717355Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-24T15:57:55.716576Z&quot;}}" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="17">
+<div id="fig-cont-joint-prob-epoch-graph" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-cont-joint-prob-epoch-graph-output-1.svg" id="fig-cont-joint-prob-epoch-graph">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-cont-joint-prob-epoch-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;25
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-joint-prob-over-time">
+<div id="cell-fig-joint-prob-over-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-24T15:57:55.719038Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-24T15:57:55.718917Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-24T15:57:55.850928Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-24T15:57:55.850448Z&quot;}}" data-execution_count="18">
+<div class="cell-output cell-output-display">
+<div id="fig-joint-prob-over-time" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-joint-prob-over-time-output-1.svg" id="fig-joint-prob-over-time">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-joint-prob-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;26
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div><div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-accumulated-occupancy">
+<div id="cell-fig-accumulated-occupancy" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-24T15:57:51.467473Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-24T15:57:51.467369Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-24T15:57:51.701175Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-24T15:57:51.700694Z&quot;}}" data-execution_count="8">
+<div class="cell-output cell-output-display">
+<div id="fig-accumulated-occupancy" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-accumulated-occupancy-output-1.svg" id="fig-accumulated-occupancy">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-accumulated-occupancy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;27
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+<div class="quarto-layout-row">
+<div class="column r-stretch quarto-layout-cell" style="flex-basis: 25.0%;justify-content: flex-start;">
+<div class="quarto-embed-nb-cell" data-notebook="/home/runner/work/phasic/phasic/docs/pages/tutorial/time-inhomogeneous.ipynb" data-notebook-title="Time inhomogeneity" data-notebook-cellid="cell-fig-distribution-context">
+<div id="cell-fig-distribution-context" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-24T15:57:51.064989Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-24T15:57:51.064895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-24T15:57:51.413317Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-24T15:57:51.412849Z&quot;}}" data-execution_count="4">
+<div class="cell-output cell-output-display">
+<div id="fig-distribution-context" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig">
+<div aria-describedby="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img data-src="index_files/figure-revealjs/..-pages-tutorial-time-inhomogeneous-fig-distribution-context-output-1.svg" id="fig-distribution-context">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-distribution-context-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;28
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div>
 <!-- =============================================================================== -->
 </section>
 <section id="time-inhomogeneous-models" class="slide level2">
@@ -1705,20 +1801,24 @@ T_D &amp;= 16
 <h2><strong>van Loen</strong> graph trick</h2>
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 <img data-src="./images/time-inhom-trick.svg" class="r-stretch"></section></section>
 <section>
 <section id="performance" class="title-slide slide level1 center">
 <h1>Performance</h1>
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="coalescent-100-marginal-moments" class="slide level2">
 <h2>Coalescent 100 marginal moments</h2>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section></section>
 <section>
 <section id="popgen-models" class="title-slide slide level1 center">
 <h1>Popgen models</h1>
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
 <section id="statistical-properties-of-the-standard-coalescent" class="slide level2">
@@ -1734,9 +1834,12 @@ T_D &amp;= 16
 <h2>The coalescent with selection</h2>
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 <img data-src="./images/coal_with_derived_freq.svg" class="r-stretch"></section></section>
 <section id="inference-with-svgd" class="title-slide slide level1 center">
 <h1>Inference with SVGD</h1>
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 <!-- =============================================================================== -->
 </section>
@@ -1745,31 +1848,32 @@ T_D &amp;= 16
 <section id="api" class="title-slide slide level1 center">
 <h1>API</h1>
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 </section>
 <section id="practical-example" class="slide level2">
 <h2>Practical Example</h2>
 <p>Let’s compute properties of an Erlang distribution (sum of exponential random variables):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href=""></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb1-2"><a href=""></a></span>
-<span id="cb1-3"><a href=""></a><span class="co"># Build Erlang(3) distribution: sum of 3 exponentials with rate 1</span></span>
-<span id="cb1-4"><a href=""></a>g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
-<span id="cb1-5"><a href=""></a>start <span class="op">=</span> g.starting_vertex()</span>
-<span id="cb1-6"><a href=""></a></span>
-<span id="cb1-7"><a href=""></a><span class="co"># Create chain: S -&gt; v1 -&gt; v2 -&gt; v3 -&gt; absorbing</span></span>
-<span id="cb1-8"><a href=""></a>v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
-<span id="cb1-9"><a href=""></a>v2 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">2</span>])</span>
-<span id="cb1-10"><a href=""></a>v3 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">3</span>])</span>
-<span id="cb1-11"><a href=""></a></span>
-<span id="cb1-12"><a href=""></a>start.add_edge(v1, <span class="fl">1.0</span>)  <span class="co"># Start in state 1 with probability 1</span></span>
-<span id="cb1-13"><a href=""></a>v1.add_edge(v2, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
-<span id="cb1-14"><a href=""></a>v2.add_edge(v3, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
-<span id="cb1-15"><a href=""></a>v3.add_edge(g.find_or_create_vertex([<span class="dv">4</span>]), <span class="fl">1.0</span>)  <span class="co"># To absorbing state</span></span>
-<span id="cb1-16"><a href=""></a></span>
-<span id="cb1-17"><a href=""></a><span class="co"># Compute properties</span></span>
-<span id="cb1-18"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Expectation: </span><span class="sc">{</span>g<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">"</span>)      <span class="co"># Should be 3.0</span></span>
-<span id="cb1-19"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Variance: </span><span class="sc">{</span>g<span class="sc">.</span>variance()<span class="sc">}</span><span class="ss">"</span>)            <span class="co"># Should be 3.0</span></span>
-<span id="cb1-20"><a href=""></a><span class="bu">print</span>(<span class="ss">f"PDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>pdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb1-21"><a href=""></a><span class="bu">print</span>(<span class="ss">f"CDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>cdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href=""></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb2-2"><a href=""></a></span>
+<span id="cb2-3"><a href=""></a><span class="co"># Build Erlang(3) distribution: sum of 3 exponentials with rate 1</span></span>
+<span id="cb2-4"><a href=""></a>g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb2-5"><a href=""></a>start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb2-6"><a href=""></a></span>
+<span id="cb2-7"><a href=""></a><span class="co"># Create chain: S -&gt; v1 -&gt; v2 -&gt; v3 -&gt; absorbing</span></span>
+<span id="cb2-8"><a href=""></a>v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb2-9"><a href=""></a>v2 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb2-10"><a href=""></a>v3 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">3</span>])</span>
+<span id="cb2-11"><a href=""></a></span>
+<span id="cb2-12"><a href=""></a>start.add_edge(v1, <span class="fl">1.0</span>)  <span class="co"># Start in state 1 with probability 1</span></span>
+<span id="cb2-13"><a href=""></a>v1.add_edge(v2, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb2-14"><a href=""></a>v2.add_edge(v3, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb2-15"><a href=""></a>v3.add_edge(g.find_or_create_vertex([<span class="dv">4</span>]), <span class="fl">1.0</span>)  <span class="co"># To absorbing state</span></span>
+<span id="cb2-16"><a href=""></a></span>
+<span id="cb2-17"><a href=""></a><span class="co"># Compute properties</span></span>
+<span id="cb2-18"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Expectation: </span><span class="sc">{</span>g<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">"</span>)      <span class="co"># Should be 3.0</span></span>
+<span id="cb2-19"><a href=""></a><span class="bu">print</span>(<span class="ss">f"Variance: </span><span class="sc">{</span>g<span class="sc">.</span>variance()<span class="sc">}</span><span class="ss">"</span>)            <span class="co"># Should be 3.0</span></span>
+<span id="cb2-20"><a href=""></a><span class="bu">print</span>(<span class="ss">f"PDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>pdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb2-21"><a href=""></a><span class="bu">print</span>(<span class="ss">f"CDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>cdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="further-reading" class="slide level2">
 <h2>Further Reading</h2>

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -445,7 +445,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="1b6c4ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:40.822315Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:40.822232Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:43.327043Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:43.326503Z&quot;}}" data-execution_count="1">
+<div id="1b6c4ffe" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:01.788961Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:01.788853Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.146456Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.145937Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, list_computes</span>
@@ -493,7 +493,7 @@ table {
 <section id="whats-published-right-now" class="level2">
 <h2 class="anchored" data-anchor-id="whats-published-right-now">What’s published right now?</h2>
 <p><code>list_computes()</code> downloads <code>registry.json</code> from the hub and returns one dict per published artifact. Use the <code>domain</code>, <code>model_type</code>, and <code>tags</code> keyword arguments to filter.</p>
-<div id="09385418" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:43.328999Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:43.328826Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:43.785056Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:43.784540Z&quot;}}" data-execution_count="2">
+<div id="09385418" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.148345Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.148153Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.349327Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.348878Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> list_computes():</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f"</span><span class="sc">{</span>entry[<span class="st">'compute_id'</span>]<span class="sc">:24s}</span><span class="ss">  "</span></span>
@@ -507,7 +507,7 @@ coal_n10_theta1           vertices=  11  params=1  hash=2c6488c6486ae2d2...
 coal_n20_theta1           vertices=  21  params=1  hash=6f7690305bd5c9ec...</code></pre>
 </div>
 </div>
-<div id="3e962ffa" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:43.786617Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:43.786499Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:43.789001Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:43.788531Z&quot;}}" data-execution_count="3">
+<div id="3e962ffa" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.350774Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.350651Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.353099Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.352658Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Drill in: just the coalescent models, with their full metadata.</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> entry <span class="kw">in</span> list_computes(model_type<span class="op">=</span><span class="st">'coalescent'</span>):</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(entry[<span class="st">'compute_id'</span>])</span>
@@ -538,7 +538,7 @@ coal_n20_theta1
 <h2 class="anchored" data-anchor-id="reusing-a-published-model">Reusing a published model</h2>
 <p>If you build a graph that’s structurally identical to one in the hub, <code>pull_cache()</code> downloads the pre-computed elimination and drops it into the local phasic cache. The next call to <code>expectation()</code>, <code>pdf()</code>, or <code>moments()</code> reads the file via the normal C-side cache lookup — no extra plumbing needed.</p>
 <p>The hub has a coalescent for n=5 published as <code>coal_n5_theta1</code>. We’ll recreate it locally and reuse the published elimination.</p>
-<div id="44258ba1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:43.790729Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:43.790600Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:43.795315Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:43.794864Z&quot;}}" data-execution_count="4">
+<div id="44258ba1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.354362Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.354265Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.358852Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.358422Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_callback(state):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Standard Kingman coalescent: rate n(n-1)/2."""</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> state[<span class="dv">0</span>]</span>
@@ -557,7 +557,7 @@ graph hash:    4d652ed73c66ed4ada3dd13e0dde2051...</code></pre>
 </div>
 </div>
 <p>Wipe the local cache to simulate a fresh machine, then pull from the hub:</p>
-<div id="14e989e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:43.796695Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:43.796589Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:48.593044Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:48.592565Z&quot;}}" data-execution_count="5">
+<div id="14e989e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.360232Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.360139Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.572812Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.572346Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>cache_dir <span class="op">=</span> _param_compute_cache_dir()</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>hash_hex <span class="op">=</span> phasic.<span class="bu">hash</span>.compute_graph_hash(g).hash_hex</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>bin_path <span class="op">=</span> cache_dir <span class="op">/</span> <span class="ss">f'</span><span class="sc">{</span>hash_hex<span class="sc">}</span><span class="ss">.bin'</span></span>
@@ -578,7 +578,7 @@ size: 5,064 bytes</code></pre>
 </div>
 </div>
 <p>Now <code>expectation()</code> (and <code>pdf</code>, <code>moments</code>, etc.) reuses the downloaded elimination. The result must match what the publisher computed (1.6 = expected time to coalescence for n=5 under the standard rate):</p>
-<div id="fcc5c32a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:48.594451Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:48.594336Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:48.596501Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:48.596046Z&quot;}}" data-execution_count="6">
+<div id="fcc5c32a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.574338Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.574220Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.576328Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.575946Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>exp <span class="op">=</span> g.expectation()</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'expectation: </span><span class="sc">{</span>exp<span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">abs</span>(exp <span class="op">-</span> <span class="fl">1.6</span>) <span class="op">&lt;</span> <span class="fl">1e-10</span>, <span class="st">'unexpected expectation value'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -589,7 +589,7 @@ size: 5,064 bytes</code></pre>
 <section id="calling-pull_cache-on-an-unregistered-graph" class="level3">
 <h3 class="anchored" data-anchor-id="calling-pull_cache-on-an-unregistered-graph">Calling <code>pull_cache()</code> on an unregistered graph</h3>
 <p><code>pull_cache()</code> returns <code>False</code> if there’s no entry for the graph’s content hash. It doesn’t raise — you can check the return value to decide whether to run elimination locally or publish your own artifact afterwards.</p>
-<div id="60708318" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:48.597709Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:48.597611Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:48.601148Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:48.600702Z&quot;}}" data-execution_count="7">
+<div id="60708318" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.577645Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.577543Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.580912Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.580535Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a coalescent with a non-standard sample size (n=4 is not</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># published as of this writing).</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>g_unpublished <span class="op">=</span> Graph(coalescent_callback, ipv<span class="op">=</span>[<span class="dv">4</span>])</span>
@@ -605,7 +605,7 @@ size: 5,064 bytes</code></pre>
 <h2 class="anchored" data-anchor-id="verifying-a-published-model-end-to-end">Verifying a published model end-to-end</h2>
 <p>One use of the hub: verify that someone else’s published expectation matches what <em>you</em> get when running the elimination locally from the same callback. This is roughly the workflow for reviewing a paper’s numerical claims.</p>
 <p>Clear the cache, recompute locally, and compare against the published artifact’s result.</p>
-<div id="23376024" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:48.602388Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:48.602294Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:48.653007Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:48.652556Z&quot;}}" data-execution_count="8">
+<div id="23376024" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.582270Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.582180Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.642366Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.641837Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: clear local cache, compute fresh.</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> bin_path.exists():</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    bin_path.unlink()</span>
@@ -634,7 +634,7 @@ agreement: True</code></pre>
 <h2 class="anchored" data-anchor-id="previewing-what-a-publish-would-look-like">Previewing what a publish would look like</h2>
 <p><code>g.push_cache(..., dry_run=True)</code> builds the artifact, computes its SHA-256, and returns a JSON string of the entry that <em>would</em> be added to <code>registry.json</code>. It does not touch the network. Use this to check your metadata before opening an actual PR.</p>
 <p>We’ll preview what publishing a small custom model would generate:</p>
-<div id="cc23c203" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:06:48.654450Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:06:48.654353Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:06:48.695046Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:06:48.694473Z&quot;}}" data-execution_count="9">
+<div id="cc23c203" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:17:04.643785Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:17:04.643687Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:17:04.696443Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:17:04.695794Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A two-step parameterised chain (not in the hub).</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>g_demo <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_demo.starting_vertex()</span>
@@ -657,7 +657,7 @@ agreement: True</code></pre>
 <pre><code>{
   "demo_two_step_chain": {
     "graph_hash": "29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c",
-    "format_revision": 2,
+    "format_revision": 3,
     "artifacts": {
       "parent": {
         "cid_or_path": "artifacts/29dc136099b6cf8de1d9180a234a2358b63c5ddca6649889f9ed6a25d914418c.bin",

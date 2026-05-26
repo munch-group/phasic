@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -433,7 +433,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="b5a5ba52" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:34.993700Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:34.993441Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.593798Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.592070Z&quot;}}" data-execution_count="1">
+<div id="b5a5ba52" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:59.488362Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:59.488269Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.479425Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.478935Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -531,7 +531,7 @@ table {
 </div>
 </div>
 <p>Define a graph:</p>
-<div id="5c69099e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.598122Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.597943Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.600920Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.600420Z&quot;}}" data-execution_count="2">
+<div id="5c69099e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.481060Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.480895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.483713Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.483261Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
@@ -552,7 +552,7 @@ table {
 <span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Build the graph:</p>
-<div id="ba963696" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.603071Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.602962Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.779662Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.778750Z&quot;}}" data-execution_count="3">
+<div id="ba963696" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.485152Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.485051Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.640688Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.640108Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -566,20 +566,20 @@ table {
 <section id="mean-variance-and-higher-moments" class="level2">
 <h2 class="anchored" data-anchor-id="mean-variance-and-higher-moments">Mean, variance, and higher moments</h2>
 <p>This phase-type distribution models the time until all lineages have coalesced. For convenience, we can get its expectation and variance like this:</p>
-<div id="dec0b71f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.782607Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.782244Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.786364Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.785766Z&quot;}}" data-execution_count="4">
+<div id="dec0b71f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.642376Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.642264Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.644744Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.644350Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>1.4999999999999996</code></pre>
 </div>
 </div>
-<div id="64b9c98e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.787899Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.787806Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.790685Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.789716Z&quot;}}" data-execution_count="5">
+<div id="64b9c98e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.646057Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.645957Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.648094Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.647678Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>graph.variance()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>1.1388888888888893</code></pre>
 </div>
 </div>
 <p>You can get any number of moments like this (here three):</p>
-<div id="f88bc39f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.792837Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.792084Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.795582Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.795136Z&quot;}}" data-execution_count="6">
+<div id="f88bc39f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.649400Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.649302Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.651483Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.651078Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph.moments(<span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>[1.4999999999999996, 3.388888888888888, 10.583333333333332]</code></pre>
@@ -589,14 +589,14 @@ table {
 <section id="expected-waiting-time-at-states" class="level2">
 <h2 class="anchored" data-anchor-id="expected-waiting-time-at-states">Expected waiting time at states</h2>
 <p>In addition to the waiting time from the starting state, we can compute exact expected waiting times from each state:</p>
-<div id="9484b553" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.804590Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.804498Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.806927Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.806411Z&quot;}}" data-execution_count="9">
+<div id="9484b553" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.658619Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.658541Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.660663Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.660266Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>graph.expected_waiting_time()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>[1.4999999999999996, 1.4999999999999996, 1.333333333333333, 1.0, 1.0, 0.0]</code></pre>
 </div>
 </div>
 <p>Or with the state vectors:</p>
-<div id="3d8b57a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.808727Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.808549Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.816515Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.816126Z&quot;}}" data-execution_count="10">
+<div id="3d8b57a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.661960Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.661882Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.668739Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.668363Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>pd.DataFrame(graph.states()).assign(expectation<span class="op">=</span>graph.expected_waiting_time())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <div>
@@ -669,7 +669,7 @@ table {
 </div>
 </div>
 <p>These expectations are used to compute higher moments. The MGF has the beautiful property that all moments are expectations with rewards derived from lower moment expectations at each state. Here is the first and second one again:</p>
-<div id="064534a8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:37.818707Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:37.818337Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:37.820932Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:37.820438Z&quot;}}" data-execution_count="11">
+<div id="064534a8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.670030Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.669942Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.672237Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.671795Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>graph.expectation(), <span class="dv">2</span> <span class="op">*</span> graph.expectation(graph.expected_waiting_time())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>(1.4999999999999996, 3.388888888888888)</code></pre>
@@ -679,7 +679,7 @@ table {
 <section id="expected-total-time-spent-in-states" class="level2">
 <h2 class="anchored" data-anchor-id="expected-total-time-spent-in-states">Expected total time spent in states</h2>
 <p>Compute the exact expected total time spent in each state:</p>
-<div id="c73df940" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.869118Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.869031Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:26.871084Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:26.870706Z&quot;}}" data-execution_count="12">
+<div id="c73df940" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.673637Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.673548Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.675624Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.675272Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>graph.expected_sojourn_time()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>[0.0,
@@ -694,26 +694,26 @@ table {
 <section id="cdf-pdf" class="level2">
 <h2 class="anchored" data-anchor-id="cdf-pdf">CDF / PDF</h2>
 <p>We can get the CDF and PDF. The distribution methods reuse cached computations and recompute only if the graph changes. Compare the running times for the first and second call to the function:</p>
-<div id="aa470614" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.875499Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.875411Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:26.877148Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:26.876779Z&quot;}}" data-execution_count="13">
+<div id="aa470614" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.676977Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.676896Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.678509Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.678107Z&quot;}}" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>time <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">4</span>, <span class="fl">0.001</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="cd518e0e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.878279Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.878193Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:26.880759Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:26.880338Z&quot;}}" data-execution_count="14">
+<div id="cd518e0e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.679615Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.679538Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.682018Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.681589Z&quot;}}" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>cdf <span class="op">=</span> graph.cdf(time)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 224 μs, sys: 33 μs, total: 257 μs
-Wall time: 262 μs</code></pre>
+<pre><code>CPU times: user 222 μs, sys: 38 μs, total: 260 μs
+Wall time: 267 μs</code></pre>
 </div>
 </div>
-<div id="4c33bc1b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.881955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.881874Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:26.883854Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:26.883482Z&quot;}}" data-execution_count="15">
+<div id="4c33bc1b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.683199Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.683113Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:01.685191Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:01.684758Z&quot;}}" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>cdf <span class="op">=</span> graph.cdf(time)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 44 μs, sys: 3 μs, total: 47 μs
-Wall time: 48.2 μs</code></pre>
+<pre><code>CPU times: user 32 μs, sys: 3 μs, total: 35 μs
+Wall time: 35.8 μs</code></pre>
 </div>
 </div>
-<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:26.885069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:26.884996Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.063216Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.062722Z&quot;}}" data-execution_count="16">
+<div id="cell-fig-pdf-cdf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:01.686365Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:01.686289Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.064535Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.064020Z&quot;}}" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">3</span>))</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ax1.plot(time, graph.pdf(time))</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">"PDF"</span>)</span>
@@ -737,7 +737,7 @@ Figure&nbsp;1
 <h2 class="anchored" data-anchor-id="rewards">Rewards</h2>
 <p><strong>Shape.</strong> Rewards must be a 1-D array of length <code>n_vertices</code> (one reward per vertex) or a 2-D array of shape <code>(n_features, n_vertices)</code> for multivariate phase-type distributions where each feature has its own reward vector.</p>
 <p>We can add rewards which are based on the number of doubletons:</p>
-<div id="9c389b6f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.064682Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.064566Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.067270Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.066889Z&quot;}}" data-execution_count="17">
+<div id="9c389b6f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.066143Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.066035Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.070064Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.069607Z&quot;}}" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>doubletons <span class="op">=</span> reward_matrix[<span class="dv">1</span>]</span>
@@ -747,14 +747,14 @@ Figure&nbsp;1
 </div>
 </div>
 <p>Adding these rewards, the phase-type distribution now represent the total doubleton branch length (total length of branches with two descendants). The expectation and variance are now:</p>
-<div id="8bd2d02c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.068573Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.068477Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.070707Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.070292Z&quot;}}" data-execution_count="18">
+<div id="8bd2d02c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.071382Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.071297Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.073510Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.073147Z&quot;}}" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>graph.expectation(doubletons), graph.variance(doubletons)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>(0.9999999999999999, 2.333333333333333)</code></pre>
 </div>
 </div>
 <p>Using rewards to the moment functions etc. is much faster than changing the graph. Here is the SFS (Site Frequency Spectrum) computed in this way. The 4’ton is included to illustrate that it is represented but has expectation zero since this it the absorbing TMRCA.</p>
-<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:27.071959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:27.071857Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:27.127984Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:27.127633Z&quot;}}" data-execution_count="19">
+<div id="cell-fig-sfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.074762Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.074681Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.155011Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.154538Z&quot;}}" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(reward_matrix.shape[<span class="dv">0</span>])]</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>sfs <span class="op">=</span> [graph.expectation(r) <span class="cf">for</span> r <span class="kw">in</span> reward_matrix]</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">4</span>, <span class="dv">3</span>))</span>
@@ -775,7 +775,7 @@ Figure&nbsp;2
 <section id="reward-transforms" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="reward-transforms">Reward transforms</h3>
 <p>And here by doing each reward_transform:</p>
-<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.223202Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.222895Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.415444Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.412026Z&quot;}}" data-execution_count="20">
+<div id="cell-fig-singleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.156447Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.156349Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.281911Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.281249Z&quot;}}" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>singleton_graph <span class="op">=</span> graph.reward_transform(reward_matrix[<span class="dv">0</span>])</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>singleton_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="20">
@@ -791,7 +791,7 @@ Figure&nbsp;3
 </div>
 </div>
 </div>
-<div id="cell-fig-singleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.423198Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.422903Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.569745Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.569151Z&quot;}}" data-execution_count="21">
+<div id="cell-fig-singleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.283382Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.283265Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.403882Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.403469Z&quot;}}" data-execution_count="21">
 
 <div class="no-row-height column-margin column-container"><div class="cell-output cell-output-display">
 <div id="fig-singleton-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -805,13 +805,13 @@ Figure&nbsp;4: Singleton branch length
 </figure>
 </div>
 </div></div></div>
-<div id="e6f5d986" class="cell" data-execution_count="22">
+<div id="e6f5d986" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.405305Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.405202Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.407564Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.407118Z&quot;}}" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>reward_matrix[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="22">
 <pre><code>array([0, 0, 1, 2, 0, 0], dtype=int32)</code></pre>
 </div>
 </div>
-<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.571184Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.571067Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.748770Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.746788Z&quot;}}" data-execution_count="23">
+<div id="cell-fig-doubleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.408799Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.408702Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.531153Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.530554Z&quot;}}" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>doubleton_graph <span class="op">=</span> graph.reward_transform(reward_matrix[<span class="dv">1</span>])</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>doubleton_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
@@ -827,7 +827,7 @@ Figure&nbsp;5
 </div>
 </div>
 </div>
-<div id="cell-fig-doubleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.752248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.752074Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:38.904513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:38.901972Z&quot;}}" data-execution_count="24">
+<div id="cell-fig-doubleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.532673Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.532566Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.652847Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.652400Z&quot;}}" data-execution_count="24">
 
 <div class="no-row-height column-margin column-container"><div class="cell-output cell-output-display">
 <div id="fig-doubleton-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -841,7 +841,7 @@ Figure&nbsp;6: Double branch length
 </figure>
 </div>
 </div></div></div>
-<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:38.909181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:38.908782Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.069393Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.067673Z&quot;}}" data-execution_count="25">
+<div id="cell-fig-tripleton-rev-trans" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.654236Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.654131Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.779479Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.778870Z&quot;}}" data-execution_count="25">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>tripleton_graph <span class="op">=</span> graph.reward_transform(reward_matrix[<span class="dv">2</span>])</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>tripleton_graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="25">
@@ -857,7 +857,7 @@ Figure&nbsp;7
 </div>
 </div>
 </div>
-<div id="cell-fig-tripleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.073656Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.073449Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.136765Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.134350Z&quot;}}" data-execution_count="26">
+<div id="cell-fig-tripleton-branches" class="cell page-columns page-full" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.780940Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.780826Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.838708Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.838243Z&quot;}}" data-execution_count="26">
 
 <div class="no-row-height column-margin column-container"><div class="cell-output cell-output-display">
 <div id="fig-tripleton-branches" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -871,7 +871,7 @@ Figure&nbsp;8: Tripleton branch length
 </figure>
 </div>
 </div></div></div>
-<div id="4d46ee6e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.143285Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.142695Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.208819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.206688Z&quot;}}" data-execution_count="27">
+<div id="4d46ee6e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.840346Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.840175Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.918752Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.918367Z&quot;}}" data-execution_count="27">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>sfs <span class="op">=</span> [</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    singleton_graph.expectation(),</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    doubleton_graph.expectation(),</span>
@@ -888,26 +888,26 @@ Figure&nbsp;8: Tripleton branch length
 </div>
 </div>
 <p>Computing the (unrewarded) expectation on the reward-transforming graph produces the same result as passing the rewards to <code>expectation</code>, but is much slower:</p>
-<div id="7bcee573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.213967Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.213822Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:39.219054Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:39.216836Z&quot;}}" data-execution_count="28">
+<div id="7bcee573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.920318Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.920208Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:02.923670Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:02.923249Z&quot;}}" data-execution_count="28">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>singleton_rewards <span class="op">=</span> graph.states().T[<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="85beb087" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:39.223665Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:39.223477Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:45.438501Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:45.436544Z&quot;}}" data-execution_count="29">
+<div id="85beb087" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:02.924937Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:02.924839Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:06.836399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:06.835981Z&quot;}}" data-execution_count="29">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>graph.expectation(singleton_rewards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>5.4 μs ± 956 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
+<pre><code>4.82 μs ± 41.4 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
 </div>
 </div>
-<div id="8a48a7d9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:45.440765Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:45.440192Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.106271Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.105734Z&quot;}}" data-execution_count="30">
+<div id="8a48a7d9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:06.837909Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:06.837788Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.435995Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.435596Z&quot;}}" data-execution_count="30">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>graph.reward_transform(singleton_rewards).expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>35.9 μs ± 5.99 μs per loop (mean ± std. dev. of 7 runs, 10,000 loops each)</code></pre>
+<pre><code>32 μs ± 254 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)</code></pre>
 </div>
 </div>
 <p>The real use of reward transformation is that it provides the full distribution of accumulated rewards. For example if we want the marginal distributions:</p>
-<div id="400a4438" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.108505Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.108149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.112148Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.111325Z&quot;}}" data-execution_count="31">
+<div id="400a4438" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.437670Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.437554Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.440153Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.439712Z&quot;}}" data-execution_count="31">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>graph.states().T[:<span class="op">-</span><span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="31">
 <pre><code>array([[0, 4, 2, 0, 1, 0],
@@ -915,7 +915,7 @@ Figure&nbsp;8: Tripleton branch length
        [0, 0, 0, 0, 1, 0]], dtype=int32)</code></pre>
 </div>
 </div>
-<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.113754Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.113652Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.237523Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.236208Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="32">
+<div id="cell-fig-sfs-marginal-pdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.441505Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.441397Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.578600Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.578024Z&quot;}}" data-legend="Marginal PDFs. Notice the how 3'ton branch lengths do not zum to one because it has a point mass at zero." data-execution_count="32">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T</span>
@@ -940,7 +940,7 @@ Figure&nbsp;9
 </div>
 </div>
 <p>Marginal distributions can have a point mass at zero. In out coalescent example, there is a non-zero probability there is no 3’ton branch at all. The marginal PDF can only represent the continuous part, but the point mass is represented as the deficit when the PDF is integrated over rewards (I.e., the probability distribution does not sum to one). In the CDF, the point mass is clearly represented as the cumulative probability at zero reward: The 3’ton CDF does not begin at zero probability like the 1’ton and 2’ton.</p>
-<div id="cell-fig-sfs-marginal-cdfs" class="cell" data-legend="Marginal CDFs. Notice the point mass at zero for 3'ton branch length." data-execution_count="33">
+<div id="cell-fig-sfs-marginal-cdfs" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.580106Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.579990Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.689202Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.688736Z&quot;}}" data-legend="Marginal CDFs. Notice the point mass at zero for 3'ton branch length." data-execution_count="33">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, rewards <span class="kw">in</span> <span class="bu">enumerate</span>(reward_matrix):</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    revt_graph <span class="op">=</span> graph.reward_transform(rewards)</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    plt.plot(times, revt_graph.cdf(times), label<span class="op">=</span>labels[i])</span>
@@ -958,7 +958,7 @@ Figure&nbsp;10
 </div>
 </div>
 </div>
-<div id="85a39226" class="cell" data-execution_count="34">
+<div id="85a39226" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.690642Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.690511Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.733838Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.733257Z&quot;}}" data-execution_count="34">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">20</span>, <span class="fl">0.00001</span>)</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, rewards <span class="kw">in</span> <span class="bu">enumerate</span>(reward_matrix):</span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    revt_graph <span class="op">=</span> graph.reward_transform(rewards)</span>
@@ -976,7 +976,7 @@ Figure&nbsp;10
 <section id="state-probability" class="level3">
 <h3 class="anchored" data-anchor-id="state-probability">State probability</h3>
 <p>Alias for <code>stop_probability</code>. Computes the state probability, the probabilities of occupying each state at time t.</p>
-<div id="ff27e8eb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.246797Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.246165Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.256354Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.253029Z&quot;}}" data-execution_count="35">
+<div id="ff27e8eb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.735461Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.735357Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.739163Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.738740Z&quot;}}" data-execution_count="35">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>graph.state_probability(<span class="fl">0.2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="35">
@@ -989,7 +989,7 @@ Figure&nbsp;10
 </div>
 </div>
 <p>We can use that to compute the expected number of lineages across time:</p>
-<div id="cell-fig-tot-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.260910Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.260268Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.392475Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.386245Z&quot;}}" data-execution_count="36">
+<div id="cell-fig-tot-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.740415Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.740336Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.860824Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.860139Z&quot;}}" data-execution_count="36">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>expected_lineages_left <span class="op">=</span> [</span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    np.<span class="bu">sum</span>(graph.state_probability(i) </span>
@@ -1016,7 +1016,7 @@ Figure&nbsp;11
 </div>
 <p>We can also get the accumulated visiting time of a particular state. E.g. the total doubleton branchlength before time t=1.5:</p>
 <p>The same way we can also compute the expected number of <em>each kind</em> of lineage across time:</p>
-<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.395676Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.395541Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.511483Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.510817Z&quot;}}" data-execution_count="37">
+<div id="cell-fig-ton-lineages-across-time" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.862386Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.862268Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.986974Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.986445Z&quot;}}" data-execution_count="37">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.arange(<span class="dv">0</span>, <span class="dv">5</span>, <span class="fl">0.05</span>)</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>state_probs <span class="op">=</span> np.array([graph.state_probability(i) <span class="op">*</span> graph.states().T <span class="cf">for</span> i <span class="kw">in</span> times])</span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state_probs.shape[<span class="dv">1</span>])]</span>
@@ -1043,7 +1043,7 @@ Figure&nbsp;12
 <section id="accumulated-time-spent-in-states-by-time" class="level3">
 <h3 class="anchored" data-anchor-id="accumulated-time-spent-in-states-by-time">Accumulated time spent in states by time</h3>
 <p>Total time spent in each state up to time t:</p>
-<div id="b6be91ee" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.521270Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.521051Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.528267Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.526903Z&quot;}}" data-execution_count="38">
+<div id="b6be91ee" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.988391Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.988285Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:09.990602Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:09.990178Z&quot;}}" data-execution_count="38">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>graph.accumulated_occupancy(<span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="38">
 <pre><code>[0.0,
@@ -1055,7 +1055,7 @@ Figure&nbsp;12
 </div>
 </div>
 <p>You can plot the accumulated occupancies along to see how they converge to the expected sojourn times (dashed lines):</p>
-<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.531932Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.531737Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.640609Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.638779Z&quot;}}" data-execution_count="39">
+<div id="cell-fig-accumulated-occupancies" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:09.991993Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:09.991897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.196738Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.196224Z&quot;}}" data-execution_count="39">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">7</span>, <span class="dv">100</span>)</span>
 <span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>plt.plot(times, [graph.accumulated_occupancy(t) <span class="cf">for</span> t <span class="kw">in</span> times])</span>
 <span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>[plt.gca().axhline(t, ls<span class="op">=</span><span class="st">'--'</span>, c<span class="op">=</span><span class="st">'k'</span>, lw<span class="op">=</span><span class="dv">1</span>) <span class="cf">for</span> t <span class="kw">in</span> graph.expected_sojourn_time()] <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1077,14 +1077,14 @@ Figure&nbsp;13
 <section id="random-sampling" class="level1">
 <h1>Random sampling</h1>
 <p>The library includes functions to do random sampling. These are useful to also validate the computations</p>
-<div id="c24fd19a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.644638Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.644467Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.650738Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.648080Z&quot;}}" data-execution_count="40">
+<div id="c24fd19a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:10.198230Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:10.198120Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.202155Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.201622Z&quot;}}" data-execution_count="40">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>graph.sample(<span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="40">
-<pre><code>array([2.76603799, 0.39756829, 0.9225643 , 0.46875124, 0.23534204])</code></pre>
+<pre><code>array([2.32574393, 0.35914113, 0.52394464, 1.46762248, 2.27387769])</code></pre>
 </div>
 </div>
-<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.655650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.654994Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.903431Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.901842Z&quot;}}" data-execution_count="41">
+<div id="cell-fig-tmrca-sampling-dist" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:10.203471Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:10.203376Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.416400Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.415889Z&quot;}}" data-execution_count="41">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
 <span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> graph.sample(<span class="dv">100000</span>)</span>
 <span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1109,17 +1109,17 @@ Figure&nbsp;14: Sampling distribution.
 </div>
 </div>
 <p>You can produce the moments from sampling if needed. Here is the empirical first moment computed from samples compared ot the exact first moment:</p>
-<div id="35198234" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.906869Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.906529Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.913352Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.912219Z&quot;}}" data-execution_count="42">
+<div id="35198234" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:10.418105Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:10.417992Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.422090Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.421573Z&quot;}}" data-execution_count="42">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>np.<span class="bu">sum</span>(np.array(graph.sample(<span class="dv">10000</span>))).item()<span class="op">/</span><span class="dv">10000</span>, graph.moments(<span class="dv">1</span>)[<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="42">
-<pre><code>(1.5062527192977253, 1.4999999999999996)</code></pre>
+<pre><code>(1.524014661347793, 1.4999999999999996)</code></pre>
 </div>
 </div>
 <p>Here is the empirical second moment computed from samples compared ot the exact second moment:</p>
-<div id="44a3f330" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:50.918075Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:50.917676Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:50.923929Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:50.922842Z&quot;}}" data-execution_count="43">
+<div id="44a3f330" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:10.423440Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:10.423358Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:10.427058Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:10.426620Z&quot;}}" data-execution_count="43">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>np.<span class="bu">sum</span>(np.array(graph.sample(<span class="dv">10000</span>))<span class="op">**</span><span class="dv">2</span>).item()<span class="op">/</span><span class="dv">10000</span>, graph.moments(<span class="dv">2</span>)[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="43">
-<pre><code>(3.3509435909804335, 3.388888888888888)</code></pre>
+<pre><code>(3.4654573398906723, 3.388888888888888)</code></pre>
 </div>
 </div>
 

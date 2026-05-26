@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -116,6 +116,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     document.body.classList.add('hypothesis-enabled');
   });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
@@ -435,7 +438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>The vertical axis is the condensation level, not time per se.</strong> We draw the source-side (start vertex) at the top and the sink-side (absorbing state) at the bottom so that for a typical forward-in-time chain the arrow of time points downward.</li>
 <li><strong>Tile width = vertex count of one SCC.</strong> The label <code>#i, Nv</code> inside a wide-enough tile reports the SCC index <code>i</code> and its vertex count <code>N</code>. The row label on the left, e.g.&nbsp;<code>L5 (23)</code>, reports the level number and the count of parallel-eliminable SCCs at that level.</li>
 </ol>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:55.189708Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:55.189474Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:57.924855Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:57.924256Z&quot;}}" data-execution_count="1">
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:13.574027Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:13.573939Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:15.567591Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:15.567080Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, Property, StateIndexer, with_ipv, </span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    cache, configure, clear_caches</span>
@@ -459,18 +462,89 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  sum of row widths:   </span><span class="sc">{</span>total<span class="sc">}</span><span class="ss">  (== total vertex count)"</span>)</span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  widest row:          </span><span class="sc">{</span><span class="bu">max</span>(widths)<span class="sc">}</span><span class="ss"> vertices, "</span></span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"</span><span class="sc">{</span><span class="bu">max</span>(<span class="bu">map</span>(<span class="bu">len</span>, levels))<span class="sc">}</span><span class="ss"> parallel SCCs"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-error">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">ImportError</span>                               Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> from phasic import (
-<span class="ansi-green-fg">      2</span>     Graph, Property, StateIndexer, with_ipv,
-<span class="ansi-green-fg">      3</span>     cache, configure, clear_caches
-<span class="ansi-green-fg">      4</span> )
+<div class="cell-output cell-output-display">
 
-<span class="ansi-red-fg">ImportError</span>: cannot import name 'Graph' from 'phasic' (unknown location)</pre>
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
 </div>
+<div class="cell-output cell-output-display">
+
+        <style>
+        .cell-output-ipywidget-background {
+            background-color: transparent !important;
+        }
+       .jp-OutputArea-output {
+           background-color: transparent;
+        }  
+        /*
+        :root {
+            --jp-widgets-color: var(--vscode-editor-foreground);
+            --jp-widgets-font-size: var(--vscode-editor-font-size);
+        }  
+        */
+        /* tqdm styling: */
+        .widget-label,
+        .widget-html,
+        .widget-button,
+        .widget-dropdown,
+        .widget-text,
+        .widget-textarea {
+            font-size: 10px !important;      /* Font size */
+        }
+        div.widget-html-content > progress { /* Outer container */
+            height: 10px !important;
+        
+        }
+        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+            height: 5px !important;
+        }
+        div.progress { /* Jupyter Notebook (classic) */
+            height: 5px !important;
+            min-height: 5px !important;
+            margin-top: 12px !important;    
+        }
+        div.progress-bar { /* inner bar */
+            height: 5px !important;
+            min-height: 5px !important;
+            line-height: 5px !important;
+            color: 'white' !important;
+            padding-bottom: 0px !important;    
+        }
+        </style>                          
+        
 </div>
 </div>
 </section>
@@ -478,7 +552,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="example-1-a-tiny-graph-with-one-cycle">Example 1: A tiny graph with one cycle</h2>
 <p>The smallest interesting case: 5 vertices, with vertices 1→2→3 forming a back-loop (vertex 3 has a chance of falling back to vertex 1). Vertex 0 is the start; vertex 4 is the absorbing sink.</p>
 <p>Decomposition: <code>{0}</code>, <code>{1, 2, 3}</code>, <code>{4}</code> — three SCCs, the middle one is cyclic (size 3), the other two are singletons. You can verify the row widths by counting on your fingers.</p>
-<div id="tiny-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:57.944963Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:57.943750Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:57.958466Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:57.953287Z&quot;}}">
+<div id="tiny-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:15.569272Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:15.569067Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:15.572073Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:15.571584Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>g_tiny <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>v0 <span class="op">=</span> g_tiny.starting_vertex()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g_tiny.find_or_create_vertex([<span class="dv">1</span>])</span>
@@ -501,12 +575,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   widest row:          3 vertices, 1 parallel SCCs</code></pre>
 </div>
 </div>
-<div id="tiny-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:57.962265Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:57.961636Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:58.028798Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:58.027882Z&quot;}}">
+<div id="tiny-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:15.573412Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:15.573271Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:15.706229Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:15.705718Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>g_tiny.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">3</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="scc-decomposition_files/figure-html/cell-4-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="scc-decomposition_files/figure-html/cell-4-output-1.png" width="506" height="270" class="figure-img"></a></p>
+<p><a href="scc-decomposition_files/figure-html/cell-4-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="scc-decomposition_files/figure-html/cell-4-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -518,7 +592,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="example-2-a-coalescent-no-cycles">Example 2: A coalescent (no cycles)</h2>
 <p>The standard coalescent is a strictly forward-in-time process: every transition reduces <code>state.sum()</code> by one. There are no cycles, so every vertex is its own SCC and the condensation is just the original graph relabelled.</p>
 <p>The “diamond” shape of the treemap reflects the <strong>state-space size profile</strong>: only one configuration with all lineages active (top), many configurations as lineages merge into intermediate-size combinations (middle), one configuration with everything coalesced (bottom). We use <code>nr_samples = 10</code> here so the diamond is visible — at 4 samples the graph has only 6 vertices and the shape is degenerate.</p>
-<div id="coal-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.030986Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.030842Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:58.035736Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:58.034975Z&quot;}}">
+<div id="coal-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:15.707945Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:15.707817Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:15.717181Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:15.716651Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([<span class="dv">10</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent10(state):</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
@@ -548,12 +622,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   widest row:          9 vertices, 9 parallel SCCs</code></pre>
 </div>
 </div>
-<div id="coal-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.039376Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.039163Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:45:58.192962Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:45:58.191963Z&quot;}}">
+<div id="coal-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:15.718631Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:15.718514Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:15.908069Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:15.907530Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>g_coal.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="scc-decomposition_files/figure-html/cell-6-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="scc-decomposition_files/figure-html/cell-6-output-1.png" width="640" height="347" class="figure-img"></a></p>
+<p><a href="scc-decomposition_files/figure-html/cell-6-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="scc-decomposition_files/figure-html/cell-6-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -565,7 +639,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="example-3-a-two-locus-arg-recombination-cycles">Example 3: A two-locus ARG (recombination = cycles)</h2>
 <p>The ancestral recombination graph (ARG) on two loci is the coalescent’s cyclic cousin. Recombination splits one lineage into two, so the lineage count can <em>go up</em> as well as down. That introduces real cycles in the state-space graph: the same configuration of <code>(loc1, loc2)</code> lineage counts can be reached by both coalescing and recombining.</p>
 <p>The result is many small cyclic SCCs at intermediate levels — exactly the structure the hierarchical SCC composer is designed for.</p>
-<div id="arg-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:45:58.197045Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:45:58.196755Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:04.882700Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:04.879853Z&quot;}}">
+<div id="arg-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:15.909617Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:15.909500Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:19.820242Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:19.819642Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -624,19 +698,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   widest row:          224 vertices, 23 parallel SCCs</code></pre>
 </div>
 </div>
-<div id="arg-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:04.885294Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:04.885071Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.158168Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.155485Z&quot;}}">
+<div id="arg-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:19.822101Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:19.821968Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:20.028323Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:20.027745Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>g_arg.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="scc-decomposition_files/figure-html/cell-8-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="scc-decomposition_files/figure-html/cell-8-output-1.png" width="950" height="655" class="figure-img"></a></p>
+<p><a href="scc-decomposition_files/figure-html/cell-8-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="scc-decomposition_files/figure-html/cell-8-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Now the tiles inside each row are clearly multi-vertex (e.g.&nbsp;<code>34v</code>, <code>25v</code>, <code>21v</code>). The wide bands in the middle of the diamond — L5 with 23 parallel SCCs, L6 with 20 — are where most of the elimination work lives, and they are highly parallelisable.</p>
 <p>With <code>parallel_elimination=True</code>, each of the ~120 SCCs is small enough that its O(k³) elimination is cheap, and there are many siblings per level for OpenMP to fan out across. The bottleneck rows L0, L1, L11, L12 (single 1-vertex SCCs) cost essentially nothing.</p>
-<div id="arg-speedup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.165095Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.164263Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.174027Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.171943Z&quot;}}">
+<div id="arg-speedup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:20.029987Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:20.029862Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:20.034073Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:20.033374Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict the speedup ceiling from the plot:</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># total compute time scales with sum(k^3) over SCCs.</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Sequential = sum(k^3); parallel = sum over levels of max(k^3 within level).</span></span>
@@ -661,7 +735,7 @@ theoretical speedup:    2.6x</code></pre>
 <h2 class="anchored" data-anchor-id="example-4-a-migration-chain-with-coalescence">Example 4: A migration chain with coalescence</h2>
 <p>Spatial-style models combine a “where” axis (which cell each lineage occupies) with a “when” axis (how many lineages remain). Within one lineage-count slice, lineages migrate between neighbouring cells — that’s cyclic. Across slices, lineages coalesce — that’s acyclic. The result is many SCCs (the migration cycles) stacked along an outer DAG (the coalescence levels).</p>
 <p>We use a 1D chain of cells with 2 lineages so the example is small and easy to inspect; the principle is the same on a 2D hex grid or a real geographic region.</p>
-<div id="mig-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.181361Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.181065Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.188625Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.186277Z&quot;}}">
+<div id="mig-summary" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:20.035700Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:20.035589Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:20.042402Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:20.041734Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1D chain of 4 cells, 2 lineages. State = list of per-cell</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># lineage counts. Migration: a lineage moves between adjacent</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cells. Coalescence: if two lineages share a cell, they merge.</span></span>
@@ -704,12 +778,12 @@ theoretical speedup:    2.6x</code></pre>
   widest row:          10 vertices, 1 parallel SCCs</code></pre>
 </div>
 </div>
-<div id="mig-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T23:46:05.193443Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T23:46:05.192689Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T23:46:05.244204Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T23:46:05.242713Z&quot;}}">
+<div id="mig-plot" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:20.043993Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:20.043873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:20.079565Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:20.079036Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>g_mig.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="scc-decomposition_files/figure-html/cell-11-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="scc-decomposition_files/figure-html/cell-11-output-1.png" width="794" height="424" class="figure-img"></a></p>
+<p><a href="scc-decomposition_files/figure-html/cell-11-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="scc-decomposition_files/figure-html/cell-11-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -719,7 +793,7 @@ theoretical speedup:    2.6x</code></pre>
 </section>
 <section id="example-5-coalescent-with-selection" class="level2">
 <h2 class="anchored" data-anchor-id="example-5-coalescent-with-selection">Example 5: Coalescent with selection</h2>
-<div id="5aff4e64" class="cell">
+<div id="5aff4e64" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:20.081644Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:20.081480Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:24.262590Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:24.262078Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    Graph, StateIndexer, Property, SparseObservations, ExpStepSize,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    GaussPrior, LogGaussPrior, BetaPrior, HalfCauchyPrior, Adamelia, dense_to_sparse,</span>
@@ -861,12 +935,12 @@ theoretical speedup:    2.6x</code></pre>
   widest row:          27 vertices, 3 parallel SCCs</code></pre>
 </div>
 </div>
-<div id="f09c0031" class="cell">
+<div id="f09c0031" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:24.263992Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:24.263880Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:24.334965Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:24.334486Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>g_sel.plot_scc_decomp(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="scc-decomposition_files/figure-html/cell-13-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="scc-decomposition_files/figure-html/cell-13-output-1.png" width="794" height="424" class="figure-img"></a></p>
+<p><a href="scc-decomposition_files/figure-html/cell-13-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="scc-decomposition_files/figure-html/cell-13-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -898,7 +972,7 @@ theoretical speedup:    2.6x</code></pre>
 <section id="live-example" class="level2">
 <h2 class="anchored" data-anchor-id="live-example">Live example</h2>
 <p>Lets try the ARG model with a larger sample size:</p>
-<div id="7b17eaf0" class="cell">
+<div id="7b17eaf0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:24.336657Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:24.336543Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:24.339296Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:24.338825Z&quot;}}" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">7</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -908,71 +982,73 @@ theoretical speedup:    2.6x</code></pre>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>initial[indexer.props_to_index(loc1<span class="op">=</span><span class="dv">1</span>, loc2<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> nr_samples</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong>No parallel elimination</strong>:</p>
-<div id="378bd9f5" class="cell">
+<div id="378bd9f5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:24.340985Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:24.340866Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.395199Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.394620Z&quot;}}" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(g_arg.vertices_length(), <span class="st">'states'</span>)</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>g_arg.clear_from_cache(graph_cache<span class="op">=</span><span class="va">False</span>) <span class="co"># keep graph cache</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2999 states</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="15">
+<div class="cell-output cell-output-display" data-execution_count="14">
 <pre><code>{'graph_cache': 0, 'parameterized_reward_compute': 0}</code></pre>
 </div>
 </div>
-<div id="22c7756b" class="cell">
+<div id="22c7756b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.396604Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.396489Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.520217Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.519714Z&quot;}}" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co"># cache parameterized reward compute for graph</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>g_arg.prewarm_cache(theta<span class="op">=</span>[<span class="dv">1</span>, <span class="fl">0.7</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>g_arg.update_weights([<span class="dv">1</span>, <span class="fl">0.7</span>])</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>g_arg.prewarm_cache()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 13.3 s, sys: 3.47 s, total: 16.7 s
-Wall time: 18.9 s</code></pre>
+<pre><code>CPU times: user 64.9 ms, sys: 55.5 ms, total: 120 ms
+Wall time: 121 ms</code></pre>
 </div>
 </div>
 <p><strong>Parallel elimination</strong>:</p>
-<div id="66f9a75d" class="cell">
+<div id="66f9a75d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.521650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.521540Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.669324Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.668867Z&quot;}}" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>g_arg.update_weights([<span class="dv">1</span>, <span class="fl">0.7</span>])</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>g_arg.clear_from_cache(graph_cache<span class="op">=</span><span class="va">False</span>) <span class="co"># keep graph cache</span></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>cache.reset_scc_compose_stats()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  Removed 1 file(s), preserved directory structure</code></pre>
 </div>
+<div id="59a5fac8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.670822Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.670726Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.810470Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.809795Z&quot;}}" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>g_arg.update_weights([<span class="dv">1</span>, <span class="fl">0.7</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="3ddf3256" class="cell">
+<div id="3ddf3256" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.812091Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.811973Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.945543Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.944984Z&quot;}}" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># cache parameterized reward compute for graph and its SCCs</span></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    g_arg.prewarm_cache(theta<span class="op">=</span>[<span class="dv">1</span>, <span class="fl">0.7</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    g_arg.prewarm_cache()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.38 s, sys: 1.3 s, total: 2.68 s
-Wall time: 1.76 s</code></pre>
+<pre><code>CPU times: user 165 ms, sys: 139 ms, total: 304 ms
+Wall time: 131 ms</code></pre>
 </div>
 </div>
 <p>Hierarchical SCC stats:</p>
-<div id="102095d3" class="cell">
+<div id="102095d3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.947267Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.947151Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:37.949246Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:37.948875Z&quot;}}" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>stats <span class="op">=</span> cache.scc_compose_stats()</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stats)</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'total compose time: </span><span class="sc">{</span><span class="bu">int</span>(stats[<span class="st">'total_compose_ns'</span>] <span class="op">/</span> <span class="fl">1e+6</span>)<span class="sc">:}</span><span class="ss"> ms'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>{'cache_hits': 0, 'cache_misses': 225, 'compose_calls': 1, 'total_compose_ns': 1760621000, 'cache_bypassed': 2}
-total compose time: 1760 ms</code></pre>
+<pre><code>{'cache_hits': 0, 'cache_misses': 0, 'compose_calls': 1, 'total_compose_ns': 128754000, 'cache_bypassed': 2}
+total compose time: 128 ms</code></pre>
 </div>
 </div>
 <p><strong>Once cached</strong>:</p>
-<div id="6831bfe2" class="cell">
+<div id="6831bfe2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:37.950549Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:37.950446Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:38.090857Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:38.090357Z&quot;}}" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>g_arg <span class="op">=</span> Graph(two_locus_arg, ipv<span class="op">=</span>initial, indexer<span class="op">=</span>indexer)</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>g_arg.update_weights([<span class="dv">1</span>, <span class="fl">0.7</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="5cdc7ae2" class="cell">
+<div id="5cdc7ae2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:23:38.092447Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:23:38.092352Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:23:38.259819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:23:38.259277Z&quot;}}" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>g_arg.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 14.3 s, sys: 2.44 s, total: 16.7 s
-Wall time: 18.7 s</code></pre>
+<pre><code>CPU times: user 67.2 ms, sys: 59.8 ms, total: 127 ms
+Wall time: 164 ms</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="31">
-<pre><code>2.159833578030824</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<pre><code>2.1599920865206688</code></pre>
 </div>
 </div>
 

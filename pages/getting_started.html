@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -75,7 +75,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -527,7 +527,7 @@ div.progress-bar { /* Inner bar */
         
 </div>
 </div>
-<div id="5e2d935f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:37.480776Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:37.480673Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.041022Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.040322Z&quot;}}" data-execution_count="1">
+<div id="5e2d935f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:10:56.765080Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:10:56.764988Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.341009Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.340213Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -579,7 +579,7 @@ table {
 </div>
 </div>
 <p>You can now create the graph by passing the callback function to the <code>Graph</code> constructor, along the <code>ipv</code> keyword argument specifying in which state the process begins. Then plot the graph to make sure your callback function works as expected:</p>
-<div id="9e659a23" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.042996Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.042795Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.565566Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.564951Z&quot;}}" data-execution_count="2">
+<div id="9e659a23" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.343089Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.342885Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.885427Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.884859Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(model, ipv<span class="op">=</span>[<span class="dv">1</span>])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -591,20 +591,20 @@ table {
 </div>
 </div>
 <p>This models an exponential distribution with rate 2.0. Once we’ve constructed the graph, we can compute moments directly. The expected waiting time is 1/rate = 0.5, which we verify by calling <code>expectation()</code> on the graph:</p>
-<div id="16d05c78" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.567162Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.567042Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.569664Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.569168Z&quot;}}" data-execution_count="3">
+<div id="16d05c78" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.887566Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.887422Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.890751Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.890007Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>graph.expectation(), graph.variance()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>(0.5, 0.25)</code></pre>
 </div>
 </div>
-<div id="8d234214" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.571055Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.570920Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.573389Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.572905Z&quot;}}" data-execution_count="4">
+<div id="8d234214" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.892298Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.892185Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.895167Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.894448Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph.moments(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>[0.5, 0.5, 0.75, 1.5, 3.75, 11.25, 39.375, 157.5, 708.75, 3543.75]</code></pre>
 </div>
 </div>
 <p>You can compute probability distributions. The <code>pdf()</code> method returns the probability density at a given time, while <code>cdf()</code> returns the probability that the waiting time is less than or equal to that time:</p>
-<div id="50985898" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.574813Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.574659Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.652743Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.652213Z&quot;}}" data-execution_count="5">
+<div id="50985898" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.896787Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.896664Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.988140Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.987714Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>))</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>vals <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">3</span>, <span class="dv">100</span>)</span>
@@ -620,23 +620,23 @@ table {
 </div>
 </div>
 <p>You can also draw random samples from the distribution:</p>
-<div id="f643cd41" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.654442Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.654307Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.657963Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.657412Z&quot;}}" data-execution_count="6">
+<div id="f643cd41" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.989778Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.989662Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.993105Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.992627Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> graph.sample(<span class="dv">10000</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>samples[:<span class="dv">10</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
-<pre><code>array([0.27183558, 0.63356955, 0.24251393, 0.203119  , 0.8684401 ,
-       1.19063823, 1.98901545, 0.02648317, 0.26649912, 0.59229823])</code></pre>
+<pre><code>array([0.4957212 , 0.08762309, 0.09159933, 0.38017911, 0.17461499,
+       0.12347707, 0.12373378, 0.04623299, 0.06967332, 2.11922733])</code></pre>
 </div>
 </div>
 <p>Sample mean vs.&nbsp;expectation:</p>
-<div id="a16362a2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.659333Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.659209Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.661863Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.661218Z&quot;}}" data-execution_count="7">
+<div id="a16362a2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.994779Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.994578Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:00.997590Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:00.996911Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>np.mean(samples).item(), graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>(0.49845319396865195, 0.5)</code></pre>
+<pre><code>(0.4943780597588628, 0.5)</code></pre>
 </div>
 </div>
 <p>Using rewards, you can compute expectations and PDFs of marginal waiting times, time spent in each state and much more - all as easily as for this simple example. You an learn more about this, as well as about Bayesian inference in the tutorials. For now, just appreciate how easily complex models can be constructed:</p>
-<div id="e63a4aa1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.663391Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.663289Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.798573Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.797960Z&quot;}}" data-execution_count="8">
+<div id="e63a4aa1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:00.999119Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:00.998994Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:01.136769Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:01.136087Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -661,7 +661,7 @@ table {
 </div>
 </div>
 <p>Note how any keyword arguments are passed onto the callback function:</p>
-<div id="018a46a6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:01:40.800280Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:01:40.800163Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:01:40.949175Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:01:40.948536Z&quot;}}" data-execution_count="9">
+<div id="018a46a6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:01.138534Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:01.138400Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:01.288530Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:01.287944Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(mesh, ipv<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">1</span>], max_val<span class="op">=</span><span class="dv">8</span>)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(graph.expectation())</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

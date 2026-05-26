@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -438,7 +438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <p>Phasic exposes a single <code>configure()</code> entry point for tuning the library’s behaviour: which compute backend to use, how many CPU threads OpenMP should spawn, when to engage high-precision arithmetic, whether to parallelise Gaussian elimination across strongly-connected components, where to put the on-disk cache, and so on. Every public field describes a user-visible <em>outcome</em> — never which third-party library or internal mechanism realises it.</p>
 <p><code>configure()</code> can be called persistently (the settings stay applied until further changes) or used as a context manager (<code>with configure(...): ...</code>) for a single block of code. Each field is also reachable via a <code>PHASIC_*</code> / <code>OMP_NUM_THREADS</code> environment variable, so SLURM job scripts, CI pipelines, and shell aliases can set the same knobs without touching Python. The two interfaces are kept consistent: <code>configure(...)</code> writes to the env var, and <code>get_config()</code> seeds itself from the env var on first call. If a shell-set env var and an explicit <code>configure()</code> argument disagree, the library raises <code>PTDConfigError</code> rather than silently choosing one — every conflict surfaces loudly.</p>
-<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:16.619534Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:16.619426Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.171185Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.170666Z&quot;}}" data-execution_count="1">
+<div id="imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:35.751111Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:35.751006Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.416514Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.415985Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    configure, get_config, get_available_options, reset_config,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    PhasicConfig, PTDConfigError,</span>
@@ -535,7 +535,7 @@ table {
 <section id="the-defaults" class="level2">
 <h2 class="anchored" data-anchor-id="the-defaults">The defaults</h2>
 <p><code>configure()</code> with no arguments is a no-op; the defaults are already in effect. Inspect them via <code>get_config()</code>:</p>
-<div id="defaults-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.172777Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.172606Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.174677Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.174261Z&quot;}}" data-execution_count="2">
+<div id="defaults-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.418689Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.418449Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.420940Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.420418Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cfg <span class="op">=</span> get_config()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cfg)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -798,14 +798,14 @@ table {
 <section id="setting-options" class="level2">
 <h2 class="anchored" data-anchor-id="setting-options">Setting options</h2>
 <p>Call <code>configure()</code> with any subset of the fields above. All updates are validated together and only take effect if no conflicts are detected. Unrecognised kwargs raise <code>PTDConfigError</code> with the full list of valid names.</p>
-<div id="setting-mpfr" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.176040Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.175940Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.177756Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.177382Z&quot;}}" data-execution_count="3">
+<div id="setting-mpfr" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.422456Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.422353Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.424350Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.423874Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force MPFR for every moment computation, at 256-bit precision.</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset to defaults.</span></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>reset_config()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="setting-scc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.178982Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.178892Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.182200Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.181877Z&quot;}}" data-execution_count="4">
+<div id="setting-scc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.425838Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.425724Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.429251Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.428765Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable parallel SCC elimination on a multi-core machine</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># and put the cache on a shared filesystem.</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
@@ -830,7 +830,7 @@ table {
 <div class="cell-output cell-output-stdout">
 <pre><code>PHASIC_HIERAR_ELIMINATION = 1
 PHASIC_MAX_PARALLEL_SCCS   = 4
-PHASIC_CACHE_DIR           = /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/phasic_cache_qmxq0ocp</code></pre>
+PHASIC_CACHE_DIR           = /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/phasic_cache_z4oeior5</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
@@ -851,7 +851,7 @@ Tip
 <h2 class="anchored" data-anchor-id="temporary-settings-with-context-manager">Temporary settings with context manager</h2>
 <p><code>configure(...)</code> returns a context-manager-shaped object. Using it with a <code>with</code> block applies the settings on entry and rolls them back at the end of the block — useful when you want to switch behavior for a single computation without leaking the change to the rest of the script.</p>
 <p>The rollback is comprehensive: every field touched by the <code>configure()</code> call, and every phasic-tracked environment variable, is restored to whatever value it held just before the <code>with</code> statement. If the block raises, the rollback still happens. Conflict checking fires at the <code>with</code> statement, not inside the body. If the settings disagree with the shell environment, <code>configure()</code> raises before the block runs and no rollback is needed.</p>
-<div id="6922204a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.183658Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.183576Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.185928Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.185499Z&quot;}}" data-execution_count="5">
+<div id="6922204a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.430674Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.430587Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.433197Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.432760Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: parallel_elimination is False.</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'outside:'</span>, get_config().parallel_elimination)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -870,7 +870,7 @@ outside: False env = None</code></pre>
 </div>
 </div>
 <p>You can also bind the live <code>PhasicConfig</code> to inspect or read from inside the block:</p>
-<div id="d1589620" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.187129Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.187051Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.189022Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.188613Z&quot;}}" data-execution_count="6">
+<div id="d1589620" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.434598Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.434501Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.436790Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.436227Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>, high_precision_bits<span class="op">=</span><span class="dv">256</span>) <span class="im">as</span> cfg:</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"inside the block: mode=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_mode<span class="sc">!r}</span><span class="ss">, "</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f"bits=</span><span class="sc">{</span>cfg<span class="sc">.</span>high_precision_bits<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -878,7 +878,7 @@ outside: False env = None</code></pre>
 <pre><code>inside the block: mode='always', bits=256</code></pre>
 </div>
 </div>
-<div id="efc34fa7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.190237Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.190149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.192502Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.192103Z&quot;}}" data-execution_count="7">
+<div id="efc34fa7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.438094Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.438004Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.440570Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.440078Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> configure(cpu_threads<span class="op">=</span><span class="dv">4</span>):</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        cfg <span class="op">=</span> get_config()</span>
@@ -910,7 +910,7 @@ Tip
 <section id="inspecting-the-effective-configuration" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-the-effective-configuration">Inspecting the effective configuration</h2>
 <p><code>get_config().effective()</code> returns a dict with three sections: the current public field values, the corresponding environment variables, and a <code>derived</code> section that answers practical questions (“is JAX active right now?”, “where did <code>cpu_threads</code> come from?”, “what does <code>compute='auto'</code> resolve to on this system?”). <code>repr(cfg)</code> pretty-prints the same information.</p>
-<div id="effective-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.193759Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.193680Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.196478Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.196119Z&quot;}}" data-execution_count="8">
+<div id="effective-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.441894Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.441801Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.444844Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.444312Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, cpu_threads<span class="op">=</span><span class="dv">4</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>eff <span class="op">=</span> get_config().effective()</span>
@@ -979,7 +979,7 @@ Derived:
 <li>The label on the left of each row, e.g.&nbsp;<code>L5 (23)</code>, tells you how many parallel-eliminable SCCs that level contains.</li>
 </ul>
 <p>Wide rows mean good parallelism; rows with a single small tile are elimination bottlenecks that the SCC composer can’t speed up.</p>
-<div id="3bcf328e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.197909Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.197820Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.370024Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.369551Z&quot;}}" data-execution_count="9">
+<div id="3bcf328e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.446289Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.446183Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.620861Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.620332Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A coalescent with 6 lineages — enough to show several levels.</span></span>
@@ -1014,7 +1014,7 @@ Derived:
 <section id="conflict-policy-nothing-silently-overrides-anything" class="level2">
 <h2 class="anchored" data-anchor-id="conflict-policy-nothing-silently-overrides-anything">Conflict policy: nothing silently overrides anything</h2>
 <p>If an environment variable was set in the shell (i.e.&nbsp;before phasic was imported) and a later <code>configure()</code> call requests a different value for the matching field, the library raises rather than silently overwriting. This rule applies symmetrically: <code>configure()</code> cannot silently win over the shell, and the shell cannot silently win over <code>configure()</code>.</p>
-<div id="conflict-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.371557Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.371442Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.374347Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.373904Z&quot;}}" data-execution_count="10">
+<div id="conflict-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.622690Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.622573Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.625832Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.625181Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pretend OMP_NUM_THREADS was set by the shell (i.e. before</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># phasic was imported). The bookkeeping helper below clears</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># the "phasic-assigned" marker so the conflict checker treats</span></span>
@@ -1052,7 +1052,7 @@ After agreement: OMP_NUM_THREADS = 2</code></pre>
 <section id="probing-whats-available" class="level2">
 <h2 class="anchored" data-anchor-id="probing-whats-available">Probing what’s available</h2>
 <p>Use <code>get_available_options()</code> to branch on build-time features before configuring:</p>
-<div id="available-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.375780Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.375680Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.408888Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.408410Z&quot;}}" data-execution_count="11">
+<div id="available-show" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.627439Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.627328Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.661444Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.660880Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>opts <span class="op">=</span> get_available_options()</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, v <span class="kw">in</span> opts.items():</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>k<span class="sc">:14s}</span><span class="ss"> = </span><span class="sc">{</span>v<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1063,7 +1063,7 @@ After agreement: OMP_NUM_THREADS = 2</code></pre>
   platforms      = ['cpu']</code></pre>
 </div>
 </div>
-<div id="available-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.410230Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.410143Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.412145Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.411668Z&quot;}}" data-execution_count="12">
+<div id="available-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.662875Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.662763Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.664859Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.664397Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: enable MPFR-always only when MPFR is built.</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> opts[<span class="st">'mpfr'</span>]:</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    configure(high_precision_mode<span class="op">=</span><span class="st">'always'</span>)</span>
@@ -1101,7 +1101,7 @@ Tip
 <section id="resetting" class="level2">
 <h2 class="anchored" data-anchor-id="resetting">Resetting</h2>
 <p><code>reset_config()</code> discards the cached global config object so the next <code>get_config()</code> rebuilds it fresh from the current environment. Useful in tests, less so in production code. <strong>It does not roll back env vars that previous <code>configure(...)</code> calls wrote</strong> — if you need a fully clean environment, unset the relevant <code>PHASIC_*</code> / <code>OMP_NUM_THREADS</code> variables manually in <code>os.environ</code> first.</p>
-<div id="reset-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-21T12:02:19.413533Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-21T12:02:19.413437Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-21T12:02:19.415732Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-21T12:02:19.415261Z&quot;}}" data-execution_count="13">
+<div id="reset-example" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:11:38.666456Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:11:38.666338Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:11:38.670207Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:11:38.669602Z&quot;}}" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect what's currently in the environment, reset, and confirm.</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Before reset:'</span>, <span class="bu">list</span>(k <span class="cf">for</span> k <span class="kw">in</span> os.environ <span class="cf">if</span> k.startswith(<span class="st">'PHASIC_'</span>)))</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>reset_config()</span>

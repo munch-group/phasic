@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -74,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -220,7 +220,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>high_precision_bits : int or None, default None Precision in bits when high-precision mode is active. None = auto-pick based on the condition number. Must be &gt;= 53 if specified. Backs PHASIC_MPFR_BITS.</p>
 <p>ill_condition_threshold : float, default 1e12 Condition-number threshold above which high-precision mode is engaged automatically. Backs PHASIC_CONDITION_THRESHOLD.</p>
 <p>warn_on_ill_conditioning : bool, default True Emit log warnings when the condition number is high. Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).</p>
-<p>reward_compute_cache : bool, default False Use the on-disk reward-compute caches at <code>cache_dir/parameterized_reward_compute/</code> — both the parent <code>&lt;hash&gt;.bin</code> written by <code>ptd_precompute_reward_compute_graph</code> and the per-SCC <code>scc_&lt;hash&gt;.bin</code> written by the hierarchical composer. Backs PHASIC_REWARD_COMPUTE_CACHE (positive: <code>'1'</code> enables, absent = default = off). Default off because the symbolic elimination it caches is cheap to redo on small graphs, and the cache can grow unboundedly across model variants.</p>
+<p>reward_compute_cache : bool, default False Use the on-disk reward-compute caches at <code>cache_dir/parameterized_reward_compute/</code> — both the parent <code>&lt;hash&gt;.bin</code> written by <code>ptd_precompute_reward_compute_graph</code> and the per-SCC <code>scc_&lt;hash&gt;.bin</code> written by the hierarchical composer. Backs PHASIC_REWARD_COMPUTE_CACHE (positive: <code>'1'</code> enables, absent = default = off). Default off. The cache uses the rev-3 zero-copy mmap format, so the per-process load is ~as cheap as recompute (it only affects the first call per process — the in-memory Stage-A1 graph amortises later theta updates, the SVGD inner loop). Worth enabling when a model is <strong>re-run across processes</strong> AND its recompute is <strong>expensive</strong> (large / stiff); for small or one-shot models leave it off (the load ≈ recompute and the first cold build pays a one-time convert + write). The cache can grow unboundedly across model variants — users own the directory. See CLAUDE.md “Disk caches” and <code>scratch/io_overlap_probe.py</code>.</p>
 <p>graph_cache : bool, default True Use the on-disk graph cache at <code>cache_dir/graphs/</code> for serialised <code>Graph</code> objects (callback-built graphs). Backs PHASIC_DISABLE_GRAPH_CACHE (inverted). Per-graph opt-in via <code>Graph(..., graph_cache=...)</code> overrides this global default.</p>
 <p>cache_dir : str or None, default None Override the cache root. None = $HOME/.phasic_cache. Backs PHASIC_CACHE_DIR.</p>
 <p>strict : bool, default True Raise on missing-feature warnings (e.g.&nbsp;JAX requested but not installed) instead of logging a warning. Does NOT affect conflict checking — conflicts always raise.</p>

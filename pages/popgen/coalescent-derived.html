@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -74,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -201,7 +201,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="c2903362" class="cell" data-execution_count="3">
+<div id="c2903362" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Graph, StateIndexer, Property, SparseObservations, ExpStepSize, configure,</span>
@@ -215,44 +215,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> beta</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
 <div class="cell-output cell-output-display">
 
         <style>
@@ -300,37 +262,37 @@ table {
         
 </div>
 </div>
-<div id="69e362a0" class="cell" data-execution_count="4">
+<div id="69e362a0" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>configure(parallel_elimination<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>          reward_compute_cache<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>          high_precision_mode<span class="op">=</span><span class="st">'never'</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>        <span class="co">#   reward_compute_cache=False, </span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#          high_precision_mode='never',</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>          )</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>phasic.get_config().effective()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
+<div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>{'fields': {'compute': 'auto',
-  'cpu_threads': 10,
+  'cpu_threads': 8,
   'parallel_elimination': True,
   'parallel_elimination_min_subgraph': None,
   'parallel_elimination_max_concurrent': None,
   'svgd_strategy': 'auto',
-  'high_precision_mode': 'never',
+  'high_precision_mode': 'auto',
   'high_precision_bits': None,
   'ill_condition_threshold': 1000000000000.0,
   'warn_on_ill_conditioning': True,
-  'reward_compute_cache': True,
+  'reward_compute_cache': False,
   'graph_cache': True,
   'cache_dir': None,
   'strict': True,
   'verbose': False},
- 'environment': {'OMP_NUM_THREADS': '10',
+ 'environment': {'OMP_NUM_THREADS': '8',
   'PHASIC_HIERAR_ELIMINATION': '1',
   'PHASIC_MIN_SCC_SIZE_TO_CACHE': None,
   'PHASIC_MAX_PARALLEL_SCCS': None,
   'PHASIC_FORCE_MPFR': None,
   'PHASIC_MPFR_BITS': None,
-  'PHASIC_CONDITION_THRESHOLD': 'inf',
+  'PHASIC_CONDITION_THRESHOLD': None,
   'PHASIC_DISABLE_CONDITION_WARNINGS': None,
-  'PHASIC_REWARD_COMPUTE_CACHE': '1',
+  'PHASIC_REWARD_COMPUTE_CACHE': None,
   'PHASIC_DISABLE_GRAPH_CACHE': None,
   'PHASIC_CACHE_DIR': None},
  'derived': {'jax_active': True,
@@ -340,7 +302,7 @@ table {
   'compute_resolved': 'jax-cpu'}}</code></pre>
 </div>
 </div>
-<div id="14b1cfce" class="cell" data-execution_count="17">
+<div id="14b1cfce" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_with_derived(state, indexer<span class="op">=</span><span class="va">None</span>, N<span class="op">=</span><span class="va">None</span>, s<span class="op">=</span><span class="dv">0</span>):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
@@ -463,158 +425,177 @@ table {
 <span id="cb4-120"><a href="#cb4-120" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">0</span>)] <span class="op">=</span> n_samples <span class="op">-</span> n_derived</span>
 <span id="cb4-121"><a href="#cb4-121" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> n_derived</span>
 <span id="cb4-122"><a href="#cb4-122" aria-hidden="true" tabindex="-1"></a>    state[indexer.derived_freq] <span class="op">=</span> freqs[i]</span>
-<span id="cb4-123"><a href="#cb4-123" aria-hidden="true" tabindex="-1"></a>    ipv.append([state, rates[i]])</span>
-<span id="cb4-124"><a href="#cb4-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-125"><a href="#cb4-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-126"><a href="#cb4-126" aria-hidden="true" tabindex="-1"></a>cont_graph <span class="op">=</span> Graph(coalescent_with_derived, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer, N<span class="op">=</span>pop_size, s<span class="op">=</span><span class="fl">0.5</span>)</span>
-<span id="cb4-127"><a href="#cb4-127" aria-hidden="true" tabindex="-1"></a><span class="co">#graph.update_weights(true_theta, callback=weight_update)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-123"><a href="#cb4-123" aria-hidden="true" tabindex="-1"></a>    ipv.append([state, rates[i]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="c87bf25f" class="cell" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>cont_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="20">
-<pre><code>11</code></pre>
+<div id="da2bfe1c" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>cont_graph <span class="op">=</span> Graph(coalescent_with_derived, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer, N<span class="op">=</span>pop_size, s<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#graph.update_weights(true_theta, callback=weight_update)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="c87bf25f" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cont_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>89</code></pre>
 </div>
 </div>
-<div id="99ccdccf" class="cell" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> label(vertex):</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> vertex.state()</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    anc, der <span class="op">=</span> <span class="dv">0</span>, <span class="dv">0</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.lineages.state_length):</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> indexer.lineages.i2p(i)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> p.is_derived:</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>            der <span class="op">+=</span> state[i]</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            anc <span class="op">+=</span> state[i]</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'</span><span class="sc">{</span>der<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span>anc<span class="op">+</span>der<span class="sc">}</span><span class="ss">, f:</span><span class="sc">{</span>state[indexer.derived_freq]<span class="sc">}</span><span class="ss">'</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> subgr(state):</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> state.tolist()</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">del</span> s[indexer.derived_freq]</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>graph.plot(subgraphfun<span class="op">=</span>subgr, label_fmt<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="21">
+<div id="2c63b164" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph.plot_scc_decomp()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="99ccdccf" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> label(vertex):</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> vertex.state()</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    anc, der <span class="op">=</span> <span class="dv">0</span>, <span class="dv">0</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.lineages.state_length):</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> indexer.lineages.i2p(i)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> p.is_derived:</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>            der <span class="op">+=</span> state[i]</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>            anc <span class="op">+=</span> state[i]</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'</span><span class="sc">{</span>der<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span>anc<span class="op">+</span>der<span class="sc">}</span><span class="ss">, f:</span><span class="sc">{</span>state[indexer.derived_freq]<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> subgr(state):</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> state.tolist()</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">del</span> s[indexer.derived_freq]</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>graph.plot(subgraphfun<span class="op">=</span>subgr, label_fmt<span class="op">=</span>label)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[5]</span><span class="ansi-green-fg">, line 17</span>
+<span class="ansi-green-fg">     13</span>     s = state.tolist()
+<span class="ansi-green-fg">     14</span>     <span style="font-weight:bold;color:rgb(0,135,0)">del</span> s[indexer.derived_freq]
+<span class="ansi-green-fg">     15</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> s
+<span class="ansi-green-fg">     16</span> 
+<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">17</span> graph.plot(subgraphfun=subgr, label_fmt=label)
+
+<span class="ansi-red-fg">NameError</span>: name 'graph' is not defined</pre>
+</div>
+</div>
+</div>
+<div id="d6f8a715" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> cont_graph.discretize(rate<span class="op">=</span>mutation_rate)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> weight_update(param, coef):</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    N, s, u <span class="op">=</span> param</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    coal_rate_scalar, from_freq, to_freq, mut_scalar <span class="op">=</span> coef</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> coal_rate_scalar <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> coal_rate_scalar <span class="op">/</span> N</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> mut_scalar:</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> u <span class="op">*</span> mut_scalar</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        _s <span class="op">=</span> <span class="op">-</span> s <span class="co"># s is negative because time is backwards</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        N <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>(N)) <span class="co"># binom.pmf wants integer N</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        sampling_prob <span class="op">=</span> from_freq<span class="op">/</span>N <span class="op">*</span> (<span class="dv">1</span> <span class="op">+</span> _s) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> _s <span class="op">*</span> from_freq<span class="op">/</span>N)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> binom.pmf(to_freq, N, sampling_prob)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> rate</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
 <div>
 <figure class="figure">
-<p><a href="coalescent-derived_files/figure-html/cell-6-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="coalescent-derived_files/figure-html/cell-6-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="coalescent-derived_files/figure-html/cell-9-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="coalescent-derived_files/figure-html/cell-9-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
-<div id="d6f8a715" class="cell" data-execution_count="26">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> cont_graph.discretize(rate<span class="op">=</span>mutation_rate)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> weight_update(param, coef):</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    N, s, u <span class="op">=</span> param</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    coal_rate_scalar, from_freq, to_freq, mut_scalar <span class="op">=</span> coef</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> coal_rate_scalar <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> coal_rate_scalar <span class="op">/</span> N</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> mut_scalar:</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> u <span class="op">*</span> mut_scalar</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        _s <span class="op">=</span> <span class="op">-</span> s <span class="co"># s is negative because time is backwards</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        N <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>(N)) <span class="co"># binom.pmf wants integer N</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        sampling_prob <span class="op">=</span> from_freq<span class="op">/</span>N <span class="op">*</span> (<span class="dv">1</span> <span class="op">+</span> _s) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> _s <span class="op">*</span> from_freq<span class="op">/</span>N)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> binom.pmf(to_freq, N, sampling_prob)</span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> rate</span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update)</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="26">
-<div>
-<figure class="figure">
-<p><a href="coalescent-derived_files/figure-html/cell-7-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="coalescent-derived_files/figure-html/cell-7-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="db9c43da" class="cell" data-execution_count="27">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>graph.plot_scc_decomp()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="db9c43da" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>graph.plot_scc_decomp()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="coalescent-derived_files/figure-html/cell-8-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="coalescent-derived_files/figure-html/cell-8-output-1.png" width="794" height="501" class="figure-img"></a></p>
+<p><a href="coalescent-derived_files/figure-html/cell-10-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="coalescent-derived_files/figure-html/cell-10-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
-<div id="d74d5348" class="cell" data-execution_count="28">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># cache parameterized reward compute for graph and its SCCs</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    graph.prewarm_cache()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d74d5348" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># with configure(parallel_elimination=True):</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#     # cache parameterized reward compute for graph and its SCCs</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#     graph.prewarm_cache()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="08c86c79" class="cell" data-execution_count="30">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>graph.rewards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="30">
+<div id="08c86c79" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>graph.rewards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1])</code></pre>
 </div>
 </div>
-<div id="61f411a0" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.array(graph.states()).T</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>rewards[:, <span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> <span class="dv">0</span> <span class="co"># zero out absorbing</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>rewards[np.<span class="bu">sum</span>(rewards, axis<span class="op">=</span><span class="dv">1</span>) <span class="op">&gt;</span> <span class="dv">0</span>] <span class="co"># only indexer slot representing actual states used</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="61f411a0" class="cell" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>rewards <span class="op">=</span> np.array(graph.states()).T</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>rewards[:, <span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> <span class="dv">0</span> <span class="co"># zero out absorbing</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>rewards[np.<span class="bu">sum</span>(rewards, axis<span class="op">=</span><span class="dv">1</span>) <span class="op">&gt;</span> <span class="dv">0</span>] <span class="co"># only indexer slot representing actual states used</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>array([[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 1, 2, 3, 4, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+      dtype=int32)</code></pre>
+</div>
+</div>
+<div id="eb9b8b90" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.zeros((n <span class="op">*</span> (rewards.shape[<span class="dv">0</span>]), rewards.shape[<span class="dv">0</span>]), dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>observed_data[:] <span class="op">=</span> np.nan</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    observed_data[(i<span class="op">*</span>n):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n), i] <span class="op">=</span> graph.sample(n, rewards<span class="op">=</span>rewards[i])</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>np.random.shuffle(observed_data)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>observed_data[:nr_observations] <span class="co"># just the first nr_observations rows</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> dense_to_sparse(observed_data)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>sparse_observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
 <pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">RuntimeError</span>                              Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[29]</span><span class="ansi-green-fg">, line 10</span>
-<span class="ansi-green-fg">      6</span> n = nr_observations
-<span class="ansi-green-fg">      7</span> observed_data = np.zeros((n * (rewards.shape[<span class="ansi-green-fg">0</span>]), rewards.shape[<span class="ansi-green-fg">0</span>]), dtype=float)
-<span class="ansi-green-fg">      8</span> observed_data[:] = np.nan
-<span class="ansi-green-fg">      9</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> i <span style="font-weight:bold;color:rgb(0,135,0)">in</span> range(rewards.shape[<span class="ansi-green-fg">0</span>]):
-<span class="ansi-green-fg">---&gt; </span><span class="ansi-green-fg">10</span>     observed_data[(i*n):((i+<span class="ansi-green-fg">1</span>)*n), i] = graph.sample(n, rewards=rewards[i])
-<span class="ansi-green-fg">     11</span> np.random.shuffle(observed_data)
-<span class="ansi-green-fg">     12</span> observed_data[:nr_observations] <span style="font-style:italic;color:rgb(95,135,135)"># just the first nr_observations rows</span>
-<span class="ansi-green-fg">     13</span> sparse_observations = dense_to_sparse(observed_data)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[11]</span><span class="ansi-green-fg">, line 6</span>
+<span class="ansi-green-fg">      2</span> n = nr_observations
+<span class="ansi-green-fg">      3</span> observed_data = np.zeros((n * (rewards.shape[<span class="ansi-green-fg">0</span>]), rewards.shape[<span class="ansi-green-fg">0</span>]), dtype=float)
+<span class="ansi-green-fg">      4</span> observed_data[:] = np.nan
+<span class="ansi-green-fg">      5</span> <span style="font-weight:bold;color:rgb(0,135,0)">for</span> i <span style="font-weight:bold;color:rgb(0,135,0)">in</span> range(rewards.shape[<span class="ansi-green-fg">0</span>]):
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">6</span>     observed_data[(i*n):((i+<span class="ansi-green-fg">1</span>)*n), i] = graph.sample(n, rewards=rewards[i])
+<span class="ansi-green-fg">      7</span> np.random.shuffle(observed_data)
+<span class="ansi-green-fg">      8</span> observed_data[:nr_observations] <span style="font-style:italic;color:rgb(95,135,135)"># just the first nr_observations rows</span>
+<span class="ansi-green-fg">      9</span> sparse_observations = dense_to_sparse(observed_data)
 
-<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:2929</span>, in <span class="ansi-cyan-fg">Graph.sample</span><span class="ansi-blue-fg">(self, n, validate_rewards, **kwargs)</span>
-<span class="ansi-green-fg">   2925</span>                 coverage_mode=<span class="ansi-yellow-fg">"report"</span>,
-<span class="ansi-green-fg">   2926</span>                 context=<span class="ansi-yellow-fg">"rewards"</span>,
-<span class="ansi-green-fg">   2927</span>             )
-<span class="ansi-green-fg">   2928</span>         <span style="font-weight:bold;color:rgb(0,135,0)">if</span> self.is_discrete:
-<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">2929</span>             <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np.array(super().sample_discrete(n, **kwargs))
-<span class="ansi-green-fg">   2930</span>         <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
-<span class="ansi-green-fg">   2931</span>             <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np.array(super().sample(n, **kwargs))
+<span class="ansi-cyan-fg">File </span><span class="ansi-green-fg">~/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:2960</span>, in <span class="ansi-cyan-fg">Graph.sample</span><span class="ansi-blue-fg">(self, n, validate_rewards, **kwargs)</span>
+<span class="ansi-green-fg">   2956</span>                 coverage_mode=<span class="ansi-yellow-fg">"report"</span>,
+<span class="ansi-green-fg">   2957</span>                 context=<span class="ansi-yellow-fg">"rewards"</span>,
+<span class="ansi-green-fg">   2958</span>             )
+<span class="ansi-green-fg">   2959</span>         <span style="font-weight:bold;color:rgb(0,135,0)">if</span> self.is_discrete:
+<span class="ansi-green-fg">-&gt; </span><span class="ansi-green-fg">2960</span>             <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np.array(super().sample_discrete(n, **kwargs))
+<span class="ansi-green-fg">   2961</span>         <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">   2962</span>             <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np.array(super().sample(n, **kwargs))
 
-<span class="ansi-red-fg">RuntimeError</span>: Expected vertex with index 2 (state 1 0 0 2 0 0 2) to have outgoing rate &lt;= 1. Is '1.303894'. Are you sure this is a discrete phase-type distribution?
+<span class="ansi-red-fg">RuntimeError</span>: Expected vertex with index 3 (state 1 0 0 2 0 0 3) to have outgoing rate &lt;= 1. Is '1.163525'. Are you sure this is a discrete phase-type distribution?
 </pre>
 </div>
 </div>
 </div>
-<div id="eb9b8b90" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> nr_observations</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> np.zeros((n <span class="op">*</span> (rewards.shape[<span class="dv">0</span>]), rewards.shape[<span class="dv">0</span>]), dtype<span class="op">=</span><span class="bu">float</span>)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>observed_data[:] <span class="op">=</span> np.nan</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(rewards.shape[<span class="dv">0</span>]):</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    observed_data[(i<span class="op">*</span>n):((i<span class="op">+</span><span class="dv">1</span>)<span class="op">*</span>n), i] <span class="op">=</span> graph.sample(n, rewards<span class="op">=</span>rewards[i])</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>np.random.shuffle(observed_data)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>observed_data[:nr_observations] <span class="co"># just the first nr_observations rows</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>sparse_observations <span class="op">=</span> dense_to_sparse(observed_data)</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>sparse_observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
 <div id="1fdab541" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">#%%monitor</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>phasic.set_log_level(<span class="st">'DEBUG'</span>)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>sparse_observations, </span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                  rewards<span class="op">=</span>rewards, </span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                  preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>                  callback<span class="op">=</span>weight_update,</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>                  theta_dim<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>                  fixed<span class="op">=</span>[(<span class="dv">0</span>, pop_size)],</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>[</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>                      <span class="va">None</span>,</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>                      BetaPrior(ci<span class="op">=</span>(<span class="fl">0.01</span>, <span class="fl">0.5</span>)),</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>                  ],</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">20</span>,                </span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>                  n_particles<span class="op">=</span><span class="dv">50</span>,                </span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>                learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.01</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">30.0</span>),</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>                progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>                      )                  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#%%monitor</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>phasic.set_log_level(<span class="st">'DEBUG'</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>sparse_observations, </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                  rewards<span class="op">=</span>rewards, </span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>                  preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>                  callback<span class="op">=</span>weight_update,</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>                  theta_dim<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>                  fixed<span class="op">=</span>[(<span class="dv">0</span>, pop_size)],</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>[</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                      <span class="va">None</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>                      BetaPrior(ci<span class="op">=</span>(<span class="fl">0.01</span>, <span class="fl">0.5</span>)),</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>                  ],</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">20</span>,                </span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>                  n_particles<span class="op">=</span><span class="dv">50</span>,                </span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>                learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.01</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">30.0</span>),</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>                progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>                      )                  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>[DEBUG] phasic.c: Auto-selected granularity: 1024 (max_rate=512.00)
 [DEBUG] phasic.c: Ill-conditioned multiplier detected: 5.32e-11 at command 515
@@ -857,128 +838,128 @@ table {
 </div>
 </div>
 <div id="3c9a5833" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="ba0a4eac" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_hdr()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_hdr()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="94dee8f7" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="86e15b64" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="1215cc36" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="no-epochs-joint-prob" class="level3">
 <h3 class="anchored" data-anchor-id="no-epochs-joint-prob">No epochs joint prob</h3>
 <div id="4dcd9857" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit)</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(joint_graph.vertices_length())</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>joint_graph.plot(max_nodes<span class="op">=</span><span class="dv">400</span>, nodesep<span class="op">=</span><span class="fl">0.2</span>, ranksep<span class="op">=</span><span class="dv">3</span>, by_state<span class="op">=</span>subgr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>joint_graph <span class="op">=</span> graph.joint_prob_graph(mutation_rate<span class="op">=</span>mutation_rate, reward_limit<span class="op">=</span>reward_limit)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(joint_graph.vertices_length())</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>joint_graph.plot(max_nodes<span class="op">=</span><span class="dv">400</span>, nodesep<span class="op">=</span><span class="fl">0.2</span>, ranksep<span class="op">=</span><span class="dv">3</span>, by_state<span class="op">=</span>subgr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="463974cc" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_graph, theta, nr_observations):</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    joint_graph.update_weights(theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update) </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_graph.joint_prob_table()</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> joint_prob_table[<span class="st">'prob'</span>] <span class="op">/</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> p.to_numpy()</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    sample <span class="op">=</span> np.random.choice(joint_prob_table.index.values, nr_observations, p<span class="op">=</span>p)</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_graph, theta, nr_observations):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    joint_graph.update_weights(theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update) </span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_graph.joint_prob_table()</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> joint_prob_table[<span class="st">'prob'</span>] <span class="op">/</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> p.to_numpy()</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    sample <span class="op">=</span> np.random.choice(joint_prob_table.index.values, nr_observations, p<span class="op">=</span>p)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="58d9f481" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(joint_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(joint_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="4b84453e" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> joint_graph.svgd(</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                  callback<span class="op">=</span>weight_update,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                  theta_dim<span class="op">=</span><span class="dv">3</span>,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   fixed=[(2, mutation_rate)],</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   prior=[</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       GaussPrior(ci=[1, 5]),  </span></span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       HalfCauchyPrior(ci=0.3),</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       None</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   ],</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">20</span>,                </span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>                  n_particles<span class="op">=</span><span class="dv">50</span>,                </span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>            <span class="co"># learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0)</span></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>                 optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>)</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>                      )</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> joint_graph.svgd(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                  callback<span class="op">=</span>weight_update,</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>                  theta_dim<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   fixed=[(2, mutation_rate)],</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   prior=[</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       GaussPrior(ci=[1, 5]),  </span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       HalfCauchyPrior(ci=0.3),</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>                <span class="co">#       None</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>                <span class="co">#   ],</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>                  n_iterations<span class="op">=</span><span class="dv">20</span>,                </span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>                  n_particles<span class="op">=</span><span class="dv">50</span>,                </span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>            <span class="co"># learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0)</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>                 optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>                      )</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="17d2fd55" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="b2d3e457" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_hdr()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_hdr()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="c9c44faf" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="d477ab77" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="418478a1" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="0eb8eef5" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(indexer, </span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                                  reward_limit<span class="op">=</span>reward_limit, </span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update)</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(indexer, </span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>                                  reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate], callback<span class="op">=</span>weight_update)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="4bed1051" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(indexer, </span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>                                  reward_limit<span class="op">=</span>reward_limit, </span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate])</span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(indexer, </span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>                                  reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate])</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="43051593" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_prob_graph, theta, nr_observations):</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_graph.update_weights(theta) </span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> joint_prob_table[<span class="st">'prob'</span>] <span class="op">/</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> p.to_numpy()</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    sample <span class="op">=</span> np.random.choice(joint_prob_table.index.values, nr_observations, p<span class="op">=</span>p)</span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_prob_graph, theta, nr_observations):</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_graph.update_weights(theta) </span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> joint_prob_table[<span class="st">'prob'</span>] <span class="op">/</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> p.to_numpy()</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    sample <span class="op">=</span> np.random.choice(joint_prob_table.index.values, nr_observations, p<span class="op">=</span>p)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="323a5934" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">10000</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>observed_data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>nr_observations <span class="op">=</span> <span class="dv">10000</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(nr_observations, rewards<span class="op">=</span>rewards)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>observed_data</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="2aaadf2b" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> joint_prob_graph.svgd(</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    callback<span class="op">=</span>weight_update,</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># fixed=[(2, mutation_rate)],</span></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=100,</span></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=200,</span></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># prior=[</span></span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     GaussPrior(ci=[5, 25]),</span></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     GaussPrior(ci=[0, 3]),</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     None</span></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ],</span></span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">50.0</span>),</span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> joint_prob_graph.svgd(</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    callback<span class="op">=</span>weight_update,</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># fixed=[(2, mutation_rate)],</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=100,</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=200,</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># prior=[</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     GaussPrior(ci=[5, 25]),</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     GaussPrior(ci=[0, 3]),</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     None</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ],</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span>ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">50.0</span>),</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 

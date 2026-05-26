@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-13bfcebd0556ee947714685635926b09.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -425,7 +425,7 @@ window.Quarto = {
   <ul>
   <li><a href="#aic-and-bic-for-a-single-fit" id="toc-aic-and-bic-for-a-single-fit" class="nav-link active" data-scroll-target="#aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</a></li>
   <li><a href="#model-comparison" id="toc-model-comparison" class="nav-link" data-scroll-target="#model-comparison">Model comparison</a></li>
-  <li><a href="#likelihood-ratio-test-for-nested-models" id="toc-likelihood-ratio-test-for-nested-models" class="nav-link" data-scroll-target="#likelihood-ratio-test-for-nested-models">Likelihood-ratio test for nested models</a></li>
+  <li><a href="#likelihood-ratio-test-for-nested-modelsinformation-criteria-rank-models-that-may-or-may-not-be-nested.-when-you-have-a-truly-nested-restriction-the-nested-model-fixes-some-parameters-of-the-full-model-at-specific-values-the-likelihood-ratio-test-gives-a-frequentist-p-value-under-the-null-hypothesis-that-the-restriction-holds2-bigl-log-hat-l_mathrmfull---log-hat-l_mathrmnested-bigr-sim-chi2_k_mathrmfull---k_mathrmnestedphasic-enforces-strict-nesting-both-fits-must-use-the-same-model-callable-the-closure-returned-by-one-call-to-graph.pmf_and_moments_from_graph-the-same-theta_dim-the-same-number-of-observations-and-the-nested-fits-fixed-set-must-be-a-strict-superset-of-the-full-fits-fixed-set.-thats-exactly-the-relationship-between-svgd-migration-free-fixed3-mutation_rate-and-svgd_no_mig-migration-fixed-to-zero-fixed1-0-3-mutation_rate" id="toc-likelihood-ratio-test-for-nested-modelsinformation-criteria-rank-models-that-may-or-may-not-be-nested.-when-you-have-a-truly-nested-restriction-the-nested-model-fixes-some-parameters-of-the-full-model-at-specific-values-the-likelihood-ratio-test-gives-a-frequentist-p-value-under-the-null-hypothesis-that-the-restriction-holds2-bigl-log-hat-l_mathrmfull---log-hat-l_mathrmnested-bigr-sim-chi2_k_mathrmfull---k_mathrmnestedphasic-enforces-strict-nesting-both-fits-must-use-the-same-model-callable-the-closure-returned-by-one-call-to-graph.pmf_and_moments_from_graph-the-same-theta_dim-the-same-number-of-observations-and-the-nested-fits-fixed-set-must-be-a-strict-superset-of-the-full-fits-fixed-set.-thats-exactly-the-relationship-between-svgd-migration-free-fixed3-mutation_rate-and-svgd_no_mig-migration-fixed-to-zero-fixed1-0-3-mutation_rate" class="nav-link" data-scroll-target="#likelihood-ratio-test-for-nested-modelsinformation-criteria-rank-models-that-may-or-may-not-be-nested.-when-you-have-a-truly-nested-restriction-the-nested-model-fixes-some-parameters-of-the-full-model-at-specific-values-the-likelihood-ratio-test-gives-a-frequentist-p-value-under-the-null-hypothesis-that-the-restriction-holds2-bigl-log-hat-l_mathrmfull---log-hat-l_mathrmnested-bigr-sim-chi2_k_mathrmfull---k_mathrmnestedphasic-enforces-strict-nesting-both-fits-must-use-the-same-model-callable-the-closure-returned-by-one-call-to-graph.pmf_and_moments_from_graph-the-same-theta_dim-the-same-number-of-observations-and-the-nested-fits-fixed-set-must-be-a-strict-superset-of-the-full-fits-fixed-set.-thats-exactly-the-relationship-between-svgd-migration-free-fixed3-mutation_rate-and-svgd_no_mig-migration-fixed-to-zero-fixed1-0-3-mutation_rate">Likelihood-ratio test for nested modelsInformation criteria rank models that may or may not be nested. When you have a <strong>truly nested</strong> restriction (the nested model fixes some parameters of the full model at specific values), the likelihood-ratio test gives a frequentist p-value under the null hypothesis that the restriction holds:<span class="math display">\[2 \bigl( \log \hat L_\mathrm{full} - \log \hat L_\mathrm{nested} \bigr) \;\sim\; \chi^2_{\,k_\mathrm{full} - k_\mathrm{nested}}\]</span>Phasic enforces strict nesting: both fits must use the <strong>same</strong> model callable (the closure returned by one call to <code>Graph.pmf_and_moments_from_graph</code>), the same <code>theta_dim</code>, the same number of observations, and the nested fit’s <code>fixed</code> set must be a strict superset of the full fit’s <code>fixed</code> set. That’s exactly the relationship between <code>svgd</code> (migration free, <code>fixed=[(3, mutation_rate)]</code>) and <code>svgd_no_mig</code> (migration fixed to zero, <code>fixed=[(1, 0), (3, mutation_rate)]</code>):</a></li>
   <li><a href="#continuous-time-epoch-models" id="toc-continuous-time-epoch-models" class="nav-link" data-scroll-target="#continuous-time-epoch-models">Continuous time epoch models</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/model-selection.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
@@ -464,7 +464,7 @@ window.Quarto = {
 <li><code>svgd.degrees_of_freedom</code> — the number <span class="math inline">\(k\)</span> of free parameters (<code>theta_dim</code> minus the number fixed via <code>fixed=</code>).</li>
 <li><code>svgd.n_observations</code> — the effective sample size <span class="math inline">\(n\)</span> (number of non-NaN entries for dense data, or <code>len(values)</code> for <code>SparseObservations</code>).</li>
 </ul>
-<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}" data-execution_count="9">
+<div id="mdsel-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-16T08:58:10.045925Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-16T08:58:10.045827Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-16T08:58:12.561287Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-16T08:58:12.560751Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> phasic</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, SVGD, GaussPrior, ExpStepSize, Adamelia,</span>
@@ -483,6 +483,44 @@ window.Quarto = {
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+<style>
+.widget-label,
+.widget-html,
+.widget-button,
+.widget-dropdown,
+.widget-text,
+.widget-textarea {
+    color: #CCCCCC !important;  /* Set to desired color */
+    font-size: 10px !important;      /* Font size */
+
+}
+div.widget-html-content > progress { /* Outer container */
+    height: 10px !important;
+
+}
+div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
+    height: 5px !important;
+}
+div.progress { /* Jupyter Notebook (classic) */
+    height: 5px !important;
+    min-height: 5px !important;
+    margin-top: 12px !important;    
+}
+div.progress-bar { /* Inner bar */
+    height: 5px !important;
+    min-height: 5px !important;
+    line-height: 5px !important;
+    color: 'white' !important;
+    padding-bottom: 0px !important;    
+}
+
+table {
+    font-variant-numeric: tabular-nums; 
+}
+</style>
+</div>
 <div class="cell-output cell-output-display">
 
         <style>
@@ -530,7 +568,7 @@ window.Quarto = {
         
 </div>
 </div>
-<div id="4f074faa" class="cell" data-execution_count="10">
+<div id="4f074faa" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> two_locus_ghost_island(state, indexer<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    coef_len <span class="op">=</span> <span class="dv">6</span></span>
@@ -674,7 +712,7 @@ window.Quarto = {
 <span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>graph.plot(nodesep<span class="op">=</span><span class="fl">0.4</span>, ranksep<span class="op">=</span><span class="dv">2</span>, max_nodes<span class="op">=</span><span class="dv">200</span>, </span>
 <span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>           label_fmt<span class="op">=</span><span class="va">False</span>, size<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">8</span>),</span>
 <span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a>           )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell-output cell-output-display" data-execution_count="2">
 <div>
 <figure class="figure">
 <p><a href="model-selection_files/figure-html/cell-3-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="model-selection_files/figure-html/cell-3-output-1.svg" class="img-fluid figure-img"></a></p>
@@ -682,23 +720,23 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<div id="782e025e" class="cell" data-execution_count="11">
+<div id="782e025e" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                                  mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>jp_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="11">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>5380</code></pre>
 </div>
 </div>
-<div id="4e7a96fa" class="cell" data-execution_count="12">
+<div id="4e7a96fa" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>jp_graph.update_weights(true_theta <span class="op">+</span> [mutation_rate])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> jp_graph.joint_prob_table()</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>0.008802869841632255</code></pre>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>0.008802869841632588</code></pre>
 </div>
 </div>
-<div id="3829103d" class="cell" data-execution_count="13">
+<div id="3829103d" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_joint_observations(joint_prob_graph, theta, nr_observations):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    joint_prob_graph.update_weights(theta) </span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
@@ -708,9 +746,9 @@ window.Quarto = {
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    observations <span class="op">=</span> joint_prob_table.loc[sample, joint_prob_table.columns[:<span class="op">-</span><span class="dv">1</span>]].to_numpy().tolist()</span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> observations</span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">10000</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>observations <span class="op">=</span> sample_joint_observations(jp_graph, true_theta <span class="op">+</span> [mutation_rate], nr_observations<span class="op">=</span><span class="dv">1000</span>)</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>observations[:<span class="dv">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="13">
+<div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>[[0, 0, 0, 0, 0, 0, 0, 0],
  [0, 1, 0, 0, 0, 0, 0, 1],
  [0, 0, 0, 0, 0, 0, 0, 0],
@@ -718,11 +756,11 @@ window.Quarto = {
  [0, 0, 0, 0, 0, 0, 0, 0]]</code></pre>
 </div>
 </div>
-<div id="25a59181" class="cell" data-execution_count="14">
+<div id="25a59181" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>jp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                                   mutation_rate<span class="op">=</span>mutation_rate)                                        </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="ed6c328b" class="cell" data-execution_count="15">
+<div id="ed6c328b" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> jp_graph.svgd(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
@@ -737,73 +775,70 @@ window.Quarto = {
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>svgd.summary()  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             3.763      2.681      2.286      0.2233       6.891       
-1          No             2.934      3.938      1.897      0.03527      7.299       
-2          No             0.7139     1.69       0.9029     0.4305       3.287       
+0          No             5.683      2.381      1.96       0.1737       6.086       
+1          No             2.942      3.54       1.062      1.673        5.237       
+2          No             0.9952     1.705      0.804      0.6831       3.392       
 3          Yes            0.1        NA         NA         NA           NA          
-4          No             0.02513    1.316      1.915      0.02513      5.418       
-5          No             2.421      6.521      1.608      4.07         9.744       
-6          No             0.06117    1.516      1.139      0.0171       3.046       
+4          No             0.187      1.01       0.6587     0.02215      2.087       
+5          No             3.843      6.924      1.797      3.843        9.391       
+6          No             0.082      1.778      0.9772     0.005796     2.894       
 
 Particles: 50, Iterations: 50</code></pre>
 </div>
 </div>
-<div id="a79ed3c9" class="cell">
+<div id="a79ed3c9" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd.log_likelihood(refine=True):.4f}")</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>log L̂ = -1556.5178
+k (free params) = 6
+n (obs) = 1000</code></pre>
+</div>
 </div>
 <section id="aic-and-bic-for-a-single-fit" class="level2">
 <h2 class="anchored" data-anchor-id="aic-and-bic-for-a-single-fit">AIC and BIC for a single fit</h2>
 <p><code>refine=True</code> runs a short gradient-ascent refinement of the MAP particle on the log-posterior before evaluating the log-likelihood. The result is closer to the MLE under weak priors and gives a sharper AIC/BIC.</p>
-<div id="3fa02b2c" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd, refine=True))</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd, refine=True))</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="3fa02b2c" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd, refine=True))</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd, refine=True))</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>AICResult(aic=3125.0357, log_likelihood=-1556.5178, k=6, n=1000, refined=False)
+BICResult(bic=3154.4822, log_likelihood=-1556.5178, k=6, n=1000, refined=False)</code></pre>
+</div>
 </div>
 </section>
 <section id="model-comparison" class="level2">
 <h2 class="anchored" data-anchor-id="model-comparison">Model comparison</h2>
 <p>Same model but fitting separate coalescence rates for each epoch. If you want to compare models using AIC or BIC, you can fit this model just like the one above. However, to allow an LR test of nested models, you must make the fits on the <em>same model</em> only changing the <code>fixed</code> or <code>tied</code> kwargs. You can extract and reuse the model like this:</p>
 <div id="cbb28ac5" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>svgd_no_mig <span class="op">=</span> SVGD(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>graph.model,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">1</span>, <span class="dv">0</span>), (<span class="dv">3</span>, mutation_rate)], </span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>svgd_no_mig.optimize()</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>svgd_no_mig.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>svgd_no_mig <span class="op">=</span> SVGD(    model<span class="op">=</span>svgd.model,    theta_dim<span class="op">=</span>svgd.theta_dim,    <span class="co"># Reuse the *processed* observations from the first fit — for a joint-prob    # model these are the per-observation positions, not the raw 2D array.    observed_data=svgd.observed_data,    preconditioner='none',    prior=GaussPrior(ci=[0.1, 7]),    n_iterations=50,    n_particles=50,    optimizer=Adamelia(learning_rate=0.2),    fixed=[(1, 0), (3, mutation_rate)],     progress=True,)svgd_no_mig.optimize()svgd_no_mig.summary()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="d166600d" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_no_mig<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="9d4efd9e" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_no_mig, refine=True))</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_no_mig, refine=True))</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_no_mig, refine=True))</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_no_mig, refine=True))</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_no_mig, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Compare the two models:</p>
 <div id="3b13a1b1" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Reading the table:</p>
 <ul>
@@ -814,25 +849,19 @@ Particles: 50, Iterations: 50</code></pre>
 <p>The one-rate model wins AIC even though the data were generated from the two-rate model. With Δ ≈ 1.6 between the two, the data are <em>not</em> strong enough to justify the extra parameter — AIC is doing exactly the job it should. The three-rate model is meaningfully worse (Δ ≈ 3.6), which is reassuring: the spurious extra parameter is being penalized.</p>
 <p>Switch to BIC for a more aggressive complexity penalty:</p>
 <div id="c095b3c6" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"with-migration"</span>, svgd),</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"no-migration"</span>, svgd_no_mig),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="likelihood-ratio-test-for-nested-models" class="level2">
-<h2 class="anchored" data-anchor-id="likelihood-ratio-test-for-nested-models">Likelihood-ratio test for nested models</h2>
-<p>Information criteria rank models that may or may not be nested. When you have a <strong>truly nested</strong> restriction (the nested model fixes some parameters of the full model at specific values), the likelihood-ratio test gives a frequentist p-value under the null hypothesis that the restriction holds:</p>
-<p><span class="math display">\[
-2 \bigl( \log \hat L_\mathrm{full} - \log \hat L_\mathrm{nested} \bigr) \;\sim\; \chi^2_{\,k_\mathrm{full} - k_\mathrm{nested}}
-\]</span></p>
-<p>Phasic enforces strict nesting: both fits must use the <strong>same</strong> model callable (the closure returned by one call to <code>Graph.pmf_and_moments_from_graph</code>), the same <code>theta_dim</code>, the same number of observations, and the nested fit’s <code>fixed</code> set must be a strict superset of the full fit’s <code>fixed</code> set. That’s exactly the relationship between <code>svgd_1p</code> (one-rate, <code>fixed=[(1, 1.0)]</code>) and <code>svgd_2p</code> (two-rate, no fixed parameters):</p>
+<section id="likelihood-ratio-test-for-nested-modelsinformation-criteria-rank-models-that-may-or-may-not-be-nested.-when-you-have-a-truly-nested-restriction-the-nested-model-fixes-some-parameters-of-the-full-model-at-specific-values-the-likelihood-ratio-test-gives-a-frequentist-p-value-under-the-null-hypothesis-that-the-restriction-holds2-bigl-log-hat-l_mathrmfull---log-hat-l_mathrmnested-bigr-sim-chi2_k_mathrmfull---k_mathrmnestedphasic-enforces-strict-nesting-both-fits-must-use-the-same-model-callable-the-closure-returned-by-one-call-to-graph.pmf_and_moments_from_graph-the-same-theta_dim-the-same-number-of-observations-and-the-nested-fits-fixed-set-must-be-a-strict-superset-of-the-full-fits-fixed-set.-thats-exactly-the-relationship-between-svgd-migration-free-fixed3-mutation_rate-and-svgd_no_mig-migration-fixed-to-zero-fixed1-0-3-mutation_rate" class="level2">
+<h2 class="anchored" data-anchor-id="likelihood-ratio-test-for-nested-modelsinformation-criteria-rank-models-that-may-or-may-not-be-nested.-when-you-have-a-truly-nested-restriction-the-nested-model-fixes-some-parameters-of-the-full-model-at-specific-values-the-likelihood-ratio-test-gives-a-frequentist-p-value-under-the-null-hypothesis-that-the-restriction-holds2-bigl-log-hat-l_mathrmfull---log-hat-l_mathrmnested-bigr-sim-chi2_k_mathrmfull---k_mathrmnestedphasic-enforces-strict-nesting-both-fits-must-use-the-same-model-callable-the-closure-returned-by-one-call-to-graph.pmf_and_moments_from_graph-the-same-theta_dim-the-same-number-of-observations-and-the-nested-fits-fixed-set-must-be-a-strict-superset-of-the-full-fits-fixed-set.-thats-exactly-the-relationship-between-svgd-migration-free-fixed3-mutation_rate-and-svgd_no_mig-migration-fixed-to-zero-fixed1-0-3-mutation_rate">Likelihood-ratio test for nested modelsInformation criteria rank models that may or may not be nested. When you have a <strong>truly nested</strong> restriction (the nested model fixes some parameters of the full model at specific values), the likelihood-ratio test gives a frequentist p-value under the null hypothesis that the restriction holds:<span class="math display">\[2 \bigl( \log \hat L_\mathrm{full} - \log \hat L_\mathrm{nested} \bigr) \;\sim\; \chi^2_{\,k_\mathrm{full} - k_\mathrm{nested}}\]</span>Phasic enforces strict nesting: both fits must use the <strong>same</strong> model callable (the closure returned by one call to <code>Graph.pmf_and_moments_from_graph</code>), the same <code>theta_dim</code>, the same number of observations, and the nested fit’s <code>fixed</code> set must be a strict superset of the full fit’s <code>fixed</code> set. That’s exactly the relationship between <code>svgd</code> (migration free, <code>fixed=[(3, mutation_rate)]</code>) and <code>svgd_no_mig</code> (migration fixed to zero, <code>fixed=[(1, 0), (3, mutation_rate)]</code>):</h2>
 <div id="4c947371" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Full = svgd (migration free); nested = svgd_no_mig (migration fixed to 0).# svgd_no_mig's fixed set is a strict superset of svgd's, so they're nested.lrt = model_selection.likelihood_ratio_test(svgd, svgd_no_mig)print(lrt)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If the p-value is small (the conventional cutoff is 0.05), the data reject the one-rate restriction — the full two-rate model fits significantly better. A large p-value means the restriction is consistent with the data and the simpler one-rate model can be retained.</p>
 <p>In our example p ≈ 0.51 — the test fails to reject the one-rate restriction, in agreement with the AIC/BIC ranking. This is the typical outcome when the two rates are <em>similar</em> relative to the sample size: the likelihood under the two-rate fit is barely better than under the one-rate fit, the statistic 2·(LL_full − LL_nested) is small, and χ²₁ assigns it a large p-value.</p>
@@ -854,109 +883,87 @@ Warning
 <section id="continuous-time-epoch-models" class="level2">
 <h2 class="anchored" data-anchor-id="continuous-time-epoch-models">Continuous time epoch models</h2>
 <div id="3ea9af86" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>cjp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate,</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                                          discrete<span class="op">=</span><span class="va">False</span>) <span class="co"># &lt;-- NB!                                          </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>cjp_graph <span class="op">=</span> graph.joint_prob_graph(reward_limit<span class="op">=</span>reward_limit, </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                                          mutation_rate<span class="op">=</span>mutation_rate,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                                          discrete<span class="op">=</span><span class="va">False</span>) <span class="co"># &lt;-- NB!                                          </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="bab94909" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'DEBUG'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'DEBUG'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="389edaf2" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>svgd_all_tied <span class="op">=</span> cjp_graph.svgd(</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">0</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie coal rate in epoch 0 and 1</span></span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1. </span></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="st">'auto'</span>,</span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co">#    daisy_chain_granularity=50,</span></span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>svgd_all_tied.summary()    </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>svgd_all_tied <span class="op">=</span> cjp_graph.svgd(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    observations, </span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'none'</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">0</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie coal rate in epoch 0 and 1</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1. </span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="st">'auto'</span>,</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="co">#    daisy_chain_granularity=50,</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>svgd_all_tied.summary()    </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="4324d1d5" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_tied.log_likelihood(refine=True):.4f}")</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_tied.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_tied<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="ae629f6c" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_tied, refine=True))</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_tied, refine=True))</span></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_tied, refine=True))</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_tied, refine=True))</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_tied, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Same model but fitting separate coalescence rates for each epoch. If you want to compare models using AIC or BIC, you can fit this model just like the one above. However, to allow an LR test of nested models, you must make the fits on the <em>same model</em> only changing the <code>fixed</code> or <code>tied</code> kwargs. You can extract and reuse the model like this:</p>
 <div id="f37c94fa" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free <span class="op">=</span> SVGD(</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>svgd_all_tied.model,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observations, </span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>GaussPrior(ci<span class="op">=</span>[<span class="fl">0.1</span>, <span class="dv">7</span>]),</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_iterations=20,</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n_particles=20,</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adamelia(learning_rate<span class="op">=</span><span class="fl">0.2</span>),</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>],</span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span>[</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># (0, [0, 1]), # tie coal rate in epoch 0 and 1  &lt;--- Commented out to fit a coal rate per epoch</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie rec  rate in epoch 0 and 1</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">2</span>, [<span class="dv">0</span>, <span class="dv">1</span>]), <span class="co"># tie mig  rate in epoch 0 and 1.</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span>[(<span class="dv">3</span>, mutation_rate)], </span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>    progress<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.optimize()</span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>svgd_all_coal_free.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitorsvgd_all_coal_free <span class="op">=</span> SVGD(    model<span class="op">=</span>svgd_all_tied.model,    <span class="co"># Reuse the processed observations from the tied fit (not the raw array).    observed_data=svgd_all_tied.observed_data,     preconditioner=None,    prior=GaussPrior(ci=[0.1, 7]),    # n_iterations=20,    # n_particles=20,    n_iterations=2,    n_particles=5,    optimizer=Adamelia(learning_rate=0.2),    epoch_starts=[0, 0.5],    tied=[        # (0, [0, 1]), # tie coal rate in epoch 0 and 1  &lt;--- Commented out to fit a coal rate per epoch        (1, [0, 1]), # tie rec  rate in epoch 0 and 1        (2, [0, 1]), # tie mig  rate in epoch 0 and 1.    ],    fixed=[(3, mutation_rate)],     progress=True,)svgd_all_coal_free.optimize()svgd_all_coal_free.summary()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="47c60067" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"log L̂ = {svgd_all_coal_free.log_likelihood(refine=True):.4f}")</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"log L̂ = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>log_likelihood(refine<span class="op">=</span><span class="va">False</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"k (free params) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>degrees_of_freedom<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"n (obs) = </span><span class="sc">{</span>svgd_all_coal_free<span class="sc">.</span>n_observations<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="24fac709" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_coal_free, refine=True))</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_coal_free, refine=True))</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.aic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co"># print(model_selection.bic(svgd_all_coal_free, refine=True))</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.aic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.bic(svgd_all_coal_free, refine<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="46588b24" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> model_selection.compare(</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'aic'</span>,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="67ad7d22" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model_selection.compare(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"separate-coal-rate-per-epoch"</span>, svgd_all_coal_free),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"all-params-tied-across-epochs"</span>, svgd_all_tied),</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    criterion<span class="op">=</span><span class="st">'bic'</span>,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># refine=True,</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    refine<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="08b7536e" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>lrt <span class="op">=</span> model_selection.likelihood_ratio_test(svgd_all_coal_free, svgd_all_tied)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lrt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 
 
