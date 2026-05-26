@@ -17,7 +17,7 @@ if test -d $DIR; then
     if [[  "$(grep $FILE _quarto-default.yml | grep -v '#')" ]]; then
       echo -e "${BLUE}Rendering ${FILE}${NC}"
       # CMD="jupyter nbconvert --Application.log_level=50 --to notebook --execute --inplace $FILE"
-      CMD="jupyter nbconvert --log-level=WARN --to notebook --execute --inplace \
+      CMD="time jupyter nbconvert --log-level=WARN --to notebook --execute --inplace \
         --TagRemovePreprocessor.enabled=True \
         --TagRemovePreprocessor.remove_cell_tags='{"skip-execution"}' $FILE"
       set -x
