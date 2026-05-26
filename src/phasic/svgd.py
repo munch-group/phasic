@@ -5746,6 +5746,17 @@ class SVGD:
             obs_mask = ~jnp.isnan(self.observed_data)
             pmf_mask = ~jnp.isnan(pmf_vals)
 
+            if obs_mask.shape != pmf_mask.shape:
+                raise ValueError(
+                    f"observed_data shape {obs_mask.shape} does not match the "
+                    f"model's per-observation PMF shape {pmf_mask.shape}. This "
+                    f"usually means a joint-probability model was given raw "
+                    f"multi-dimensional observations. When reusing a fitted "
+                    f"model — SVGD(model=other.model, ...) — pass "
+                    f"observed_data=other.observed_data (the processed "
+                    f"observations), not the raw observation array."
+                )
+
             if has_zero_inflated:
                 # Mask r == 0 observations out of the continuous-density
                 # contribution. PMF at r = 0 of a sub-density is a finite
