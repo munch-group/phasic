@@ -40,176 +40,34 @@ format:
 -->
 ```
 
-# TODO
-
-- Model comparison / LR test
-- SMC'
-- epoch joint prob
-
-[important note]{.alert}
-
-## Figure embeds 1
-
-::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-aux-vertex echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-geometric echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discretize echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-rev-trans echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-pmf-cdf echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-singleton-graph echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-marginal-pmf-cdf echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-graph echo=false >}}
-::::
-:::::
-
-##  Figure embeds 2
-
-::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-heatmap echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-graph echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-epoch-graph echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-joint-prob-over-time echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-transform echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-pdf echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-pdf-cdf echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-sfs echo=false >}}
-::::
-:::::
-
-##  Figure embeds 3
-
-::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-rev-trans echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-rev-trans echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-rev-trans echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-branches echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-branches echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-branches echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-sfs-marginal-pdfs echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-ton-lineages-across-time echo=false >}}
-::::
-:::::
-
-
-##  Figure embeds 4
-
-::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-accumulated-occupancies echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/properties.ipynb#fig-tmrca-sampling-dist echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-accumulated-occupancy echo=false >}}
-::::
-:::: {.column .r-stretch }
-{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-distribution-context echo=false >}}
-::::
-:::: {.column .r-stretch }
-
-::::
-:::: {.column .r-stretch }
-
-::::
-:::::
-
+<!-- Red text: -->
+<!-- [important note]{.alert} -->
 
 
 
 <!-- =============================================================================== -->
-## Some extra things you can do with the clean theme
+<!-- =============================================================================== -->
+# Introduction
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
 
-Special classes for emphasis
+<!-- =============================================================================== -->
+## Phase-type distributions
 
-- `.alert` class for default emphasis, e.g. [important note]{.alert}.
-- `.fg` class for custom colour, e.g. [important note]{.fg style="--col: #e64173"}.
-- `.bg` class for custom background, e.g. [important note]{.bg style="--col: #e64173"}.
-
-Slide content
-
-::: aside
-Schumer et al. (2018)
+::: {.absolute top="25%"}
+- **"Distribution of time to absorption of a discrete space Markov jump process."**
 :::
 
-<!-- =============================================================================== -->
-
-
-
-
-
-
-
-
-
-
-<!-- =============================================================================== -->
-# Phase-type distributions
-<!-- =============================================================================== -->
-
-
-<!-- =============================================================================== -->
-## When to Use Phase-Type Distributions
-
-Phase-type distributions are particularly useful when:
-
-1.  **Modeling absorption times**: Time until system reaches terminal state
-2.  **Sparse state spaces**: Many states but few transitions per state
-3.  **Complex phenomena**: Iterative construction from simple rules
-4.  **Multiple quantities**: Multivariate distributions with correlated outcomes
-5.  **Large state spaces**: Thousands to millions of states
-
-**Applications**: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)
+::: {.absolute top="40%"}
+- **Lots** of other applications
+  - "What is the distribution of time water molecules spend in each tank of a sewage treatment plant?"
+  - "How likely are all packets of data to reach a server in less than some time?"
+  - "How much time do lineages of a coalescent or ARG spend spend in different states?"
+:::
 
 
 <!-- =============================================================================== -->
 ## The coalescent is a **Markov jump process**
-
 
 :::: {.absolute top="25%"}
 ::: r-stack
@@ -242,7 +100,6 @@ $\boldsymbol{Q} =
 \end{bmatrix}$
 :::
 
-
 <!-- =============================================================================== -->
 ## The coalescent is a **Markov jump process**
 
@@ -265,15 +122,12 @@ $\boldsymbol{Q} =
 $\boldsymbol{\alpha} = (1,\; 0, \; 0, \; 0)$
 :::
 
-
 <!-- =============================================================================== -->
-## Waiting time in the coalescent is a **phase-type distributed**
-
+## Waiting time in the coalescent is\n**phase-type distributed**
 
 ::: {.absolute top="30%" left="0%" width="50%"}
 ![](./images/coal_mc_jump_anim_5.svg){.nostretch fig-align="left"}
 :::
-
 
 ::: {.absolute top="25%" left="60%"}
 
@@ -288,41 +142,40 @@ ${\color{blue}\boldsymbol{S}} =
    &     & -1  & \\
    &     &  & -1 \\
 \end{bmatrix}$
-
-
 :::
 
 <!-- =============================================================================== -->
-## Moments
+## **Moments** of a phase-type distribution
 
 ::: {.absolute top="25%" left="10%" .larger }
 $$
-\mathbb{E}[\tau] = \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}} \mathbf{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
+\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \mathbf{e} \; \; \; \; \; \; \; \; \boldsymbol{U} = -\boldsymbol{S}^{-1}
 $$
 :::
 
 ::: {.absolute top="50%" left="10%" .larger}
-$$\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} {\color{magenta}\boldsymbol{U}}^k \mathbf{e}$$
+$$\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \boldsymbol{U}^k \mathbf{e}$$
 :::
 
 <!-- =============================================================================== -->
-## Distribution
+## **CDF/PDF** for a phase-type distribution
 
 ::: {.absolute top="25%" left="10%" .larger }
-$$F(t) = 1 - \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} \mathbf{e}, \quad t \geq 0$$
+$$F(t) = 1 - \boldsymbol{\alpha} e^{\boldsymbol{S}t} \mathbf{e}, \quad t \geq 0$$
 :::
 
 ::: {.absolute top="50%" left="10%" .larger}
-$$f(t) = \boldsymbol{\alpha} {\color{magenta}e^{\boldsymbol{S}t}} (-\boldsymbol{S}) \mathbf{e}, \quad t \geq 0$$
+$$f(t) = \boldsymbol{\alpha} e^{\boldsymbol{S}t} (-\boldsymbol{S}) \mathbf{e}, \quad t \geq 0$$
 :::
 
 
-
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 # Rewards
 <!-- =============================================================================== -->
-
 <!-- =============================================================================== -->
+
+
 ## Phase-type distribution with **rewards**
 
 :::: {layout="[0.55,-0.05,0.4]"}
@@ -387,21 +240,19 @@ $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\col
 :::::::
 
 <!-- =============================================================================== -->
-## Moments with rewards
-
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \mathbf{e}$
-
-$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
-
-
-<!-- =============================================================================== -->
 ## Marginal moments
 
-The $k$-th moment of the reward-transformed distribution:
+::: {.absolute top="20%" }
+$k$-th moment of the reward-transformed distribution:
+:::
 
+::: {.absolute top="30%" left="10%" .larger }
 $$\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\boldsymbol{U} \boldsymbol{\Delta}(\boldsymbol{r}))^k \mathbf{e}$$
+:::
 
+::: {.absolute top="50%" }
 where $\boldsymbol{\Delta}(\boldsymbol{r})$ is a diagonal matrix with rewards on the diagonal.
+:::
 
 <!-- =============================================================================== -->
 
@@ -414,14 +265,12 @@ $$\boldsymbol{Y} \sim MPH^*(\boldsymbol{\alpha}, \boldsymbol{S}, \boldsymbol{R})
 where $\boldsymbol{R}$ is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).
 
 
-
-
-
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 # Graph Representation
 <!-- =============================================================================== -->
-
 <!-- =============================================================================== -->
+
 ## **Matrix** formulation
 
 ::: spacer-1
@@ -458,6 +307,10 @@ $\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} ({\color{magenta}\boldsymbol{U}}\trian
 <!-- =============================================================================== -->
 ## **Graph** formulation
 
+::: {.absolute top="15%" left="50%" width="60%"}
+![](./images/sparse-matrix-as-graph.png){.nostretch width="100%"}
+:::
+
 ::: spacer-1
 :::
 
@@ -465,72 +318,59 @@ $\mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} ({\color{magenta}\boldsymbol{U}}\trian
 :::: column
 **Analytically tractable** 😀 
 
-::: spacer-3
+::: spacer-1
 :::
 
-- Graph algorithms
+- As graph algorithms:
   - Elimination
-  - Parametrization
+  - Exponentiation
+
+- Allows:
+  - Decomposition
   - Parallelization
+  - Parametrization
   - Cashing
   - Sharing
+  - Inference
 
 ::::
 
 :::: column
 **Scale** 😀 
 
-![](./images/sparse-matrix-as-graph.png){.nostretch width="100%"}
+<!-- ![](./images/sparse-matrix-as-graph.png){.nostretch width="100%"} -->
 
-::: {.absolute top="90%" left="5%" }
-(Coalescent n=10)
-:::
 
 ::::
+
 :::::
 
-<!-- =============================================================================== -->
-## **Graph** formulation
-
-Coalescent n=10:
-
-:::::::: {layout="[0.40,-0.05,0.1,-0.05,0.40]"}
-:::: column
-😱
-
-![](./images/sparse-matrix.png){.nostretch height="20%" fig-align="center"}
-
-::::
-
-:::: column
-
-::: {.r-fit-text .center}
-⮕
+::: {.absolute top="90%" left="55%" }
+(Coalescent n=10)
 :::
-::::
-
-::: column
-
-😀
-
-![](./images/sparse-matrix-as-graph.png){.nostretch height="30%" fig-align="center"}
-:::
-::::
-::::::::
 
 <!-- =============================================================================== -->
 ## Advantages of Graph Representation
 
-1.  **Memory efficiency**: Store only existing transitions (not full $p \times p$ matrix)
-    - For sparse systems: $O(|E|)$ vs $O(p^2)$ memory
-2.  **Computational efficiency**: Operations on edges only
-    - Many algorithms: $O(|V|^2)$ vs $O(p^3)$ for matrix operations
-3.  **Iterative construction**: Build state space incrementally
-    - Add vertices and edges as needed
-    - Natural for complex phenomena
-4.  **Intuitive modeling**: Specify transitions from each state independently
-    - Markov property: next state depends only on current state
-    - Easy to encode complex models
+Sparsely connected state spaces:
+
+- **Memory efficiency**:
+  - Store only existing transitions (not full $p \times p$ matrix)
+- **Computational efficiency**: Operations on edges only
+  - Many algorithms: $O(|V|^2)$ vs $O(p^3)$ for matrix operations
+- **Iterative construction**: Build state space incrementally
+  - Add vertices and edges as needed
+  - Natural for complex phenomena
+- **Intuitive modeling**: Specify transitions from each state independently
+  - Markov property: next state depends only on current state
+  - Easy to encode complex models
+
+::: todo
+- Big O notation for algorithms
+:::
+
+
+As var as the interaction between two adjacent epochs, it does not matter if the former epoch comprise multiple epoch or not. So for starters we just need to consider a two epoch model. 
 
 
 <!-- =============================================================================== -->
@@ -554,14 +394,33 @@ Recursion
 :::
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Why do this at all?
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+
+
+<!-- =============================================================================== -->
+## Uses
+
+::: todo
+
+- Motivations:
+  - Exact computation for reference
+  - Exploration of statistical properties (where is the tradeoff between nr of samples / phased or not / model "completeness"). 
+  - Can we do with less data if you model more of its properties? 
+  - How far can we take inference on unphased data?
+  - Can we exploit tree sequences for general inference?
+  - What can be computed given enough time and money? And can we share such precomputed models?
+
+
+:::
 
 
 <!-- =============================================================================== -->
 ## Use case
 
-```{python}
+```python
 #| echo: true
 #| code-line-numbers: "1-10|11-13"
 #| output-location: column-fragment
@@ -663,7 +522,9 @@ graph.expectation()
 
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # DAG construction
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
@@ -833,8 +694,58 @@ $$x_\mathrm{C} +\!\,= x_\mathrm{C} \left ( \frac{1}{1-w(\mathrm{C}\rightarrow \m
 ![](./images/graph_elimination_example.svg)
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Moments on the graph
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+
+
+## Figures
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-pdf-cdf echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-sfs echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-rev-trans echo=false >}}
+::::
+:::::
+
+
+## Figures
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-singleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-doubleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-tripleton-branches echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-sfs-marginal-pdfs echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-ton-lineages-across-time echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-accumulated-occupancies echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/properties.ipynb#fig-tmrca-sampling-dist echo=false >}}
+::::
+:::::
 
 <!-- =============================================================================== -->
 ## Expectation
@@ -856,7 +767,9 @@ Compute **expectation** by recursion in reverse topological order:
 
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Reward transformation
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
@@ -883,7 +796,9 @@ $w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x
 
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Discrete Phase-Type Distributions
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
@@ -907,9 +822,38 @@ The expectation:
 
 $$\mathbb{E}[\tau] = \boldsymbol{\pi} \boldsymbol{U} \mathbf{e}$$
 
+<!-- =============================================================================== -->
+
+## Figures
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-aux-vertex echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-geometric echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discretize echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-rev-trans echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-pmf-cdf echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-singleton-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/discrete.ipynb#fig-discrete-marginal-pmf-cdf echo=false >}}
+::::
+
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Higher-order moments
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
@@ -980,23 +924,69 @@ $$\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\boldsymbol{U}(\boldsymbol{R}_{\cdot
 <!-- ![](./images/discrete4.svg) -->
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Laplace Transform
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+
+<!-- =============================================================================== -->
+## Figures
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-transform echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/laplace.ipynb#fig-laplace-pdf echo=false >}}
+::::
+:::::
 
 <!-- =============================================================================== -->
 ## **Laplace** Transform
 
+::: todo
+- Interpretation
+- Casper siu / Aylwin Scally IBD
+:::
+
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 # Joint probability of discrete events
+<!-- =============================================================================== -->
+<!-- =============================================================================== -->
+
+<!-- =============================================================================== -->
+## Figures
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-prob-graph echo=false >}}
+::::
+:::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/joint-probability.ipynb#fig-joint-heatmap echo=false >}}
+::::
+:::::
 
 <!-- =============================================================================== -->
 ## **Joint probability** of discrete events
+
+::: todo
+Include how (counter-intuitively) the joint prob path becomes the viable one for time inhomogeneous models.
+
+- asdf
+- asdf
+- asdf
+
+:::
+
 
 <!-- =============================================================================== -->
 ## **Truncated** multivariate discrete phase-type distributions
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # State Lumping
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
@@ -1036,8 +1026,31 @@ Left column left column left column
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Time-inhomogeneous models with phase-type distributions
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
+
+<!-- =============================================================================== -->
+## Figures
+
+::::: {layout="[[0.2,0.2,0.2,0.2],[0.2,0.2,0.2,0.2]]"}
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-cont-joint-prob-epoch-graph echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-joint-prob-over-time echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-accumulated-occupancy echo=false >}}
+::::
+:::: {.column .r-stretch }
+{{< embed ../pages/tutorial/time-inhomogeneous.ipynb#fig-distribution-context echo=false >}}
+::::
+:::::
 
 <!-- =============================================================================== -->
 ## **Time-inhomogeneous** models
@@ -1051,14 +1064,18 @@ Left column left column left column
 ![](./images/time-inhom-trick.svg)
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Performance
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 <!-- =============================================================================== -->
 ## Coalescent 100 marginal moments
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Popgen models
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 ## Statistical properties of the standard coalescent
@@ -1072,12 +1089,16 @@ Left column left column left column
 ![](./images/coal_with_derived_freq.svg)
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # Inference with SVGD
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 
 
 <!-- =============================================================================== -->
+<!-- =============================================================================== -->
 # API
+<!-- =============================================================================== -->
 <!-- =============================================================================== -->
 
 

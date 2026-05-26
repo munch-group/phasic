@@ -145,12 +145,23 @@ $selection-bg: #26351c !default;
 
 .alert {
   // color: $accent2;
-  color: black;
-  background-color: var(--col, #E60072aa);
-  padding: 0.2em;
-  border-radius: 5px;
-  display: inline-block;  
+  color: rgb(236, 20, 20);
+  // background-color: var(--col, #E60072aa);
+  // padding: 0.2em;
+  // border-radius: 5px;
+  // display: inline-block;  
 }
+
+.todo {
+  // color: $accent2;
+  color: black;
+  background-color: var(--col, #ffea007f);
+  font-size: 1.4em;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
 
 .fg {
   color: var(--col, $jet);
