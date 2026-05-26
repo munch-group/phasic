@@ -84,9 +84,17 @@ reward_compute_cache : bool, default False
     ``scc_<hash>.bin`` written by the hierarchical composer.
     Backs PHASIC_REWARD_COMPUTE_CACHE (positive: ``'1'``
     enables, absent = default = off).
-    Default off because the symbolic elimination it caches is
-    cheap to redo on small graphs, and the cache can grow
-    unboundedly across model variants.
+    Default off. The cache uses the rev-3 zero-copy mmap format, so
+    the per-process load is ~as cheap as recompute (it only affects
+    the first call per process — the in-memory Stage-A1 graph
+    amortises later theta updates, the SVGD inner loop). Worth
+    enabling when a model is **re-run across processes** AND its
+    recompute is **expensive** (large / stiff); for small or
+    one-shot models leave it off (the load ≈ recompute and the
+    first cold build pays a one-time convert + write). The cache
+    can grow unboundedly across model variants — users own the
+    directory. See CLAUDE.md "Disk caches" and
+    ``scratch/io_overlap_probe.py``.
 
 graph_cache : bool, default True
     Use the on-disk graph cache at ``cache_dir/graphs/`` for

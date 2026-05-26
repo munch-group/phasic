@@ -61,7 +61,11 @@
       "Bash(grep -E \"\\\\.py$|\\\\.pyx$|\\\\.pxd$\")",
       "Bash(grep -rn \"\\\\.copy\\(\\)\" /Users/kmt/phasic/tests/pytest/*.py)",
       "Bash(grep:*)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(sysctl -n machdep.cpu.brand_string)",
+      "Bash(pmset -g therm)",
+      "WebFetch(domain:www.stats.ox.ac.uk)",
+      "WebFetch(domain:doi.org)"
     ],
     "deny": [],
     "ask": []

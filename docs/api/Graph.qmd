@@ -46,6 +46,7 @@ phasic.Graph(arg, ipv=None, graph_cache=None, **kwargs)
 | [find_or_create_vertex](#phasic.Graph.find_or_create_vertex) | Find or create a vertex with the given state. |
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
+| [joint_prob_graph](#phasic.Graph.joint_prob_graph) | Build the joint-probability graph from this parameterized graph. |
 | [joint_stop_prob_graph](#phasic.Graph.joint_stop_prob_graph) | Build the joint stop-probability graph for daisy-chained inference. |
 | [laplace_transform](#phasic.Graph.laplace_transform) | Create a Laplace-transformed graph. |
 | [mcmc](#phasic.Graph.mcmc) | Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation. |
@@ -64,6 +65,7 @@ phasic.Graph(arg, ipv=None, graph_cache=None, **kwargs)
 | [pmf_from_graph_parameterized](#phasic.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
 | [prewarm_cache](#phasic.Graph.prewarm_cache) | Populate the on-disk Stage A2 cache for this graph. If parameterized,  |
 | [probability_matching](#phasic.Graph.probability_matching) | Find parameter estimates by matching model probabilities to empirical probabilities. |
+| [profile](#phasic.Graph.profile) | Profile this graph and recommend ``parallel_elimination``, |
 | [pull_cache](#phasic.Graph.pull_cache) | Download the published compute artifact for this graph if available. |
 | [push_cache](#phasic.Graph.push_cache) | Publish this graph's compute artifact to the phasic-traces registry. |
 | [reward_transform](#phasic.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
@@ -1041,6 +1043,36 @@ and reconstructed on worker processes.
 >>> assert g_reconstructed.vertices_length() == g.vertices_length()
 ```
 
+### joint_prob_graph { #phasic.Graph.joint_prob_graph }
+
+```python
+phasic.Graph.joint_prob_graph(
+    base_graph_indexer=None,
+    reward_only=None,
+    reward_rates_callback=None,
+    mutation_rate=1.0,
+    reward_limit=None,
+    tot_reward_limit=np.inf,
+    discrete=True,
+)
+```
+
+Build the joint-probability graph from this parameterized graph.
+
+Optimised reimplementation of :meth:`_joint_prob_graph` that produces
+a **bit-identical** graph (same vertices, same insertion order, same
+edges/weights, same serialization) while building much faster.
+
+The speedup comes from hoisting the per-base-state-index → reward-index
+mapping out of the per-vertex construction loop: that mapping is a pure
+function of the indexers and was previously recomputed (via millions of
+``index_to_props`` / ``props_to_index`` calls) once per joint vertex.
+
+When a custom ``reward_rates_callback`` is supplied the fast path is
+bypassed and the callback is invoked exactly as in
+:meth:`_joint_prob_graph`, so behaviour is unchanged for custom
+callbacks.
+
 ### joint_stop_prob_graph { #phasic.Graph.joint_stop_prob_graph }
 
 ```python
@@ -1816,6 +1848,11 @@ separately because it builds the graph once and computes both quantities.
 - More efficient than separate calls to pmf_from_graph() and moments_from_graph()
 - Required for using moment-based regularization in SVGD.fit_regularized()
 - The moments are always computed from the same graph used for PMF/PDF
+- **Import phasic before importing jax / creating jax arrays.** phasic
+  enables ``jax_enable_x64`` on import; the C FFI requires float64 buffers.
+  jax arrays created *before* ``import phasic`` are float32 and trip the
+  FFI check "Wrong buffer dtype: expected F64 but got F32". If you hit
+  this, restart the kernel and import phasic first (or recreate the arrays).
 
 ### pmf_and_moments_from_graph_multivariate { #phasic.Graph.pmf_and_moments_from_graph_multivariate }
 
@@ -2078,6 +2115,7 @@ phasic.Graph.pmf_from_graph_joint_index(
     theta_dim=None,
     fixed_mask=None,
     exclude_vertices=None,
+    observed_indices=None,
 )
 ```
 
@@ -2111,11 +2149,15 @@ times for all states in a single pass through the elimination trace.
 
 :   Vertex indices to exclude from the normalization constant. Use this for ascertainment bias correction — e.g., exclude the zero-mutation terminal state when conditioning on observing at least one mutation. The excluded vertices are removed from the denominator, so the model returns P(s \| s not in excluded set).
 
+<code>[**observed_indices**]{.parameter-name} [:]{.parameter-annotation-sep} [array-like of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   When supplied, enables baked observation dedup: the model will be built around the unique vertex indices in ``observed_indices`` (typically far fewer than the number of observations, with many repeats). The FFI sojourn-times call sees ``k = n_unique`` instead of ``k = n_obs`` (the FFI consumer's inner loop scales linearly in ``k``), and the returned per-observation array is reconstructed via a scatter through the inverse-index mapping. The model also wraps its forward in a ``custom_vmap`` rule so that under ``vmap(grad(loss))(particles)`` the per-particle dispatch fuses into a single batched FFI call. When ``observed_indices`` is ``None`` (default), the legacy path is used and ``vertex_indices`` is read from the model's runtime argument as before.
+
 #### Returns {.doc-section .doc-section-returns}
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
 
-:   JAX-compatible function with signature: model(theta, vertex_indices, rewards=None) -> (sojourn_times, dummy_moments)  Where: - theta: Parameter vector - vertex_indices: Array of vertex indices (integers) - rewards: Ignored (must be None for joint_index mode) - sojourn_times: Expected sojourn times for the specified vertices - dummy_moments: Zeros array (moments not supported in joint_index mode)
+:   JAX-compatible function with signature: model(theta, vertex_indices, rewards=None) -> (sojourn_times, dummy_moments)  Where: - theta: Parameter vector - vertex_indices: Array of vertex indices (integers). Ignored when   ``observed_indices`` was supplied at construction time; the   baked indices are used instead. - rewards: Ignored (must be None for joint_index mode) - sojourn_times: Expected sojourn times for the specified vertices - dummy_moments: Zeros array (moments not supported in joint_index mode)
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -2123,6 +2165,9 @@ times for all states in a single pass through the elimination trace.
 - Much faster than iterating accumulated_visiting_time() until convergence
 - Moment regularization is not supported (regularization must be 0)
 - Reward transformation is not supported (rewards must be None)
+- When ``observed_indices`` is supplied, dedup typically gives a
+  10-100x wall-clock win for SVGD on joint-prob graphs with many
+  repeated observations. See ``Graph.svgd`` joint_index path.
 
 ### pmf_from_graph_parameterized { #phasic.Graph.pmf_from_graph_parameterized }
 
@@ -2291,6 +2336,20 @@ to :meth:`Graph.svgd` as the ``prior`` argument.
 >>> result = jg.probability_matching(obs, fixed=[(1, 0.5)])
 >>> svgd = jg.svgd(obs, prior=result.prior, fixed=[(1, 0.5)])
 ```
+
+### profile { #phasic.Graph.profile }
+
+```python
+phasic.Graph.profile(theta=None, probe_dyn='auto')
+```
+
+Profile this graph and recommend ``parallel_elimination``,
+``dyn_ordering``, and the evaluation path (forward-PDF vs joint/sojourn).
+
+Thin wrapper around :func:`phasic.profile_graph`; see that function for
+details. Returns a :class:`~phasic.profile.GraphProfile`.
+
+>>> print(graph.profile())
 
 ### pull_cache { #phasic.Graph.pull_cache }
 
@@ -2799,11 +2858,11 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 <code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [callable or list of Prior objects]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Log prior function for parameters. Can be: - Single callable: prior(theta) -> scalar, applied to entire theta vector - List of Prior objects: One prior per parameter dimension.   Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])] - DataPrior instance: Data-informed prior estimated from the observed data.  If None (default), constructs ``DataPrior(graph, observed_data, sd=5)`` which uses method-of-moments (or probability matching for joint probability graphs) to estimate prior means from the data, with a wide spread (5x the asymptotic standard error).  Falls back to standard normal if DataPrior construction fails.  **With fixed parameters**: When using a list of priors with the `fixed` parameter, you must provide None at indices corresponding to fixed parameters. This is validated at initialization.  Example:     prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],     fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
+:   Log prior function for parameters. Can be: - Single callable: prior(theta) -> scalar, applied to entire theta vector - List of Prior objects: One prior per parameter dimension.   Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])] - DataPrior instance: Data-informed prior estimated from the observed data.  If None (default), constructs ``DataPrior(graph, observed_data, sd=5)`` which uses method-of-moments (or probability matching for joint probability graphs) to estimate prior means from the data, with a wide spread (5x the asymptotic standard error).  Falls back to standard normal if DataPrior construction fails.  Note: this data-driven default differs from the lower-level ``SVGD`` class, whose ``prior=None`` is a plain standard normal (``-0.5 * sum(theta**2)``). Pass an explicit ``prior=`` to either API for identical behaviour.  **With fixed parameters**: When using a list of priors with the `fixed` parameter, you must provide None at indices corresponding to fixed parameters. This is validated at initialization.  Example:     prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],     fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
 
-<code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
+<code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Number of SVGD particles. More particles = better posterior approximation but slower.
+:   Number of SVGD particles. ``None`` resolves to ``20 * theta_dim``. More particles = better posterior approximation but slower.
 
 <code>[**n_iterations**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
