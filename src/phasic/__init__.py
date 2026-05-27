@@ -10808,6 +10808,147 @@ extern "C" {{
         return new
 
 
+    def joint_sojourn_graph(self) -> 'Graph':
+        """Build the joint sojourn-read graph for granularity-free epoch reads.
+
+        Sibling of :meth:`joint_stop_prob_graph`. Where the JSP graph wires a
+        trapping aux loop at each t-vertex (so cumulative absorption mass is read
+        via the granularity-bound ``stop_probability(t)`` forward solve), this
+        variant keeps each t-vertex's original edge to the absorbing vertex (NO
+        trapping) and adds the same full IPV-edge layout. That makes the **exact**
+        absorption distribution from an arbitrary initial distribution readable
+        granularity-free via graph elimination:
+
+            joint_prob[t-state v] = r_v * expected_sojourn_time(v) * ipv_mass
+
+        where ``r_v`` is the t-vertex's exit rate to absorption and ``ipv_mass``
+        is the total mass of the (possibly sub-stochastic) initial distribution
+        set via :meth:`update_ipv`. ``expected_sojourn_time`` normalises the IPV
+        to unit mass, so the caller multiplies back by ``ipv_mass``. This is the
+        granularity-free replacement for the daisy chain's final-epoch
+        ``stop_probability(t_eval)`` read (the final epoch runs to absorption,
+        the one place the elimination read applies); it is also exact in the
+        sense that it has no finite-``t_eval`` truncation.
+
+        Returns
+        -------
+        Graph
+            New graph with attributes ``_joint_sojourn_graph = True``,
+            ``_t_vertex_indices`` (new-graph indices of the original t-vertices),
+            ``_ipv_target_indices`` / ``_ipv_target_states`` (the full IPV-edge
+            layout; ``update_ipv`` expects a vector of length
+            ``len(_ipv_target_indices)`` in this order), and the propagated
+            ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` / ``_indexer``.
+
+        Raises
+        ------
+        ValueError
+            If ``self`` is not a joint-prob graph or has no parameterised edges.
+        """
+        if not getattr(self, '_joint_prob_base_graph_indexer', None):
+            raise ValueError(
+                "joint_sojourn_graph requires a graph produced by joint_prob_graph()."
+            )
+        if self.param_length() == 0:
+            raise ValueError(
+                "joint_sojourn_graph requires a parameterised graph; "
+                "got param_length() == 0."
+            )
+
+        # Trash-pair predicate (matches joint_stop_prob_graph).
+        def _is_trash(v: Vertex) -> bool:
+            if v.state().sum() != 0 or v.edges_length() != 1:
+                return False
+            child = v.edges()[0].to()
+            if child.state().sum() != 0 or child.edges_length() != 1:
+                return False
+            return child.edges()[0].to().index() == v.index()
+
+        start_old = self.starting_vertex()
+        t_vertex_old_indices: list[int] = []
+        trash_old_indices: list[int] = []
+        abs_old_index: int | None = None
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            if not v.edges():
+                abs_old_index = v.index()
+                continue
+            for edge in v.edges():
+                if len(edge.to().edges()) == 0:
+                    t_vertex_old_indices.append(v.index())
+                    break
+            if _is_trash(v):
+                trash_old_indices.append(v.index())
+
+        t_vertex_old_indices = list(np.unique(t_vertex_old_indices))
+        if len(trash_old_indices) != 2:
+            raise ValueError(
+                f"joint_sojourn_graph: expected exactly 2 trash vertices in "
+                f"source graph, found {len(trash_old_indices)}."
+            )
+        if abs_old_index is None:
+            raise ValueError(
+                "joint_sojourn_graph: source graph has no absorbing vertex."
+            )
+
+        param_length = self.param_length()
+        trash_set = set(trash_old_indices)
+
+        new = Graph(self.state_length())
+        new.set_param_length(param_length)
+
+        vmap: dict[int, Vertex] = {start_old.index(): new.starting_vertex()}
+        for v in self.vertices():
+            if v.index() == start_old.index() or v.index() in trash_set:
+                continue
+            vmap[v.index()] = new.create_vertex(list(v.state()))
+
+        # Copy interior edges verbatim (including each t-vertex's edge to the
+        # absorbing vertex — NO trap), redirecting trash-pointers to absorbing.
+        for v in self.vertices():
+            if v.index() == start_old.index() or v.index() in trash_set:
+                continue
+            if not v.edges():
+                continue
+            nv = vmap[v.index()]
+            for e in v.parameterized_edges():
+                to_index = e.to().index()
+                if to_index in trash_set:
+                    to_index = abs_old_index
+                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+
+        # Full IPV edges: one weight-0 starting-vertex edge per non-trash,
+        # non-absorbing interior vertex, sorted by new-graph index (stable
+        # layout; the caller sets weights via update_ipv).
+        non_ipv_old_indices = {start_old.index(), abs_old_index} | trash_set
+        ipv_targets = sorted(
+            (vmap[old_idx].index(), old_idx)
+            for old_idx in vmap
+            if old_idx not in non_ipv_old_indices
+        )
+        ipv_target_indices = [new_idx for new_idx, _old in ipv_targets]
+        ipv_target_states = [
+            tuple(int(x) for x in self.vertex_at(old_idx).state())
+            for _new_idx, old_idx in ipv_targets
+        ]
+        for _new_idx, old_idx in ipv_targets:
+            new.starting_vertex().add_edge(vmap[old_idx], 0.0)
+
+        new._joint_sojourn_graph = True
+        new._joint_prob_base_graph_indexer = self._joint_prob_base_graph_indexer
+        new._rewarded_props = getattr(self, '_rewarded_props', None)
+        new._t_vertex_indices = sorted(vmap[o].index() for o in t_vertex_old_indices)
+        new._ipv_target_indices = ipv_target_indices
+        new._ipv_target_states = ipv_target_states
+        # Continuous: the read is r_v * expected_sojourn_time (continuous time)
+        # * ipv_mass. Not discrete -> no set_was_dph IPV auto-normalisation.
+        new.is_discrete = False
+        if hasattr(self, '_indexer'):
+            new._indexer = self._indexer
+        return new
+
+
     def epoch_context(self) -> 'EpochContext':
         """Build a single-epoch context for reading cumulative t-state probabilities.
 
