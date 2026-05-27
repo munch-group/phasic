@@ -174,10 +174,14 @@ $selection-bg: #26351c !default;
   display: inline-block;
 }
 
-.reveal .larger {
+.reveal .large {
+  font-size: 1.2em;
+}
+
+.reveal .huge {
   font-size: 1.4em;
 }
-.reveal .huge {
+.reveal .bigass {
   font-size: 1.8em; 
 }
 
