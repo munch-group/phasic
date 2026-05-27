@@ -5601,6 +5601,7 @@ extern "C" {{
         granularity: int = 0,
         exposure_arr=None,
         exposure_param_index: int | None = None,
+        final_read: str = 'stopprob',
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -5870,6 +5871,15 @@ extern "C" {{
         #       epochs; ONE batched FFI call of shape (n_obs, n_t)
         #       (the C++ handler parallelises over the batch with
         #       OpenMP). No Python-side lax.map fan-out.
+        if final_read not in ('stopprob', 'sojourn'):
+            raise ValueError(
+                f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
+            )
+        if final_read == 'sojourn' and exposure_arr is not None:
+            raise NotImplementedError(
+                "final_read='sojourn' with per-observation exposure is not yet "
+                "supported; use exposure=None, or final_read='stopprob'."
+            )
         if exposure_arr is None:
             # No-exposure path: inlined builder that mirrors the exposure
             # branch below MINUS the per-obs scaling. structure_json and
@@ -5887,6 +5897,7 @@ extern "C" {{
             from .ffi_wrappers import (
                 _make_json_serializable,
                 compute_daisy_chain_joint_probs_ffi,
+                compute_daisy_chain_sojourn_ffi,
             )
             import json as _json_mod_local
             from jax import custom_batching as _cb_local
@@ -5916,6 +5927,31 @@ extern "C" {{
                 "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
                 "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
             }
+
+            sojourn_json_local = None
+            if final_read == 'sojourn':
+                sg = self.joint_sojourn_graph()
+                jsp_states_l = jsp.states()
+                jsp_ipv_pos_l = {
+                    tuple(int(x) for x in jsp_states_l[v]): k
+                    for k, v in enumerate(jsp._ipv_target_indices)
+                }
+                sg_states_l = sg.states()
+                sg_state_to_idx_l = {
+                    tuple(int(x) for x in sg_states_l[v]): v
+                    for v in range(sg.vertices_length())
+                }
+                structure_local["_daisy_chain"]["sojourn_jsp_gather"] = [
+                    int(jsp_ipv_pos_l[s]) for s in sg._ipv_target_states
+                ]
+                structure_local["_daisy_chain"]["sojourn_t_indices"] = [
+                    int(sg_state_to_idx_l[tuple(int(x) for x in jsp_states_l[t])])
+                    for t in jsp._t_vertex_indices
+                ]
+                sojourn_json_local = _json_mod_local.dumps(
+                    _make_json_serializable(sg.serialize(theta_dim=theta_dim_local))
+                )
+
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             eps_local = 1e-7
@@ -5933,13 +5969,21 @@ extern "C" {{
             # creation time), so the rule does NOT leak a tracer into
             # the inner jaxpr's consts the way the previous
             # in-`daisy_chain_joint_probs` version did.
+            def _dc_call(theta_flat, ipv_arr):
+                # Dispatch the daisy FFI by final-epoch read mode. Closures over
+                # final_read / structure_json_local / sojourn_json_local are
+                # concrete at SVGD-creation time.
+                if final_read == 'sojourn':
+                    return compute_daisy_chain_sojourn_ffi(
+                        structure_json_local, sojourn_json_local, theta_flat, ipv_arr,
+                    )
+                return compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local, theta_flat, ipv_arr,
+                )
+
             @_cb_local.custom_vmap
             def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
-                return compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_flat,
-                    initial_ipv_arr_local,
-                )
+                return _dc_call(theta_flat, initial_ipv_arr_local)
 
             @_forward.def_vmap
             def _forward_vmap_rule(axis_size, in_batched, theta_flat):
@@ -5947,11 +5991,7 @@ extern "C" {{
                 # Dispatch as one fat 2D FFI call.
                 del axis_size, in_batched
                 return (
-                    compute_daisy_chain_joint_probs_ffi(
-                        structure_json_local,
-                        theta_flat,
-                        initial_ipv_one_local,  # (1, n_ipv)
-                    ),
+                    _dc_call(theta_flat, initial_ipv_one_local),  # (1, n_ipv)
                     True,  # batched along axis 0
                 )
 
@@ -6347,6 +6387,7 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
+             final_read: str = 'stopprob',
              exposure: ArrayLike | float | None = None,
              exposure_param_index: int | None = None,
              validate_rewards: bool = True,
@@ -6991,6 +7032,7 @@ extern "C" {{
                         granularity=daisy_chain_granularity,
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
+                        final_read=final_read,
                     )
                 else:
                     # Parse fixed to get mask for joint_index model
