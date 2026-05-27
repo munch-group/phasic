@@ -5725,6 +5725,20 @@ Use Graph.distribution_context(granularity) instead.
   t_aux_values, t_vertex_indices) is passed via a top-level
   ``"_daisy_chain"`` object in the structure JSON.
   )delim");
+
+  param_module.def("get_daisy_chain_sojourn_ffi_capsule", []() -> py::capsule {
+      auto* handler = phasic::parameterized::CreateDaisyChainSojournHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI daisy-chain SOJOURN handler.
+
+  Like the daisy-chain joint-probs handler, but the FINAL epoch is read
+  granularity-free off a no-trapping "sojourn" graph as
+  ``r_v * expected_sojourn(v) * handoff_mass`` instead of a long-time
+  ``stop_probability(t_eval)`` forward solve. Takes a second static
+  attribute ``sojourn_structure_json`` (the sojourn graph) and the extra
+  ``_daisy_chain`` fields ``sojourn_jsp_gather`` and ``sojourn_t_indices``.
+  )delim");
 #endif
 
   // ============================================================================

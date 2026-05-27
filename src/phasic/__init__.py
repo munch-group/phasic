@@ -10796,6 +10796,10 @@ extern "C" {{
         new._joint_stop_prob_graph = True
         new._t_vertex_indices = sorted(t_aux_map.keys())
         new._t_aux_map = t_aux_map
+        # Source (continuous joint-prob) graph, so the JSP graph can build the
+        # no-trapping sojourn graph on demand for daisy_chain_joint_probs(
+        # final_read='sojourn').
+        new._joint_prob_source = self
         # New-graph vertex indices that carry IPV edges, in starting-vertex
         # edge order. update_ipv expects a vector of this length, in this
         # order.
@@ -11025,8 +11029,19 @@ extern "C" {{
         t_eval: float | None = None,
         fixed_indices=None,
         granularity: int = 0,
+        final_read: str = 'stopprob',
     ):
         """JAX-traceable model: joint-probs at the t-states after a daisy chain.
+
+        ``final_read`` selects how the FINAL epoch is read:
+
+        - ``'stopprob'`` (default, unchanged): ``stop_probability(t_eval)`` on the
+          JSP graph (granularity-bound forward solve).
+        - ``'sojourn'``: granularity-free elimination read on the no-trapping
+          sojourn graph (``r_v * expected_sojourn(v) * handoff_mass``) — exact,
+          ~400-1200x faster for that step, and ``t_eval`` is ignored (the final
+          epoch runs to absorption by construction). Requires that this JSP graph
+          was built by :meth:`joint_stop_prob_graph` (carries ``_joint_prob_source``).
 
         Daisies through ``len(epoch_dts)`` epoch transitions
         (``update_ipv → update_weights → stop_probability(dt)``), then
@@ -11140,8 +11155,14 @@ extern "C" {{
         from .ffi_wrappers import (
             _make_json_serializable,
             compute_daisy_chain_joint_probs_ffi,
+            compute_daisy_chain_sojourn_ffi,
         )
         import json as _json_mod
+
+        if final_read not in ('stopprob', 'sojourn'):
+            raise ValueError(
+                f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
+            )
 
         structure = _make_json_serializable(self.serialize(theta_dim=theta_dim))
         structure["_daisy_chain"] = {
@@ -11155,6 +11176,42 @@ extern "C" {{
             "t_aux_values": [int(self._t_aux_map[k]) for k in self._t_aux_map.keys()],
             "t_vertex_indices": [int(x) for x in self._t_vertex_indices],
         }
+
+        sojourn_json_str = None
+        if final_read == 'sojourn':
+            source = getattr(self, '_joint_prob_source', None)
+            if source is None:
+                raise ValueError(
+                    "final_read='sojourn' requires a JSP graph built by "
+                    "joint_stop_prob_graph() (it must carry _joint_prob_source)."
+                )
+            sg = source.joint_sojourn_graph()
+            jsp_states = self.states()
+            # JSP ipv-target state -> position in self._ipv_target_indices.
+            jsp_ipv_pos = {
+                tuple(int(x) for x in jsp_states[v]): k
+                for k, v in enumerate(self._ipv_target_indices)
+            }
+            # sojourn_jsp_gather[k] = JSP ipv position whose state == sg's k-th
+            # ipv target -> sojourn_ipv[k] = handoff_ipv[gather[k]].
+            sojourn_jsp_gather = [jsp_ipv_pos[s] for s in sg._ipv_target_states]
+            # Map each JSP t-vertex's full state to the corresponding sojourn
+            # graph vertex, ordered to match self._t_vertex_indices.
+            sg_states = sg.states()
+            sg_state_to_idx = {
+                tuple(int(x) for x in sg_states[v]): v
+                for v in range(sg.vertices_length())
+            }
+            sojourn_t_indices = [
+                sg_state_to_idx[tuple(int(x) for x in jsp_states[t])]
+                for t in self._t_vertex_indices
+            ]
+            structure["_daisy_chain"]["sojourn_jsp_gather"] = [int(x) for x in sojourn_jsp_gather]
+            structure["_daisy_chain"]["sojourn_t_indices"] = [int(x) for x in sojourn_t_indices]
+            sojourn_json_str = _json_mod.dumps(
+                _make_json_serializable(sg.serialize(theta_dim=theta_dim))
+            )
+
         structure_json_str = _json_mod.dumps(structure)
 
         # The full forward computation as a flat-theta function. The
@@ -11177,6 +11234,13 @@ extern "C" {{
         # nothing is being traced at that point). Do not add
         # ``custom_vmap`` here.
         def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
+            if final_read == 'sojourn':
+                return compute_daisy_chain_sojourn_ffi(
+                    structure_json_str,
+                    sojourn_json_str,
+                    theta_flat,
+                    initial_ipv_arr,
+                )
             return compute_daisy_chain_joint_probs_ffi(
                 structure_json_str,
                 theta_flat,

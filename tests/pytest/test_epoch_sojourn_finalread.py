@@ -166,3 +166,55 @@ def test_sojourn_final_read_matches_daisy(epoch_thetas, epoch_dts):
     a = np.array([ref.get(k, 0.0) for k in keys])
     b = np.array([got.get(k, 0.0) for k in keys])
     np.testing.assert_allclose(b, a, atol=1e-9, rtol=1e-7)
+
+
+@pytest.mark.parametrize("epoch_thetas,epoch_dts", [
+    ([[0.5, MUTATION_RATE]], []),
+    ([[0.5, MUTATION_RATE], [0.2, MUTATION_RATE]], [0.5]),
+    ([[1 / 0.3, MUTATION_RATE], [0.25, MUTATION_RATE]], [0.7]),
+    ([[0.5, MUTATION_RATE], [0.2, MUTATION_RATE], [1.0, MUTATION_RATE]], [0.4, 0.6]),
+])
+def test_library_final_read_sojourn_matches_stopprob(epoch_thetas, epoch_dts):
+    """daisy_chain_joint_probs(final_read='sojourn') (batched C++) reproduces the
+    default stop_probability path, element-wise (same t-vertex order)."""
+    import jax.numpy as jnp
+    cjpg = _make_joint()
+    jsp = cjpg.joint_stop_prob_graph()
+    init = np.zeros(cjpg.vertices_length())
+    for e in cjpg.starting_vertex().edges():
+        init[e.to().index()] = e.weight()
+    init_ipv = init[jsp._ipv_target_indices]
+    kw = dict(
+        epoch_thetas=jnp.asarray(epoch_thetas, dtype=jnp.float64),
+        epoch_dts=list(epoch_dts), initial_ipv=init_ipv, t_eval=200.0,
+    )
+    ref = np.asarray(jsp.daisy_chain_joint_probs(**kw, final_read='stopprob'))
+    got = np.asarray(jsp.daisy_chain_joint_probs(**kw, final_read='sojourn'))
+    np.testing.assert_allclose(got, ref, atol=1e-9, rtol=1e-7)
+
+
+def test_library_final_read_sojourn_vmap_batched():
+    """Batched (vmap over particles) sojourn final-read matches per-particle."""
+    import jax
+    import jax.numpy as jnp
+    cjpg = _make_joint()
+    jsp = cjpg.joint_stop_prob_graph()
+    init = np.zeros(cjpg.vertices_length())
+    for e in cjpg.starting_vertex().edges():
+        init[e.to().index()] = e.weight()
+    init_ipv = init[jsp._ipv_target_indices]
+
+    def model(theta_flat):
+        return jsp.daisy_chain_joint_probs(
+            epoch_thetas=theta_flat.reshape(2, 2), epoch_dts=[0.5],
+            initial_ipv=init_ipv, t_eval=200.0, final_read='sojourn',
+        )
+
+    thetas = jnp.asarray(
+        [[0.5, MUTATION_RATE, 0.2, MUTATION_RATE],
+         [1.0, MUTATION_RATE, 0.4, MUTATION_RATE]], dtype=jnp.float64,
+    )
+    batched = np.asarray(jax.vmap(model)(thetas))
+    for i in range(thetas.shape[0]):
+        single = np.asarray(model(thetas[i]))
+        np.testing.assert_allclose(batched[i], single, rtol=1e-9, atol=1e-12)

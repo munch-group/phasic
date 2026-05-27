@@ -293,6 +293,18 @@ def _register_ffi_targets() -> bool:
             except AttributeError:
                 pass  # Daisy-chain FFI handler not available (optional)
 
+            # Daisy-chain SOJOURN handler (granularity-free final-epoch read).
+            try:
+                daisy_sojourn_capsule = cpp_module.parameterized.get_daisy_chain_sojourn_ffi_capsule()
+                jax.ffi.register_ffi_target(
+                    "ptd_daisy_chain_sojourn",
+                    daisy_sojourn_capsule,
+                    platform="cpu",
+                    api_version=1,
+                )
+            except AttributeError:
+                pass  # Daisy-chain sojourn FFI handler not available (optional)
+
         except Exception as e:
             # FFI registration failed
             raise PTDBackendError(
@@ -1408,6 +1420,63 @@ def compute_daisy_chain_joint_probs_ffi(
     )
 
 
+def compute_daisy_chain_sojourn_ffi(
+    structure_json: 'str | dict',
+    sojourn_structure_json: 'str | dict',
+    theta: 'jax.Array',
+    initial_ipv: 'jax.Array',
+) -> 'jax.Array':
+    """Daisy chain with a granularity-free FINAL-epoch read via JAX FFI.
+
+    Like :func:`compute_daisy_chain_joint_probs_ffi`, but the final epoch is
+    read off the no-trapping ``sojourn_structure_json`` graph as
+    ``r_v * expected_sojourn(v) * handoff_mass`` (exact, granularity-free, no
+    ``t_eval``) instead of a long-time ``stop_probability`` forward solve.
+    ``structure_json``'s ``"_daisy_chain"`` block must additionally carry
+    ``sojourn_jsp_gather`` (len n_sojourn_ipv) and ``sojourn_t_indices``
+    (len n_t, ordered to match ``t_vertex_indices``).
+
+    Parameters mirror :func:`compute_daisy_chain_joint_probs_ffi` plus the
+    extra ``sojourn_structure_json``. Output shape ``(n_t,)`` or ``(batch, n_t)``.
+    """
+    _register_ffi_targets()
+
+    structure_str = _ensure_json_string(structure_json)
+    sojourn_str = _ensure_json_string(sojourn_structure_json)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
+
+    if theta.ndim not in (1, 2):
+        raise ValueError(f"theta must be 1D or 2D, got shape {theta.shape}")
+    if initial_ipv.ndim not in (1, 2):
+        raise ValueError(f"initial_ipv must be 1D or 2D, got shape {initial_ipv.shape}")
+
+    import json as _json_mod
+    parsed = _json_mod.loads(structure_str) if isinstance(structure_json, str) \
+        else structure_json
+    if not isinstance(parsed, dict) or "_daisy_chain" not in parsed:
+        raise ValueError("structure_json must contain a top-level '_daisy_chain' object.")
+    n_t = len(parsed["_daisy_chain"]["sojourn_t_indices"])
+
+    if theta.ndim == 2 or initial_ipv.ndim == 2:
+        batch_size = theta.shape[0] if theta.ndim == 2 else initial_ipv.shape[0]
+        result_shape = jax.ShapeDtypeStruct((batch_size, n_t), jnp.float64)
+    else:
+        result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+
+    ffi_fn = jax.ffi.ffi_call(
+        "ptd_daisy_chain_sojourn",
+        result_shape,
+        vmap_method="expand_dims",
+    )
+    return ffi_fn(
+        theta,
+        initial_ipv,
+        structure_json=structure_str,
+        sojourn_structure_json=sojourn_str,
+    )
+
+
 __all__ = [
     'compute_pmf_ffi',
     'compute_moments_ffi',
@@ -1415,6 +1484,7 @@ __all__ = [
     'compute_pmf_multivariate_ffi',
     'compute_sojourn_times_ffi',
     'compute_daisy_chain_joint_probs_ffi',
+    'compute_daisy_chain_sojourn_ffi',
     'backward_probabilities_ffi',
     'compute_reward_visit_probability_ffi',
 ]
