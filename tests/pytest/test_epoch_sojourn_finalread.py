@@ -244,12 +244,21 @@ def test_svgd_model_final_read_sojourn_matches_stopprob():
     assert np.all(np.isfinite(np.asarray(g)))
 
 
-def test_svgd_sojourn_rejects_exposure():
-    """final_read='sojourn' + per-obs exposure is explicitly unsupported (for now)."""
+def test_svgd_sojourn_with_exposure_matches_stopprob():
+    """final_read='sojourn' with per-observation exposure equals the exposure
+    stop_probability path, element-wise."""
+    import jax.numpy as jnp
     cjpg = _make_joint()
-    obs = np.asarray(_cjpg_t_vertices(cjpg)[:4])
-    with pytest.raises(NotImplementedError, match="exposure"):
-        cjpg._daisy_chain_svgd_model(
-            observed_indices=obs, epoch_starts=[0.0, 0.5],
-            final_read='sojourn', exposure_arr=np.ones(4), exposure_param_index=1,
-        )
+    obs = np.asarray(_cjpg_t_vertices(cjpg)[:6])
+    alphas = np.array([0.5, 1.0, 1.5, 2.0, 1.0, 0.8])
+    common = dict(
+        observed_indices=obs, epoch_starts=[0.0, 0.5], t_eval=200.0,
+        exposure_arr=alphas, exposure_param_index=1,
+    )
+    m_stop, _, _, _ = cjpg._daisy_chain_svgd_model(**common, final_read='stopprob')
+    m_soj, _, _, _ = cjpg._daisy_chain_svgd_model(**common, final_read='sojourn')
+    theta = jnp.asarray([0.5, MUTATION_RATE, 0.2, MUTATION_RATE], dtype=jnp.float64)
+    obs_j = jnp.asarray(obs, dtype=jnp.int32)
+    p_stop = np.asarray(m_stop(theta, obs_j)[0])
+    p_soj = np.asarray(m_soj(theta, obs_j)[0])
+    np.testing.assert_allclose(p_soj, p_stop, atol=1e-9, rtol=1e-6)

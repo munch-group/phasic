@@ -5875,11 +5875,6 @@ extern "C" {{
             raise ValueError(
                 f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
             )
-        if final_read == 'sojourn' and exposure_arr is not None:
-            raise NotImplementedError(
-                "final_read='sojourn' with per-observation exposure is not yet "
-                "supported; use exposure=None, or final_read='stopprob'."
-            )
         if exposure_arr is None:
             # No-exposure path: inlined builder that mirrors the exposure
             # branch below MINUS the per-obs scaling. structure_json and
@@ -6097,6 +6092,7 @@ extern "C" {{
             from .ffi_wrappers import (
                 _make_json_serializable,
                 compute_daisy_chain_joint_probs_ffi,
+                compute_daisy_chain_sojourn_ffi,
             )
             import json as _json_mod_local
             theta_dim_local = self.param_length()  # = param_length here
@@ -6126,6 +6122,31 @@ extern "C" {{
                 "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
                 "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
             }
+
+            sojourn_json_local = None
+            if final_read == 'sojourn':
+                sg = self.joint_sojourn_graph()
+                jsp_states_l = jsp.states()
+                jsp_ipv_pos_l = {
+                    tuple(int(x) for x in jsp_states_l[v]): k
+                    for k, v in enumerate(jsp._ipv_target_indices)
+                }
+                sg_states_l = sg.states()
+                sg_state_to_idx_l = {
+                    tuple(int(x) for x in sg_states_l[v]): v
+                    for v in range(sg.vertices_length())
+                }
+                structure_local["_daisy_chain"]["sojourn_jsp_gather"] = [
+                    int(jsp_ipv_pos_l[s]) for s in sg._ipv_target_states
+                ]
+                structure_local["_daisy_chain"]["sojourn_t_indices"] = [
+                    int(sg_state_to_idx_l[tuple(int(x) for x in jsp_states_l[t])])
+                    for t in jsp._t_vertex_indices
+                ]
+                sojourn_json_local = _json_mod_local.dumps(
+                    _make_json_serializable(sg.serialize(theta_dim=theta_dim_local))
+                )
+
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             # Per-obs forward + custom_vjp (FD) wrapping a SINGLE batched
@@ -6158,16 +6179,21 @@ extern "C" {{
             # Without this rule, the FFI call inside the body would get
             # auto-batched by JAX's default expand_dims rule, producing
             # a 3D theta buffer that the C++ handler rejects.
+            def _dc_call(theta_b, ipv_b):
+                if final_read == 'sojourn':
+                    return compute_daisy_chain_sojourn_ffi(
+                        structure_json_local, sojourn_json_local, theta_b, ipv_b,
+                    )
+                return compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local, theta_b, ipv_b,
+                )
+
             @_cb_local.custom_vmap
             def _per_obs_core(theta_flat):
                 # 1D input path: theta_flat shape (theta_dim,). Build a
                 # (n_unique, theta_dim) batch and call FFI once.
                 theta_pk = theta_flat[None, :] * scale_per_unique
-                joint = compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_pk,
-                    initial_ipv_one,
-                )  # (n_unique, n_t)
+                joint = _dc_call(theta_pk, initial_ipv_one)  # (n_unique, n_t)
                 # Scatter to per-obs positions via inverse_idx_jnp and
                 # pick each obs's own t-vertex. Two paired integer
                 # arrays of equal length -> (n_obs,).
@@ -6185,11 +6211,7 @@ extern "C" {{
                 theta_pk = (
                     theta_flat[:, None, :] * scale_per_unique[None, :, :]
                 ).reshape(P * n_unique, n_epochs * param_length)
-                joint = compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_pk,
-                    initial_ipv_one,
-                )  # (P*n_unique, n_t)
+                joint = _dc_call(theta_pk, initial_ipv_one)  # (P*n_unique, n_t)
                 joint = joint.reshape(P, n_unique, -1)  # (P, n_unique, n_t)
                 per_obs_2d = joint[:, inverse_idx_jnp, observed_pos_jnp]
                 # out is batched along axis 0.
