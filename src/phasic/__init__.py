@@ -5601,7 +5601,7 @@ extern "C" {{
         granularity: int = 0,
         exposure_arr=None,
         exposure_param_index: int | None = None,
-        final_read: str = 'stopprob',
+        final_read: str = 'sojourn',
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -6409,7 +6409,7 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
-             final_read: str = 'stopprob',
+             final_read: str = 'sojourn',
              exposure: ArrayLike | float | None = None,
              exposure_param_index: int | None = None,
              validate_rewards: bool = True,
@@ -11093,19 +11093,21 @@ extern "C" {{
         t_eval: float | None = None,
         fixed_indices=None,
         granularity: int = 0,
-        final_read: str = 'stopprob',
+        final_read: str = 'sojourn',
     ):
         """JAX-traceable model: joint-probs at the t-states after a daisy chain.
 
         ``final_read`` selects how the FINAL epoch is read:
 
-        - ``'stopprob'`` (default, unchanged): ``stop_probability(t_eval)`` on the
-          JSP graph (granularity-bound forward solve).
-        - ``'sojourn'``: granularity-free elimination read on the no-trapping
-          sojourn graph (``r_v * expected_sojourn(v) * handoff_mass``) — exact,
-          ~400-1200x faster for that step, and ``t_eval`` is ignored (the final
-          epoch runs to absorption by construction). Requires that this JSP graph
-          was built by :meth:`joint_stop_prob_graph` (carries ``_joint_prob_source``).
+        - ``'sojourn'`` (default): granularity-free elimination read on the
+          no-trapping sojourn graph (``r_v * expected_sojourn(v) * handoff_mass``)
+          — exact, much faster, and ``t_eval`` is ignored (the final epoch runs to
+          absorption by construction). Requires that this JSP graph was built by
+          :meth:`joint_stop_prob_graph` (carries ``_joint_prob_source``).
+        - ``'stopprob'``: the legacy ``stop_probability(t_eval)`` forward solve on
+          the JSP graph (granularity-bound; subject to finite-``t_eval``
+          truncation). Use it to reproduce pre-0.30 behavior or for a JSP graph
+          that does not carry ``_joint_prob_source``.
 
         Daisies through ``len(epoch_dts)`` epoch transitions
         (``update_ipv → update_weights → stop_probability(dt)``), then

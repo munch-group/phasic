@@ -1659,8 +1659,21 @@ ffi::Error DaisyChainSojournFfiImpl(
                 for (size_t k = 0; k < n_t; ++k) result_b[k] = std::numeric_limits<double>::quiet_NaN();
                 continue;
             }
-            const double r_v = theta_final[param_length - 1];
-            for (size_t k = 0; k < n_t; ++k) result_b[k] = r_v * soj[k] * handoff_mass;
+            // r_v = the t-vertex's total exit rate to absorbing vertices, read
+            // per-vertex from the live (updated) graph. No assumption that the
+            // exit rate equals any particular theta slot, so this is correct for
+            // any joint_prob_graph construction, not just the standard one where
+            // the exit edge is the mutation-slot coefficient.
+            struct ptd_graph* cg = gs->c_graph();
+            for (size_t k = 0; k < n_t; ++k) {
+                struct ptd_vertex* tv = cg->vertices[idx[k]];
+                double r_v = 0.0;
+                for (size_t e = 0; e < tv->edges_length; ++e) {
+                    struct ptd_edge* ed = tv->edges[e];
+                    if (ed->to->edges_length == 0) r_v += ed->weight;
+                }
+                result_b[k] = r_v * soj[k] * handoff_mass;
+            }
             free(soj);
         }
 

@@ -723,6 +723,7 @@ def test_per_obs_dedup_dispatch_batch_size():
             exposure_arr=exposure,
             exposure_param_index=1,
             granularity=64,
+            final_read='stopprob',  # this test patches the joint_probs FFI wrapper
         )
         _ = model(jnp.array([1.0, 0.5, 1.0, 0.5]))
     finally:
@@ -805,6 +806,7 @@ def test_per_obs_dedup_all_unique_passthrough():
             exposure_arr=exposure,
             exposure_param_index=1,
             granularity=64,
+            final_read='stopprob',  # this test patches the joint_probs FFI wrapper
         )
         out, _ = model(jnp.array([1.0, 0.5, 1.0, 0.5]))
     finally:
@@ -898,6 +900,7 @@ def test_omp_full_width_at_handler_entry(caplog):
         exposure_arr=exposure,
         exposure_param_index=1,
         granularity=64,
+        final_read='stopprob',  # this test patches the joint_probs FFI wrapper
     )
     _ = model(jnp.array([1.0, 0.5, 1.0, 0.5]))
 
@@ -979,6 +982,7 @@ def _build_per_obs_model_for_vmap_tests(n_obs, exposures, theta_dim=4):
         exposure_arr=np.asarray(exposures, dtype=np.float64),
         exposure_param_index=1,
         granularity=64,
+        final_read='stopprob',  # this test patches the joint_probs FFI wrapper
     )
     return model, jg, jsp, obs
 

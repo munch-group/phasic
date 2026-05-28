@@ -1132,7 +1132,7 @@ class TestDaisyChainParticleVmapFusion:
         # during graph construction; ignore those).
         daisy_calls = [
             shape for (name, shape) in captured
-            if name == 'ptd_daisy_chain_joint_probs'
+            if name in ('ptd_daisy_chain_joint_probs', 'ptd_daisy_chain_sojourn')
         ]
         assert len(daisy_calls) >= 1, (
             f"daisy_chain FFI was not invoked under vmap(grad). "

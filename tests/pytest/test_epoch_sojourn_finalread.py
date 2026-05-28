@@ -69,6 +69,7 @@ def _daisy_probs(jsp, init_ipv, epoch_thetas, epoch_dts):
     out = np.asarray(jsp.daisy_chain_joint_probs(
         epoch_thetas=jnp.asarray(epoch_thetas, dtype=jnp.float64),
         epoch_dts=list(epoch_dts), initial_ipv=init_ipv, t_eval=200.0,
+        final_read='stopprob',  # independent reference (now non-default)
     ))
     d: dict = {}
     for t_idx, p in zip(jsp._t_vertex_indices, out):
