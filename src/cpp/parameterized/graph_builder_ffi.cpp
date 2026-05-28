@@ -1491,6 +1491,186 @@ ffi::Error DaisyChainJointProbsFfiImpl(
     }
 }
 
+// ===========================================================================
+// DaisyChainSojournFfiImpl: daisy chain with a granularity-free FINAL-epoch read.
+//
+// Intermediate epochs (0 .. n_epochs-2) use the JSP stop_probability handoff
+// (identical to DaisyChainJointProbsFfiImpl). The FINAL epoch runs to
+// absorption (t -> inf), where the joint probability is exactly
+//   joint_prob[t-state v] = r_v * expected_sojourn(v) * handoff_mass
+// read off the NO-TRAPPING "sojourn" graph via graph elimination -- exact,
+// granularity-free, and with no finite-t_eval truncation. Avoids the dominant
+// long-time stop_probability(t_eval) forward solve while keeping OpenMP
+// particle-batching. (r_v = the t-vertex exit rate = the mutation slot
+// theta_final[param_length-1]; handoff_mass = sum of the final-epoch handoff
+// IPV, which expected_sojourn normalises to unit mass.)
+// ===========================================================================
+ffi::Error DaisyChainSojournFfiImpl(
+    std::string_view structure_json,          // JSP graph + _daisy_chain (+ sojourn fields)
+    std::string_view sojourn_structure_json,  // no-trapping sojourn graph
+    ffi::Buffer<ffi::F64> theta,              // (n_epochs*param_length,) or (B, ...)
+    ffi::Buffer<ffi::F64> initial_ipv,        // (n_ipv,) or (B, n_ipv)
+    ffi::ResultBuffer<ffi::F64> result        // (n_t,) or (B, n_t)
+) {
+    try {
+        ensure_omp_full_width_once();
+        std::string jsp_json(structure_json);
+        std::string soj_json(sojourn_structure_json);
+
+        // Builders (thread-local cache, keyed by JSON string).
+        std::shared_ptr<GraphBuilder> jsp_builder, soj_builder;
+        {
+            auto it = builder_cache.find(jsp_json);
+            if (it != builder_cache.end()) jsp_builder = it->second;
+            else {
+                try { jsp_builder = std::make_shared<GraphBuilder>(jsp_json); builder_cache[jsp_json] = jsp_builder; }
+                catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse JSP JSON: ") + e.what()); }
+            }
+            auto it2 = builder_cache.find(soj_json);
+            if (it2 != builder_cache.end()) soj_builder = it2->second;
+            else {
+                try { soj_builder = std::make_shared<GraphBuilder>(soj_json); builder_cache[soj_json] = soj_builder; }
+                catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse sojourn JSON: ") + e.what()); }
+            }
+        }
+
+        // Parse metadata from the JSP JSON's _daisy_chain block.
+        nlohmann::json j;
+        try { j = nlohmann::json::parse(jsp_json); }
+        catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("re-parse JSP JSON: ") + e.what()); }
+        if (!j.contains("_daisy_chain"))
+            return ffi::Error::InvalidArgument("structure_json must contain a _daisy_chain object");
+        const auto& dc = j["_daisy_chain"];
+        const int n_epochs     = dc.at("n_epochs").get<int>();
+        const int param_length = dc.at("param_length").get<int>();
+        const int granularity  = dc.contains("granularity") ? dc.at("granularity").get<int>() : 0;
+        const auto epoch_dts          = dc.at("epoch_dts").get<std::vector<double>>();
+        const auto ipv_target_indices = dc.at("ipv_target_indices").get<std::vector<int>>();
+        const auto t_aux_keys         = dc.at("t_aux_keys").get<std::vector<int>>();
+        const auto t_aux_values       = dc.at("t_aux_values").get<std::vector<int>>();
+        const auto sojourn_jsp_gather = dc.at("sojourn_jsp_gather").get<std::vector<int>>();
+        const auto sojourn_t_indices  = dc.at("sojourn_t_indices").get<std::vector<int>>();
+
+        if (n_epochs < 1) return ffi::Error::InvalidArgument("n_epochs must be >= 1");
+        if (static_cast<int>(epoch_dts.size()) != n_epochs - 1)
+            return ffi::Error::InvalidArgument("epoch_dts must have length n_epochs - 1");
+
+        const size_t n_ipv         = ipv_target_indices.size();
+        const size_t sojourn_n_ipv = sojourn_jsp_gather.size();
+        const size_t n_t           = sojourn_t_indices.size();
+
+        std::unordered_set<int> aux_set(t_aux_values.begin(), t_aux_values.end());
+        std::unordered_map<int,int> t_to_aux;
+        for (size_t k = 0; k < t_aux_keys.size(); ++k) t_to_aux[t_aux_keys[k]] = t_aux_values[k];
+
+        // JSP n_vertices + collapsed_pos (one probe build for topology).
+        size_t jsp_n_vertices;
+        {
+            std::vector<double> dummy(param_length, 1.0);
+            phasic::Graph probe = jsp_builder->build(dummy.data(), static_cast<size_t>(param_length));
+            jsp_n_vertices = probe.vertices_length();
+        }
+        std::vector<int> collapsed_pos(jsp_n_vertices, -1);
+        { int rank = 0; for (size_t i = 0; i < jsp_n_vertices; ++i) { if (aux_set.count(static_cast<int>(i))) continue; collapsed_pos[i] = rank++; } }
+
+        // Dimensions (vmap batching).
+        auto theta_dims = theta.dimensions();
+        auto ipv_dims = initial_ipv.dimensions();
+        size_t theta_len, ipv_len, theta_bs = 1, ipv_bs = 1;
+        if (theta_dims.size() == 1) theta_len = theta_dims[0];
+        else if (theta_dims.size() == 2) { theta_bs = theta_dims[0]; theta_len = theta_dims[1]; }
+        else return ffi::Error::InvalidArgument("theta must be 1D or 2D");
+        if (ipv_dims.size() == 1) ipv_len = ipv_dims[0];
+        else if (ipv_dims.size() == 2) { ipv_bs = ipv_dims[0]; ipv_len = ipv_dims[1]; }
+        else return ffi::Error::InvalidArgument("initial_ipv must be 1D or 2D");
+        if (theta_len != static_cast<size_t>(n_epochs * param_length))
+            return ffi::Error::InvalidArgument("theta length must equal n_epochs * param_length");
+        if (ipv_len != n_ipv)
+            return ffi::Error::InvalidArgument("initial_ipv length must equal len(ipv_target_indices)");
+
+        const double* theta_data = theta.typed_data();
+        const double* ipv_data = initial_ipv.typed_data();
+        double* result_data = result->typed_data();
+        const size_t batch_size = std::max(theta_bs, ipv_bs);
+
+        #pragma omp parallel for if(batch_size > 1)
+        for (size_t b = 0; b < batch_size; ++b) {
+            const double* theta_b = (theta_bs > 1) ? theta_data + b * theta_len : theta_data;
+            const double* ipv_b_in = (ipv_bs > 1) ? ipv_data + b * ipv_len : ipv_data;
+            double* result_b = result_data + b * n_t;
+
+            phasic::Graph* gj = nullptr;
+            phasic::Graph* gs = nullptr;
+            {
+                auto& slot = per_thread_graph_cache[jsp_builder.get()];
+                if (!slot) { std::vector<double> dt(param_length, 1.0); slot = std::make_unique<phasic::Graph>(jsp_builder->build(dt.data(), static_cast<size_t>(param_length))); }
+                gj = slot.get();
+            }
+            {
+                auto& slot = per_thread_graph_cache[soj_builder.get()];
+                if (!slot) { std::vector<double> dt(param_length, 1.0); slot = std::make_unique<phasic::Graph>(soj_builder->build(dt.data(), static_cast<size_t>(param_length))); }
+                gs = slot.get();
+            }
+
+            std::vector<double> ipv_work(ipv_b_in, ipv_b_in + n_ipv);
+            bool failed = false;
+
+            // Intermediate epochs on the JSP graph (stop_probability handoff).
+            for (int epoch = 0; epoch < n_epochs - 1; ++epoch) {
+                const double* theta_e = theta_b + epoch * param_length;
+                ptd_graph_update_ipv(gj->c_graph(), ipv_work.data(), n_ipv);
+                ptd_graph_update_weights(gj->c_graph(), const_cast<double*>(theta_e), static_cast<size_t>(param_length), false);
+                std::vector<double> raw;
+                try { raw = gj->stop_probability(epoch_dts[epoch], granularity); }
+                catch (const std::exception& e) { failed = true; break; }
+                if (raw.size() != jsp_n_vertices) { failed = true; break; }
+                std::vector<double> collapsed(jsp_n_vertices, 0.0);
+                for (size_t v = 0; v < jsp_n_vertices; ++v) {
+                    if (aux_set.count(static_cast<int>(v))) continue;
+                    double p = raw[v];
+                    auto it = t_to_aux.find(static_cast<int>(v));
+                    if (it != t_to_aux.end()) p += raw[static_cast<size_t>(it->second)];
+                    collapsed[collapsed_pos[v]] = p;
+                }
+                for (size_t k = 0; k < n_ipv; ++k)
+                    ipv_work[k] = collapsed[collapsed_pos[ipv_target_indices[k]]];
+            }
+
+            if (failed) {
+                for (size_t k = 0; k < n_t; ++k) result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                continue;
+            }
+
+            // Final epoch: granularity-free sojourn read on the no-trapping graph.
+            const double* theta_final = theta_b + (n_epochs - 1) * param_length;
+            std::vector<double> sojourn_ipv(sojourn_n_ipv, 0.0);
+            double handoff_mass = 0.0;
+            for (size_t k = 0; k < sojourn_n_ipv; ++k) {
+                double m = ipv_work[static_cast<size_t>(sojourn_jsp_gather[k])];
+                sojourn_ipv[k] = m;
+                handoff_mass += m;
+            }
+            ptd_graph_update_ipv(gs->c_graph(), sojourn_ipv.data(), sojourn_n_ipv);
+            ptd_graph_update_weights(gs->c_graph(), const_cast<double*>(theta_final), static_cast<size_t>(param_length), false);
+            std::vector<size_t> idx(n_t);
+            for (size_t k = 0; k < n_t; ++k) idx[k] = static_cast<size_t>(sojourn_t_indices[k]);
+            double* soj = ptd_expected_sojourn_time_subset(gs->c_graph(), idx.data(), n_t);
+            if (soj == NULL) {
+                for (size_t k = 0; k < n_t; ++k) result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                continue;
+            }
+            const double r_v = theta_final[param_length - 1];
+            for (size_t k = 0; k < n_t; ++k) result_b[k] = r_v * soj[k] * handoff_mass;
+            free(soj);
+        }
+
+        return ffi::Error::Success();
+    } catch (const std::exception& e) {
+        PTD_LOG_ERROR("DaisyChainSojournFfiImpl exception: %s", e.what());
+        return ffi::Error::Internal(e.what());
+    }
+}
+
 } // namespace ffi_handlers
 
 // Export binding creation functions for Python-side FFI registration
@@ -1621,6 +1801,21 @@ XLA_FFI_Handler* CreateDaisyChainJointProbsHandler() {
             .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // initial_ipv (n_ipv,) - BATCHED
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // result (n_t_vertices,)
             .To(ffi_handlers::DaisyChainJointProbsFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateDaisyChainSojournHandler() {
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")          // JSP graph + _daisy_chain (+ sojourn fields) STATIC
+            .Attr<std::string_view>("sojourn_structure_json")  // no-trapping sojourn graph STATIC
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()            // theta (n_epochs * param_length,) - BATCHED
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()            // initial_ipv (n_ipv,) - BATCHED
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()            // result (n_t_vertices,)
+            .To(ffi_handlers::DaisyChainSojournFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

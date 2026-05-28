@@ -5601,6 +5601,7 @@ extern "C" {{
         granularity: int = 0,
         exposure_arr=None,
         exposure_param_index: int | None = None,
+        final_read: str = 'stopprob',
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -5870,6 +5871,10 @@ extern "C" {{
         #       epochs; ONE batched FFI call of shape (n_obs, n_t)
         #       (the C++ handler parallelises over the batch with
         #       OpenMP). No Python-side lax.map fan-out.
+        if final_read not in ('stopprob', 'sojourn'):
+            raise ValueError(
+                f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
+            )
         if exposure_arr is None:
             # No-exposure path: inlined builder that mirrors the exposure
             # branch below MINUS the per-obs scaling. structure_json and
@@ -5887,6 +5892,7 @@ extern "C" {{
             from .ffi_wrappers import (
                 _make_json_serializable,
                 compute_daisy_chain_joint_probs_ffi,
+                compute_daisy_chain_sojourn_ffi,
             )
             import json as _json_mod_local
             from jax import custom_batching as _cb_local
@@ -5916,6 +5922,31 @@ extern "C" {{
                 "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
                 "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
             }
+
+            sojourn_json_local = None
+            if final_read == 'sojourn':
+                sg = self.joint_sojourn_graph()
+                jsp_states_l = jsp.states()
+                jsp_ipv_pos_l = {
+                    tuple(int(x) for x in jsp_states_l[v]): k
+                    for k, v in enumerate(jsp._ipv_target_indices)
+                }
+                sg_states_l = sg.states()
+                sg_state_to_idx_l = {
+                    tuple(int(x) for x in sg_states_l[v]): v
+                    for v in range(sg.vertices_length())
+                }
+                structure_local["_daisy_chain"]["sojourn_jsp_gather"] = [
+                    int(jsp_ipv_pos_l[s]) for s in sg._ipv_target_states
+                ]
+                structure_local["_daisy_chain"]["sojourn_t_indices"] = [
+                    int(sg_state_to_idx_l[tuple(int(x) for x in jsp_states_l[t])])
+                    for t in jsp._t_vertex_indices
+                ]
+                sojourn_json_local = _json_mod_local.dumps(
+                    _make_json_serializable(sg.serialize(theta_dim=theta_dim_local))
+                )
+
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             eps_local = 1e-7
@@ -5933,13 +5964,21 @@ extern "C" {{
             # creation time), so the rule does NOT leak a tracer into
             # the inner jaxpr's consts the way the previous
             # in-`daisy_chain_joint_probs` version did.
+            def _dc_call(theta_flat, ipv_arr):
+                # Dispatch the daisy FFI by final-epoch read mode. Closures over
+                # final_read / structure_json_local / sojourn_json_local are
+                # concrete at SVGD-creation time.
+                if final_read == 'sojourn':
+                    return compute_daisy_chain_sojourn_ffi(
+                        structure_json_local, sojourn_json_local, theta_flat, ipv_arr,
+                    )
+                return compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local, theta_flat, ipv_arr,
+                )
+
             @_cb_local.custom_vmap
             def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
-                return compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_flat,
-                    initial_ipv_arr_local,
-                )
+                return _dc_call(theta_flat, initial_ipv_arr_local)
 
             @_forward.def_vmap
             def _forward_vmap_rule(axis_size, in_batched, theta_flat):
@@ -5947,11 +5986,7 @@ extern "C" {{
                 # Dispatch as one fat 2D FFI call.
                 del axis_size, in_batched
                 return (
-                    compute_daisy_chain_joint_probs_ffi(
-                        structure_json_local,
-                        theta_flat,
-                        initial_ipv_one_local,  # (1, n_ipv)
-                    ),
+                    _dc_call(theta_flat, initial_ipv_one_local),  # (1, n_ipv)
                     True,  # batched along axis 0
                 )
 
@@ -6057,6 +6092,7 @@ extern "C" {{
             from .ffi_wrappers import (
                 _make_json_serializable,
                 compute_daisy_chain_joint_probs_ffi,
+                compute_daisy_chain_sojourn_ffi,
             )
             import json as _json_mod_local
             theta_dim_local = self.param_length()  # = param_length here
@@ -6086,6 +6122,31 @@ extern "C" {{
                 "t_aux_values": [int(jsp._t_aux_map[k]) for k in jsp._t_aux_map.keys()],
                 "t_vertex_indices": [int(x) for x in jsp._t_vertex_indices],
             }
+
+            sojourn_json_local = None
+            if final_read == 'sojourn':
+                sg = self.joint_sojourn_graph()
+                jsp_states_l = jsp.states()
+                jsp_ipv_pos_l = {
+                    tuple(int(x) for x in jsp_states_l[v]): k
+                    for k, v in enumerate(jsp._ipv_target_indices)
+                }
+                sg_states_l = sg.states()
+                sg_state_to_idx_l = {
+                    tuple(int(x) for x in sg_states_l[v]): v
+                    for v in range(sg.vertices_length())
+                }
+                structure_local["_daisy_chain"]["sojourn_jsp_gather"] = [
+                    int(jsp_ipv_pos_l[s]) for s in sg._ipv_target_states
+                ]
+                structure_local["_daisy_chain"]["sojourn_t_indices"] = [
+                    int(sg_state_to_idx_l[tuple(int(x) for x in jsp_states_l[t])])
+                    for t in jsp._t_vertex_indices
+                ]
+                sojourn_json_local = _json_mod_local.dumps(
+                    _make_json_serializable(sg.serialize(theta_dim=theta_dim_local))
+                )
+
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             # Per-obs forward + custom_vjp (FD) wrapping a SINGLE batched
@@ -6118,16 +6179,21 @@ extern "C" {{
             # Without this rule, the FFI call inside the body would get
             # auto-batched by JAX's default expand_dims rule, producing
             # a 3D theta buffer that the C++ handler rejects.
+            def _dc_call(theta_b, ipv_b):
+                if final_read == 'sojourn':
+                    return compute_daisy_chain_sojourn_ffi(
+                        structure_json_local, sojourn_json_local, theta_b, ipv_b,
+                    )
+                return compute_daisy_chain_joint_probs_ffi(
+                    structure_json_local, theta_b, ipv_b,
+                )
+
             @_cb_local.custom_vmap
             def _per_obs_core(theta_flat):
                 # 1D input path: theta_flat shape (theta_dim,). Build a
                 # (n_unique, theta_dim) batch and call FFI once.
                 theta_pk = theta_flat[None, :] * scale_per_unique
-                joint = compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_pk,
-                    initial_ipv_one,
-                )  # (n_unique, n_t)
+                joint = _dc_call(theta_pk, initial_ipv_one)  # (n_unique, n_t)
                 # Scatter to per-obs positions via inverse_idx_jnp and
                 # pick each obs's own t-vertex. Two paired integer
                 # arrays of equal length -> (n_obs,).
@@ -6145,11 +6211,7 @@ extern "C" {{
                 theta_pk = (
                     theta_flat[:, None, :] * scale_per_unique[None, :, :]
                 ).reshape(P * n_unique, n_epochs * param_length)
-                joint = compute_daisy_chain_joint_probs_ffi(
-                    structure_json_local,
-                    theta_pk,
-                    initial_ipv_one,
-                )  # (P*n_unique, n_t)
+                joint = _dc_call(theta_pk, initial_ipv_one)  # (P*n_unique, n_t)
                 joint = joint.reshape(P, n_unique, -1)  # (P, n_unique, n_t)
                 per_obs_2d = joint[:, inverse_idx_jnp, observed_pos_jnp]
                 # out is batched along axis 0.
@@ -6347,6 +6409,7 @@ extern "C" {{
              daisy_chain_granularity: int = 0,
              daisy_chain_probe_theta: ArrayLike | None = None,
              daisy_chain_t_eval_tol: float = 1e-3,
+             final_read: str = 'stopprob',
              exposure: ArrayLike | float | None = None,
              exposure_param_index: int | None = None,
              validate_rewards: bool = True,
@@ -6991,6 +7054,7 @@ extern "C" {{
                         granularity=daisy_chain_granularity,
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
+                        final_read=final_read,
                     )
                 else:
                     # Parse fixed to get mask for joint_index model
@@ -10796,6 +10860,10 @@ extern "C" {{
         new._joint_stop_prob_graph = True
         new._t_vertex_indices = sorted(t_aux_map.keys())
         new._t_aux_map = t_aux_map
+        # Source (continuous joint-prob) graph, so the JSP graph can build the
+        # no-trapping sojourn graph on demand for daisy_chain_joint_probs(
+        # final_read='sojourn').
+        new._joint_prob_source = self
         # New-graph vertex indices that carry IPV edges, in starting-vertex
         # edge order. update_ipv expects a vector of this length, in this
         # order.
@@ -10803,6 +10871,147 @@ extern "C" {{
         new.is_discrete = self.is_discrete
         new._cache_trace = getattr(self, '_cache_trace', False)
         # Forward the indexer like joint_prob_graph does.
+        if hasattr(self, '_indexer'):
+            new._indexer = self._indexer
+        return new
+
+
+    def joint_sojourn_graph(self) -> 'Graph':
+        """Build the joint sojourn-read graph for granularity-free epoch reads.
+
+        Sibling of :meth:`joint_stop_prob_graph`. Where the JSP graph wires a
+        trapping aux loop at each t-vertex (so cumulative absorption mass is read
+        via the granularity-bound ``stop_probability(t)`` forward solve), this
+        variant keeps each t-vertex's original edge to the absorbing vertex (NO
+        trapping) and adds the same full IPV-edge layout. That makes the **exact**
+        absorption distribution from an arbitrary initial distribution readable
+        granularity-free via graph elimination:
+
+            joint_prob[t-state v] = r_v * expected_sojourn_time(v) * ipv_mass
+
+        where ``r_v`` is the t-vertex's exit rate to absorption and ``ipv_mass``
+        is the total mass of the (possibly sub-stochastic) initial distribution
+        set via :meth:`update_ipv`. ``expected_sojourn_time`` normalises the IPV
+        to unit mass, so the caller multiplies back by ``ipv_mass``. This is the
+        granularity-free replacement for the daisy chain's final-epoch
+        ``stop_probability(t_eval)`` read (the final epoch runs to absorption,
+        the one place the elimination read applies); it is also exact in the
+        sense that it has no finite-``t_eval`` truncation.
+
+        Returns
+        -------
+        Graph
+            New graph with attributes ``_joint_sojourn_graph = True``,
+            ``_t_vertex_indices`` (new-graph indices of the original t-vertices),
+            ``_ipv_target_indices`` / ``_ipv_target_states`` (the full IPV-edge
+            layout; ``update_ipv`` expects a vector of length
+            ``len(_ipv_target_indices)`` in this order), and the propagated
+            ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` / ``_indexer``.
+
+        Raises
+        ------
+        ValueError
+            If ``self`` is not a joint-prob graph or has no parameterised edges.
+        """
+        if not getattr(self, '_joint_prob_base_graph_indexer', None):
+            raise ValueError(
+                "joint_sojourn_graph requires a graph produced by joint_prob_graph()."
+            )
+        if self.param_length() == 0:
+            raise ValueError(
+                "joint_sojourn_graph requires a parameterised graph; "
+                "got param_length() == 0."
+            )
+
+        # Trash-pair predicate (matches joint_stop_prob_graph).
+        def _is_trash(v: Vertex) -> bool:
+            if v.state().sum() != 0 or v.edges_length() != 1:
+                return False
+            child = v.edges()[0].to()
+            if child.state().sum() != 0 or child.edges_length() != 1:
+                return False
+            return child.edges()[0].to().index() == v.index()
+
+        start_old = self.starting_vertex()
+        t_vertex_old_indices: list[int] = []
+        trash_old_indices: list[int] = []
+        abs_old_index: int | None = None
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            if not v.edges():
+                abs_old_index = v.index()
+                continue
+            for edge in v.edges():
+                if len(edge.to().edges()) == 0:
+                    t_vertex_old_indices.append(v.index())
+                    break
+            if _is_trash(v):
+                trash_old_indices.append(v.index())
+
+        t_vertex_old_indices = list(np.unique(t_vertex_old_indices))
+        if len(trash_old_indices) != 2:
+            raise ValueError(
+                f"joint_sojourn_graph: expected exactly 2 trash vertices in "
+                f"source graph, found {len(trash_old_indices)}."
+            )
+        if abs_old_index is None:
+            raise ValueError(
+                "joint_sojourn_graph: source graph has no absorbing vertex."
+            )
+
+        param_length = self.param_length()
+        trash_set = set(trash_old_indices)
+
+        new = Graph(self.state_length())
+        new.set_param_length(param_length)
+
+        vmap: dict[int, Vertex] = {start_old.index(): new.starting_vertex()}
+        for v in self.vertices():
+            if v.index() == start_old.index() or v.index() in trash_set:
+                continue
+            vmap[v.index()] = new.create_vertex(list(v.state()))
+
+        # Copy interior edges verbatim (including each t-vertex's edge to the
+        # absorbing vertex — NO trap), redirecting trash-pointers to absorbing.
+        for v in self.vertices():
+            if v.index() == start_old.index() or v.index() in trash_set:
+                continue
+            if not v.edges():
+                continue
+            nv = vmap[v.index()]
+            for e in v.parameterized_edges():
+                to_index = e.to().index()
+                if to_index in trash_set:
+                    to_index = abs_old_index
+                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+
+        # Full IPV edges: one weight-0 starting-vertex edge per non-trash,
+        # non-absorbing interior vertex, sorted by new-graph index (stable
+        # layout; the caller sets weights via update_ipv).
+        non_ipv_old_indices = {start_old.index(), abs_old_index} | trash_set
+        ipv_targets = sorted(
+            (vmap[old_idx].index(), old_idx)
+            for old_idx in vmap
+            if old_idx not in non_ipv_old_indices
+        )
+        ipv_target_indices = [new_idx for new_idx, _old in ipv_targets]
+        ipv_target_states = [
+            tuple(int(x) for x in self.vertex_at(old_idx).state())
+            for _new_idx, old_idx in ipv_targets
+        ]
+        for _new_idx, old_idx in ipv_targets:
+            new.starting_vertex().add_edge(vmap[old_idx], 0.0)
+
+        new._joint_sojourn_graph = True
+        new._joint_prob_base_graph_indexer = self._joint_prob_base_graph_indexer
+        new._rewarded_props = getattr(self, '_rewarded_props', None)
+        new._t_vertex_indices = sorted(vmap[o].index() for o in t_vertex_old_indices)
+        new._ipv_target_indices = ipv_target_indices
+        new._ipv_target_states = ipv_target_states
+        # Continuous: the read is r_v * expected_sojourn_time (continuous time)
+        # * ipv_mass. Not discrete -> no set_was_dph IPV auto-normalisation.
+        new.is_discrete = False
         if hasattr(self, '_indexer'):
             new._indexer = self._indexer
         return new
@@ -10884,8 +11093,19 @@ extern "C" {{
         t_eval: float | None = None,
         fixed_indices=None,
         granularity: int = 0,
+        final_read: str = 'stopprob',
     ):
         """JAX-traceable model: joint-probs at the t-states after a daisy chain.
+
+        ``final_read`` selects how the FINAL epoch is read:
+
+        - ``'stopprob'`` (default, unchanged): ``stop_probability(t_eval)`` on the
+          JSP graph (granularity-bound forward solve).
+        - ``'sojourn'``: granularity-free elimination read on the no-trapping
+          sojourn graph (``r_v * expected_sojourn(v) * handoff_mass``) — exact,
+          ~400-1200x faster for that step, and ``t_eval`` is ignored (the final
+          epoch runs to absorption by construction). Requires that this JSP graph
+          was built by :meth:`joint_stop_prob_graph` (carries ``_joint_prob_source``).
 
         Daisies through ``len(epoch_dts)`` epoch transitions
         (``update_ipv → update_weights → stop_probability(dt)``), then
@@ -10999,8 +11219,14 @@ extern "C" {{
         from .ffi_wrappers import (
             _make_json_serializable,
             compute_daisy_chain_joint_probs_ffi,
+            compute_daisy_chain_sojourn_ffi,
         )
         import json as _json_mod
+
+        if final_read not in ('stopprob', 'sojourn'):
+            raise ValueError(
+                f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
+            )
 
         structure = _make_json_serializable(self.serialize(theta_dim=theta_dim))
         structure["_daisy_chain"] = {
@@ -11014,6 +11240,42 @@ extern "C" {{
             "t_aux_values": [int(self._t_aux_map[k]) for k in self._t_aux_map.keys()],
             "t_vertex_indices": [int(x) for x in self._t_vertex_indices],
         }
+
+        sojourn_json_str = None
+        if final_read == 'sojourn':
+            source = getattr(self, '_joint_prob_source', None)
+            if source is None:
+                raise ValueError(
+                    "final_read='sojourn' requires a JSP graph built by "
+                    "joint_stop_prob_graph() (it must carry _joint_prob_source)."
+                )
+            sg = source.joint_sojourn_graph()
+            jsp_states = self.states()
+            # JSP ipv-target state -> position in self._ipv_target_indices.
+            jsp_ipv_pos = {
+                tuple(int(x) for x in jsp_states[v]): k
+                for k, v in enumerate(self._ipv_target_indices)
+            }
+            # sojourn_jsp_gather[k] = JSP ipv position whose state == sg's k-th
+            # ipv target -> sojourn_ipv[k] = handoff_ipv[gather[k]].
+            sojourn_jsp_gather = [jsp_ipv_pos[s] for s in sg._ipv_target_states]
+            # Map each JSP t-vertex's full state to the corresponding sojourn
+            # graph vertex, ordered to match self._t_vertex_indices.
+            sg_states = sg.states()
+            sg_state_to_idx = {
+                tuple(int(x) for x in sg_states[v]): v
+                for v in range(sg.vertices_length())
+            }
+            sojourn_t_indices = [
+                sg_state_to_idx[tuple(int(x) for x in jsp_states[t])]
+                for t in self._t_vertex_indices
+            ]
+            structure["_daisy_chain"]["sojourn_jsp_gather"] = [int(x) for x in sojourn_jsp_gather]
+            structure["_daisy_chain"]["sojourn_t_indices"] = [int(x) for x in sojourn_t_indices]
+            sojourn_json_str = _json_mod.dumps(
+                _make_json_serializable(sg.serialize(theta_dim=theta_dim))
+            )
+
         structure_json_str = _json_mod.dumps(structure)
 
         # The full forward computation as a flat-theta function. The
@@ -11036,6 +11298,13 @@ extern "C" {{
         # nothing is being traced at that point). Do not add
         # ``custom_vmap`` here.
         def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
+            if final_read == 'sojourn':
+                return compute_daisy_chain_sojourn_ffi(
+                    structure_json_str,
+                    sojourn_json_str,
+                    theta_flat,
+                    initial_ipv_arr,
+                )
             return compute_daisy_chain_joint_probs_ffi(
                 structure_json_str,
                 theta_flat,

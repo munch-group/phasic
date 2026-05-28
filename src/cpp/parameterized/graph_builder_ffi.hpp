@@ -223,6 +223,7 @@ XLA_FFI_Handler* CreateComputeSojournTimesHandler();
 XLA_FFI_Handler* CreateBackwardProbabilitiesHandler();
 XLA_FFI_Handler* CreateSamplePathConditionedHandler();
 XLA_FFI_Handler* CreateDaisyChainJointProbsHandler();
+XLA_FFI_Handler* CreateDaisyChainSojournHandler();
 
 } // namespace parameterized
 } // namespace phasic
