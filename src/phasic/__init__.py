@@ -8,7 +8,7 @@ from unittest import result
 import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
-from typing import Any, TypeVar, Self
+from typing import Any, TypeVar, Self, Tuple, List
 from numpy.typing import NDArray
 from collections.abc import Sequence, MutableSequence, Callable
 import os
@@ -8936,6 +8936,9 @@ extern "C" {{
         wrap: bool|int = True,
         label_fmt: Callable[[Any], str] | None = None,
         rate_fmt: Callable[[Any], str] | None = None,
+        color_by: Sequence[float] | None = None,
+        color_by_cmap: str = 'viridis',
+        color_by_lim: Tuple[float] | None = None,
         subgraphfun: Callable[..., str] | None = None,
         by_state: Callable[..., str] | None = None,
         by_index: Callable[[int], str] | None = None,
@@ -8965,6 +8968,13 @@ extern "C" {{
             Callable for format node labels:
         rate_fmt : Callable[float] | None
             Callable for format edge labels:
+        color_by : List[float] | None
+            List of values used for node fill colors.
+        color_by_cmap : List[float] | None
+            List of values used for node fill colors.
+        color_by_lim: Tuple[float] | None
+            Color map min, max limits for use with color_by. Default is
+            min and max of values given by color_by.
         subgraphfun : Callable[..., str] | None
             Deprecated. Use ``by_state`` instead. Callback function defining
             subgraph clusters by state.
@@ -9071,6 +9081,16 @@ extern "C" {{
             else:
                 return f"{rate:.2e}"
 
+        def _values_to_hex(values, palette_name, vmin=None, vmax=None):
+            values = np.asarray(values, dtype=float)
+            cmap = matplotlib.colormaps[palette_name]
+            norm = matplotlib.colors.Normalize(
+                vmin=vmin if vmin is not None else np.nanmin(values),
+                vmax=vmax if vmax is not None else np.nanmax(values),
+            )
+            rgba = cmap(norm(values))
+            return [matplotlib.colors.to_hex(c) for c in rgba]
+
         def format_label(vertex, wrap=True, max_cols=8):
             state = vertex.state()
             n = len(state) 
@@ -9176,6 +9196,16 @@ extern "C" {{
             subgraph_edgecolor='black'
             husl_colors = _get_color(10, lightness=0.5)
 
+        node_fill_colors = {}
+        if color_by:
+            if len(color_by) != graph.vertices_length():
+                raise ValueError('List of colors passed to color_by must match nr of vertices in graph.')
+            if color_by_lim is not None:
+                vmin, vmax = color_by_lim
+            else:
+                vmin, vmax = min(color_by), max(color_by)
+            node_fill_colors = _values_to_hex(color_by, color_by_cmap, vmin=vmin, vmax=vmax)
+        
         if graph.vertices_length() > max_nodes:
             print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
             return None
@@ -9273,10 +9303,14 @@ extern "C" {{
                         # style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor
                         )
             else:
+                if node_fill_colors:
+                    node_fill = node_fill_colors[i]
+                else:
+                    node_fill = node_attr.get('fillcolor', node_fillcolor)
                 dot.node(str(vertex.index()), label,
                          **dict(_node_attr, 
                                 edge_color=node_attr.get('edge_color', edge_color), 
-                                fillcolor=node_attr.get('fillcolor', node_fillcolor)
+                                fillcolor=node_fill
                                 ),                         
                         # style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor
                         )
