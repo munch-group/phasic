@@ -58,6 +58,26 @@
     #define getpid()   _getpid()
 #endif
 
+/* Cross-platform monotonic clock in nanoseconds. POSIX clock_gettime /
+ * CLOCK_MONOTONIC are unavailable under MSVC, so Windows uses the
+ * high-resolution performance counter. Mirrors monotonic_ns() in
+ * scc_compose.c. */
+static uint64_t monotonic_ns(void) {
+#ifdef _WIN32
+    static LARGE_INTEGER freq = {0};
+    LARGE_INTEGER counter;
+    if (freq.QuadPart == 0) {
+        QueryPerformanceFrequency(&freq);
+    }
+    QueryPerformanceCounter(&counter);
+    return (uint64_t)((counter.QuadPart * 1000000000ull) / freq.QuadPart);
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+#endif
+}
+
 /* Atomic replace of `dst` with `src`. POSIX rename() already replaces
  * an existing destination atomically on the same filesystem; the MSVCRT
  * rename() does not (it fails with EEXIST). MoveFileExA with
@@ -2045,12 +2065,11 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
             int _sc = (getenv("PHASIC_PCG_SELFCHECK") != NULL
                        && graph->parameterized_reward_compute_graph != NULL);
             if (_sc) {
-                struct timespec _c0, _c1;
-                clock_gettime(CLOCK_MONOTONIC, &_c0);
+                uint64_t _c0 = monotonic_ns();
                 _off = ptd_pcg_convert_to_offset(
                         graph->parameterized_reward_compute_graph, graph, NULL, 0);
-                clock_gettime(CLOCK_MONOTONIC, &_c1);
-                _cs = (_c1.tv_sec - _c0.tv_sec) + (_c1.tv_nsec - _c0.tv_nsec) / 1e9;
+                uint64_t _c1 = monotonic_ns();
+                _cs = (double)(_c1 - _c0) / 1e9;
             }
 
             /* Dual-form executor fork: cache HIT (offset form loaded) runs the
@@ -9693,6 +9712,9 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
     const bool use_par = (hierar_env != NULL && hierar_env[0] == '1'
                           && hierar_env[1] == '\0' && n >= 512);
     (void) use_par;  // referenced only by the OpenMP if() clause
+    // MSVC implements OpenMP 2.0, which requires a signed integer loop
+    // variable in `omp for`; use a signed bound for the column loops.
+    const ptrdiff_t n_signed = (ptrdiff_t) n;
     #pragma omp parallel if(use_par)
     {
     for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
@@ -9714,7 +9736,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
 
         // Inner loop: each thread takes a fixed static slice of the columns.
         #pragma omp for schedule(static) nowait
-        for (size_t r = 0; r < n; r++) {
+        for (ptrdiff_t r = 0; r < n_signed; r++) {
             // Handle inf × 0 = 0 (limit interpretation)
             if (mult_is_inf && to_row[r] == 0.0) {
                 continue;
@@ -9729,10 +9751,10 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         // Debug: check for NaN
         #ifdef DEBUG
         #pragma omp for schedule(static) nowait
-        for (size_t r = 0; r < n; r++) {
+        for (ptrdiff_t r = 0; r < n_signed; r++) {
             if (isnan(from_row[r])) {
                 PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
-                    cmd.from, r, cmd_idx);
+                    cmd.from, (size_t) r, cmd_idx);
             }
         }
         #endif
