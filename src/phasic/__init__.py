@@ -9081,15 +9081,15 @@ extern "C" {{
             else:
                 return f"{rate:.2e}"
 
-        def _values_to_hex(values, palette_name, vmin=None, vmax=None):
+        def _values_to_hex(values, palette_name, vmin=None, vmax=None, alpha=None):
             values = np.asarray(values, dtype=float)
             cmap = matplotlib.colormaps[palette_name]
             norm = matplotlib.colors.Normalize(
                 vmin=vmin if vmin is not None else np.nanmin(values),
                 vmax=vmax if vmax is not None else np.nanmax(values),
             )
-            rgba = cmap(norm(values))
-            return [matplotlib.colors.to_hex(c) for c in rgba]
+            rgba = cmap(norm(values), alpha=alpha)
+            return [matplotlib.colors.to_hex(c, keep_alpha=alpha is not None) for c in rgba]
 
         def format_label(vertex, wrap=True, max_cols=8):
             state = vertex.state()
@@ -9200,11 +9200,12 @@ extern "C" {{
         if color_by:
             if len(color_by) != graph.vertices_length():
                 raise ValueError('List of colors passed to color_by must match nr of vertices in graph.')
-            if color_by_lim is not None:
-                vmin, vmax = color_by_lim
-            else:
-                vmin, vmax = min(color_by), max(color_by)
-            node_fill_colors = _values_to_hex(color_by, color_by_cmap, vmin=vmin, vmax=vmax)
+            vmin, vmax = min(color_by), max(color_by)
+            if color_by_lim and color_by_lim[0] is not None:
+                vmin = color_by_lim[0]
+            if color_by_lim and color_by_lim[1] is not None:
+                vmax = color_by_lim[1]
+            node_fill_colors = _values_to_hex(color_by, color_by_cmap, vmin=vmin, vmax=vmax, alpha=0.5)
         
         if graph.vertices_length() > max_nodes:
             print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")

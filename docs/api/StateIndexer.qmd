@@ -110,10 +110,16 @@ phasic.StateIndexer.append(other, prefix_other=None)
 
 Create new StateIndexer by appending another's PropertySets and Slots.
 
-The resulting indexer has:
-- All PropertySets from self (indices 0 to self.state_length - 1)
-- All PropertySets from other (indices offset by self.state_length)
-- Slots from both indexers
+The resulting indexer concatenates the two layouts as contiguous blocks:
+- All of self's PropertySets and Slots keep their layout, occupying
+  indices 0 to self.state_length - 1
+- All of other's PropertySets and Slots follow, offset by
+  self.state_length
+
+Because each operand's layout is preserved verbatim, a Slot of self that
+is not at the very end (e.g. an ``epoch`` slot followed by appended
+reward PropertySets) stays at its original index rather than being
+relocated past other's block.
 
 #### Parameters {.doc-section .doc-section-parameters}
 

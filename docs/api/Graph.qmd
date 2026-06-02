@@ -47,6 +47,7 @@ phasic.Graph(arg, ipv=None, graph_cache=None, **kwargs)
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
 | [joint_prob_graph](#phasic.Graph.joint_prob_graph) | Build the joint-probability graph from this parameterized graph. |
+| [joint_sojourn_graph](#phasic.Graph.joint_sojourn_graph) | Build the joint sojourn-read graph for granularity-free epoch reads. |
 | [joint_stop_prob_graph](#phasic.Graph.joint_stop_prob_graph) | Build the joint stop-probability graph for daisy-chained inference. |
 | [laplace_transform](#phasic.Graph.laplace_transform) | Create a Laplace-transformed graph. |
 | [mcmc](#phasic.Graph.mcmc) | Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation. |
@@ -574,10 +575,23 @@ phasic.Graph.daisy_chain_joint_probs(
     t_eval=None,
     fixed_indices=None,
     granularity=0,
+    final_read='sojourn',
 )
 ```
 
 JAX-traceable model: joint-probs at the t-states after a daisy chain.
+
+``final_read`` selects how the FINAL epoch is read:
+
+- ``'sojourn'`` (default): granularity-free elimination read on the
+  no-trapping sojourn graph (``r_v * expected_sojourn(v) * handoff_mass``)
+  — exact, much faster, and ``t_eval`` is ignored (the final epoch runs to
+  absorption by construction). Requires that this JSP graph was built by
+  :meth:`joint_stop_prob_graph` (carries ``_joint_prob_source``).
+- ``'stopprob'``: the legacy ``stop_probability(t_eval)`` forward solve on
+  the JSP graph (granularity-bound; subject to finite-``t_eval``
+  truncation). Use it to reproduce pre-0.30 behavior or for a JSP graph
+  that does not carry ``_joint_prob_source``.
 
 Daisies through ``len(epoch_dts)`` epoch transitions
 (``update_ipv → update_weights → stop_probability(dt)``), then
@@ -1073,6 +1087,45 @@ bypassed and the callback is invoked exactly as in
 :meth:`_joint_prob_graph`, so behaviour is unchanged for custom
 callbacks.
 
+### joint_sojourn_graph { #phasic.Graph.joint_sojourn_graph }
+
+```python
+phasic.Graph.joint_sojourn_graph()
+```
+
+Build the joint sojourn-read graph for granularity-free epoch reads.
+
+Sibling of :meth:`joint_stop_prob_graph`. Where the JSP graph wires a
+trapping aux loop at each t-vertex (so cumulative absorption mass is read
+via the granularity-bound ``stop_probability(t)`` forward solve), this
+variant keeps each t-vertex's original edge to the absorbing vertex (NO
+trapping) and adds the same full IPV-edge layout. That makes the **exact**
+absorption distribution from an arbitrary initial distribution readable
+granularity-free via graph elimination:
+
+    joint_prob[t-state v] = r_v * expected_sojourn_time(v) * ipv_mass
+
+where ``r_v`` is the t-vertex's exit rate to absorption and ``ipv_mass``
+is the total mass of the (possibly sub-stochastic) initial distribution
+set via :meth:`update_ipv`. ``expected_sojourn_time`` normalises the IPV
+to unit mass, so the caller multiplies back by ``ipv_mass``. This is the
+granularity-free replacement for the daisy chain's final-epoch
+``stop_probability(t_eval)`` read (the final epoch runs to absorption,
+the one place the elimination read applies); it is also exact in the
+sense that it has no finite-``t_eval`` truncation.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   New graph with attributes ``_joint_sojourn_graph = True``, ``_t_vertex_indices`` (new-graph indices of the original t-vertices), ``_ipv_target_indices`` / ``_ipv_target_states`` (the full IPV-edge layout; ``update_ipv`` expects a vector of length ``len(_ipv_target_indices)`` in this order), and the propagated ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` / ``_indexer``.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If ``self`` is not a joint-prob graph or has no parameterised edges.
+
 ### joint_stop_prob_graph { #phasic.Graph.joint_stop_prob_graph }
 
 ```python
@@ -1559,6 +1612,9 @@ phasic.Graph.plot(
     wrap=True,
     label_fmt=None,
     rate_fmt=None,
+    color_by=None,
+    color_by_cmap='viridis',
+    color_by_lim=None,
     subgraphfun=None,
     by_state=None,
     by_index=None,
@@ -1603,6 +1659,18 @@ Plot a graph using graphviz.
 <code>[**rate_fmt**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Callable for format edge labels:
+
+<code>[**color_by**]{.parameter-name} [:]{.parameter-annotation-sep} [[List](`typing.List`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   List of values used for node fill colors.
+
+<code>[**color_by_cmap**]{.parameter-name} [:]{.parameter-annotation-sep} [[List](`typing.List`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'viridis\']{.parameter-default}</code>
+
+:   List of values used for node fill colors.
+
+<code>[**color_by_lim**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tuple](`typing.Tuple`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Color map min, max limits for use with color_by. Default is min and max of values given by color_by.
 
 <code>[**subgraphfun**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -2834,6 +2902,7 @@ phasic.Graph.svgd(
     daisy_chain_granularity=0,
     daisy_chain_probe_theta=None,
     daisy_chain_t_eval_tol=0.001,
+    final_read='sojourn',
     exposure=None,
     exposure_param_index=None,
     validate_rewards=True,
