@@ -9712,11 +9712,15 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
     const bool use_par = (hierar_env != NULL && hierar_env[0] == '1'
                           && hierar_env[1] == '\0' && n >= 512);
     (void) use_par;  // referenced only by the OpenMP if() clause
-    // MSVC implements OpenMP 2.0, which requires a signed integer loop
-    // variable in `omp for`; use a signed bound for the column loops.
-    const ptrdiff_t n_signed = (ptrdiff_t) n;
+    // MSVC implements OpenMP 2.0, whose canonical loop form requires the
+    // omp-for index to be a signed integer declared *outside* the loop with
+    // a plain-assignment init (`r = 0`) — a declaration in the init
+    // (`int r = 0`) is rejected with C3015. Mirror the proven pattern in
+    // scc_compose.c: declare `r` inside the parallel region (so it is
+    // private per thread) and cast the size_t column bound to int.
     #pragma omp parallel if(use_par)
     {
+    int r;
     for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
         struct ptd_reward_increase cmd = compute->commands[cmd_idx];
 
@@ -9736,7 +9740,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
 
         // Inner loop: each thread takes a fixed static slice of the columns.
         #pragma omp for schedule(static) nowait
-        for (ptrdiff_t r = 0; r < n_signed; r++) {
+        for (r = 0; r < (int) n; r++) {
             // Handle inf × 0 = 0 (limit interpretation)
             if (mult_is_inf && to_row[r] == 0.0) {
                 continue;
@@ -9751,7 +9755,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         // Debug: check for NaN
         #ifdef DEBUG
         #pragma omp for schedule(static) nowait
-        for (ptrdiff_t r = 0; r < n_signed; r++) {
+        for (r = 0; r < (int) n; r++) {
             if (isnan(from_row[r])) {
                 PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
                     cmd.from, (size_t) r, cmd_idx);
