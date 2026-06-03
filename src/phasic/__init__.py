@@ -9159,7 +9159,13 @@ extern "C" {{
         bg_color = ax.get_facecolor()
         plt.close(fig)
         plt.ion()
+        # if sum(bg_color) == 0: # black
+        #     bg_color = '#1F1F1F'
+        # else:
         bg_color = matplotlib.colors.to_hex(bg_color)
+        # if dark:
+        #     bg_color = '#1F1F1F'
+
 
         if dark:
             edge_color = '#e6e6e6'
