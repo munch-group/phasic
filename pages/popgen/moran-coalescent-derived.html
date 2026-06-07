@@ -305,7 +305,7 @@ table {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> clear_caches</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>clear_caches()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="14b1cfce" class="cell" data-execution_count="161">
+<div id="14b1cfce" class="cell" data-execution_count="401">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_with_derived(state, indexer<span class="op">=</span><span class="va">None</span>, N<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -322,161 +322,200 @@ table {
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n_der <span class="op">+</span> n_anc <span class="op">==</span> <span class="dv">1</span>: <span class="co"># absorbing state</span></span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> []</span>
 <span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pop derived freq</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> <span class="bu">int</span>(state[indexer.derived_freq])</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> n_der <span class="op">&lt;=</span> freq <span class="op">&lt;</span> N, <span class="ss">f"invalid state: </span><span class="sc">{</span>state<span class="sc">}</span><span class="ss">, n_der=</span><span class="sc">{</span>n_der<span class="sc">}</span><span class="ss">, freq=</span><span class="sc">{</span>freq<span class="sc">}</span><span class="ss">, N=</span><span class="sc">{</span>N<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> n_anc <span class="op">&lt;=</span> N<span class="op">-</span>freq <span class="op">&lt;=</span> N, <span class="ss">f"invalid state: </span><span class="sc">{</span>state<span class="sc">}</span><span class="ss">, n_anc=</span><span class="sc">{</span>n_anc<span class="sc">}</span><span class="ss">, N-freq=</span><span class="sc">{</span>N<span class="op">-</span>freq<span class="sc">}</span><span class="ss">, N=</span><span class="sc">{</span>N<span class="sc">}</span><span class="ss">"</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># coalescence transitions</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(<span class="bu">range</span>(indexer.lineages.state_length)):</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        same_kind <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># if same_kind and state[i] &lt; 2:</span></span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">#     continue</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>        <span class="co"># if not same_kind and (state[i] &lt; 1 or state[j] &lt; 1):</span></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">#     continue</span></span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>        <span class="co"># props of lineage types at index i and j</span></span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.i2p(i)</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.i2p(j)</span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="co"># nr of lineage pairs</span></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>        pair_count <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same_kind) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same_kind)</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> pair_count:</span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>            <span class="co"># there must be at least 2 lineages for a coalescence</span></span>
-<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">bool</span>(pi.is_derived) <span class="op">==</span> <span class="bu">bool</span>(pj.is_derived): <span class="co"># same ancestry</span></span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.is_derived:</span>
-<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>                <span class="co"># coal of two der lineages (also reduces freq by 1 backwards)</span></span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
-<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                is_derived <span class="op">=</span> pi.is_derived</span>
-<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>                k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
-<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>                new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>                new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">-</span> <span class="dv">1</span> <span class="co"># THINK ABOUT IF COAL SHOULD ALSO CHANGE FREQ</span></span>
-<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span>  freq<span class="op">*</span>(<span class="dv">1</span><span class="op">+</span>s)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq)  <span class="op">*</span>  (freq)<span class="op">/</span>(N)  <span class="op">*</span>  pair_count<span class="op">/</span>(freq<span class="op">*</span>(freq)<span class="op">/</span><span class="dv">2</span>) <span class="co"># * N/freq #  *  (N*(N-1)/2) / (freq*(freq-1)/2 + (N-freq)*(N-freq-1)/2)</span></span>
-<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = 2  *  freq*(1+s)/(N+s*freq)  *  (freq)/(N)  *  pair_count/(freq*(freq)/2)</span></span>
-<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, rate])</span>
-<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
-<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>                <span class="co"># coal of two anc lineages (also increases freq by 1 backwards)</span></span>
-<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
-<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>                is_derived <span class="op">=</span> pi.is_derived</span>
-<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>                k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
-<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>                new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>                new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">+</span> <span class="dv">1</span>   <span class="co"># THINK ABOUT IF COAL SHOULD ALSO CHANGE FREQ</span></span>
-<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> (N<span class="op">-</span>freq)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq)  <span class="op">*</span>  (N<span class="op">-</span>freq<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span>(N<span class="op">-</span><span class="dv">1</span>)  <span class="op">*</span>  pair_count<span class="op">/</span>((N<span class="op">-</span>freq)<span class="op">*</span>(N<span class="op">-</span>freq<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span>)  <span class="co"># *  N/(N-freq) # *  (N*(N-1)/2) / (freq*(freq-1)/2 + (N-freq)*(N-freq-1)/2)</span></span>
-<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = 2  *  (N-freq)/(N+s*freq)  *  (N-freq)/(N)  *  pair_count/((N-freq)*(N-freq)/2)</span></span>
-<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a><span class="co"># IF THE IPV IS UNIFORM, THE SOJOURN-TIME AVERAGED COALESCENCE RATE SHOULD BE THE SAME AS THE VANILLA COALESCENT</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># available_pairs = 0</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># if n_der:</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     available_pairs += n_der*(n_der-1)/2 </span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># if n_anc:</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#     available_pairs += n_anc*(n_anc-1)/2</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pair_correction = (n_der+n_anc)*(n_der+n_anc-1)/2 / available_pairs</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pop derived freq</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> <span class="bu">int</span>(state[indexer.derived_freq])</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> n_der <span class="op">&lt;=</span> freq <span class="op">&lt;</span> N, <span class="ss">f"invalid state: </span><span class="sc">{</span>state<span class="sc">}</span><span class="ss">, n_der=</span><span class="sc">{</span>n_der<span class="sc">}</span><span class="ss">, freq=</span><span class="sc">{</span>freq<span class="sc">}</span><span class="ss">, N=</span><span class="sc">{</span>N<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> n_anc <span class="op">&lt;=</span> N<span class="op">-</span>freq <span class="op">&lt;=</span> N, <span class="ss">f"invalid state: </span><span class="sc">{</span>state<span class="sc">}</span><span class="ss">, n_anc=</span><span class="sc">{</span>n_anc<span class="sc">}</span><span class="ss">, N-freq=</span><span class="sc">{</span>N<span class="op">-</span>freq<span class="sc">}</span><span class="ss">, N=</span><span class="sc">{</span>N<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># coalescence transitions</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, j <span class="kw">in</span> all_pairs(<span class="bu">range</span>(indexer.lineages.state_length)):</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        same_kind <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        <span class="co"># if same_kind and state[i] &lt; 2:</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">#     continue</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>        <span class="co"># if not same_kind and (state[i] &lt; 1 or state[j] &lt; 1):</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">#     continue</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>        <span class="co"># props of lineage types at index i and j</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>        pi <span class="op">=</span> indexer.lineages.i2p(i)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>        pj <span class="op">=</span> indexer.lineages.i2p(j)</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>        <span class="co"># nr of lineage pairs</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>        pair_count <span class="op">=</span> state[i] <span class="op">*</span> (state[j] <span class="op">-</span> same_kind) <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> same_kind)</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> pair_count:</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>            <span class="co"># there must be at least 2 lineages for a coalescence</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> n_der <span class="op">&gt;</span> <span class="dv">1</span> <span class="kw">and</span> <span class="bu">bool</span>(pi.is_derived) <span class="op">==</span> <span class="bu">bool</span>(pj.is_derived): <span class="co"># same ancestry</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> pi.is_derived:</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>                <span class="co"># coal of two der lineages</span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>                is_derived <span class="op">=</span> pi.is_derived</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>                k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>                new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>                new[indexer.derived_freq] <span class="op">=</span> freq</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = freq*(1+s)/(N+s*freq) * freq/(N) *  pair_count/(freq*(freq-1)/2) * N/2/freq </span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = freq*(1+s)/(N+s*freq) * 1/(N) *  pair_count</span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = freq*(1+s)/(N+s*freq) * 1/(N) *  pair_count * pair_count/(freq*(freq-1)/2)</span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>                <span class="co"># think this is right:</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = freq*(1+s)/(N+s*freq) * freq/(N) * 2/freq**2 * pair_count</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>                <span class="co"># same as:                                          # account for anc/der constraints allowing fewer pairs</span></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> (<span class="dv">1</span><span class="op">+</span>s)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> <span class="dv">1</span><span class="op">/</span>(N) <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> pair_count    <span class="op">*</span> (n_der<span class="op">+</span>n_anc)<span class="op">*</span>(n_der<span class="op">+</span>n_anc<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span> <span class="op">/</span> (n_der<span class="op">*</span>(n_der<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> n_anc<span class="op">*</span>(n_anc<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span>)</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>                <span class="co"># print((n_der+n_anc)*(n_der+n_anc-1)/2 / (n_der*(n_der-1)/2 + n_anc*(n_anc-1)/2))</span></span>
 <span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a><span class="co"># I GUESS I NEED SOME WAY TO RESCALE RATES TO ACCOUNT FOR THE TOPOLOGIES (AND PAIRS) THAT ARE NOT ALLOWED BY THE ANC/DER SUB-GROUPING.</span></span>
-<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, rate])</span>
-<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> freq <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
-<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>            <span class="cf">assert</span> n_der <span class="op">==</span> <span class="dv">1</span></span>
-<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>            <span class="co"># coal of one anc and the last der lineage (also sets freq go zero)</span></span>
-<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>            is_derived <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
-<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>            new[indexer.derived_freq] <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a>            <span class="co"># anc birth, der death</span></span>
-<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>            rate <span class="op">=</span> <span class="dv">2</span><span class="op">/</span>N<span class="op">**</span><span class="dv">2</span> <span class="op">*</span>  pair_count</span>
-<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a>            <span class="co"># print(pi.is_derived, pj.is_derived, freq, pair_count, rate, new)</span></span>
-<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, rate])</span>
-<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>    <span class="co"># transitions to sister states with other derived population frequencies</span></span>
-<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>    <span class="co"># essentially covers the coalescence events in the population not involving the sampled lineages</span></span>
-<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n_der <span class="op">&lt;=</span> freq <span class="op">-</span> <span class="dv">1</span> <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> freq <span class="op">&lt;</span> N:</span>
-<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a>        <span class="co"># der birth, anc death (freq decrease backwards in time)</span></span>
-<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>        new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">-</span> <span class="dv">1</span></span>
-<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> freq<span class="op">*</span>(<span class="dv">1</span><span class="op">+</span>s)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> (N<span class="op">-</span>freq)<span class="op">/</span>(N<span class="op">-</span><span class="dv">1</span>) <span class="co">#* n_der*n_anc/(freq*(N-freq))</span></span>
-<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, rate])</span>
-<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n_anc <span class="op">&lt;=</span> N<span class="op">-</span>(freq<span class="op">+</span><span class="dv">1</span>) <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> freq <span class="op">&lt;</span> N<span class="op">-</span><span class="dv">1</span>:</span>
-<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a>        <span class="co"># anc birth, der death (freq increase backwards in time)</span></span>
-<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
-<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a>        new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> (N<span class="op">-</span>freq)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> (freq)<span class="op">/</span>(N<span class="op">-</span><span class="dv">1</span>) <span class="co"># *  n_der*n_anc/(freq*(N-freq))</span></span>
-<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, rate])</span>
-<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="dv">10</span></span>
-<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a>n_ancestral <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a>n_derived <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> n_ancestral <span class="op">+</span> n_derived</span>
-<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> n_ancestral <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> n_derived <span class="op">&gt;</span> <span class="dv">0</span></span>
-<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
-<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a>    <span class="st">"derived_freq"</span>,</span>
-<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[</span>
-<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="bu">max</span>(n_samples, n_derived)),        </span>
-<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'is_derived'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span><span class="dv">1</span>),        </span>
-<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> []</span>
-<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a>freqs <span class="op">=</span> np.arange(n_derived, N, dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> freqs <span class="op">/</span> N</span>
-<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a>rates <span class="op">=</span> beta(<span class="dv">1</span> <span class="op">+</span> n_derived, <span class="dv">1</span> <span class="op">+</span> (n_samples <span class="op">-</span> n_derived)).pdf(p)</span>
-<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a>rates <span class="op">/=</span> rates.<span class="bu">sum</span>()</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, rate])</span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a>                <span class="co"># coal of two anc lineages</span></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a>                new <span class="op">=</span> state.copy()</span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>                new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>                new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>                is_derived <span class="op">=</span> pi.is_derived</span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>                k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>                new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a>                new[indexer.derived_freq] <span class="op">=</span> freq</span>
+<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = (N-freq)/(N+s*freq) * (N-freq)/(N) * pair_count/((N-freq)*((N-freq)-1)/2) * N/2/(N-freq) </span></span>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = 2/N**2 * pair_count</span></span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>                <span class="co"># think this is right:</span></span>
+<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>                <span class="co"># rate = (N-freq)/(N+s*freq) * (N-freq)/(N) * 2/(N-freq)**2 * pair_count</span></span>
+<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a>                <span class="co"># same as:                                          # account for anc/der constraints allowing fewer pairs</span></span>
+<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>                rate <span class="op">=</span> <span class="dv">1</span><span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> <span class="dv">1</span><span class="op">/</span>(N) <span class="op">*</span> <span class="dv">2</span> <span class="op">*</span> pair_count        <span class="op">*</span> (n_der<span class="op">+</span>n_anc)<span class="op">*</span>(n_der<span class="op">+</span>n_anc<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span> <span class="op">/</span> (n_der<span class="op">*</span>(n_der<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span> <span class="op">+</span> n_anc<span class="op">*</span>(n_anc<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="dv">2</span>)</span>
+<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a>                <span class="co"># print("A", pair_count, (n_der+n_anc)*(n_der+n_anc-1)/2 / (n_der*(n_der-1)/2 + n_anc*(n_anc-1)/2))</span></span>
+<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a>                transitions.append([new, rate])</span>
+<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>        <span class="co"># elif freq &lt;= 1:</span></span>
+<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> n_der <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
+<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>            <span class="co"># coal of one anc and the last der lineage (also sets freq go zero)</span></span>
+<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a>            is_derived <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>            k <span class="op">=</span> indexer.lineages.p2i(descendants<span class="op">=</span>pi.descendants<span class="op">+</span>pj.descendants, is_derived<span class="op">=</span>is_derived)</span>
+<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a>            new[k] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a>            new[indexer.derived_freq] <span class="op">=</span> freq <span class="cf">if</span> <span class="bu">bool</span>(pi.is_derived) <span class="op">==</span> <span class="bu">bool</span>(pj.is_derived) <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a>            <span class="co"># rate = 2/N**2 * (n_der+n_anc)*(n_der+n_anc-1)/2  # *pair_count</span></span>
+<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>            rate <span class="op">=</span> <span class="dv">2</span><span class="op">/</span>N<span class="op">**</span><span class="dv">2</span> <span class="op">*</span> pair_count</span>
+<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a>            <span class="co"># print("AD", pair_count, (n_der+n_anc)*(n_der+n_anc-1)/2)</span></span>
+<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a>            <span class="co"># print(rate, pair_count)</span></span>
+<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a>            <span class="co"># print(pi.is_derived, pj.is_derived, freq, pair_count, rate, new)</span></span>
+<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, rate])</span>
+<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n_der <span class="op">&lt;=</span> freq <span class="op">-</span> <span class="dv">1</span> <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> freq <span class="op">&lt;</span> N:</span>
+<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a>        <span class="co"># der birth, anc death (freq decrease backwards in time)</span></span>
+<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a>        new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> freq<span class="op">*</span>(<span class="dv">1</span><span class="op">+</span>s)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> (N<span class="op">-</span>freq)<span class="op">/</span>N</span>
+<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, rate])</span>
+<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n_anc <span class="op">&lt;=</span> N<span class="op">-</span>(freq<span class="op">+</span><span class="dv">1</span>) <span class="kw">and</span> <span class="dv">0</span> <span class="op">&lt;</span> freq <span class="op">&lt;</span> N<span class="op">-</span><span class="dv">1</span>:</span>
+<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a>        <span class="co"># anc birth, der death (freq increase backwards in time)</span></span>
+<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a>        new <span class="op">=</span> state.copy()</span>
+<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a>        new[indexer.derived_freq] <span class="op">=</span> freq <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a>        rate <span class="op">=</span> (N<span class="op">-</span>freq)<span class="op">/</span>(N<span class="op">+</span>s<span class="op">*</span>freq) <span class="op">*</span> freq<span class="op">/</span>N</span>
+<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a>        transitions.append([new, rate])</span>
+<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a><span class="co"># n_ancestral = 3</span></span>
+<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a><span class="co"># n_derived = 1</span></span>
+<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a><span class="co"># n_ancestral = 1</span></span>
+<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a><span class="co"># n_derived = 3</span></span>
 <span id="cb3-130"><a href="#cb3-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a><span class="co">####################################################</span></span>
-<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a>rates <span class="op">=</span> np.zeros(<span class="bu">len</span>(freqs), dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a>rates[<span class="dv">0</span>] <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a><span class="co">####################################################</span></span>
-<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a><span class="co"># #############</span></span>
-<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = rates / (np.sum(rates) + 1e-15)</span></span>
-<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a><span class="co"># #############</span></span>
-<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
-<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = np.ones(len(freqs), dtype=int)</span></span>
-<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = rates / (np.sum(rates) + 1e-15)</span></span>
-<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
-<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(freqs)):</span>
-<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
-<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">0</span>)] <span class="op">=</span> n_samples <span class="op">-</span> n_derived</span>
-<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> n_derived</span>
-<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a>    state[indexer.derived_freq] <span class="op">=</span> freqs[i]</span>
-<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rates[i]:</span>
-<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a>        ipv.append([state, rates[i]])</span>
-<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> plt.subplot(<span class="dv">111</span>)</span>
-<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a>ax.scatter(freqs, rates)</span>
-<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a>ax.vlines(freqs, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span>rates)</span>
-<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Beta IPV'</span>)</span>
-<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">False</span>, reward_compute_cache<span class="op">=</span><span class="va">False</span>, graph_cache<span class="op">=</span><span class="va">False</span>):</span>
-<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a>    graph <span class="op">=</span> Graph(coalescent_with_derived, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer, N<span class="op">=</span>N)</span>
+<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a>n_ancestral <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a>n_derived <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a><span class="co"># n_ancestral = 2</span></span>
+<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a><span class="co"># n_derived = 1</span></span>
+<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a><span class="co"># n_ancestral = 1</span></span>
+<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a><span class="co"># n_derived = 2</span></span>
+<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> n_ancestral <span class="op">+</span> n_derived</span>
+<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> n_ancestral <span class="op">&gt;</span> <span class="dv">0</span> </span>
+<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
+<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a>    <span class="st">"derived_freq"</span>,</span>
+<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a>    lineages<span class="op">=</span>[</span>
+<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'descendants'</span>, min_value<span class="op">=</span><span class="dv">1</span>, max_value<span class="op">=</span><span class="bu">max</span>(n_samples, n_derived)),        </span>
+<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'is_derived'</span>, min_value<span class="op">=</span><span class="dv">0</span>, max_value<span class="op">=</span><span class="dv">1</span>),        </span>
+<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> []</span>
+<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a>freqs <span class="op">=</span> np.arange(n_derived, N<span class="op">-</span>n_ancestral<span class="op">+</span><span class="dv">1</span>, dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> freqs <span class="op">/</span> N</span>
+<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a>rates <span class="op">=</span> beta(<span class="dv">1</span> <span class="op">+</span> n_derived, <span class="dv">1</span> <span class="op">+</span> (n_samples <span class="op">-</span> n_derived)).pdf(p)</span>
+<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = beta(1/2 + n_derived, 1/2 + (n_samples - n_derived)).pdf(p)</span></span>
+<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a>rates <span class="op">/=</span> rates.<span class="bu">sum</span>()</span>
+<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
+<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = np.zeros(len(freqs), dtype=int)</span></span>
+<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a><span class="co"># rates[0] = 1</span></span>
+<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
 <span id="cb3-161"><a href="#cb3-161" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(graph.expectation() <span class="op">*</span> <span class="dv">2</span><span class="op">/</span>N)</span>
-<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a>graph.plot(ranksep<span class="op">=</span><span class="dv">5</span>, nodesep<span class="op">=</span><span class="fl">0.5</span>, <span class="co">#fontsize=25,</span></span>
-<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a>    subgraphfun<span class="op">=</span><span class="kw">lambda</span> state: <span class="bu">str</span>(state[:<span class="op">-</span><span class="dv">1</span>]), <span class="co"># label_fmt=lambda v: f'{v.index()}',</span></span>
-<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a>    color_by <span class="op">=</span> graph.expected_sojourn_time(), color_by_cmap<span class="op">=</span><span class="st">'viridis'</span>, <span class="co"># color_by_lim=(0, None),</span></span>
-<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a>    size<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">12</span>),</span>
-<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a><span class="co">#############</span></span>
+<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a>rates <span class="op">=</span> rates <span class="op">/</span> (np.<span class="bu">sum</span>(rates) <span class="op">+</span> <span class="fl">1e-15</span>)</span>
+<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a><span class="co">#############</span></span>
+<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
+<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = np.ones(len(freqs), dtype=int)</span></span>
+<span id="cb3-168"><a href="#cb3-168" aria-hidden="true" tabindex="-1"></a><span class="co"># rates = rates / (np.sum(rates) + 1e-15)</span></span>
+<span id="cb3-169"><a href="#cb3-169" aria-hidden="true" tabindex="-1"></a><span class="co"># ####################################################</span></span>
+<span id="cb3-170"><a href="#cb3-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-171"><a href="#cb3-171" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(freqs)):</span>
+<span id="cb3-172"><a href="#cb3-172" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
+<span id="cb3-173"><a href="#cb3-173" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">0</span>)] <span class="op">=</span> n_samples <span class="op">-</span> n_derived</span>
+<span id="cb3-174"><a href="#cb3-174" aria-hidden="true" tabindex="-1"></a>    state[indexer.lineages.props_to_index(descendants<span class="op">=</span><span class="dv">1</span>, is_derived<span class="op">=</span><span class="dv">1</span>)] <span class="op">=</span> n_derived</span>
+<span id="cb3-175"><a href="#cb3-175" aria-hidden="true" tabindex="-1"></a>    state[indexer.derived_freq] <span class="op">=</span> freqs[i]</span>
+<span id="cb3-176"><a href="#cb3-176" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> rates[i]:</span>
+<span id="cb3-177"><a href="#cb3-177" aria-hidden="true" tabindex="-1"></a>        ipv.append([state, rates[i]])</span>
+<span id="cb3-178"><a href="#cb3-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-179"><a href="#cb3-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-180"><a href="#cb3-180" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> plt.subplot(<span class="dv">111</span>)</span>
+<span id="cb3-181"><a href="#cb3-181" aria-hidden="true" tabindex="-1"></a>ax.scatter(freqs, rates)</span>
+<span id="cb3-182"><a href="#cb3-182" aria-hidden="true" tabindex="-1"></a>ax.vlines(freqs, ymin<span class="op">=</span><span class="dv">0</span>, ymax<span class="op">=</span>rates)</span>
+<span id="cb3-183"><a href="#cb3-183" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Beta IPV'</span>)</span>
+<span id="cb3-184"><a href="#cb3-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-185"><a href="#cb3-185" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> configure(parallel_elimination<span class="op">=</span><span class="va">False</span>, reward_compute_cache<span class="op">=</span><span class="va">False</span>, graph_cache<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-186"><a href="#cb3-186" aria-hidden="true" tabindex="-1"></a>    graph <span class="op">=</span> Graph(coalescent_with_derived, ipv<span class="op">=</span>ipv, indexer<span class="op">=</span>indexer, N<span class="op">=</span>N)</span>
+<span id="cb3-187"><a href="#cb3-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-188"><a href="#cb3-188" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(graph.expectation() <span class="op">*</span> <span class="dv">2</span><span class="op">/</span>N)</span>
+<span id="cb3-189"><a href="#cb3-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-190"><a href="#cb3-190" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> node_label(vertex):</span>
+<span id="cb3-191"><a href="#cb3-191" aria-hidden="true" tabindex="-1"></a>    n_anc, n_der <span class="op">=</span> <span class="dv">0</span>, <span class="dv">0</span></span>
+<span id="cb3-192"><a href="#cb3-192" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> vertex.state()</span>
+<span id="cb3-193"><a href="#cb3-193" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(indexer.lineages.state_length):</span>
+<span id="cb3-194"><a href="#cb3-194" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> indexer.lineages.i2p(i)</span>
+<span id="cb3-195"><a href="#cb3-195" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> p.is_derived:</span>
+<span id="cb3-196"><a href="#cb3-196" aria-hidden="true" tabindex="-1"></a>            n_der <span class="op">+=</span> state[i]</span>
+<span id="cb3-197"><a href="#cb3-197" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb3-198"><a href="#cb3-198" aria-hidden="true" tabindex="-1"></a>            n_anc <span class="op">+=</span> state[i]</span>
+<span id="cb3-199"><a href="#cb3-199" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'a:</span><span class="sc">{</span>n_anc<span class="sc">}</span><span class="ss">, d:</span><span class="sc">{</span>n_der<span class="sc">}</span><span class="ss">, f:</span><span class="sc">{</span>state[indexer.derived_freq]<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb3-200"><a href="#cb3-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-201"><a href="#cb3-201" aria-hidden="true" tabindex="-1"></a>graph.plot(ranksep<span class="op">=</span><span class="dv">5</span>, nodesep<span class="op">=</span><span class="dv">1</span>, <span class="co">#fontsize=15,</span></span>
+<span id="cb3-202"><a href="#cb3-202" aria-hidden="true" tabindex="-1"></a>    subgraphfun<span class="op">=</span><span class="kw">lambda</span> state: <span class="bu">str</span>(state[:<span class="op">-</span><span class="dv">1</span>]), label_fmt<span class="op">=</span>node_label,</span>
+<span id="cb3-203"><a href="#cb3-203" aria-hidden="true" tabindex="-1"></a>    <span class="co">#label_fmt=lambda v: f'{v.index()}',</span></span>
+<span id="cb3-204"><a href="#cb3-204" aria-hidden="true" tabindex="-1"></a>    color_by <span class="op">=</span> graph.expected_sojourn_time(), color_by_cmap<span class="op">=</span><span class="st">'rainbow'</span>, <span class="co"># color_by_lim=(0, None),</span></span>
+<span id="cb3-205"><a href="#cb3-205" aria-hidden="true" tabindex="-1"></a>    size<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">15</span>), <span class="co">#max_nodes=500,</span></span>
+<span id="cb3-206"><a href="#cb3-206" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>70.13339151697843</code></pre>
+<pre><code>14.999999999999996</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="161">
+<div class="cell-output cell-output-display" data-execution_count="401">
 <div>
 <figure class="figure">
 <p><a href="moran-coalescent-derived_files/figure-html/cell-4-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="moran-coalescent-derived_files/figure-html/cell-4-output-2.svg" class="img-fluid figure-img"></a></p>
