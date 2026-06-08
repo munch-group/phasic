@@ -14,11 +14,21 @@ os.environ.setdefault("JAX_ENABLE_X64", "1")
 import numpy as np
 import pytest
 import phasic
-from phasic import Graph, ExpStepSize
+from phasic import Graph, ExpStepSize, with_ipv, configure
 import jax.numpy as jnp
 
 TIMES = np.linspace(0.1, 4.0, 30)
 GRAN = 128
+
+
+# Module-level (hashable) callback so the graph_cache is active. Death chain
+# 3->2->1 with 2-coefficient edges but theta_dim=1 (decoupled).
+@with_ipv([3])
+def _chain_2coeff_gc(state, indexer=None):
+    n = int(state[0])
+    if n <= 1:
+        return []
+    return [[np.array([n - 1]), [float(n), 1.0]]]   # 2 coeffs, theta_dim 1
 
 
 def formula_graph():
@@ -93,6 +103,21 @@ def test_default_build_still_requires_full_theta():
     g.weight_formula = "c0*t0 + c1 + c2*t1"
     with pytest.raises(Exception):
         g.update_weights([0.5, 1.0])      # len 2 != param_length 3
+
+
+def test_graph_cache_preserves_theta_dim():
+    # The graph_cache save/load roundtrip must NOT drop theta_dim (from_serialized
+    # would otherwise lock param_length to the coefficient length -> a silent
+    # failure for decoupled weight_formula models built with graph_cache=True).
+    phasic.clear_caches()
+    configure(graph_cache=True)
+    try:
+        g1 = Graph(_chain_2coeff_gc, theta_dim=1)     # cache miss -> build + save
+        g2 = Graph(_chain_2coeff_gc, theta_dim=1)     # cache hit  -> load
+        assert g1.param_length() == 1                 # theta dim, not the 2-coeff length
+        assert g2.param_length() == 1                 # preserved through the cache
+    finally:
+        configure(graph_cache=False)
 
 
 def test_svgd_runs_with_theta_dim_lt_coeff_length():

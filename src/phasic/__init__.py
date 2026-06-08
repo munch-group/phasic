@@ -4862,9 +4862,19 @@ class Graph(_Graph):
         # Create empty graph
         graph = cls(state_length)
 
-        # DO NOT set param_length here - let the first parameterized edge set it
-        # Setting it early causes constant edges to require param_length coefficients
-        # The graph will auto-detect mode from the first non-IPV edge added
+        # Normally we let the first parameterized edge lock param_length, because
+        # setting it early would make non-IPV CONSTANT edges require param_length
+        # coefficients. But when the edges carry MORE coefficients than
+        # param_length (decoupled weight_formula models, theta_dim < coefficient
+        # length), letting the first edge lock it would silently raise param_length
+        # to the coefficient length and DROP the intended theta dimension. In that
+        # case pin it up front. A decoupled graph is necessarily fully
+        # parameterized (the C layer rejects mixing constant + parameterized
+        # non-IPV edges), so there are no non-IPV constant edges to conflict with.
+        _coeff_len = (param_edges.shape[1] - 2) if (
+            param_edges.ndim == 2 and param_edges.shape[0] > 0) else param_length
+        if param_length > 0 and _coeff_len > param_length:
+            graph.set_param_length(param_length)
 
         start = graph.starting_vertex()
         start_vertex_c_idx = start.index()  # Get C index of starting vertex
@@ -10525,6 +10535,26 @@ extern "C" {{
 
         # get param_length for extracting parameterized edge coefficients
         param_length = self.param_length()
+        # Base edges may carry MORE coefficients than param_length (the theta
+        # dimension) when the rate depends on per-edge data beyond the optimized
+        # parameters (weight_formula). Preserve the FULL coefficient vector and
+        # place the mutation slot AFTER it; the joint graph's theta dimension is
+        # param_length + 1 (base params + the mutation rate). For the common case
+        # (coefficient length == param_length) all of this is a no-op, so existing
+        # joint graphs are bit-identical.
+        # Max coefficient length over all parameterized edges, floored at
+        # param_length (IPV/starting edges may carry fewer coefficients, so a
+        # plain "first edge" probe can undercount; the dynamics edges define the
+        # true length and are >= param_length).
+        base_coeff_length = param_length
+        for _bi in range(self.vertices_length()):
+            for _be in self.vertex_at(_bi).parameterized_edges():
+                _cl = _be.coefficients_length()
+                if _cl > base_coeff_length:
+                    base_coeff_length = _cl
+        # Pin the joint theta dimension to param_length + 1 BEFORE adding edges so
+        # it doesn't lock to the (possibly longer) coefficient length.
+        joint_graph.set_param_length(param_length + 1)
 
         # copy initial (extended) states to new graph
         for edge in base_starting_vertex.parameterized_edges():
@@ -10573,10 +10603,11 @@ extern "C" {{
                     child_state
                     )
 
-                # get the edge state (ensuring it is param_length)
-                coeffs = list(edge.edge_state(param_length))
+                # get the FULL edge coefficient vector (length base_coeff_length,
+                # which may exceed the theta dimension param_length)
+                coeffs = list(edge.edge_state(base_coeff_length))
 
-                # Pad with 0 for mutation rate slot
+                # Pad with 0 for mutation rate slot (at index base_coeff_length)
                 coeffs.append(0)
 
                 # add edge to the child vertex
@@ -10605,7 +10636,7 @@ extern "C" {{
                     if not self.find_vertex(child_state[state_indices]).edges():
                         continue
                     child_vertex = joint_graph.find_or_create_vertex(child_state)
-                    vertex.add_edge(child_vertex, np.append(np.zeros(self.param_length()), rate))
+                    vertex.add_edge(child_vertex, np.append(np.zeros(base_coeff_length), rate))
 
             index = index + 1
 
@@ -10614,13 +10645,13 @@ extern "C" {{
         # create trash vertices
         trash_vertex = joint_graph.find_or_create_vertex(np.repeat(0, state_vector_length))
         trash_loop_vertex = joint_graph.create_vertex(np.repeat(0, state_vector_length))
-        trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(self.param_length()), 1.0))
-        trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(self.param_length()), 1.0))
+        trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(base_coeff_length), 1.0))
+        trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), 1.0))
 
         # connect edges to first trash state
         for i, rate in trash_rates.items():
             if rate > 0:
-                joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(self.param_length()), rate))
+                joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), rate))
 
 
         if reward_only is not None:
@@ -10661,7 +10692,7 @@ extern "C" {{
                 for i in t_vertex_set:
                     joint_graph.vertex_at(i).add_edge(
                         t_set_abs,
-                        np.append(np.zeros(self.param_length()), 1.0)
+                        np.append(np.zeros(base_coeff_length), 1.0)
                         )
                     t_vertex_indices.remove(i)
                 t_vertex_indices.append(t_set_abs.index())
@@ -10672,7 +10703,7 @@ extern "C" {{
         new_absorbing = joint_graph.create_vertex(np.repeat(0, state_vector_length))
 
         for i in t_vertex_indices:
-            joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(self.param_length()), 1.0))
+            joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(base_coeff_length), 1.0))
 
         # set discrete flag for update_weights to also normalize and for
         # expected_sojourn_time to call its discrete version
@@ -10884,7 +10915,7 @@ extern "C" {{
     #                 if not self.find_vertex(child_state[state_indices]).edges():
     #                     continue
     #                 child_vertex = joint_graph.find_or_create_vertex(child_state)
-    #                 vertex.add_edge(child_vertex, np.append(np.zeros(self.param_length()), rate))
+    #                 vertex.add_edge(child_vertex, np.append(np.zeros(base_coeff_length), rate))
                                     
     #         index = index + 1 
 
@@ -10899,13 +10930,13 @@ extern "C" {{
     #     # create trash vertices
     #     trash_vertex = joint_graph.find_or_create_vertex(np.repeat(0, state_vector_length))
     #     trash_loop_vertex = joint_graph.create_vertex(np.repeat(0, state_vector_length))
-    #     trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(self.param_length()), 1.0))
-    #     trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(self.param_length()), 1.0))
+    #     trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(base_coeff_length), 1.0))
+    #     trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), 1.0))
 
     #     # connect edges to first trash state
     #     for i, rate in trash_rates.items():
     #         if rate > 0:
-    #             joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(self.param_length()), rate))
+    #             joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), rate))
 
 
     #     if reward_only is not None:
@@ -10946,7 +10977,7 @@ extern "C" {{
     #             for i in t_vertex_set:
     #                 joint_graph.vertex_at(i).add_edge(
     #                     t_set_abs, 
-    #                     np.append(np.zeros(self.param_length()), 1.0)
+    #                     np.append(np.zeros(base_coeff_length), 1.0)
     #                     )
     #                 t_vertex_indices.remove(i)
     #             t_vertex_indices.append(t_set_abs.index())
@@ -10957,7 +10988,7 @@ extern "C" {{
     #     new_absorbing = joint_graph.create_vertex(np.repeat(0, state_vector_length))
         
     #     for i in t_vertex_indices:
-    #         joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(self.param_length()), 1.0))
+    #         joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(base_coeff_length), 1.0))
 
     #     # set discrete flag for update_weights to also normalize and for
     #     # expected_sojourn_time to call its discrete version
@@ -11110,7 +11141,10 @@ extern "C" {{
                 to_index = e.to().index()
                 if to_index in trash_old_indices:
                     to_index = abs_old_index
-                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+                # Copy the FULL coefficient vector (may exceed param_length when
+                # theta_dim < coefficient length, e.g. weight_formula on the
+                # joint graph); the new graph keeps param_length = self.param_length().
+                nv.add_edge(vmap[to_index], list(e.edge_state(e.coefficients_length())))
 
         # IPV edges: one scalar starting-vertex edge per non-aux non-trash
         # non-absorbing vertex that exists in the new graph (i.e. all the
@@ -11267,7 +11301,10 @@ extern "C" {{
                 to_index = e.to().index()
                 if to_index in trash_set:
                     to_index = abs_old_index
-                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+                # Copy the FULL coefficient vector (may exceed param_length when
+                # theta_dim < coefficient length, e.g. weight_formula on the
+                # joint graph); the new graph keeps param_length = self.param_length().
+                nv.add_edge(vmap[to_index], list(e.edge_state(e.coefficients_length())))
 
         # Full IPV edges: one weight-0 starting-vertex edge per non-trash,
         # non-absorbing interior vertex, sorted by new-graph index (stable
