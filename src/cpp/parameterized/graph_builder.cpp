@@ -125,8 +125,13 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
                 edge.from_idx = edge_arr[0].get<int>();
                 edge.to_idx = edge_arr[1].get<int>();
 
-                edge.coefficients.reserve(param_length_);
-                for (int i = 2; i < 2 + param_length_; i++) {
+                // Read the FULL coefficient row, which may be LONGER than
+                // param_length_ when theta_dim < coefficient length (e.g. a
+                // weight_formula referencing per-edge data beyond the optimized
+                // parameters). The tape VM bounds-checks c-indices against this
+                // length; theta length stays param_length_ (the theta dim).
+                edge.coefficients.reserve(edge_arr.size() - 2);
+                for (int i = 2; i < static_cast<int>(edge_arr.size()); i++) {
                     edge.coefficients.push_back(edge_arr[i].get<double>());
                 }
                 param_edges_.push_back(edge);
@@ -144,8 +149,9 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
                 edge.from_idx = -1;  // Starting vertex
                 edge.to_idx = edge_arr[0].get<int>();
 
-                edge.coefficients.reserve(param_length_);
-                for (int i = 1; i < 1 + param_length_; i++) {
+                // Read the FULL coefficient row (see param_edges_ note above).
+                edge.coefficients.reserve(edge_arr.size() - 1);
+                for (int i = 1; i < static_cast<int>(edge_arr.size()); i++) {
                     edge.coefficients.push_back(edge_arr[i].get<double>());
                 }
                 start_param_edges_.push_back(edge);
@@ -174,6 +180,16 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
 
     // Create graph with proper state dimension
     Graph g(state_length_);
+
+    // Pin param_length (= theta dimension) up front so edges whose coefficient
+    // vectors are LONGER than theta_dim (weight_formula with per-edge data
+    // beyond the optimized parameters) are accepted, and the graph's theta
+    // length stays param_length_ instead of locking to the first parameterized
+    // edge's coefficient length. When param_length_ == coefficient length (the
+    // common case) this is equivalent to that implicit lock.
+    if (param_length_ > 0) {
+        g.set_param_length(static_cast<size_t>(param_length_));
+    }
 
     // Inherit the elimination-ordering flag from the serialized graph so
     // ptd_precompute_reward_compute_graph picks the dynamic min-degree
