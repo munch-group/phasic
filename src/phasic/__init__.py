@@ -620,6 +620,39 @@ def _propagate_weight_formula(src: 'Graph', dst: 'Graph') -> None:
                              int(tape['n_coeff']))
 
 
+def _fixed_mask_from_fixed(fixed, theta_dim):
+    """Build a ``(theta_dim,)`` 0/1 mask marking fixed parameters, or ``None``.
+
+    Mirrors the joint_index path: accepts ``fixed`` as a list of
+    ``(index, value)`` tuples or an already-built mask array. Returns ``None``
+    when ``fixed`` is unset or ``theta_dim`` is unknown — in which case the model
+    builders skip nothing (unchanged behavior).
+    """
+    if fixed is None or theta_dim is None:
+        return None
+    import jax.numpy as jnp
+    if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+        m = jnp.zeros(theta_dim)
+        for idx, _val in fixed:
+            m = m.at[idx].set(1)
+        return m
+    return jnp.array(fixed)
+
+
+def _fixed_indices_set_from_mask(fixed_mask):
+    """Python set of fixed-parameter indices from a 0/1 mask (empty if ``None``).
+
+    Used by the non-daisy model builders' finite-difference VJPs to SKIP fixed
+    dimensions (their gradient is 0 and was discarded by SVGD anyway), mirroring
+    the daisy ``_autodiff_bwd`` and ``pmf_from_graph_joint_index`` paths. Skipping
+    is value-preserving for the learnable dimensions.
+    """
+    if fixed_mask is None:
+        return set()
+    m = np.asarray(fixed_mask)
+    return set(int(i) for i in np.where(m == 1)[0])
+
+
 def _apply_weight_callback(serialized: dict, theta: np.ndarray, callback: Callable) -> dict:
     """Apply a weight callback to produce a non-parameterized serialized graph.
 
@@ -7116,6 +7149,12 @@ extern "C" {{
             if discrete is None:
                 discrete = self.is_discrete
 
+            # Build the fixed-parameter mask once (theta_dim is resolved here)
+            # so the non-daisy model builders can skip finite-difference
+            # perturbations of fixed dims (joint_index/daisy already do this).
+            # None ⇒ no skip (unchanged behavior).
+            fixed_mask_for_model = _fixed_mask_from_fixed(fixed, theta_dim)
+
             # Default prior: DataPrior with sd=5 (wide, data-informed).
             # Skip when epoch_starts is given — the daisy-chain branch
             # builds its own broadcast prior with the right shape.
@@ -7255,19 +7294,20 @@ extern "C" {{
                     # Use multivariate model for 2D rewards
                     model = Graph.pmf_and_moments_from_graph_multivariate(
                         self, nr_moments=nr_moments, discrete=discrete,
-                        use_ffi=False, theta_dim=theta_dim
+                        use_ffi=False, theta_dim=theta_dim,
+                        fixed_mask=fixed_mask_for_model,
                     )
                 else:
                     # Use standard model for 1D rewards
                     model = Graph.pmf_and_moments_from_graph(
                         self, nr_moments=nr_moments, discrete=discrete,
-                        theta_dim=theta_dim
+                        theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
                     )
             else:
                 # No rewards - use standard model
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
-                    theta_dim=theta_dim
+                    theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
                 )
 
             # Zero-inflated likelihood wiring: when the rewards validator
@@ -7924,7 +7964,8 @@ extern "C" {{
     @classmethod
     def pmf_and_moments_from_graph(cls, graph: Graph, nr_moments: int = 2,
                                    discrete: bool = False, use_ffi: bool = False,
-                                   theta_dim: int | None = None) -> Callable:
+                                   theta_dim: int | None = None,
+                                   fixed_mask: Any = None) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -8015,6 +8056,11 @@ extern "C" {{
                 "Graph must have parameterized edges. "
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
+
+        # Fixed-parameter indices whose finite-difference perturbation can be
+        # skipped (their gradient is 0 and SVGD discards it). Threaded from
+        # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
+        _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
 
         # Callback mode: Python-level weight computation
         if serialized.get('weight_mode') == 'callback':
@@ -8149,6 +8195,9 @@ extern "C" {{
                 min_theta = 1e-9
                 grads = []
                 for i in range(n_params):
+                    if i in _fixed_dims:
+                        grads.append(0.0)
+                        continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].set(
                         jnp.maximum(theta[i] - eps, min_theta)
@@ -8393,6 +8442,9 @@ extern "C" {{
                 min_theta = 1e-9
                 grads = []
                 for i in range(n_params):
+                    if i in _fixed_dims:
+                        grads.append(0.0)
+                        continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].set(
                         jnp.maximum(theta[i] - eps, min_theta)
@@ -8445,6 +8497,12 @@ extern "C" {{
             min_theta = 1e-9
             theta_bar = []
             for i in range(n_params):
+                # Skip fixed parameters: their gradient is 0 and SVGD discards
+                # it (mirrors the daisy / joint_index paths). Value-preserving
+                # for learnable dims; avoids 2 forward passes per fixed dim.
+                if i in _fixed_dims:
+                    theta_bar.append(0.0)
+                    continue
                 theta_plus = theta.at[i].add(eps)
                 theta_minus = theta.at[i].set(jnp.maximum(theta[i] - eps, min_theta))
                 actual_diff = theta_plus[i] - theta_minus[i]
@@ -8893,7 +8951,8 @@ extern "C" {{
     @classmethod
     def pmf_and_moments_from_graph_multivariate(cls, graph: Graph, nr_moments: int = 2,
                                                 discrete: bool = False, use_ffi: bool = False,
-                                                theta_dim: int | None = None) -> Callable:
+                                                theta_dim: int | None = None,
+                                                fixed_mask: Any = None) -> Callable:
         """
         Create a multivariate phase-type model that handles 2D observations and rewards.
 
@@ -8981,10 +9040,10 @@ extern "C" {{
         import jax
         import jax.numpy as jnp
 
-        # Get the 1D model
+        # Get the 1D model (forward fixed_mask so its FD VJP skips fixed dims)
         model_1d = cls.pmf_and_moments_from_graph(
             graph, nr_moments=nr_moments, discrete=discrete,
-            use_ffi=use_ffi, theta_dim=theta_dim
+            use_ffi=use_ffi, theta_dim=theta_dim, fixed_mask=fixed_mask
         )
 
         def model_multivariate(theta, times, rewards=None):
@@ -9105,6 +9164,7 @@ extern "C" {{
         color_by: Sequence[float] | None = None,
         color_by_cmap: str = 'viridis',
         color_by_lim: Tuple[float] | None = None,
+        color_by_alpha: float | None = 1.0,
         subgraphfun: Callable[..., str] | None = None,
         by_state: Callable[..., str] | None = None,
         by_index: Callable[[int], str] | None = None,
@@ -9141,6 +9201,8 @@ extern "C" {{
         color_by_lim: Tuple[float] | None
             Color map min, max limits for use with color_by. Default is
             min and max of values given by color_by.
+        color_by_alpha: float | None
+            Alpha value for node fill color with color_by.
         subgraphfun : Callable[..., str] | None
             Deprecated. Use ``by_state`` instead. Callback function defining
             subgraph clusters by state.
@@ -9345,6 +9407,7 @@ extern "C" {{
             aux_fillcolor = '#3e3e3e'
             # bgcolor = '#1F1F1F'
             bgcolor = bg_color
+            fontcolor = 'black'
             subgraph_label_fontcolor = '#e6e6e6'
             subgraph_bgcolor='#2e2e2e'
             subgraph_edgecolor='#e6e6e6'
@@ -9362,6 +9425,7 @@ extern "C" {{
             aux_fillcolor='#bbbbbb'
             # bgcolor='transparent'
             bgcolor=bg_color
+            fontcolor = 'black'
             subgraph_label_fontcolor = 'black'
             # subgraph_bgcolor='white'
             subgraph_bgcolor=bg_color
@@ -9377,7 +9441,7 @@ extern "C" {{
                 vmin = color_by_lim[0]
             if color_by_lim and color_by_lim[1] is not None:
                 vmax = color_by_lim[1]
-            node_fill_colors = _values_to_hex(color_by, color_by_cmap, vmin=vmin, vmax=vmax, alpha=0.5)
+            node_fill_colors = _values_to_hex(color_by, color_by_cmap, vmin=vmin, vmax=vmax, alpha=color_by_alpha)
         
         if graph.vertices_length() > max_nodes:
             print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
@@ -9478,12 +9542,21 @@ extern "C" {{
             else:
                 if node_fill_colors:
                     node_fill = node_fill_colors[i]
+                    fontcolor = node_attr.get('fontcolor', fontcolor)
+                    # luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(node_fill))[2]
+                    try:
+                        import colorsys
+                        lightness = colorsys.rgb_to_hls(*matplotlib.colors.to_rgb(node_fill))[1]
+                        _font_color = 'white' if lightness < 0.5 else fontcolor
+                    except ImportError:
+                        _font_color = fontcolor
                 else:
                     node_fill = node_attr.get('fillcolor', node_fillcolor)
+                    _font_color = node_attr.get('fontcolor', fontcolor)
                 dot.node(str(vertex.index()), label,
                          **dict(_node_attr, 
                                 edge_color=node_attr.get('edge_color', edge_color), 
-                                fillcolor=node_fill
+                                fillcolor=node_fill, fontcolor=_font_color
                                 ),                         
                         # style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor
                         )
