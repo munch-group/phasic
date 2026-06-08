@@ -166,6 +166,12 @@ enum ptd_edge_mode {
     PTD_EDGE_MODE_PARAMETERIZED = 2   // All non-IPV edges are parameterized (array syntax)
 };
 
+/* Opaque per-edge weight formula tape (weight_mode='formula'). A flat
+ * stack-machine bytecode that computes weight = f(theta, edge coefficients)
+ * for an arbitrary closed-form formula, evaluated in C with no Python. See
+ * ptd_weight_tape_* below and src/phasic/weight_formula.py for the compiler. */
+struct ptd_weight_tape;
+
 struct ptd_graph {
     size_t vertices_length;
     struct ptd_vertex **vertices;
@@ -222,6 +228,15 @@ struct ptd_graph {
      * CRITICAL_SECTION on Windows) — see PTD_MUTEX_* macros above. */
     ptd_mutex_t compute_graph_lock;
     bool compute_graph_lock_initialized;
+
+    /* Optional per-edge weight formula tape (weight_mode='formula').
+     * NULL unless a formula was compiled and installed via
+     * ptd_graph_set_weight_tape. When non-NULL, ptd_graph_update_weights
+     * fills each non-IPV edge weight by running the tape over
+     * (theta, edge->coefficients) instead of the linear/log inner product.
+     * Owned by the graph; freed by ptd_graph_destroy. Theta-independent
+     * structure, so it does not affect the symbolic elimination cache. */
+    struct ptd_weight_tape *weight_tape;
 };
 
 struct ptd_edge {
@@ -289,6 +304,52 @@ void ptd_graph_update_weights(
         double *params,
         size_t params_length,
         bool use_log
+);
+
+/* ---- Per-edge weight formula tape (weight_mode='formula') ----------------
+ *
+ * A formula string (compiled in Python by src/phasic/weight_formula.py into
+ * a flat bytecode tape) is evaluated per edge in C to fill edge->weight from
+ * (theta, edge coefficients). This keeps non-inner-product weights on the
+ * fast C/FFI path that parameterises the recorded elimination trace, instead
+ * of the slow Python weight-callback. Opcodes mirror weight_formula.OPCODES.
+ */
+
+/* Allocate a tape, copying ops/consts. Returns NULL on allocation failure. */
+struct ptd_weight_tape *ptd_weight_tape_create(
+        const int *ops, size_t ops_length,
+        const double *consts, size_t consts_length,
+        size_t stack_depth, size_t n_theta, size_t n_coeff
+);
+
+void ptd_weight_tape_destroy(struct ptd_weight_tape *tape);
+
+/* Install a tape on the graph (takes ownership; frees any prior tape).
+ * Pass NULL to clear. */
+void ptd_graph_set_weight_tape(
+        struct ptd_graph *graph, struct ptd_weight_tape *tape
+);
+
+/* Evaluate a tape for one edge into *out_weight. Returns 0 on success, or
+ * non-zero (with ptd_err set) on a structural error (bad opcode, stack
+ * under/overflow, or a theta/coeff index out of range). Does NOT check the
+ * result's finiteness/sign — the caller does, with edge context. */
+int ptd_weight_tape_eval(
+        const struct ptd_weight_tape *tape,
+        const double *theta, size_t theta_len,
+        const double *coeff, size_t coeff_len,
+        double *out_weight
+);
+
+/* Same evaluation over raw arrays (no tape struct), so the C++ GraphBuilder
+ * can evaluate build-time/IPV weights through the single shared VM. */
+int ptd_weight_tape_eval_arrays(
+        const int *ops, size_t ops_length,
+        const double *consts, size_t consts_length,
+        size_t stack_depth,
+        const double *theta, size_t theta_len,
+        const double *coeff, size_t coeff_len,
+        double *out_weight
 );
 
 /**

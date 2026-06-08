@@ -595,6 +595,31 @@ def _serialize_graph_data(serialized: dict) -> dict:
     }
 
 
+def _propagate_weight_formula(src: 'Graph', dst: 'Graph') -> None:
+    """Carry a ``weight_mode='formula'`` (formula string + compiled tape) from a
+    source graph onto a derived graph, and install the tape on the derived live
+    graph.
+
+    Used by the joint-graph constructors (``joint_stop_prob_graph`` /
+    ``joint_sojourn_graph``) so a formula set on a joint-prob graph reaches the
+    daisy-chain / sojourn FFI path — the only way to use non-inner-product
+    weights there (Python callbacks are rejected by validator rule R21).
+
+    Other weight modes are intentionally left untouched, so the existing
+    behavior of these derived graphs is byte-for-byte preserved.
+    """
+    if getattr(src, '_weight_mode', 'linear') != 'formula':
+        return
+    tape = getattr(src, '_weight_formula_tape', None)
+    dst._weight_mode = 'formula'
+    dst._weight_formula = getattr(src, '_weight_formula', None)
+    dst._weight_formula_tape = tape
+    if tape is not None:
+        dst._set_weight_tape(list(tape['ops']), list(tape['consts']),
+                             int(tape['stack_depth']), int(tape['n_theta']),
+                             int(tape['n_coeff']))
+
+
 def _apply_weight_callback(serialized: dict, theta: np.ndarray, callback: Callable) -> dict:
     """Apply a weight callback to produce a non-parameterized serialized graph.
 
@@ -1874,6 +1899,15 @@ class Graph(_Graph):
                     # cache-loaded instance raises AttributeError.
                     self._weight_mode = getattr(cached_graph, '_weight_mode', 'linear')
                     self._weight_callback = getattr(cached_graph, '_weight_callback', None)
+                    self._weight_formula = getattr(cached_graph, '_weight_formula', None)
+                    self._weight_formula_tape = getattr(cached_graph, '_weight_formula_tape', None)
+                    if self._weight_mode == 'formula' and self._weight_formula_tape is not None:
+                        # Re-install the tape on this (freshly loaded) live graph
+                        # so direct graph.pdf()/update_weights honor the formula.
+                        _t = self._weight_formula_tape
+                        self._set_weight_tape(list(_t['ops']), list(_t['consts']),
+                                              int(_t['stack_depth']),
+                                              int(_t['n_theta']), int(_t['n_coeff']))
                     self._last_callback_vertices_length = self.vertices_length()
                     logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
 
@@ -1936,8 +1970,10 @@ class Graph(_Graph):
         self._trace = None  # Cached EliminationTrace
         self._trace_dirty = True  # True = trace needs (re)computation
         self._last_theta = None  # Cached theta from update_weights()
-        self._weight_mode = 'linear'  # Weight computation mode: 'linear', 'log', or 'callback'
+        self._weight_mode = 'linear'  # Weight computation mode: 'linear', 'log', 'callback', or 'formula'
         self._weight_callback = None  # Custom weight callback for 'callback' mode
+        self._weight_formula = None  # Formula string for 'formula' mode
+        self._weight_formula_tape = None  # Compiled tape dict for 'formula' mode
 
         self._last_callback_vertices_length = self.vertices_length()  # Track vertices length at last callback call for extend()
 
@@ -2143,19 +2179,26 @@ class Graph(_Graph):
     def weight_mode(self) -> str:
         """Weight computation mode for parameterized edges.
 
-        One of ``'linear'`` (default), ``'log'``, or ``'callback'``.
+        One of ``'linear'`` (default), ``'log'``, ``'callback'``, or
+        ``'formula'``.
 
         - ``'linear'``: weight = Σ c_k θ_k
         - ``'log'``: weight = Π(c_k θ_k) (computed in log-space for stability)
-        - ``'callback'``: weight = callback(theta, coefficients)
+        - ``'callback'``: weight = callback(theta, coefficients) (Python; slow)
+        - ``'formula'``: weight = a compiled formula string evaluated per edge
+          in C (see ``weight_formula``); fast like linear/log, stays on the
+          FFI/SVGD path.
+
+        Set ``'formula'`` indirectly by assigning ``graph.weight_formula``.
         """
         return self._weight_mode
 
     @weight_mode.setter
     def weight_mode(self, mode: str) -> None:
-        if mode not in ('linear', 'log', 'callback'):
+        if mode not in ('linear', 'log', 'callback', 'formula'):
             raise ValueError(
-                f"weight_mode must be 'linear', 'log', or 'callback', got {mode!r}"
+                "weight_mode must be 'linear', 'log', 'callback', or "
+                f"'formula', got {mode!r}"
             )
         self._weight_mode = mode
 
@@ -2178,6 +2221,57 @@ class Graph(_Graph):
             self._weight_mode = 'callback'
         elif self._weight_mode == 'callback':
             self._weight_mode = 'linear'
+
+    @property
+    def weight_formula(self) -> str | None:
+        """Per-edge weight formula string, evaluated in C (``weight_mode='formula'``).
+
+        Assigning a formula string compiles it once into a bytecode tape and
+        sets ``weight_mode = 'formula'``. The formula references the parameter
+        vector as ``t0, t1, …`` and the *current edge's* coefficients as
+        ``c0, c1, …`` and may use ``+ - * / **``, ``exp log sqrt logistic pow``,
+        comparisons ``== != < > <= >=``, ``delta`` (Kronecker), ``and or not``,
+        and ``select(cond, a, b)``. Example::
+
+            graph.weight_formula = "exp(c0*t0 + c1*t1) + c2"
+
+        Unlike ``weight_callback`` (Python; slow and unsupported on the
+        daisy-chain path), a formula is computed in C on every theta and stays
+        on the OpenMP-parallel FFI/SVGD path.
+
+        Conditions of comparisons/``delta``/``and``/``or``/``not`` and the
+        condition of ``select`` must be theta-independent (they may use ``c<j>``
+        and constants but not ``t<i>``); a theta-dependent condition raises at
+        assignment (use ``logistic(...)`` for smooth theta-gating).
+
+        Assigning ``None`` clears the formula and reverts ``weight_mode`` to
+        ``'linear'``.
+        """
+        return self._weight_formula
+
+    @weight_formula.setter
+    def weight_formula(self, formula: str | None) -> None:
+        if formula is None:
+            self._weight_formula = None
+            self._weight_formula_tape = None
+            try:
+                self._clear_weight_tape()
+            except Exception:
+                pass
+            if self._weight_mode == 'formula':
+                self._weight_mode = 'linear'
+            return
+        from .weight_formula import compile_formula
+        tape = compile_formula(formula)   # raises WeightFormulaError on bad input
+        self._weight_formula = formula
+        self._weight_formula_tape = tape
+        self._weight_mode = 'formula'
+        # Install on the live graph so the direct graph.pdf()/update_weights
+        # paths also honor the formula (the FFI/SVGD path receives the tape via
+        # serialize()). No silent fallback to linear on the direct path.
+        self._set_weight_tape(list(tape['ops']), list(tape['consts']),
+                              int(tape['stack_depth']),
+                              int(tape['n_theta']), int(tape['n_coeff']))
 
     def update_weights(self, theta: ArrayLike, callback: Callable | None = None, log: bool = False) -> None:
         """Update parameterized edge weights with given parameters.
@@ -4431,7 +4525,7 @@ class Graph(_Graph):
 
         start_edges = np.array(start_edges_list, dtype=np.float64) if start_edges_list else np.empty((0, 2), dtype=np.float64)
 
-        return {
+        _serialized = {
             'states': states,
             'vertex_indices': vertex_indices,
             'edges': edges,
@@ -4449,6 +4543,17 @@ class Graph(_Graph):
             # graph (only the PHASIC_DYN_ORDERING env var did).
             'dyn_ordering': bool(self.dyn_ordering),
         }
+        # Carry the compiled weight tape ONLY in formula mode, so the FFI
+        # GraphBuilder that rebuilds this graph evaluates the formula in C.
+        # Other modes' serialized output is byte-for-byte unchanged.
+        if self._weight_mode == 'formula':
+            tape = getattr(self, '_weight_formula_tape', None)
+            if tape is None:
+                raise ValueError(
+                    "weight_mode='formula' but no weight_formula is set; "
+                    "assign graph.weight_formula = '<expr>' first.")
+            _serialized['weight_formula_tape'] = tape
+        return _serialized
 
     @classmethod
     def from_serialized(cls, data: dict[str, Any]) -> Graph:
@@ -10914,6 +11019,9 @@ extern "C" {{
         # Forward the indexer like joint_prob_graph does.
         if hasattr(self, '_indexer'):
             new._indexer = self._indexer
+        # Carry a weight formula (if any) so the daisy-chain FFI evaluates it
+        # in C; other weight modes are left untouched.
+        _propagate_weight_formula(self, new)
         return new
 
 
@@ -11055,6 +11163,8 @@ extern "C" {{
         new.is_discrete = False
         if hasattr(self, '_indexer'):
             new._indexer = self._indexer
+        # Carry a weight formula (if any) so the sojourn FFI evaluates it in C.
+        _propagate_weight_formula(self, new)
         return new
 
 

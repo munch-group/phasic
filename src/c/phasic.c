@@ -2968,6 +2968,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
     graph->weight_version = 0;
+    graph->weight_tape = NULL;
 
     /* Initialise the per-graph compute-graph lock. The init can fail
      * (out of memory), in which case we leave the flag false; later
@@ -4534,6 +4535,11 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
         free(graph->current_params);
     }
 
+    if (graph->weight_tape != NULL) {
+        ptd_weight_tape_destroy(graph->weight_tape);
+        graph->weight_tape = NULL;
+    }
+
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
 #ifdef HAVE_MPFR
@@ -4929,6 +4935,225 @@ void ptd_graph_set_param_length(
 }
 
 
+/* ===========================================================================
+ * Per-edge weight formula tape (weight_mode='formula')
+ * ===========================================================================
+ *
+ * A flat stack-machine that computes weight = f(theta, edge coefficients) for
+ * an arbitrary closed-form formula compiled in Python (weight_formula.py).
+ * Opcodes MUST stay in lock-step with weight_formula.OPCODES. The tape is
+ * read-only at eval time, so it is safe under the FFI's OpenMP parallelism
+ * (each thread evaluates with its own theta/coeff and its own on-stack VM).
+ */
+enum ptd_wf_opcode {
+    PTD_WF_PUSH_THETA = 0, PTD_WF_PUSH_COEFF = 1, PTD_WF_PUSH_CONST = 2,
+    PTD_WF_ADD = 3, PTD_WF_SUB = 4, PTD_WF_MUL = 5, PTD_WF_DIV = 6,
+    PTD_WF_POW = 7, PTD_WF_NEG = 8,
+    PTD_WF_EXP = 9, PTD_WF_LOG = 10, PTD_WF_SQRT = 11, PTD_WF_LOGISTIC = 12,
+    PTD_WF_EQ = 13, PTD_WF_NE = 14, PTD_WF_LT = 15, PTD_WF_GT = 16,
+    PTD_WF_LE = 17, PTD_WF_GE = 18,
+    PTD_WF_AND = 19, PTD_WF_OR = 20, PTD_WF_NOT = 21, PTD_WF_SELECT = 22
+};
+
+struct ptd_weight_tape {
+    int *ops;
+    size_t ops_length;
+    double *consts;
+    size_t consts_length;
+    size_t stack_depth;
+    size_t n_theta;
+    size_t n_coeff;
+};
+
+#define PTD_WF_MAX_STACK 256
+
+/* Numerically stable logistic; mirrors weight_formula._logistic. */
+static double ptd_wf_logistic(double a) {
+    if (a >= 0.0) {
+        double z = exp(-a);
+        return 1.0 / (1.0 + z);
+    }
+    double z = exp(a);
+    return z / (1.0 + z);
+}
+
+int ptd_weight_tape_eval_arrays(
+        const int *ops, size_t ops_length,
+        const double *consts, size_t consts_length,
+        size_t stack_depth,
+        const double *theta, size_t theta_len,
+        const double *coeff, size_t coeff_len,
+        double *out_weight
+) {
+    double stack[PTD_WF_MAX_STACK];
+    size_t sp = 0;
+    size_t i = 0;
+
+    if (stack_depth > PTD_WF_MAX_STACK) {
+        snprintf((char *) ptd_err, sizeof(ptd_err),
+                 "weight_formula tape stack depth %zu exceeds limit %d",
+                 stack_depth, PTD_WF_MAX_STACK);
+        return 1;
+    }
+
+    /* Helper guards. NEED(k): require k operands; PUSH1(v): push with overflow
+     * guard. Both set ptd_err and 'goto fail' on violation. */
+#define WF_NEED(k) do { if (sp < (size_t)(k)) { \
+        snprintf((char *) ptd_err, sizeof(ptd_err), \
+            "weight_formula tape stack underflow"); return 1; } } while (0)
+#define WF_PUSH(v) do { if (sp >= PTD_WF_MAX_STACK) { \
+        snprintf((char *) ptd_err, sizeof(ptd_err), \
+            "weight_formula tape stack overflow"); return 1; } \
+        stack[sp++] = (v); } while (0)
+
+    while (i < ops_length) {
+        int op = ops[i++];
+        switch (op) {
+            case PTD_WF_PUSH_THETA: {
+                int idx = ops[i++];
+                if (idx < 0 || (size_t) idx >= theta_len) {
+                    snprintf((char *) ptd_err, sizeof(ptd_err),
+                        "weight_formula references t%d but only %zu parameters "
+                        "are available", idx, theta_len);
+                    return 1;
+                }
+                WF_PUSH(theta[idx]);
+                break;
+            }
+            case PTD_WF_PUSH_COEFF: {
+                int idx = ops[i++];
+                if (idx < 0 || (size_t) idx >= coeff_len) {
+                    snprintf((char *) ptd_err, sizeof(ptd_err),
+                        "weight_formula references c%d but the edge has only "
+                        "%zu coefficients", idx, coeff_len);
+                    return 1;
+                }
+                WF_PUSH(coeff[idx]);
+                break;
+            }
+            case PTD_WF_PUSH_CONST: {
+                int idx = ops[i++];
+                if (idx < 0 || (size_t) idx >= consts_length) {
+                    snprintf((char *) ptd_err, sizeof(ptd_err),
+                        "weight_formula const index %d out of range", idx);
+                    return 1;
+                }
+                WF_PUSH(consts[idx]);
+                break;
+            }
+            case PTD_WF_ADD: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a + b); break; }
+            case PTD_WF_SUB: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a - b); break; }
+            case PTD_WF_MUL: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a * b); break; }
+            case PTD_WF_DIV: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a / b); break; }
+            case PTD_WF_POW: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(pow(a, b)); break; }
+            case PTD_WF_NEG: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(-a); break; }
+            case PTD_WF_EXP: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(exp(a)); break; }
+            case PTD_WF_LOG: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(log(a)); break; }
+            case PTD_WF_SQRT: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(sqrt(a)); break; }
+            case PTD_WF_LOGISTIC: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(ptd_wf_logistic(a)); break; }
+            case PTD_WF_EQ: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a == b ? 1.0 : 0.0); break; }
+            case PTD_WF_NE: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a != b ? 1.0 : 0.0); break; }
+            case PTD_WF_LT: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a < b ? 1.0 : 0.0); break; }
+            case PTD_WF_GT: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a > b ? 1.0 : 0.0); break; }
+            case PTD_WF_LE: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a <= b ? 1.0 : 0.0); break; }
+            case PTD_WF_GE: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH(a >= b ? 1.0 : 0.0); break; }
+            case PTD_WF_AND: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH((a != 0.0 && b != 0.0) ? 1.0 : 0.0); break; }
+            case PTD_WF_OR: { WF_NEED(2); double b = stack[--sp], a = stack[--sp]; WF_PUSH((a != 0.0 || b != 0.0) ? 1.0 : 0.0); break; }
+            case PTD_WF_NOT: { WF_NEED(1); double a = stack[--sp]; WF_PUSH(a == 0.0 ? 1.0 : 0.0); break; }
+            case PTD_WF_SELECT: {
+                WF_NEED(3);
+                double b = stack[--sp], a = stack[--sp], c = stack[--sp];
+                WF_PUSH(c != 0.0 ? a : b);
+                break;
+            }
+            default:
+                snprintf((char *) ptd_err, sizeof(ptd_err),
+                         "weight_formula tape: unknown opcode %d", op);
+                return 1;
+        }
+    }
+
+#undef WF_NEED
+#undef WF_PUSH
+
+    if (sp != 1) {
+        snprintf((char *) ptd_err, sizeof(ptd_err),
+                 "weight_formula tape left %zu values on the stack (expected 1)",
+                 sp);
+        return 1;
+    }
+    *out_weight = stack[0];
+    return 0;
+}
+
+int ptd_weight_tape_eval(
+        const struct ptd_weight_tape *tape,
+        const double *theta, size_t theta_len,
+        const double *coeff, size_t coeff_len,
+        double *out_weight
+) {
+    return ptd_weight_tape_eval_arrays(
+            tape->ops, tape->ops_length, tape->consts, tape->consts_length,
+            tape->stack_depth, theta, theta_len, coeff, coeff_len, out_weight);
+}
+
+struct ptd_weight_tape *ptd_weight_tape_create(
+        const int *ops, size_t ops_length,
+        const double *consts, size_t consts_length,
+        size_t stack_depth, size_t n_theta, size_t n_coeff
+) {
+    struct ptd_weight_tape *t =
+            (struct ptd_weight_tape *) malloc(sizeof(*t));
+    if (t == NULL) {
+        return NULL;
+    }
+    t->ops = NULL;
+    t->consts = NULL;
+    t->ops_length = ops_length;
+    t->consts_length = consts_length;
+    t->stack_depth = stack_depth;
+    t->n_theta = n_theta;
+    t->n_coeff = n_coeff;
+
+    if (ops_length > 0) {
+        t->ops = (int *) malloc(ops_length * sizeof(int));
+        if (t->ops == NULL) {
+            free(t);
+            return NULL;
+        }
+        memcpy(t->ops, ops, ops_length * sizeof(int));
+    }
+    if (consts_length > 0) {
+        t->consts = (double *) malloc(consts_length * sizeof(double));
+        if (t->consts == NULL) {
+            free(t->ops);
+            free(t);
+            return NULL;
+        }
+        memcpy(t->consts, consts, consts_length * sizeof(double));
+    }
+    return t;
+}
+
+void ptd_weight_tape_destroy(struct ptd_weight_tape *tape) {
+    if (tape == NULL) {
+        return;
+    }
+    free(tape->ops);
+    free(tape->consts);
+    free(tape);
+}
+
+void ptd_graph_set_weight_tape(
+        struct ptd_graph *graph, struct ptd_weight_tape *tape
+) {
+    if (graph->weight_tape != NULL) {
+        ptd_weight_tape_destroy(graph->weight_tape);
+    }
+    graph->weight_tape = tape;
+}
+
+
 void ptd_graph_update_weights(
         struct ptd_graph *graph,
         double *params,
@@ -5036,6 +5261,39 @@ void ptd_graph_update_weights(
             // Skip edges with no coefficients (pure constant, like aux→parent edges)
             // These edges have hardcoded weights and should never be rescaled
             if (edge->coefficients_length == 0) {
+                continue;
+            }
+
+            // Formula mode: evaluate the compiled tape over (theta, edge
+            // coefficients) entirely in C. This bypasses the strict
+            // coefficient-length check below — the tape does its own index
+            // bounds-checking, like callback mode tolerates auxiliary
+            // coefficients of a different length than theta.
+            if (graph->weight_tape != NULL) {
+                double w;
+                if (ptd_weight_tape_eval(graph->weight_tape, theta, theta_len,
+                                         edge->coefficients,
+                                         edge->coefficients_length, &w) != 0) {
+                    if (need_free) {
+                        free(theta);
+                    }
+                    return;  // ptd_err set by eval
+                }
+                if (!isfinite(w) || w < 0.0) {
+                    snprintf((char *) ptd_err, sizeof(ptd_err),
+                        "weight_formula produced a %s edge weight (%g) at "
+                        "vertex %zu, edge %zu. Phase-type edge weights must be "
+                        "finite and non-negative; check the formula for log/sqrt "
+                        "of a non-positive value, division by zero, or pow with "
+                        "a negative base.",
+                        (isfinite(w) ? "negative" : "non-finite"), w,
+                        (size_t) i, (size_t) j);
+                    if (need_free) {
+                        free(theta);
+                    }
+                    return;
+                }
+                edge->weight = w;
                 continue;
             }
 

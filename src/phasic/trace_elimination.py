@@ -434,6 +434,17 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
 
     All operations are recorded in the trace for later replay.
     """
+    # No silent fallback: the trace records linear DOT operations from edge
+    # coefficients and cannot represent a weight_mode='formula' tape. Recording
+    # a trace from a formula graph would silently compute the linear inner
+    # product. Direct users to the FFI path, which evaluates the formula in C.
+    if getattr(graph, '_weight_mode', 'linear') == 'formula':
+        raise NotImplementedError(
+            "record_elimination_trace does not support weight_mode='formula' "
+            "(the trace would silently compute the linear inner product "
+            "instead of the formula). Use the FFI path -- Graph.svgd(...) or "
+            "Graph.pmf_from_graph(...) -- which evaluates the formula in C.")
+
     from .phasic_pybind import Graph as _Graph
 
     # Get graph structure

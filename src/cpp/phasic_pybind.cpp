@@ -1454,6 +1454,31 @@ str
     >>> g.update_weights([1.5, 2.0])  # Uses c1*1.5 + c2*2.0, ignores c3
       )delim")
 
+    .def("_set_weight_tape",
+      [](phasic::Graph& self, std::vector<int> ops, std::vector<double> consts,
+         size_t stack_depth, size_t n_theta, size_t n_coeff) {
+          // Install a compiled weight-formula tape on the live graph so the
+          // direct update_weights()/pdf() paths evaluate the formula in C.
+          // (Internal; driven by Graph.weight_formula in Python.)
+          struct ptd_weight_tape *tape = ptd_weight_tape_create(
+              ops.empty() ? nullptr : ops.data(), ops.size(),
+              consts.empty() ? nullptr : consts.data(), consts.size(),
+              stack_depth, n_theta, n_coeff);
+          if (tape == nullptr) {
+              throw std::runtime_error("failed to allocate weight_formula tape");
+          }
+          ptd_graph_set_weight_tape(self.c_graph(), tape);
+      },
+      py::arg("ops"), py::arg("consts"), py::arg("stack_depth"),
+      py::arg("n_theta"), py::arg("n_coeff"),
+      "Install a compiled weight-formula tape on the live graph (internal).")
+
+    .def("_clear_weight_tape",
+      [](phasic::Graph& self) {
+          ptd_graph_set_weight_tape(self.c_graph(), nullptr);
+      },
+      "Clear any installed weight-formula tape on the live graph (internal).")
+
     .def("update_weights",
       [](phasic::Graph& self, std::vector<double> params, bool log) {
           self.update_weights_parameterized(params, log);

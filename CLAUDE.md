@@ -57,7 +57,8 @@ A **continuous phase-type (PH) distribution** represents the time until absorpti
 - **Parameterized edges**: weight depends on `weight_mode`:
   - `'linear'` (default): weight = c₁θ₁ + c₂θ₂ + ... + cₙθₙ
   - `'log'`: weight = (c₁θ₁)(c₂θ₂)···(cₙθₙ) (multiplicative, computed in log-space)
-  - `'callback'`: weight = callback(θ, coefficients) (arbitrary Python function)
+  - `'callback'`: weight = callback(θ, coefficients) (arbitrary Python function; slow, and rejected on the daisy-chain path)
+  - `'formula'`: weight = a formula string compiled to a bytecode tape and evaluated **per edge in C** (fast like linear/log; the only way to use non-inner-product weights on the daisy-chain/SVGD fast path). Set via `graph.weight_formula`.
 - **Graph elimination** (Algorithm 3): Converts cyclic → acyclic via Gaussian elimination on graph
 - **Sparse graphs**: Only store actual transitions, not full n×n matrix
 
@@ -115,7 +116,7 @@ v0.add_edge(v1, [2.0, 0.5])
 
 ### Weight Modes
 
-Parameterized edges support three weight computation modes that flow through the full JAX/FFI/SVGD pipeline:
+Parameterized edges support four weight computation modes that flow through the full JAX/FFI/SVGD pipeline:
 
 ```python
 # Linear (default): weight = Σ c_k θ_k
@@ -131,9 +132,30 @@ def resistance_weight(theta, coeffs):
     return np.exp(-np.dot(coeffs, theta))
 
 g.weight_callback = resistance_weight  # Automatically sets weight_mode='callback'
+
+# Formula: weight = an expression evaluated PER EDGE IN C (fast, no Python in
+# the hot loop). t0,t1,... = theta; c0,c1,... = the edge's coefficients.
+g.weight_formula = "exp(c0*t0 + c1*t1) + c2"  # Automatically sets weight_mode='formula'
 ```
 
-All three modes work with `pmf_from_graph`, `pmf_and_moments_from_graph`, `graph.svgd()`, `jax.grad`, and `jax.vmap`. Log mode uses the C++ FFI path (fast, multi-core). Callback mode uses `jax.pure_callback` (sequential, Python overhead per evaluation).
+Linear/log/formula compute weights in C and stay on the OpenMP-parallel FFI path
+(`pmf_from_graph`, `pmf_and_moments_from_graph`, `graph.svgd()`, incl. the
+daisy-chain `epoch_starts=` path); gradients are finite-difference via the FFI's
+`custom_vjp`, so a formula needs no analytic Jacobian. Callback mode uses
+`jax.pure_callback` (sequential, Python overhead per evaluation) and is **rejected
+on the daisy-chain path** (R21) — use `weight_formula` there instead.
+
+**`weight_formula` language** (`src/phasic/weight_formula.py`): `+ - * / **`,
+`exp log sqrt logistic pow`, comparisons `== != < > <= >=`, `delta(a,b)`
+(Kronecker), `and(x,y) or(x,y) not(x)`, and `select(cond, a, b)` (branchless
+ternary). Comparison/`delta`/boolean conditions and `select`'s condition must be
+**theta-independent** (may use `c<j>`/constants but not `t<i>`); a theta-dependent
+condition raises at assignment (use `logistic(...)` for smooth theta-gating). The
+formula is compiled once to a JSON-native bytecode tape that rides `serialize()`
+into the C++ `GraphBuilder`; the C VM is in `ptd_weight_tape_eval` (`src/c/phasic.c`,
+consulted by `ptd_graph_update_weights`). `record_elimination_trace` rejects
+formula mode (it would silently compute the linear inner product) — use the FFI
+path. Trace path mirroring of formula weights is a deliberate non-goal for now.
 
 ### Computing PDF/PMF
 

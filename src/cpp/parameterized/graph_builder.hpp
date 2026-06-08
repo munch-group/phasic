@@ -268,7 +268,7 @@ public:
     std::vector<double> compute_moments_impl(Graph& g, int nr_moments, const std::vector<double>& rewards);
 
     /** Weight computation mode for parameterized edges. */
-    enum class WeightMode { LINEAR, LOG };
+    enum class WeightMode { LINEAR, LOG, FORMULA };
 
     /**
      * @brief Get or initialise this thread's persistent graph and refresh its weights.
@@ -304,6 +304,17 @@ private:
     int n_vertices_;        // Number of vertices (excluding starting vertex)
     WeightMode weight_mode_ = WeightMode::LINEAR;
     bool dyn_ordering_ = false;   // dynamic min-degree elimination ordering
+
+    // weight_mode_ == FORMULA: per-edge weight tape (parsed once from the
+    // 'weight_formula_tape' JSON). Evaluated in C via
+    // ptd_weight_tape_eval_arrays (compute_weight / IPV edges) and installed
+    // on the graph in build() so update_weights() runs it for every theta.
+    bool has_tape_ = false;
+    std::vector<int> tape_ops_;
+    std::vector<double> tape_consts_;
+    size_t tape_stack_depth_ = 0;
+    size_t tape_n_theta_ = 0;
+    size_t tape_n_coeff_ = 0;
 
     // Vertex states: (n_vertices, state_length)
     std::vector<std::vector<int>> states_;

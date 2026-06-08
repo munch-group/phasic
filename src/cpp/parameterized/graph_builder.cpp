@@ -30,9 +30,33 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
             std::string mode = j.at("weight_mode").get<std::string>();
             if (mode == "log") {
                 weight_mode_ = WeightMode::LOG;
+            } else if (mode == "formula") {
+                weight_mode_ = WeightMode::FORMULA;
             } else if (mode != "linear") {
                 throw std::invalid_argument("Unknown weight_mode: " + mode);
             }
+        }
+
+        // Formula mode: parse the compiled per-edge weight tape. Strict
+        // pairing (no silent fallback): 'formula' requires the tape, and the
+        // tape must not appear under any other mode.
+        if (weight_mode_ == WeightMode::FORMULA) {
+            if (!j.contains("weight_formula_tape")) {
+                throw std::invalid_argument(
+                    "weight_mode='formula' requires a 'weight_formula_tape' "
+                    "object in the serialized graph");
+            }
+            const auto& tj = j.at("weight_formula_tape");
+            tape_ops_ = tj.at("ops").get<std::vector<int>>();
+            tape_consts_ = tj.at("consts").get<std::vector<double>>();
+            tape_stack_depth_ = tj.at("stack_depth").get<size_t>();
+            tape_n_theta_ = tj.at("n_theta").get<size_t>();
+            tape_n_coeff_ = tj.at("n_coeff").get<size_t>();
+            has_tape_ = true;
+        } else if (j.contains("weight_formula_tape")) {
+            throw std::invalid_argument(
+                "'weight_formula_tape' present but weight_mode is not "
+                "'formula'");
         }
 
         // Elimination ordering flag (default false). Lets graph.dyn_ordering
@@ -285,6 +309,22 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
      * call update_weights anyway), but also the direct
      * ``builder->build()`` sites in graph_builder_ffi.cpp that do not
      * cache the graph and thus did not call update_weights. */
+    // Install the compiled weight tape on the C graph BEFORE update_weights,
+    // so update_weights (here, and on every later theta via the persistent-
+    // graph cache) fills each non-IPV edge weight by running the formula in C.
+    // Ownership transfers to the graph (freed by ptd_graph_destroy).
+    if (has_tape_) {
+        struct ptd_weight_tape* tape = ptd_weight_tape_create(
+            tape_ops_.data(), tape_ops_.size(),
+            tape_consts_.data(), tape_consts_.size(),
+            tape_stack_depth_, tape_n_theta_, tape_n_coeff_);
+        if (tape == nullptr) {
+            throw std::runtime_error(
+                "failed to allocate weight_formula tape");
+        }
+        ptd_graph_set_weight_tape(g.c_graph(), tape);
+    }
+
     if (!param_edges_.empty()) {
         std::vector<double> theta_vec(theta, theta + theta_len);
         bool use_log = (weight_mode_ == WeightMode::LOG);
@@ -367,6 +407,28 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
 }
 
 double GraphBuilder::compute_weight(const std::vector<double>& coefficients, const double* theta) const {
+    if (weight_mode_ == WeightMode::FORMULA) {
+        // Build-time / IPV edge weights via the same C tape VM that
+        // update_weights uses. (Non-IPV edge values are recomputed by
+        // update_weights right after build(); IPV edges keep this value.)
+        double w;
+        if (ptd_weight_tape_eval_arrays(
+                tape_ops_.data(), tape_ops_.size(),
+                tape_consts_.data(), tape_consts_.size(),
+                tape_stack_depth_,
+                theta, static_cast<size_t>(param_length_),
+                coefficients.data(), coefficients.size(), &w) != 0) {
+            std::string msg = std::string("weight_formula evaluation failed: ")
+                            + reinterpret_cast<const char*>(ptd_err);
+            ptd_err[0] = '\0';   // clear so the next C entry sees no stale error
+            throw std::invalid_argument(msg);
+        }
+        if (!std::isfinite(w) || w < 0.0) {
+            throw std::invalid_argument(
+                "weight_formula produced a non-finite or negative edge weight");
+        }
+        return w;
+    }
     if (weight_mode_ == WeightMode::LOG) {
         // Multiplicative weight: exp(Σ log(c_k * θ_k)) = Π(c_k * θ_k)
         double log_sum = 0.0;
