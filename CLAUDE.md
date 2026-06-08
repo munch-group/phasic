@@ -177,17 +177,22 @@ path. Trace path mirroring of formula weights is a deliberate non-goal for now.
 `joint_index` path, and the daisy-chain `epoch_starts` path. On the joint paths,
 set the formula on the **joint-prob graph** (`jpg = g.joint_prob_graph(...);
 jpg.weight_formula = "..."`), using *that graph's* coefficient layout —
-`joint_prob_graph` builds its own coefficients (base coefficients up to the base
-`param_length`, plus an appended mutation slot) and does **not** propagate a
-formula set on the base graph.
+`joint_prob_graph` carries the base edges' FULL coefficients and appends a mutation
+slot (so jpg coefficient length = base coefficient length + 1, theta dim = base
+param_length + 1), and does **not** propagate a formula set on the base graph.
 
 **`theta_dim` < coefficient length** (the rate depends on per-edge data beyond the
 optimized parameters): build with `Graph(callback, ..., theta_dim=k)` (or
 `g.set_param_length(k)` before adding edges) — `param_length` stays `k` while edges
 carry longer coefficient vectors; the formula references `t0..t(k-1)` (theta) and
-`c0..c(m-1)` (the full per-edge coefficients). Works on the direct and FFI/SVGD
-(non-daisy) paths. (Preserving extra coefficients *through* `joint_prob_graph` is a
-separate follow-up.)
+`c0..c(m-1)` (the full per-edge coefficients). Works on the direct, FFI/SVGD
+(non-daisy), `joint_index`, and daisy (`epoch_starts`) paths, and survives the
+`graph_cache` save/load roundtrip (`from_serialized` pins `param_length`). Through
+`joint_prob_graph` the mutation slot is appended at index = base coefficient length
+and the mutation rate parameter at theta index = base param_length, so author the
+joint formula accordingly, e.g.
+`select(c<base_coeff_len>==0, <base rate>, c<base_coeff_len> * t<base_param_len>)`
+(the `==0` arm = dynamics edges; the other = mutation/trash/absorbing edges).
 
 **Fixed-parameter SVGD is now cheap**: `svgd(..., fixed=[(i, v), ...])` skips the
 finite-difference perturbation of fixed dims on every path (the gradient is 0 and
