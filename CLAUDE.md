@@ -173,6 +173,27 @@ consulted by `ptd_graph_update_weights`). `record_elimination_trace` rejects
 formula mode (it would silently compute the linear inner product) — use the FFI
 path. Trace path mirroring of formula weights is a deliberate non-goal for now.
 
+**`weight_formula` works on all SVGD paths**: the direct/reward path, the
+`joint_index` path, and the daisy-chain `epoch_starts` path. On the joint paths,
+set the formula on the **joint-prob graph** (`jpg = g.joint_prob_graph(...);
+jpg.weight_formula = "..."`), using *that graph's* coefficient layout —
+`joint_prob_graph` builds its own coefficients (base coefficients up to the base
+`param_length`, plus an appended mutation slot) and does **not** propagate a
+formula set on the base graph.
+
+**`theta_dim` < coefficient length** (the rate depends on per-edge data beyond the
+optimized parameters): build with `Graph(callback, ..., theta_dim=k)` (or
+`g.set_param_length(k)` before adding edges) — `param_length` stays `k` while edges
+carry longer coefficient vectors; the formula references `t0..t(k-1)` (theta) and
+`c0..c(m-1)` (the full per-edge coefficients). Works on the direct and FFI/SVGD
+(non-daisy) paths. (Preserving extra coefficients *through* `joint_prob_graph` is a
+separate follow-up.)
+
+**Fixed-parameter SVGD is now cheap**: `svgd(..., fixed=[(i, v), ...])` skips the
+finite-difference perturbation of fixed dims on every path (the gradient is 0 and
+was discarded anyway), so cost scales with the number of FREE parameters, not the
+total. Value-preserving for the learnable dimensions.
+
 ### Computing PDF/PMF
 
 ```python

@@ -120,3 +120,36 @@ def test_daisy_formula_is_actually_applied(model_and_obs):
     assert not np.allclose(scaled, lin, atol=1e-2), (
         "scaled formula produced the same posterior as linear -> formula was "
         "ignored on the daisy-chain path")
+
+
+# --- joint_index (non-epoch) path: weight_formula on the joint-prob graph -----
+def _run_joint_svgd(graph, indexer, observations, formula=None):
+    from phasic import LogGaussPrior, Adamelia
+    jpg = graph.joint_prob_graph(
+        indexer, reward_limit=REWARD_LIMIT, mutation_rate=MUT, discrete=False)
+    if formula is not None:
+        jpg.weight_formula = formula
+    svgd = jpg.svgd(
+        observations, fixed=[(1, MUT)],
+        prior=LogGaussPrior(ci=[1 / 50_000, 1 / 5000]),
+        n_iterations=3, n_particles=8, seed=0,
+        optimizer=Adamelia(learning_rate=0.2),
+        preconditioner=None,            # no epoch_starts -> joint_index path
+    )
+    return np.asarray(svgd.particles)
+
+
+def test_joint_index_formula_linear_equivalent_matches(model_and_obs):
+    graph, indexer, obs = model_and_obs
+    lin = _run_joint_svgd(graph, indexer, obs, formula=None)
+    frm = _run_joint_svgd(graph, indexer, obs, formula="c0*t0 + c1*t1")
+    np.testing.assert_allclose(frm, lin, rtol=0, atol=1e-6)
+
+
+def test_joint_index_formula_is_actually_applied(model_and_obs):
+    graph, indexer, obs = model_and_obs
+    lin = _run_joint_svgd(graph, indexer, obs, formula=None)
+    scaled = _run_joint_svgd(graph, indexer, obs, formula="2.0*c0*t0 + c1*t1")
+    assert not np.allclose(scaled, lin, atol=1e-2), (
+        "scaled formula produced the same posterior as linear -> formula was "
+        "ignored on the joint_index path")
