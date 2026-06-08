@@ -89,6 +89,11 @@ class SvgdConfig:
     # *whether* a callback is set; the callable itself is consumed by
     # the model builder via ``graph.weight_callback`` after validation.
     has_callback: bool = False
+    # Per-edge weight formula (``Graph.svgd(weight_formula=...)``). True iff the
+    # user passed a formula string. It is evaluated in C (including on the
+    # daisy-chain path), so — unlike callback — it is allowed with epoch_starts;
+    # the only constraint is mutual exclusion with callback (rule R22).
+    has_weight_formula: bool = False
 
 
 def _classify_graph_kind(graph: Any) -> GraphKind:
@@ -256,6 +261,7 @@ def from_svgd_call(
     fixed: Any = None,
     tied: Any = None,
     callback: Any = None,
+    weight_formula: Any = None,
     epoch_starts: Any = None,
     exposure: Any = None,
     exposure_param_index: Optional[int] = None,
@@ -294,6 +300,7 @@ def from_svgd_call(
     has_fixed, fixed_indices = _coerce_fixed_indices(fixed, has_epoch_starts)
     has_tied, tied_groups = _coerce_tied_groups(tied)
     has_callback = callback is not None
+    has_weight_formula = weight_formula is not None
 
     has_exposure = exposure is not None
     exposure_length: Optional[int] = None
@@ -330,6 +337,7 @@ def from_svgd_call(
         has_tied=has_tied,
         tied_groups=tied_groups,
         has_callback=has_callback,
+        has_weight_formula=has_weight_formula,
     )
 
 
@@ -703,6 +711,16 @@ def _check_R21_callback_incompatible_with_epoch_starts(c: SvgdConfig) -> None:
         )
 
 
+def _check_R22_weight_formula_incompatible_with_callback(c: SvgdConfig) -> None:
+    if c.has_weight_formula and c.has_callback:
+        raise SvgdConfigError(
+            "weight_formula= and callback= are mutually exclusive — a graph "
+            "has a single weight_mode at a time. Drop one or the other. "
+            "(weight_formula is the fast, C-evaluated alternative to callback "
+            "and, unlike callback, is supported under epoch_starts.)"
+        )
+
+
 def _check_R20_tied_no_overlap_with_fixed_or_other_tied(c: SvgdConfig) -> None:
     if not c.has_tied or c.tied_groups is None:
         return
@@ -770,6 +788,7 @@ _RULES = (
     _check_R19_tied_no_duplicate_epochs,
     _check_R20_tied_no_overlap_with_fixed_or_other_tied,
     _check_R21_callback_incompatible_with_epoch_starts,
+    _check_R22_weight_formula_incompatible_with_callback,
 )
 
 

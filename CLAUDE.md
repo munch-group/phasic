@@ -138,6 +138,22 @@ g.weight_callback = resistance_weight  # Automatically sets weight_mode='callbac
 g.weight_formula = "exp(c0*t0 + c1*t1) + c2"  # Automatically sets weight_mode='formula'
 ```
 
+`weight_formula` is also available as a **one-shot kwarg** on `graph.update_weights`
+and `graph.svgd` (sugar over the property, mirroring `callback=`; mutually
+exclusive with it — rule R22). The `update_weights` form is handy for verifying a
+formula via `graph.pdf(...)` before running SVGD; it does NOT change the graph's
+persistent `weight_mode`:
+
+```python
+g.update_weights(theta, weight_formula="exp(c0*t0)")  # one-shot; then g.pdf(...) to check
+g.svgd(obs, weight_formula="exp(c0*t0)", ...)          # one-call inference (works with epoch_starts)
+```
+
+The `SVGD` *class* takes an already-built model, so it has **no** `weight_formula`
+kwarg (it would silently no-op). For direct `SVGD(model, ...)`, set the formula on
+the graph BEFORE building the model:
+`g.weight_formula = "…"; model = Graph.pmf_from_graph(g); SVGD(model, obs, ...)`.
+
 Linear/log/formula compute weights in C and stay on the OpenMP-parallel FFI path
 (`pmf_from_graph`, `pmf_and_moments_from_graph`, `graph.svgd()`, incl. the
 daisy-chain `epoch_starts=` path); gradients are finite-difference via the FFI's

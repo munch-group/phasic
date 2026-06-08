@@ -2273,7 +2273,27 @@ class Graph(_Graph):
                               int(tape['stack_depth']),
                               int(tape['n_theta']), int(tape['n_coeff']))
 
-    def update_weights(self, theta: ArrayLike, callback: Callable | None = None, log: bool = False) -> None:
+    def _restore_weight_formula_state(self, prev_mode: str, prev_formula,
+                                      prev_tape) -> None:
+        """Restore weight-formula state (Python attrs + live C tape) saved
+        before a one-shot ``weight_formula=`` kwarg override.
+
+        Re-installs the prior tape on the live graph (or clears it) so the graph
+        is left exactly as it was, including for the direct ``pdf()`` path. Used
+        by the ``weight_formula=`` kwargs of ``update_weights`` and ``svgd``.
+        """
+        if prev_mode == 'formula' and prev_tape is not None:
+            self._set_weight_tape(list(prev_tape['ops']), list(prev_tape['consts']),
+                                  int(prev_tape['stack_depth']),
+                                  int(prev_tape['n_theta']), int(prev_tape['n_coeff']))
+        else:
+            self._clear_weight_tape()
+        self._weight_mode = prev_mode
+        self._weight_formula = prev_formula
+        self._weight_formula_tape = prev_tape
+
+    def update_weights(self, theta: ArrayLike, callback: Callable | None = None,
+                       log: bool = False, weight_formula: str | None = None) -> None:
         """Update parameterized edge weights with given parameters.
 
         This method wraps the C++ implementation to cache theta for use
@@ -2284,9 +2304,17 @@ class Graph(_Graph):
         theta : ArrayLike
             Parameter vector to set edge weights.
         callback : callable, optional
-            Custom callback for weight computation.
+            Custom callback for weight computation. Mutually exclusive with
+            ``weight_formula``.
         log : bool, default=False
             If True, use log-space computation.
+        weight_formula : str, optional
+            A weight formula string (see :attr:`weight_formula`). One-shot: this
+            call's edge weights are computed from the formula in C, but the
+            graph's persistent ``weight_mode`` is left unchanged (mirrors the
+            ``callback`` argument). Useful for verifying a formula via
+            ``graph.pdf(...)`` before running SVGD. Mutually exclusive with
+            ``callback``.
 
         Notes
         -----
@@ -2307,8 +2335,23 @@ class Graph(_Graph):
             raise ValueError("theta contains NaN values")
         if theta_array.size > 0 and np.any(np.isinf(theta_array)):
             raise ValueError("theta contains infinite values")
+        if callback is not None and weight_formula is not None:
+            raise ValueError(
+                "update_weights: pass only one of callback= or weight_formula=")
 
         self._last_theta = np.asarray(theta)
+        if weight_formula is not None:
+            # One-shot formula (mirrors the callback overload): compile + install
+            # the tape, fill edge weights via the C tape branch, then restore the
+            # graph's prior weight state so weight_mode is not permanently
+            # changed. graph.pdf() afterward reads the filled edge weights.
+            _prev = (self._weight_mode, self._weight_formula,
+                     self._weight_formula_tape)
+            self.weight_formula = weight_formula
+            try:
+                return super().update_weights(theta, log=False)
+            finally:
+                self._restore_weight_formula_state(*_prev)
         if callback is not None:
             # C++ overload: update_weights(params, callback) - no log parameter
             return super().update_weights(theta, callback)
@@ -6508,6 +6551,7 @@ extern "C" {{
              fixed: ArrayLike | None = None,
              tied: ArrayLike | None = None,
              callback: Callable | None = None,
+             weight_formula: str | None = None,
              preconditioner: str | object | None = 'auto',
              epoch_starts: ArrayLike | None = None,
              daisy_chain_t_eval: float | str | None = None,
@@ -6945,6 +6989,7 @@ extern "C" {{
             fixed=fixed,
             tied=tied,
             callback=callback,
+            weight_formula=weight_formula,
             epoch_starts=epoch_starts,
             exposure=exposure,
             exposure_param_index=exposure_param_index,
@@ -6996,6 +7041,20 @@ extern "C" {{
             # Setter flips _weight_mode to 'callback'; both fields
             # are restored in the finally below.
             self.weight_callback = callback
+
+        # Per-call override of graph.weight_formula. Mirrors the callback
+        # override but is ALLOWED under epoch_starts (the formula is evaluated
+        # in C on the daisy-chain path). Mutually exclusive with callback
+        # (validator rule R22). The setter compiles + installs the live tape and
+        # sets weight_mode='formula' so the model builders pick it up via
+        # serialize(); restored in the finally below.
+        _formula_overridden = weight_formula is not None
+        _prev_formula_state = (
+            (self._weight_mode, self._weight_formula, self._weight_formula_tape)
+            if _formula_overridden else None
+        )
+        if _formula_overridden:
+            self.weight_formula = weight_formula
 
         try:
             # Reward-vector structural validation (shape + coverage).
@@ -7296,6 +7355,8 @@ extern "C" {{
             if _callback_overridden:
                 self._weight_callback = _prev_weight_callback
                 self._weight_mode = _prev_weight_mode
+            if _formula_overridden:
+                self._restore_weight_formula_state(*_prev_formula_state)
 
     def mcmc(self,
              observed_data: ArrayLike | SparseObservations,
