@@ -237,6 +237,19 @@ struct ptd_graph {
      * Owned by the graph; freed by ptd_graph_destroy. Theta-independent
      * structure, so it does not affect the symbolic elimination cache. */
     struct ptd_weight_tape *weight_tape;
+
+    /* Per-edge specialized residual tapes (weight_mode='formula'). Each base
+     * edge's theta-INDEPENDENT subexpressions are folded once (using that
+     * edge's coefficients) and dead select() arms pruned, yielding a small
+     * theta-only residual tape. Built lazily on the first tape-mode
+     * ptd_graph_update_weights and reused for every later theta (the SVGD inner
+     * loop); freed/invalidated when weight_tape changes. Length =
+     * wf_residuals_length, one per non-IPV coefficiented edge in update-weights
+     * iteration order. NULL until built; wf_residuals_for_tape records which
+     * weight_tape they correspond to. */
+    struct ptd_weight_tape **wf_residuals;
+    size_t wf_residuals_length;
+    struct ptd_weight_tape *wf_residuals_for_tape;
 };
 
 struct ptd_edge {

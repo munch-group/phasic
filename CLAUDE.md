@@ -173,6 +173,21 @@ consulted by `ptd_graph_update_weights`). `record_elimination_trace` rejects
 formula mode (it would silently compute the linear inner product) — use the FFI
 path. Trace path mirroring of formula weights is a deliberate non-goal for now.
 
+**Per-edge constant folding (performance).** `ptd_graph_update_weights` does not
+run the full tape per edge per theta. On the first call it *specializes* the tape
+for each edge (`ptd_weight_tape_specialize`): every theta-INDEPENDENT
+subexpression is folded to a constant using that edge's coefficients, and dead
+`select()` arms are pruned (the conditions are theta-independent by rule), giving a
+small **theta-only residual tape** cached per edge (`graph->wf_residuals`,
+invalidated when the tape changes). Subsequent `update_weights` run only the
+residuals. Effect: a complex formula (e.g. a sum of `select()` dispatches) runs
+~as fast as the linear inner product in the SVGD forward — only the taken arm
+runs, with its coefficient arithmetic precomputed once (measured: a 5-`select`
+coalescent-with-selection `update_weights` 167 µs → 35 µs; full forward 363 µs →
+224 µs ≈ the 214 µs inner-product forward). The residual is bit-identical to the
+full tape for every theta; on any allocation failure the code falls back to the
+full tape (same result).
+
 **`weight_formula` works on all SVGD paths**: the direct/reward path, the
 `joint_index` path, and the daisy-chain `epoch_starts` path. On the joint paths,
 set the formula on the **joint-prob graph** (`jpg = g.joint_prob_graph(...);

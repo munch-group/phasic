@@ -2969,6 +2969,9 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->current_params = NULL;
     graph->weight_version = 0;
     graph->weight_tape = NULL;
+    graph->wf_residuals = NULL;
+    graph->wf_residuals_length = 0;
+    graph->wf_residuals_for_tape = NULL;
 
     /* Initialise the per-graph compute-graph lock. The init can fail
      * (out of memory), in which case we leave the flag false; later
@@ -4539,6 +4542,15 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
         ptd_weight_tape_destroy(graph->weight_tape);
         graph->weight_tape = NULL;
     }
+    if (graph->wf_residuals != NULL) {
+        for (size_t ri = 0; ri < graph->wf_residuals_length; ri++) {
+            ptd_weight_tape_destroy(graph->wf_residuals[ri]);
+        }
+        free(graph->wf_residuals);
+        graph->wf_residuals = NULL;
+        graph->wf_residuals_length = 0;
+        graph->wf_residuals_for_tape = NULL;
+    }
 
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
@@ -5144,6 +5156,256 @@ void ptd_weight_tape_destroy(struct ptd_weight_tape *tape) {
     free(tape);
 }
 
+/* --- weight_formula per-edge partial evaluation (constant folding) -------- *
+ * Specialize a tape for ONE edge's coefficients: fold every theta-INDEPENDENT
+ * subexpression to a constant and prune dead select() arms, producing a small
+ * residual tape that depends on theta only (no PUSH_COEFF / comparison /
+ * boolean / select ops remain). Because the folded parts are theta-independent
+ * by construction (the formula rules forbid theta-dependent conditions), the
+ * residual is bit-identical to the full tape for every theta. Evaluated per-
+ * theta in place of the full tape, this removes the dominant cost of complex
+ * formulas (e.g. a sum of select() dispatches evaluates only the taken arm,
+ * with its coefficient arithmetic already folded). Returns NULL on allocation
+ * failure or an unexpected theta-dependent condition; the caller then falls
+ * back to evaluating the full tape (same result, just slower). */
+struct ptd_wf_ai {        /* abstract-interpretation stack entry */
+    int is_const;
+    double cval;          /* valid when is_const */
+    int *rops;            /* residual ops reproducing the value from theta */
+    size_t rlen, rcap;
+};
+
+static int ptd_wf_ai_push(struct ptd_wf_ai *e, int op) {
+    if (e->rlen >= e->rcap) {
+        size_t nc = e->rcap ? e->rcap * 2 : 8;
+        int *p = (int *) realloc(e->rops, nc * sizeof(int));
+        if (p == NULL) return 1;
+        e->rops = p; e->rcap = nc;
+    }
+    e->rops[e->rlen++] = op;
+    return 0;
+}
+
+static long ptd_wf_const_ix(double **consts, size_t *len, size_t *cap, double v) {
+    for (size_t i = 0; i < *len; i++) if ((*consts)[i] == v) return (long) i;
+    if (*len >= *cap) {
+        size_t nc = *cap ? *cap * 2 : 8;
+        double *p = (double *) realloc(*consts, nc * sizeof(double));
+        if (p == NULL) return -1;
+        *consts = p; *cap = nc;
+    }
+    (*consts)[*len] = v;
+    return (long) (*len)++;
+}
+
+/* Append the ops that reproduce entry e into dst (a constant becomes PUSH_CONST). */
+static int ptd_wf_emit(struct ptd_wf_ai *dst, const struct ptd_wf_ai *e,
+                       double **consts, size_t *clen, size_t *ccap) {
+    if (e->is_const) {
+        long ci = ptd_wf_const_ix(consts, clen, ccap, e->cval);
+        if (ci < 0) return 1;
+        if (ptd_wf_ai_push(dst, PTD_WF_PUSH_CONST)) return 1;
+        if (ptd_wf_ai_push(dst, (int) ci)) return 1;
+    } else {
+        for (size_t i = 0; i < e->rlen; i++)
+            if (ptd_wf_ai_push(dst, e->rops[i])) return 1;
+    }
+    return 0;
+}
+
+struct ptd_weight_tape *ptd_weight_tape_specialize(
+        const struct ptd_weight_tape *tape,
+        const double *coeff, size_t coeff_len) {
+    if (tape == NULL) return NULL;
+    struct ptd_wf_ai stack[PTD_WF_MAX_STACK];
+    size_t sp = 0;
+    double *rc = NULL; size_t rclen = 0, rccap = 0;
+    const int *ops = tape->ops; size_t n = tape->ops_length, i = 0;
+
+#define AI_FAIL() do { goto fail; } while (0)
+#define AI_PUSHC(v) do { if (sp >= PTD_WF_MAX_STACK) AI_FAIL(); \
+        stack[sp].is_const = 1; stack[sp].cval = (v); \
+        stack[sp].rops = NULL; stack[sp].rlen = stack[sp].rcap = 0; sp++; } while (0)
+
+    while (i < n) {
+        int op = ops[i++];
+        switch (op) {
+        case PTD_WF_PUSH_THETA: {
+            int idx = ops[i++];
+            if (sp >= PTD_WF_MAX_STACK) AI_FAIL();
+            struct ptd_wf_ai *e = &stack[sp++];
+            e->is_const = 0; e->cval = 0; e->rops = NULL; e->rlen = e->rcap = 0;
+            if (ptd_wf_ai_push(e, PTD_WF_PUSH_THETA) || ptd_wf_ai_push(e, idx)) { sp--; free(e->rops); AI_FAIL(); }
+            break;
+        }
+        case PTD_WF_PUSH_COEFF: {
+            int idx = ops[i++];
+            if (idx < 0 || (size_t) idx >= coeff_len) AI_FAIL();
+            AI_PUSHC(coeff[idx]);
+            break;
+        }
+        case PTD_WF_PUSH_CONST: {
+            int idx = ops[i++];
+            if (idx < 0 || (size_t) idx >= tape->consts_length) AI_FAIL();
+            AI_PUSHC(tape->consts[idx]);
+            break;
+        }
+        case PTD_WF_ADD: case PTD_WF_SUB: case PTD_WF_MUL:
+        case PTD_WF_DIV: case PTD_WF_POW: {
+            if (sp < 2) AI_FAIL();
+            struct ptd_wf_ai b = stack[--sp], a = stack[--sp];
+            if (a.is_const && b.is_const) {
+                double r = (op == PTD_WF_ADD) ? a.cval + b.cval :
+                           (op == PTD_WF_SUB) ? a.cval - b.cval :
+                           (op == PTD_WF_MUL) ? a.cval * b.cval :
+                           (op == PTD_WF_DIV) ? a.cval / b.cval : pow(a.cval, b.cval);
+                AI_PUSHC(r);
+            } else {
+                struct ptd_wf_ai e; e.is_const = 0; e.cval = 0; e.rops = NULL; e.rlen = e.rcap = 0;
+                if (ptd_wf_emit(&e, &a, &rc, &rclen, &rccap) ||
+                    ptd_wf_emit(&e, &b, &rc, &rclen, &rccap) ||
+                    ptd_wf_ai_push(&e, op)) { free(a.rops); free(b.rops); free(e.rops); AI_FAIL(); }
+                free(a.rops); free(b.rops);
+                if (sp >= PTD_WF_MAX_STACK) { free(e.rops); AI_FAIL(); }
+                stack[sp++] = e;
+            }
+            break;
+        }
+        case PTD_WF_NEG: case PTD_WF_EXP: case PTD_WF_LOG:
+        case PTD_WF_SQRT: case PTD_WF_LOGISTIC: {
+            if (sp < 1) AI_FAIL();
+            struct ptd_wf_ai a = stack[--sp];
+            if (a.is_const) {
+                double r = (op == PTD_WF_NEG) ? -a.cval :
+                           (op == PTD_WF_EXP) ? exp(a.cval) :
+                           (op == PTD_WF_LOG) ? log(a.cval) :
+                           (op == PTD_WF_SQRT) ? sqrt(a.cval) : ptd_wf_logistic(a.cval);
+                AI_PUSHC(r);
+            } else {
+                if (ptd_wf_ai_push(&a, op)) { free(a.rops); AI_FAIL(); }
+                if (sp >= PTD_WF_MAX_STACK) { free(a.rops); AI_FAIL(); }
+                stack[sp++] = a;   /* reuse a's residual ops */
+            }
+            break;
+        }
+        case PTD_WF_EQ: case PTD_WF_NE: case PTD_WF_LT: case PTD_WF_GT:
+        case PTD_WF_LE: case PTD_WF_GE: case PTD_WF_AND: case PTD_WF_OR: {
+            if (sp < 2) AI_FAIL();
+            struct ptd_wf_ai b = stack[--sp], a = stack[--sp];
+            if (!a.is_const || !b.is_const) { free(a.rops); free(b.rops); AI_FAIL(); }
+            int r = (op == PTD_WF_EQ) ? (a.cval == b.cval) :
+                    (op == PTD_WF_NE) ? (a.cval != b.cval) :
+                    (op == PTD_WF_LT) ? (a.cval < b.cval) :
+                    (op == PTD_WF_GT) ? (a.cval > b.cval) :
+                    (op == PTD_WF_LE) ? (a.cval <= b.cval) :
+                    (op == PTD_WF_GE) ? (a.cval >= b.cval) :
+                    (op == PTD_WF_AND) ? (a.cval != 0.0 && b.cval != 0.0) :
+                                         (a.cval != 0.0 || b.cval != 0.0);
+            AI_PUSHC(r ? 1.0 : 0.0);
+            break;
+        }
+        case PTD_WF_NOT: {
+            if (sp < 1) AI_FAIL();
+            struct ptd_wf_ai a = stack[--sp];
+            if (!a.is_const) { free(a.rops); AI_FAIL(); }
+            AI_PUSHC(a.cval == 0.0 ? 1.0 : 0.0);
+            break;
+        }
+        case PTD_WF_SELECT: {
+            if (sp < 3) AI_FAIL();
+            struct ptd_wf_ai b = stack[--sp], a = stack[--sp], c = stack[--sp];
+            if (!c.is_const) { free(a.rops); free(b.rops); free(c.rops); AI_FAIL(); }
+            /* condition is a known constant -> keep one arm, discard the other */
+            if (c.cval != 0.0) { free(b.rops); stack[sp++] = a; }
+            else               { free(a.rops); stack[sp++] = b; }
+            break;
+        }
+        default: AI_FAIL();
+        }
+    }
+    if (sp != 1) AI_FAIL();
+
+    {
+        struct ptd_wf_ai top = stack[0];
+        struct ptd_weight_tape *res;
+        if (top.is_const) {
+            int rops2[2] = { PTD_WF_PUSH_CONST, 0 };
+            double cv = top.cval;
+            res = ptd_weight_tape_create(rops2, 2, &cv, 1, 1, 0, 0);
+        } else {
+            /* The residual is a subset of the original tape, so the original
+             * stack_depth is a safe upper bound for the VM's bounds check. */
+            res = ptd_weight_tape_create(top.rops, top.rlen,
+                    rc, rclen, tape->stack_depth, tape->n_theta, 0);
+        }
+        free(top.rops);
+        free(rc);
+        return res;   /* may be NULL on allocation failure -> caller falls back */
+    }
+
+fail:
+    for (size_t s = 0; s < sp; s++) free(stack[s].rops);
+    free(rc);
+    return NULL;
+#undef AI_FAIL
+#undef AI_PUSHC
+}
+
+static void ptd_graph_free_wf_residuals(struct ptd_graph *graph) {
+    if (graph->wf_residuals != NULL) {
+        for (size_t i = 0; i < graph->wf_residuals_length; i++) {
+            ptd_weight_tape_destroy(graph->wf_residuals[i]);
+        }
+        free(graph->wf_residuals);
+    }
+    graph->wf_residuals = NULL;
+    graph->wf_residuals_length = 0;
+    graph->wf_residuals_for_tape = NULL;
+}
+
+/* Build the per-edge residual tapes for the current weight_tape. Iterates edges
+ * in the SAME order as ptd_graph_update_weights (skip starting vertex + edges
+ * with no coefficients) so residual[k] lines up with the k-th tape-evaluated
+ * edge. On any failure leaves wf_residuals == NULL; the caller then evaluates
+ * the full tape (correct, just slower). */
+static void ptd_graph_build_wf_residuals(struct ptd_graph *graph) {
+    ptd_graph_free_wf_residuals(graph);
+    if (graph->weight_tape == NULL) return;
+    size_t count = 0;
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *v = graph->vertices[i];
+        if (v == graph->starting_vertex) continue;
+        for (size_t j = 0; j < v->edges_length; j++)
+            if (v->edges[j]->coefficients_length > 0) count++;
+    }
+    graph->wf_residuals_for_tape = graph->weight_tape;
+    if (count == 0) return;
+    struct ptd_weight_tape **arr =
+        (struct ptd_weight_tape **) calloc(count, sizeof(*arr));
+    if (arr == NULL) { graph->wf_residuals_for_tape = NULL; return; }
+    size_t k = 0; int ok = 1;
+    for (size_t i = 0; i < graph->vertices_length && ok; i++) {
+        struct ptd_vertex *v = graph->vertices[i];
+        if (v == graph->starting_vertex) continue;
+        for (size_t j = 0; j < v->edges_length; j++) {
+            struct ptd_edge *e = v->edges[j];
+            if (e->coefficients_length == 0) continue;
+            struct ptd_weight_tape *r = ptd_weight_tape_specialize(
+                graph->weight_tape, e->coefficients, e->coefficients_length);
+            if (r == NULL) { ok = 0; break; }
+            arr[k++] = r;
+        }
+    }
+    if (!ok) {
+        for (size_t x = 0; x < k; x++) ptd_weight_tape_destroy(arr[x]);
+        free(arr);
+        graph->wf_residuals_for_tape = NULL;   /* fall back to full tape */
+        return;
+    }
+    graph->wf_residuals = arr;
+    graph->wf_residuals_length = count;
+}
+
 void ptd_graph_set_weight_tape(
         struct ptd_graph *graph, struct ptd_weight_tape *tape
 ) {
@@ -5151,6 +5413,8 @@ void ptd_graph_set_weight_tape(
         ptd_weight_tape_destroy(graph->weight_tape);
     }
     graph->weight_tape = tape;
+    /* Invalidate any cached per-edge residuals; rebuilt lazily for the new tape. */
+    ptd_graph_free_wf_residuals(graph);
 }
 
 
@@ -5244,6 +5508,16 @@ void ptd_graph_update_weights(
     // Python handles trace computation via hierarchical_trace_cache when needed for
     // moments/expectation computation.
 
+    // Formula mode: build/refresh the per-edge specialized residual tapes once
+    // for this tape (theta-independent constant folding + dead select-arm
+    // pruning), then evaluate the small theta-only residuals per theta below.
+    // wf_k indexes residuals in the SAME edge order as the loop builds them.
+    if (graph->weight_tape != NULL &&
+        graph->wf_residuals_for_tape != graph->weight_tape) {
+        ptd_graph_build_wf_residuals(graph);
+    }
+    size_t wf_k = 0;
+
     // Update all edge weights using direct computation
     for (size_t i = 0; i < graph->vertices_length; i++) {
         struct ptd_vertex *vertex = graph->vertices[i];
@@ -5271,9 +5545,23 @@ void ptd_graph_update_weights(
             // coefficients of a different length than theta.
             if (graph->weight_tape != NULL) {
                 double w;
-                if (ptd_weight_tape_eval(graph->weight_tape, theta, theta_len,
-                                         edge->coefficients,
-                                         edge->coefficients_length, &w) != 0) {
+                // Prefer this edge's specialized residual tape (theta-only, with
+                // coefficient arithmetic folded and dead select() arms pruned);
+                // fall back to the full tape if residuals were not built. Both
+                // yield identical weights. wf_k advances for every tape edge so
+                // it stays aligned with the residual build order.
+                const struct ptd_weight_tape *etape = graph->weight_tape;
+                const double *ecoeff = edge->coefficients;
+                size_t ecoeff_len = edge->coefficients_length;
+                if (graph->wf_residuals != NULL &&
+                    wf_k < graph->wf_residuals_length) {
+                    etape = graph->wf_residuals[wf_k];
+                    ecoeff = NULL;
+                    ecoeff_len = 0;
+                }
+                wf_k++;
+                if (ptd_weight_tape_eval(etape, theta, theta_len,
+                                         ecoeff, ecoeff_len, &w) != 0) {
                     if (need_free) {
                         free(theta);
                     }
