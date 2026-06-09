@@ -15,6 +15,7 @@ phasic.Graph(arg, ipv=None, graph_cache=None, **kwargs)
 | [hierarchical](#phasic.Graph.hierarchical) | Deprecated: use cache_trace instead. |
 | [trace_valid](#phasic.Graph.trace_valid) | Whether the cached trace is valid (not dirty). |
 | [weight_callback](#phasic.Graph.weight_callback) | Custom callback for computing edge weights from theta and coefficients. |
+| [weight_formula](#phasic.Graph.weight_formula) | Per-edge weight formula string, evaluated in C (``weight_mode='formula'``). |
 | [weight_mode](#phasic.Graph.weight_mode) | Weight computation mode for parameterized edges. |
 
 ## Methods
@@ -1615,6 +1616,7 @@ phasic.Graph.plot(
     color_by=None,
     color_by_cmap='viridis',
     color_by_lim=None,
+    color_by_alpha=1.0,
     subgraphfun=None,
     by_state=None,
     by_index=None,
@@ -1671,6 +1673,10 @@ Plot a graph using graphviz.
 <code>[**color_by_lim**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tuple](`typing.Tuple`)\[[float](`float`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Color map min, max limits for use with color_by. Default is min and max of values given by color_by.
+
+<code>[**color_by_alpha**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.0]{.parameter-default}</code>
+
+:   Alpha value for node fill color with color_by.
 
 <code>[**subgraphfun**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1850,6 +1856,7 @@ phasic.Graph.pmf_and_moments_from_graph(
     discrete=False,
     use_ffi=False,
     theta_dim=None,
+    fixed_mask=None,
 )
 ```
 
@@ -1931,6 +1938,7 @@ phasic.Graph.pmf_and_moments_from_graph_multivariate(
     discrete=False,
     use_ffi=False,
     theta_dim=None,
+    fixed_mask=None,
 )
 ```
 
@@ -2896,6 +2904,7 @@ phasic.Graph.svgd(
     fixed=None,
     tied=None,
     callback=None,
+    weight_formula=None,
     preconditioner='auto',
     epoch_starts=None,
     daisy_chain_t_eval=None,
@@ -3144,7 +3153,12 @@ time — that path is not affected by ``update_ipv``.
 ### update_weights { #phasic.Graph.update_weights }
 
 ```python
-phasic.Graph.update_weights(theta, callback=None, log=False)
+phasic.Graph.update_weights(
+    theta,
+    callback=None,
+    log=False,
+    weight_formula=None,
+)
 ```
 
 Update parameterized edge weights with given parameters.
@@ -3160,11 +3174,15 @@ with trace-based computation.
 
 <code>[**callback**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Custom callback for weight computation.
+:   Custom callback for weight computation. Mutually exclusive with ``weight_formula``.
 
 <code>[**log**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   If True, use log-space computation.
+
+<code>[**weight_formula**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A weight formula string (see :attr:`weight_formula`). One-shot: this call's edge weights are computed from the formula in C, but the graph's persistent ``weight_mode`` is left unchanged (mirrors the ``callback`` argument). Useful for verifying a formula via ``graph.pdf(...)`` before running SVGD. Mutually exclusive with ``callback``.
 
 #### Notes {.doc-section .doc-section-notes}
 
