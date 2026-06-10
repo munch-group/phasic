@@ -209,6 +209,20 @@ joint formula accordingly, e.g.
 `select(c<base_coeff_len>==0, <base rate>, c<base_coeff_len> * t<base_param_len>)`
 (the `==0` arm = dynamics edges; the other = mutation/trash/absorbing edges).
 
+**`theta_dim` resolution in `svgd`** (when not passed explicitly) is by weight
+mode, so it is always either specified or reliably inferred — never silently
+taken to be the coefficient length when that is wrong:
+- **linear/log**: `param_length()` (= coefficient length; the two must match).
+- **formula**: the formula's own `n_theta` (highest `t`-index + 1) — so a
+  formula model needs NO `theta_dim` at construction. An explicit `theta_dim`
+  may exceed `n_theta` (reserve extra params); a smaller one raises.
+- **callback** (kwarg `callback=` OR the `weight_callback` property): cannot be
+  inferred (a callback is a black box) — `svgd` raises `SvgdConfigError` unless
+  `theta_dim=`/`theta_init=` is given. `update_weights(theta, callback=...)`
+  itself imposes no length check (the callback maps θ→coefficients).
+(Resolution lives in `Graph.svgd`; `epoch_starts`/joint-prob graphs carry
+`param_length == n_theta`, so the per-epoch dimension is unaffected.)
+
 **Fixed-parameter SVGD is now cheap**: `svgd(..., fixed=[(i, v), ...])` skips the
 finite-difference perturbation of fixed dims on every path (the gradient is 0 and
 was discarded anyway), so cost scales with the number of FREE parameters, not the

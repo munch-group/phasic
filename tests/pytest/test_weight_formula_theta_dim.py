@@ -133,3 +133,56 @@ def test_svgd_runs_with_theta_dim_lt_coeff_length():
     parts = np.asarray(res.particles)
     assert parts.shape == (8, 2)
     assert np.all(np.isfinite(parts))
+
+
+# --- svgd theta_dim resolution per weight mode -------------------------------
+# param_length = 3 (the edge coefficient length); NO construction theta_dim, so
+# the "infer from coefficient length" default would give 3.
+def _g_3coeff():
+    g = Graph(1)
+    s = g.starting_vertex()
+    v2 = g.find_or_create_vertex([2])
+    v1 = g.find_or_create_vertex([1])
+    s.add_edge(v2, 1.0)
+    v2.add_edge(v1, [2.0, 0.5, 3.0])
+    return g
+
+
+_SVGD_DATA = np.random.default_rng(0).exponential(1.0 / 4.5, size=60)
+_SVGD_KW = dict(n_iterations=2, n_particles=4, seed=0, positive_params=True)
+
+
+def test_svgd_callback_property_requires_theta_dim():
+    # A callback set via the PROPERTY (not the kwarg) must also require an
+    # explicit theta_dim — a callback is a black box and can't be inferred.
+    from phasic.exceptions import SvgdConfigError
+    g = _g_3coeff()
+    g.weight_callback = lambda th, c: float(c[0] * th[0])
+    with pytest.raises(SvgdConfigError,
+                       match="callback weight mode requires an explicit theta_dim"):
+        g.svgd(_SVGD_DATA, **_SVGD_KW)
+
+
+def test_svgd_formula_infers_theta_dim_from_n_theta():
+    # Formula declares its parameters (n_theta=2); theta_dim is inferred from it,
+    # NOT from param_length (=3, the coefficient length).
+    g = _g_3coeff()
+    g.weight_formula = "c0*t0 + c2*t1"          # n_theta = 2
+    res = g.svgd(_SVGD_DATA, **_SVGD_KW)
+    assert np.asarray(res.particles).shape == (4, 2)
+
+
+def test_svgd_formula_theta_dim_below_n_theta_errors():
+    from phasic.exceptions import SvgdConfigError
+    g = _g_3coeff()
+    g.weight_formula = "c0*t0 + c2*t1"          # n_theta = 2
+    with pytest.raises(SvgdConfigError, match=r"n_theta=2"):
+        g.svgd(_SVGD_DATA, theta_dim=1, **_SVGD_KW)
+
+
+def test_svgd_formula_explicit_theta_dim_above_n_theta_ok():
+    # Explicit theta_dim may exceed n_theta (reserve extra parameters).
+    g = _g_3coeff()
+    g.weight_formula = "c0*t0"                  # n_theta = 1
+    res = g.svgd(_SVGD_DATA, theta_dim=2, **_SVGD_KW)
+    assert np.asarray(res.particles).shape == (4, 2)

@@ -197,7 +197,7 @@ def test_callback_kwarg_requires_explicit_theta_dim_or_theta_init():
 
     with pytest.raises(
         SvgdConfigError,
-        match=r"callback= requires an explicit theta_dim= or theta_init=",
+        match=r"callback weight mode requires an explicit theta_dim= or theta_init=",
     ):
         g.svgd(
             data,

@@ -1763,14 +1763,18 @@ class Graph(_Graph):
             later in methods like svgd() if the graph structure has been augmented or changed.
 
             When theta_dim < edge coefficients_length:
-            - **Non-callback mode** (update_weights(theta)): ERROR - coefficient and theta lengths must match exactly
-            - **Callback mode** (update_weights(theta, callback)): OK - callback receives full coefficient vector
+            - **linear / log mode** (update_weights(theta)): ERROR - coefficient and theta lengths must match exactly
+            - **callback / formula mode** (update_weights(theta, callback=...) or a weight_formula): OK - the callback receives the full coefficient vector; a formula references t0.. (theta) and c0.. (full coefficients)
 
-            This allows storing auxiliary data in coefficient vectors for use in custom callback functions
-            while maintaining a compact theta parameter space. The extra coefficients are accessible only
-            through the callback, not in standard dot-product weight computation.
+            This allows storing auxiliary data in coefficient vectors for use in custom callback/formula
+            weights while maintaining a compact theta parameter space. The extra coefficients are accessible
+            only through the callback/formula, not in standard dot-product weight computation.
 
-            If not provided, theta_dim is inferred from the first edge's coefficient length.
+            If not provided, theta_dim (param_length) is inferred from the first edge's coefficient length.
+            That default is correct for linear/log. For **formula** and **callback** weight modes you need
+            not set it here — it is resolved at inference time (see ``Graph.svgd``): a formula's parameter
+            count is read from the formula itself (its highest t-index + 1), and callback mode requires an
+            explicit ``theta_dim``/``theta_init`` (a callback cannot be introspected).
 
             Example:
                 >>> g.set_param_length(2)  # Set theta_dim=2 (param_length is C++ method name)
@@ -2335,10 +2339,26 @@ class Graph(_Graph):
         Parameters
         ----------
         theta : ArrayLike
-            Parameter vector to set edge weights.
+            Parameter vector θ. Its required length depends on the weight mode
+            (mirroring ``Graph(callback, theta_dim=...)``):
+
+            - **linear / log** (no ``callback`` / ``weight_formula``): length must
+              equal ``graph.param_length()`` (the edge coefficient length); a
+              mismatch raises. Set ``theta_dim`` (= ``param_length``) at
+              construction when the parameter count differs from the coefficient
+              length.
+            - **callback / weight_formula**: θ may be SHORTER than the edge
+              coefficient length. The callback receives ``(theta, coefficients)``
+              and may use any subset; a formula references ``t0..`` (θ) and
+              ``c0..`` (the full per-edge coefficients). No length check is
+              imposed here — the callback/formula defines how θ maps to
+              coefficients.
         callback : callable, optional
-            Custom callback for weight computation. Mutually exclusive with
-            ``weight_formula``.
+            ``callback(theta, coefficients) -> weight`` for arbitrary per-edge
+            weights (one-shot: applies for this call without changing the graph's
+            persistent ``weight_mode``). Mutually exclusive with
+            ``weight_formula``. Unlike linear/log it tolerates
+            ``len(theta) != len(coefficients)``.
         log : bool, default=False
             If True, use log-space computation.
         weight_formula : str, optional
@@ -6673,15 +6693,26 @@ extern "C" {{
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
         theta_dim : int, optional
-            Dimension of theta parameter vector. Can be:
-            - Set at graph construction: Graph(callback, theta_dim=2)
-            - Overridden here for SVGD inference (if graph was modified/augmented)
+            Number of model parameters (θ). An explicit value here overrides any
+            ``theta_dim`` set at construction (useful if the graph was modified,
+            e.g. via ``extend()``). When not given, it is resolved by weight mode
+            so it is always either specified or RELIABLY inferred:
 
-            If None, inferred from the graph's parameterized edge structure via param_length().
-            Only required if theta_init is None and the graph has no parameterized edges.
+            - **linear / log** (default): inferred from the graph's
+              ``param_length()`` (the parameterized-edge coefficient length;
+              the two must match in these modes).
+            - **formula** (``weight_formula`` set on the graph, or passed here):
+              inferred from the formula itself — the highest ``t`` index it uses
+              plus one (``n_theta``). A formula model therefore needs no
+              ``theta_dim`` at construction. An explicit ``theta_dim`` may exceed
+              ``n_theta`` (to reserve extra parameters); a smaller one raises.
+            - **callback** (``callback`` passed here, or ``weight_callback`` set
+              on the graph): cannot be inferred — the callback receives the full
+              coefficient vector and may treat only some slots as parameters — so
+              you MUST pass ``theta_dim`` (or ``theta_init``), else this raises.
 
-            The value specified here overrides any theta_dim set during graph construction,
-            which is useful if you've modified the graph structure (e.g., via extend()).
+            With ``epoch_starts`` (daisy chain) the per-epoch dimension comes from
+            the graph and the optimised flat θ has length ``n_epochs × param_length``.
         return_history : bool, default=True
             If True, return particle positions throughout optimization
         seed : int, default=None
@@ -7044,26 +7075,57 @@ extern "C" {{
             joint_index=joint_index,
         ))
 
-        # When the user supplies `callback=`, theta_dim cannot be
-        # inferred unambiguously: the callback receives the full
-        # coefficient vector and may interpret only a subset of slots
-        # as parameters (the rest being auxiliary data). Falling back
-        # to `graph.param_length()` here would silently pick the
-        # coefficient length, which often differs from what the user
-        # had in mind. Require an explicit `theta_dim=` or
-        # `theta_init=` so the user's assumed dimensionality is the
-        # one we use.
-        if callback is not None and theta_dim is None and theta_init is None:
+        # Resolve / validate theta_dim against the weight mode, so the parameter
+        # dimension is always either explicitly given or RELIABLY inferred (never
+        # silently taken to be the coefficient length when that is wrong).
+        #
+        # CALLBACK mode — supplied via callback= OR installed earlier through the
+        # `weight_callback` property — is a black box: the callback receives the
+        # full coefficient vector and may interpret only a subset of slots as
+        # parameters. theta_dim therefore cannot be inferred; require it
+        # explicitly. (Falling back to graph.param_length() would silently pick
+        # the coefficient length, which often differs from what the user meant.)
+        _callback_mode = (callback is not None) or (self._weight_mode == 'callback')
+        if _callback_mode and theta_dim is None and theta_init is None:
             from .exceptions import SvgdConfigError
             raise SvgdConfigError(
-                "callback= requires an explicit theta_dim= or "
-                "theta_init= argument. In callback mode the edge "
-                "coefficient vector may carry auxiliary data, so "
-                "theta_dim cannot be inferred from the graph without "
-                "ambiguity. Pass theta_dim=<n> (or theta_init of "
-                "shape (n_particles, n)) to make the parameter "
-                "dimension explicit."
+                "callback weight mode requires an explicit theta_dim= or "
+                "theta_init= argument. In callback mode the edge coefficient "
+                "vector may carry auxiliary data, so theta_dim cannot be "
+                "inferred from the graph without ambiguity. Pass theta_dim=<n> "
+                "(or theta_init of shape (n_particles, n)) to make the "
+                "parameter dimension explicit."
             )
+
+        # FORMULA mode — supplied via weight_formula= OR set earlier through the
+        # `weight_formula` property — DECLARES which parameters it uses: the
+        # highest t-index + 1 (the tape's n_theta). theta_dim is therefore
+        # reliably inferred from the formula itself, so a formula model needs no
+        # theta_dim= at construction. An explicit theta_dim still wins (it may
+        # exceed n_theta to reserve extra parameters); a theta_dim SMALLER than
+        # n_theta references parameters the optimiser would not provide and is an
+        # error. Skipped under epoch_starts: the daisy chain resolves its own
+        # flat theta dimension, and on a joint-prob graph param_length already
+        # equals n_theta.
+        _fn_theta = None
+        if weight_formula is not None:
+            from .weight_formula import compile_formula
+            _fn_theta = int(compile_formula(weight_formula).get('n_theta', 0))
+        elif (self._weight_mode == 'formula'
+              and self._weight_formula_tape is not None):
+            _fn_theta = int(self._weight_formula_tape.get('n_theta', 0))
+        if _fn_theta:
+            if theta_dim is not None and theta_dim < _fn_theta:
+                from .exceptions import SvgdConfigError
+                raise SvgdConfigError(
+                    f"weight_formula uses parameters up to t{_fn_theta - 1} "
+                    f"(n_theta={_fn_theta}), but theta_dim={theta_dim} is "
+                    f"smaller. Increase theta_dim to at least {_fn_theta}, or "
+                    f"reference fewer t-indices in the formula."
+                )
+            if (theta_dim is None and theta_init is None
+                    and epoch_starts is None):
+                theta_dim = _fn_theta
 
         # Per-call override of graph.weight_callback. When the kwarg
         # is set, temporarily flip graph.weight_callback to the
