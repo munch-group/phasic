@@ -186,3 +186,36 @@ def test_svgd_formula_explicit_theta_dim_above_n_theta_ok():
     g.weight_formula = "c0*t0"                  # n_theta = 1
     res = g.svgd(_SVGD_DATA, theta_dim=2, **_SVGD_KW)
     assert np.asarray(res.particles).shape == (4, 2)
+
+
+# --- method_of_moments uses the same per-mode theta_dim resolution -----------
+# (callback/formula reach MoM only via the graph's properties; MoM has no
+# callback=/weight_formula=/epoch_starts kwargs.)
+def test_mom_callback_property_requires_theta_dim():
+    from phasic.exceptions import SvgdConfigError
+    g = _g_3coeff()
+    g.weight_callback = lambda th, c: float(c[0] * th[0])
+    with pytest.raises(SvgdConfigError,
+                       match="callback weight mode requires an explicit theta_dim"):
+        g.method_of_moments(_SVGD_DATA, verbose=False)
+
+
+def test_mom_formula_infers_theta_dim_from_n_theta():
+    g = _g_3coeff()
+    g.weight_formula = "c0*t0"                  # n_theta = 1 (not param_length 3)
+    res = g.method_of_moments(_SVGD_DATA, verbose=False)
+    assert np.asarray(res.theta).shape == (1,)
+
+
+def test_mom_formula_theta_dim_below_n_theta_errors():
+    from phasic.exceptions import SvgdConfigError
+    g = _g_3coeff()
+    g.weight_formula = "c0*t0 + c2*t1"          # n_theta = 2
+    with pytest.raises(SvgdConfigError, match=r"n_theta=2"):
+        g.method_of_moments(_SVGD_DATA, theta_dim=1, verbose=False)
+
+
+def test_mom_linear_uses_param_length():
+    g = _g_3coeff()                             # linear, param_length = 3
+    res = g.method_of_moments(_SVGD_DATA, verbose=False)
+    assert np.asarray(res.theta).shape == (3,)
