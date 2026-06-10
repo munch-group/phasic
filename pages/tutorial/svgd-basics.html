@@ -426,7 +426,7 @@ window.Quarto = {
   <li><a href="#bayesian-inference-with-svgd-stein-variational-gradient-descent" id="toc-bayesian-inference-with-svgd-stein-variational-gradient-descent" class="nav-link active" data-scroll-target="#bayesian-inference-with-svgd-stein-variational-gradient-descent">Bayesian Inference with SVGD (Stein Variational Gradient Descent)</a></li>
   <li><a href="#prior" id="toc-prior" class="nav-link" data-scroll-target="#prior">Prior</a></li>
   <li><a href="#adaptive-optimizers" id="toc-adaptive-optimizers" class="nav-link" data-scroll-target="#adaptive-optimizers">Adaptive optimizers</a></li>
-  <li><a href="#weight-formula-for-flexible-weight-update" id="toc-weight-formula-for-flexible-weight-update" class="nav-link" data-scroll-target="#weight-formula-for-flexible-weight-update">Weight formula for flexible weight update</a></li>
+  <li><a href="#weight-update-formula" id="toc-weight-update-formula" class="nav-link" data-scroll-target="#weight-update-formula">Weight update formula</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-basics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-basics.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -1226,67 +1226,60 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </section>
 </section>
-<section id="weight-formula-for-flexible-weight-update" class="level2">
-<h2 class="anchored" data-anchor-id="weight-formula-for-flexible-weight-update">Weight formula for flexible weight update</h2>
-<ul>
-<li><code>t0</code>, <code>t1</code>, … represent the scalars of the <code>theta</code> parameter vector.</li>
-<li><code>c0</code>, <code>c1</code>, … represent the coefficient vector of the edge being updated.</li>
-<li>Numeric literals (3, 2.5, 1e-4, .5).</li>
-<li>Arithmetic operators</li>
-<li>Elementary functions</li>
-<li>Comparisons</li>
-<li>Logic</li>
-<li>Branchless selection</li>
-</ul>
-<div id="0b015ad2" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 + c1*t1"</span>            <span class="co"># the default linear inner product (Σ cₖ·tₖ)</span></span>
-<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 * c1*t1"</span>            <span class="co"># product form (same as weight_mode='log')</span></span>
-<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 / (1 + c1*t1)"</span>      <span class="co"># ratio / saturating rate</span></span>
-<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**2"</span>                    <span class="co"># power (right-assoc: 2**3**2 == 2**(3**2) == 512)</span></span>
-<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**c0"</span>                   <span class="co"># power with a per-edge exponent</span></span>
-<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a><span class="co">"c0 * t0**2 + c1*t1"</span>       <span class="co"># precedence: ** &gt; * &gt; + (no parens needed)</span></span>
-<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a><span class="co">"-c0*t0 + c1"</span>              <span class="co"># unary minus  (note: result must stay ≥ 0)</span></span>
-<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="co">"2*t0 - 0.5*c0"</span>            <span class="co"># integer/float literals</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="weight-update-formula" class="level2">
+<h2 class="anchored" data-anchor-id="weight-update-formula">Weight update formula</h2>
+<p>For models where updating edge weights cannot be expressed as an inner product of parameters and edge coefficients, a callback update function can be passed to <code>graph.update_weights()</code>. For inference with SVGD, however, such non-linear weight updates must be expressed using a “weight formula” string that is compiled and made available to the C backend.</p>
+<p>The weight formula string may include <code>t0</code>, <code>t1</code>, … representing the scalars of the <code>theta</code> parameter vector, <code>c0</code>, <code>c1</code>, … representing the coefficient vector of the edge being updated. numeric literals (3, 2.5, 1e-4, .5), arithmetic operators, elementary functions, comparisons, logic, branchless selection. The weight formula producing the default inner product would be <code>'c0*t0 + c1*t1 + c2*t2'</code>.</p>
+<p>The weight formula is added as an attribute to the graph, but can also be passed as a keyword argument to <code>graph.svgd()</code>.</p>
+<div id="11b72c14" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>graph.weight_formula <span class="op">=</span> <span class="st">"c0*t0"</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>graph.svgd(observed_data)</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="co"># or</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="co"># graph.svgd(observed_data, weight_formula="c0*t0")</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Elementary functions: <code>exp</code> <code>log</code> <code>sqrt</code> <code>logistic</code> <code>pow</code></p>
-<div id="ef881be6" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1)"</span>       <span class="co"># log-link (always positive) — classic GLM rate</span></span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(-c0*t0)"</span>              <span class="co"># decaying rate (resistance-style)</span></span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="co">"log(c0*t0)"</span>              <span class="co"># requires c0*t0 &gt; 0, else NaN → raises</span></span>
-<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="co">"sqrt(c0*t0)"</span>             <span class="co"># requires argument ≥ 0</span></span>
-<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic(c0*t0)"</span>         <span class="co"># numerically-stable 1/(1+exp(-·)) ∈ (0,1)</span></span>
-<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a><span class="co">"pow(t0, c0)"</span>             <span class="co"># same as t0**c0 (2-arg form)</span></span>
-<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a><span class="co">"c2 * logistic(c0*t0) + 1e-3"</span>   <span class="co"># bounded rate with a small floor</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>'c2 * logistic(c0*t0) + 1e-3'</code></pre>
+<p>Here are some example uses:</p>
+<div id="0b015ad2" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Basic arithmetics:</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 + c1*t1"</span>            <span class="co"># the default linear inner product (Σ cₖ·tₖ)</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 * c1*t1"</span>            <span class="co"># product form (same as weight_mode='log')</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 / (1 + c1*t1)"</span>      <span class="co"># ratio / saturating rate</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**2"</span>                    <span class="co"># power (right-assoc: 2**3**2 == 2**(3**2) == 512)</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**c0"</span>                   <span class="co"># power with a per-edge exponent</span></span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a><span class="co">"c0 * t0**2 + c1*t1"</span>       <span class="co"># precedence: ** &gt; * &gt; + (no parens needed)</span></span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a><span class="co">"-c0*t0 + c1"</span>              <span class="co"># unary minus  (note: result must stay ≥ 0)</span></span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a><span class="co">"2*t0 - 0.5*c0"</span>            <span class="co"># integer/float literals</span></span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Elementary functions: exp log sqrt logistic pow</span></span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1)"</span>       <span class="co"># log-link (always positive) — classic GLM rate</span></span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(-c0*t0)"</span>              <span class="co"># decaying rate (resistance-style)</span></span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a><span class="co">"log(c0*t0)"</span>              <span class="co"># requires c0*t0 &gt; 0, else NaN → raises</span></span>
+<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a><span class="co">"sqrt(c0*t0)"</span>             <span class="co"># requires argument ≥ 0</span></span>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic(c0*t0)"</span>         <span class="co"># numerically-stable 1/(1+exp(-·)) ∈ (0,1)</span></span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a><span class="co">"pow(t0, c0)"</span>             <span class="co"># same as t0**c0 (2-arg form)</span></span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a><span class="co">"c2 * logistic(c0*t0) + 1e-3"</span>   <span class="co"># bounded rate with a small floor</span></span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Comparisons: ==  !=  &lt;  &gt;  &lt;=  &gt;= delta (Kronecker)</span></span>
+<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, c1)"</span>           <span class="co"># 1.0 if c0 == c1 else 0.0  (sugar for c0 == c1)</span></span>
+<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, 3) * c1*t0"</span>    <span class="co"># this term active only on edges where c0 == 3</span></span>
+<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &lt; c1) * t0"</span>          <span class="co"># gate a term by an edge-structural comparison</span></span>
+<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &gt;= 2) * c1*t1"</span></span>
+<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Logic (nonzero = true): and or not</span></span>
+<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a><span class="co">"and(c0 == 3, c1 &lt; 2)"</span>            <span class="co"># 1.0 iff both hold</span></span>
+<span id="cb56-28"><a href="#cb56-28" aria-hidden="true" tabindex="-1"></a><span class="co">"or(c0 == 0, c1 == 0) * t0"</span>       <span class="co"># term active if either coeff is zero</span></span>
+<span id="cb56-29"><a href="#cb56-29" aria-hidden="true" tabindex="-1"></a><span class="co">"not(c0) * t1"</span>                    <span class="co"># active only where c0 == 0</span></span>
+<span id="cb56-30"><a href="#cb56-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-31"><a href="#cb56-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Branchless selection: select(cond, a, b) corresponds to cond ? a : b</span></span>
+<span id="cb56-32"><a href="#cb56-32" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 == 3, c1*t0, c2*t1)"</span>               <span class="co"># pick a branch by edge type</span></span>
+<span id="cb56-33"><a href="#cb56-33" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0,c1)*t0 + (1 - delta(c0,c1))*t1"</span>     <span class="co"># partition-of-unity (same idea)</span></span>
+<span id="cb56-34"><a href="#cb56-34" aria-hidden="true" tabindex="-1"></a><span class="co">"select(and(c0 == 3, c1 &lt; 2), c2*t0, t1)"</span>     <span class="co"># compound condition</span></span>
+<span id="cb56-35"><a href="#cb56-35" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; c1, exp(c2*t0), c2*t0)"</span>          <span class="co"># different functional forms per edge </span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>'select(c0 &gt; c1, exp(c2*t0), c2*t0)'</code></pre>
 </div>
 </div>
-<p>Comparisons: <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code>, and <code>delta</code> (Kronecker)</p>
-<div id="b0d8500e" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, c1)"</span>           <span class="co"># 1.0 if c0 == c1 else 0.0  (sugar for c0 == c1)</span></span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, 3) * c1*t0"</span>    <span class="co"># this term active only on edges where c0 == 3</span></span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &lt; c1) * t0"</span>          <span class="co"># gate a term by an edge-structural comparison</span></span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &gt;= 2) * c1*t1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="2">
-<pre><code>'(c0 &gt;= 2) * c1*t1'</code></pre>
-</div>
-</div>
-<p>Logic (nonzero = true): <code>and</code> <code>or</code> <code>not</code></p>
-<div id="f1a0e4b8" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co">"and(c0 == 3, c1 &lt; 2)"</span>            <span class="co"># 1.0 iff both hold</span></span>
-<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="co">"or(c0 == 0, c1 == 0) * t0"</span>       <span class="co"># term active if either coeff is zero</span></span>
-<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="co">"not(c0) * t1"</span>                    <span class="co"># active only where c0 == 0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>'not(c0) * t1'</code></pre>
-</div>
-</div>
-<p>Branchless selection: select(cond, a, b) → (cond≠0) ? a : b</p>
-<div id="371f2298" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 == 3, c1*t0, c2*t1)"</span>               <span class="co"># pick a branch by edge type</span></span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0,c1)*t0 + (1 - delta(c0,c1))*t1"</span>     <span class="co"># partition-of-unity (same idea)</span></span>
-<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="co">"select(and(c0 == 3, c1 &lt; 2), c2*t0, t1)"</span>     <span class="co"># compound condition</span></span>
-<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; c1, exp(c2*t0), c2*t0)"</span>          <span class="co"># different functional forms per edge</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
+<p>As with the the <code>callback</code> argument to <code>update_weights</code>, the (theta) vector can be shorter than the coefficient vectors. Just pass the <code>param_length</code> keyword argument to the <code>Graph</code> constructor. Allowing for more coefficients is handy if you need to pass more information to the callback function in order to update edge weights.</p>
 <div class="callout callout-style-default callout-warning no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1300,9 +1293,9 @@ Particles: 20, Iterations: 1000</code></pre>
 <ol type="1">
 <li>Conditions cannot depend on the values of <code>theta</code>: The operands of == != &lt; &gt; &lt;= &gt;=, of delta, of and/or/not, and the first argument of select can use constants and <code>c0</code>, <code>c1</code>, … but not <code>t0</code>, <code>t1</code>, … . The value branches of select may use <code>theta</code> freely. For smooth gating on <code>theta</code>, use <code>logistic(...)</code>.</li>
 </ol>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co">"select(t0 &gt; c0, t1, t2)"</span>   <span class="co"># will raise exception because condition depends on theta</span></span>
-<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 1, t1, t2)"</span>    <span class="co"># ok, because condition depends only coefficients and constants</span></span>
-<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic((t0 - c0)*10)*t1 + (1 - logistic((t0 - c0)*10))*t2"</span>  <span class="co"># smooth θ-gate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co">"select(t0 &gt; c0, t1, t2)"</span>   <span class="co"># will raise exception because condition depends on theta</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 1, t1, t2)"</span>    <span class="co"># ok, because condition depends only coefficients and constants</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic((t0 - c0)*10)*t1 + (1 - logistic((t0 - c0)*10))*t2"</span>  <span class="co"># smooth θ-gate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <ol start="2" type="1">
 <li>Weights must be finite and non-negative. The following will raise an exception: <code>log</code>/<code>sqrt</code> of <code>&lt;= 0</code>, <code>pow</code> of a negative base, division by zero, or a negative result.</li>
 </ol>
@@ -1310,14 +1303,14 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 <p>Examples:</p>
 <div id="b5bb53b8" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescent-with-exposure-style: log-link rate with a per-edge offset</span></span>
-<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1) + c2"</span></span>
-<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Migration on/off per edge (c2 is a 0/1 edge flag), with a log-link base rate</span></span>
-<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c2 == 1, exp(c0*t0), 0.0) + c1*t1"</span></span>
-<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Piecewise: one rate law for coalescent edges (c0&gt;0), another for mutation edges</span></span>
-<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 0, c0*t0, c1*t1)"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescent-with-exposure-style: log-link rate with a per-edge offset</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1) + c2"</span></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Migration on/off per edge (c2 is a 0/1 edge flag), with a log-link base rate</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c2 == 1, exp(c0*t0), 0.0) + c1*t1"</span></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Piecewise: one rate law for coalescent edges (c0&gt;0), another for mutation edges</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 0, c0*t0, c1*t1)"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1329,13 +1322,18 @@ Tip
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Quick way to sanity-check any of these before SVGD:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights(theta, weight_formula<span class="op">=</span><span class="st">"exp(c0*t0 + c1*t1)"</span>)</span>
-<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>graph.pdf(times)   <span class="co"># inspect the resulting density</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-
-
+<p>The <code>weight_formula</code> argument can also be passed to <code>graph.update_weights()</code>. This is useful for testing formulas before running SVGD:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights(theta, weight_formula<span class="op">=</span><span class="st">"c0*t0 + c1*t1"</span>)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>If you need to debug your formula, you can create the a corresponding Python callback returning the formula expressed using the <code>c</code> and <code>t</code> variables:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> weight_update(theta, edge_coefficients):</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>    t0, t1 <span class="op">=</span> theta</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>    c0, c1 <span class="op">=</span> edge_coefficients</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> c0<span class="op">*</span>t0 <span class="op">+</span> c1<span class="op">*</span>t1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
+
+
 </section>
 
 </main> <!-- /main -->
