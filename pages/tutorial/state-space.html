@@ -338,7 +338,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/model-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model selection (AIC, BIC, likelihood-ratio tests)</span></a>
+ <span class="menu-text">AIC, BIC, LR test</span></a>
   </div>
 </li>
       </ul>
@@ -751,12 +751,12 @@ Figure&nbsp;2
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>ipv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If the ipv only has a single state <code>Graph</code> also accepts just the single state without the rate of 1:</p>
-<div id="cell-fig-coalescent-callback-simpleipv" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.419263Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.419149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.560127Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.559410Z&quot;}}" data-execution_count="10">
+<div id="cell-fig-coalescent-callback-simpleipv" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.419263Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.419149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.560127Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.559410Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>ipv)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell-output cell-output-display" data-execution_count="12">
 <div id="fig-coalescent-callback-simpleipv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-callback-simpleipv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">

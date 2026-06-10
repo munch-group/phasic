@@ -286,6 +286,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Custom callback for computing edge weights from theta and coefficients.</td>
 </tr>
 <tr class="even">
+<td><a href="#phasic.Graph.weight_formula">weight_formula</a></td>
+<td>Per-edge weight formula string, evaluated in C (<code>weight_mode='formula'</code>).</td>
+</tr>
+<tr class="odd">
 <td><a href="#phasic.Graph.weight_mode">weight_mode</a></td>
 <td>Weight computation mode for parameterized edges.</td>
 </tr>
@@ -1937,25 +1941,26 @@ subject to  theta &gt; 0</code></pre>
 <span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>    color_by<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>    color_by_cmap<span class="op">=</span><span class="st">'viridis'</span>,</span>
 <span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>    color_by_lim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>    subgraphfun<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a>    by_state<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>    by_index<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>    max_nodes<span class="op">=</span><span class="dv">100</span>,</span>
-<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>    dark<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>    constraint<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a>    ranksep<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>    nodesep<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>    rankdir<span class="op">=</span><span class="st">'LR'</span>,</span>
-<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    size<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">7</span>),</span>
-<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>    fontsize<span class="op">=</span><span class="dv">12</span>,</span>
-<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a>    rainbow<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>    penwidth<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a>    taillabel<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a>    graph_attr<span class="op">=</span>{},</span>
-<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a>    node_attr<span class="op">=</span>{},</span>
-<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a>    edge_attr<span class="op">=</span>{},</span>
-<span id="cb56-28"><a href="#cb56-28" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>    color_by_alpha<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a>    subgraphfun<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>    by_state<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>    by_index<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>    max_nodes<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>    dark<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a>    constraint<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>    ranksep<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>    nodesep<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    rankdir<span class="op">=</span><span class="st">'LR'</span>,</span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>    size<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">7</span>),</span>
+<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a>    fontsize<span class="op">=</span><span class="dv">12</span>,</span>
+<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>    rainbow<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a>    penwidth<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    taillabel<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb56-25"><a href="#cb56-25" aria-hidden="true" tabindex="-1"></a>    seed<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb56-26"><a href="#cb56-26" aria-hidden="true" tabindex="-1"></a>    graph_attr<span class="op">=</span>{},</span>
+<span id="cb56-27"><a href="#cb56-27" aria-hidden="true" tabindex="-1"></a>    node_attr<span class="op">=</span>{},</span>
+<span id="cb56-28"><a href="#cb56-28" aria-hidden="true" tabindex="-1"></a>    edge_attr<span class="op">=</span>{},</span>
+<span id="cb56-29"><a href="#cb56-29" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot a graph using graphviz.</p>
 <section id="parameters-25" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-25">Parameters</h4>
@@ -1991,6 +1996,10 @@ subject to  theta &gt; 0</code></pre>
 <dt><code><span class="parameter-name"><strong>color_by_lim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Tuple</code>[<code>float</code>] | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>Color map min, max limits for use with color_by. Default is min and max of values given by color_by.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>color_by_alpha</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>float</code> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1.0</span></code></dt>
+<dd>
+<p>Alpha value for node fill color with color_by.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>subgraphfun</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>Callable</code>[…, <code>str</code>] | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -2149,7 +2158,8 @@ subject to  theta &gt; 0</code></pre>
 <span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>    fixed_mask<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Convert a parameterized Graph to a function that computes both PMF/PDF and moments.</p>
 <p>This is more efficient than calling <code>pmf_from_graph()</code> and <code>moments_from_graph()</code> separately because it builds the graph once and computes both quantities.</p>
 <section id="parameters-27" class="level4 doc-section doc-section-parameters">
@@ -2227,7 +2237,8 @@ subject to  theta &gt; 0</code></pre>
 <span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>    discrete<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>    use_ffi<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a>    fixed_mask<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Create a multivariate phase-type model that handles 2D observations and rewards.</p>
 <p>This wrapper enables computing joint likelihoods for multivariate phase-type distributions where each feature dimension has its own reward vector defining the marginal distribution.</p>
 <section id="parameters-28" class="level4 doc-section doc-section-parameters">
@@ -3122,17 +3133,18 @@ subject to  theta &gt; 0</code></pre>
 <span id="cb96-27"><a href="#cb96-27" aria-hidden="true" tabindex="-1"></a>    fixed<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb96-28"><a href="#cb96-28" aria-hidden="true" tabindex="-1"></a>    tied<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb96-29"><a href="#cb96-29" aria-hidden="true" tabindex="-1"></a>    callback<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-30"><a href="#cb96-30" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'auto'</span>,</span>
-<span id="cb96-31"><a href="#cb96-31" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-32"><a href="#cb96-32" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-33"><a href="#cb96-33" aria-hidden="true" tabindex="-1"></a>    daisy_chain_granularity<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb96-34"><a href="#cb96-34" aria-hidden="true" tabindex="-1"></a>    daisy_chain_probe_theta<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-35"><a href="#cb96-35" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval_tol<span class="op">=</span><span class="fl">0.001</span>,</span>
-<span id="cb96-36"><a href="#cb96-36" aria-hidden="true" tabindex="-1"></a>    final_read<span class="op">=</span><span class="st">'sojourn'</span>,</span>
-<span id="cb96-37"><a href="#cb96-37" aria-hidden="true" tabindex="-1"></a>    exposure<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-38"><a href="#cb96-38" aria-hidden="true" tabindex="-1"></a>    exposure_param_index<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb96-39"><a href="#cb96-39" aria-hidden="true" tabindex="-1"></a>    validate_rewards<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb96-40"><a href="#cb96-40" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb96-30"><a href="#cb96-30" aria-hidden="true" tabindex="-1"></a>    weight_formula<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-31"><a href="#cb96-31" aria-hidden="true" tabindex="-1"></a>    preconditioner<span class="op">=</span><span class="st">'auto'</span>,</span>
+<span id="cb96-32"><a href="#cb96-32" aria-hidden="true" tabindex="-1"></a>    epoch_starts<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-33"><a href="#cb96-33" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-34"><a href="#cb96-34" aria-hidden="true" tabindex="-1"></a>    daisy_chain_granularity<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb96-35"><a href="#cb96-35" aria-hidden="true" tabindex="-1"></a>    daisy_chain_probe_theta<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-36"><a href="#cb96-36" aria-hidden="true" tabindex="-1"></a>    daisy_chain_t_eval_tol<span class="op">=</span><span class="fl">0.001</span>,</span>
+<span id="cb96-37"><a href="#cb96-37" aria-hidden="true" tabindex="-1"></a>    final_read<span class="op">=</span><span class="st">'sojourn'</span>,</span>
+<span id="cb96-38"><a href="#cb96-38" aria-hidden="true" tabindex="-1"></a>    exposure<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-39"><a href="#cb96-39" aria-hidden="true" tabindex="-1"></a>    exposure_param_index<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb96-40"><a href="#cb96-40" aria-hidden="true" tabindex="-1"></a>    validate_rewards<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb96-41"><a href="#cb96-41" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.</p>
 <p>SVGD finds the posterior distribution p(theta | data) by optimizing a set of particles to approximate the posterior. This method works with parameterized models created by pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, times).</p>
 <section id="parameters-45" class="level4 doc-section doc-section-parameters">
@@ -3363,7 +3375,12 @@ subject to  theta &gt; 0</code></pre>
 </section>
 <section id="phasic.Graph.update_weights" class="level3">
 <h3 class="anchored" data-anchor-id="phasic.Graph.update_weights">update_weights</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb99"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_weights(theta, callback<span class="op">=</span><span class="va">None</span>, log<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb99"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>phasic.Graph.update_weights(</span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>    theta,</span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>    callback<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a>    log<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a>    weight_formula<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Update parameterized edge weights with given parameters.</p>
 <p>This method wraps the C++ implementation to cache theta for use with trace-based computation.</p>
 <section id="parameters-47" class="level4 doc-section doc-section-parameters">
@@ -3375,11 +3392,15 @@ subject to  theta &gt; 0</code></pre>
 </dd>
 <dt><code><span class="parameter-name"><strong>callback</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>callable</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>Custom callback for weight computation.</p>
+<p>Custom callback for weight computation. Mutually exclusive with <code>weight_formula</code>.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>log</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
 <p>If True, use log-space computation.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>weight_formula</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>A weight formula string (see :attr:<code>weight_formula</code>). One-shot: this call’s edge weights are computed from the formula in C, but the graph’s persistent <code>weight_mode</code> is left unchanged (mirrors the <code>callback</code> argument). Useful for verifying a formula via <code>graph.pdf(...)</code> before running SVGD. Mutually exclusive with <code>callback</code>.</p>
 </dd>
 </dl>
 </section>

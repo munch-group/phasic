@@ -309,7 +309,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/model-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model selection (AIC, BIC, likelihood-ratio tests)</span></a>
+ <span class="menu-text">AIC, BIC, LR test</span></a>
   </div>
 </li>
       </ul>
@@ -431,7 +431,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><code>[[state[i]*(state[j]-same)/(1+same), 0]</code></p>
 <p>Similarly the recombination rate is no longer <code>R</code> but <code>[0, 1]</code>.</p>
 <p>A parameter vector of <code>[1/N, R]</code> will then produce the appropriate edge weights.</p>
-<div id="49875faf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:52.880745Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:52.880658Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:54.872358Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:54.871716Z&quot;}}" data-execution_count="1">
+<div id="49875faf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:52.880745Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:52.880658Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:54.872358Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:54.871716Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, Property, set_log_level</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -527,7 +527,7 @@ table {
         
 </div>
 </div>
-<div id="4bc81153" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:54.874059Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:54.873873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.154971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.154526Z&quot;}}" data-execution_count="2">
+<div id="4bc81153" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:54.874059Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:54.873873Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.154971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.154526Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(descendants<span class="op">=</span>[</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    Property(<span class="st">'loc1'</span>, max_value<span class="op">=</span>nr_samples),</span>
@@ -578,23 +578,36 @@ table {
 <span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(two_locus_arg_2param, indexer<span class="op">=</span>indexer) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If you forget, you can get the number of parameters by calling:</p>
-<div id="27f87da6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.156648Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.156553Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.158362Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.157928Z&quot;}}" data-execution_count="3">
+<div id="27f87da6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.156648Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.156553Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.158362Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.157928Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># graph.param_length()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Having defined the graph with edge coefficients rather than fixed weights, we can now update the weights with specific parameter values and compute expectations. Here, we set the coalescence rate to (1/N) and the recombination rate to (R) and compute the expectation:</p>
-<div id="4321658e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.159702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.159615Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.162119Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.161729Z&quot;}}" data-execution_count="4">
+<div id="4321658e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.159702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.159615Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.162119Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.161729Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span><span class="dv">3</span>, <span class="dv">5</span>])</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>8.739444330879316</code></pre>
-</div>
-</div>
-<p>The new weights are computed as the the dot product of the edge coefficients and the vector of parameters passed to <code>update_weights</code> (parameters*coefficients). This covers most use cases, but for full flexibility you can pass a callback function <code>callback(parameters, coefficients) -&gt; weight</code>. The example below is the same as the default behaviour:</p>
-<div id="d617fdea" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.163502Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.163391Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.167332Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.166902Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span><span class="dv">3</span>, <span class="dv">5</span>], callback <span class="op">=</span> <span class="kw">lambda</span> param, coef: np.<span class="bu">sum</span>(param <span class="op">*</span> coef))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>8.739444330879316</code></pre>
+</div>
+</div>
+<p>The new weights are computed as the inner product of the edge coefficients and the vector of parameters passed to <code>update_weights</code> (parameters*coefficients). This covers most use cases, but for full flexibility you can pass a function <code>callback(parameters, coefficients) -&gt; weight</code>. The example below is the same as the default behavior:</p>
+<div id="d617fdea" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:22:55.163502Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:22:55.163391Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:22:55.167332Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:22:55.166902Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights([<span class="dv">1</span><span class="op">/</span><span class="dv">3</span>, <span class="dv">5</span>], callback <span class="op">=</span> <span class="kw">lambda</span> param, coef: np.<span class="bu">sum</span>(param <span class="op">*</span> coef))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>8.739444330879316</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The Python callback cannot be efficiently used in SVGD inference that runs entirely on the C side. For this purpose you can instead specify a weight formula specifying how weights should be updated. With weight formula producing the default inner product would be <code>'c0*t0 + c1*t1'</code>. See the tutorial on <a href="../../pages/tutorial/svgd-basics.html">SVGD inference</a> for further detail.</p>
 </div>
 </div>
 <p>Now we can compute moments and distributions for different values of N and R without reconstructing the graph:</p>

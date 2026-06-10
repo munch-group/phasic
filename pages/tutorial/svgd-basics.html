@@ -338,7 +338,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/model-selection.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model selection (AIC, BIC, likelihood-ratio tests)</span></a>
+ <span class="menu-text">AIC, BIC, LR test</span></a>
   </div>
 </li>
       </ul>
@@ -426,6 +426,7 @@ window.Quarto = {
   <li><a href="#bayesian-inference-with-svgd-stein-variational-gradient-descent" id="toc-bayesian-inference-with-svgd-stein-variational-gradient-descent" class="nav-link active" data-scroll-target="#bayesian-inference-with-svgd-stein-variational-gradient-descent">Bayesian Inference with SVGD (Stein Variational Gradient Descent)</a></li>
   <li><a href="#prior" id="toc-prior" class="nav-link" data-scroll-target="#prior">Prior</a></li>
   <li><a href="#adaptive-optimizers" id="toc-adaptive-optimizers" class="nav-link" data-scroll-target="#adaptive-optimizers">Adaptive optimizers</a></li>
+  <li><a href="#weight-formula-for-flexible-weight-update" id="toc-weight-formula-for-flexible-weight-update" class="nav-link" data-scroll-target="#weight-formula-for-flexible-weight-update">Weight formula for flexible weight update</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-basics.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-basics.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
@@ -455,9 +456,9 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="bayesian-inference-with-svgd-stein-variational-gradient-descent">Bayesian Inference with SVGD (Stein Variational Gradient Descent)</h2>
 <p>To estimate model parameters and their confidence intervals, Phasic used uses Stein Variational Gradient Descent (SVGD), which represents the posterior with a set of particles (parameter vectors) and combines ideas from optimization, kernel methods, and functional analysis in a deterministic algorithm that updates these particles iteratively to move them toward the posterior distribution. SVGD exploits the PDF for gradient computation and moments for regularization. It begins with an initial set of particles (typically drawn from the prior or from a simple distribution) and iteratively transport these particles toward the posterior using gradient information. Each particle interacts with all other particles through a kernel function, with the interaction strength depending on the distance between particles. This interaction ensures that particles spread out to cover the posterior distribution, allowing extraction of not only the most likely parameter value (MAP estimate) but also a confidence interval of the estimate.</p>
 <p>Such inference is not possible in the standard matrix formulation of phase-type distributions where the large number of likelihood computations required would each be <span class="math inline">\(O(n^3)\)</span>. In Phasic, the algorithm of the gaussian elimination on the graph fully exploits the sparseness of state spaces bringing the complexity closer to <span class="math inline">\(n^2\)</span>. Because Phasic records and caches the elimination trace, this computation is only done once, removing a dimension of complexity for all subsequent likelihood evaluations. For an expose of these tricks and innovations see <a href="../../mathref/index.qmd">Math and Algorithms</a>, <a href="../internals/architecture.qmd">Architecture</a>, <a href="./trace-and-jax-caching.ipynb">Caching</a> and <a href="./sharing.ipynb">Sharing</a>.</p>
-<div id="1a345d01" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:24:30.355845Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:24:30.355745Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:24:32.545819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:24:32.543992Z&quot;}}" data-execution_count="1">
+<div id="1a345d01" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:24:30.355845Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:24:30.355745Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:24:32.545819Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:24:32.543992Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, HalfCauchyPrior, DataPrior,</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GaussPrior, LogGaussPrior, HalfCauchyPrior, DataPrior,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Adam, ExpStepSize, ExpRegularization, clear_caches, set_log_level</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -566,8 +567,7 @@ table {
 <pre><code>[INFO] phasic.graph_cache: Cleared 0 cached graphs</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  Removed 172 file(s), preserved directory structure
-  Removed 1 file(s), preserved directory structure</code></pre>
+<pre><code>  Removed 26 file(s), preserved directory structure</code></pre>
 </div>
 </div>
 <p>Lets make a coalescent moddel with one parameter, the coalescent rate:</p>
@@ -722,6 +722,29 @@ Particles: 20, Iterations: 200</code></pre>
 </div>
 </div>
 </div>
+<p>Phasic also has a <code>LogGaussPrior</code> for stating prior belief in terms of “orders of magnitude”:</p>
+<div id="e619ca4c" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>prior <span class="op">=</span> LogGaussPrior(ci<span class="op">=</span>[<span class="fl">1e-7</span>, <span class="fl">1e-2</span>])</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>prior.plot()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-16-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="svgd-basics_files/figure-html/cell-16-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="0f114563" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>prior <span class="op">=</span> LogGaussPrior(mean<span class="op">=</span><span class="fl">1e-3</span>, std<span class="op">=</span><span class="dv">2</span>) </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>prior.plot()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-17-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="svgd-basics_files/figure-html/cell-17-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
 <div class="callout callout-style-default callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -737,20 +760,20 @@ Tip
 </div>
 <p>Lets add the prior to SVGD inference and rerun it.</p>
 <div id="6bc624bc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:24:47.739459Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:24:47.739286Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:26:11.185147Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:26:11.164305Z&quot;}}" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                  )</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                  )</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-16-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="svgd-basics_files/figure-html/cell-16-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-18-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="svgd-basics_files/figure-html/cell-18-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="02833faf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:26:11.192421Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:26:11.191743Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:26:14.299914Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:26:14.298968Z&quot;}}" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>svgd.analyze_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>svgd.analyze_trace()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>CONVERGED (iteration 242/1002)
   Mean stabilized at iteration 242
@@ -768,35 +791,9 @@ Iterations: Converged early
 </div>
 <p>That is better, but it still does not converge to the true theta value. We can change the learning rate from its default value of 0.01:</p>
 <div id="6a0a33b8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:26:14.301969Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:26:14.301794Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:27:57.465086Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:27:57.464000Z&quot;}}" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior, </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span><span class="fl">0.05</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                  )</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-18-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="svgd-basics_files/figure-html/cell-18-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Or even better, we can make the learning rate start our large and decay exponentially during training:</p>
-<div id="fd95aa6b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:27:57.467673Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:27:57.467493Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:27:57.735729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:27:57.735141Z&quot;}}" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>step_schedule <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>step_schedule.plot(<span class="dv">100</span>)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-19-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="svgd-basics_files/figure-html/cell-19-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="a75b77bf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:27:57.737643Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:27:57.737487Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:23.135248Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:23.133844Z&quot;}}" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior, </span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step_schedule</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span><span class="fl">0.05</span></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>                  )</span>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
@@ -807,9 +804,10 @@ Iterations: Converged early
 </div>
 </div>
 </div>
-<p>To see how the posteorior evolves over iterations, we can plot both mean and Std:</p>
-<div id="9dc0f66c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:23.147145Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:23.146738Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:25.395891Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:25.395343Z&quot;}}" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Or even better, we can make the learning rate start our large and decay exponentially during training:</p>
+<div id="fd95aa6b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:27:57.467673Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:27:57.467493Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:27:57.735729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:27:57.735141Z&quot;}}" data-execution_count="18">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>step_schedule <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.05</span>, last_step<span class="op">=</span><span class="fl">0.01</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>step_schedule.plot(<span class="dv">100</span>)<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -818,33 +816,58 @@ Iterations: Converged early
 </div>
 </div>
 </div>
-<div id="96234822" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:25.431823Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:25.428360Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:25.451479Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:25.448267Z&quot;}}" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#svgd.animate(duration=5)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>We can also help optimization by applying moment regularization across iterations:</p>
-<div id="884a2603" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:25.462043Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:25.460586Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:26.444861Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:26.442190Z&quot;}}" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>reg_schedule <span class="op">=</span> ExpRegularization(first_reg<span class="op">=</span><span class="fl">10.0</span>, last_reg<span class="op">=</span><span class="fl">0.1</span>, tau<span class="op">=</span><span class="fl">20.0</span>)</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>reg_schedule.plot(<span class="dv">100</span>) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a75b77bf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:27:57.737643Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:27:57.737487Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:23.135248Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:23.133844Z&quot;}}" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior, </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step_schedule</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                  )</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-23-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-14"><img src="svgd-basics_files/figure-html/cell-23-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-22-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-14"><img src="svgd-basics_files/figure-html/cell-22-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<p>To see how the posteorior evolves over iterations, we can plot both mean and Std:</p>
+<div id="9dc0f66c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:23.147145Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:23.146738Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:25.395891Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:25.395343Z&quot;}}" data-execution_count="20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-23-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="svgd-basics_files/figure-html/cell-23-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="96234822" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:25.431823Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:25.428360Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:25.451479Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:25.448267Z&quot;}}" data-execution_count="21">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">#svgd.animate(duration=5)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>We can also help optimization by applying moment regularization across iterations:</p>
+<div id="884a2603" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:25.462043Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:25.460586Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:37:26.444861Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:37:26.442190Z&quot;}}" data-execution_count="22">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>reg_schedule <span class="op">=</span> ExpRegularization(first_reg<span class="op">=</span><span class="fl">10.0</span>, last_reg<span class="op">=</span><span class="fl">0.1</span>, tau<span class="op">=</span><span class="fl">20.0</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>reg_schedule.plot(<span class="dv">100</span>) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-25-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="svgd-basics_files/figure-html/cell-25-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="d93429ea" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:37:26.450228Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:37:26.449425Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:39:55.452293Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:39:55.450431Z&quot;}}" data-execution_count="23">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior, </span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step_schedule,</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>                  regularization<span class="op">=</span>reg_schedule,</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                  nr_moments<span class="op">=</span><span class="dv">2</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                  )</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(observed_data, </span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                  prior<span class="op">=</span>prior, </span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                  learning_rate<span class="op">=</span>step_schedule,</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>                  regularization<span class="op">=</span>reg_schedule,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>                  nr_moments<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                  )</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-24-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-15"><img src="svgd-basics_files/figure-html/cell-24-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-26-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-17"><img src="svgd-basics_files/figure-html/cell-26-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -852,36 +875,36 @@ Iterations: Converged early
 <p>It does not contribute much in this case that already converges, but for more complex models using regularization can help stabilize the optimization.</p>
 <p>Posterior predictive checks</p>
 <div id="320c0a7a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:39:55.457333Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:39:55.457136Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:39:57.185693Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:39:57.185172Z&quot;}}" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> ecdf</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ECDF for observed data</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> ecdf(observed_data)</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>x, ecdf <span class="op">=</span> res.cdf.quantiles, res.cdf.probabilities</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">3</span>))</span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>sns.histplot(observed_data,</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>             kde<span class="op">=</span><span class="va">False</span>, stat<span class="op">=</span><span class="st">'density'</span>, label<span class="op">=</span><span class="st">'Data'</span>, ax<span class="op">=</span>ax1)</span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>graph.update_weights(svgd.get_results()[<span class="st">'theta_mean'</span>])</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>ax1.plot(x, graph.pdf(x), lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'PDF'</span>)</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Reward (time)'</span>)</span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'PDF'</span>)</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>ax2.plot(x, ecdf, lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'ECDF'</span>)</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>ax2.plot(x, graph.cdf(x), lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'CDF'</span>)</span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">'Reward (time)'</span>)</span>
-<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">'CDF'</span>)</span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>ax2.legend() </span>
-<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>ax3 <span class="op">=</span> ax2.twinx()</span>
-<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>ax3.plot(x, graph.cdf(x)<span class="op">-</span>ecdf, lw<span class="op">=</span><span class="fl">0.5</span>, c<span class="op">=</span><span class="st">'C2'</span>, </span>
-<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.5</span>,label<span class="op">=</span><span class="st">'CDF-ECDF'</span>)</span>
-<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">False</span>)</span>
-<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">'CDF - ECDF'</span>, color<span class="op">=</span><span class="st">'C2'</span>)</span>
-<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>ax3.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, colors<span class="op">=</span><span class="st">'C2'</span>)</span>
-<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> ecdf</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ECDF for observed data</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> ecdf(observed_data)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>x, ecdf <span class="op">=</span> res.cdf.quantiles, res.cdf.probabilities</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">3</span>))</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>sns.histplot(observed_data,</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>             kde<span class="op">=</span><span class="va">False</span>, stat<span class="op">=</span><span class="st">'density'</span>, label<span class="op">=</span><span class="st">'Data'</span>, ax<span class="op">=</span>ax1)</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>graph.update_weights(svgd.get_results()[<span class="st">'theta_mean'</span>])</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>ax1.plot(x, graph.pdf(x), lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'PDF'</span>)</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'Reward (time)'</span>)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>ax1.set_title(<span class="st">'PDF'</span>)</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>ax2.plot(x, ecdf, lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C0'</span>, label<span class="op">=</span><span class="st">'ECDF'</span>)</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>ax2.plot(x, graph.cdf(x), lw<span class="op">=</span><span class="fl">1.5</span>, c<span class="op">=</span><span class="st">'C1'</span>, label<span class="op">=</span><span class="st">'CDF'</span>)</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">'Reward (time)'</span>)</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">'CDF'</span>)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>ax2.legend() </span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>ax3 <span class="op">=</span> ax2.twinx()</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>ax3.plot(x, graph.cdf(x)<span class="op">-</span>ecdf, lw<span class="op">=</span><span class="fl">0.5</span>, c<span class="op">=</span><span class="st">'C2'</span>, </span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.5</span>,label<span class="op">=</span><span class="st">'CDF-ECDF'</span>)</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">False</span>)</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">'CDF - ECDF'</span>, color<span class="op">=</span><span class="st">'C2'</span>)</span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>ax3.tick_params(axis<span class="op">=</span><span class="st">'y'</span>, colors<span class="op">=</span><span class="st">'C2'</span>)</span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-25-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-16"><img src="svgd-basics_files/figure-html/cell-25-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-27-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-18"><img src="svgd-basics_files/figure-html/cell-27-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -950,40 +973,40 @@ v &amp;\leftarrow \beta_2 \cdot v + (1 - \beta_2) \cdot g^2 \\[0.5em]
 </ul>
 <p><a href="https://arxiv.org/abs/1412.6980">Kingma and Ba (2014)</a> - Adam: A Method for Stochastic Optimization. arXiv:1412.6980.</p>
 <div id="611b6f91" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:39:57.196996Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:39:57.196841Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:39:57.199170Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:39:57.198678Z&quot;}}" data-execution_count="25">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adam(</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.001</span>,  <span class="co"># Base learning rate, scaled per-parameter by Adam (alpha)</span></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    beta1<span class="op">=</span><span class="fl">0.9</span>,            <span class="co"># Decay rate for first moment (momentum). Higher = more smoothing</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    beta2<span class="op">=</span><span class="fl">0.999</span>,          <span class="co"># Decay rate for second moment. Higher = longer memory of gradient magnitudes</span></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>          <span class="co"># Small constant to prevent division by zero</span></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adam(</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.001</span>,  <span class="co"># Base learning rate, scaled per-parameter by Adam (alpha)</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    beta1<span class="op">=</span><span class="fl">0.9</span>,            <span class="co"># Decay rate for first moment (momentum). Higher = more smoothing</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    beta2<span class="op">=</span><span class="fl">0.999</span>,          <span class="co"># Decay rate for second moment. Higher = longer memory of gradient magnitudes</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>          <span class="co"># Small constant to prevent division by zero</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="2cc5a7d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:39:57.200478Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:39:57.200365Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:40:45.323603Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:40:45.322721Z&quot;}}" data-execution_count="26">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> prior,</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(learning_rate<span class="op">=</span><span class="fl">0.25</span>),</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adam</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> prior,</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(learning_rate<span class="op">=</span><span class="fl">0.25</span>),</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-27-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-17"><img src="svgd-basics_files/figure-html/cell-27-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-29-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-19"><img src="svgd-basics_files/figure-html/cell-29-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <p>It can overcome even a misleading prior:</p>
 <div id="0126b668" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:40:45.327313Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:40:45.327116Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:41:36.687007Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:41:36.686338Z&quot;}}" data-execution_count="27">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">3</span>]),</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(learning_rate<span class="op">=</span><span class="fl">0.25</span>),</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">3</span>]),</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>Adam(learning_rate<span class="op">=</span><span class="fl">0.25</span>),</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
 0          No             7.024      7.006      0.05647    6.838        7.035       
@@ -992,31 +1015,31 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </div>
 <div id="e073625b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:41:36.689492Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:41:36.689345Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:41:38.356041Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:41:38.355537Z&quot;}}" data-execution_count="28">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-29-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-18"><img src="svgd-basics_files/figure-html/cell-29-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-31-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-20"><img src="svgd-basics_files/figure-html/cell-31-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="21f74b7f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:41:38.357705Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:41:38.357576Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:41:39.675039Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:41:39.674490Z&quot;}}" data-execution_count="29">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-30-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-19"><img src="svgd-basics_files/figure-html/cell-30-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-32-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-21"><img src="svgd-basics_files/figure-html/cell-32-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="98733bd4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:41:39.676830Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:41:39.676701Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:41:41.068480Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:41:41.067900Z&quot;}}" data-execution_count="30">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-31-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-20"><img src="svgd-basics_files/figure-html/cell-31-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-33-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22"><img src="svgd-basics_files/figure-html/cell-33-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1033,17 +1056,17 @@ v &amp;= m * v + g \\
 \]</span></p>
 <p>where <span class="math inline">\(g\)</span> is gradient <span class="math inline">\(l\)</span> is learning rate, and <span class="math inline">\(m\)</span> and <span class="math inline">\(v\)</span> are the first and second moments.</p>
 <div id="2e719144" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:41:41.070611Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:41:41.070489Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:42:31.324878Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:42:31.324148Z&quot;}}" data-execution_count="31">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> SGDMomentum</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> SGDMomentum(</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,  <span class="co"># Step size</span></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    momentum<span class="op">=</span><span class="fl">0.9</span>         <span class="co"># Momentum coefficient (0.9 standard, 0.99 high)</span></span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> SGDMomentum</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> SGDMomentum(</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,  <span class="co"># Step size</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    momentum<span class="op">=</span><span class="fl">0.9</span>         <span class="co"># Momentum coefficient (0.9 standard, 0.99 high)</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
 0          No             7.071      7.08       0.09459    6.855        7.243       
@@ -1052,31 +1075,31 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </div>
 <div id="ae85eb9f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:42:31.327324Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:42:31.327116Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:42:32.776158Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:42:32.775309Z&quot;}}" data-execution_count="32">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-33-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-21"><img src="svgd-basics_files/figure-html/cell-33-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-35-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-23"><img src="svgd-basics_files/figure-html/cell-35-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="b811e5da" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:42:32.778897Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:42:32.778735Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:42:34.298403Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:42:34.297267Z&quot;}}" data-execution_count="33">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-34-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-22"><img src="svgd-basics_files/figure-html/cell-34-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-36-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-24"><img src="svgd-basics_files/figure-html/cell-36-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="a818967b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:42:34.300388Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:42:34.300261Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:42:36.097321Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:42:36.096757Z&quot;}}" data-execution_count="34">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-35-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-23"><img src="svgd-basics_files/figure-html/cell-35-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-37-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-25"><img src="svgd-basics_files/figure-html/cell-37-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1092,18 +1115,18 @@ v &amp;= d * v + (1 - d) * g^2 \\
 \end{align}\]</span> $$</p>
 <p>where <span class="math inline">\(g\)</span> is gradient <span class="math inline">\(l\)</span> is learning rate, <span class="math inline">\(d\)</span> is the decay and <span class="math inline">\(v\)</span> is</p>
 <div id="043d32f7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:42:36.102798Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:42:36.102684Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:43:26.492967Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:43:26.492245Z&quot;}}" data-execution_count="35">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> RMSprop</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> RMSprop(</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="dv">1</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    decay<span class="op">=</span><span class="fl">0.99</span>,       <span class="co"># Decay rate for squared gradient average</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>      <span class="co"># Numerical stability</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> RMSprop</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> RMSprop(</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="dv">1</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    decay<span class="op">=</span><span class="fl">0.99</span>,       <span class="co"># Decay rate for squared gradient average</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>      <span class="co"># Numerical stability</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
 0          No             7.061      6.834      0.1923     6.393        7.061       
@@ -1112,31 +1135,31 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </div>
 <div id="8ad24036" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:43:26.500393Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:43:26.499710Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:43:27.836049Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:43:27.835569Z&quot;}}" data-execution_count="36">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-37-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-24"><img src="svgd-basics_files/figure-html/cell-37-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-39-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-26"><img src="svgd-basics_files/figure-html/cell-39-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="c1c965ba" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:43:27.837858Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:43:27.837744Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:43:29.175692Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:43:29.175185Z&quot;}}" data-execution_count="37">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-38-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-25"><img src="svgd-basics_files/figure-html/cell-38-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-40-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-27"><img src="svgd-basics_files/figure-html/cell-40-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <div id="ffa33a28" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:43:29.177909Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:43:29.177793Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:43:30.440940Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:43:30.440482Z&quot;}}" data-execution_count="38">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-39-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-26"><img src="svgd-basics_files/figure-html/cell-39-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-basics_files/figure-html/cell-41-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-28"><img src="svgd-basics_files/figure-html/cell-41-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1153,17 +1176,17 @@ G &amp;= g^2 \\
 \]</span></p>
 <p>The learning rate of <code>Adagrad</code> decays over time as <span class="math inline">\(G\)</span> accumulates. For long runs, <code>RMSprop</code> or <code>Adam</code> may perform better.</p>
 <div id="d9daa17d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:43:30.445552Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:43:30.445425Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:20.531091Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:20.530446Z&quot;}}" data-execution_count="39">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adagrad</span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adagrad(</span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="dv">2</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>         <span class="co"># Numerical stability</span></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adagrad</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adagrad(</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="dv">2</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>         <span class="co"># Numerical stability</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
 0          No             7.069      7.071      0.05037    6.992        7.14        
@@ -1172,27 +1195,7 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </div>
 <div id="47e38cb3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:44:20.537950Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:44:20.537724Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:21.892364Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:21.891852Z&quot;}}" data-execution_count="40">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-41-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-27"><img src="svgd-basics_files/figure-html/cell-41-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="fa7694d7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:44:21.894300Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:44:21.894170Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:23.325940Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:23.325490Z&quot;}}" data-execution_count="41">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-basics_files/figure-html/cell-42-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-28"><img src="svgd-basics_files/figure-html/cell-42-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<div id="81cda92c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:44:23.327959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:44:23.327853Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:25.245512Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:25.244990Z&quot;}}" data-execution_count="42">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1201,9 +1204,138 @@ Particles: 20, Iterations: 1000</code></pre>
 </div>
 </div>
 </div>
-
-
+<div id="fa7694d7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:44:21.894300Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:44:21.894170Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:23.325940Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:23.325490Z&quot;}}" data-execution_count="41">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-44-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-30"><img src="svgd-basics_files/figure-html/cell-44-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="81cda92c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T20:44:23.327959Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T20:44:23.327853Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T20:44:25.245512Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T20:44:25.244990Z&quot;}}" data-execution_count="42">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-basics_files/figure-html/cell-45-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-31"><img src="svgd-basics_files/figure-html/cell-45-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
+</section>
+<section id="weight-formula-for-flexible-weight-update" class="level2">
+<h2 class="anchored" data-anchor-id="weight-formula-for-flexible-weight-update">Weight formula for flexible weight update</h2>
+<ul>
+<li><code>t0</code>, <code>t1</code>, … represent the scalars of the <code>theta</code> parameter vector.</li>
+<li><code>c0</code>, <code>c1</code>, … represent the coefficient vector of the edge being updated.</li>
+<li>Numeric literals (3, 2.5, 1e-4, .5).</li>
+<li>Arithmetic operators</li>
+<li>Elementary functions</li>
+<li>Comparisons</li>
+<li>Logic</li>
+<li>Branchless selection</li>
+</ul>
+<div id="0b015ad2" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 + c1*t1"</span>            <span class="co"># the default linear inner product (Σ cₖ·tₖ)</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 * c1*t1"</span>            <span class="co"># product form (same as weight_mode='log')</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="co">"c0*t0 / (1 + c1*t1)"</span>      <span class="co"># ratio / saturating rate</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**2"</span>                    <span class="co"># power (right-assoc: 2**3**2 == 2**(3**2) == 512)</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a><span class="co">"t0**c0"</span>                   <span class="co"># power with a per-edge exponent</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a><span class="co">"c0 * t0**2 + c1*t1"</span>       <span class="co"># precedence: ** &gt; * &gt; + (no parens needed)</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a><span class="co">"-c0*t0 + c1"</span>              <span class="co"># unary minus  (note: result must stay ≥ 0)</span></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a><span class="co">"2*t0 - 0.5*c0"</span>            <span class="co"># integer/float literals</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Elementary functions: <code>exp</code> <code>log</code> <code>sqrt</code> <code>logistic</code> <code>pow</code></p>
+<div id="ef881be6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1)"</span>       <span class="co"># log-link (always positive) — classic GLM rate</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(-c0*t0)"</span>              <span class="co"># decaying rate (resistance-style)</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="co">"log(c0*t0)"</span>              <span class="co"># requires c0*t0 &gt; 0, else NaN → raises</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a><span class="co">"sqrt(c0*t0)"</span>             <span class="co"># requires argument ≥ 0</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic(c0*t0)"</span>         <span class="co"># numerically-stable 1/(1+exp(-·)) ∈ (0,1)</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a><span class="co">"pow(t0, c0)"</span>             <span class="co"># same as t0**c0 (2-arg form)</span></span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a><span class="co">"c2 * logistic(c0*t0) + 1e-3"</span>   <span class="co"># bounded rate with a small floor</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>'c2 * logistic(c0*t0) + 1e-3'</code></pre>
+</div>
+</div>
+<p>Comparisons: <code>==</code> <code>!=</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code>, and <code>delta</code> (Kronecker)</p>
+<div id="b0d8500e" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, c1)"</span>           <span class="co"># 1.0 if c0 == c1 else 0.0  (sugar for c0 == c1)</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0, 3) * c1*t0"</span>    <span class="co"># this term active only on edges where c0 == 3</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &lt; c1) * t0"</span>          <span class="co"># gate a term by an edge-structural comparison</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="co">"(c0 &gt;= 2) * c1*t1"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>'(c0 &gt;= 2) * c1*t1'</code></pre>
+</div>
+</div>
+<p>Logic (nonzero = true): <code>and</code> <code>or</code> <code>not</code></p>
+<div id="f1a0e4b8" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co">"and(c0 == 3, c1 &lt; 2)"</span>            <span class="co"># 1.0 iff both hold</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="co">"or(c0 == 0, c1 == 0) * t0"</span>       <span class="co"># term active if either coeff is zero</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="co">"not(c0) * t1"</span>                    <span class="co"># active only where c0 == 0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>'not(c0) * t1'</code></pre>
+</div>
+</div>
+<p>Branchless selection: select(cond, a, b) → (cond≠0) ? a : b</p>
+<div id="371f2298" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 == 3, c1*t0, c2*t1)"</span>               <span class="co"># pick a branch by edge type</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="co">"delta(c0,c1)*t0 + (1 - delta(c0,c1))*t1"</span>     <span class="co"># partition-of-unity (same idea)</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="co">"select(and(c0 == 3, c1 &lt; 2), c2*t0, t1)"</span>     <span class="co"># compound condition</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; c1, exp(c2*t0), c2*t0)"</span>          <span class="co"># different functional forms per edge</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="callout callout-style-default callout-warning no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Two invariants to keep in mind
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Conditions cannot depend on the values of <code>theta</code>: The operands of == != &lt; &gt; &lt;= &gt;=, of delta, of and/or/not, and the first argument of select can use constants and <code>c0</code>, <code>c1</code>, … but not <code>t0</code>, <code>t1</code>, … . The value branches of select may use <code>theta</code> freely. For smooth gating on <code>theta</code>, use <code>logistic(...)</code>.</li>
+</ol>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co">"select(t0 &gt; c0, t1, t2)"</span>   <span class="co"># will raise exception because condition depends on theta</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 1, t1, t2)"</span>    <span class="co"># ok, because condition depends only coefficients and constants</span></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="co">"logistic((t0 - c0)*10)*t1 + (1 - logistic((t0 - c0)*10))*t2"</span>  <span class="co"># smooth θ-gate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ol start="2" type="1">
+<li>Weights must be finite and non-negative. The following will raise an exception: <code>log</code>/<code>sqrt</code> of <code>&lt;= 0</code>, <code>pow</code> of a negative base, division by zero, or a negative result.</li>
+</ol>
+</div>
+</div>
+<p>Examples:</p>
+<div id="b5bb53b8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Coalescent-with-exposure-style: log-link rate with a per-edge offset</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="co">"exp(c0*t0 + c1*t1) + c2"</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Migration on/off per edge (c2 is a 0/1 edge flag), with a log-link base rate</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c2 == 1, exp(c0*t0), 0.0) + c1*t1"</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Piecewise: one rate law for coalescent edges (c0&gt;0), another for mutation edges</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a><span class="co">"select(c0 &gt; 0, c0*t0, c1*t1)"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Quick way to sanity-check any of these before SVGD:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights(theta, weight_formula<span class="op">=</span><span class="st">"exp(c0*t0 + c1*t1)"</span>)</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>graph.pdf(times)   <span class="co"># inspect the resulting density</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+
+
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
