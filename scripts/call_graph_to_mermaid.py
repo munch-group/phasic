@@ -50,6 +50,40 @@ def _parse_label(label):
     return func_name
 
 
+# Edge annotations from the path-analysis keys (condition / path_state) that
+# call_tree_analyzer.py emits under --show-conditions / --params. Absent in
+# default trees, so the diagram is byte-identical to before when they are missing.
+_STATE_GLYPH_MERMAID = {"taken": "✓", "not-taken": "✗", "conditional": "?"}
+
+
+def _sanitize_mermaid_label(text, max_len=48):
+    """Make a string safe + compact for a mermaid edge/message label."""
+    text = re.sub(r"\s+", " ", text).strip()
+    text = text.replace('"', "'")
+    if len(text) > max_len:
+        text = text[: max_len - 1] + "…"
+    return text
+
+
+def _edge_annotation(node):
+    """Return (label, dotted) for the parent->node edge from path metadata.
+
+    label is '' when the node carries no condition/state, so default trees emit
+    a plain ``parent --> child`` edge exactly as before. not-taken edges are
+    rendered dotted.
+    """
+    cond = node.get("condition")
+    state = node.get("path_state")
+    parts = []
+    if state in _STATE_GLYPH_MERMAID:
+        parts.append(_STATE_GLYPH_MERMAID[state])
+    if cond:
+        parts.append(cond)
+    if not parts:
+        return "", False
+    return _sanitize_mermaid_label(" ".join(parts)), state == "not-taken"
+
+
 def _participant_key(node, by_class):
     """Return the participant key for a node.
 
@@ -145,9 +179,11 @@ def generate_sequence_diagram(tree_data, max_depth, by_class):
                 )
                 return
 
-            # Emit call arrow
+            # Emit call arrow (with the path condition/state when present)
+            label, _dotted = _edge_annotation(node)
+            suffix = f" [{label}]" if label else ""
             lines.append(
-                f"    {caller_alias}->>{callee_alias}: {func_name}()"
+                f"    {caller_alias}->>{callee_alias}: {func_name}(){suffix}"
             )
             lines.append(f"    activate {callee_alias}")
 
@@ -243,12 +279,20 @@ def generate_flowchart(tree_data, max_depth, by_class):
             label = _node_label(node)
             lines.append(f'    {nid}["{label}"]')
 
-        # Add edge from parent
+        # Add edge from parent. Key the dedup on the label too, so a callee
+        # reached under two different conditions gets two labeled edges (the
+        # whole point of visualizing alternative paths). not-taken edges dotted.
         if parent_id:
-            edge = (parent_id, nid)
+            label, dotted = _edge_annotation(node)
+            edge = (parent_id, nid, label)
             if edge not in seen_edges:
                 seen_edges.add(edge)
-                lines.append(f"    {parent_id} --> {nid}")
+                if label and dotted:
+                    lines.append(f'    {parent_id} -.->|"{label}"| {nid}')
+                elif label:
+                    lines.append(f'    {parent_id} -->|"{label}"| {nid}')
+                else:
+                    lines.append(f"    {parent_id} --> {nid}")
 
         for child in node.get("children", []):
             walk(child, nid, depth + 1)

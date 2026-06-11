@@ -29,6 +29,11 @@ spec.loader.exec_module(cta)
 
 UNKNOWN = cta.UNKNOWN
 
+_MSPEC = importlib.util.spec_from_file_location(
+    "call_graph_to_mermaid", os.path.join(ROOT, "scripts", "call_graph_to_mermaid.py"))
+mermaid = importlib.util.module_from_spec(_MSPEC)
+_MSPEC.loader.exec_module(mermaid)
+
 
 # --------------------------------------------------------------------------- #
 # helpers
@@ -456,6 +461,55 @@ class TestParseParams:
     def test_bad_entry_raises(self):
         with pytest.raises(ValueError):
             cta.parse_params("not_a_pair")
+
+
+# --------------------------------------------------------------------------- #
+# H. mermaid edge-condition labels (Stage 3, call_graph_to_mermaid.py)
+# --------------------------------------------------------------------------- #
+def _flow(children_meta):
+    """Build a minimal call-tree data dict: root -> one child per (extra-keys)."""
+    children = []
+    for meta in children_meta:
+        node = {"label": "b() -- f.py:2", "file": "f.py", "line": 2, "children": []}
+        node.update(meta)
+        children.append(node)
+    return {"call_trees": [{"label": "a() -- f.py:1", "file": "f.py",
+                            "line": 1, "children": children}]}
+
+
+class TestMermaidConditions:
+    def test_default_flow_has_no_edge_labels(self):
+        # No condition/path_state keys -> byte-compatible plain edges, no labels.
+        out = mermaid.generate_flowchart(_flow([{}]), max_depth=5, by_class=False)
+        assert "a1 --> " in out.replace("n", "a")  # a plain --> edge exists
+        assert '|"' not in out                      # no pipe-labels
+
+    def test_condition_becomes_edge_label(self):
+        out = mermaid.generate_flowchart(_flow([{"condition": "if x > 0"}]), 5, False)
+        assert '-->|"if x > 0"|' in out
+
+    def test_not_taken_edge_is_dotted(self):
+        out = mermaid.generate_flowchart(
+            _flow([{"condition": "if x", "path_state": "not-taken"}]), 5, False)
+        assert '-.->|"✗ if x"|' in out
+
+    def test_conditional_edge_marked(self):
+        out = mermaid.generate_flowchart(
+            _flow([{"condition": "if x", "path_state": "conditional"}]), 5, False)
+        assert '-->|"? if x"|' in out
+
+    def test_same_callee_two_conditions_two_edges(self):
+        # The same callee reached under two conditions must yield two labeled edges.
+        out = mermaid.generate_flowchart(
+            _flow([{"condition": "if x"}, {"condition": "if y"}]), 5, False)
+        assert '-->|"if x"|' in out
+        assert '-->|"if y"|' in out
+
+    def test_label_sanitized_and_truncated(self):
+        long = "if " + "a" * 100
+        out = mermaid.generate_flowchart(_flow([{"condition": long}]), 5, False)
+        assert '…' in out          # truncated
+        assert '"' not in long or out.count('"') % 2 == 0  # balanced quotes
 
 
 class TestBackwardCompat:
