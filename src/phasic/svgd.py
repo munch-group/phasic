@@ -3528,6 +3528,110 @@ class MomentJacobianPreconditioner(_PreconditionerBase):
         logger.debug("MomentJacobianPreconditioner: final scaling = %s", self.scaling)
 
 
+class ProbabilityJacobianPreconditioner(_PreconditionerBase):
+    """Probability-output Jacobian preconditioner for multi-scale SVGD.
+
+    Identical in spirit to :class:`MomentJacobianPreconditioner`, but builds the
+    finite-difference Jacobian from the model's **first** output (the PMF /
+    joint-probability / converged visit-count vector) instead of its **second**
+    (moments) output::
+
+        J[k, j] = d(prob_k) / d(theta_j)      (central differences)
+        D_j     = ||J[:, j]||                  (column norm), normalized to mean 1.
+
+    Why this exists: joint-probability and daisy-chain models return a dummy
+    ``jnp.zeros(2)`` as their second (moments) output (see
+    ``Graph.pmf_from_graph_joint_index`` / ``Graph._daisy_chain_svgd_model``), so
+    :class:`MomentJacobianPreconditioner` differentiates a constant there and
+    degenerates to an all-ones (no-op) scaling. The first output is
+    theta-dependent on *every* model path, so this preconditioner yields a real
+    per-dimension scaling everywhere. Unlike :class:`FisherPreconditioner` it does
+    **not** divide by the probability, so it stays stable when probabilities are
+    small.
+
+    The reference point is used as-is (identity): the base class's moment-matching
+    search compares the model's *moment* mean to the data mean, which is
+    meaningless when the second output is a dummy zero vector and when the
+    observations are vertex indices rather than times. The particle-mean reference
+    passed by ``SVGD.optimize`` is already a sane evaluation point.
+
+    Parameters
+    ----------
+    model : callable
+        Model function: model(theta, data, rewards=None) -> (probabilities, moments).
+        Only the first output is used.
+    observed_data : array
+        Observation data points (or vertex indices for joint-index models).
+    theta_dim : int
+        Number of parameters (learnable dimensions only if fixed params exist).
+    param_transform : callable or None
+        Transformation from unconstrained to constrained space (e.g., softplus).
+    rewards : array or None
+        Optional rewards (forwarded to the model; None for joint-index models).
+    epsilon : float, default=1e-8
+        Floor for scaling values to avoid division by zero.
+    """
+
+    def compute_scaling(self, theta_ref: jnp.ndarray) -> None:
+        """Compute first-output Jacobian column norms and derive scaling.
+
+        Parameters
+        ----------
+        theta_ref : array (theta_dim,)
+            Reference point in unconstrained space (same space as particles).
+            Used as-is (identity; no moment-matching refinement).
+        """
+        logger.debug("ProbabilityJacobianPreconditioner: computing scaling for %d dimensions",
+                      self.theta_dim)
+        logger.debug("ProbabilityJacobianPreconditioner: theta_ref (unconstrained) = %s",
+                      theta_ref)
+
+        # Identity reference: do NOT call _find_moment_matching_reference. That
+        # search reads moments[0] (the 2nd model output), which is a dummy zero
+        # vector for joint-prob/daisy models, and matches it to a "data mean"
+        # that is undefined when observations are vertex indices.
+        if self.param_transform is not None:
+            theta_c = self.param_transform(theta_ref)
+        else:
+            theta_c = theta_ref
+
+        # Handle sparse vs dense observation format
+        if is_sparse_observations(self.observed_data):
+            times = self.observed_data  # Keep as SparseObservations
+        else:
+            times = jnp.atleast_1d(jnp.array(self.observed_data))
+        probs_ref, _ = self.model(theta_c, times, rewards=self.rewards)
+        probs_ref = probs_ref.flatten()
+        n_outputs = len(probs_ref)
+
+        eps = 1e-5
+        J = np.zeros((n_outputs, self.theta_dim))
+
+        for j in range(self.theta_dim):
+            theta_plus = theta_ref.at[j].add(eps)
+            theta_minus = theta_ref.at[j].add(-eps)
+            if self.param_transform is not None:
+                tp_c = self.param_transform(theta_plus)
+                tm_c = self.param_transform(theta_minus)
+            else:
+                tp_c, tm_c = theta_plus, theta_minus
+
+            probs_plus, _ = self.model(tp_c, times, rewards=self.rewards)
+            probs_minus, _ = self.model(tm_c, times, rewards=self.rewards)
+            J[:, j] = np.asarray(
+                (probs_plus.flatten() - probs_minus.flatten()) / (2 * eps)
+            )
+
+        col_norms = np.linalg.norm(J, axis=0)
+        D = np.maximum(col_norms, self.epsilon)
+        D = D / np.mean(D)
+        self.scaling = jnp.array(D)
+
+        logger.debug("ProbabilityJacobianPreconditioner: Jacobian matrix:\n%s", J)
+        logger.debug("ProbabilityJacobianPreconditioner: column norms = %s", col_norms)
+        logger.debug("ProbabilityJacobianPreconditioner: final scaling = %s", self.scaling)
+
+
 class FisherPreconditioner(_PreconditionerBase):
     """Diagonal Fisher information preconditioner for multi-scale SVGD.
 
@@ -4711,6 +4815,8 @@ class SVGD:
                 param_transform=param_transform,
                 positive_params=positive_params,
                 preconditioner=preconditioner,
+                optimizer=optimizer,
+                learning_rate=learning_rate,
                 regularization=_reg_probe,
                 nr_moments=nr_moments,
             ))
@@ -5417,13 +5523,20 @@ class SVGD:
                 )
         elif preconditioner is None:
             self.preconditioner_method = None
-        elif isinstance(preconditioner, (FisherPreconditioner, MomentJacobianPreconditioner)):
+        elif isinstance(preconditioner, (FisherPreconditioner, MomentJacobianPreconditioner,
+                                         ProbabilityJacobianPreconditioner)):
             self.preconditioner_method = preconditioner
         else:
             raise TypeError(
                 f"preconditioner must be str, None, FisherPreconditioner, "
-                f"or MomentJacobianPreconditioner, got: {type(preconditioner)}"
+                f"MomentJacobianPreconditioner, or ProbabilityJacobianPreconditioner, "
+                f"got: {type(preconditioner)}"
             )
+
+        # Options provenance ledger. Populated and attached by ``Graph.svgd``;
+        # stays None for the direct ``SVGD(model=...)`` path (no resolution
+        # layer there). Read by :meth:`effective_options`.
+        self._options_ledger = None
 
         if self.regularization > 0.0 or self.use_regularization_schedule:
             if self.nr_moments == 0:
@@ -6215,6 +6328,46 @@ class SVGD:
 
         return compiled_grad
 
+    def effective_options(self, *, file=None, return_dict: bool = False):
+        """Show the SVGD options actually in effect and their provenance.
+
+        Prints a table of the key inference options with a status flag:
+
+        - ``default``      — left at the signature default
+        - ``set by user``  — you passed this value (``*`` = non-default)
+        - ``inferred``     — phasic derived it (e.g. ``theta_dim`` from the graph)
+        - ``forced``       — phasic overrode the value the model type requires
+          (``!``), e.g. ``discrete=True`` for a joint-index model
+
+        The same events that show as ``forced`` (and a few notable ``inferred``
+        ones) also emit a one-time :class:`~phasic.exceptions.SvgdAssumptionWarning`
+        at call time unless ``quiet_assumptions=True`` was passed.
+
+        Parameters
+        ----------
+        file : text stream or None
+            Where to print. Defaults to ``sys.stdout``.
+        return_dict : bool, default False
+            When True, also return the underlying provenance dict
+            (``{name: {value, status, user_value, reason}}``) instead of None.
+
+        Notes
+        -----
+        Only populated for objects created via ``Graph.svgd(...)``. The direct
+        ``SVGD(model=...)`` constructor has no resolution layer, so the ledger is
+        empty; this method then reports that.
+        """
+        import sys
+        out = file if file is not None else sys.stdout
+        ledger = getattr(self, '_options_ledger', None)
+        if ledger is None:
+            print("No options ledger: this SVGD object was built directly "
+                  "(SVGD(model=...)), not via Graph.svgd(...), so there is no "
+                  "option-resolution provenance to show.", file=out)
+            return ledger.as_dict() if (return_dict and ledger is not None) else None
+        print(ledger.render(), file=out)
+        return ledger.as_dict() if return_dict else None
+
     def optimize(self, rewards: jnp.ndarray | None = None, return_history: bool = True) -> SVGD:
         """
         Run SVGD inference with optional moment-based regularization.
@@ -6275,7 +6428,8 @@ class SVGD:
         # Compute preconditioner (before kernel creation)
         preconditioner_obj = None
         if self.preconditioner_method is not None:
-            if isinstance(self.preconditioner_method, (FisherPreconditioner, MomentJacobianPreconditioner)):
+            if isinstance(self.preconditioner_method, (FisherPreconditioner, MomentJacobianPreconditioner,
+                                                       ProbabilityJacobianPreconditioner)):
                 # User provided a pre-built preconditioner
                 preconditioner_obj = self.preconditioner_method
                 logger.debug("SVGD.optimize: using user-provided %s "
@@ -6331,7 +6485,21 @@ class SVGD:
                     rewards=rewards
                 )
                 if self.preconditioner_method == 'jacobian':
-                    preconditioner_obj = MomentJacobianPreconditioner(**preconditioner_kwargs)
+                    # Pick the Jacobian variant by which model output is
+                    # theta-dependent. Joint-probability / daisy-chain models tag
+                    # themselves '_precondition_output=probability' (their moments
+                    # output is a dummy zeros vector that would make the moment
+                    # Jacobian degenerate to an all-ones no-op); every other
+                    # builder tags 'moments'. A missing tag defaults to 'moments'
+                    # (the historical behaviour for hand-built models).
+                    _precond_output = getattr(self.model, '_precondition_output', 'moments')
+                    if _precond_output == 'probability':
+                        preconditioner_obj = ProbabilityJacobianPreconditioner(**preconditioner_kwargs)
+                        logger.debug("SVGD.optimize: resolved 'jacobian' -> "
+                                      "ProbabilityJacobianPreconditioner "
+                                      "(model output is probability)")
+                    else:
+                        preconditioner_obj = MomentJacobianPreconditioner(**preconditioner_kwargs)
                 else:
                     preconditioner_obj = FisherPreconditioner(**preconditioner_kwargs)
 

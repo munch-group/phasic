@@ -1,4 +1,4 @@
-"""Unit tests for ``phasic.svgd_config`` rules R1..R15.
+"""Unit tests for ``phasic.svgd_config`` rules R1..R27.
 
 Each rule has a dedicated test that constructs the smallest possible
 config triggering the rule and asserts the right exception (or warning)
@@ -18,7 +18,7 @@ import pytest
 from phasic import Graph, StateIndexer, Property, with_ipv
 from phasic.exceptions import SvgdConfigError
 from phasic.svgd_config import (
-    SvgdConfig, from_svgd_call, validate,
+    SvgdConfig, from_svgd_call, from_model_call, validate,
 )
 
 
@@ -252,16 +252,30 @@ class TestR12_ParamTransformIncompatibleWithJointProb:
             ))
 
 
-class TestR13_PreconditionerWithJointProbWarns:
-    def test_warns_for_preconditioner(self):
+class TestR13_FisherPreconditionerWithJointProbWarns:
+    def test_warns_for_fisher(self):
+        # 'fisher' divides the score by the joint probability -> unstable when
+        # probabilities are small; R13 still flags this specific variant.
         g = _make_joint_prob_graph()
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             validate(from_svgd_call(
                 g, [(0, 0)],
-                preconditioner='auto',  # default
+                preconditioner='fisher',
             ))
-        assert any('preconditioner' in str(ww.message) for ww in w)
+        assert any('fisher' in str(ww.message).lower() for ww in w)
+
+    def test_does_not_warn_for_auto_or_jacobian(self):
+        # The Jacobian preconditioners are now functional on joint-prob (they
+        # precondition on the probability output), so they must NOT warn.
+        g = _make_joint_prob_graph()
+        for choice in ('auto', 'jacobian'):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
+                validate(from_svgd_call(g, [(0, 0)], preconditioner=choice))
+            assert not any('preconditioner' in str(ww.message).lower()
+                           or 'fisher' in str(ww.message).lower() for ww in w), (
+                f"preconditioner={choice!r} should no longer warn on joint-prob")
 
 
 class TestR14_FixedWithEpochStartsLocalIndices:
@@ -472,3 +486,107 @@ class TestValidCombinations:
             exposure_param_index=1,
             fixed=[(1, 1e-8)],
         ))
+
+
+# ---------------------------------------------------------------------------
+# R23..R27 — added by the SVGD UI overhaul (fixed-range non-daisy, preconditioner
+# value validity, optimizer/learning_rate/regularization, nr_moments on joint).
+# ---------------------------------------------------------------------------
+
+
+class _DummyOptimizer:
+    """Stand-in for an optimizer instance (validator only checks is-not-None)."""
+    pass
+
+
+class TestR23_FixedIndicesInParamLengthRange:
+    def test_rejects_out_of_range_on_standard_graph(self):
+        g = _make_n2_base_graph()  # param_length == 1
+        with pytest.raises(SvgdConfigError, match=r"out-of-range parameter indices"):
+            validate(from_svgd_call(g, [1.0, 2.0], fixed=[(5, 0.0)]))
+
+    def test_accepts_in_range(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0], fixed=[(0, 0.0)]))
+
+    def test_from_model_call_variant(self):
+        with pytest.raises(SvgdConfigError, match=r"out-of-range parameter indices"):
+            validate(from_model_call(
+                object(), [1.0, 2.0], theta_dim=2, fixed=[(9, 0.0)]))
+
+    def test_daisy_path_deferred_to_R14(self):
+        # Under epoch_starts, R23 no-ops (R14 owns the per-epoch local check).
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(
+            g, [(0, 0), (0, 0)],
+            epoch_starts=[0.0, 1.0], fixed=[(0, 0.0)]))
+
+
+class TestR24_PreconditionerValueValid:
+    def test_rejects_unknown_string(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"preconditioner must be"):
+            validate(from_svgd_call(g, [1.0, 2.0], preconditioner='jacobean'))
+
+    @pytest.mark.parametrize("choice", ['auto', 'jacobian', 'fisher', 'none', None])
+    def test_accepts_valid(self, choice):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0], preconditioner=choice))
+
+
+class TestR25_OptimizerXorLearningRate:
+    def test_rejects_both(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"mutually exclusive"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0],
+                optimizer=_DummyOptimizer(), learning_rate=0.01))
+
+    def test_accepts_optimizer_alone(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0], optimizer=_DummyOptimizer()))
+
+    def test_accepts_learning_rate_alone(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0], learning_rate=0.01))
+
+
+class TestR26_OptimizerExcludesRegularization:
+    def test_rejects_optimizer_with_regularization(self):
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"requires regularization=0"):
+            validate(from_svgd_call(
+                g, [1.0, 2.0],
+                optimizer=_DummyOptimizer(), regularization=1.0))
+
+    def test_accepts_optimizer_with_zero_regularization(self):
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(
+            g, [1.0, 2.0], optimizer=_DummyOptimizer(), regularization=0.0))
+
+
+class TestR27_NrMomentsIgnoredOnJointProb:
+    def test_warns_on_non_default_nr_moments(self):
+        g = _make_joint_prob_graph()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            validate(from_svgd_call(g, [(0, 0)], nr_moments=3))
+        assert any('nr_moments' in str(ww.message) for ww in w)
+
+    def test_no_warn_at_default(self):
+        g = _make_joint_prob_graph()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            validate(from_svgd_call(g, [(0, 0)], nr_moments=2))
+        assert not any('nr_moments' in str(ww.message) for ww in w)
+
+
+class TestEndToEndFailFast:
+    def test_optimizer_plus_learning_rate_raises_before_fit(self):
+        # The validator runs at the top of Graph.svgd, so an invalid combo
+        # raises SvgdConfigError before any model/particle construction.
+        from phasic import Adam
+        g = _make_n2_base_graph()
+        with pytest.raises(SvgdConfigError, match=r"mutually exclusive"):
+            g.svgd([1.0, 2.0], theta_dim=1,
+                   optimizer=Adam(learning_rate=0.01), learning_rate=0.01)

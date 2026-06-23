@@ -104,6 +104,26 @@ class SvgdConfigError(PTDConfigError, ValueError):
     pass
 
 
+class SvgdAssumptionWarning(UserWarning):
+    """An ``Graph.svgd(...)`` option value was assumed or forced.
+
+    Emitted once per call (not an error) when phasic infers an option the
+    user left unset, or overrides a value the user passed because the model
+    type requires it (e.g. ``discrete=True`` is forced for joint-index
+    models). Subclasses ``UserWarning`` so it is visible by default yet can
+    be silenced with a standard filter::
+
+        import warnings
+        from phasic.exceptions import SvgdAssumptionWarning
+        warnings.filterwarnings('ignore', category=SvgdAssumptionWarning)
+
+    or per-call with ``Graph.svgd(..., quiet_assumptions=True)``. The full set
+    of resolved options is also available on the returned object via
+    ``svgd.effective_options()``.
+    """
+    pass
+
+
 __all__ = [
     'PTDAlgorithmsError',
     'PTDConfigError',
@@ -112,4 +132,5 @@ __all__ = [
     'PTDJAXError',
     'PTDFormatError',
     'SvgdConfigError',
+    'SvgdAssumptionWarning',
 ]

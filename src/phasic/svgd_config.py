@@ -16,12 +16,69 @@ The validator enumerates the rules in one place so that:
 
 Public API:
 
-- :class:`SvgdConfig` — frozen dataclass capturing the 9 constraint
+- :class:`SvgdConfig` — frozen dataclass capturing the constraint
   axes from a ``Graph.svgd`` call.
-- :func:`from_svgd_call` — adapter that builds an ``SvgdConfig`` from
-  the live ``graph`` object plus the keyword arguments to ``svgd``.
+- :func:`from_svgd_call` / :func:`from_model_call` — adapters that build
+  an ``SvgdConfig`` from a live ``graph`` (the ``Graph.svgd`` path) or a
+  bare ``model`` (the direct ``SVGD(...)`` path).
 - :func:`validate` — runs every rule in order; raises
-  :class:`phasic.exceptions.SvgdConfigError` on the first violation.
+  :class:`phasic.exceptions.SvgdConfigError` on the first violation, and
+  emits :class:`UserWarning` for the advisory rules (R11, R13, R27).
+- :class:`SvgdOptionsLedger` / :func:`assume` — provenance tracking and
+  the once-per-call assumption notices surfaced by
+  ``Graph.svgd``/``SVGD.effective_options``.
+
+
+Valid-combination matrix
+========================
+
+The product of options is large; this table is the single source of truth
+for which combinations are valid, which are rejected, and which only warn.
+Each row names the governing rule(s). "Forced/assumed" lists values phasic
+sets for you (surfaced via ``SVGD.effective_options()`` and one-time
+``SvgdAssumptionWarning`` notices).
+
+Graph kind × time
+  - standard graph: continuous (PDF) or discrete (PMF); ``is_discrete`` from
+    the graph, overridable by ``discrete=``.
+  - joint-probability graph (``graph.joint_prob_graph(...)``): ``joint_index``
+    is forced True and ``discrete`` is forced True (these models read
+    converged visit counts, not a density). [forced]
+
+Observations × rewards
+  - 1D times / 2D times / sparse / joint indices, classified from the data.
+  - ``rewards``: none / 1D / 2D. 2D ⇒ multivariate model. Rewards are
+    rejected on joint-prob graphs (R3). SparseObservations require rewards
+    (R5) and forbid exposure (R6).
+
+Epochs (daisy-chain) × tied
+  - ``epoch_starts`` requires a *continuous* joint-prob graph (R1); it forces
+    a flat ``n_epochs × param_length`` theta and re-derives prior/fixed
+    [forced]. ``tied`` requires ``epoch_starts`` (R16) and has its own shape
+    /range/overlap rules (R17–R20). ``fixed`` indices are per-epoch-local
+    under epochs (R14) and absolute otherwise (R23).
+
+Exposure
+  - ``exposure`` and ``exposure_param_index`` are paired (R7); the index is
+    in ``[0, param_length)`` (R8); length matches n_obs or is scalar (R10).
+    On a joint-prob graph it requires ``epoch_starts`` (R9). With 2D rewards
+    it only warns (R11, unbenchmarked).
+
+Weight mode
+  - linear/log (default), ``weight_formula`` (C-evaluated; allowed under
+    epochs), or ``callback`` (Python). ``callback`` is rejected under
+    ``epoch_starts`` (R21); ``weight_formula`` and ``callback`` are mutually
+    exclusive (R22).
+
+Preconditioner × optimizer × params
+  - ``preconditioner`` ∈ {'auto'/'jacobian' (probability-Jacobian on
+    joint-prob [assumed], moment-Jacobian otherwise), 'fisher', 'none', None,
+    instance}; invalid strings are rejected (R24). 'fisher' on joint-prob
+    warns (R13). ``optimizer`` and ``learning_rate`` are mutually exclusive
+    (R25); ``optimizer`` forbids ``regularization>0`` (R26). ``regularization``
+    and ``param_transform`` are rejected on joint-prob (R4, R12).
+    ``positive_params`` and ``param_transform`` are mutually exclusive (R15).
+    ``nr_moments`` is ignored on joint-prob (R27, warn).
 """
 from __future__ import annotations
 
@@ -31,7 +88,135 @@ from typing import Any, Literal, Optional, Sequence, Tuple
 
 import numpy as np
 
-from .exceptions import SvgdConfigError
+from .exceptions import SvgdConfigError, SvgdAssumptionWarning
+
+
+def assume(message: str, *, quiet: bool = False, stacklevel: int = 3) -> None:
+    """Emit a once-per-call notice that an SVGD option was assumed or forced.
+
+    Single channel for every "we picked/overrode a value for you" message in
+    ``Graph.svgd``. Uses :class:`~phasic.exceptions.SvgdAssumptionWarning` so the
+    notice is visible by default, deduplicated per call site by the ``warnings``
+    machinery, and silenceable with a standard filter or ``quiet=True``
+    (wired to ``Graph.svgd(..., quiet_assumptions=True)``).
+
+    Parameters
+    ----------
+    message : str
+        Human-readable notice, e.g. "assuming discrete=True because the graph
+        is a joint-probability model".
+    quiet : bool, default False
+        When True, suppress the notice entirely (the value is still recorded in
+        the SVGD options ledger for ``effective_options()``).
+    stacklevel : int, default 3
+        Forwarded to ``warnings.warn`` so the notice points at the caller's
+        ``svgd(...)`` line rather than this helper.
+    """
+    if quiet:
+        return
+    warnings.warn(message, SvgdAssumptionWarning, stacklevel=stacklevel)
+
+
+# Curated, ordered set of options shown by SVGD.effective_options(). These are
+# the inference-relevant knobs (and every forcing-prone one); display order is
+# deliberate, not alphabetical.
+LEDGER_OPTION_ORDER = (
+    'discrete', 'joint_index', 'theta_dim',
+    'n_particles', 'n_iterations', 'learning_rate', 'optimizer',
+    'bandwidth', 'preconditioner', 'regularization', 'nr_moments',
+    'positive_params', 'param_transform', 'prior',
+    'fixed', 'tied', 'epoch_starts', 'exposure', 'exposure_param_index',
+)
+
+
+class SvgdOptionsLedger:
+    """Provenance record for each resolved ``Graph.svgd`` option.
+
+    Built up during ``Graph.svgd`` resolution and attached to the returned
+    object so the user can call :meth:`SVGD.effective_options` to see every
+    option in effect, which carry non-default values, and which of those were
+    forced/overriding (the model type required a different value than the user
+    passed).
+
+    Each entry has a ``status`` in {``'default'``, ``'user'``, ``'inferred'``,
+    ``'forced'``}. ``'inferred'`` = the user left it unset and phasic derived it;
+    ``'forced'`` = the user passed a value that was overridden (``user_value``
+    holds the original). ``'user'``/``'inferred'``/``'forced'`` are all
+    non-default; only ``'forced'`` is overriding.
+    """
+
+    _NONDEFAULT = ('user', 'inferred', 'forced')
+
+    def __init__(self) -> None:
+        self._entries: dict[str, dict] = {}
+        self._order: list[str] = []
+
+    def _put(self, name, value, status, *, user_value=None, reason=None) -> None:
+        if name not in self._entries:
+            self._order.append(name)
+        self._entries[name] = dict(
+            value=value, status=status, user_value=user_value, reason=reason,
+        )
+
+    def set_default(self, name, value) -> None:
+        self._put(name, value, 'default')
+
+    def set_user(self, name, value) -> None:
+        self._put(name, value, 'user')
+
+    def set_inferred(self, name, value, reason) -> None:
+        self._put(name, value, 'inferred', reason=reason)
+
+    def set_forced(self, name, value, user_value, reason) -> None:
+        self._put(name, value, 'forced', user_value=user_value, reason=reason)
+
+    def record_user_or_default(self, name, value, default) -> None:
+        """Classify a plain option as 'user' (value != default) or 'default'.
+
+        Comparison is by ``!=`` with a fallback to identity for objects whose
+        ``!=`` is non-boolean (e.g. numpy arrays); arrays/callables that are not
+        the default object are treated as user-set.
+        """
+        try:
+            is_default = bool(value == default)
+        except Exception:
+            is_default = value is default
+        if is_default:
+            self.set_default(name, value)
+        else:
+            self.set_user(name, value)
+
+    def as_dict(self) -> dict:
+        return {n: dict(self._entries[n]) for n in self._order}
+
+    def render(self) -> str:
+        def fmt(v):
+            s = repr(v)
+            return s if len(s) <= 28 else s[:25] + '...'
+        lines = [
+            "SVGD options in effect "
+            "(* = non-default, ! = forced/overriding):",
+            "  {:1} {:<22} {:<30} {}".format('', 'option', 'value', 'status'),
+            "  " + "-" * 74,
+        ]
+        for name in self._order:
+            e = self._entries[name]
+            status = e['status']
+            marker = '!' if status == 'forced' else (
+                '*' if status in self._NONDEFAULT else ' ')
+            if status == 'forced':
+                detail = "forced (was {}; {})".format(
+                    fmt(e['user_value']), e['reason'] or 'model requirement')
+            elif status == 'inferred':
+                detail = "inferred ({})".format(e['reason'] or 'derived')
+            elif status == 'user':
+                detail = "set by user"
+            else:
+                detail = "default"
+            lines.append("  {:1} {:<22} {:<30} {}".format(
+                marker, name, fmt(e['value']), detail))
+        return "\n".join(lines)
+
 
 GraphKind = Literal['standard', 'joint_prob', 'joint_stop_prob', 'unknown']
 ObservationKind = Literal[
@@ -94,6 +279,20 @@ class SvgdConfig:
     # daisy-chain path), so — unlike callback — it is allowed with epoch_starts;
     # the only constraint is mutual exclusion with callback (rule R22).
     has_weight_formula: bool = False
+    # Preconditioner choice introspection. ``preconditioner_choice`` is the raw
+    # string the user passed ('auto'/'jacobian'/'fisher'/'none'), 'instance' for a
+    # pre-built preconditioner object, or None when the user passed None.
+    # ``preconditioner_is_fisher`` is True iff the choice resolves to the Fisher
+    # method specifically — the only variant whose joint-prob interaction is still
+    # flagged by R13 (the Jacobian variants are now functional on all paths).
+    preconditioner_choice: Optional[str] = None
+    preconditioner_is_fisher: bool = False
+    # Optimizer / learning-rate introspection (for R25/R26). ``has_optimizer``
+    # is True iff the user passed an optimizer instance; ``has_explicit_learning_rate``
+    # is True iff the user passed a learning_rate (not None). They are mutually
+    # exclusive (R25), and an optimizer is incompatible with regularization (R26).
+    has_optimizer: bool = False
+    has_explicit_learning_rate: bool = False
 
 
 def _classify_graph_kind(graph: Any) -> GraphKind:
@@ -157,6 +356,31 @@ def _classify_rewards_kind(rewards: Any) -> RewardsKind:
         "2D array of shape (n_features, n_vertices); got shape "
         f"{arr.shape}."
     )
+
+
+# Valid preconditioner string choices (mirrors SVGD.__init__ dispatch).
+_VALID_PRECONDITIONER_STRINGS = ('auto', 'jacobian', 'fisher', 'none')
+
+
+def _classify_preconditioner(preconditioner: Any) -> Tuple[bool, Optional[str], bool]:
+    """Classify the ``preconditioner=`` argument.
+
+    Returns ``(has_preconditioner, choice, is_fisher)`` where ``choice`` is the
+    raw string, ``'instance'`` for a pre-built preconditioner object, or ``None``
+    when the user passed ``None``. ``has_preconditioner`` is False only for
+    ``None``/``'none'``. ``is_fisher`` is True iff the choice resolves to the
+    Fisher method (string ``'fisher'`` or a ``FisherPreconditioner`` instance —
+    detected by class name to avoid importing svgd into the validator).
+
+    Invalid string values are passed through unchanged (``choice`` set, no raise
+    here); rule R24 reports them.
+    """
+    if preconditioner is None:
+        return False, None, False
+    if isinstance(preconditioner, str):
+        return preconditioner != 'none', preconditioner, preconditioner == 'fisher'
+    # A pre-built preconditioner instance.
+    return True, 'instance', type(preconditioner).__name__ == 'FisherPreconditioner'
 
 
 def _coerce_fixed_indices(
@@ -268,6 +492,8 @@ def from_svgd_call(
     param_transform: Any = None,
     positive_params: bool = True,
     preconditioner: Any = 'auto',
+    optimizer: Any = None,
+    learning_rate: Any = None,
     regularization: float = 0.0,
     nr_moments: int = 2,
     joint_index: bool = False,
@@ -301,6 +527,8 @@ def from_svgd_call(
     has_tied, tied_groups = _coerce_tied_groups(tied)
     has_callback = callback is not None
     has_weight_formula = weight_formula is not None
+    (has_preconditioner, preconditioner_choice,
+     preconditioner_is_fisher) = _classify_preconditioner(preconditioner)
 
     has_exposure = exposure is not None
     exposure_length: Optional[int] = None
@@ -330,7 +558,11 @@ def from_svgd_call(
         ),
         has_param_transform=param_transform is not None,
         positive_params=bool(positive_params),
-        has_preconditioner=preconditioner is not None and preconditioner != 'none',
+        has_preconditioner=has_preconditioner,
+        preconditioner_choice=preconditioner_choice,
+        preconditioner_is_fisher=preconditioner_is_fisher,
+        has_optimizer=optimizer is not None,
+        has_explicit_learning_rate=learning_rate is not None,
         has_regularization=float(regularization) > 0.0,
         nr_moments=int(nr_moments),
         joint_index_explicit=bool(joint_index),
@@ -354,6 +586,8 @@ def from_model_call(
     param_transform: Any = None,
     positive_params: bool = True,
     preconditioner: Any = 'auto',
+    optimizer: Any = None,
+    learning_rate: Any = None,
     regularization: float = 0.0,
     nr_moments: int = 2,
     **_unused: Any,
@@ -397,6 +631,8 @@ def from_model_call(
     has_fixed, fixed_indices = _coerce_fixed_indices(
         fixed, has_epoch_starts=False
     )
+    (has_preconditioner, preconditioner_choice,
+     preconditioner_is_fisher) = _classify_preconditioner(preconditioner)
 
     has_exposure = exposure is not None
     exposure_length: Optional[int] = None
@@ -426,7 +662,11 @@ def from_model_call(
         ),
         has_param_transform=param_transform is not None,
         positive_params=bool(positive_params),
-        has_preconditioner=preconditioner is not None and preconditioner != 'none',
+        has_preconditioner=has_preconditioner,
+        preconditioner_choice=preconditioner_choice,
+        preconditioner_is_fisher=preconditioner_is_fisher,
+        has_optimizer=optimizer is not None,
+        has_explicit_learning_rate=learning_rate is not None,
         has_regularization=float(regularization) > 0.0,
         nr_moments=int(nr_moments),
         joint_index_explicit=False,
@@ -602,13 +842,20 @@ def _check_R12_param_transform_incompatible_with_joint_prob(c: SvgdConfig) -> No
         )
 
 
-def _check_R13_preconditioner_with_joint_prob_warns(c: SvgdConfig) -> None:
-    if c.has_preconditioner and c.graph_kind == 'joint_prob':
+def _check_R13_fisher_preconditioner_with_joint_prob_warns(c: SvgdConfig) -> None:
+    # The Jacobian preconditioners ('auto'/'jacobian') are now functional on
+    # joint-probability graphs: they build their scaling from the model's
+    # theta-dependent *probability* output (ProbabilityJacobianPreconditioner),
+    # so they no longer degenerate to an all-ones no-op there. Only the Fisher
+    # variant remains flagged — it divides the score by the probability, which is
+    # numerically unstable when joint probabilities are small.
+    if c.preconditioner_is_fisher and c.graph_kind == 'joint_prob':
         warnings.warn(
-            "preconditioner + joint-probability graph: the interaction "
-            "between the SVGD preconditioner and the joint-index custom "
-            "VJP has not been validated. Consider preconditioner=None "
-            "for joint-prob inference.",
+            "preconditioner='fisher' + joint-probability graph: the Fisher "
+            "score divides by the joint probability, which is unstable when "
+            "those probabilities are small. Prefer preconditioner='auto' (the "
+            "probability-Jacobian preconditioner, functional on joint-prob "
+            "models) or preconditioner='none'.",
             UserWarning,
             stacklevel=3,
         )
@@ -766,6 +1013,69 @@ def _check_R20_tied_no_overlap_with_fixed_or_other_tied(c: SvgdConfig) -> None:
             )
 
 
+def _check_R23_fixed_indices_in_param_length_range(c: SvgdConfig) -> None:
+    # Non-daisy paths only: R14 range-checks fixed under epoch_starts (where the
+    # indices are per-epoch local). Here the indices are absolute into theta.
+    if not c.has_fixed or c.has_epoch_starts:
+        return
+    if c.fixed_indices is None or c.param_length is None:
+        return
+    bad = [i for i in c.fixed_indices if not (0 <= i < c.param_length)]
+    if bad:
+        raise SvgdConfigError(
+            f"fixed contains out-of-range parameter indices {bad!r}; valid "
+            f"indices are [0, param_length) = [0, {c.param_length}). Check the "
+            "(index, value) pairs (or the mask length) passed to fixed=."
+        )
+
+
+def _check_R24_preconditioner_value_valid(c: SvgdConfig) -> None:
+    choice = c.preconditioner_choice
+    # None and a pre-built instance are always valid (instance type is checked
+    # in SVGD.__init__); otherwise the string must be a known method.
+    if choice is None or choice == 'instance':
+        return
+    if choice not in _VALID_PRECONDITIONER_STRINGS:
+        raise SvgdConfigError(
+            f"preconditioner must be one of {_VALID_PRECONDITIONER_STRINGS}, "
+            "None, or a preconditioner instance (MomentJacobianPreconditioner / "
+            "ProbabilityJacobianPreconditioner / FisherPreconditioner); "
+            f"got {choice!r}."
+        )
+
+
+def _check_R25_optimizer_xor_learning_rate(c: SvgdConfig) -> None:
+    if c.has_optimizer and c.has_explicit_learning_rate:
+        raise SvgdConfigError(
+            "optimizer= and learning_rate= are mutually exclusive: an optimizer "
+            "(Adam, Adamelia, SGDMomentum, RMSprop, Adagrad) carries its own "
+            "learning rate. Pass one or the other, not both."
+        )
+
+
+def _check_R26_optimizer_excludes_regularization(c: SvgdConfig) -> None:
+    if c.has_optimizer and c.has_regularization:
+        raise SvgdConfigError(
+            "optimizer= requires regularization=0.0. Moment regularization needs "
+            "a fixed learning-rate schedule, which an adaptive optimizer "
+            "overrides. Drop the optimizer (use learning_rate=) or set "
+            "regularization=0.0."
+        )
+
+
+def _check_R27_nr_moments_ignored_on_joint_prob(c: SvgdConfig) -> None:
+    # Joint-prob / joint-index likelihoods use converged visit counts, not
+    # moments, so a non-default nr_moments has no effect there.
+    if c.graph_kind == 'joint_prob' and c.nr_moments != 2:
+        warnings.warn(
+            f"nr_moments={c.nr_moments} is ignored for joint-probability models "
+            "(their likelihood uses converged visit counts, not moments). "
+            "Remove nr_moments, or use a non-joint graph if you need moments.",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
 _RULES = (
     _check_R1_epoch_requires_continuous_joint_prob,
     _check_R2_joint_index_requires_joint_prob,
@@ -779,7 +1089,7 @@ _RULES = (
     _check_R10_exposure_length_matches_n_observations,
     _check_R11_exposure_with_2d_rewards_warns,
     _check_R12_param_transform_incompatible_with_joint_prob,
-    _check_R13_preconditioner_with_joint_prob_warns,
+    _check_R13_fisher_preconditioner_with_joint_prob_warns,
     _check_R14_fixed_with_epoch_starts_local_indices,
     _check_R15_positive_params_xor_param_transform,
     _check_R16_tied_requires_epoch_starts,
@@ -789,6 +1099,11 @@ _RULES = (
     _check_R20_tied_no_overlap_with_fixed_or_other_tied,
     _check_R21_callback_incompatible_with_epoch_starts,
     _check_R22_weight_formula_incompatible_with_callback,
+    _check_R23_fixed_indices_in_param_length_range,
+    _check_R24_preconditioner_value_valid,
+    _check_R25_optimizer_xor_learning_rate,
+    _check_R26_optimizer_excludes_regularization,
+    _check_R27_nr_moments_ignored_on_joint_prob,
 )
 
 
