@@ -6515,6 +6515,11 @@ extern "C" {{
         # return-tuple shape. The attribute is always set, including
         # when no tying is active (slave_to_master is empty).
         model._tying_info = tying_info
+        # Preconditioner source: the daisy-chain model returns DUMMY zeros as its
+        # second (moments) output, so precondition on the FIRST (probability)
+        # output (ProbabilityJacobianPreconditioner). Set for BOTH the exposure
+        # and no-exposure model objects (this line runs for both branches).
+        model._precondition_output = 'probability'
 
         if user_prior is not None:
             # Determine the broadcast pattern.
@@ -6679,7 +6684,8 @@ extern "C" {{
              exposure: ArrayLike | float | None = None,
              exposure_param_index: int | None = None,
              validate_rewards: bool = True,
-             ) -> dict:
+             quiet_assumptions: bool = False,
+             ) -> 'SVGD':
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -6728,14 +6734,19 @@ extern "C" {{
         n_iterations : int, default=1000
             Number of SVGD optimization steps
         optimizer : object, optional
-            Learning rate optimizer instance from phasic.optimizers. Default is Adam
-            when learning_rate=None and regularization=0. Options include Adamelia, Adam,
-            SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate
-            parameter is ignored (the optimizer has its own learning rate).
+            Adaptive learning-rate optimizer from phasic (Adam, Adamelia,
+            SGDMomentum, RMSprop, Adagrad), giving per-parameter step sizes —
+            the recommended way to handle parameters of different magnitudes.
+            When set, ``learning_rate`` must be None (R25) and ``regularization``
+            must be 0 (R26). NOT the default: with ``optimizer=None`` SVGD uses a
+            fixed global step (see ``learning_rate``); pass e.g.
+            ``optimizer=Adam(learning_rate=0.01)`` to opt in.
         learning_rate : float or None, default=None
-            SVGD step size. If None (default), uses Adame optimizer with adaptive
-            learning rates. If a float is provided, uses fixed learning rate approach.
-            Larger values = faster convergence but may be unstable.
+            Fixed (non-adaptive) SVGD step size. When None *and* ``optimizer`` is
+            None, SVGD uses a constant default step (≈ ``0.001`` scaled by the
+            observation count) — NOT an adaptive optimizer. A float sets the
+            step explicitly. Mutually exclusive with ``optimizer`` (R25).
+            For per-parameter adaptive steps use ``optimizer=Adam(...)`` instead.
         bandwidth : str, float, or np.ndarray, default='median_per_dim'
             Kernel bandwidth selection method:
             - 'median_per_dim': Per-dimension median heuristic (default). Uses a
@@ -6923,14 +6934,25 @@ extern "C" {{
             tying is a pre-model-construction concern owned by
             ``Graph.svgd``.
         preconditioner : str, preconditioner instance, or None, default='auto'
-            Preconditioning method for multi-scale parameters:
-            - 'auto' or 'jacobian': Moment Jacobian preconditioning (default, recommended).
-              Uses column norms of the moment Jacobian matrix for scaling. Simpler and
-              more robust than Fisher preconditioning.
-            - 'fisher': Fisher diagonal preconditioning. Uses empirical Fisher information
-              matrix diagonal. Can be unstable when PMF values are small.
-            - None or 'none': No preconditioning (original behavior)
-            - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
+            Preconditioning method for multi-scale parameters (rescales the
+            kernel so dimensions of different magnitude mix evenly). Functional
+            on ALL model paths:
+            - 'auto' or 'jacobian' (default, recommended): Jacobian column-norm
+              scaling. On standard/reward models this is the moment Jacobian; on
+              joint-probability / daisy-chain models it is the *probability*
+              Jacobian (``ProbabilityJacobianPreconditioner``) — the moments
+              output is a dummy there, so phasic preconditions on the
+              theta-dependent probability output instead. This resolution is
+              announced via ``SvgdAssumptionWarning`` and shown by
+              ``effective_options()``.
+            - 'fisher': Fisher diagonal. Divides the score by the PMF/probability,
+              so it can be unstable when those are small; on joint-prob it warns
+              (R13). Prefer 'auto'.
+            - None or 'none': No preconditioning.
+            - A MomentJacobianPreconditioner / ProbabilityJacobianPreconditioner /
+              FisherPreconditioner instance: custom preconditioner.
+            See also ``optimizer=Adam(...)`` for per-parameter adaptive *step
+            sizes*, which complements (and is independent of) preconditioning.
         epoch_starts : array-like of float, optional
             Enables daisy-chain (time-inhomogeneous) inference. ``epoch_starts[0] == 0``;
             subsequent entries are the start times of additional epochs. ``n_epochs =
@@ -7011,15 +7033,29 @@ extern "C" {{
             ``(n_epochs * param_length,)``;
             ``exposure_param_index`` remains the *local* per-epoch
             index and is broadcast across every epoch internally.
+        quiet_assumptions : bool, default False
+            When False (default), emit a one-time
+            :class:`~phasic.exceptions.SvgdAssumptionWarning` whenever an option
+            is forced or notably assumed from the model type (e.g.
+            ``discrete=True`` for a joint-index model, the preconditioner
+            resolution, the daisy-chain re-derivation). Set True to suppress
+            those notices; the full resolved set is still available via
+            ``result.effective_options()``. (Routine inferences such as
+            ``theta_dim`` from the graph are recorded silently regardless.)
 
         Returns
         -------
-        dict
-            Inference results containing:
-            - 'particles': Final posterior samples (n_particles, theta_dim)
-            - 'theta_mean': Posterior mean estimate
-            - 'theta_std': Posterior standard deviation
-            - 'history': Particle evolution over iterations (if return_history=True)
+        SVGD
+            The fitted :class:`SVGD` object. Posterior summaries are available
+            on it (e.g. ``result.theta_mean``, ``result.theta_std``,
+            ``result.particles``, ``result.summary()``), and
+            ``result.effective_options()`` prints every option in effect with
+            its provenance (default / user / inferred / forced).
+
+            **Valid option combinations** are enforced up front by
+            ``phasic.svgd_config`` (rules R1–R27) — see that module's docstring
+            for the full matrix. Invalid combinations raise
+            :class:`~phasic.exceptions.SvgdConfigError` before any model is built.
 
         Raises
         ------
@@ -7124,10 +7160,39 @@ extern "C" {{
             param_transform=param_transform,
             positive_params=positive_params,
             preconditioner=preconditioner,
+            optimizer=optimizer,
+            learning_rate=learning_rate,
             regularization=_reg_probe,
             nr_moments=nr_moments,
             joint_index=joint_index,
         ))
+
+        # Options ledger: record the provenance (default / user / inferred /
+        # forced) of each resolved option so the returned object's
+        # effective_options() can show what is in effect and which values phasic
+        # chose or overrode. Surprising/overriding choices also emit a one-time
+        # SvgdAssumptionWarning (suppressible with quiet_assumptions=True);
+        # routine inferences are recorded silently. Captured here — before any
+        # resolution below — so the original user-passed values are recorded.
+        from .svgd_config import (
+            SvgdOptionsLedger as _SvgdOptionsLedger,
+            assume as _svgd_assume,
+            LEDGER_OPTION_ORDER as _LEDGER_OPTION_ORDER,
+        )
+        import inspect as _inspect
+        _ledger = _SvgdOptionsLedger()
+        _opt_defaults = {
+            _n: _p.default
+            for _n, _p in _inspect.signature(Graph.svgd).parameters.items()
+        }
+        _opt_vals = dict(locals())
+        for _name in _LEDGER_OPTION_ORDER:
+            _ledger.record_user_or_default(
+                _name, _opt_vals.get(_name), _opt_defaults.get(_name))
+        # Originals (pre-resolution) for forced/inferred provenance below.
+        _orig_discrete = discrete
+        _orig_theta_dim = theta_dim
+        _orig_joint_index = joint_index
 
         # Resolve / validate theta_dim against the weight mode (callback requires
         # it; formula infers it from n_theta; linear/log leaves it for the
@@ -7137,6 +7202,8 @@ extern "C" {{
             callback=callback, weight_formula=weight_formula,
             epoch_starts=epoch_starts,
         )
+        if _orig_theta_dim is None and theta_dim is not None:
+            _ledger.set_inferred('theta_dim', theta_dim, 'from weight mode')
 
         # Per-call override of graph.weight_callback. When the kwarg
         # is set, temporarily flip graph.weight_callback to the
@@ -7228,9 +7295,13 @@ extern "C" {{
                         "theta_dim could not be inferred. Either the graph has no parameterized edges, "
                         "or you must specify theta_dim (or theta_init) explicitly."
                     )
+                if _orig_theta_dim is None:
+                    _ledger.set_inferred('theta_dim', theta_dim,
+                                         'from graph.param_length()')
 
             if discrete is None:
                 discrete = self.is_discrete
+                _ledger.set_inferred('discrete', discrete, 'from graph.is_discrete')
 
             # Build the fixed-parameter mask once (theta_dim is resolved here)
             # so the non-daisy model builders can skip finite-difference
@@ -7248,16 +7319,33 @@ extern "C" {{
                         self, observed_data, sd=5.0, fixed=fixed,
                         theta_dim=theta_dim, discrete=discrete, verbose=verbose,
                     )
-                except Exception:
-                    pass  # Fall through to SVGD's standard-normal default
+                    _ledger.set_inferred('prior', 'DataPrior(sd=5)',
+                                         'default data-informed prior')
+                except Exception as _prior_exc:
+                    # DataPrior construction failed; SVGD falls back to a
+                    # standard-normal prior. Surface this — it was silently
+                    # swallowed before.
+                    _ledger.set_inferred('prior', 'standard-normal',
+                                         'DataPrior failed; fell back')
+                    _svgd_assume(
+                        "prior=None: data-informed DataPrior construction failed "
+                        f"({type(_prior_exc).__name__}); falling back to a "
+                        "standard-normal prior.",
+                        quiet=quiet_assumptions,
+                    )
 
             # Handle joint_index mode
             if self._joint_prob_base_graph_indexer is not None:
                 logger = get_logger(__name__)
 
                 if not joint_index:
-                    logger.info("Graph was constructed with joint index support. "
-                      "joint_index=True is implied.")
+                    _ledger.set_forced('joint_index', True, user_value=False,
+                                       reason='graph built with joint-probability support')
+                    _svgd_assume(
+                        "assuming joint_index=True because the graph was built "
+                        "with joint-probability support.",
+                        quiet=quiet_assumptions,
+                    )
                 joint_index = True # FIXME: joint_index is always True if graph supports it, so not really needed as argument
 
                 if not self._joint_prob_base_graph_indexer:
@@ -7282,20 +7370,49 @@ extern "C" {{
                         obs_indices.append(idx.item())
                 observed_data = obs_indices
 
-                # Check for unsupported combinations
+                # Check for unsupported combinations. The validator (R3/R4)
+                # already raises on these before model construction; kept here
+                # as defense-in-depth for direct callers.
                 if regularization > 0:
-                    print("Warning: Moment regularization is not implemented with joint_index=True")
                     raise NotImplementedError(
                         "Moment regularization is not supported with joint probability models."
                     )
                 if rewards is not None:
-                    print("Warning: Reward transformation is not supported with joint_index=True")
                     raise NotImplementedError(
                         "Reward transformation is not supported with joint_index=True. "
                         "Set rewards=None or use joint_index=False."
                     )
-                # Force discrete mode for joint_index
+                # Force discrete mode for joint_index: these models read
+                # converged visit counts, not a continuous PDF/PMF.
+                if _orig_discrete is False:
+                    _svgd_assume(
+                        "forcing discrete=True: joint-index models read converged "
+                        "visit counts, not a continuous PDF/PMF; your "
+                        "discrete=False was overridden.",
+                        quiet=quiet_assumptions,
+                    )
+                    _ledger.set_forced('discrete', True, user_value=False,
+                                       reason='joint-index reads visit counts')
+                elif _orig_discrete is None:
+                    _ledger.set_inferred('discrete', True, 'joint-index model')
                 discrete = True
+
+                # Preconditioner resolution: 'auto'/'jacobian' on a joint-prob
+                # model builds the probability-Jacobian preconditioner (the
+                # moment Jacobian would degenerate to a no-op here). Announce it.
+                if isinstance(preconditioner, str) and preconditioner in ('auto', 'jacobian'):
+                    _ledger.set_inferred(
+                        'preconditioner',
+                        f"{preconditioner} -> probability-Jacobian",
+                        'joint-probability model',
+                    )
+                    _svgd_assume(
+                        f"preconditioner={preconditioner!r} resolves to the "
+                        "probability-Jacobian preconditioner (built from the "
+                        "model's probability output) for this joint-probability "
+                        "model.",
+                        quiet=quiet_assumptions,
+                    )
 
                 # Daisy-chain branch: when epoch_starts is provided, fit
                 # n_epochs * param_length parameters under a piecewise-
@@ -7341,6 +7458,18 @@ extern "C" {{
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
                         final_read=final_read,
+                    )
+                    # The daisy-chain builder re-derives theta_dim (flat
+                    # n_epochs x param_length), and its own broadcast prior and
+                    # fixed layout, overriding what was resolved above.
+                    _ledger.set_forced(
+                        'theta_dim', theta_dim, user_value=_orig_theta_dim,
+                        reason='daisy-chain flat layout n_epochs x param_length')
+                    _svgd_assume(
+                        "daisy-chain: theta_dim, prior and fixed were re-derived "
+                        "for the flat per-epoch layout "
+                        "(n_epochs x param_length); per-epoch indices apply.",
+                        quiet=quiet_assumptions,
                     )
                 else:
                     # Parse fixed to get mask for joint_index model
@@ -7439,6 +7568,16 @@ extern "C" {{
                 exposure_param_index=exposure_param_index,
                 _validated=True,  # Graph.svgd ran the validator at the top
             )
+
+            # Attach the options ledger for svgd.effective_options(). Reconcile
+            # the couple of defaults that SVGD.__init__ resolves internally.
+            if _opt_vals.get('n_particles') is None and getattr(svgd, 'n_particles', None) is not None:
+                _ledger.set_inferred('n_particles', svgd.n_particles,
+                                     'default (20 x theta_dim)')
+            if _opt_vals.get('learning_rate') is None and getattr(svgd, 'learning_rate', None) is not None:
+                _ledger.set_inferred('learning_rate', svgd.learning_rate,
+                                     'default step size')
+            svgd._options_ledger = _ledger
 
             # Post-init for tied parameters: copy master column values
             # into the slave columns of svgd.theta_init so the initial
@@ -8639,6 +8778,9 @@ extern "C" {{
         # callers; enables auto-attachment of the zero-inflated
         # likelihood term (see ``zero_inflation.py``).
         model._source_graph = graph
+        # Preconditioner source: this model returns REAL moments as its second
+        # output, so MomentJacobianPreconditioner ('auto') applies here.
+        model._precondition_output = 'moments'
         return model
 
     @classmethod
@@ -9040,6 +9182,11 @@ extern "C" {{
         model.defvjp(model_fwd, model_bwd)
         # Source graph reference (see ``pmf_and_moments_from_graph``).
         model._source_graph = graph
+        # Preconditioner source: this joint-index model returns DUMMY zeros as
+        # its second (moments) output, so the moment Jacobian would degenerate.
+        # Precondition on the theta-dependent FIRST (probability) output instead
+        # (ProbabilityJacobianPreconditioner). See SVGD.optimize dispatch.
+        model._precondition_output = 'probability'
         return model
 
     @classmethod
@@ -9235,6 +9382,8 @@ extern "C" {{
 
         # Source graph reference (see ``pmf_and_moments_from_graph``).
         model_multivariate._source_graph = graph
+        # Preconditioner source: real moments output (see pmf_and_moments_from_graph).
+        model_multivariate._precondition_output = 'moments'
         return model_multivariate
 
 
@@ -12736,6 +12885,7 @@ _JAX_LAZY_NAMES = frozenset({
     'RegularizationSchedule', 'ConstantRegularization',
     'ExpRegularization', 'ExponentialCDFRegularization',
     'FisherPreconditioner', 'MomentJacobianPreconditioner',
+    'ProbabilityJacobianPreconditioner',
     'SparseObservations', 'dense_to_sparse', 'is_sparse_observations',
     # mcmc
     'MCMC',
