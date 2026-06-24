@@ -91,8 +91,10 @@ def test_forcing_notices_emitted_by_default():
             if issubclass(ww.category, SvgdAssumptionWarning)]
     joined = "\n".join(msgs)
     assert any('discrete=True' in m and 'overridden' in m for m in msgs), joined
-    assert any('joint_index=True' in m for m in msgs), joined
     assert any('probability-Jacobian' in m for m in msgs), joined
+    # joint_index is inferred silently (no notice) since the default is None;
+    # only an explicit joint_index=False would be an error (R28), not a notice.
+    assert not any('joint_index' in m for m in msgs), joined
 
 
 def test_quiet_assumptions_silences_notices():
@@ -131,8 +133,9 @@ def test_effective_options_provenance():
     assert d['discrete']['user_value'] is False
     assert d['discrete']['value'] is True
 
-    assert d['joint_index']['status'] == 'forced'
-    assert d['joint_index']['user_value'] is False
+    # joint_index defaults to None and is inferred (not forced) to True.
+    assert d['joint_index']['status'] == 'inferred'
+    assert d['joint_index']['value'] is True
 
     assert d['preconditioner']['status'] == 'inferred'
     assert 'probability-Jacobian' in d['preconditioner']['value']

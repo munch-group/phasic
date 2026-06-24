@@ -42,8 +42,9 @@ Graph kind × time
   - standard graph: continuous (PDF) or discrete (PMF); ``is_discrete`` from
     the graph, overridable by ``discrete=``.
   - joint-probability graph (``graph.joint_prob_graph(...)``): ``joint_index``
-    is forced True and ``discrete`` is forced True (these models read
-    converged visit counts, not a density). [forced]
+    defaults to None and is inferred True (an explicit joint_index=False is
+    rejected, R28); ``discrete`` is forced True (these models read converged
+    visit counts, not a density). [inferred / forced]
 
 Observations × rewards
   - 1D times / 2D times / sparse / joint indices, classified from the data.
@@ -260,6 +261,10 @@ class SvgdConfig:
     has_regularization: bool
     nr_moments: int
     joint_index_explicit: bool
+    # True iff the user EXPLICITLY passed ``joint_index=False`` (distinct from the
+    # default ``None``, which is inferred). Used by R28 to reject the
+    # contradiction of asking for non-joint inference on a joint-prob graph.
+    joint_index_false: bool = False
     # Tied-parameter introspection.
     # ``has_tied`` is True iff the user passed a non-empty ``tied=``.
     # ``tied_groups`` is the parsed, normalised form: a tuple of
@@ -498,7 +503,7 @@ def from_svgd_call(
     learning_rate: Any = None,
     regularization: float = 0.0,
     nr_moments: int = 2,
-    joint_index: bool = False,
+    joint_index: Any = None,
     **_unused: Any,
 ) -> SvgdConfig:
     """Build an :class:`SvgdConfig` from a live ``Graph.svgd`` call.
@@ -567,7 +572,8 @@ def from_svgd_call(
         has_explicit_learning_rate=learning_rate is not None,
         has_regularization=float(regularization) > 0.0,
         nr_moments=int(nr_moments),
-        joint_index_explicit=bool(joint_index),
+        joint_index_explicit=joint_index is True,
+        joint_index_false=joint_index is False,
         has_tied=has_tied,
         tied_groups=tied_groups,
         has_callback=has_callback,
@@ -672,6 +678,7 @@ def from_model_call(
         has_regularization=float(regularization) > 0.0,
         nr_moments=int(nr_moments),
         joint_index_explicit=False,
+        joint_index_false=False,
         has_tied=False,
         tied_groups=None,
         has_callback=False,
@@ -1078,6 +1085,19 @@ def _check_R27_nr_moments_ignored_on_joint_prob(c: SvgdConfig) -> None:
         )
 
 
+def _check_R28_joint_index_false_incompatible_with_joint_prob(c: SvgdConfig) -> None:
+    # A joint-probability graph only supports joint-index inference, so an
+    # explicit joint_index=False is a contradiction. (The default is None, which
+    # is inferred to True silently — only an explicit False reaches here.)
+    if c.joint_index_false and c.graph_kind == 'joint_prob':
+        raise SvgdConfigError(
+            "joint_index=False is incompatible with a joint-probability graph "
+            "(built via graph.joint_prob_graph(...)). These models only support "
+            "joint-index inference. Omit joint_index (it is inferred) or pass "
+            "joint_index=True."
+        )
+
+
 _RULES = (
     _check_R1_epoch_requires_continuous_joint_prob,
     _check_R2_joint_index_requires_joint_prob,
@@ -1106,6 +1126,7 @@ _RULES = (
     _check_R25_optimizer_xor_learning_rate,
     _check_R26_optimizer_excludes_regularization,
     _check_R27_nr_moments_ignored_on_joint_prob,
+    _check_R28_joint_index_false_incompatible_with_joint_prob,
 )
 
 

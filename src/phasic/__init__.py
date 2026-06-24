@@ -6668,7 +6668,7 @@ extern "C" {{
              nr_moments: int = 2,
              positive_params: bool = True,
              param_transform: Callable | None = None,
-             joint_index: bool = False,
+             joint_index: bool | None = None,
              rewards: ArrayLike | None = None,
              fixed: ArrayLike | None = None,
              tied: ArrayLike | None = None,
@@ -6815,16 +6815,22 @@ extern "C" {{
             If provided, SVGD optimizes in unconstrained space and applies this transformation
             before calling the model. Cannot be used together with positive_params.
             Example: lambda theta: jnp.concatenate([jnp.exp(theta[:1]), jax.nn.softplus(theta[1:])])
-        joint_index : bool, default=False
-            If True, use joint index mode where observed_data contains vertex indices (integers)
-            instead of time values. In this mode, likelihood is computed from converged
-            accumulated_visits() values rather than PDF/PMF values. This is used for joint
-            index distributions in population genetics models.
+        joint_index : bool or None, default=None
+            Joint-index inference mode, where the likelihood is computed from
+            converged visit counts (``accumulated_visits()``) rather than PDF/PMF
+            values, for joint-index distributions in population genetics.
 
-            When joint_index=True:
-            - observed_data should contain vertex indices (integers)
-            - Forces discrete=True behavior
-            - Moment regularization is not supported (raises NotImplementedError if regularization > 0)
+            You normally do not set this: it is **inferred from the graph**.
+            - None (default): inferred True for a joint-probability graph
+              (built via ``graph.joint_prob_graph(...)``), False otherwise.
+            - True: explicit; requires a joint-probability graph (else R2 raises).
+            - False on a joint-probability graph: rejected (R28) — these models
+              only support joint-index inference. (Omit the argument instead.)
+
+            When active:
+            - observed_data are joint observations / vertex indices
+            - discrete=True is forced (these models read visit counts, not a density)
+            - moment regularization and rewards are not supported (R3/R4)
         rewards : ArrayLike, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
@@ -7340,14 +7346,16 @@ extern "C" {{
             if self._joint_prob_base_graph_indexer is not None:
                 logger = get_logger(__name__)
 
-                if not joint_index:
-                    _ledger.set_forced('joint_index', True, user_value=False,
-                                       reason='graph built with joint-probability support')
-                    _svgd_assume(
-                        "assuming joint_index=True because the graph was built "
-                        "with joint-probability support.",
-                        quiet=quiet_assumptions,
-                    )
+                # joint_index defaults to None and is inferred to True here for a
+                # joint-prob graph (these models only support joint-index
+                # inference). An explicit joint_index=False on a joint-prob graph
+                # is a contradiction and was already rejected by validator rule
+                # R28, so it never reaches this block. The None inference is
+                # routine — recorded in the ledger but not warned about.
+                if joint_index is None:
+                    _ledger.set_inferred(
+                        'joint_index', True,
+                        'graph built with joint-probability support')
                 joint_index = True # FIXME: joint_index is always True if graph supports it, so not really needed as argument
 
                 if not self._joint_prob_base_graph_indexer:
