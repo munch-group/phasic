@@ -1,4 +1,4 @@
-"""Unit tests for ``phasic.svgd_config`` rules R1..R27.
+"""Unit tests for ``phasic.svgd_config`` rules R1..R28.
 
 Each rule has a dedicated test that constructs the smallest possible
 config triggering the rule and asserts the right exception (or warning)
@@ -590,3 +590,23 @@ class TestEndToEndFailFast:
         with pytest.raises(SvgdConfigError, match=r"mutually exclusive"):
             g.svgd([1.0, 2.0], theta_dim=1,
                    optimizer=Adam(learning_rate=0.01), learning_rate=0.01)
+
+
+class TestR28_JointIndexFalseIncompatibleWithJointProb:
+    def test_rejects_explicit_false_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        with pytest.raises(SvgdConfigError, match=r"joint_index=False is incompatible"):
+            validate(from_svgd_call(g, [(0, 0)], joint_index=False))
+
+    def test_accepts_none_default_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(g, [(0, 0)], joint_index=None))
+
+    def test_accepts_true_on_joint_prob(self):
+        g = _make_joint_prob_graph()
+        validate(from_svgd_call(g, [(0, 0)], joint_index=True))
+
+    def test_accepts_false_on_standard_graph(self):
+        # joint_index=False on a non-joint graph is just the standard path.
+        g = _make_n2_base_graph()
+        validate(from_svgd_call(g, [1.0, 2.0], joint_index=False))
