@@ -6674,7 +6674,7 @@ extern "C" {{
              tied: ArrayLike | None = None,
              callback: Callable | None = None,
              weight_formula: str | None = None,
-             preconditioner: str | object | None = 'auto',
+             preconditioner: str | object | None = None,
              epoch_starts: ArrayLike | None = None,
              daisy_chain_t_eval: float | str | None = None,
              daisy_chain_granularity: int = 0,
@@ -6933,22 +6933,24 @@ extern "C" {{
             **Not available on the direct ``SVGD(model=...)`` path** —
             tying is a pre-model-construction concern owned by
             ``Graph.svgd``.
-        preconditioner : str, preconditioner instance, or None, default='auto'
+        preconditioner : str, preconditioner instance, or None, default=None
             Preconditioning method for multi-scale parameters (rescales the
             kernel so dimensions of different magnitude mix evenly). Functional
             on ALL model paths:
-            - 'auto' or 'jacobian' (default, recommended): Jacobian column-norm
-              scaling. On standard/reward models this is the moment Jacobian; on
-              joint-probability / daisy-chain models it is the *probability*
-              Jacobian (``ProbabilityJacobianPreconditioner``) — the moments
-              output is a dummy there, so phasic preconditions on the
+            - None (the default) or 'auto'/'jacobian' (recommended): Jacobian
+              column-norm scaling. On standard/reward models this is the moment
+              Jacobian; on joint-probability / daisy-chain models it is the
+              *probability* Jacobian (``ProbabilityJacobianPreconditioner``) — the
+              moments output is a dummy there, so phasic preconditions on the
               theta-dependent probability output instead. This resolution is
               announced via ``SvgdAssumptionWarning`` and shown by
               ``effective_options()``.
             - 'fisher': Fisher diagonal. Divides the score by the PMF/probability,
               so it can be unstable when those are small; on joint-prob it warns
-              (R13). Prefer 'auto'.
-            - None or 'none': No preconditioning.
+              (R13). Prefer the default.
+            - 'none': the ONLY way to disable preconditioning. (Note: ``None`` is
+              the default and means 'auto'/enabled — pass the string ``'none'`` to
+              turn preconditioning off.)
             - A MomentJacobianPreconditioner / ProbabilityJacobianPreconditioner /
               FisherPreconditioner instance: custom preconditioner.
             See also ``optimizer=Adam(...)`` for per-parameter adaptive *step
@@ -7397,17 +7399,22 @@ extern "C" {{
                     _ledger.set_inferred('discrete', True, 'joint-index model')
                 discrete = True
 
-                # Preconditioner resolution: 'auto'/'jacobian' on a joint-prob
-                # model builds the probability-Jacobian preconditioner (the
-                # moment Jacobian would degenerate to a no-op here). Announce it.
-                if isinstance(preconditioner, str) and preconditioner in ('auto', 'jacobian'):
+                # Preconditioner resolution: the default (None) and
+                # 'auto'/'jacobian' on a joint-prob model build the
+                # probability-Jacobian preconditioner (the moment Jacobian would
+                # degenerate to a no-op here). Announce it.
+                if preconditioner is None or (
+                    isinstance(preconditioner, str)
+                    and preconditioner in ('auto', 'jacobian')
+                ):
+                    _pc_shown = 'auto' if preconditioner is None else preconditioner
                     _ledger.set_inferred(
                         'preconditioner',
-                        f"{preconditioner} -> probability-Jacobian",
+                        f"{_pc_shown} -> probability-Jacobian",
                         'joint-probability model',
                     )
                     _svgd_assume(
-                        f"preconditioner={preconditioner!r} resolves to the "
+                        f"preconditioner={_pc_shown!r} resolves to the "
                         "probability-Jacobian preconditioner (built from the "
                         "model's probability output) for this joint-probability "
                         "model.",

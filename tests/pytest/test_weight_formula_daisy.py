@@ -134,7 +134,7 @@ def _run_joint_svgd(graph, indexer, observations, formula=None):
         prior=LogGaussPrior(ci=[1 / 50_000, 1 / 5000]),
         n_iterations=3, n_particles=8, seed=0,
         optimizer=Adamelia(learning_rate=0.2),
-        preconditioner=None,            # no epoch_starts -> joint_index path
+        preconditioner='none',            # no epoch_starts -> joint_index path
     )
     return np.asarray(svgd.particles)
 

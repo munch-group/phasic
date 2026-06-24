@@ -227,15 +227,30 @@ def test_svgd_fisher_string():
     assert svgd.preconditioner_method == 'fisher'
 
 
-def test_svgd_none_disables():
-    """preconditioner=None and 'none' should disable preconditioning."""
+def test_svgd_string_none_disables():
+    """'none' is the ONLY way to disable preconditioning."""
     model, data = _model_and_data_1d()
-    svgd1 = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
-                 preconditioner=None, verbose=False)
-    svgd2 = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
-                 preconditioner='none', verbose=False)
-    assert svgd1.preconditioner_method is None
-    assert svgd2.preconditioner_method is None
+    svgd = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
+                preconditioner='none', verbose=False)
+    assert svgd.preconditioner_method is None
+
+
+def test_svgd_none_means_auto():
+    """preconditioner=None is the default and means 'auto' (enabled), NOT off.
+
+    Disabling is done with the string 'none' (test_svgd_string_none_disables)."""
+    model, data = _model_and_data_1d()
+    svgd_none = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
+                     preconditioner=None, verbose=False)
+    svgd_auto = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
+                     preconditioner='auto', verbose=False)
+    # None resolves to the same method as 'auto' (enabled), not None/off.
+    assert svgd_none.preconditioner_method == 'jacobian'
+    assert svgd_none.preconditioner_method == svgd_auto.preconditioner_method
+    # And the default (unspecified) is None -> 'auto' too.
+    svgd_default = SVGD(model, data, theta_dim=1, n_particles=5, n_iterations=1,
+                        verbose=False)
+    assert svgd_default.preconditioner_method == 'jacobian'
 
 
 def test_svgd_accepts_instance():

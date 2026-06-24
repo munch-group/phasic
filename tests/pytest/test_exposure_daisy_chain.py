@@ -518,7 +518,7 @@ def test_svgd_end_to_end_with_exposure_and_epoch_starts():
     # User's exact call shape, scaled down to keep CI under 2 minutes.
     svgd = joint_prob_graph_cont.svgd(
         observations,
-        preconditioner=None,
+        preconditioner='none',
         fixed=[(1, mut_rate)],
         prior=LogGaussPrior(ci=[1 / 50_000, 1 / 2000]),
         learning_rate=ExpStepSize(first_step=0.05, last_step=0.005, tau=30.0),
@@ -1187,7 +1187,7 @@ def test_per_obs_svgd_runs_with_parallel_vmap():
     # parallel_mode='none' — the new tag tells SVGD to honour vmap.
     res = jg.svgd(
         observations,
-        preconditioner=None,
+        preconditioner='none',
         fixed=[(1, mut_rate)],
         prior=LogGaussPrior(ci=[1 / 50_000, 1 / 2000]),
         learning_rate=ExpStepSize(first_step=0.05, last_step=0.005, tau=30.0),
