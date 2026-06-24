@@ -71,10 +71,10 @@ Weight mode
     exclusive (R22).
 
 Preconditioner × optimizer × params
-  - ``preconditioner`` ∈ {'auto'/'jacobian' (probability-Jacobian on
-    joint-prob [assumed], moment-Jacobian otherwise), 'fisher', 'none', None,
-    instance}; invalid strings are rejected (R24). 'fisher' on joint-prob
-    warns (R13). ``optimizer`` and ``learning_rate`` are mutually exclusive
+  - ``preconditioner`` ∈ {None (the default; = 'auto'), 'auto'/'jacobian'
+    (probability-Jacobian on joint-prob [assumed], moment-Jacobian otherwise),
+    'fisher', 'none' (the ONLY way to disable), instance}; invalid strings are
+    rejected (R24). 'fisher' on joint-prob warns (R13). ``optimizer`` and ``learning_rate`` are mutually exclusive
     (R25); ``optimizer`` forbids ``regularization>0`` (R26). ``regularization``
     and ``param_transform`` are rejected on joint-prob (R4, R12).
     ``positive_params`` and ``param_transform`` are mutually exclusive (R15).
@@ -366,17 +366,19 @@ def _classify_preconditioner(preconditioner: Any) -> Tuple[bool, Optional[str], 
     """Classify the ``preconditioner=`` argument.
 
     Returns ``(has_preconditioner, choice, is_fisher)`` where ``choice`` is the
-    raw string, ``'instance'`` for a pre-built preconditioner object, or ``None``
-    when the user passed ``None``. ``has_preconditioner`` is False only for
-    ``None``/``'none'``. ``is_fisher`` is True iff the choice resolves to the
-    Fisher method (string ``'fisher'`` or a ``FisherPreconditioner`` instance —
-    detected by class name to avoid importing svgd into the validator).
+    raw string, ``'instance'`` for a pre-built preconditioner object, or ``'auto'``
+    when the user passed ``None`` (the default — ``None`` means 'auto', i.e.
+    enabled). ``has_preconditioner`` is False ONLY for the explicit string
+    ``'none'``. ``is_fisher`` is True iff the choice resolves to the Fisher method
+    (string ``'fisher'`` or a ``FisherPreconditioner`` instance — detected by
+    class name to avoid importing svgd into the validator).
 
     Invalid string values are passed through unchanged (``choice`` set, no raise
     here); rule R24 reports them.
     """
     if preconditioner is None:
-        return False, None, False
+        # None is the default and means 'auto' (enabled).
+        return True, 'auto', False
     if isinstance(preconditioner, str):
         return preconditioner != 'none', preconditioner, preconditioner == 'fisher'
     # A pre-built preconditioner instance.
@@ -491,7 +493,7 @@ def from_svgd_call(
     exposure_param_index: Optional[int] = None,
     param_transform: Any = None,
     positive_params: bool = True,
-    preconditioner: Any = 'auto',
+    preconditioner: Any = None,
     optimizer: Any = None,
     learning_rate: Any = None,
     regularization: float = 0.0,
@@ -585,7 +587,7 @@ def from_model_call(
     exposure_param_index: Optional[int] = None,
     param_transform: Any = None,
     positive_params: bool = True,
-    preconditioner: Any = 'auto',
+    preconditioner: Any = None,
     optimizer: Any = None,
     learning_rate: Any = None,
     regularization: float = 0.0,

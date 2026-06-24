@@ -4783,7 +4783,7 @@ class SVGD:
                  rewards: jnp.ndarray | None = None,
                  fixed: dict | None = None,
                  optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
-                 preconditioner: str | _PreconditionerBase = 'auto',
+                 preconditioner: str | _PreconditionerBase | None = None,
                  exposure: jnp.ndarray | float | None = None,
                  exposure_param_index: int | None = None,
                  _validated: bool = False) -> None:
@@ -5508,27 +5508,31 @@ class SVGD:
         self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
         self.optimizer = optimizer
 
-        # Validate and store preconditioner setting
-        if isinstance(preconditioner, str):
+        # Validate and store preconditioner setting.
+        # None is the DEFAULT and means 'auto' (enable; phasic picks the method
+        # by model type). The ONLY way to disable preconditioning is the string
+        # 'none'.
+        if preconditioner is None:
+            self.preconditioner_method = 'jacobian'
+        elif isinstance(preconditioner, str):
             if preconditioner in ('auto', 'jacobian'):
                 self.preconditioner_method = 'jacobian'
             elif preconditioner == 'fisher':
                 self.preconditioner_method = 'fisher'
             elif preconditioner == 'none':
-                self.preconditioner_method = None
+                self.preconditioner_method = None  # explicit disable
             else:
                 raise ValueError(
-                    f"preconditioner must be 'auto', 'jacobian', 'fisher', 'none', None, "
-                    f"or a preconditioner instance, got: {preconditioner!r}"
+                    f"preconditioner must be None or 'auto' (the default; enables "
+                    f"preconditioning), 'jacobian', 'fisher', 'none' (disable), or a "
+                    f"preconditioner instance, got: {preconditioner!r}"
                 )
-        elif preconditioner is None:
-            self.preconditioner_method = None
         elif isinstance(preconditioner, (FisherPreconditioner, MomentJacobianPreconditioner,
                                          ProbabilityJacobianPreconditioner)):
             self.preconditioner_method = preconditioner
         else:
             raise TypeError(
-                f"preconditioner must be str, None, FisherPreconditioner, "
+                f"preconditioner must be None, str, FisherPreconditioner, "
                 f"MomentJacobianPreconditioner, or ProbabilityJacobianPreconditioner, "
                 f"got: {type(preconditioner)}"
             )
