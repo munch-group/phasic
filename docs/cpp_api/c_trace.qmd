@@ -1,0 +1,150 @@
+# Trace-based elimination { #cpp.c_trace }
+
+Record-once / evaluate-many elimination traces and their on-disk caching.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_record_elimination_trace](#cpp.c_trace.ptd_record_elimination_trace) | Record elimination trace from parameterized graph. |
+| [ptd_evaluate_trace](#cpp.c_trace.ptd_evaluate_trace) | Evaluate elimination trace with concrete parameter values. |
+| [ptd_build_reward_compute_from_trace](#cpp.c_trace.ptd_build_reward_compute_from_trace) | Build reward compute graph from trace evaluation result. |
+| [ptd_instantiate_from_trace](#cpp.c_trace.ptd_instantiate_from_trace) | Instantiate a complete graph from trace evaluation result. |
+| [ptd_elimination_trace_destroy](#cpp.c_trace.ptd_elimination_trace_destroy) | Destroy elimination trace and free all memory. |
+| [ptd_trace_result_destroy](#cpp.c_trace.ptd_trace_result_destroy) | Destroy trace evaluation result and free all memory. |
+| [ptd_load_trace_from_cache](#cpp.c_trace.ptd_load_trace_from_cache) | Load elimination trace from disk cache. |
+| [ptd_save_trace_to_cache](#cpp.c_trace.ptd_save_trace_to_cache) | Save elimination trace to disk cache. |
+
+### ptd_record_elimination_trace { #cpp.c_trace.ptd_record_elimination_trace }
+
+```c
+struct ptd_elimination_trace * ptd_record_elimination_trace(struct ptd_graph *graph)
+```
+
+Record elimination trace from parameterized graph.
+
+Performs graph elimination while recording all arithmetic operations in a linear sequence. The trace can be efficiently replayed with different parameter values.
+
+**Parameters:**
+
+- `graph` — Parameterized graph
+
+**Returns:** Elimination trace, or NULL on error
+
+Time complexity: O(n³) one-time cost Space complexity: O(n²) for trace storage
+
+### ptd_evaluate_trace { #cpp.c_trace.ptd_evaluate_trace }
+
+```c
+struct ptd_trace_result * ptd_evaluate_trace(const struct ptd_elimination_trace *trace, const double *params, size_t params_length)
+```
+
+Evaluate elimination trace with concrete parameter values.
+
+Executes the recorded operation sequence with given parameters to produce vertex rates and edge probabilities.
+
+**Parameters:**
+
+- `trace` — Elimination trace
+- `params` — Parameter array
+- `params_length` — Length of parameter array
+
+**Returns:** Trace evaluation result, or NULL on error
+
+Time complexity: O(n) where n = number of operations
+
+### ptd_build_reward_compute_from_trace { #cpp.c_trace.ptd_build_reward_compute_from_trace }
+
+```c
+struct ptd_desc_reward_compute * ptd_build_reward_compute_from_trace(const struct ptd_trace_result *result, struct ptd_graph *graph)
+```
+
+Build reward compute graph from trace evaluation result.
+
+Converts trace evaluation results into the internal reward_compute_graph structure used by pdf/moment computations.
+
+**Parameters:**
+
+- `result` — Trace evaluation result
+- `graph` — Graph structure (for vertex references)
+
+**Returns:** Reward compute graph, or NULL on error
+
+### ptd_instantiate_from_trace { #cpp.c_trace.ptd_instantiate_from_trace }
+
+```c
+struct ptd_graph * ptd_instantiate_from_trace(const struct ptd_trace_result *result, const struct ptd_elimination_trace *trace)
+```
+
+Instantiate a complete graph from trace evaluation result.
+
+Creates a new graph with all vertices and edges from the evaluated trace. The graph will have concrete edge weights computed from the trace evaluation.
+
+**Parameters:**
+
+- `result` — Trace evaluation result with concrete rates and probabilities
+- `trace` — Original elimination trace (for vertex states and structure)
+
+**Returns:** New graph instance, or NULL on error
+
+Notes:
+
+- The returned graph is NOT normalized
+- Caller must call ptd_graph_destroy() when done
+- Vertices are created from trace->states
+- Edge weights are computed as: weight = prob / inv_rate
+
+Time complexity: O(n + m) where n = vertices, m = edges
+
+### ptd_elimination_trace_destroy { #cpp.c_trace.ptd_elimination_trace_destroy }
+
+```c
+void ptd_elimination_trace_destroy(struct ptd_elimination_trace *trace)
+```
+
+Destroy elimination trace and free all memory.
+
+### ptd_trace_result_destroy { #cpp.c_trace.ptd_trace_result_destroy }
+
+```c
+void ptd_trace_result_destroy(struct ptd_trace_result *result)
+```
+
+Destroy trace evaluation result and free all memory.
+
+### ptd_load_trace_from_cache { #cpp.c_trace.ptd_load_trace_from_cache }
+
+```c
+struct ptd_elimination_trace * ptd_load_trace_from_cache(const char *hash_hex)
+```
+
+Load elimination trace from disk cache.
+
+Traces are stored in ~/.phasic_cache/traces/ as JSON files. The cache can be disabled by setting PHASIC_DISABLE_CACHE=1.
+
+**Parameters:**
+
+- `hash_hex` — Hexadecimal hash string identifying the trace (64 chars)
+
+**Returns:** Loaded trace (caller must call ptd_elimination_trace_destroy), or NULL if not found
+
+Time complexity: O(n) where n = trace size (file I/O + JSON parsing)
+
+### ptd_save_trace_to_cache { #cpp.c_trace.ptd_save_trace_to_cache }
+
+```c
+bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace)
+```
+
+Save elimination trace to disk cache.
+
+Traces are stored in ~/.phasic_cache/traces/ as JSON files. The cache can be disabled by setting PHASIC_DISABLE_CACHE=1.
+
+**Parameters:**
+
+- `hash_hex` — Hexadecimal hash string identifying the trace (64 chars)
+- `trace` — The trace to save
+
+**Returns:** true on success, false on error or if cache is disabled
+
+Time complexity: O(n) where n = trace size (JSON serialization + file I/O)

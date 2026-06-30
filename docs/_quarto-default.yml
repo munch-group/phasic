@@ -35,6 +35,7 @@ execute:
   fig-format: svg  
 
 metadata-files:
+  - cpp_api/_sidebar.yml
   - api/_sidebar.yml
 
 # filters:
@@ -96,12 +97,12 @@ website:
         text: Documentation
       - href: api/
         text: Python API reference
+      - href: cpp_api/
+        text: C / C++ API reference
       - href: mathref/index.html
         text: Mathematical Reference
       # - href: r_api/
       #   text: R API reference
-      # - href: c_api/
-      #   text: C API reference
     right:
       - icon: github
         href: https://github.com/munch-group/phasic/

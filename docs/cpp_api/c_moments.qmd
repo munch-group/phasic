@@ -1,0 +1,60 @@
+# Moments, sojourn & waiting time { #cpp.c_moments }
+
+Expected waiting time, expected sojourn times, and graph defect.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_expected_waiting_time](#cpp.c_moments.ptd_expected_waiting_time) |  |
+| [ptd_expected_sojourn_time](#cpp.c_moments.ptd_expected_sojourn_time) | Compute expected sojourn time for all states in a single pass. |
+| [ptd_expected_sojourn_time_subset](#cpp.c_moments.ptd_expected_sojourn_time_subset) | Compute expected sojourn times for a subset of vertices (memory-efficient). |
+| [ptd_defect](#cpp.c_moments.ptd_defect) |  |
+
+### ptd_expected_waiting_time { #cpp.c_moments.ptd_expected_waiting_time }
+
+```c
+double * ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards)
+```
+
+### ptd_expected_sojourn_time { #cpp.c_moments.ptd_expected_sojourn_time }
+
+```c
+double * ptd_expected_sojourn_time(struct ptd_graph *graph)
+```
+
+Compute expected sojourn time for all states in a single pass.
+
+Computes the expected time spent in each state before absorption, starting from the initial state. This is equivalent to calling ptd_expected_waiting_time() with unit reward vectors for each state, but much faster (single pass through elimination trace).
+
+**Parameters:**
+
+- `graph` — Phase-type graph (must be built and have weights set)
+
+**Returns:** Array of length vertices_length where result[i] = expected time spent in state i before absorption. Returns NULL on error. Caller must free() the returned array.
+
+Performance: O(n² × m) where n = vertices, m = trace length. Typical speedup vs n calls to expectation(): 10-100x for n > 50.
+
+### ptd_expected_sojourn_time_subset { #cpp.c_moments.ptd_expected_sojourn_time_subset }
+
+```c
+double * ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *indices, size_t k)
+```
+
+Compute expected sojourn times for a subset of vertices (memory-efficient).
+
+Instead of allocating an n×n matrix to compute sojourn times for all vertices, this function allocates an n×k matrix where k is the number of target vertices.
+
+**Parameters:**
+
+- `graph` — The graph to compute sojourn times for
+- `indices` — Array of k vertex indices to compute sojourn times for
+- `k` — Number of vertices in the indices array
+
+**Returns:** Array of k sojourn times (must be freed by caller), or NULL on error
+
+### ptd_defect { #cpp.c_moments.ptd_defect }
+
+```c
+double ptd_defect(struct ptd_graph *graph)
+```

@@ -1,0 +1,195 @@
+# Strongly connected components { #cpp.c_scc }
+
+SCC decomposition, synthetic-graph construction, and parallel PRC composition.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_find_strongly_connected_components](#cpp.c_scc.ptd_find_strongly_connected_components) |  |
+| [ptd_scc_graph_topological_sort](#cpp.c_scc.ptd_scc_graph_topological_sort) |  |
+| [ptd_scc_graph_destroy](#cpp.c_scc.ptd_scc_graph_destroy) |  |
+| [ptd_scc_build_synthetic_graph](#cpp.c_scc.ptd_scc_build_synthetic_graph) | Build a self-contained synthetic graph for one SCC of a parent. |
+| [ptd_scc_synthetic_metadata_destroy](#cpp.c_scc.ptd_scc_synthetic_metadata_destroy) | Free a metadata struct produced by ptd_scc_build_synthetic_graph. |
+| [ptd_scc_collect_external_anchors](#cpp.c_scc.ptd_scc_collect_external_anchors) | Collect external-anchor pointers for a synthetic graph. |
+| [ptd_scc_get_or_compute_prc](#cpp.c_scc.ptd_scc_get_or_compute_prc) | Get-or-compute the per-SCC PRC, with disk caching. |
+| [ptd_compose_scc_prcs](#cpp.c_scc.ptd_compose_scc_prcs) | WP-5: SCC composition. |
+| [ptd_synth_get_or_compute_prc](#cpp.c_scc.ptd_synth_get_or_compute_prc) |  |
+| [ptd_scc_compose_stats_get](#cpp.c_scc.ptd_scc_compose_stats_get) |  |
+| [ptd_scc_compose_stats_reset](#cpp.c_scc.ptd_scc_compose_stats_reset) |  |
+| [ptd_scc_compose_stats_record_hit](#cpp.c_scc.ptd_scc_compose_stats_record_hit) |  |
+| [ptd_scc_compose_stats_record_miss](#cpp.c_scc.ptd_scc_compose_stats_record_miss) |  |
+| [ptd_scc_compose_stats_record_bypass](#cpp.c_scc.ptd_scc_compose_stats_record_bypass) |  |
+
+### ptd_find_strongly_connected_components { #cpp.c_scc.ptd_find_strongly_connected_components }
+
+```c
+struct ptd_scc_graph * ptd_find_strongly_connected_components(struct ptd_graph *graph)
+```
+
+### ptd_scc_graph_topological_sort { #cpp.c_scc.ptd_scc_graph_topological_sort }
+
+```c
+struct ptd_scc_vertex ** ptd_scc_graph_topological_sort(struct ptd_scc_graph *graph)
+```
+
+### ptd_scc_graph_destroy { #cpp.c_scc.ptd_scc_graph_destroy }
+
+```c
+void ptd_scc_graph_destroy(struct ptd_scc_graph *scc_graph)
+```
+
+### ptd_scc_build_synthetic_graph { #cpp.c_scc.ptd_scc_build_synthetic_graph }
+
+```c
+struct ptd_graph * ptd_scc_build_synthetic_graph(const struct ptd_scc_graph *scc_graph, size_t scc_index, struct ptd_scc_synthetic_metadata **metadata_out)
+```
+
+Build a self-contained synthetic graph for one SCC of a parent.
+
+Output topology (per `ptd_scc_synthetic_metadata`):
+
+- Synthetic source vertex.
+- All internal vertices of the SCC (state vectors copied, internal edges copied verbatim including aux-style coefficients_length==0 edges).
+- One synthetic absorbing vertex per external out-channel (i.e. per parent-graph edge `d_j -> w` where `d_j` is in the SCC and `w` is outside).
+- One phantom absorbing vertex (the only true absorbing vertex in the graph; result == 0 by structural fact).
+
+Edge structure:
+
+- Synthetic source -> upstream-connecting (Type A): placeholder coefficient (length param_length, first slot 1.0).
+- Internal -> internal: copied verbatim from parent.
+- Downstream-connecting -> per-channel absorbing (Type C): placeholder coefficient (length param_length, first slot 1.0). The Type C edge weight slot is what the composer overwrites with the parent's actual external edge weight before each compose run.
+- Per-channel absorbing -> phantom (one outgoing edge each): placeholder coefficient. The composer overwrites this edge's weight slot with `1/result[w_in_parent]` so `result[s_abs_for_channel] = result[w_in_parent]` (the phase-type identity `result[v] = 1/rate(v)` for an absorbing-with-one-child vertex).
+
+Cross-parent invariance: synthetic-graph topology depends only on the SCC's intrinsic content (internal structure + per-d_j external out-edge count). Two parents matching on those properties produce identical synthetic graphs and identical content hashes. The parent-specific values (Type C weights, phantom weights) flow through edge weight slots at compose time, not through the cached PRC structure.
+
+Vertex ordering is canonical (lexicographic state vector, out-edge-signature tiebreak for duplicates). The returned graph can be passed to ptd_graph_ex_absorbation_time_comp_graph_parameterized without modification.
+
+**Parameters:**
+
+- `scc_graph` — SCC decomposition of the parent graph.
+- `scc_index` — Index of the SCC to wrap. Must be < scc_graph->vertices_length.
+- `metadata_out` — Receives a newly allocated metadata struct. Caller owns; destroy via ptd_scc_synthetic_metadata_destroy. NULL on error.
+
+**Returns:** Newly allocated synthetic graph (caller owns; destroy via ptd_graph_destroy), or NULL on error (sets ptd_err).
+
+### ptd_scc_synthetic_metadata_destroy { #cpp.c_scc.ptd_scc_synthetic_metadata_destroy }
+
+```c
+void ptd_scc_synthetic_metadata_destroy(struct ptd_scc_synthetic_metadata *metadata)
+```
+
+Free a metadata struct produced by ptd_scc_build_synthetic_graph.
+
+Safe to call with NULL.
+
+### ptd_scc_collect_external_anchors { #cpp.c_scc.ptd_scc_collect_external_anchors }
+
+```c
+double ** ptd_scc_collect_external_anchors(const struct ptd_graph *synth, const struct ptd_scc_synthetic_metadata *meta, size_t *n_anchors_out)
+```
+
+Collect external-anchor pointers for a synthetic graph.
+
+Walks the synthetic graph and produces a flat array of (double *) pointers: one per Type A edge (synthetic source -> upstream-connecting) and one per Type C edge (downstream- connecting -> synthetic absorbing). Each pointer is the address of the placeholder edge's coefficients[0] slot.
+
+The returned array is suitable for passing as `external_anchors` to ptd_save_parameterized_reward_compute_graph_ex.
+
+Anchor ordering (deterministic):
+
+1. Type A edges first, in synthetic-source-edge order.
+2. Type C edges next, in the order encountered while walking vertex synthetic-indices 1..n-2 and collecting edges that target the synthetic absorbing vertex (last index).
+
+**Parameters:**
+
+- `synth` — Synthetic graph produced by ptd_scc_build_synthetic_graph.
+- `meta` — Metadata for the synthetic graph (used to identify the synthetic absorbing vertex's index). May be NULL; if NULL, the absorbing vertex is taken to be at index synth->vertices_length - 1.
+- `n_anchors_out` — Receives the number of anchors written.
+
+**Returns:** Newly allocated array of double* (caller must free()), or NULL if the graph is empty / on OOM (with ptd_err set on OOM).
+
+### ptd_scc_get_or_compute_prc { #cpp.c_scc.ptd_scc_get_or_compute_prc }
+
+```c
+struct ptd_desc_reward_compute_parameterized * ptd_scc_get_or_compute_prc(const struct ptd_scc_graph *scc_graph, size_t scc_index, struct ptd_graph **synth_out, struct ptd_scc_synthetic_metadata **metadata_out)
+```
+
+Get-or-compute the per-SCC PRC, with disk caching.
+
+For the SCC at `scc_index` of `scc_graph`, returns the parameterised reward compute graph for the SCC's synthetic graph (built via ptd_scc_build_synthetic_graph). The result is cached on disk under `~/.phasic_cache/parameterized_reward_compute/scc_<hash>.bin`, where <hash> is ptd_graph_content_hash of the synthetic graph.
+
+On cold cache, builds the synthetic graph, eliminates it, saves the PRC. On warm cache, loads from disk. Either way, returns the synthetic graph (caller owns; destroy via ptd_graph_destroy) and the metadata (caller owns; destroy via ptd_scc_synthetic_metadata_destroy) so the composer can resolve the PRC's pointer references.
+
+Set PHASIC_DISABLE_CACHE=1 to skip both load and save.
+
+**Parameters:**
+
+- `scc_graph` — SCC decomposition of the parent graph.
+- `scc_index` — Index of the SCC. Must be < scc_graph->vertices_length.
+- `synth_out` — Receives the synthetic graph (caller owns). The returned PRC's pointers reference this graph's edge weights, so synth_out must outlive the PRC.
+- `metadata_out` — Receives the synthetic-graph metadata (caller owns).
+
+**Returns:** Newly allocated PRC (caller destroys via ptd_parameterized_reward_compute_graph_destroy), or NULL on error. On NULL, *synth_out and *metadata_out are also NULL.
+
+### ptd_compose_scc_prcs { #cpp.c_scc.ptd_compose_scc_prcs }
+
+```c
+double * ptd_compose_scc_prcs(struct ptd_graph *parent, const struct ptd_scc_graph *scc_graph, const double *theta, size_t theta_len)
+```
+
+WP-5: SCC composition.
+
+Compute the parent-level expected waiting time vector by composing per-SCC PRCs.
+
+Walks SCCs in reverse-topological order (sink-first). For each SCC: builds (or retrieves cached) the synthetic graph
+
+- PRC, sets per-channel placeholder edge weights based on the parent's external edge weights and downstream-SCC results already computed, runs the per-SCC elimination, copies the results into the parent-wide result vector.
+
+The result is numerically equivalent to running the monolithic eliminator on the parent graph at the same theta.
+
+The parent graph's edges are updated to reflect `theta` (via `ptd_graph_update_weights`) before composition, so the parent's `edge->weight` slots can be read for Type C bindings.
+
+**Parameters:**
+
+- `parent` — Parent graph. Must be parameterised. `parent->edges` are mutated to reflect theta after the call.
+- `scc_graph` — Parent's SCC decomposition.
+- `theta` — Parameter vector. Length must equal `parent->param_length`.
+- `theta_len` — Length of theta.
+
+**Returns:** Newly allocated result vector of length `parent->vertices_length` (caller frees), or NULL on error (sets ptd_err).
+
+### ptd_synth_get_or_compute_prc { #cpp.c_scc.ptd_synth_get_or_compute_prc }
+
+```c
+struct ptd_desc_reward_compute_parameterized * ptd_synth_get_or_compute_prc(struct ptd_graph *synth)
+```
+
+### ptd_scc_compose_stats_get { #cpp.c_scc.ptd_scc_compose_stats_get }
+
+```c
+void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out)
+```
+
+### ptd_scc_compose_stats_reset { #cpp.c_scc.ptd_scc_compose_stats_reset }
+
+```c
+void ptd_scc_compose_stats_reset(void)
+```
+
+### ptd_scc_compose_stats_record_hit { #cpp.c_scc.ptd_scc_compose_stats_record_hit }
+
+```c
+void ptd_scc_compose_stats_record_hit(void)
+```
+
+### ptd_scc_compose_stats_record_miss { #cpp.c_scc.ptd_scc_compose_stats_record_miss }
+
+```c
+void ptd_scc_compose_stats_record_miss(void)
+```
+
+### ptd_scc_compose_stats_record_bypass { #cpp.c_scc.ptd_scc_compose_stats_record_bypass }
+
+```c
+void ptd_scc_compose_stats_record_bypass(void)
+```

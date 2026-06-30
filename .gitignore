@@ -32,6 +32,7 @@ docs/_inv/
 docs/_freeze/
 docs/slides/_freeze/
 docs/objects.txt
+docs/_doxygen/
 **/.DS_Store
 scripts/ptd_cache
 

@@ -1,0 +1,85 @@
+# Random sampling { #cpp.c_sampling }
+
+Forward sampling of absorption times, jumps, sample paths, and stop vertices.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_random_sample](#cpp.c_sampling.ptd_random_sample) |  |
+| [ptd_mph_random_sample](#cpp.c_sampling.ptd_mph_random_sample) |  |
+| [ptd_dph_random_sample](#cpp.c_sampling.ptd_dph_random_sample) |  |
+| [ptd_mdph_random_sample](#cpp.c_sampling.ptd_mdph_random_sample) |  |
+| [ptd_random_sample_stop_vertex](#cpp.c_sampling.ptd_random_sample_stop_vertex) |  |
+| [ptd_dph_random_sample_stop_vertex](#cpp.c_sampling.ptd_dph_random_sample_stop_vertex) |  |
+| [ptd_random_sample_path](#cpp.c_sampling.ptd_random_sample_path) |  |
+| [ptd_random_sample_path_conditioned](#cpp.c_sampling.ptd_random_sample_path_conditioned) |  |
+| [ptd_backward_probabilities](#cpp.c_sampling.ptd_backward_probabilities) |  |
+| [ptd_sample_path_destroy](#cpp.c_sampling.ptd_sample_path_destroy) |  |
+| [ptd_random_sample_path_conditioned_fixed](#cpp.c_sampling.ptd_random_sample_path_conditioned_fixed) |  |
+
+### ptd_random_sample { #cpp.c_sampling.ptd_random_sample }
+
+```c
+long double ptd_random_sample(struct ptd_graph *graph, double *rewards)
+```
+
+### ptd_mph_random_sample { #cpp.c_sampling.ptd_mph_random_sample }
+
+```c
+long double * ptd_mph_random_sample(struct ptd_graph *graph, double *rewards, size_t vertex_rewards_length)
+```
+
+### ptd_dph_random_sample { #cpp.c_sampling.ptd_dph_random_sample }
+
+```c
+long double ptd_dph_random_sample(struct ptd_graph *graph, double *rewards)
+```
+
+### ptd_mdph_random_sample { #cpp.c_sampling.ptd_mdph_random_sample }
+
+```c
+long double * ptd_mdph_random_sample(struct ptd_graph *graph, double *rewards, size_t vertex_rewards_length)
+```
+
+### ptd_random_sample_stop_vertex { #cpp.c_sampling.ptd_random_sample_stop_vertex }
+
+```c
+struct ptd_vertex * ptd_random_sample_stop_vertex(struct ptd_graph *graph, double time)
+```
+
+### ptd_dph_random_sample_stop_vertex { #cpp.c_sampling.ptd_dph_random_sample_stop_vertex }
+
+```c
+struct ptd_vertex * ptd_dph_random_sample_stop_vertex(struct ptd_graph *graph, int jumps)
+```
+
+### ptd_random_sample_path { #cpp.c_sampling.ptd_random_sample_path }
+
+```c
+struct ptd_sample_path * ptd_random_sample_path(struct ptd_graph *graph)
+```
+
+### ptd_random_sample_path_conditioned { #cpp.c_sampling.ptd_random_sample_path_conditioned }
+
+```c
+struct ptd_sample_path * ptd_random_sample_path_conditioned(struct ptd_graph *graph, double *backward_probs)
+```
+
+### ptd_backward_probabilities { #cpp.c_sampling.ptd_backward_probabilities }
+
+```c
+double * ptd_backward_probabilities(struct ptd_graph *graph, size_t *target_vertices, size_t n_targets)
+```
+
+### ptd_sample_path_destroy { #cpp.c_sampling.ptd_sample_path_destroy }
+
+```c
+void ptd_sample_path_destroy(struct ptd_sample_path *path)
+```
+
+### ptd_random_sample_path_conditioned_fixed { #cpp.c_sampling.ptd_random_sample_path_conditioned_fixed }
+
+```c
+size_t ptd_random_sample_path_conditioned_fixed(struct ptd_graph *graph, double *backward_probs, size_t max_length, unsigned int seed, int *out_vertex_indices, double *out_entry_times)
+```

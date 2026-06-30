@@ -1,0 +1,57 @@
+# phasic::ParameterizedEdge { #cpp.ParameterizedEdge }
+
+Represents a parameterized edge with coefficient vector.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [to](#cpp.ParameterizedEdge.to) |  |
+| [to_p](#cpp.ParameterizedEdge.to_p) |  |
+| [weight](#cpp.ParameterizedEdge.weight) |  |
+| [coefficients_length](#cpp.ParameterizedEdge.coefficients_length) |  |
+| [edge_state](#cpp.ParameterizedEdge.edge_state) |  |
+| [operator=](#cpp.ParameterizedEdge.operator_) |  |
+| [init_factory](#cpp.ParameterizedEdge.init_factory) |  |
+
+### to { #cpp.ParameterizedEdge.to }
+
+```cpp
+Vertex phasic::ParameterizedEdge::to()
+```
+
+### to_p { #cpp.ParameterizedEdge.to_p }
+
+```cpp
+Vertex * phasic::ParameterizedEdge::to_p()
+```
+
+### weight { #cpp.ParameterizedEdge.weight }
+
+```cpp
+double phasic::ParameterizedEdge::weight()
+```
+
+### coefficients_length { #cpp.ParameterizedEdge.coefficients_length }
+
+```cpp
+size_t phasic::ParameterizedEdge::coefficients_length() const
+```
+
+### edge_state { #cpp.ParameterizedEdge.edge_state }
+
+```cpp
+std::vector< double > phasic::ParameterizedEdge::edge_state(size_t requested_length)
+```
+
+### operator= { #cpp.ParameterizedEdge.operator_ }
+
+```cpp
+ParameterizedEdge & phasic::ParameterizedEdge::operator=(const ParameterizedEdge &o)
+```
+
+### init_factory { #cpp.ParameterizedEdge.init_factory }
+
+```cpp
+static ParameterizedEdge phasic::ParameterizedEdge::init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight, double *state)
+```

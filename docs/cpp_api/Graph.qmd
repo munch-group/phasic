@@ -1,0 +1,699 @@
+# phasic::Graph { #cpp.Graph }
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [Graph](#cpp.Graph.Graph) |  |
+| [set_param_length](#cpp.Graph.set_param_length) | Set the number of model parameters before adding edges. |
+| [update_weights_parameterized](#cpp.Graph.update_weights_parameterized) |  |
+| [update_ipv](#cpp.Graph.update_ipv) | Set the initial probability vector after construction. |
+| [expected_waiting_time](#cpp.Graph.expected_waiting_time) | Compute expected waiting time until absorption. |
+| [expected_sojourn_time](#cpp.Graph.expected_sojourn_time) | Compute expected sojourn time for all states or a subset. |
+| [create_vertex](#cpp.Graph.create_vertex) | Warning: the function find_or_create_vertex() should be preferred. This function will *not* update the lookup tree, so find_vertex() will *not* return it. Creates a vertex matching `state`. Creates the vertex and adds it to the graph object. |
+| [create_vertex_p](#cpp.Graph.create_vertex_p) |  |
+| [find_vertex](#cpp.Graph.find_vertex) | Finds a vertex matching the `state` parameter. |
+| [find_vertex_p](#cpp.Graph.find_vertex_p) |  |
+| [vertex_exists](#cpp.Graph.vertex_exists) | Check if a vertex with the given state exists in the graph. |
+| [find_or_create_vertex](#cpp.Graph.find_or_create_vertex) | Find or create a vertex with the given state. |
+| [find_or_create_vertex_p](#cpp.Graph.find_or_create_vertex_p) |  |
+| [starting_vertex](#cpp.Graph.starting_vertex) | Returns the special starting vertex of the graph. The starting vertex is always added at graph creation and always has index 0. |
+| [starting_vertex_p](#cpp.Graph.starting_vertex_p) |  |
+| [vertices](#cpp.Graph.vertices) | Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`. The first vertex in the list is *always* the starting vertex. |
+| [vertices_p](#cpp.Graph.vertices_p) |  |
+| [vertex_at](#cpp.Graph.vertex_at) |  |
+| [vertex_at_p](#cpp.Graph.vertex_at_p) |  |
+| [vertices_length](#cpp.Graph.vertices_length) | Returns the number of vertices in the graph. This method is much faster than `len(Graph.vertices())`. |
+| [edges_length](#cpp.Graph.edges_length) | Returns the total number of edges in the graph across all vertices. |
+| [parameterized](#cpp.Graph.parameterized) | Returns whether the graph is parameterized (has parameterized edges). |
+| [random_sample](#cpp.Graph.random_sample) | Generate random samples from the phase-type distribution. |
+| [mph_random_sample](#cpp.Graph.mph_random_sample) | Samples from the multivariate phase-type distribution. |
+| [dph_random_sample_c](#cpp.Graph.dph_random_sample_c) |  |
+| [dph_random_sample](#cpp.Graph.dph_random_sample) | Samples from the discrete phase-type distribution. |
+| [mdph_random_sample_c](#cpp.Graph.mdph_random_sample_c) |  |
+| [mdph_random_sample](#cpp.Graph.mdph_random_sample) | Samples from the multivariate phase-type distribution. |
+| [random_sample_path](#cpp.Graph.random_sample_path) |  |
+| [backward_probabilities](#cpp.Graph.backward_probabilities) | Compute P(reach target \| start at v) for each vertex v. |
+| [random_sample_path_conditioned](#cpp.Graph.random_sample_path_conditioned) |  |
+| [random_sample_stop_vertex](#cpp.Graph.random_sample_stop_vertex) | Samples a stopping vertex from the phase-type distribution given a stopping time. |
+| [dph_random_sample_stop_vertex](#cpp.Graph.dph_random_sample_stop_vertex) |  |
+| [state_length](#cpp.Graph.state_length) | Returns the length of the state vector used to represent and reference a state in the graph. |
+| [phase_type_distribution](#cpp.Graph.phase_type_distribution) |  |
+| [is_acyclic](#cpp.Graph.is_acyclic) | Checks if the graph is acyclic. |
+| [validate](#cpp.Graph.validate) | Validates the graph structure. |
+| [scc_decomposition](#cpp.Graph.scc_decomposition) | Compute strongly connected component decomposition. |
+| [reward_transform](#cpp.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
+| [reward_transform_p](#cpp.Graph.reward_transform_p) |  |
+| [dph_reward_transform](#cpp.Graph.dph_reward_transform) | Apply reward transformation for discrete-time distributions. |
+| [dph_reward_transform_p](#cpp.Graph.dph_reward_transform_p) |  |
+| [normalize](#cpp.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
+| [dph_normalize](#cpp.Graph.dph_normalize) | Normalizes the discrete phase-type distribution graph. |
+| [notify_change](#cpp.Graph.notify_change) | Notifies the graph of a change. |
+| [defect](#cpp.Graph.defect) | Computes the defect of the graph. |
+| [clone](#cpp.Graph.clone) | Create a deep copy of this graph. |
+| [clone_p](#cpp.Graph.clone_p) |  |
+| [pdf](#cpp.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
+| [cdf](#cpp.Graph.cdf) | Compute cumulative distribution function. |
+| [dph_pmf](#cpp.Graph.dph_pmf) | Probability mass function of the discrete phase-type distribution. |
+| [dph_cdf](#cpp.Graph.dph_cdf) | Cumulative distribution function of the discrete phase-type distribution. |
+| [laplace_transform](#cpp.Graph.laplace_transform) | Create a Laplace-transformed graph. |
+| [stop_probability](#cpp.Graph.stop_probability) | Compute probability of being in each state at a given time. |
+| [accumulated_visiting_time](#cpp.Graph.accumulated_visiting_time) | Compute expected time spent in each state (continuous only). |
+| [dph_stop_probability](#cpp.Graph.dph_stop_probability) | Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a given number of jumps. |
+| [dph_accumulated_visits](#cpp.Graph.dph_accumulated_visits) |  |
+| [operator=](#cpp.Graph.operator_) |  |
+| [c_graph](#cpp.Graph.c_graph) |  |
+| [c_avl_tree](#cpp.Graph.c_avl_tree) |  |
+| [make_borrowed](#cpp.Graph.make_borrowed) |  |
+
+### Graph { #cpp.Graph.Graph }
+
+```cpp
+phasic::Graph::Graph(struct ptd_graph *graph)
+```
+
+### Graph { #cpp.Graph.Graph_2 }
+
+```cpp
+phasic::Graph::Graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree)
+```
+
+### Graph { #cpp.Graph.Graph_3 }
+
+```cpp
+phasic::Graph::Graph(const Graph &o)
+```
+
+### Graph { #cpp.Graph.Graph_4 }
+
+```cpp
+phasic::Graph::Graph(Graph &&o) noexcept
+```
+
+### Graph { #cpp.Graph.Graph_5 }
+
+```cpp
+phasic::Graph::Graph(size_t state_length)
+```
+
+### set_param_length { #cpp.Graph.set_param_length }
+
+```cpp
+void phasic::Graph::set_param_length(size_t param_length)
+```
+
+Set the number of model parameters before adding edges.
+
+*Python equivalent:* [`Graph.set_param_length`](../api/Graph.qmd#phasic.Graph.set_param_length)
+
+### update_weights_parameterized { #cpp.Graph.update_weights_parameterized }
+
+```cpp
+void phasic::Graph::update_weights_parameterized(std::vector< double > scalars, bool use_log=false)
+```
+
+### update_weights_parameterized { #cpp.Graph.update_weights_parameterized_2 }
+
+```cpp
+void phasic::Graph::update_weights_parameterized(std::vector< double > scalars, std::function< double(const std::vector< double > &, const std::vector< double > &)> callback)
+```
+
+### update_ipv { #cpp.Graph.update_ipv }
+
+```cpp
+void phasic::Graph::update_ipv(std::vector< double > ipv)
+```
+
+Set the initial probability vector after construction.
+
+*Python equivalent:* [`Graph.update_ipv`](../api/Graph.qmd#phasic.Graph.update_ipv)
+
+### expected_waiting_time { #cpp.Graph.expected_waiting_time }
+
+```cpp
+std::vector< double > phasic::Graph::expected_waiting_time(std::vector< double > rewards=std::vector< double >())
+```
+
+Compute expected waiting time until absorption.
+
+*Python equivalent:* [`Graph.expected_waiting_time`](../api/Graph.qmd#phasic.Graph.expected_waiting_time)
+
+### expected_sojourn_time { #cpp.Graph.expected_sojourn_time }
+
+```cpp
+std::vector< double > phasic::Graph::expected_sojourn_time(const std::vector< size_t > &indices=std::vector< size_t >())
+```
+
+Compute expected sojourn time for all states or a subset.
+
+Returns array where result[i] = expected time spent in state i before absorption. Much faster than calling expected_waiting_time() with unit reward vectors for each state.
+
+**Parameters:**
+
+- `indices` — Optional vector of vertex indices to compute sojourn times for. If empty (default), computes for all vertices.
+
+**Returns:** Vector of sojourn times for specified states
+
+**Exceptions:**
+
+- `std::runtime_error` — if computation fails
+
+*Python equivalent:* [`Graph.expected_sojourn_time`](../api/Graph.qmd#phasic.Graph.expected_sojourn_time)
+
+### create_vertex { #cpp.Graph.create_vertex }
+
+```cpp
+Vertex phasic::Graph::create_vertex(std::vector< int > state=std::vector< int >())
+```
+
+Warning: the function find_or_create_vertex() should be preferred. This function will *not* update the lookup tree, so find_vertex() will *not* return it. Creates a vertex matching `state`. Creates the vertex and adds it to the graph object.
+
+*Python equivalent:* [`Graph.create_vertex`](../api/Graph.qmd#phasic.Graph.create_vertex)
+
+### create_vertex { #cpp.Graph.create_vertex_2 }
+
+```cpp
+Vertex phasic::Graph::create_vertex(const int *state)
+```
+
+Warning: the function find_or_create_vertex() should be preferred. This function will *not* update the lookup tree, so find_vertex() will *not* return it. Creates a vertex matching `state`. Creates the vertex and adds it to the graph object.
+
+*Python equivalent:* [`Graph.create_vertex`](../api/Graph.qmd#phasic.Graph.create_vertex)
+
+### create_vertex_p { #cpp.Graph.create_vertex_p }
+
+```cpp
+Vertex * phasic::Graph::create_vertex_p(std::vector< int > state=std::vector< int >())
+```
+
+### create_vertex_p { #cpp.Graph.create_vertex_p_2 }
+
+```cpp
+Vertex * phasic::Graph::create_vertex_p(const int *state)
+```
+
+### find_vertex { #cpp.Graph.find_vertex }
+
+```cpp
+Vertex phasic::Graph::find_vertex(std::vector< int > state)
+```
+
+Finds a vertex matching the `state` parameter.
+
+*Python equivalent:* [`Graph.find_vertex`](../api/Graph.qmd#phasic.Graph.find_vertex)
+
+### find_vertex { #cpp.Graph.find_vertex_2 }
+
+```cpp
+Vertex phasic::Graph::find_vertex(const int *state)
+```
+
+Finds a vertex matching the `state` parameter.
+
+*Python equivalent:* [`Graph.find_vertex`](../api/Graph.qmd#phasic.Graph.find_vertex)
+
+### find_vertex_p { #cpp.Graph.find_vertex_p }
+
+```cpp
+Vertex * phasic::Graph::find_vertex_p(std::vector< int > state)
+```
+
+### find_vertex_p { #cpp.Graph.find_vertex_p_2 }
+
+```cpp
+Vertex * phasic::Graph::find_vertex_p(const int *state)
+```
+
+### vertex_exists { #cpp.Graph.vertex_exists }
+
+```cpp
+bool phasic::Graph::vertex_exists(std::vector< int > state)
+```
+
+Check if a vertex with the given state exists in the graph.
+
+*Python equivalent:* [`Graph.vertex_exists`](../api/Graph.qmd#phasic.Graph.vertex_exists)
+
+### vertex_exists { #cpp.Graph.vertex_exists_2 }
+
+```cpp
+bool phasic::Graph::vertex_exists(const int *state)
+```
+
+Check if a vertex with the given state exists in the graph.
+
+*Python equivalent:* [`Graph.vertex_exists`](../api/Graph.qmd#phasic.Graph.vertex_exists)
+
+### find_or_create_vertex { #cpp.Graph.find_or_create_vertex }
+
+```cpp
+Vertex phasic::Graph::find_or_create_vertex(std::vector< int > state)
+```
+
+Find or create a vertex with the given state.
+
+*Python equivalent:* [`Graph.find_or_create_vertex`](../api/Graph.qmd#phasic.Graph.find_or_create_vertex)
+
+### find_or_create_vertex { #cpp.Graph.find_or_create_vertex_2 }
+
+```cpp
+Vertex phasic::Graph::find_or_create_vertex(const int *state)
+```
+
+Find or create a vertex with the given state.
+
+*Python equivalent:* [`Graph.find_or_create_vertex`](../api/Graph.qmd#phasic.Graph.find_or_create_vertex)
+
+### find_or_create_vertex_p { #cpp.Graph.find_or_create_vertex_p }
+
+```cpp
+Vertex * phasic::Graph::find_or_create_vertex_p(std::vector< int > state)
+```
+
+### find_or_create_vertex_p { #cpp.Graph.find_or_create_vertex_p_2 }
+
+```cpp
+Vertex * phasic::Graph::find_or_create_vertex_p(const int *state)
+```
+
+### starting_vertex { #cpp.Graph.starting_vertex }
+
+```cpp
+Vertex phasic::Graph::starting_vertex()
+```
+
+Returns the special starting vertex of the graph. The starting vertex is always added at graph creation and always has index 0.
+
+*Python equivalent:* [`Graph.starting_vertex`](../api/Graph.qmd#phasic.Graph.starting_vertex)
+
+### starting_vertex_p { #cpp.Graph.starting_vertex_p }
+
+```cpp
+Vertex * phasic::Graph::starting_vertex_p()
+```
+
+### vertices { #cpp.Graph.vertices }
+
+```cpp
+std::vector< Vertex > phasic::Graph::vertices()
+```
+
+Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`. The first vertex in the list is *always* the starting vertex.
+
+*Python equivalent:* [`Graph.vertices`](../api/Graph.qmd#phasic.Graph.vertices)
+
+### vertices_p { #cpp.Graph.vertices_p }
+
+```cpp
+std::vector< Vertex * > phasic::Graph::vertices_p()
+```
+
+### vertex_at { #cpp.Graph.vertex_at }
+
+```cpp
+Vertex phasic::Graph::vertex_at(size_t index)
+```
+
+*Python equivalent:* [`Graph.vertex_at`](../api/Graph.qmd#phasic.Graph.vertex_at)
+
+### vertex_at_p { #cpp.Graph.vertex_at_p }
+
+```cpp
+Vertex * phasic::Graph::vertex_at_p(size_t index)
+```
+
+### vertices_length { #cpp.Graph.vertices_length }
+
+```cpp
+size_t phasic::Graph::vertices_length()
+```
+
+Returns the number of vertices in the graph. This method is much faster than `len(Graph.vertices())`.
+
+*Python equivalent:* [`Graph.vertices_length`](../api/Graph.qmd#phasic.Graph.vertices_length)
+
+### edges_length { #cpp.Graph.edges_length }
+
+```cpp
+size_t phasic::Graph::edges_length()
+```
+
+Returns the total number of edges in the graph across all vertices.
+
+*Python equivalent:* [`Graph.edges_length`](../api/Graph.qmd#phasic.Graph.edges_length)
+
+### parameterized { #cpp.Graph.parameterized }
+
+```cpp
+bool phasic::Graph::parameterized()
+```
+
+Returns whether the graph is parameterized (has parameterized edges).
+
+*Python equivalent:* [`Graph.parameterized`](../api/Graph.qmd#phasic.Graph.parameterized)
+
+### random_sample { #cpp.Graph.random_sample }
+
+```cpp
+long double phasic::Graph::random_sample(std::vector< double > rewards=std::vector< double >())
+```
+
+Generate random samples from the phase-type distribution.
+
+*Python equivalent:* [`Graph.sample`](../api/Graph.qmd#phasic.Graph.sample)
+
+### mph_random_sample { #cpp.Graph.mph_random_sample }
+
+```cpp
+std::vector< long double > phasic::Graph::mph_random_sample(std::vector< double > rewards, size_t vertex_rewards_length)
+```
+
+Samples from the multivariate phase-type distribution.
+
+*Python equivalent:* [`Graph.sample_multivariate`](../api/Graph.qmd#phasic.Graph.sample_multivariate)
+
+### dph_random_sample_c { #cpp.Graph.dph_random_sample_c }
+
+```cpp
+long double phasic::Graph::dph_random_sample_c(double *rewards)
+```
+
+### dph_random_sample { #cpp.Graph.dph_random_sample }
+
+```cpp
+long double phasic::Graph::dph_random_sample(std::vector< double > rewards=std::vector< double >())
+```
+
+Samples from the discrete phase-type distribution.
+
+*Python equivalent:* [`Graph.sample_discrete`](../api/Graph.qmd#phasic.Graph.sample_discrete)
+
+### mdph_random_sample_c { #cpp.Graph.mdph_random_sample_c }
+
+```cpp
+long double * phasic::Graph::mdph_random_sample_c(double *rewards, size_t vertex_rewards_length)
+```
+
+### mdph_random_sample { #cpp.Graph.mdph_random_sample }
+
+```cpp
+std::vector< long double > phasic::Graph::mdph_random_sample(std::vector< double > rewards, size_t vertex_rewards_length)
+```
+
+Samples from the multivariate phase-type distribution.
+
+*Python equivalent:* [`Graph.sample_multivariate`](../api/Graph.qmd#phasic.Graph.sample_multivariate)
+
+### mdph_random_sample_c { #cpp.Graph.mdph_random_sample_c_2 }
+
+```cpp
+std::vector< long double > phasic::Graph::mdph_random_sample_c(std::vector< double > rewards, size_t vertex_rewards_length)
+```
+
+### random_sample_path { #cpp.Graph.random_sample_path }
+
+```cpp
+std::pair< std::vector< size_t >, std::vector< double > > phasic::Graph::random_sample_path()
+```
+
+### backward_probabilities { #cpp.Graph.backward_probabilities }
+
+```cpp
+std::vector< double > phasic::Graph::backward_probabilities(std::vector< size_t > target_vertices)
+```
+
+Compute P(reach target | start at v) for each vertex v.
+
+*Python equivalent:* [`Graph.backward_probabilities`](../api/Graph.qmd#phasic.Graph.backward_probabilities)
+
+### random_sample_path_conditioned { #cpp.Graph.random_sample_path_conditioned }
+
+```cpp
+std::pair< std::vector< size_t >, std::vector< double > > phasic::Graph::random_sample_path_conditioned(std::vector< double > backward_probs)
+```
+
+### random_sample_stop_vertex { #cpp.Graph.random_sample_stop_vertex }
+
+```cpp
+size_t phasic::Graph::random_sample_stop_vertex(double time)
+```
+
+Samples a stopping vertex from the phase-type distribution given a stopping time.
+
+*Python equivalent:* [`Graph.random_sample_stop_vertex`](../api/Graph.qmd#phasic.Graph.random_sample_stop_vertex)
+
+### dph_random_sample_stop_vertex { #cpp.Graph.dph_random_sample_stop_vertex }
+
+```cpp
+size_t phasic::Graph::dph_random_sample_stop_vertex(int jumps)
+```
+
+### state_length { #cpp.Graph.state_length }
+
+```cpp
+size_t phasic::Graph::state_length() const
+```
+
+Returns the length of the state vector used to represent and reference a state in the graph.
+
+*Python equivalent:* [`Graph.state_length`](../api/Graph.qmd#phasic.Graph.state_length)
+
+### phase_type_distribution { #cpp.Graph.phase_type_distribution }
+
+```cpp
+PhaseTypeDistribution phasic::Graph::phase_type_distribution()
+```
+
+### is_acyclic { #cpp.Graph.is_acyclic }
+
+```cpp
+bool phasic::Graph::is_acyclic()
+```
+
+Checks if the graph is acyclic.
+
+*Python equivalent:* [`Graph.is_acyclic`](../api/Graph.qmd#phasic.Graph.is_acyclic)
+
+### validate { #cpp.Graph.validate }
+
+```cpp
+void phasic::Graph::validate()
+```
+
+Validates the graph structure.
+
+*Python equivalent:* [`Graph.validate`](../api/Graph.qmd#phasic.Graph.validate)
+
+### scc_decomposition { #cpp.Graph.scc_decomposition }
+
+```cpp
+SCCGraph phasic::Graph::scc_decomposition()
+```
+
+Compute strongly connected component decomposition.
+
+*Python equivalent:* [`Graph.scc_decomposition`](../api/Graph.qmd#phasic.Graph.scc_decomposition)
+
+### reward_transform { #cpp.Graph.reward_transform }
+
+```cpp
+Graph phasic::Graph::reward_transform(std::vector< double > rewards)
+```
+
+Apply reward transformation to create a new graph with modified rewards.
+
+*Python equivalent:* [`Graph.reward_transform`](../api/Graph.qmd#phasic.Graph.reward_transform)
+
+### reward_transform_p { #cpp.Graph.reward_transform_p }
+
+```cpp
+Graph * phasic::Graph::reward_transform_p(std::vector< double > rewards)
+```
+
+### dph_reward_transform { #cpp.Graph.dph_reward_transform }
+
+```cpp
+Graph phasic::Graph::dph_reward_transform(std::vector< int > rewards)
+```
+
+Apply reward transformation for discrete-time distributions.
+
+*Python equivalent:* [`Graph.reward_transform_discrete`](../api/Graph.qmd#phasic.Graph.reward_transform_discrete)
+
+### dph_reward_transform_p { #cpp.Graph.dph_reward_transform_p }
+
+```cpp
+Graph * phasic::Graph::dph_reward_transform_p(std::vector< int > rewards)
+```
+
+### normalize { #cpp.Graph.normalize }
+
+```cpp
+std::vector< double > phasic::Graph::normalize()
+```
+
+Normalize edge weights to make the graph a proper probability distribution.
+
+*Python equivalent:* [`Graph.normalize`](../api/Graph.qmd#phasic.Graph.normalize)
+
+### dph_normalize { #cpp.Graph.dph_normalize }
+
+```cpp
+std::vector< double > phasic::Graph::dph_normalize()
+```
+
+Normalizes the discrete phase-type distribution graph.
+
+*Python equivalent:* [`Graph.normalize_discrete`](../api/Graph.qmd#phasic.Graph.normalize_discrete)
+
+### notify_change { #cpp.Graph.notify_change }
+
+```cpp
+void phasic::Graph::notify_change()
+```
+
+Notifies the graph of a change.
+
+*Python equivalent:* [`Graph.notify_change`](../api/Graph.qmd#phasic.Graph.notify_change)
+
+### defect { #cpp.Graph.defect }
+
+```cpp
+double phasic::Graph::defect()
+```
+
+Computes the defect of the graph.
+
+*Python equivalent:* [`Graph.defect`](../api/Graph.qmd#phasic.Graph.defect)
+
+### clone { #cpp.Graph.clone }
+
+```cpp
+Graph phasic::Graph::clone()
+```
+
+Create a deep copy of this graph.
+
+*Python equivalent:* [`Graph.clone`](../api/Graph.qmd#phasic.Graph.clone)
+
+### clone_p { #cpp.Graph.clone_p }
+
+```cpp
+Graph * phasic::Graph::clone_p()
+```
+
+### pdf { #cpp.Graph.pdf }
+
+```cpp
+double phasic::Graph::pdf(double time, int64_t granularity=0)
+```
+
+Compute probability density/mass function using forward algorithm.
+
+*Python equivalent:* [`Graph.pdf`](../api/Graph.qmd#phasic.Graph.pdf)
+
+### cdf { #cpp.Graph.cdf }
+
+```cpp
+double phasic::Graph::cdf(double time, int64_t granularity=0)
+```
+
+Compute cumulative distribution function.
+
+*Python equivalent:* [`Graph.cdf`](../api/Graph.qmd#phasic.Graph.cdf)
+
+### dph_pmf { #cpp.Graph.dph_pmf }
+
+```cpp
+double phasic::Graph::dph_pmf(int jumps)
+```
+
+Probability mass function of the discrete phase-type distribution.
+
+*Python equivalent:* [`Graph.pdf_discrete`](../api/Graph.qmd#phasic.Graph.pdf_discrete)
+
+### dph_cdf { #cpp.Graph.dph_cdf }
+
+```cpp
+double phasic::Graph::dph_cdf(int jumps)
+```
+
+Cumulative distribution function of the discrete phase-type distribution.
+
+*Python equivalent:* [`Graph.cdf_discrete`](../api/Graph.qmd#phasic.Graph.cdf_discrete)
+
+### laplace_transform { #cpp.Graph.laplace_transform }
+
+```cpp
+Graph phasic::Graph::laplace_transform(double theta)
+```
+
+Create a Laplace-transformed graph.
+
+*Python equivalent:* [`Graph.laplace_transform`](../api/Graph.qmd#phasic.Graph.laplace_transform)
+
+### stop_probability { #cpp.Graph.stop_probability }
+
+```cpp
+std::vector< double > phasic::Graph::stop_probability(double time, int64_t granularity=0)
+```
+
+Compute probability of being in each state at a given time.
+
+*Python equivalent:* [`Graph.stop_probability`](../api/Graph.qmd#phasic.Graph.stop_probability)
+
+### accumulated_visiting_time { #cpp.Graph.accumulated_visiting_time }
+
+```cpp
+std::vector< double > phasic::Graph::accumulated_visiting_time(double time, int64_t granularity=0)
+```
+
+Compute expected time spent in each state (continuous only).
+
+*Python equivalent:* [`Graph.accumulated_visiting_time`](../api/Graph.qmd#phasic.Graph.accumulated_visiting_time)
+
+### dph_stop_probability { #cpp.Graph.dph_stop_probability }
+
+```cpp
+std::vector< double > phasic::Graph::dph_stop_probability(int jumps)
+```
+
+Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a given number of jumps.
+
+*Python equivalent:* [`Graph.stop_probability_discrete`](../api/Graph.qmd#phasic.Graph.stop_probability_discrete)
+
+### dph_accumulated_visits { #cpp.Graph.dph_accumulated_visits }
+
+```cpp
+std::vector< double > phasic::Graph::dph_accumulated_visits(int jumps)
+```
+
+### operator= { #cpp.Graph.operator_ }
+
+```cpp
+Graph & phasic::Graph::operator=(const Graph &o)
+```
+
+### c_graph { #cpp.Graph.c_graph }
+
+```cpp
+struct ptd_graph * phasic::Graph::c_graph()
+```
+
+### c_graph { #cpp.Graph.c_graph_2 }
+
+```cpp
+const struct ptd_graph * phasic::Graph::c_graph() const
+```
+
+### c_avl_tree { #cpp.Graph.c_avl_tree }
+
+```cpp
+struct ptd_avl_tree * phasic::Graph::c_avl_tree()
+```
+
+### make_borrowed { #cpp.Graph.make_borrowed }
+
+```cpp
+static Graph phasic::Graph::make_borrowed(struct ptd_graph *graph)
+```

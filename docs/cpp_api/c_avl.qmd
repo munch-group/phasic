@@ -1,0 +1,50 @@
+# AVL trees { #cpp.c_avl }
+
+Balanced binary search trees used to index vertices by their state vector.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_avl_tree_create](#cpp.c_avl.ptd_avl_tree_create) |  |
+| [ptd_avl_tree_destroy](#cpp.c_avl.ptd_avl_tree_destroy) |  |
+| [ptd_avl_tree_find_or_insert](#cpp.c_avl.ptd_avl_tree_find_or_insert) |  |
+| [ptd_avl_tree_find](#cpp.c_avl.ptd_avl_tree_find) |  |
+| [ptd_avl_tree_find_vertex](#cpp.c_avl.ptd_avl_tree_find_vertex) |  |
+| [ptd_avl_tree_max_depth](#cpp.c_avl.ptd_avl_tree_max_depth) |  |
+
+### ptd_avl_tree_create { #cpp.c_avl.ptd_avl_tree_create }
+
+```c
+struct ptd_avl_tree * ptd_avl_tree_create(size_t key_length)
+```
+
+### ptd_avl_tree_destroy { #cpp.c_avl.ptd_avl_tree_destroy }
+
+```c
+void ptd_avl_tree_destroy(struct ptd_avl_tree *avl_tree)
+```
+
+### ptd_avl_tree_find_or_insert { #cpp.c_avl.ptd_avl_tree_find_or_insert }
+
+```c
+struct ptd_avl_node * ptd_avl_tree_find_or_insert(struct ptd_avl_tree *avl_tree, const int *key, const void *entry)
+```
+
+### ptd_avl_tree_find { #cpp.c_avl.ptd_avl_tree_find }
+
+```c
+struct ptd_avl_node * ptd_avl_tree_find(const struct ptd_avl_tree *avl_tree, const int *key)
+```
+
+### ptd_avl_tree_find_vertex { #cpp.c_avl.ptd_avl_tree_find_vertex }
+
+```c
+struct ptd_vertex * ptd_avl_tree_find_vertex(const struct ptd_avl_tree *avl_tree, const int *key)
+```
+
+### ptd_avl_tree_max_depth { #cpp.c_avl.ptd_avl_tree_max_depth }
+
+```c
+size_t ptd_avl_tree_max_depth(void *avl_vec_vertex)
+```

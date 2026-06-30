@@ -163,6 +163,7 @@ pdf2svg = ">=0.2.4,<0.3"
 slim = ">=5.2,<6"
 pyslim = ">=1.1.1,<2"
 cppimport = ">=26.4.17,<27"
+doxygen = ">=1.13.2,<2"
 
 # [tool.pixi.pypi-dependencies]
 

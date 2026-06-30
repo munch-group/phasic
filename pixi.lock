@@ -72,6 +72,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/deno-2.4.5-h6046fbb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/deno-dom-0.1.41-h4768de7_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/dill-0.4.1-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/doxygen-1.13.2-h8e693c7_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/eigen-3.4.0-h54a6638_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/electron-1.6.15-0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/epoxy-1.5.10-hb03c661_2.conda
@@ -504,6 +505,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/deno-2.4.5-h248350f_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/deno-dom-0.1.41-hde76f7a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/dill-0.4.1-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/doxygen-1.13.2-h493aca8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/eigen-3.4.0-h784d473_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/electron-1.6.15-0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/epoxy-1.5.10-hc919400_2.conda
@@ -2219,6 +2221,31 @@ packages:
   version: 1.9.0
   sha256: 7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2
   requires_python: '>=3.6'
+- conda: https://conda.anaconda.org/conda-forge/linux-64/doxygen-1.13.2-h8e693c7_0.conda
+  sha256: 349c4c872357b4a533e127b2ade8533796e8e062abc2cd685756a1a063ae1e35
+  md5: 0869f41ea5c64643dd2f5b47f32709ca
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=13
+  - libiconv >=1.17,<2.0a0
+  - libstdcxx >=13
+  license: GPL-2.0-only
+  license_family: GPL
+  purls: []
+  size: 13148627
+  timestamp: 1738164137421
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/doxygen-1.13.2-h493aca8_0.conda
+  sha256: 2327ad4e6214accc1e71aea371aee9b9fed864ec36c20f829fd1cb71d4c85202
+  md5: 3f5795e9004521711fa3a586b65fde05
+  depends:
+  - __osx >=11.0
+  - libcxx >=18
+  - libiconv >=1.17,<2.0a0
+  license: GPL-2.0-only
+  license_family: GPL
+  purls: []
+  size: 11260324
+  timestamp: 1738164659
 - pypi: https://files.pythonhosted.org/packages/58/99/afd082847b0bbdc3f1554660d3e401cffac40ef3786c57d4b924b25c3fe8/eigen-0.1.1-py3-none-any.whl
   name: eigen
   version: 0.1.1

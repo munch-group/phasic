@@ -1,0 +1,42 @@
+# Minimal Doxygen config for the phasic C/C++ API reference.
+# Produces XML only (consumed by ../scripts/gen_cpp_api.py); no HTML/LaTeX.
+# Run from the docs/ directory:  doxygen Doxyfile
+# See cpp-api-reference-plan.md for the surrounding pipeline.
+
+PROJECT_NAME           = phasic
+OUTPUT_DIRECTORY       = _doxygen
+INPUT                  = ../api/cpp/phasiccpp.h \
+                         ../api/cpp/scc_graph.h \
+                         ../api/c/phasic.h
+RECURSIVE              = NO
+
+# --- output formats: XML only -------------------------------------------------
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = NO
+
+# --- extraction: include undocumented symbols (signature-only is fine) --------
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_PRIVATE        = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+
+# --- parsing ------------------------------------------------------------------
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MULTILINE_CPP_IS_BRIEF = NO
+INHERIT_DOCS           = YES
+SORT_MEMBER_DOCS       = NO
+SORT_BRIEF_DOCS        = NO
+
+# --- quiet build --------------------------------------------------------------
+QUIET                  = YES
+WARNINGS               = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = NO
+WARN_NO_PARAMDOC       = NO

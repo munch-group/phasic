@@ -1,0 +1,281 @@
+# Symbolic expression system { #cpp.c_symbolic }
+
+The symbolic expression DAG underlying parameterized graph elimination.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_expr_const](#cpp.c_symbolic.ptd_expr_const) |  |
+| [ptd_expr_param](#cpp.c_symbolic.ptd_expr_param) |  |
+| [ptd_expr_dot](#cpp.c_symbolic.ptd_expr_dot) |  |
+| [ptd_expr_add](#cpp.c_symbolic.ptd_expr_add) |  |
+| [ptd_expr_mul](#cpp.c_symbolic.ptd_expr_mul) |  |
+| [ptd_expr_div](#cpp.c_symbolic.ptd_expr_div) |  |
+| [ptd_expr_inv](#cpp.c_symbolic.ptd_expr_inv) |  |
+| [ptd_expr_sub](#cpp.c_symbolic.ptd_expr_sub) |  |
+| [ptd_expr_evaluate](#cpp.c_symbolic.ptd_expr_evaluate) |  |
+| [ptd_expr_evaluate_batch](#cpp.c_symbolic.ptd_expr_evaluate_batch) |  |
+| [ptd_expr_copy](#cpp.c_symbolic.ptd_expr_copy) |  |
+| [ptd_expr_copy_iterative](#cpp.c_symbolic.ptd_expr_copy_iterative) |  |
+| [ptd_expr_destroy](#cpp.c_symbolic.ptd_expr_destroy) |  |
+| [ptd_expr_destroy_iterative](#cpp.c_symbolic.ptd_expr_destroy_iterative) |  |
+| [ptd_expr_hash](#cpp.c_symbolic.ptd_expr_hash) |  |
+| [ptd_expr_equal](#cpp.c_symbolic.ptd_expr_equal) |  |
+| [ptd_expr_intern_table_create](#cpp.c_symbolic.ptd_expr_intern_table_create) |  |
+| [ptd_expr_intern_table_destroy](#cpp.c_symbolic.ptd_expr_intern_table_destroy) |  |
+| [ptd_expr_intern](#cpp.c_symbolic.ptd_expr_intern) |  |
+| [ptd_expr_intern_table_stats](#cpp.c_symbolic.ptd_expr_intern_table_stats) |  |
+| [ptd_expr_add_interned](#cpp.c_symbolic.ptd_expr_add_interned) |  |
+| [ptd_expr_mul_interned](#cpp.c_symbolic.ptd_expr_mul_interned) |  |
+| [ptd_expr_div_interned](#cpp.c_symbolic.ptd_expr_div_interned) |  |
+| [ptd_expr_sub_interned](#cpp.c_symbolic.ptd_expr_sub_interned) |  |
+| [ptd_expr_inv_interned](#cpp.c_symbolic.ptd_expr_inv_interned) |  |
+| [ptd_expr_evaluate_iterative](#cpp.c_symbolic.ptd_expr_evaluate_iterative) |  |
+| [ptd_expr_derivative](#cpp.c_symbolic.ptd_expr_derivative) | Symbolically differentiate expression w.r.t. |
+| [ptd_expr_evaluate_with_gradient](#cpp.c_symbolic.ptd_expr_evaluate_with_gradient) | Evaluate expression and all parameter gradients in one pass. |
+| [ptd_graph_symbolic_elimination](#cpp.c_symbolic.ptd_graph_symbolic_elimination) |  |
+| [ptd_graph_symbolic_instantiate](#cpp.c_symbolic.ptd_graph_symbolic_instantiate) |  |
+| [ptd_graph_symbolic_instantiate_batch](#cpp.c_symbolic.ptd_graph_symbolic_instantiate_batch) |  |
+| [ptd_graph_symbolic_to_json](#cpp.c_symbolic.ptd_graph_symbolic_to_json) |  |
+| [ptd_graph_symbolic_from_json](#cpp.c_symbolic.ptd_graph_symbolic_from_json) |  |
+| [ptd_graph_symbolic_destroy](#cpp.c_symbolic.ptd_graph_symbolic_destroy) |  |
+
+### ptd_expr_const { #cpp.c_symbolic.ptd_expr_const }
+
+```c
+struct ptd_expression * ptd_expr_const(double value)
+```
+
+### ptd_expr_param { #cpp.c_symbolic.ptd_expr_param }
+
+```c
+struct ptd_expression * ptd_expr_param(size_t param_idx)
+```
+
+### ptd_expr_dot { #cpp.c_symbolic.ptd_expr_dot }
+
+```c
+struct ptd_expression * ptd_expr_dot(const size_t *indices, const double *coeffs, size_t n)
+```
+
+### ptd_expr_add { #cpp.c_symbolic.ptd_expr_add }
+
+```c
+struct ptd_expression * ptd_expr_add(struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_mul { #cpp.c_symbolic.ptd_expr_mul }
+
+```c
+struct ptd_expression * ptd_expr_mul(struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_div { #cpp.c_symbolic.ptd_expr_div }
+
+```c
+struct ptd_expression * ptd_expr_div(struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_inv { #cpp.c_symbolic.ptd_expr_inv }
+
+```c
+struct ptd_expression * ptd_expr_inv(struct ptd_expression *child)
+```
+
+### ptd_expr_sub { #cpp.c_symbolic.ptd_expr_sub }
+
+```c
+struct ptd_expression * ptd_expr_sub(struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_evaluate { #cpp.c_symbolic.ptd_expr_evaluate }
+
+```c
+double ptd_expr_evaluate(const struct ptd_expression *expr, const double *params, size_t n_params)
+```
+
+### ptd_expr_evaluate_batch { #cpp.c_symbolic.ptd_expr_evaluate_batch }
+
+```c
+void ptd_expr_evaluate_batch(const struct ptd_expression *expr, const double *params_batch, size_t batch_size, size_t n_params, double *output)
+```
+
+### ptd_expr_copy { #cpp.c_symbolic.ptd_expr_copy }
+
+```c
+struct ptd_expression * ptd_expr_copy(const struct ptd_expression *expr)
+```
+
+### ptd_expr_copy_iterative { #cpp.c_symbolic.ptd_expr_copy_iterative }
+
+```c
+struct ptd_expression * ptd_expr_copy_iterative(const struct ptd_expression *expr)
+```
+
+### ptd_expr_destroy { #cpp.c_symbolic.ptd_expr_destroy }
+
+```c
+void ptd_expr_destroy(struct ptd_expression *expr)
+```
+
+### ptd_expr_destroy_iterative { #cpp.c_symbolic.ptd_expr_destroy_iterative }
+
+```c
+void ptd_expr_destroy_iterative(struct ptd_expression *expr)
+```
+
+### ptd_expr_hash { #cpp.c_symbolic.ptd_expr_hash }
+
+```c
+uint64_t ptd_expr_hash(const struct ptd_expression *expr)
+```
+
+### ptd_expr_equal { #cpp.c_symbolic.ptd_expr_equal }
+
+```c
+bool ptd_expr_equal(const struct ptd_expression *a, const struct ptd_expression *b)
+```
+
+### ptd_expr_intern_table_create { #cpp.c_symbolic.ptd_expr_intern_table_create }
+
+```c
+struct ptd_expr_intern_table * ptd_expr_intern_table_create(size_t capacity)
+```
+
+### ptd_expr_intern_table_destroy { #cpp.c_symbolic.ptd_expr_intern_table_destroy }
+
+```c
+void ptd_expr_intern_table_destroy(struct ptd_expr_intern_table *table)
+```
+
+### ptd_expr_intern { #cpp.c_symbolic.ptd_expr_intern }
+
+```c
+struct ptd_expression * ptd_expr_intern(struct ptd_expr_intern_table *table, struct ptd_expression *expr)
+```
+
+### ptd_expr_intern_table_stats { #cpp.c_symbolic.ptd_expr_intern_table_stats }
+
+```c
+void ptd_expr_intern_table_stats(const struct ptd_expr_intern_table *table)
+```
+
+### ptd_expr_add_interned { #cpp.c_symbolic.ptd_expr_add_interned }
+
+```c
+struct ptd_expression * ptd_expr_add_interned(struct ptd_expr_intern_table *table, struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_mul_interned { #cpp.c_symbolic.ptd_expr_mul_interned }
+
+```c
+struct ptd_expression * ptd_expr_mul_interned(struct ptd_expr_intern_table *table, struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_div_interned { #cpp.c_symbolic.ptd_expr_div_interned }
+
+```c
+struct ptd_expression * ptd_expr_div_interned(struct ptd_expr_intern_table *table, struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_sub_interned { #cpp.c_symbolic.ptd_expr_sub_interned }
+
+```c
+struct ptd_expression * ptd_expr_sub_interned(struct ptd_expr_intern_table *table, struct ptd_expression *left, struct ptd_expression *right)
+```
+
+### ptd_expr_inv_interned { #cpp.c_symbolic.ptd_expr_inv_interned }
+
+```c
+struct ptd_expression * ptd_expr_inv_interned(struct ptd_expr_intern_table *table, struct ptd_expression *child)
+```
+
+### ptd_expr_evaluate_iterative { #cpp.c_symbolic.ptd_expr_evaluate_iterative }
+
+```c
+double ptd_expr_evaluate_iterative(const struct ptd_expression *expr, const double *params, size_t n_params)
+```
+
+### ptd_expr_derivative { #cpp.c_symbolic.ptd_expr_derivative }
+
+```c
+struct ptd_expression * ptd_expr_derivative(const struct ptd_expression *expr, size_t param_idx)
+```
+
+Symbolically differentiate expression w.r.t.
+
+parameter
+
+Returns a new expression tree representing ∂expr/∂θ[param_idx]. Uses standard calculus rules (sum, product, quotient, chain).
+
+The returned expression must be freed with ptd_expr_destroy() or ptd_expr_destroy_iterative() when no longer needed.
+
+**Parameters:**
+
+- `expr` — Expression to differentiate
+- `param_idx` — Parameter index (0-based)
+
+**Returns:** New expression tree for derivative, or NULL on error
+
+**Note:** This performs symbolic differentiation, not numeric. The result is an expression that can be evaluated with different parameter values.
+
+**Note:** For efficiency, use ptd_expr_evaluate_with_gradient() to compute value and all gradients in a single pass.
+
+### ptd_expr_evaluate_with_gradient { #cpp.c_symbolic.ptd_expr_evaluate_with_gradient }
+
+```c
+void ptd_expr_evaluate_with_gradient(const struct ptd_expression *expr, const double *params, size_t n_params, double *value, double *gradient)
+```
+
+Evaluate expression and all parameter gradients in one pass.
+
+More efficient than calling ptd_expr_derivative() and ptd_expr_evaluate() separately for each parameter. Uses forward-mode automatic differentiation.
+
+**Parameters:**
+
+- `expr` — Expression to evaluate
+- `params` — Parameter array
+- `n_params` — Number of parameters (length of params and gradient arrays)
+- `value` — Output: f(θ)
+- `gradient` — Output: [∂f/∂θ₀, ∂f/∂θ₁, ..., ∂f/∂θₙ₋₁]
+
+**Note:** gradient must be pre-allocated with size n_params
+
+**Note:** Uses symbolic differentiation internally
+
+### ptd_graph_symbolic_elimination { #cpp.c_symbolic.ptd_graph_symbolic_elimination }
+
+```c
+struct ptd_graph_symbolic * ptd_graph_symbolic_elimination(struct ptd_graph *parameterized_graph)
+```
+
+### ptd_graph_symbolic_instantiate { #cpp.c_symbolic.ptd_graph_symbolic_instantiate }
+
+```c
+struct ptd_graph * ptd_graph_symbolic_instantiate(const struct ptd_graph_symbolic *symbolic, const double *params, size_t n_params)
+```
+
+### ptd_graph_symbolic_instantiate_batch { #cpp.c_symbolic.ptd_graph_symbolic_instantiate_batch }
+
+```c
+void ptd_graph_symbolic_instantiate_batch(const struct ptd_graph_symbolic *symbolic, const double *params_batch, size_t batch_size, size_t n_params, struct ptd_graph **graphs_out)
+```
+
+### ptd_graph_symbolic_to_json { #cpp.c_symbolic.ptd_graph_symbolic_to_json }
+
+```c
+char * ptd_graph_symbolic_to_json(const struct ptd_graph_symbolic *symbolic)
+```
+
+### ptd_graph_symbolic_from_json { #cpp.c_symbolic.ptd_graph_symbolic_from_json }
+
+```c
+struct ptd_graph_symbolic * ptd_graph_symbolic_from_json(const char *json)
+```
+
+### ptd_graph_symbolic_destroy { #cpp.c_symbolic.ptd_graph_symbolic_destroy }
+
+```c
+void ptd_graph_symbolic_destroy(struct ptd_graph_symbolic *symbolic)
+```

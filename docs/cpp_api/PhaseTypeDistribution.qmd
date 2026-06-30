@@ -1,0 +1,29 @@
+# phasic::PhaseTypeDistribution { #cpp.PhaseTypeDistribution }
+
+Matrix representation of a phase-type distribution.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [c_distribution](#cpp.PhaseTypeDistribution.c_distribution) |  |
+| [init_factory](#cpp.PhaseTypeDistribution.init_factory) |  |
+
+### c_distribution { #cpp.PhaseTypeDistribution.c_distribution }
+
+```cpp
+struct ptd_phase_type_distribution * phasic::PhaseTypeDistribution::c_distribution()
+```
+
+### init_factory { #cpp.PhaseTypeDistribution.init_factory }
+
+```cpp
+static PhaseTypeDistribution phasic::PhaseTypeDistribution::init_factory(Graph &graph, struct ptd_phase_type_distribution *matrix)
+```
+
+## Attributes
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `length` | `size_t` |  |
+| `vertices` | `std::vector< Vertex >` |  |

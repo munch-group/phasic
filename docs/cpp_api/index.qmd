@@ -1,0 +1,34 @@
+# C / C++ API Reference {.doc .doc-index}
+
+The C++ classes (`api/cpp/phasiccpp.h`, `api/cpp/scc_graph.h`) and the C core (`api/c/phasic.h`) that the [Python API](../api/index.qmd) is built on. The Python `Graph` *is* the C++ `phasic::Graph`; where a C++ method has a Python counterpart it links across to the Python reference.
+
+## C++ Classes
+
+| | |
+| --- | --- |
+| [phasic::Graph](Graph.qmd#cpp.Graph) |  |
+| [phasic::Vertex](Vertex.qmd#cpp.Vertex) | Represents a vertex (state) in a phase-type graph. |
+| [phasic::Edge](Edge.qmd#cpp.Edge) | Represents a directed edge between two vertices in a phase-type graph. |
+| [phasic::ParameterizedEdge](ParameterizedEdge.qmd#cpp.ParameterizedEdge) | Represents a parameterized edge with coefficient vector. |
+| [phasic::PhaseTypeDistribution](PhaseTypeDistribution.qmd#cpp.PhaseTypeDistribution) | Matrix representation of a phase-type distribution. |
+| [phasic::ProbabilityDistributionContext](ProbabilityDistributionContext.qmd#cpp.ProbabilityDistributionContext) | Context for iterative computation of continuous phase-type distributions. |
+| [phasic::DPHProbabilityDistributionContext](DPHProbabilityDistributionContext.qmd#cpp.DPHProbabilityDistributionContext) |  |
+| [phasic::AnyProbabilityDistributionContext](AnyProbabilityDistributionContext.qmd#cpp.AnyProbabilityDistributionContext) | Base class for probability distribution contexts (continuous or discrete). |
+| [phasic::SCCGraph](SCCGraph.qmd#cpp.SCCGraph) | Strongly Connected Component (SCC) decomposition of a graph. |
+| [phasic::SCCVertex](SCCVertex.qmd#cpp.SCCVertex) | Single strongly connected component vertex. |
+
+## C API
+
+| | |
+| --- | --- |
+| [AVL trees](c_avl.qmd#cpp.c_avl) | Balanced binary search trees used to index vertices by their state vector. (6 functions) |
+| [Symbolic expression system](c_symbolic.qmd#cpp.c_symbolic) | The symbolic expression DAG underlying parameterized graph elimination. (34 functions) |
+| [Trace-based elimination](c_trace.qmd#cpp.c_trace) | Record-once / evaluate-many elimination traces and their on-disk caching. (8 functions) |
+| [Strongly connected components](c_scc.qmd#cpp.c_scc) | SCC decomposition, synthetic-graph construction, and parallel PRC composition. (14 functions) |
+| [Reward-compute graph & on-disk cache](c_cache.qmd#cpp.c_cache) | Symbolic reward-compute graphs and their persistent (rev-3) parameterized cache. (12 functions) |
+| [Parameterized weights & formula tape](c_weights.qmd#cpp.c_weights) | Updating edge weights / the initial probability vector, and the per-edge weight-formula bytecode tape. (8 functions) |
+| [Random sampling](c_sampling.qmd#cpp.c_sampling) | Forward sampling of absorption times, jumps, sample paths, and stop vertices. (11 functions) |
+| [Distributions & forward contexts](c_distributions.qmd#cpp.c_distributions) | PDF/CDF/PMF, Laplace transform, normalization, and the forward-stepping probability-distribution contexts. (13 functions) |
+| [Moments, sojourn & waiting time](c_moments.qmd#cpp.c_moments) | Expected waiting time, expected sojourn times, and graph defect. (4 functions) |
+| [Reward transforms](c_rewards.qmd#cpp.c_rewards) | Reward transformation of continuous and discrete phase-type graphs. (2 functions) |
+| [Graph construction & core](c_graph.qmd#cpp.c_graph) | Creating graphs, vertices and edges; cloning, validation, and topology. (20 functions) |

@@ -1,0 +1,133 @@
+# phasic::SCCVertex { #cpp.SCCVertex }
+
+Single strongly connected component vertex.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [SCCVertex](#cpp.SCCVertex.SCCVertex) | Construct from C ptd_scc_vertex (non-owning reference) |
+| [size](#cpp.SCCVertex.size) | Number of vertices in this SCC. |
+| [index](#cpp.SCCVertex.index) | Index of this SCC in parent graph. |
+| [as_graph](#cpp.SCCVertex.as_graph) | Extract this SCC as a standalone Graph object. |
+| [internal_vertex_indices](#cpp.SCCVertex.internal_vertex_indices) | Get indices of internal vertices in original graph. |
+| [hash](#cpp.SCCVertex.hash) | Compute content hash of this SCC subgraph. |
+| [outgoing_scc_edges](#cpp.SCCVertex.outgoing_scc_edges) | Get edges to other SCCs (outgoing edges) |
+| [as_synthetic_graph](#cpp.SCCVertex.as_synthetic_graph) | Build a synthetic-wrapped graph for this SCC. |
+| [c_ptr](#cpp.SCCVertex.c_ptr) | Access underlying C struct. |
+| [parent_scc_graph](#cpp.SCCVertex.parent_scc_graph) | Access the parent SCCGraph (non-owning). |
+
+### SCCVertex { #cpp.SCCVertex.SCCVertex }
+
+```cpp
+phasic::SCCVertex::SCCVertex(struct ptd_scc_vertex *scc_vertex, const SCCGraph *parent)
+```
+
+Construct from C ptd_scc_vertex (non-owning reference)
+
+**Parameters:**
+
+- `scc_vertex` — C struct pointer (not owned)
+- `parent_scc_graph` — Parent SCCGraph (for original graph access)
+
+### size { #cpp.SCCVertex.size }
+
+```cpp
+size_t phasic::SCCVertex::size() const
+```
+
+Number of vertices in this SCC.
+
+### index { #cpp.SCCVertex.index }
+
+```cpp
+size_t phasic::SCCVertex::index() const
+```
+
+Index of this SCC in parent graph.
+
+### as_graph { #cpp.SCCVertex.as_graph }
+
+```cpp
+Graph phasic::SCCVertex::as_graph() const
+```
+
+Extract this SCC as a standalone Graph object.
+
+Creates a new graph containing only the vertices in this SCC. Preserves internal edges. External edges to other SCCs are excluded.
+
+**Returns:** New graph representing this SCC
+
+### internal_vertex_indices { #cpp.SCCVertex.internal_vertex_indices }
+
+```cpp
+std::vector< size_t > phasic::SCCVertex::internal_vertex_indices() const
+```
+
+Get indices of internal vertices in original graph.
+
+**Returns:** Vector of vertex indices
+
+### hash { #cpp.SCCVertex.hash }
+
+```cpp
+std::string phasic::SCCVertex::hash() const
+```
+
+Compute content hash of this SCC subgraph.
+
+Hashes the structure formed by internal vertices. Used for cache lookups.
+
+**Returns:** Hex hash string (SHA-256)
+
+### outgoing_scc_edges { #cpp.SCCVertex.outgoing_scc_edges }
+
+```cpp
+std::vector< size_t > phasic::SCCVertex::outgoing_scc_edges() const
+```
+
+Get edges to other SCCs (outgoing edges)
+
+**Returns:** Vector of target SCC indices
+
+### as_synthetic_graph { #cpp.SCCVertex.as_synthetic_graph }
+
+```cpp
+Graph phasic::SCCVertex::as_synthetic_graph(struct ptd_scc_synthetic_metadata **metadata_out) const
+```
+
+Build a synthetic-wrapped graph for this SCC.
+
+Unlike as_graph(), the result includes a synthetic source vertex (index 0) and a synthetic absorbing vertex (last index) with placeholder edges, in the canonical 5-part vertex ordering. The resulting graph can be passed directly to ptd_graph_ex_absorbation_time_comp_graph_parameterized.
+
+Internal edges (including aux-style edges with coefficients_length == 0) are copied verbatim. Synthetic source/absorbing edges use a single placeholder coefficient of value 1.0; the parent's external coefficient values live in the metadata's upstream_in_edges and downstream_out_edges fields, to be wired by the composer (WP-5).
+
+**Parameters:**
+
+- `metadata_out` — Receives the C-level metadata struct. Caller owns; destroy via ptd_scc_synthetic_metadata_destroy.
+
+**Returns:** Newly owned synthetic graph.
+
+### c_ptr { #cpp.SCCVertex.c_ptr }
+
+```cpp
+struct ptd_scc_vertex * phasic::SCCVertex::c_ptr()
+```
+
+Access underlying C struct.
+
+### c_ptr { #cpp.SCCVertex.c_ptr_2 }
+
+```cpp
+const struct ptd_scc_vertex * phasic::SCCVertex::c_ptr() const
+```
+
+### parent_scc_graph { #cpp.SCCVertex.parent_scc_graph }
+
+```cpp
+const SCCGraph * phasic::SCCVertex::parent_scc_graph() const
+```
+
+Access the parent SCCGraph (non-owning).
+
+Used by code that needs the C-level scc_graph pointer (e.g. passing it to per-SCC PRC compute functions).

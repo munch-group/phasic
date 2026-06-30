@@ -1,0 +1,78 @@
+# phasic::AnyProbabilityDistributionContext { #cpp.AnyProbabilityDistributionContext }
+
+Base class for probability distribution contexts (continuous or discrete).
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [is_discrete](#cpp.AnyProbabilityDistributionContext.is_discrete) |  |
+| [step](#cpp.AnyProbabilityDistributionContext.step) |  |
+| [pmf](#cpp.AnyProbabilityDistributionContext.pmf) |  |
+| [pdf](#cpp.AnyProbabilityDistributionContext.pdf) |  |
+| [cdf](#cpp.AnyProbabilityDistributionContext.cdf) |  |
+| [time](#cpp.AnyProbabilityDistributionContext.time) |  |
+| [jumps](#cpp.AnyProbabilityDistributionContext.jumps) |  |
+| [stop_probability](#cpp.AnyProbabilityDistributionContext.stop_probability) |  |
+| [accumulated_visits](#cpp.AnyProbabilityDistributionContext.accumulated_visits) |  |
+| [accumulated_visiting_time](#cpp.AnyProbabilityDistributionContext.accumulated_visiting_time) |  |
+
+### is_discrete { #cpp.AnyProbabilityDistributionContext.is_discrete }
+
+```cpp
+int phasic::AnyProbabilityDistributionContext::is_discrete()
+```
+
+### step { #cpp.AnyProbabilityDistributionContext.step }
+
+```cpp
+virtual void phasic::AnyProbabilityDistributionContext::step()
+```
+
+### pmf { #cpp.AnyProbabilityDistributionContext.pmf }
+
+```cpp
+virtual double phasic::AnyProbabilityDistributionContext::pmf()
+```
+
+### pdf { #cpp.AnyProbabilityDistributionContext.pdf }
+
+```cpp
+virtual double phasic::AnyProbabilityDistributionContext::pdf()
+```
+
+### cdf { #cpp.AnyProbabilityDistributionContext.cdf }
+
+```cpp
+virtual double phasic::AnyProbabilityDistributionContext::cdf()
+```
+
+### time { #cpp.AnyProbabilityDistributionContext.time }
+
+```cpp
+virtual double phasic::AnyProbabilityDistributionContext::time()
+```
+
+### jumps { #cpp.AnyProbabilityDistributionContext.jumps }
+
+```cpp
+virtual int phasic::AnyProbabilityDistributionContext::jumps()
+```
+
+### stop_probability { #cpp.AnyProbabilityDistributionContext.stop_probability }
+
+```cpp
+virtual std::vector< long double > phasic::AnyProbabilityDistributionContext::stop_probability()
+```
+
+### accumulated_visits { #cpp.AnyProbabilityDistributionContext.accumulated_visits }
+
+```cpp
+virtual std::vector< long double > phasic::AnyProbabilityDistributionContext::accumulated_visits()
+```
+
+### accumulated_visiting_time { #cpp.AnyProbabilityDistributionContext.accumulated_visiting_time }
+
+```cpp
+virtual std::vector< long double > phasic::AnyProbabilityDistributionContext::accumulated_visiting_time()
+```

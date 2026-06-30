@@ -1,0 +1,159 @@
+# Reward-compute graph & on-disk cache { #cpp.c_cache }
+
+Symbolic reward-compute graphs and their persistent (rev-3) parameterized cache.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_graph_ex_absorbation_time_comp_graph](#cpp.c_cache.ptd_graph_ex_absorbation_time_comp_graph) |  |
+| [ptd_graph_ex_absorbation_time_comp_graph_parameterized](#cpp.c_cache.ptd_graph_ex_absorbation_time_comp_graph_parameterized) |  |
+| [ptd_graph_build_ex_absorbation_time_comp_graph_parameterized](#cpp.c_cache.ptd_graph_build_ex_absorbation_time_comp_graph_parameterized) |  |
+| [ptd_parameterized_reward_compute_graph_destroy](#cpp.c_cache.ptd_parameterized_reward_compute_graph_destroy) |  |
+| [ptd_cache_root_dir](#cpp.c_cache.ptd_cache_root_dir) | Resolve the on-disk cache root directory. |
+| [ptd_save_parameterized_reward_compute_graph](#cpp.c_cache.ptd_save_parameterized_reward_compute_graph) | Serialise a parameterised reward compute graph to disk. |
+| [ptd_load_parameterized_reward_compute_graph](#cpp.c_cache.ptd_load_parameterized_reward_compute_graph) | Load a parameterised reward compute graph from disk. |
+| [ptd_save_pcg_rev3](#cpp.c_cache.ptd_save_pcg_rev3) |  |
+| [ptd_load_pcg_rev3](#cpp.c_cache.ptd_load_pcg_rev3) |  |
+| [ptd_save_parameterized_reward_compute_graph_ex](#cpp.c_cache.ptd_save_parameterized_reward_compute_graph_ex) | v2 save: write a parameterised reward compute graph with EXTERNAL pointer support. |
+| [ptd_load_parameterized_reward_compute_graph_ex](#cpp.c_cache.ptd_load_parameterized_reward_compute_graph_ex) | v2 load: read a parameterised reward compute graph with EXTERNAL pointer support. |
+| [ptd_precompute_reward_compute_graph](#cpp.c_cache.ptd_precompute_reward_compute_graph) |  |
+
+### ptd_graph_ex_absorbation_time_comp_graph { #cpp.c_cache.ptd_graph_ex_absorbation_time_comp_graph }
+
+```c
+struct ptd_desc_reward_compute * ptd_graph_ex_absorbation_time_comp_graph(struct ptd_graph *graph)
+```
+
+### ptd_graph_ex_absorbation_time_comp_graph_parameterized { #cpp.c_cache.ptd_graph_ex_absorbation_time_comp_graph_parameterized }
+
+```c
+struct ptd_desc_reward_compute_parameterized * ptd_graph_ex_absorbation_time_comp_graph_parameterized(struct ptd_graph *graph)
+```
+
+### ptd_graph_build_ex_absorbation_time_comp_graph_parameterized { #cpp.c_cache.ptd_graph_build_ex_absorbation_time_comp_graph_parameterized }
+
+```c
+struct ptd_desc_reward_compute * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(struct ptd_desc_reward_compute_parameterized *compute)
+```
+
+### ptd_parameterized_reward_compute_graph_destroy { #cpp.c_cache.ptd_parameterized_reward_compute_graph_destroy }
+
+```c
+void ptd_parameterized_reward_compute_graph_destroy(struct ptd_desc_reward_compute_parameterized *compute_graph)
+```
+
+### ptd_cache_root_dir { #cpp.c_cache.ptd_cache_root_dir }
+
+```c
+int ptd_cache_root_dir(char *buf, size_t buf_len)
+```
+
+Resolve the on-disk cache root directory.
+
+Honours the `PHASIC_CACHE_DIR` environment variable: if set, its value is used verbatim as the cache root. Otherwise the default `$HOME/.phasic_cache` is used.
+
+The resolved path is written into `buf`. The directory is NOT created — callers that need to write into it should ensure the directory exists themselves.
+
+On SLURM-style clusters, set `PHASIC_CACHE_DIR` to a path on a shared filesystem (e.g. `$WORK/.phasic_cache`) so workers and the orchestrator share cache entries. The shared filesystem must support POSIX `rename(2)` semantics for the atomic write-then-rename used by `ptd_save_parameterized_reward_compute_graph` to be reliable. NFSv3+, Lustre, and ext4 are fine; some GPFS configurations are not.
+
+**Parameters:**
+
+- `buf` — Output buffer (should be at least `PATH_MAX` bytes).
+- `buf_len` — Length of `buf`.
+
+**Returns:** 0 on success, -1 on error (sets `ptd_err` — typically because the resolved path is too long).
+
+### ptd_save_parameterized_reward_compute_graph { #cpp.c_cache.ptd_save_parameterized_reward_compute_graph }
+
+```c
+int ptd_save_parameterized_reward_compute_graph(const char *path, const struct ptd_desc_reward_compute_parameterized *compute, const struct ptd_graph *graph)
+```
+
+Serialise a parameterised reward compute graph to disk.
+
+Walks the commands, encodes each pointer (fromT, toT, multiplierptr) as either a mem-buffer offset or an (vertex_idx, edge_idx, byte_offset) triple, flattens the linked-list mem chain into a single contiguous buffer, and writes the result to `path` via atomic write-then-rename so concurrent readers never see a partial file.
+
+**Parameters:**
+
+- `path` — Destination cache file (parent directory must exist).
+- `compute` — Symbolic compute graph to save.
+- `graph` — The graph that `compute` was built from. Used at save time to look up edge pointers for the encoding step; the saved file embeds (vertex_idx, edge_idx) which the loader resolves against the live graph passed to ptd_load_parameterized_reward_compute_graph.
+
+**Returns:** 0 on success, -1 on error (sets ptd_err).
+
+### ptd_load_parameterized_reward_compute_graph { #cpp.c_cache.ptd_load_parameterized_reward_compute_graph }
+
+```c
+struct ptd_desc_reward_compute_parameterized * ptd_load_parameterized_reward_compute_graph(const char *path, const struct ptd_graph *graph)
+```
+
+Load a parameterised reward compute graph from disk.
+
+Reads the header, validates magic/version, allocates a single `mem` block (wrapped in one ll_of_a node so the existing destroy function works unchanged), reads the commands, and re-points all fromT/toT/multiplierptr fields against the loaded mem and the supplied graph's edge weights.
+
+**Parameters:**
+
+- `path` — Cache file path.
+- `graph` — The graph to bind edge-pointer fields to. Must have the same structure as the graph used at save time.
+
+**Returns:** Newly allocated compute graph (caller owns; destroy via ptd_parameterized_reward_compute_graph_destroy), or NULL on error (cache miss / corrupt file / version mismatch / OOM). On NULL the caller should fall back to rebuilding the cache from scratch and ptd_err is set to a human-readable description of the miss reason.
+
+### ptd_save_pcg_rev3 { #cpp.c_cache.ptd_save_pcg_rev3 }
+
+```c
+int ptd_save_pcg_rev3(const char *path, const struct ptd_desc_reward_compute_parameterized *raw, const struct ptd_graph *graph)
+```
+
+### ptd_load_pcg_rev3 { #cpp.c_cache.ptd_load_pcg_rev3 }
+
+```c
+struct ptd_desc_reward_compute_parameterized_off * ptd_load_pcg_rev3(const char *path, const struct ptd_graph *graph)
+```
+
+### ptd_save_parameterized_reward_compute_graph_ex { #cpp.c_cache.ptd_save_parameterized_reward_compute_graph_ex }
+
+```c
+int ptd_save_parameterized_reward_compute_graph_ex(const char *path, const struct ptd_desc_reward_compute_parameterized *compute, const struct ptd_graph *graph, const double *const *external_anchors, size_t n_external)
+```
+
+v2 save: write a parameterised reward compute graph with EXTERNAL pointer support.
+
+Like ptd_save_parameterized_reward_compute_graph, but takes an additional list of external anchors. Any pointer in `compute` that matches an entry in `external_anchors` is encoded as PTD_PCG_PTR_EXTERNAL with the matching index. All other pointers are encoded as MEM/EDGE/NULL as in v1.
+
+The on-disk file is written as format revision 2 if `n_external > 0`, or as revision 1 (v1-equivalent) otherwise.
+
+**Parameters:**
+
+- `path` — Destination cache file.
+- `compute` — Symbolic compute graph to save.
+- `graph` — The graph from which compute was built (typically the synthetic graph). Used to resolve EDGE pointers.
+- `external_anchors` — Array of double* pointers; pointers in compute matching one of these get encoded as EXTERNAL with the matching array index. May be NULL if n_external == 0.
+- `n_external` — Length of external_anchors.
+
+**Returns:** 0 on success, -1 on error (sets ptd_err).
+
+### ptd_load_parameterized_reward_compute_graph_ex { #cpp.c_cache.ptd_load_parameterized_reward_compute_graph_ex }
+
+```c
+struct ptd_desc_reward_compute_parameterized * ptd_load_parameterized_reward_compute_graph_ex(const char *path, const struct ptd_graph *graph, const double *external_table, size_t n_external)
+```
+
+v2 load: read a parameterised reward compute graph with EXTERNAL pointer support.
+
+Accepts both rev-1 and rev-2 files. Rev-2 files containing EXTERNAL pointers require external_table to be non-NULL with sufficient n_external; otherwise the load fails.
+
+**Parameters:**
+
+- `path` — Cache file path.
+- `graph` — The graph to bind EDGE pointers against (typically a freshly-rebuilt synthetic graph at load time).
+- `external_table` — Array of doubles. EXTERNAL pointers in the file resolve to &external_table[index]. May be NULL if n_external == 0 and the file contains no EXTERNAL pointers. Caller owns; must outlive the returned compute graph.
+- `n_external` — Length of external_table.
+
+**Returns:** Newly allocated compute graph (caller owns; destroy via ptd_parameterized_reward_compute_graph_destroy), or NULL on cache miss / corrupt file / version mismatch / missing external_table for a rev-2 file.
+
+### ptd_precompute_reward_compute_graph { #cpp.c_cache.ptd_precompute_reward_compute_graph }
+
+```c
+int ptd_precompute_reward_compute_graph(struct ptd_graph *graph)
+```
