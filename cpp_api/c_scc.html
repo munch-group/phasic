@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>c_scc</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e78ddd6ce220c3a0bac0a9724384552d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-788834707f449d984e0bfab2b52b7750.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
+
+
+<link rel="stylesheet" href="../api/_styles-quartodoc.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../PHASIC.png" alt="Phasic" class="navbar-logo light-content">
+    <img src="../PHASIC.png" alt="Phasic" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../pages/getting_started.html"> 
+<span class="menu-text">Documentation</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../api/"> 
+<span class="menu-text">Python API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../cpp_api/"> 
+<span class="menu-text">C / C++ API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../mathref/index.html"> 
+<span class="menu-text">Mathematical Reference</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/munch-group/phasic/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#cpp.c_scc" id="toc-cpp.c_scc" class="nav-link active" data-scroll-target="#cpp.c_scc">Strongly connected components</a>
+  <ul class="collapse">
+  <li><a href="#functions" id="toc-functions" class="nav-link" data-scroll-target="#functions">Functions</a>
+  <ul class="collapse">
+  <li><a href="#cpp.c_scc.ptd_find_strongly_connected_components" id="toc-cpp.c_scc.ptd_find_strongly_connected_components" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_find_strongly_connected_components">ptd_find_strongly_connected_components</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_graph_topological_sort" id="toc-cpp.c_scc.ptd_scc_graph_topological_sort" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_graph_topological_sort">ptd_scc_graph_topological_sort</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_graph_destroy" id="toc-cpp.c_scc.ptd_scc_graph_destroy" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_graph_destroy">ptd_scc_graph_destroy</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_build_synthetic_graph" id="toc-cpp.c_scc.ptd_scc_build_synthetic_graph" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_build_synthetic_graph">ptd_scc_build_synthetic_graph</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_synthetic_metadata_destroy" id="toc-cpp.c_scc.ptd_scc_synthetic_metadata_destroy" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_synthetic_metadata_destroy">ptd_scc_synthetic_metadata_destroy</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_collect_external_anchors" id="toc-cpp.c_scc.ptd_scc_collect_external_anchors" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_collect_external_anchors">ptd_scc_collect_external_anchors</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_get_or_compute_prc" id="toc-cpp.c_scc.ptd_scc_get_or_compute_prc" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_get_or_compute_prc">ptd_scc_get_or_compute_prc</a></li>
+  <li><a href="#cpp.c_scc.ptd_compose_scc_prcs" id="toc-cpp.c_scc.ptd_compose_scc_prcs" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_compose_scc_prcs">ptd_compose_scc_prcs</a></li>
+  <li><a href="#cpp.c_scc.ptd_synth_get_or_compute_prc" id="toc-cpp.c_scc.ptd_synth_get_or_compute_prc" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_synth_get_or_compute_prc">ptd_synth_get_or_compute_prc</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_compose_stats_get" id="toc-cpp.c_scc.ptd_scc_compose_stats_get" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_compose_stats_get">ptd_scc_compose_stats_get</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_compose_stats_reset" id="toc-cpp.c_scc.ptd_scc_compose_stats_reset" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_compose_stats_reset">ptd_scc_compose_stats_reset</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_compose_stats_record_hit" id="toc-cpp.c_scc.ptd_scc_compose_stats_record_hit" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_compose_stats_record_hit">ptd_scc_compose_stats_record_hit</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_compose_stats_record_miss" id="toc-cpp.c_scc.ptd_scc_compose_stats_record_miss" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_compose_stats_record_miss">ptd_scc_compose_stats_record_miss</a></li>
+  <li><a href="#cpp.c_scc.ptd_scc_compose_stats_record_bypass" id="toc-cpp.c_scc.ptd_scc_compose_stats_record_bypass" class="nav-link" data-scroll-target="#cpp.c_scc.ptd_scc_compose_stats_record_bypass">ptd_scc_compose_stats_record_bypass</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/cpp_api/c_scc.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/cpp_api/c_scc.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+
+
+
+
+<section id="cpp.c_scc" class="level1">
+<h1>Strongly connected components</h1>
+<p>SCC decomposition, synthetic-graph construction, and parallel PRC composition.</p>
+<section id="functions" class="level2">
+<h2 class="anchored" data-anchor-id="functions">Functions</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_find_strongly_connected_components">ptd_find_strongly_connected_components</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_graph_topological_sort">ptd_scc_graph_topological_sort</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_scc_graph_destroy">ptd_scc_graph_destroy</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_build_synthetic_graph">ptd_scc_build_synthetic_graph</a></td>
+<td>Build a self-contained synthetic graph for one SCC of a parent.</td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_scc_synthetic_metadata_destroy">ptd_scc_synthetic_metadata_destroy</a></td>
+<td>Free a metadata struct produced by ptd_scc_build_synthetic_graph.</td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_collect_external_anchors">ptd_scc_collect_external_anchors</a></td>
+<td>Collect external-anchor pointers for a synthetic graph.</td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_scc_get_or_compute_prc">ptd_scc_get_or_compute_prc</a></td>
+<td>Get-or-compute the per-SCC PRC, with disk caching.</td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_compose_scc_prcs">ptd_compose_scc_prcs</a></td>
+<td>WP-5: SCC composition.</td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_synth_get_or_compute_prc">ptd_synth_get_or_compute_prc</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_compose_stats_get">ptd_scc_compose_stats_get</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_scc_compose_stats_reset">ptd_scc_compose_stats_reset</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_compose_stats_record_hit">ptd_scc_compose_stats_record_hit</a></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><a href="#cpp.c_scc.ptd_scc_compose_stats_record_miss">ptd_scc_compose_stats_record_miss</a></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><a href="#cpp.c_scc.ptd_scc_compose_stats_record_bypass">ptd_scc_compose_stats_record_bypass</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<section id="cpp.c_scc.ptd_find_strongly_connected_components" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_find_strongly_connected_components">ptd_find_strongly_connected_components</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_scc_graph <span class="op">*</span> ptd_find_strongly_connected_components<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>graph<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_graph_topological_sort" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_graph_topological_sort">ptd_scc_graph_topological_sort</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_scc_vertex <span class="op">**</span> ptd_scc_graph_topological_sort<span class="op">(</span><span class="kw">struct</span> ptd_scc_graph <span class="op">*</span>graph<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_graph_destroy" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_graph_destroy">ptd_scc_graph_destroy</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_graph_destroy<span class="op">(</span><span class="kw">struct</span> ptd_scc_graph <span class="op">*</span>scc_graph<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_build_synthetic_graph" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_build_synthetic_graph">ptd_scc_build_synthetic_graph</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_graph <span class="op">*</span> ptd_scc_build_synthetic_graph<span class="op">(</span><span class="dt">const</span> <span class="kw">struct</span> ptd_scc_graph <span class="op">*</span>scc_graph<span class="op">,</span> <span class="dt">size_t</span> scc_index<span class="op">,</span> <span class="kw">struct</span> ptd_scc_synthetic_metadata <span class="op">**</span>metadata_out<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Build a self-contained synthetic graph for one SCC of a parent.</p>
+<p>Output topology (per <code>ptd_scc_synthetic_metadata</code>):</p>
+<ul>
+<li>Synthetic source vertex.</li>
+<li>All internal vertices of the SCC (state vectors copied, internal edges copied verbatim including aux-style coefficients_length==0 edges).</li>
+<li>One synthetic absorbing vertex per external out-channel (i.e.&nbsp;per parent-graph edge <code>d_j -&gt; w</code> where <code>d_j</code> is in the SCC and <code>w</code> is outside).</li>
+<li>One phantom absorbing vertex (the only true absorbing vertex in the graph; result == 0 by structural fact).</li>
+</ul>
+<p>Edge structure:</p>
+<ul>
+<li>Synthetic source -&gt; upstream-connecting (Type A): placeholder coefficient (length param_length, first slot 1.0).</li>
+<li>Internal -&gt; internal: copied verbatim from parent.</li>
+<li>Downstream-connecting -&gt; per-channel absorbing (Type C): placeholder coefficient (length param_length, first slot 1.0). The Type C edge weight slot is what the composer overwrites with the parent’s actual external edge weight before each compose run.</li>
+<li>Per-channel absorbing -&gt; phantom (one outgoing edge each): placeholder coefficient. The composer overwrites this edge’s weight slot with <code>1/result[w_in_parent]</code> so <code>result[s_abs_for_channel] = result[w_in_parent]</code> (the phase-type identity <code>result[v] = 1/rate(v)</code> for an absorbing-with-one-child vertex).</li>
+</ul>
+<p>Cross-parent invariance: synthetic-graph topology depends only on the SCC’s intrinsic content (internal structure + per-d_j external out-edge count). Two parents matching on those properties produce identical synthetic graphs and identical content hashes. The parent-specific values (Type C weights, phantom weights) flow through edge weight slots at compose time, not through the cached PRC structure.</p>
+<p>Vertex ordering is canonical (lexicographic state vector, out-edge-signature tiebreak for duplicates). The returned graph can be passed to ptd_graph_ex_absorbation_time_comp_graph_parameterized without modification.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>scc_graph</code> — SCC decomposition of the parent graph.</li>
+<li><code>scc_index</code> — Index of the SCC to wrap. Must be &lt; scc_graph-&gt;vertices_length.</li>
+<li><code>metadata_out</code> — Receives a newly allocated metadata struct. Caller owns; destroy via ptd_scc_synthetic_metadata_destroy. NULL on error.</li>
+</ul>
+<p><strong>Returns:</strong> Newly allocated synthetic graph (caller owns; destroy via ptd_graph_destroy), or NULL on error (sets ptd_err).</p>
+</section>
+<section id="cpp.c_scc.ptd_scc_synthetic_metadata_destroy" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_synthetic_metadata_destroy">ptd_scc_synthetic_metadata_destroy</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_synthetic_metadata_destroy<span class="op">(</span><span class="kw">struct</span> ptd_scc_synthetic_metadata <span class="op">*</span>metadata<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Free a metadata struct produced by ptd_scc_build_synthetic_graph.</p>
+<p>Safe to call with NULL.</p>
+</section>
+<section id="cpp.c_scc.ptd_scc_collect_external_anchors" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_collect_external_anchors">ptd_scc_collect_external_anchors</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">**</span> ptd_scc_collect_external_anchors<span class="op">(</span><span class="dt">const</span> <span class="kw">struct</span> ptd_graph <span class="op">*</span>synth<span class="op">,</span> <span class="dt">const</span> <span class="kw">struct</span> ptd_scc_synthetic_metadata <span class="op">*</span>meta<span class="op">,</span> <span class="dt">size_t</span> <span class="op">*</span>n_anchors_out<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Collect external-anchor pointers for a synthetic graph.</p>
+<p>Walks the synthetic graph and produces a flat array of (double *) pointers: one per Type A edge (synthetic source -&gt; upstream-connecting) and one per Type C edge (downstream- connecting -&gt; synthetic absorbing). Each pointer is the address of the placeholder edge’s coefficients[0] slot.</p>
+<p>The returned array is suitable for passing as <code>external_anchors</code> to ptd_save_parameterized_reward_compute_graph_ex.</p>
+<p>Anchor ordering (deterministic):</p>
+<ol type="1">
+<li>Type A edges first, in synthetic-source-edge order.</li>
+<li>Type C edges next, in the order encountered while walking vertex synthetic-indices 1..n-2 and collecting edges that target the synthetic absorbing vertex (last index).</li>
+</ol>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>synth</code> — Synthetic graph produced by ptd_scc_build_synthetic_graph.</li>
+<li><code>meta</code> — Metadata for the synthetic graph (used to identify the synthetic absorbing vertex’s index). May be NULL; if NULL, the absorbing vertex is taken to be at index synth-&gt;vertices_length - 1.</li>
+<li><code>n_anchors_out</code> — Receives the number of anchors written.</li>
+</ul>
+<p><strong>Returns:</strong> Newly allocated array of double* (caller must free()), or NULL if the graph is empty / on OOM (with ptd_err set on OOM).</p>
+</section>
+<section id="cpp.c_scc.ptd_scc_get_or_compute_prc" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_get_or_compute_prc">ptd_scc_get_or_compute_prc</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_desc_reward_compute_parameterized <span class="op">*</span> ptd_scc_get_or_compute_prc<span class="op">(</span><span class="dt">const</span> <span class="kw">struct</span> ptd_scc_graph <span class="op">*</span>scc_graph<span class="op">,</span> <span class="dt">size_t</span> scc_index<span class="op">,</span> <span class="kw">struct</span> ptd_graph <span class="op">**</span>synth_out<span class="op">,</span> <span class="kw">struct</span> ptd_scc_synthetic_metadata <span class="op">**</span>metadata_out<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Get-or-compute the per-SCC PRC, with disk caching.</p>
+<p>For the SCC at <code>scc_index</code> of <code>scc_graph</code>, returns the parameterised reward compute graph for the SCC’s synthetic graph (built via ptd_scc_build_synthetic_graph). The result is cached on disk under <code>~/.phasic_cache/parameterized_reward_compute/scc_&lt;hash&gt;.bin</code>, where <hash> is ptd_graph_content_hash of the synthetic graph.</hash></p>
+<p>On cold cache, builds the synthetic graph, eliminates it, saves the PRC. On warm cache, loads from disk. Either way, returns the synthetic graph (caller owns; destroy via ptd_graph_destroy) and the metadata (caller owns; destroy via ptd_scc_synthetic_metadata_destroy) so the composer can resolve the PRC’s pointer references.</p>
+<p>Set PHASIC_DISABLE_CACHE=1 to skip both load and save.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>scc_graph</code> — SCC decomposition of the parent graph.</li>
+<li><code>scc_index</code> — Index of the SCC. Must be &lt; scc_graph-&gt;vertices_length.</li>
+<li><code>synth_out</code> — Receives the synthetic graph (caller owns). The returned PRC’s pointers reference this graph’s edge weights, so synth_out must outlive the PRC.</li>
+<li><code>metadata_out</code> — Receives the synthetic-graph metadata (caller owns).</li>
+</ul>
+<p><strong>Returns:</strong> Newly allocated PRC (caller destroys via ptd_parameterized_reward_compute_graph_destroy), or NULL on error. On NULL, <em>synth_out and </em>metadata_out are also NULL.</p>
+</section>
+<section id="cpp.c_scc.ptd_compose_scc_prcs" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_compose_scc_prcs">ptd_compose_scc_prcs</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">*</span> ptd_compose_scc_prcs<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>parent<span class="op">,</span> <span class="dt">const</span> <span class="kw">struct</span> ptd_scc_graph <span class="op">*</span>scc_graph<span class="op">,</span> <span class="dt">const</span> <span class="dt">double</span> <span class="op">*</span>theta<span class="op">,</span> <span class="dt">size_t</span> theta_len<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>WP-5: SCC composition.</p>
+<p>Compute the parent-level expected waiting time vector by composing per-SCC PRCs.</p>
+<p>Walks SCCs in reverse-topological order (sink-first). For each SCC: builds (or retrieves cached) the synthetic graph</p>
+<ul>
+<li>PRC, sets per-channel placeholder edge weights based on the parent’s external edge weights and downstream-SCC results already computed, runs the per-SCC elimination, copies the results into the parent-wide result vector.</li>
+</ul>
+<p>The result is numerically equivalent to running the monolithic eliminator on the parent graph at the same theta.</p>
+<p>The parent graph’s edges are updated to reflect <code>theta</code> (via <code>ptd_graph_update_weights</code>) before composition, so the parent’s <code>edge-&gt;weight</code> slots can be read for Type C bindings.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>parent</code> — Parent graph. Must be parameterised. <code>parent-&gt;edges</code> are mutated to reflect theta after the call.</li>
+<li><code>scc_graph</code> — Parent’s SCC decomposition.</li>
+<li><code>theta</code> — Parameter vector. Length must equal <code>parent-&gt;param_length</code>.</li>
+<li><code>theta_len</code> — Length of theta.</li>
+</ul>
+<p><strong>Returns:</strong> Newly allocated result vector of length <code>parent-&gt;vertices_length</code> (caller frees), or NULL on error (sets ptd_err).</p>
+</section>
+<section id="cpp.c_scc.ptd_synth_get_or_compute_prc" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_synth_get_or_compute_prc">ptd_synth_get_or_compute_prc</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_desc_reward_compute_parameterized <span class="op">*</span> ptd_synth_get_or_compute_prc<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>synth<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_compose_stats_get" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_compose_stats_get">ptd_scc_compose_stats_get</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_compose_stats_get<span class="op">(</span><span class="kw">struct</span> ptd_scc_compose_stats <span class="op">*</span>out<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_compose_stats_reset" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_compose_stats_reset">ptd_scc_compose_stats_reset</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_compose_stats_reset<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_compose_stats_record_hit" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_compose_stats_record_hit">ptd_scc_compose_stats_record_hit</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_compose_stats_record_hit<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_compose_stats_record_miss" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_compose_stats_record_miss">ptd_scc_compose_stats_record_miss</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_compose_stats_record_miss<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cpp.c_scc.ptd_scc_compose_stats_record_bypass" class="level3">
+<h3 class="anchored" data-anchor-id="cpp.c_scc.ptd_scc_compose_stats_record_bypass">ptd_scc_compose_stats_record_bypass</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> ptd_scc_compose_stats_record_bypass<span class="op">(</span><span class="dt">void</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/munch-group\.github\.io\/phasic\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/cpp_api/c_scc.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/cpp_api/c_scc.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>

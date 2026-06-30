@@ -180,6 +180,10 @@ window.Quarto = {
 <span class="menu-text">Python API reference</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="../../cpp_api/"> 
+<span class="menu-text">C / C++ API reference</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="../../mathref/index.html"> 
 <span class="menu-text">Mathematical Reference</span></a>
   </li>  
@@ -720,7 +724,7 @@ Figure&nbsp;1: State space graph.
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To create a callback function, just think of rules of your model and ask yourself: “Given some state, what are the allowed transitions to other states and with what rates to these transitions occur?”. If the current state is “two singletons and one doubleton” (<code>[2, 1, 0, 0]</code>), the process can jump to “one singleton and one tripleton” (<code>[1, 0, 1, 0]</code>) with rate 2 and to “two doubletons” (<code>[0, 2, 0, 0]</code>) with rate 1. Here is a callback function building a graph for the coalescent in the say way as in our first example:</p>
-<div id="fig-coalescent-callback" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.411538Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.411437Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.414238Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.413748Z&quot;}}" data-execution_count="8">
+<div id="fig-coalescent-callback" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="8" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.411538Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.411437Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.414238Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.413748Z&quot;}}">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-callback-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
