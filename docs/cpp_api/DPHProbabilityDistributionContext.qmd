@@ -1,0 +1,62 @@
+# phasic::DPHProbabilityDistributionContext { #cpp.DPHProbabilityDistributionContext }
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [DPHProbabilityDistributionContext](#cpp.DPHProbabilityDistributionContext.DPHProbabilityDistributionContext) |  |
+| [step](#cpp.DPHProbabilityDistributionContext.step) |  |
+| [pmf](#cpp.DPHProbabilityDistributionContext.pmf) |  |
+| [cdf](#cpp.DPHProbabilityDistributionContext.cdf) |  |
+| [jumps](#cpp.DPHProbabilityDistributionContext.jumps) |  |
+| [stop_probability](#cpp.DPHProbabilityDistributionContext.stop_probability) |  |
+| [accumulated_visits](#cpp.DPHProbabilityDistributionContext.accumulated_visits) |  |
+| [init_factory](#cpp.DPHProbabilityDistributionContext.init_factory) |  |
+
+### DPHProbabilityDistributionContext { #cpp.DPHProbabilityDistributionContext.DPHProbabilityDistributionContext }
+
+```cpp
+phasic::DPHProbabilityDistributionContext::DPHProbabilityDistributionContext(Graph &graph)
+```
+
+### step { #cpp.DPHProbabilityDistributionContext.step }
+
+```cpp
+void phasic::DPHProbabilityDistributionContext::step()
+```
+
+### pmf { #cpp.DPHProbabilityDistributionContext.pmf }
+
+```cpp
+double phasic::DPHProbabilityDistributionContext::pmf()
+```
+
+### cdf { #cpp.DPHProbabilityDistributionContext.cdf }
+
+```cpp
+double phasic::DPHProbabilityDistributionContext::cdf()
+```
+
+### jumps { #cpp.DPHProbabilityDistributionContext.jumps }
+
+```cpp
+int phasic::DPHProbabilityDistributionContext::jumps()
+```
+
+### stop_probability { #cpp.DPHProbabilityDistributionContext.stop_probability }
+
+```cpp
+std::vector< long double > phasic::DPHProbabilityDistributionContext::stop_probability()
+```
+
+### accumulated_visits { #cpp.DPHProbabilityDistributionContext.accumulated_visits }
+
+```cpp
+std::vector< long double > phasic::DPHProbabilityDistributionContext::accumulated_visits()
+```
+
+### init_factory { #cpp.DPHProbabilityDistributionContext.init_factory }
+
+```cpp
+static DPHProbabilityDistributionContext phasic::DPHProbabilityDistributionContext::init_factory(Graph &graph)
+```

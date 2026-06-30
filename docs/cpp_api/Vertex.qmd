@@ -1,0 +1,144 @@
+# phasic::Vertex { #cpp.Vertex }
+
+Represents a vertex (state) in a phase-type graph.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [Vertex](#cpp.Vertex.Vertex) |  |
+| [add_edge](#cpp.Vertex.add_edge) |  |
+| [add_edge_parameterized](#cpp.Vertex.add_edge_parameterized) |  |
+| [add_aux_vertex](#cpp.Vertex.add_aux_vertex) |  |
+| [add_aux_vertex_constant](#cpp.Vertex.add_aux_vertex_constant) |  |
+| [state](#cpp.Vertex.state) |  |
+| [edges](#cpp.Vertex.edges) |  |
+| [parameterized_edges](#cpp.Vertex.parameterized_edges) |  |
+| [operator==](#cpp.Vertex.operator__) |  |
+| [operator=](#cpp.Vertex.operator_) |  |
+| [c_vertex](#cpp.Vertex.c_vertex) |  |
+| [rate](#cpp.Vertex.rate) |  |
+| [edges_length](#cpp.Vertex.edges_length) |  |
+| [is_aux](#cpp.Vertex.is_aux) | Check if this vertex is an auxiliary vertex. |
+| [set_aux](#cpp.Vertex.set_aux) | Mark or unmark this vertex as auxiliary. |
+| [init_factory](#cpp.Vertex.init_factory) |  |
+
+### Vertex { #cpp.Vertex.Vertex }
+
+```cpp
+phasic::Vertex::Vertex(Graph &graph, struct ptd_vertex *vertex)
+```
+
+### Vertex { #cpp.Vertex.Vertex_2 }
+
+```cpp
+phasic::Vertex::Vertex(const Vertex &o)
+```
+
+### add_edge { #cpp.Vertex.add_edge }
+
+```cpp
+void phasic::Vertex::add_edge(Vertex &to, double weight)
+```
+
+### add_edge_parameterized { #cpp.Vertex.add_edge_parameterized }
+
+```cpp
+void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vector< double > edge_state)
+```
+
+### add_aux_vertex { #cpp.Vertex.add_aux_vertex }
+
+```cpp
+Vertex phasic::Vertex::add_aux_vertex(double rate)
+```
+
+### add_aux_vertex { #cpp.Vertex.add_aux_vertex_2 }
+
+```cpp
+Vertex phasic::Vertex::add_aux_vertex(std::vector< double > rate_coeffs)
+```
+
+### add_aux_vertex_constant { #cpp.Vertex.add_aux_vertex_constant }
+
+```cpp
+Vertex phasic::Vertex::add_aux_vertex_constant(double weight)
+```
+
+### state { #cpp.Vertex.state }
+
+```cpp
+std::vector< int > phasic::Vertex::state()
+```
+
+### edges { #cpp.Vertex.edges }
+
+```cpp
+std::vector< Edge > phasic::Vertex::edges()
+```
+
+### parameterized_edges { #cpp.Vertex.parameterized_edges }
+
+```cpp
+std::vector< ParameterizedEdge > phasic::Vertex::parameterized_edges()
+```
+
+### operator== { #cpp.Vertex.operator__ }
+
+```cpp
+bool phasic::Vertex::operator==(const Vertex &other) const
+```
+
+### operator= { #cpp.Vertex.operator_ }
+
+```cpp
+Vertex & phasic::Vertex::operator=(const Vertex &o)
+```
+
+### c_vertex { #cpp.Vertex.c_vertex }
+
+```cpp
+struct ptd_vertex * phasic::Vertex::c_vertex()
+```
+
+### rate { #cpp.Vertex.rate }
+
+```cpp
+double phasic::Vertex::rate()
+```
+
+### edges_length { #cpp.Vertex.edges_length }
+
+```cpp
+size_t phasic::Vertex::edges_length()
+```
+
+### is_aux { #cpp.Vertex.is_aux }
+
+```cpp
+bool phasic::Vertex::is_aux()
+```
+
+Check if this vertex is an auxiliary vertex.
+
+Auxiliary vertices are created by add_aux_vertex() and have special semantics (e.g., their return edge is always constant weight 1.0).
+
+**Returns:** true if vertex is auxiliary, false otherwise
+
+### set_aux { #cpp.Vertex.set_aux }
+
+```cpp
+void phasic::Vertex::set_aux(bool value)
+```
+
+Mark or unmark this vertex as auxiliary.
+
+**Parameters:**
+
+- `value` — true to mark as auxiliary, false to unmark
+
+### init_factory { #cpp.Vertex.init_factory }
+
+```cpp
+static Vertex phasic::Vertex::init_factory(Graph &graph, std::vector< int > state)
+```

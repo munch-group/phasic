@@ -1,0 +1,155 @@
+# Distributions & forward contexts { #cpp.c_distributions }
+
+PDF/CDF/PMF, Laplace transform, normalization, and the forward-stepping probability-distribution contexts.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_normalize_graph](#cpp.c_distributions.ptd_normalize_graph) |  |
+| [ptd_dph_normalize_graph](#cpp.c_distributions.ptd_dph_normalize_graph) |  |
+| [ptd_graph_as_phase_type_distribution](#cpp.c_distributions.ptd_graph_as_phase_type_distribution) |  |
+| [ptd_phase_type_distribution_destroy](#cpp.c_distributions.ptd_phase_type_distribution_destroy) |  |
+| [ptd_probability_distribution_context_create](#cpp.c_distributions.ptd_probability_distribution_context_create) |  |
+| [ptd_probability_distribution_context_destroy](#cpp.c_distributions.ptd_probability_distribution_context_destroy) |  |
+| [ptd_probability_distribution_step](#cpp.c_distributions.ptd_probability_distribution_step) |  |
+| [ptd_dph_probability_distribution_context_create](#cpp.c_distributions.ptd_dph_probability_distribution_context_create) |  |
+| [ptd_dph_probability_distribution_context_destroy](#cpp.c_distributions.ptd_dph_probability_distribution_context_destroy) |  |
+| [ptd_dph_probability_distribution_step](#cpp.c_distributions.ptd_dph_probability_distribution_step) |  |
+| [ptd_graph_pdf_with_gradient](#cpp.c_distributions.ptd_graph_pdf_with_gradient) | Compute PDF and gradient w.r.t. |
+| [ptd_graph_pdf_parameterized](#cpp.c_distributions.ptd_graph_pdf_parameterized) | Compute PDF for parameterized graph using current parameters. |
+| [ptd_graph_laplace_transform](#cpp.c_distributions.ptd_graph_laplace_transform) | Creates a Laplace-transformed graph. |
+
+### ptd_normalize_graph { #cpp.c_distributions.ptd_normalize_graph }
+
+```c
+double * ptd_normalize_graph(struct ptd_graph *graph)
+```
+
+### ptd_dph_normalize_graph { #cpp.c_distributions.ptd_dph_normalize_graph }
+
+```c
+double * ptd_dph_normalize_graph(struct ptd_graph *graph)
+```
+
+### ptd_graph_as_phase_type_distribution { #cpp.c_distributions.ptd_graph_as_phase_type_distribution }
+
+```c
+struct ptd_phase_type_distribution * ptd_graph_as_phase_type_distribution(struct ptd_graph *graph)
+```
+
+### ptd_phase_type_distribution_destroy { #cpp.c_distributions.ptd_phase_type_distribution_destroy }
+
+```c
+void ptd_phase_type_distribution_destroy(struct ptd_phase_type_distribution *ptd)
+```
+
+### ptd_probability_distribution_context_create { #cpp.c_distributions.ptd_probability_distribution_context_create }
+
+```c
+struct ptd_probability_distribution_context * ptd_probability_distribution_context_create(struct ptd_graph *graph, int64_t granularity)
+```
+
+### ptd_probability_distribution_context_destroy { #cpp.c_distributions.ptd_probability_distribution_context_destroy }
+
+```c
+void ptd_probability_distribution_context_destroy(struct ptd_probability_distribution_context *context)
+```
+
+### ptd_probability_distribution_step { #cpp.c_distributions.ptd_probability_distribution_step }
+
+```c
+int ptd_probability_distribution_step(struct ptd_probability_distribution_context *context)
+```
+
+### ptd_dph_probability_distribution_context_create { #cpp.c_distributions.ptd_dph_probability_distribution_context_create }
+
+```c
+struct ptd_dph_probability_distribution_context * ptd_dph_probability_distribution_context_create(struct ptd_graph *graph)
+```
+
+### ptd_dph_probability_distribution_context_destroy { #cpp.c_distributions.ptd_dph_probability_distribution_context_destroy }
+
+```c
+void ptd_dph_probability_distribution_context_destroy(struct ptd_dph_probability_distribution_context *context)
+```
+
+### ptd_dph_probability_distribution_step { #cpp.c_distributions.ptd_dph_probability_distribution_step }
+
+```c
+int ptd_dph_probability_distribution_step(struct ptd_dph_probability_distribution_context *context)
+```
+
+### ptd_graph_pdf_with_gradient { #cpp.c_distributions.ptd_graph_pdf_with_gradient }
+
+```c
+int ptd_graph_pdf_with_gradient(struct ptd_graph *graph, double time, size_t granularity, const double *params, size_t n_params, double *pdf_value, double *pdf_gradient)
+```
+
+Compute PDF and gradient w.r.t.
+
+parameters using forward algorithm
+
+This extends the standard forward algorithm (Algorithm 4) to track probability gradients through the DP recursion. Gradients are computed via chain rule through graph traversal - no matrix operations.
+
+**Parameters:**
+
+- `graph` — Parameterized graph with symbolic edge expressions
+- `time` — Time point to evaluate PDF at
+- `granularity` — Discretization granularity (0 = auto-select)
+- `params` — Parameter vector θ
+- `n_params` — Length of params array
+- `pdf_value` — Output: PDF(time|θ)
+- `pdf_gradient` — Output: ∇PDF(time|θ), shape (n_params,) Must be pre-allocated with size n_params
+
+**Returns:** 0 on success, non-zero on error
+
+**Note:** This uses the same graph-based approach as pdf(), just with gradient tracking. No matrix exponentiation.
+
+**Note:** For multiple time points, call this function in a loop. Each call is independent.
+
+**Note:** Complexity: O(k·m·p) where k=max_jumps, m=edges, p=n_params This is p× slower than forward-only, but still graph-based.
+
+### ptd_graph_pdf_parameterized { #cpp.c_distributions.ptd_graph_pdf_parameterized }
+
+```c
+int ptd_graph_pdf_parameterized(struct ptd_graph *graph, double time, size_t granularity, double *pdf_value, double *pdf_gradient)
+```
+
+Compute PDF for parameterized graph using current parameters.
+
+This function uses the parameters set via ptd_graph_update_weight_parameterized() to compute the PDF value and optionally its gradient. It provides a convenient interface that doesn't require passing parameters explicitly.
+
+**Parameters:**
+
+- `graph` — Parameterized graph with current_params set via update_weight_parameterized
+- `time` — Time at which to evaluate PDF
+- `granularity` — Uniformization granularity (0 = auto-select)
+- `pdf_value` — Output: PDF value at specified time
+- `pdf_gradient` — Output: gradient array (size = param_length), or NULL if gradients not needed
+
+**Returns:** 0 on success, -1 on error
+
+**Note:** Call ptd_graph_update_weight_parameterized() first to set parameters
+
+**Note:** If pdf_gradient is NULL, only PDF is computed (faster)
+
+**Note:** If pdf_gradient is non-NULL, both PDF and gradient are computed using ptd_graph_pdf_with_gradient() for machine-precision accuracy
+
+### ptd_graph_laplace_transform { #cpp.c_distributions.ptd_graph_laplace_transform }
+
+```c
+struct ptd_clone_res ptd_graph_laplace_transform(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree, double theta)
+```
+
+Creates a Laplace-transformed graph.
+
+Returns a new graph where each transient state has an additional edge to the absorbing state with weight theta (or theta added to existing absorbing edge weight). This transformation allows computing the Laplace transform L(theta) = E[exp(-theta * T)] via expectation() on the result.
+
+**Parameters:**
+
+- `graph` — The phase-type graph
+- `avl_tree` — The AVL tree for vertex lookup
+- `theta` — The Laplace transform parameter
+
+**Returns:** A clone result containing the transformed graph and its AVL tree

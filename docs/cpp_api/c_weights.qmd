@@ -1,0 +1,93 @@
+# Parameterized weights & formula tape { #cpp.c_weights }
+
+Updating edge weights / the initial probability vector, and the per-edge weight-formula bytecode tape.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_graph_update_weights](#cpp.c_weights.ptd_graph_update_weights) |  |
+| [ptd_weight_tape_create](#cpp.c_weights.ptd_weight_tape_create) |  |
+| [ptd_weight_tape_destroy](#cpp.c_weights.ptd_weight_tape_destroy) |  |
+| [ptd_graph_set_weight_tape](#cpp.c_weights.ptd_graph_set_weight_tape) |  |
+| [ptd_weight_tape_eval](#cpp.c_weights.ptd_weight_tape_eval) |  |
+| [ptd_weight_tape_eval_arrays](#cpp.c_weights.ptd_weight_tape_eval_arrays) |  |
+| [ptd_graph_update_ipv](#cpp.c_weights.ptd_graph_update_ipv) | Set the initial probability vector after the graph has been constructed. |
+| [ptd_graph_set_param_length](#cpp.c_weights.ptd_graph_set_param_length) | Set the parameter length for a graph before adding edges. |
+
+### ptd_graph_update_weights { #cpp.c_weights.ptd_graph_update_weights }
+
+```c
+void ptd_graph_update_weights(struct ptd_graph *graph, double *params, size_t params_length, bool use_log)
+```
+
+### ptd_weight_tape_create { #cpp.c_weights.ptd_weight_tape_create }
+
+```c
+struct ptd_weight_tape * ptd_weight_tape_create(const int *ops, size_t ops_length, const double *consts, size_t consts_length, size_t stack_depth, size_t n_theta, size_t n_coeff)
+```
+
+### ptd_weight_tape_destroy { #cpp.c_weights.ptd_weight_tape_destroy }
+
+```c
+void ptd_weight_tape_destroy(struct ptd_weight_tape *tape)
+```
+
+### ptd_graph_set_weight_tape { #cpp.c_weights.ptd_graph_set_weight_tape }
+
+```c
+void ptd_graph_set_weight_tape(struct ptd_graph *graph, struct ptd_weight_tape *tape)
+```
+
+### ptd_weight_tape_eval { #cpp.c_weights.ptd_weight_tape_eval }
+
+```c
+int ptd_weight_tape_eval(const struct ptd_weight_tape *tape, const double *theta, size_t theta_len, const double *coeff, size_t coeff_len, double *out_weight)
+```
+
+### ptd_weight_tape_eval_arrays { #cpp.c_weights.ptd_weight_tape_eval_arrays }
+
+```c
+int ptd_weight_tape_eval_arrays(const int *ops, size_t ops_length, const double *consts, size_t consts_length, size_t stack_depth, const double *theta, size_t theta_len, const double *coeff, size_t coeff_len, double *out_weight)
+```
+
+### ptd_graph_update_ipv { #cpp.c_weights.ptd_graph_update_ipv }
+
+```c
+void ptd_graph_update_ipv(struct ptd_graph *graph, double *ipv, size_t ipv_length)
+```
+
+Set the initial probability vector after the graph has been constructed.
+
+Walks only the starting-vertex edges and writes ipv[k] to the k-th edge's weight (in construction order). Does NOT touch any non-starting-vertex edges. Bumps weight_version so the C++ wrapper's forward-state caches (ph_context_markov etc.) detect the change. The symbolic parameterized_reward_compute_graph survives this call (Stage A0 invariant) — the symbolic structure depends only on topology + coefficients, neither of which IPV edge-weight updates mutate.
+
+**Parameters:**
+
+- `graph` — Graph whose IPV is being set.
+- `ipv` — Array of new IPV edge weights.
+- `ipv_length` — Must equal the number of starting-vertex edges.
+
+Sets ptd_err and returns without mutating any edges if:
+
+- graph or ipv is NULL, ipv_length == 0,
+- ipv_length does not match starting_vertex->edges_length,
+- any ipv[k] is NaN or Inf.
+
+### ptd_graph_set_param_length { #cpp.c_weights.ptd_graph_set_param_length }
+
+```c
+void ptd_graph_set_param_length(struct ptd_graph *graph, size_t param_length)
+```
+
+Set the parameter length for a graph before adding edges.
+
+This function allows explicitly setting the number of model parameters (θ) before adding edges. Useful when edges may have more coefficients than the number of model parameters.
+
+**Parameters:**
+
+- `graph` — Graph to configure
+- `param_length` — Number of model parameters
+
+**Note:** Must be called before adding any non-IPV edges
+
+**Note:** Once set, all edges must have coefficients_length >= param_length

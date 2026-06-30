@@ -1,0 +1,30 @@
+website:
+  sidebar:
+  - id: cpp_api
+    contents:
+    - cpp_api/index.qmd
+    - section: C++ Classes
+      contents:
+      - cpp_api/Graph.qmd
+      - cpp_api/Vertex.qmd
+      - cpp_api/Edge.qmd
+      - cpp_api/ParameterizedEdge.qmd
+      - cpp_api/PhaseTypeDistribution.qmd
+      - cpp_api/ProbabilityDistributionContext.qmd
+      - cpp_api/DPHProbabilityDistributionContext.qmd
+      - cpp_api/AnyProbabilityDistributionContext.qmd
+      - cpp_api/SCCGraph.qmd
+      - cpp_api/SCCVertex.qmd
+    - section: C API
+      contents:
+      - cpp_api/c_avl.qmd
+      - cpp_api/c_symbolic.qmd
+      - cpp_api/c_trace.qmd
+      - cpp_api/c_scc.qmd
+      - cpp_api/c_cache.qmd
+      - cpp_api/c_weights.qmd
+      - cpp_api/c_sampling.qmd
+      - cpp_api/c_distributions.qmd
+      - cpp_api/c_moments.qmd
+      - cpp_api/c_rewards.qmd
+      - cpp_api/c_graph.qmd

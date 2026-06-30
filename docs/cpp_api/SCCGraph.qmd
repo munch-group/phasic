@@ -1,0 +1,135 @@
+# phasic::SCCGraph { #cpp.SCCGraph }
+
+Strongly Connected Component (SCC) decomposition of a graph.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [SCCGraph](#cpp.SCCGraph.SCCGraph) | Construct from C ptd_scc_graph (takes ownership) |
+| [operator=](#cpp.SCCGraph.operator_) |  |
+| [n_sccs](#cpp.SCCGraph.n_sccs) | Number of strongly connected components. |
+| [scc_at](#cpp.SCCGraph.scc_at) | Get SCC vertex by index. |
+| [sccs_in_topo_order](#cpp.SCCGraph.sccs_in_topo_order) | Get all SCCs in topological order. |
+| [scc_sizes](#cpp.SCCGraph.scc_sizes) | Get sizes of all SCCs. |
+| [original_graph](#cpp.SCCGraph.original_graph) | Get reference to original graph. |
+| [scc_hashes](#cpp.SCCGraph.scc_hashes) | Compute content hash for each SCC. |
+| [c_ptr](#cpp.SCCGraph.c_ptr) | Access underlying C struct (for C API interop) |
+
+### SCCGraph { #cpp.SCCGraph.SCCGraph }
+
+```cpp
+phasic::SCCGraph::SCCGraph(struct ptd_scc_graph *scc_graph)
+```
+
+Construct from C ptd_scc_graph (takes ownership)
+
+**Parameters:**
+
+- `scc_graph` — C struct pointer (will be freed on destruction)
+
+### SCCGraph { #cpp.SCCGraph.SCCGraph_2 }
+
+```cpp
+phasic::SCCGraph::SCCGraph(const SCCGraph &)=delete
+```
+
+### operator= { #cpp.SCCGraph.operator_ }
+
+```cpp
+SCCGraph & phasic::SCCGraph::operator=(const SCCGraph &)=delete
+```
+
+### SCCGraph { #cpp.SCCGraph.SCCGraph_3 }
+
+```cpp
+phasic::SCCGraph::SCCGraph(SCCGraph &&other) noexcept
+```
+
+### operator= { #cpp.SCCGraph.operator__2 }
+
+```cpp
+SCCGraph & phasic::SCCGraph::operator=(SCCGraph &&other) noexcept
+```
+
+### n_sccs { #cpp.SCCGraph.n_sccs }
+
+```cpp
+size_t phasic::SCCGraph::n_sccs() const
+```
+
+Number of strongly connected components.
+
+### scc_at { #cpp.SCCGraph.scc_at }
+
+```cpp
+const SCCVertex & phasic::SCCGraph::scc_at(size_t index) const
+```
+
+Get SCC vertex by index.
+
+**Parameters:**
+
+- `index` — SCC index (0 to n_sccs()-1)
+
+**Returns:** Reference to SCCVertex (valid while SCCGraph exists)
+
+### sccs_in_topo_order { #cpp.SCCGraph.sccs_in_topo_order }
+
+```cpp
+std::vector< SCCVertex > phasic::SCCGraph::sccs_in_topo_order() const
+```
+
+Get all SCCs in topological order.
+
+Topological ordering ensures dependencies are processed first. Essential for correct trace stitching.
+
+**Returns:** Vector of SCC vertices in topological order
+
+### scc_sizes { #cpp.SCCGraph.scc_sizes }
+
+```cpp
+std::vector< size_t > phasic::SCCGraph::scc_sizes() const
+```
+
+Get sizes of all SCCs.
+
+**Returns:** Vector of vertex counts per SCC
+
+### original_graph { #cpp.SCCGraph.original_graph }
+
+```cpp
+const Graph & phasic::SCCGraph::original_graph() const
+```
+
+Get reference to original graph.
+
+The original graph that was decomposed.
+
+**Returns:** Non-owning reference to original graph
+
+### scc_hashes { #cpp.SCCGraph.scc_hashes }
+
+```cpp
+std::vector< std::string > phasic::SCCGraph::scc_hashes() const
+```
+
+Compute content hash for each SCC.
+
+Hashes the subgraph formed by each SCC's internal vertices. Used for cache lookups.
+
+**Returns:** Vector of hex hash strings (one per SCC)
+
+### c_ptr { #cpp.SCCGraph.c_ptr }
+
+```cpp
+struct ptd_scc_graph * phasic::SCCGraph::c_ptr()
+```
+
+Access underlying C struct (for C API interop)
+
+### c_ptr { #cpp.SCCGraph.c_ptr_2 }
+
+```cpp
+const struct ptd_scc_graph * phasic::SCCGraph::c_ptr() const
+```

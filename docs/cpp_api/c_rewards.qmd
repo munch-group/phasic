@@ -1,0 +1,22 @@
+# Reward transforms { #cpp.c_rewards }
+
+Reward transformation of continuous and discrete phase-type graphs.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_graph_reward_transform](#cpp.c_rewards.ptd_graph_reward_transform) |  |
+| [ptd_graph_dph_reward_transform](#cpp.c_rewards.ptd_graph_dph_reward_transform) |  |
+
+### ptd_graph_reward_transform { #cpp.c_rewards.ptd_graph_reward_transform }
+
+```c
+struct ptd_graph * ptd_graph_reward_transform(struct ptd_graph *graph, double *rewards)
+```
+
+### ptd_graph_dph_reward_transform { #cpp.c_rewards.ptd_graph_dph_reward_transform }
+
+```c
+struct ptd_graph * ptd_graph_dph_reward_transform(struct ptd_graph *graph, int *rewards)
+```

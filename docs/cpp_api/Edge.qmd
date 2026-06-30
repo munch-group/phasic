@@ -1,0 +1,78 @@
+# phasic::Edge { #cpp.Edge }
+
+Represents a directed edge between two vertices in a phase-type graph.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [to](#cpp.Edge.to) |  |
+| [to_p](#cpp.Edge.to_p) |  |
+| [weight](#cpp.Edge.weight) |  |
+| [update_weight](#cpp.Edge.update_weight) |  |
+| [update_to](#cpp.Edge.update_to) |  |
+| [c_edge](#cpp.Edge.c_edge) |  |
+| [coefficients_length](#cpp.Edge.coefficients_length) |  |
+| [coefficient_at](#cpp.Edge.coefficient_at) |  |
+| [operator=](#cpp.Edge.operator_) |  |
+| [init_factory](#cpp.Edge.init_factory) |  |
+
+### to { #cpp.Edge.to }
+
+```cpp
+Vertex phasic::Edge::to()
+```
+
+### to_p { #cpp.Edge.to_p }
+
+```cpp
+Vertex * phasic::Edge::to_p()
+```
+
+### weight { #cpp.Edge.weight }
+
+```cpp
+double phasic::Edge::weight()
+```
+
+### update_weight { #cpp.Edge.update_weight }
+
+```cpp
+void phasic::Edge::update_weight(double weight)
+```
+
+### update_to { #cpp.Edge.update_to }
+
+```cpp
+void phasic::Edge::update_to(const Vertex &v)
+```
+
+### c_edge { #cpp.Edge.c_edge }
+
+```cpp
+struct ptd_edge * phasic::Edge::c_edge() const
+```
+
+### coefficients_length { #cpp.Edge.coefficients_length }
+
+```cpp
+size_t phasic::Edge::coefficients_length() const
+```
+
+### coefficient_at { #cpp.Edge.coefficient_at }
+
+```cpp
+double phasic::Edge::coefficient_at(size_t index) const
+```
+
+### operator= { #cpp.Edge.operator_ }
+
+```cpp
+Edge & phasic::Edge::operator=(const Edge &o)
+```
+
+### init_factory { #cpp.Edge.init_factory }
+
+```cpp
+static Edge phasic::Edge::init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight)
+```

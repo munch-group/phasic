@@ -1,0 +1,64 @@
+# phasic::ProbabilityDistributionContext { #cpp.ProbabilityDistributionContext }
+
+Context for iterative computation of continuous phase-type distributions.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [ProbabilityDistributionContext](#cpp.ProbabilityDistributionContext.ProbabilityDistributionContext) |  |
+| [step](#cpp.ProbabilityDistributionContext.step) |  |
+| [pdf](#cpp.ProbabilityDistributionContext.pdf) |  |
+| [cdf](#cpp.ProbabilityDistributionContext.cdf) |  |
+| [time](#cpp.ProbabilityDistributionContext.time) |  |
+| [stop_probability](#cpp.ProbabilityDistributionContext.stop_probability) |  |
+| [accumulated_visiting_time](#cpp.ProbabilityDistributionContext.accumulated_visiting_time) |  |
+| [init_factory](#cpp.ProbabilityDistributionContext.init_factory) |  |
+
+### ProbabilityDistributionContext { #cpp.ProbabilityDistributionContext.ProbabilityDistributionContext }
+
+```cpp
+phasic::ProbabilityDistributionContext::ProbabilityDistributionContext(Graph &graph, int64_t granularity=0)
+```
+
+### step { #cpp.ProbabilityDistributionContext.step }
+
+```cpp
+void phasic::ProbabilityDistributionContext::step()
+```
+
+### pdf { #cpp.ProbabilityDistributionContext.pdf }
+
+```cpp
+double phasic::ProbabilityDistributionContext::pdf()
+```
+
+### cdf { #cpp.ProbabilityDistributionContext.cdf }
+
+```cpp
+double phasic::ProbabilityDistributionContext::cdf()
+```
+
+### time { #cpp.ProbabilityDistributionContext.time }
+
+```cpp
+double phasic::ProbabilityDistributionContext::time()
+```
+
+### stop_probability { #cpp.ProbabilityDistributionContext.stop_probability }
+
+```cpp
+std::vector< long double > phasic::ProbabilityDistributionContext::stop_probability()
+```
+
+### accumulated_visiting_time { #cpp.ProbabilityDistributionContext.accumulated_visiting_time }
+
+```cpp
+std::vector< long double > phasic::ProbabilityDistributionContext::accumulated_visiting_time()
+```
+
+### init_factory { #cpp.ProbabilityDistributionContext.init_factory }
+
+```cpp
+static ProbabilityDistributionContext phasic::ProbabilityDistributionContext::init_factory(Graph &graph, int64_t granularity=0)
+```

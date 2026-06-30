@@ -1,0 +1,148 @@
+# Graph construction & core { #cpp.c_graph }
+
+Creating graphs, vertices and edges; cloning, validation, and topology.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ptd_directed_graph_add_edge](#cpp.c_graph.ptd_directed_graph_add_edge) |  |
+| [ptd_directed_graph_destroy](#cpp.c_graph.ptd_directed_graph_destroy) |  |
+| [ptd_directed_vertex_add](#cpp.c_graph.ptd_directed_vertex_add) |  |
+| [ptd_directed_vertex_destroy](#cpp.c_graph.ptd_directed_vertex_destroy) |  |
+| [ptd_graph_create](#cpp.c_graph.ptd_graph_create) |  |
+| [ptd_graph_destroy](#cpp.c_graph.ptd_graph_destroy) |  |
+| [ptd_vertex_create](#cpp.c_graph.ptd_vertex_create) |  |
+| [ptd_vertex_create_state](#cpp.c_graph.ptd_vertex_create_state) |  |
+| [ptd_find_or_create_vertex](#cpp.c_graph.ptd_find_or_create_vertex) |  |
+| [ptd_vertex_rate](#cpp.c_graph.ptd_vertex_rate) |  |
+| [ptd_vertex_destroy](#cpp.c_graph.ptd_vertex_destroy) |  |
+| [ptd_graph_add_edge](#cpp.c_graph.ptd_graph_add_edge) |  |
+| [ptd_edge_update_weight](#cpp.c_graph.ptd_edge_update_weight) |  |
+| [ptd_edge_update_to](#cpp.c_graph.ptd_edge_update_to) |  |
+| [ptd_notify_change](#cpp.c_graph.ptd_notify_change) |  |
+| [ptd_graph_is_acyclic](#cpp.c_graph.ptd_graph_is_acyclic) |  |
+| [ptd_graph_topological_sort](#cpp.c_graph.ptd_graph_topological_sort) |  |
+| [ptd_validate_graph](#cpp.c_graph.ptd_validate_graph) |  |
+| [ptd_clone_graph](#cpp.c_graph.ptd_clone_graph) |  |
+| [ptd_vertex_to_s](#cpp.c_graph.ptd_vertex_to_s) |  |
+
+### ptd_directed_graph_add_edge { #cpp.c_graph.ptd_directed_graph_add_edge }
+
+```c
+int ptd_directed_graph_add_edge(struct ptd_directed_vertex *vertex, struct ptd_directed_edge *edge)
+```
+
+### ptd_directed_graph_destroy { #cpp.c_graph.ptd_directed_graph_destroy }
+
+```c
+void ptd_directed_graph_destroy(struct ptd_directed_graph *graph)
+```
+
+### ptd_directed_vertex_add { #cpp.c_graph.ptd_directed_vertex_add }
+
+```c
+int ptd_directed_vertex_add(struct ptd_directed_graph *graph, struct ptd_directed_vertex *vertex)
+```
+
+### ptd_directed_vertex_destroy { #cpp.c_graph.ptd_directed_vertex_destroy }
+
+```c
+void ptd_directed_vertex_destroy(struct ptd_directed_vertex *vertex)
+```
+
+### ptd_graph_create { #cpp.c_graph.ptd_graph_create }
+
+```c
+struct ptd_graph * ptd_graph_create(size_t state_length)
+```
+
+### ptd_graph_destroy { #cpp.c_graph.ptd_graph_destroy }
+
+```c
+void ptd_graph_destroy(struct ptd_graph *graph)
+```
+
+### ptd_vertex_create { #cpp.c_graph.ptd_vertex_create }
+
+```c
+struct ptd_vertex * ptd_vertex_create(struct ptd_graph *graph)
+```
+
+### ptd_vertex_create_state { #cpp.c_graph.ptd_vertex_create_state }
+
+```c
+struct ptd_vertex * ptd_vertex_create_state(struct ptd_graph *graph, int *state)
+```
+
+### ptd_find_or_create_vertex { #cpp.c_graph.ptd_find_or_create_vertex }
+
+```c
+struct ptd_vertex * ptd_find_or_create_vertex(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree, const int *child_state)
+```
+
+### ptd_vertex_rate { #cpp.c_graph.ptd_vertex_rate }
+
+```c
+double ptd_vertex_rate(struct ptd_vertex *vertex)
+```
+
+### ptd_vertex_destroy { #cpp.c_graph.ptd_vertex_destroy }
+
+```c
+void ptd_vertex_destroy(struct ptd_vertex *vertex)
+```
+
+### ptd_graph_add_edge { #cpp.c_graph.ptd_graph_add_edge }
+
+```c
+struct ptd_edge * ptd_graph_add_edge(struct ptd_vertex *from, struct ptd_vertex *to, double *coefficients, size_t coefficients_length)
+```
+
+### ptd_edge_update_weight { #cpp.c_graph.ptd_edge_update_weight }
+
+```c
+void ptd_edge_update_weight(struct ptd_edge *edge, double weight)
+```
+
+### ptd_edge_update_to { #cpp.c_graph.ptd_edge_update_to }
+
+```c
+void ptd_edge_update_to(struct ptd_edge *edge, struct ptd_vertex *vertex)
+```
+
+### ptd_notify_change { #cpp.c_graph.ptd_notify_change }
+
+```c
+void ptd_notify_change(struct ptd_graph *graph)
+```
+
+### ptd_graph_is_acyclic { #cpp.c_graph.ptd_graph_is_acyclic }
+
+```c
+bool ptd_graph_is_acyclic(struct ptd_graph *graph)
+```
+
+### ptd_graph_topological_sort { #cpp.c_graph.ptd_graph_topological_sort }
+
+```c
+struct ptd_vertex ** ptd_graph_topological_sort(struct ptd_graph *graph)
+```
+
+### ptd_validate_graph { #cpp.c_graph.ptd_validate_graph }
+
+```c
+int ptd_validate_graph(const struct ptd_graph *graph)
+```
+
+### ptd_clone_graph { #cpp.c_graph.ptd_clone_graph }
+
+```c
+struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree)
+```
+
+### ptd_vertex_to_s { #cpp.c_graph.ptd_vertex_to_s }
+
+```c
+int ptd_vertex_to_s(struct ptd_vertex *vertex, char *buffer, size_t buffer_length)
+```
