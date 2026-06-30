@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-05-28T14:53:17.298009</dc:date>
+    <dc:date>2026-06-23T08:33:22.629316</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -42,7 +42,7 @@ z
      <g id="line2d_1">
       <path d="M 121.666311 187.118437 
 L 121.666311 20.798437 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_1">
       <!-- $\mathdefault{10^{-5}}$ -->
@@ -127,7 +127,7 @@ z
      <g id="line2d_2">
       <path d="M 198.085477 187.118437 
 L 198.085477 20.798437 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_2">
       <!-- $\mathdefault{10^{-4}}$ -->
@@ -164,7 +164,7 @@ z
      <g id="line2d_3">
       <path d="M 274.504644 187.118437 
 L 274.504644 20.798437 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_3">
       <!-- $\mathdefault{10^{-3}}$ -->
@@ -504,7 +504,7 @@ z
      <g id="line2d_4">
       <path d="M 59.778125 179.560219 
 L 282.978125 179.560219 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_5">
       <!-- $\mathdefault{0}$ -->
@@ -517,7 +517,7 @@ L 282.978125 179.560219
      <g id="line2d_5">
       <path d="M 59.778125 155.376959 
 L 282.978125 155.376959 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_6">
       <!-- $\mathdefault{2500}$ -->
@@ -559,7 +559,7 @@ z
      <g id="line2d_6">
       <path d="M 59.778125 131.193699 
 L 282.978125 131.193699 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_7">
       <!-- $\mathdefault{5000}$ -->
@@ -575,7 +575,7 @@ L 282.978125 131.193699
      <g id="line2d_7">
       <path d="M 59.778125 107.010439 
 L 282.978125 107.010439 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_8">
       <!-- $\mathdefault{7500}$ -->
@@ -603,7 +603,7 @@ z
      <g id="line2d_8">
       <path d="M 59.778125 82.827179 
 L 282.978125 82.827179 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_9">
       <!-- $\mathdefault{10000}$ -->
@@ -620,7 +620,7 @@ L 282.978125 82.827179
      <g id="line2d_9">
       <path d="M 59.778125 58.643919 
 L 282.978125 58.643919 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_10">
       <!-- $\mathdefault{12500}$ -->
@@ -637,7 +637,7 @@ L 282.978125 58.643919
      <g id="line2d_10">
       <path d="M 59.778125 34.46066 
 L 282.978125 34.46066 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #000000; stroke-opacity: 0.3; stroke-width: 0.4; stroke-linecap: square"/>
      </g>
      <g id="text_11">
       <!-- $\mathdefault{15000}$ -->
@@ -840,7 +840,7 @@ L 246.388378 179.411634
 L 257.067804 179.531844 
 L 272.83267 179.558437 
 L 272.83267 179.558437 
-" clip-path="url(#p85821848af)" style="fill: none; stroke: #1f77b4; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p72dfbf893c)" style="fill: none; stroke: #1f77b4; stroke-width: 1.5; stroke-linecap: square"/>
    </g>
    <g id="text_13">
     <!-- LogNormal(-10, 0.76) -->
@@ -1002,7 +1002,7 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="p85821848af">
+  <clipPath id="p72dfbf893c">
    <rect x="59.778125" y="20.798437" width="223.2" height="166.32"/>
   </clipPath>
  </defs>

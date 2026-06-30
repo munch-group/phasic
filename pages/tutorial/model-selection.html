@@ -456,13 +456,7 @@ window.Quarto = {
 </header>
 
 
-<p>Once you have fitted a model with <a href="../../pages/tutorial/svgd-basics.html">SVGD</a>, you typically want to know whether your model is <em>the right shape</em> for the data. Phasic provides three classical recipes built directly on top of a fitted <code>SVGD</code> object:</p>
-<ul>
-<li><strong>AIC</strong> (<span class="math inline">\(2k - 2\,\log\hat L\)</span>) for ranking models on a parsimony/fit tradeoff.</li>
-<li><strong>BIC</strong> (<span class="math inline">\(k \log n - 2\,\log\hat L\)</span>) for a more aggressive penalty on complexity.</li>
-<li><strong>Likelihood-ratio test</strong> for two nested models, where one fixes some parameters that the other estimates freely.</li>
-</ul>
-<p>All three rest on the same three quantities exposed on every fitted <code>SVGD</code> instance:</p>
+<p>Phasic provides three classical model-selection recipes: Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC) for ranking models on a parsimony/fit tradeoff and likelihood-ratio test for comparing nested models. They consume the same three quantities available in the fitted <code>SVGD</code> instance:</p>
 <ul>
 <li><code>svgd.log_likelihood()</code> — the maximum log-likelihood <span class="math inline">\(\log \hat L = \sum_i \log p(x_i \mid \hat\theta)\)</span> at the MAP.</li>
 <li><code>svgd.degrees_of_freedom</code> — the number <span class="math inline">\(k\)</span> of free parameters (<code>theta_dim</code> minus the number fixed via <code>fixed=</code>).</li>
