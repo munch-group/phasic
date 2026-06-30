@@ -43,11 +43,93 @@ format:
 <!-- Red text: -->
 <!-- [important note]{.alert} -->
 
-## Micro-sabbatical
+## Thanks
 
-::: {.absolute top="15%" left="10%" width="50%"}
-![](images/garry-larson.png)
+
+::::: {.absolute top="10%" left="2%" width="95%"}
+:::: {layout="[0.1,-0.15,0.1,-0.15,0.1]"}
+::: column
+![](./images/tobias.png)
+Tobias
 :::
+::: column
+![](./images/tobias.png)
+Tobias
+:::
+::: column
+![](./images/tobias.png)
+Tobias
+:::
+::::
+:::::
+
+
+::::: {.absolute top="50%" left="2%" width="95%"}
+:::: {layout="[0.2,-0.05,0.2,-0.05,0.2]"}
+::: column
+![](./images/nnf-logo.png)
+:::
+::: column
+![](./images/lundbeck_logo.svg)
+:::
+::: column
+![](./images/dff-logo-big.png)
+:::
+::::
+:::::
+
+::: {.absolute bottom="5%" width="70%" .large}
+- Browse slides at:
+- munch-group.org/phasic/slides
+:::
+::: {.absolute bottom="0%" left="45%" width="15%" }
+![](./images/qr_phasic_slides.png)
+:::
+
+## Thanks
+
+::: {.absolute bottom="5%" width="70%" .large}
+- Browse slides at:
+- munch-group.org/phasic/slides
+:::
+::: {.absolute bottom="0%" left="45%" width="15%" }
+![](./images/qr_phasic_slides.png)
+:::
+
+::: {.absolute bottom="2%" right="0%" width="25%" }
+
+![](./images/nnf-logo.png)
+
+![](./images/lundbeck_logo.svg)
+
+![](./images/dff-logo-big.png)
+
+:::
+
+## Last slide
+
+::: {.absolute top="0%" left="25%" width="50%" }
+
+![](./images/lundbeck_logo.svg)
+:::
+
+::: {.absolute top="0%" left="75%" width="50%" }
+![](./images/nnf-logo.png)
+:::
+
+::: {.absolute top="20%" left="75%" width="50%" }
+![](./images/dff-logo-big.png)
+:::
+
+::: {.absolute bottom="2%" width="70%" .huge}
+- Browse slides at:
+- https://munch-group.org/phasic/slides
+:::
+::: {.absolute bottom="0%" left="75%" width="20%" }
+![](./images/qr_phasic_slides.png)
+:::
+
+<!-- {{< qrcode https://munch-group.org/phasic/slides >}} -->
 
 
 <!-- =============================================================================== -->
