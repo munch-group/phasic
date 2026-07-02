@@ -183,6 +183,73 @@ phasic::Vertex *phasic::Graph::starting_vertex_p() {
     return new Vertex(*this, this->rf_graph->graph->starting_vertex);
 }
 
+phasic::Graph phasic::Graph::from_callback(
+        size_t state_length,
+        const std::vector<std::pair<std::vector<int>, double>> &ipv,
+        const phasic::TransitionCallback &callback,
+        size_t param_length) {
+
+    if (ipv.empty()) {
+        throw std::invalid_argument("from_callback: ipv must be non-empty");
+    }
+
+    // Validate the IPV probabilities up front (mirrors the Python
+    // _callback/_validate_ipv check): each must be positive and the total must
+    // not exceed 1 (a defect < 1 is allowed).
+    double ipv_sum = 0.0;
+    for (const auto &entry : ipv) {
+        if (entry.second <= 0.0) {
+            throw std::invalid_argument("from_callback: ipv probabilities must be positive");
+        }
+        ipv_sum += entry.second;
+    }
+    if (ipv_sum > 1.0 + 1e-9) {
+        throw std::invalid_argument("from_callback: ipv probabilities must sum to <= 1");
+    }
+
+    phasic::Graph graph(state_length);
+
+    // Fix param_length before ANY edge is added. 0 is the skip sentinel:
+    // ptd_graph_set_param_length(graph, 0) is a hard error, and for constant
+    // graphs the C core infers/locks param_length from the first edge anyway.
+    if (param_length > 0) {
+        graph.set_param_length(param_length);
+    }
+
+    // Bootstrap: starting-vertex (IPV) edges. IPV edges never lock the edge
+    // mode or param_length in the C core, so they are added as constant
+    // weights (probabilities), matching the Python/pybind driver.
+    {
+        phasic::Vertex start = graph.starting_vertex();
+        for (const auto &entry : ipv) {
+            phasic::Vertex child = graph.find_or_create_vertex(entry.first);
+            start.add_edge(child, entry.second);
+        }
+    }
+
+    // Breadth-first worklist over the graph's own vertex array.
+    // find_or_create_vertex appends newly discovered states and deduplicates
+    // via the graph's AVL tree, so vertices_length() grows in place until the
+    // reachable state space is exhausted. A ptd_vertex* stays valid across
+    // this growth (only the array of pointers is reallocated, not the vertex
+    // objects), so `vertex` remains usable after find_or_create_vertex.
+    for (size_t index = 1; index < graph.vertices_length(); ++index) {
+        phasic::Vertex vertex = graph.vertex_at(index);
+        std::vector<phasic::Transition> transitions = callback(vertex.state());
+
+        for (const auto &t : transitions) {
+            phasic::Vertex child = graph.find_or_create_vertex(t.state);
+            if (t.coefficients.empty()) {
+                vertex.add_edge(child, t.weight);
+            } else {
+                vertex.add_edge_parameterized(child, t.weight, t.coefficients);
+            }
+        }
+    }
+
+    return graph;  // NRVO / move ctor (phasiccpp.h) — leak-free
+}
+
 std::vector<phasic::Vertex> phasic::Graph::vertices() {
     std::vector<Vertex> vec;
 

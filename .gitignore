@@ -69,3 +69,4 @@ sc-phasic-*.out
 .claude/scheduled_tasks.lock
 
 /docs/**/.rendered*
+/tests/**/.rendered*

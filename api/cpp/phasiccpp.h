@@ -32,6 +32,7 @@
 #include <cmath>
 #include <iterator>
 #include <functional>
+#include <utility>
 
 #include "../c/phasic.h"
 #include "scc_graph.h"
@@ -77,6 +78,31 @@ namespace phasic {
     class Graph;
 
     class SccGraph;
+
+    // ---- Callback-based state-space construction ------------------------------
+    // Mirrors the Python `Graph(callback, ipv=..., theta_dim=...)` UI in native
+    // C++. A user supplies a transition callback returning the out-transitions
+    // of a given state; `Graph::from_callback` runs the breadth-first
+    // state-space exploration in C++ (no Python, no GIL) and builds the graph.
+
+    // One out-transition returned by a TransitionCallback. An edge is constant
+    // when `coefficients` is empty and parameterized otherwise (matching the
+    // per-edge dispatch of the Python/pybind builder).
+    struct Transition {
+        std::vector<int> state;           // the next state (target vertex)
+        double weight;                    // constant-edge weight; vestigial (ignored) for parameterized edges
+        std::vector<double> coefficients; // empty => constant edge; non-empty => parameterized edge
+
+        Transition(std::vector<int> state, double weight)
+                : state(std::move(state)), weight(weight) {}
+        Transition(std::vector<int> state, double weight, std::vector<double> coefficients)
+                : state(std::move(state)), weight(weight), coefficients(std::move(coefficients)) {}
+    };
+
+    // Called with a discovered vertex's state; returns that vertex's
+    // out-transitions. The starting/IPV edges are supplied separately to
+    // `Graph::from_callback`, so the callback only ever sees non-empty states.
+    typedef std::function<std::vector<Transition>(const std::vector<int> &state)> TransitionCallback;
 
     class Graph {
     public:
@@ -264,6 +290,29 @@ namespace phasic {
                 throw std::runtime_error(error_msg);
             }
         }
+
+        // Build a graph from a transition callback, mirroring the Python
+        // `Graph(callback, ipv=..., theta_dim=...)` UI. Runs the breadth-first
+        // state-space exploration entirely in C++ (no Python, no GIL).
+        //
+        //   state_length : length of each state vector (as in Graph(size_t)).
+        //   ipv          : starting-vertex edges as (state, probability) pairs.
+        //                  Probabilities are constant weights and must be
+        //                  positive with sum <= 1 (a defect < 1 is allowed).
+        //   callback     : returns the out-transitions of each discovered
+        //                  (non-empty) state. An edge is parameterized iff its
+        //                  Transition carries a non-empty coefficient vector;
+        //                  a graph must not mix constant and parameterized
+        //                  interior edges (enforced by the edge-mode lock).
+        //   param_length : mirrors theta_dim; set before any edge is added.
+        //                  Pass 0 (default) for constant graphs or to let the
+        //                  C core infer it from the first parameterized edge
+        //                  (set_param_length(0) is itself an error).
+        static Graph from_callback(
+                size_t state_length,
+                const std::vector<std::pair<std::vector<int>, double>> &ipv,
+                const TransitionCallback &callback,
+                size_t param_length = 0);
 
         void update_weights_parameterized(std::vector<double> scalars, bool use_log = false);
 
