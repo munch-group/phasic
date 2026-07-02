@@ -25,7 +25,7 @@
 //       src/cpp/phasiccpp.cpp api/cpp/scc_graph.cpp \
 //       -x c src/c/phasic.c src/c/phasic_hash.c src/c/phasic_log.c \
 //             src/c/scc_synthetic.c src/c/scc_compose.c \
-//       -o coalescent && ./coalescent
+//       -o coalescent && ./coalescent 4
 //
 //   Portable -- explicit standards (C core as C11, then link as C++17):
 //
@@ -36,12 +36,13 @@
 //       docs/pages/examples/cpp/coalescent_from_callback.cpp \
 //       src/cpp/phasiccpp.cpp api/cpp/scc_graph.cpp \
 //       phasic.o phasic_hash.o phasic_log.o scc_synthetic.o scc_compose.o \
-//       -o coalescent && ./coalescent
+//       -o coalescent && ./coalescent 4
 //
 // (Use g++ instead of clang++/clang if you prefer; the same flags apply.
 // No MPFR/GMP or OpenMP are required for this example.)
 //
-// Expected output for nr_samples = 4:
+// The number of samples is an optional argument (default 4), e.g. `./coalescent 4`:
+//     nr_samples: 4
 //     vertices: 6  edges: 6
 //     expectation (E[T]): 1.5
 // ---------------------------------------------------------------------------
@@ -49,6 +50,7 @@
 #include <phasiccpp.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <utility>
 
@@ -84,9 +86,17 @@ phasic::Graph coalescent(int nr_samples) {
   return phasic::Graph::from_callback(nr_samples, ipv, callback);
 }
 
-int main() {
-  int nr_samples = 4;
+int main(int argc, char **argv) {
+  // Number of samples from the command line (default 4), e.g. `./coalescent 10`.
+  int nr_samples = (argc > 1) ? std::atoi(argv[1]) : 4;
+  if (nr_samples < 1) {
+    std::fprintf(stderr, "usage: %s [nr_samples]   (positive integer, default 4)\n",
+                 argv[0]);
+    return 1;
+  }
+
   phasic::Graph graph = coalescent(nr_samples);
+  std::printf("nr_samples: %d\n", nr_samples);
   std::printf("vertices: %zu  edges: %zu\n",
               graph.vertices_length(), graph.edges_length());
   // expected_waiting_time()[v] = E[time to absorption from vertex v]; the
