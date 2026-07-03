@@ -3865,7 +3865,13 @@ class Graph(_Graph):
             )
 
         if self.is_discrete:
-            return Graph(super().reward_transform_discrete(rewards))
+            result = Graph(super().reward_transform_discrete(rewards))
+            # Wrapping the C++ _Graph runs __init__, which resets
+            # is_discrete=False; a reward-transformed DPH is still
+            # discrete, so restore the flag (mirroring discretize()).
+            result.is_discrete = True
+            result.set_was_dph(True)
+            return result
         else:
             return Graph(super().reward_transform(rewards))
 
@@ -3892,7 +3898,13 @@ class Graph(_Graph):
         --------
         reward_transform : General reward transformation (dispatches to this for discrete graphs)
         """
-        return Graph(super().reward_transform_discrete(rewards))
+        result = Graph(super().reward_transform_discrete(rewards))
+        # Preserve discreteness across the C++ -> Python re-wrap (see
+        # reward_transform); otherwise downstream pmf/moments dispatch
+        # to the continuous path.
+        result.is_discrete = True
+        result.set_was_dph(True)
+        return result
 
     def laplace_transform(self, theta: float) -> Self:
         """
