@@ -3585,6 +3585,79 @@ int ptd_save_pcg_rev3(const char *path,
     return 0;
 }
 
+/* Overflow-safe size_t multiply / add. Return 1 on success (result in *out),
+ * 0 if the operation would overflow. Used to validate untrusted header counts
+ * and section sizes from a cache file before they drive malloc / mmap bounds. */
+static int ptd_size_mul_ok(size_t a, size_t b, size_t *out) {
+    if (a != 0 && b > SIZE_MAX / a) return 0;
+    *out = a * b;
+    return 1;
+}
+static int ptd_size_add_ok(size_t a, size_t b, size_t *out) {
+    if (b > SIZE_MAX - a) return 0;
+    *out = a + b;
+    return 1;
+}
+
+/* Validate every command in a loaded rev-3 descriptor against untrusted input.
+ * A cache file can be corrupt, from another user on a shared filesystem, or
+ * pulled from the community registry, and the executor (ptd_pcg_resolve /
+ * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off) resolves
+ * operands as mem_base+mem_offset and inputs[input_idx] and WRITES through the
+ * resolved pointer with no bounds check. Reject (treat as cache miss) any file
+ * whose command type is unknown (would DIE_ERROR-abort the process), whose
+ * write target is not a writable MEM slot, or whose MEM offset / INPUT index
+ * is out of range. Returns 0 if safe, -1 otherwise. */
+static int ptd_pcg3_off_validate(
+        const struct ptd_desc_reward_compute_parameterized_off *off) {
+    const size_t md = off->mem_doubles;
+    const size_t ni = off->n_inputs;
+    if (off->length > 0 && off->commands == NULL) return -1;
+    const int dbg = (getenv("PHASIC_PCG_LOADLOG") != NULL);
+    for (size_t i = 0; i < off->length; ++i) {
+        const struct ptd_pcg_command_off *c = &off->commands[i];
+        /* Known command type only (see the executor's command_types enum:
+         * NEW_ADD=0, P=1, INV=2, PP=3, ONE_MINUS=4, DIVIDE=5, ZERO=6). An
+         * unknown type would DIE_ERROR-abort the whole process. */
+        if (c->type < 0 || c->type > 6) {
+            if (dbg) PTD_LOG_WARNING("pcg validate: cmd %zu bad type %d", i, (int)c->type);
+            return -1;
+        }
+        /* Every operand ptd_pcg_resolve() turns into a pointer must resolve
+         * IN-BOUNDS: a MEM offset within the mem scratch buffer, an INPUT
+         * index within inputs[]. This is what closes the arbitrary-write
+         * (mem_base + attacker_offset) and OOB-read (inputs[huge]) the
+         * executor would otherwise perform. (A NULL operand resolves to NULL;
+         * if a malformed file dereferences it that is a benign crash, not a
+         * memory-corruption primitive, so NULL is permitted for the operands
+         * a given command type does not use.) */
+        const struct ptd_pcg_operand *ops[3] =
+            { &c->fromT, &c->toT, &c->multiplierptr };
+        for (int k = 0; k < 3; ++k) {
+            const struct ptd_pcg_operand *op = ops[k];
+            if (op->kind == PTD_PCG_OP_MEM) {
+                if (op->mem_offset < 0 || (size_t)op->mem_offset >= md) {
+                    if (dbg) PTD_LOG_WARNING("pcg validate: cmd %zu op %d MEM offset %lld "
+                                             "out of range md=%zu", i, k,
+                                             (long long)op->mem_offset, md);
+                    return -1;
+                }
+            } else if (op->kind == PTD_PCG_OP_INPUT) {
+                if ((size_t)op->input_idx >= ni) {
+                    if (dbg) PTD_LOG_WARNING("pcg validate: cmd %zu op %d INPUT idx %u "
+                                             ">= ni=%zu", i, k, op->input_idx, ni);
+                    return -1;
+                }
+            } else if (op->kind != PTD_PCG_OP_NULL) {
+                if (dbg) PTD_LOG_WARNING("pcg validate: cmd %zu op %d bad kind %u",
+                                         i, k, (unsigned)op->kind);
+                return -1;   /* unknown operand kind */
+            }
+        }
+    }
+    return 0;
+}
+
 /* Load a rev-3 file into the offset descriptor by READ+COPY (the mmap-free
  * fallback). Binds inputs[] against the supplied graph; an out-of-range (v,e)
  * means the file is stale for this graph -> return NULL (cache miss). */
@@ -3605,18 +3678,32 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_copy(
     off->mem_doubles = (size_t)h.mem_doubles;
     off->n_inputs = (size_t)h.n_inputs;
     int err = 0;
+    size_t nbytes = 0;
     if (h.n_commands > 0) {
-        off->commands = (struct ptd_pcg_command_off *)
-            malloc((size_t)h.n_commands * sizeof(*off->commands));
-        err = (off->commands == NULL
-               || fread(off->commands, sizeof(*off->commands),
-                        (size_t)h.n_commands, fp) != h.n_commands);
+        /* Overflow-safe: an attacker-chosen n_commands must not wrap the
+         * malloc size and let the subsequent fread overflow the buffer. */
+        if (!ptd_size_mul_ok((size_t)h.n_commands, sizeof(*off->commands), &nbytes)) {
+            err = 1;
+        } else {
+            off->commands = (struct ptd_pcg_command_off *)malloc(nbytes);
+            err = (off->commands == NULL
+                   || fread(off->commands, sizeof(*off->commands),
+                            (size_t)h.n_commands, fp) != h.n_commands);
+        }
     }
     if (!err && h.mem_doubles > 0) {
-        off->mem_base = (double *)malloc((size_t)h.mem_doubles * sizeof(double));
-        err = (off->mem_base == NULL
-               || fread(off->mem_base, sizeof(double),
-                        (size_t)h.mem_doubles, fp) != h.mem_doubles);
+        if (!ptd_size_mul_ok((size_t)h.mem_doubles, sizeof(double), &nbytes)) {
+            err = 1;
+        } else {
+            off->mem_base = (double *)malloc(nbytes);
+            err = (off->mem_base == NULL
+                   || fread(off->mem_base, sizeof(double),
+                            (size_t)h.mem_doubles, fp) != h.mem_doubles);
+        }
+    }
+    if (!err && h.n_inputs > 0
+            && (!ptd_size_mul_ok((size_t)h.n_inputs, sizeof(*off->input_specs), &nbytes))) {
+        err = 1;
     }
     if (!err && h.n_inputs > 0) {
         off->input_specs = (struct ptd_pcg_input_spec *)
@@ -3643,6 +3730,7 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_copy(
         }
     }
     fclose(fp);
+    if (!err && ptd_pcg3_off_validate(off) != 0) err = 1;
     if (err) {
         ptd_pcg_desc_off_destroy(off);
         ptd_err[0] = '\0';   /* treat as a cache miss, not an error */
@@ -3682,9 +3770,18 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_mmap(
     /* Section offsets (sizes are 8-byte multiples; mmap base is page-aligned, so
      * the casts below are naturally aligned). Verify the file holds them all. */
     size_t off_cmds = sizeof(struct ptd_pcg3_header);
-    size_t off_mem = off_cmds + n_cmds * sizeof(struct ptd_pcg_command_off);
-    size_t off_specs = off_mem + mem_d * sizeof(double);
-    size_t need = off_specs + n_in * sizeof(struct ptd_pcg3_dinput);
+    /* Overflow-safe section arithmetic: attacker-chosen counts must not wrap
+     * `need` small enough to pass the `need > fsize` check while the section
+     * pointers below run past the end of the mapping. */
+    size_t tmp = 0, off_mem = 0, off_specs = 0, need = 0;
+    if (!ptd_size_mul_ok(n_cmds, sizeof(struct ptd_pcg_command_off), &tmp)
+            || !ptd_size_add_ok(off_cmds, tmp, &off_mem)
+            || !ptd_size_mul_ok(mem_d, sizeof(double), &tmp)
+            || !ptd_size_add_ok(off_mem, tmp, &off_specs)
+            || !ptd_size_mul_ok(n_in, sizeof(struct ptd_pcg3_dinput), &tmp)
+            || !ptd_size_add_ok(off_specs, tmp, &need)) {
+        munmap(base, fsize); return NULL;
+    }
     if (need > fsize) { munmap(base, fsize); return NULL; }
     struct ptd_desc_reward_compute_parameterized_off *o =
         (struct ptd_desc_reward_compute_parameterized_off *)calloc(1, sizeof(*o));
@@ -3712,6 +3809,9 @@ static struct ptd_desc_reward_compute_parameterized_off *ptd_load_pcg_rev3_mmap(
             o->inputs[i] = (double *)(eb + di[i].byte);
         }
     }
+    /* Validate command operands against the (now bounds-checked) section
+     * sizes before the executor resolves and writes through them. */
+    if (ptd_pcg3_off_validate(o) != 0) { ptd_pcg_desc_off_destroy(o); return NULL; }
     if (getenv("PHASIC_PCG_LOADLOG") != NULL) {
         PTD_LOG_WARNING("rev3 LOAD(mmap) hit: n_cmds=%zu n_inputs=%zu", n_cmds, n_in);
     }
