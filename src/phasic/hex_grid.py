@@ -46,17 +46,26 @@ if TYPE_CHECKING:
     from .state_indexing import PropertySet
 
 
-# Pointy-top hex neighbor offsets by row parity.
-# For even rows (row % 2 == 0):
-_EVEN_ROW_OFFSETS = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)]
-# For odd rows (row % 2 == 1):
-_ODD_ROW_OFFSETS = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)]
+# Hex neighbor (drow, dcol) offsets by parity. These are derived directly
+# from rowcol_to_coords: for "pointy" the layout is odd-r (odd rows shoved
+# right by half a cell), for "flat" it is odd-q (odd columns shoved down).
+# A true first-order neighbor is exactly hex-spacing (sqrt(3)*hex_size)
+# from the cell center; each offset below satisfies that (verified in
+# test_hex_grid_adjacency). The even/odd tables were previously swapped,
+# which connected cells two hexes apart and dropped real neighbors on
+# alternating rows/columns.
+#
+# Pointy-top (odd-r): same-row +/-1, plus the two upper and two lower cells.
+# For even rows (row % 2 == 0) the diagonals lean left (dcol in {0, -1}):
+_EVEN_ROW_OFFSETS = [(0, -1), (0, 1), (-1, 0), (-1, -1), (1, 0), (1, -1)]
+# For odd rows (row % 2 == 1) the diagonals lean right (dcol in {0, +1}):
+_ODD_ROW_OFFSETS = [(0, -1), (0, 1), (-1, 0), (-1, 1), (1, 0), (1, 1)]
 
-# Flat-top hex neighbor offsets by column parity.
-# For even columns (col % 2 == 0):
-_EVEN_COL_OFFSETS = [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1)]
-# For odd columns (col % 2 == 1):
-_ODD_COL_OFFSETS = [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, 1), (1, 1)]
+# Flat-top (odd-q): same-column +/-1, plus the two left and two right cells.
+# For even columns (col % 2 == 0) the diagonals lean up (drow in {0, -1}):
+_EVEN_COL_OFFSETS = [(-1, 0), (1, 0), (0, -1), (-1, -1), (0, 1), (-1, 1)]
+# For odd columns (col % 2 == 1) the diagonals lean down (drow in {0, +1}):
+_ODD_COL_OFFSETS = [(-1, 0), (1, 0), (0, -1), (1, -1), (0, 1), (1, 1)]
 
 
 @dataclass
