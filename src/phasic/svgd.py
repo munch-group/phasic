@@ -6819,11 +6819,24 @@ class SVGD:
         # Define gradient of log probability
         grad_log_prob = jax.grad(log_prob_fn)
 
-        # Perform gradient ascent to refine the MAP estimate
+        # Perform gradient ascent to refine the MAP estimate, restricted to
+        # learnable dimensions so fixed parameters stay pinned (see
+        # log_likelihood(refine=True) for why unmasked ascent corrupts
+        # nested-model AIC/BIC/LRT).
+        if self.fixed_mask is not None:
+            _learn = (jnp.asarray(self.fixed_mask) == 0)
+            _fixed_vals = (jnp.asarray(self.fixed_values)
+                           if self.fixed_values is not None else None)
+        else:
+            _learn = None
         x = map_particle
         for _ in range(n_steps):
             grad = grad_log_prob(x)
+            if _learn is not None:
+                grad = jnp.where(_learn, grad, 0.0)
             x = x + step_size * grad
+            if _learn is not None and _fixed_vals is not None:
+                x = jnp.where(_learn, x, _fixed_vals)
 
         # Transform to constrained space unless unconstrained is requested
         if not unconstrained and self.param_transform is not None:
@@ -6932,9 +6945,25 @@ class SVGD:
                 x = theta_unconstr
                 n_steps = 70
                 step_size = 0.01
+                # Restrict ascent to LEARNABLE dimensions. fixed_mask==1
+                # marks a pinned parameter; the likelihood gradient there is
+                # generally non-zero, so unmasked ascent drifts a "fixed"
+                # parameter off its value while degrees_of_freedom still
+                # counts it fixed — corrupting AIC/BIC/LRT for nested models.
+                if self.fixed_mask is not None:
+                    _learn = (jnp.asarray(self.fixed_mask) == 0)
+                    _fixed_vals = (jnp.asarray(self.fixed_values)
+                                   if self.fixed_values is not None else None)
+                else:
+                    _learn = None
                 for _ in range(n_steps):
                     g = grad_fn(x)
+                    if _learn is not None:
+                        g = jnp.where(_learn, g, 0.0)
                     x = x + step_size * g
+                    if _learn is not None and _fixed_vals is not None:
+                        # Re-pin fixed dims exactly (guards numerical drift).
+                        x = jnp.where(_learn, x, _fixed_vals)
                 theta_unconstr = x
 
             ll = self._log_likelihood_at(theta_unconstr, rewards=self.rewards)
