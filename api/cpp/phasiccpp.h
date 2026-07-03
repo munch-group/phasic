@@ -104,6 +104,14 @@ namespace phasic {
     // `Graph::from_callback`, so the callback only ever sees non-empty states.
     typedef std::function<std::vector<Transition>(const std::vector<int> &state)> TransitionCallback;
 
+    // Raised by Graph::weight_formula(const std::string&) on a syntactically or
+    // semantically invalid formula (mirrors Python's weight_formula.WeightFormulaError,
+    // which subclasses ValueError).
+    class WeightFormulaError : public std::runtime_error {
+    public:
+        explicit WeightFormulaError(const std::string &msg) : std::runtime_error(msg) {}
+    };
+
     // Traditional matrix representation of a phase-type distribution, mirroring
     // the fields of Python Graph.as_matrices() (a NamedTuple). Returned by
     // Graph::as_matrices(); consumed by Graph::from_matrices(). Row i of every
@@ -853,6 +861,19 @@ namespace phasic {
         // reported "not probed"). Defined out-of-line in phasiccpp.cpp.
         GraphProfile profile(std::vector<double> theta = std::vector<double>());
 
+        // Compile a per-edge weight-formula string and install it as the graph's
+        // weight tape, so update_weights(theta) evaluates it per edge in C (the
+        // fast path). Python name for the `graph.weight_formula = "..."` setter.
+        // t0,t1,... = theta; c0,c1,... = the edge's coefficients; functions:
+        // exp log sqrt logistic pow delta and or not select. Comparison/delta/
+        // boolean conditions and select's condition must be theta-independent (a
+        // theta-dependent condition raises). Throws WeightFormulaError on an
+        // invalid formula. Defined out-of-line in phasiccpp.cpp.
+        void weight_formula(const std::string &formula);
+        // Getter: the formula string most recently set (empty if none). Python
+        // name parity for reading the `weight_formula` property.
+        std::string weight_formula() const;
+
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
         //             this->c_graph(),
@@ -1508,6 +1529,7 @@ namespace phasic {
         std::vector<double> _cdf;
         std::vector<double> _dph_pmf;
         std::vector<double> _dph_cdf;
+        std::string _weight_formula_src;  // last formula set via weight_formula(str)
 
         friend class VertexLinkedList;
 

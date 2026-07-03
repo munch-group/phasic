@@ -30,6 +30,9 @@
 #include <vector>
 #include <thread>       // std::thread::hardware_concurrency (Graph::profile)
 #include <algorithm>    // std::max / std::min (Graph::profile)
+#include <memory>       // std::unique_ptr (weight_formula AST)
+#include <map>          // std::map (weight_formula const dedup)
+#include <cctype>       // isdigit/isalpha/... (weight_formula tokenizer)
 #include "phasiccpp.h"
 
 /* While it seems very strange to have this in a C file, the R code
@@ -695,6 +698,413 @@ std::string phasic::GraphProfile::report() const {
     os << "  eval path     : " << path_reason << "\n";
     os << "  -> " << apply_snippet();
     return os.str();
+}
+
+// ===========================================================================
+// weight_formula: port of src/phasic/weight_formula.py (tokenizer -> recursive-
+// descent parser -> theta-independence guard -> bytecode compiler). Produces the
+// exact same integer opcode tape + float const pool the Python front-end does,
+// so the shared C VM (ptd_weight_tape_eval, consulted by ptd_graph_update_weights)
+// evaluates identical per-edge weights. Opcodes MUST match weight_formula.OPCODES.
+// ===========================================================================
+namespace {
+
+enum WFOp {
+    WF_PUSH_THETA = 0, WF_PUSH_COEFF = 1, WF_PUSH_CONST = 2,
+    WF_ADD = 3, WF_SUB = 4, WF_MUL = 5, WF_DIV = 6, WF_POW = 7,
+    WF_NEG = 8, WF_EXP = 9, WF_LOG = 10, WF_SQRT = 11, WF_LOGISTIC = 12,
+    WF_EQ = 13, WF_NE = 14, WF_LT = 15, WF_GT = 16, WF_LE = 17, WF_GE = 18,
+    WF_AND = 19, WF_OR = 20, WF_NOT = 21, WF_SELECT = 22
+};
+
+struct WFToken { std::string kind; std::string text; };  // kind: NUMBER|NAME|OP|EOF
+
+enum class WFTag { Const, Theta, Coeff, Unop, Binop, Select };
+struct WFNode {
+    WFTag tag;
+    double cval = 0.0;   // Const
+    int idx = 0;         // Theta / Coeff index
+    std::string op;      // Unop/Binop op name
+    std::vector<std::unique_ptr<WFNode>> kids;
+};
+typedef std::unique_ptr<WFNode> WFNodeP;
+
+WFNodeP wf_node(WFTag t) { WFNodeP n(new WFNode()); n->tag = t; return n; }
+
+phasic::WeightFormulaError wf_err(const std::string &msg) { return phasic::WeightFormulaError(msg); }
+
+std::vector<WFToken> wf_tokenize(const std::string &src) {
+    std::vector<WFToken> toks;
+    size_t pos = 0, n = src.size();
+    while (pos < n) {
+        unsigned char c = (unsigned char) src[pos];
+        if (isspace(c)) { pos++; continue; }
+        // NUMBER: (\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?
+        if (isdigit(c) || (c == '.' && pos + 1 < n && isdigit((unsigned char) src[pos + 1]))) {
+            size_t start = pos;
+            while (pos < n && isdigit((unsigned char) src[pos])) pos++;
+            if (pos < n && src[pos] == '.') {
+                pos++;
+                while (pos < n && isdigit((unsigned char) src[pos])) pos++;
+            }
+            if (pos < n && (src[pos] == 'e' || src[pos] == 'E')) {
+                size_t save = pos; pos++;
+                if (pos < n && (src[pos] == '+' || src[pos] == '-')) pos++;
+                if (pos < n && isdigit((unsigned char) src[pos])) {
+                    while (pos < n && isdigit((unsigned char) src[pos])) pos++;
+                } else {
+                    pos = save;  // not a valid exponent; leave 'e' for the tokenizer to reject
+                }
+            }
+            toks.push_back({"NUMBER", src.substr(start, pos - start)});
+            continue;
+        }
+        // NAME: [A-Za-z_][A-Za-z0-9_]*
+        if (isalpha(c) || c == '_') {
+            size_t start = pos;
+            while (pos < n && (isalnum((unsigned char) src[pos]) || src[pos] == '_')) pos++;
+            toks.push_back({"NAME", src.substr(start, pos - start)});
+            continue;
+        }
+        // OP: two-char operators first
+        if (pos + 1 < n) {
+            std::string two = src.substr(pos, 2);
+            if (two == "**" || two == "==" || two == "!=" || two == "<=" || two == ">=") {
+                toks.push_back({"OP", two}); pos += 2; continue;
+            }
+        }
+        if (c && strchr("+-*/<>(),", (int) c)) {
+            toks.push_back({"OP", std::string(1, (char) c)}); pos++; continue;
+        }
+        throw wf_err("weight_formula: invalid character '" + std::string(1, (char) c) +
+                     "' at position " + std::to_string(pos) + " in '" + src + "'");
+    }
+    toks.push_back({"EOF", ""});
+    return toks;
+}
+
+// arity of the callable functions
+int wf_func_arity(const std::string &name) {
+    if (name == "exp" || name == "log" || name == "sqrt" || name == "logistic" || name == "not") return 1;
+    if (name == "pow" || name == "delta" || name == "and" || name == "or") return 2;
+    if (name == "select") return 3;
+    return -1;
+}
+
+struct WFParser {
+    std::string src;
+    std::vector<WFToken> toks;
+    size_t i;
+    explicit WFParser(const std::string &s) : src(s), toks(wf_tokenize(s)), i(0) {}
+
+    const WFToken &peek() { return toks[i]; }
+    WFToken next() { return toks[i++]; }
+    bool peek_is(const std::string &op) {
+        return toks[i].kind == "OP" && toks[i].text == op;
+    }
+    void expect_op(const std::string &op) {
+        WFToken t = next();
+        if (!(t.kind == "OP" && t.text == op)) {
+            std::string found = t.text.empty() ? "end of input" : t.text;
+            throw wf_err("weight_formula: expected '" + op + "' but found '" + found +
+                         "' in '" + src + "'");
+        }
+    }
+
+    WFNodeP parse() {
+        WFNodeP node = comparison();
+        if (peek().kind != "EOF") {
+            throw wf_err("weight_formula: unexpected trailing '" + peek().text +
+                         "' in '" + src + "'");
+        }
+        return node;
+    }
+
+    WFNodeP binop(const std::string &opname, WFNodeP l, WFNodeP r) {
+        WFNodeP n = wf_node(WFTag::Binop);
+        n->op = opname;
+        n->kids.push_back(std::move(l));
+        n->kids.push_back(std::move(r));
+        return n;
+    }
+
+    WFNodeP comparison() {
+        WFNodeP left = addsub();
+        while (peek().kind == "OP") {
+            const std::string &v = peek().text;
+            std::string opn;
+            if (v == "==") opn = "eq"; else if (v == "!=") opn = "ne";
+            else if (v == "<") opn = "lt"; else if (v == ">") opn = "gt";
+            else if (v == "<=") opn = "le"; else if (v == ">=") opn = "ge";
+            else break;
+            next();
+            left = binop(opn, std::move(left), addsub());
+        }
+        return left;
+    }
+    WFNodeP addsub() {
+        WFNodeP left = muldiv();
+        while (peek().kind == "OP" && (peek().text == "+" || peek().text == "-")) {
+            std::string opn = (next().text == "+") ? "add" : "sub";
+            left = binop(opn, std::move(left), muldiv());
+        }
+        return left;
+    }
+    WFNodeP muldiv() {
+        WFNodeP left = unary();
+        while (peek().kind == "OP" && (peek().text == "*" || peek().text == "/")) {
+            std::string opn = (next().text == "*") ? "mul" : "div";
+            left = binop(opn, std::move(left), unary());
+        }
+        return left;
+    }
+    WFNodeP unary() {
+        if (peek_is("-")) {
+            next();
+            WFNodeP n = wf_node(WFTag::Unop);
+            n->op = "neg";
+            n->kids.push_back(unary());
+            return n;
+        }
+        return power();
+    }
+    WFNodeP power() {
+        WFNodeP base = atom();
+        if (peek_is("**")) {
+            next();
+            return binop("pow", std::move(base), unary());  // right-assoc; exponent may be unary
+        }
+        return base;
+    }
+    WFNodeP atom() {
+        WFToken t = next();
+        if (t.kind == "NUMBER") {
+            WFNodeP n = wf_node(WFTag::Const);
+            n->cval = strtod(t.text.c_str(), NULL);
+            return n;
+        }
+        if (t.kind == "OP" && t.text == "(") {
+            WFNodeP node = comparison();
+            expect_op(")");
+            return node;
+        }
+        if (t.kind == "NAME") {
+            if (peek_is("(")) return call(t.text);
+            // t<i> / c<j> variable reference
+            if (t.text.size() >= 2 && (t.text[0] == 't' || t.text[0] == 'c')) {
+                bool all_digits = true;
+                for (size_t k = 1; k < t.text.size(); ++k)
+                    if (!isdigit((unsigned char) t.text[k])) { all_digits = false; break; }
+                if (all_digits) {
+                    WFNodeP n = wf_node(t.text[0] == 't' ? WFTag::Theta : WFTag::Coeff);
+                    n->idx = (int) strtol(t.text.c_str() + 1, NULL, 10);
+                    return n;
+                }
+            }
+            if (wf_func_arity(t.text) >= 0) {
+                throw wf_err("weight_formula: function '" + t.text +
+                             "' used without arguments in '" + src + "'");
+            }
+            throw wf_err("weight_formula: unknown identifier '" + t.text + "' in '" + src +
+                         "'. Use t<i> for theta, c<j> for coefficients, or a known function "
+                         "(exp, log, sqrt, logistic, pow, delta, select, and, or, not).");
+        }
+        std::string what = t.text.empty() ? "end of input" : t.text;
+        throw wf_err("weight_formula: unexpected '" + what + "' in '" + src + "'");
+    }
+    WFNodeP call(const std::string &name) {
+        int arity = wf_func_arity(name);
+        if (arity < 0)
+            throw wf_err("weight_formula: unknown function '" + name + "' in '" + src + "'");
+        expect_op("(");
+        std::vector<WFNodeP> args;
+        if (!peek_is(")")) {
+            args.push_back(comparison());
+            while (peek_is(",")) { next(); args.push_back(comparison()); }
+        }
+        expect_op(")");
+        if ((int) args.size() != arity) {
+            throw wf_err("weight_formula: " + name + "() takes " + std::to_string(arity) +
+                         " argument(s) but got " + std::to_string(args.size()) + " in '" + src + "'");
+        }
+        if (name == "exp" || name == "log" || name == "sqrt" || name == "logistic" || name == "not") {
+            WFNodeP n = wf_node(WFTag::Unop); n->op = name;
+            n->kids.push_back(std::move(args[0]));
+            return n;
+        }
+        if (name == "pow") return binop("pow", std::move(args[0]), std::move(args[1]));
+        if (name == "delta") return binop("eq", std::move(args[0]), std::move(args[1]));  // sugar for ==
+        if (name == "and" || name == "or") return binop(name, std::move(args[0]), std::move(args[1]));
+        if (name == "select") {
+            WFNodeP n = wf_node(WFTag::Select);
+            n->kids.push_back(std::move(args[0]));
+            n->kids.push_back(std::move(args[1]));
+            n->kids.push_back(std::move(args[2]));
+            return n;
+        }
+        throw wf_err("weight_formula: internal error on function '" + name + "'");
+    }
+};
+
+bool wf_uses_theta(const WFNode *n) {
+    switch (n->tag) {
+        case WFTag::Theta: return true;
+        case WFTag::Const:
+        case WFTag::Coeff: return false;
+        default:
+            for (const WFNodeP &k : n->kids) if (wf_uses_theta(k.get())) return true;
+            return false;
+    }
+}
+
+void wf_check_theta_indep(const WFNode *n, const std::string &where, const std::string &src) {
+    if (wf_uses_theta(n)) {
+        throw wf_err("weight_formula: " + where + " must be theta-independent (it may use c<j> "
+                     "and constants but not t<i>) in '" + src + "'. Comparisons/indicators are "
+                     "non-differentiable and SVGD gradients are finite differences, so a "
+                     "theta-dependent condition would sit on the gradient path. For smooth "
+                     "theta-gating use logistic(...) instead.");
+    }
+}
+
+bool wf_is_comparison(const std::string &op) {
+    return op == "eq" || op == "ne" || op == "lt" || op == "gt" || op == "le" || op == "ge";
+}
+
+void wf_enforce_guard(const WFNode *n, const std::string &src) {
+    switch (n->tag) {
+        case WFTag::Const: case WFTag::Theta: case WFTag::Coeff:
+            return;
+        case WFTag::Unop:
+            if (n->op == "not") wf_check_theta_indep(n->kids[0].get(), "the operand of not()", src);
+            wf_enforce_guard(n->kids[0].get(), src);
+            return;
+        case WFTag::Binop:
+            if (wf_is_comparison(n->op)) {
+                wf_check_theta_indep(n->kids[0].get(), "the left operand of a comparison", src);
+                wf_check_theta_indep(n->kids[1].get(), "the right operand of a comparison", src);
+            } else if (n->op == "and" || n->op == "or") {
+                wf_check_theta_indep(n->kids[0].get(), "an operand of " + n->op + "()", src);
+                wf_check_theta_indep(n->kids[1].get(), "an operand of " + n->op + "()", src);
+            }
+            wf_enforce_guard(n->kids[0].get(), src);
+            wf_enforce_guard(n->kids[1].get(), src);
+            return;
+        case WFTag::Select:
+            wf_check_theta_indep(n->kids[0].get(), "the condition of select()", src);
+            wf_enforce_guard(n->kids[0].get(), src);
+            wf_enforce_guard(n->kids[1].get(), src);
+            wf_enforce_guard(n->kids[2].get(), src);
+            return;
+    }
+}
+
+int wf_unop_opcode(const std::string &op) {
+    if (op == "neg") return WF_NEG; if (op == "exp") return WF_EXP; if (op == "log") return WF_LOG;
+    if (op == "sqrt") return WF_SQRT; if (op == "logistic") return WF_LOGISTIC; if (op == "not") return WF_NOT;
+    return -1;
+}
+int wf_binop_opcode(const std::string &op) {
+    if (op == "add") return WF_ADD; if (op == "sub") return WF_SUB; if (op == "mul") return WF_MUL;
+    if (op == "div") return WF_DIV; if (op == "pow") return WF_POW;
+    if (op == "eq") return WF_EQ; if (op == "ne") return WF_NE; if (op == "lt") return WF_LT;
+    if (op == "gt") return WF_GT; if (op == "le") return WF_LE; if (op == "ge") return WF_GE;
+    if (op == "and") return WF_AND; if (op == "or") return WF_OR;
+    return -1;
+}
+
+int wf_const_index(double v, std::vector<double> &consts, std::map<double, int> &cmap) {
+    std::map<double, int>::iterator it = cmap.find(v);
+    if (it != cmap.end()) return it->second;
+    int ix = (int) consts.size();
+    consts.push_back(v);
+    cmap[v] = ix;
+    return ix;
+}
+
+void wf_emit(const WFNode *n, std::vector<int> &ops, std::vector<double> &consts,
+             std::map<double, int> &cmap, int &n_theta, int &n_coeff) {
+    switch (n->tag) {
+        case WFTag::Const:
+            ops.push_back(WF_PUSH_CONST); ops.push_back(wf_const_index(n->cval, consts, cmap));
+            return;
+        case WFTag::Theta:
+            n_theta = std::max(n_theta, n->idx + 1);
+            ops.push_back(WF_PUSH_THETA); ops.push_back(n->idx);
+            return;
+        case WFTag::Coeff:
+            n_coeff = std::max(n_coeff, n->idx + 1);
+            ops.push_back(WF_PUSH_COEFF); ops.push_back(n->idx);
+            return;
+        case WFTag::Unop:
+            wf_emit(n->kids[0].get(), ops, consts, cmap, n_theta, n_coeff);
+            ops.push_back(wf_unop_opcode(n->op));
+            return;
+        case WFTag::Binop:
+            wf_emit(n->kids[0].get(), ops, consts, cmap, n_theta, n_coeff);
+            wf_emit(n->kids[1].get(), ops, consts, cmap, n_theta, n_coeff);
+            ops.push_back(wf_binop_opcode(n->op));
+            return;
+        case WFTag::Select:
+            wf_emit(n->kids[0].get(), ops, consts, cmap, n_theta, n_coeff);
+            wf_emit(n->kids[1].get(), ops, consts, cmap, n_theta, n_coeff);
+            wf_emit(n->kids[2].get(), ops, consts, cmap, n_theta, n_coeff);
+            ops.push_back(WF_SELECT);
+            return;
+    }
+}
+
+int wf_stack_depth(const WFNode *n) {
+    switch (n->tag) {
+        case WFTag::Const: case WFTag::Theta: case WFTag::Coeff:
+            return 1;
+        case WFTag::Unop:
+            return wf_stack_depth(n->kids[0].get());
+        case WFTag::Binop:
+            return std::max(wf_stack_depth(n->kids[0].get()), 1 + wf_stack_depth(n->kids[1].get()));
+        case WFTag::Select:
+            return std::max(wf_stack_depth(n->kids[0].get()),
+                            std::max(1 + wf_stack_depth(n->kids[1].get()),
+                                     2 + wf_stack_depth(n->kids[2].get())));
+    }
+    return 1;
+}
+
+}  // anonymous namespace
+
+// Python-API-name parity: compile a per-edge weight formula string and install it
+// as the graph's weight tape, so update_weights(theta) evaluates it per edge in C.
+// Mirrors Python's `graph.weight_formula = "..."`. See weight_formula.py.
+void phasic::Graph::weight_formula(const std::string &formula) {
+    // non-empty check (mirrors compile_formula)
+    bool blank = true;
+    for (char ch : formula) if (!isspace((unsigned char) ch)) { blank = false; break; }
+    if (blank) throw WeightFormulaError("weight_formula must be a non-empty string");
+
+    WFParser parser(formula);
+    WFNodeP ast = parser.parse();
+    wf_enforce_guard(ast.get(), formula);
+
+    std::vector<int> ops;
+    std::vector<double> consts;
+    std::map<double, int> cmap;
+    int n_theta = 0, n_coeff = 0;
+    wf_emit(ast.get(), ops, consts, cmap, n_theta, n_coeff);
+    int stack_depth = wf_stack_depth(ast.get());
+
+    struct ptd_weight_tape *tape = ptd_weight_tape_create(
+        ops.data(), ops.size(),
+        consts.empty() ? NULL : consts.data(), consts.size(),
+        (size_t) stack_depth, (size_t) n_theta, (size_t) n_coeff);
+    if (tape == NULL) {
+        throw std::runtime_error("weight_formula: failed to allocate weight tape");
+    }
+    ptd_graph_set_weight_tape(this->c_graph(), tape);  // takes ownership, frees any prior
+    this->_weight_formula_src = formula;
+}
+
+std::string phasic::Graph::weight_formula() const {
+    return this->_weight_formula_src;
 }
 
 phasic::PhaseTypeDistribution phasic::Graph::phase_type_distribution() {
