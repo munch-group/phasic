@@ -99,8 +99,9 @@ int main(int argc, char **argv) {
   std::printf("nr_samples: %d\n", nr_samples);
   std::printf("vertices: %zu  edges: %zu\n",
               graph.vertices_length(), graph.edges_length());
-  // expected_waiting_time()[v] = E[time to absorption from vertex v]; the
-  // starting vertex is index 0, so [0] is the mean, == Python graph.expectation().
-  std::printf("expectation (E[T]): %g\n", graph.expected_waiting_time()[0]);
+  // graph.expectation() = E[time to absorption from the starting vertex] =
+  // the distribution mean; same method name as Python's graph.expectation().
+  // (Equivalent to the per-vertex graph.expected_waiting_time()[0].)
+  std::printf("expectation (E[T]): %g\n", graph.expectation());
   return 0;
 }
