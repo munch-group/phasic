@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import re
 try:
     import multiprocess
     # Use spawn context to avoid fork() + JAX multithreading deadlock
@@ -562,6 +563,25 @@ def _load_work_unit_from_file(file_path: str) -> tuple[str, str]:
     return result
 
 
+def _slurm_cpu_count(default: int) -> int:
+    """Resolve the SLURM per-node CPU allocation as an int.
+
+    ``SLURM_JOB_CPUS_PER_NODE`` is always a *string* and, for
+    heterogeneous allocations, uses forms like ``"4(x2)"`` or
+    ``"16,8"``. Parse the leading integer; fall back to ``default``
+    when the variable is unset or unparseable so callers never end
+    up comparing a str to an int (see distributed_utils._parse for the
+    same int-coercion pattern).
+    """
+    raw = os.environ.get('SLURM_JOB_CPUS_PER_NODE')
+    if raw is None:
+        return default
+    m = re.match(r'\s*(\d+)', raw)
+    if not m:
+        return default
+    return int(m.group(1))
+
+
 def compute_missing_traces_parallel(work_units: dict[str, str],
                                    strategy: str = 'auto',
                                    min_size: int = 50,
@@ -663,8 +683,10 @@ def compute_missing_traces_parallel(work_units: dict[str, str],
         if n_workers is None:
             n_workers = os.cpu_count() or 1
 
-        # If running in SLURM, respect allocated CPUs
-        n_workers = os.environ.get('SLURM_JOB_CPUS_PER_NODE', n_workers)
+        # If running in SLURM, respect allocated CPUs. The env var is a
+        # string (e.g. "16" or "4(x2)"), so parse it to an int — comparing
+        # a str against an int in min() below raises TypeError on Py3.
+        n_workers = _slurm_cpu_count(n_workers)
 
         n_workers = max(1, min(n_workers, len(work_units)))  # Limit to work count
 
