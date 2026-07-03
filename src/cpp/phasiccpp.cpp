@@ -1265,6 +1265,159 @@ phasic::Graph phasic::Graph::from_serialized(const SerializedGraph &data) {
     return graph;
 }
 
+// Structural helper for add_epoch: rebuild `g` with `extra_state_dims` appended
+// to every vertex state (filled 0) and `extra_coeff_slots` appended to every edge
+// coefficient array (filled 0). Faithful port of Python _rebuild_with_wider_layout
+// (structural part only — the returned graph is fresh, and add_epoch sets the
+// epoch metadata on it).
+static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
+                                         int extra_coeff_slots) {
+    using phasic::Graph;
+    using phasic::Vertex;
+    int new_state_length = (int) g.state_length() + extra_state_dims;
+    int old_pl = (int) g.c_graph()->param_length;
+    int new_param_length = old_pl + extra_coeff_slots;
+
+    Graph ng(new_state_length);
+    if (new_param_length > 0) ng.set_param_length(new_param_length);
+
+    std::vector<int> pad_state(extra_state_dims, 0);
+    std::vector<double> pad_coeff(extra_coeff_slots, 0.0);
+
+    std::map<size_t, Vertex> vmap;  // old C vertex index -> new Vertex
+    Vertex old_start = g.starting_vertex();
+    size_t start_idx = old_start.c_vertex()->index;
+    vmap.insert(std::make_pair(start_idx, ng.starting_vertex()));
+
+    std::vector<Vertex> overts = g.vertices();
+    for (Vertex &v : overts) {
+        size_t idx = v.c_vertex()->index;
+        if (idx == start_idx) continue;
+        std::vector<int> ns = v.state();
+        ns.insert(ns.end(), pad_state.begin(), pad_state.end());
+        vmap.insert(std::make_pair(idx, ng.find_or_create_vertex(ns)));
+    }
+
+    bool param = g.parameterized();
+    for (Vertex &v : overts) {
+        Vertex &nv = vmap.at(v.c_vertex()->index);
+        if (param) {
+            std::vector<phasic::ParameterizedEdge> pes = v.parameterized_edges();
+            for (phasic::ParameterizedEdge &e : pes) {
+                std::vector<double> coeffs = e.edge_state((size_t) old_pl);
+                coeffs.insert(coeffs.end(), pad_coeff.begin(), pad_coeff.end());
+                nv.add_edge_parameterized(vmap.at(e.to().c_vertex()->index), 0.0, coeffs);
+            }
+        } else {
+            std::vector<phasic::Edge> es = v.edges();
+            for (phasic::Edge &e : es) {
+                nv.add_edge(vmap.at(e.to().c_vertex()->index), e.weight());
+            }
+        }
+    }
+    return ng;
+}
+
+// Python-API-name parity: add an epoch boundary. Faithful port of Python
+// Graph.add_epoch() (no-StateIndexer path). callback is required because the C++
+// Graph does not store its construction callback.
+phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCallback &callback) {
+    bool is_first = (this->_epoch_state_index < 0);
+    int extra_state = is_first ? 1 : 0;
+    int base_param_length = (this->_base_param_length >= 0)
+                                ? this->_base_param_length
+                                : (int) this->c_graph()->param_length;
+    int extra_coeff = is_first ? (base_param_length + 2) : (base_param_length + 1);
+
+    Graph ng = epoch_rebuild_wider(*this, extra_state, extra_coeff);
+
+    if (is_first) {
+        ng._epoch_state_index = (int) this->state_length();
+        ng._n_epochs = 1;
+    } else {
+        ng._epoch_state_index = this->_epoch_state_index;
+        ng._n_epochs = this->_n_epochs + 1;
+    }
+    ng._base_param_length = base_param_length;
+
+    int epoch_idx = ng._n_epochs;
+    int epoch_state_idx = ng._epoch_state_index;
+
+    // Transition rates from the ORIGINAL graph: stop_probability / occupancy.
+    // accumulated_occupancy on a continuous graph == accumulated_visiting_time.
+    std::vector<double> stop_probs = this->stop_probability(time);
+    std::vector<double> acc_occ = this->accumulated_visiting_time(time);
+    size_t nv_orig = stop_probs.size();
+    std::vector<double> transition_rates(nv_orig, 0.0);
+    for (size_t i = 0; i < nv_orig; ++i) {
+        transition_rates[i] = (acc_occ[i] != 0.0) ? (stop_probs[i] / acc_occ[i])
+                                                  : std::nan("");  // 0/0 -> nan (numpy errstate ignore)
+    }
+
+    int new_param_length = (int) ng.c_graph()->param_length;
+    int new_epoch_dynamics_start = epoch_idx * (base_param_length + 1);
+    int epoch_trans_coeff_idx = new_epoch_dynamics_start + base_param_length;
+
+    // Wire epoch-transition edges from previous-epoch vertices to sisters in the
+    // new epoch. n_before = post-rebuild vertex count (also the extend resume idx).
+    size_t n_before = ng.vertices_length();
+    for (size_t i = 1; i < n_before; ++i) {
+        Vertex v = ng.vertex_at(i);
+        std::vector<int> state = v.state();
+        if (v.edges_length() == 0) continue;                      // absorbing
+        if (state[epoch_state_idx] != epoch_idx - 1) continue;    // only previous epoch
+        if (i >= transition_rates.size() || std::isnan(transition_rates[i])) continue;
+
+        std::vector<int> sister = state;
+        sister[epoch_state_idx] = epoch_idx;
+        Vertex child = ng.find_or_create_vertex(sister);
+        std::vector<double> coeff((size_t) new_param_length, 0.0);
+        coeff[epoch_trans_coeff_idx] = transition_rates[i];
+        v.add_edge_parameterized(child, 0.0, coeff);
+    }
+
+    // Wrapper: strip the epoch dim, call the base callback, re-insert the epoch
+    // index into each child state, and route base coefficients to this epoch's
+    // dynamics slots.
+    const int eidx = epoch_state_idx;
+    const int e_num = epoch_idx;
+    const int base_pl = base_param_length;
+    const int npl = new_param_length;
+    const int dyn_start = new_epoch_dynamics_start;
+    phasic::TransitionCallback wrapper =
+        [callback, eidx, e_num, base_pl, npl, dyn_start]
+        (const std::vector<int> &state) -> std::vector<phasic::Transition> {
+        if ((int) state.size() <= eidx || state[eidx] != e_num) return {};
+        std::vector<int> base_state;
+        base_state.reserve(state.size() - 1);
+        for (int k = 0; k < (int) state.size(); ++k)
+            if (k != eidx) base_state.push_back(state[k]);
+
+        std::vector<phasic::Transition> transitions = callback(base_state);
+        std::vector<phasic::Transition> result;
+        result.reserve(transitions.size());
+        for (const phasic::Transition &t : transitions) {
+            std::vector<int> new_child;
+            new_child.reserve(t.state.size() + 1);
+            for (int k = 0; k < (int) t.state.size(); ++k) {
+                if (k == eidx) new_child.push_back(e_num);
+                new_child.push_back(t.state[k]);
+            }
+            if ((int) t.state.size() == eidx) new_child.push_back(e_num);  // append case
+
+            std::vector<double> padded((size_t) npl, 0.0);
+            int m = (int) t.coefficients.size();
+            if (m > base_pl) m = base_pl;
+            for (int k = 0; k < m; ++k) padded[dyn_start + k] = t.coefficients[k];
+            result.push_back(phasic::Transition(new_child, 0.0, padded));
+        }
+        return result;
+    };
+
+    ng.extend(wrapper, n_before);
+    return ng;
+}
+
 phasic::PhaseTypeDistribution phasic::Graph::phase_type_distribution() {
     struct ptd_phase_type_distribution *matrix = ptd_graph_as_phase_type_distribution(this->rf_graph->graph);
 

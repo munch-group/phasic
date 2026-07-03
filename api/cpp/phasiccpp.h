@@ -905,6 +905,18 @@ namespace phasic {
         // Python). Defined out-of-line in phasiccpp.cpp.
         static Graph from_serialized(const SerializedGraph &data);
 
+        // Add an epoch boundary at `time`, returning a NEW graph (original
+        // unchanged) with a widened state/coefficient layout: epoch-transition
+        // edges are wired from stop_probability(time)/accumulated_visiting_time(time)
+        // and the next epoch's state space is explored via `callback`. Python name
+        // for Graph.add_epoch(). Because the C++ Graph does not store its
+        // construction callback, `callback` is REQUIRED here (Python defaults it
+        // to the stored one). Supports the no-StateIndexer path; the base graph
+        // should be parameterized and have current weights (call update_weights
+        // first). Epoch metadata is carried on the returned graph so a further
+        // add_epoch chains. Defined out-of-line in phasiccpp.cpp.
+        Graph add_epoch(double time, const TransitionCallback &callback);
+
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
         //             this->c_graph(),
@@ -1561,6 +1573,11 @@ namespace phasic {
         std::vector<double> _dph_pmf;
         std::vector<double> _dph_cdf;
         std::string _weight_formula_src;  // last formula set via weight_formula(str)
+        // add_epoch metadata (mirrors the Python attributes). Set on the graph
+        // returned by add_epoch; read by a subsequent add_epoch to chain epochs.
+        int _epoch_state_index = -1;      // -1 = no epoch dimension yet
+        int _n_epochs = 0;                // number of epoch boundaries added
+        int _base_param_length = -1;      // -1 = unset (use param_length())
 
         friend class VertexLinkedList;
 
