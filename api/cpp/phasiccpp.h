@@ -104,6 +104,52 @@ namespace phasic {
     // `Graph::from_callback`, so the callback only ever sees non-empty states.
     typedef std::function<std::vector<Transition>(const std::vector<int> &state)> TransitionCallback;
 
+    // Traditional matrix representation of a phase-type distribution, mirroring
+    // the fields of Python Graph.as_matrices() (a NamedTuple). Returned by
+    // Graph::as_matrices(); consumed by Graph::from_matrices(). Row i of every
+    // member refers to the same transient state; `indices` are 1-based vertex
+    // numbers, matching Python.
+    struct MatrixRepresentation {
+        std::vector<std::vector<int>> states;   // (n_states, state_length): state vector per row
+        std::vector<std::vector<double>> sim;   // (n_states, n_states): sub-intensity matrix S
+        std::vector<double> ipv;                // (n_states,): initial probability vector (alpha)
+        std::vector<size_t> indices;            // (n_states,): 1-based vertex indices
+    };
+
+    // Result of Graph::profile() — recommended build/eval settings with reasons,
+    // mirroring Python's GraphProfile (src/phasic/profile.py). The structural
+    // (SCC) and eval-path tiers are ported faithfully; the measured dyn-ordering
+    // probe (which times two eliminations of the largest SCC via pybind-internal
+    // machinery) is NOT ported, so dyn_ordering is reported as "not probed".
+    struct GraphProfile {
+        size_t n_vertices = 0;
+        size_t n_edges = 0;
+        size_t param_length = 0;
+        double max_rate = 0.0;
+        double auto_granularity = 0.0;      // 2 * max_rate
+        size_t n_sccs = 0;
+        size_t largest_scc = 0;
+        double largest_scc_frac = 0.0;
+        size_t n_levels = 0;
+        size_t max_level_width = 0;
+        double parallelizable_frac = 0.0;
+        double speedup_ceiling = 0.0;       // min(total/critical-path, cpu_count)
+        unsigned cpu_count = 1;
+        bool parallel_elimination = false;              // the recommended decision
+        std::string parallel_elimination_reason;
+        std::string dyn_ordering_reason;                // always "not probed" in C++
+        std::string path;                               // "forward" or "sojourn"
+        std::string path_reason;
+
+        std::string report() const;         // multi-line human-readable summary
+        std::string apply_snippet() const;  // ready-to-paste phasic.configure(...) line
+    };
+
+    // Result of Graph::discretize() — the discretized graph plus its reward
+    // vector (1 for auxiliary vertices, else 0). Defined after Graph (needs the
+    // complete Graph type); forward-declared here so Graph can name it.
+    struct DiscretizeResult;
+
     class Graph {
     public:
         Graph(struct ptd_graph *graph) {
@@ -391,6 +437,421 @@ namespace phasic {
                 return res;
             }
         }
+
+        // ------------------------------------------------------------------
+        // Python-API-name parity (additive).
+        //
+        // The following methods give the C++ phasic::Graph the same method
+        // names as the Python Graph, so the two APIs read identically in user
+        // code and docs (e.g. graph.expectation() instead of
+        // graph.expected_waiting_time()[0]). They are either faithful ports of
+        // the moment helpers that previously lived only as pybind free
+        // functions in src/cpp/phasic_pybind.cpp (_moments/_expectation/...),
+        // or thin forwarders over already-public methods declared elsewhere in
+        // this class. Nothing here changes existing behaviour and every
+        // existing C++ name remains valid. SVGD/JAX/inference methods are
+        // intentionally excluded.
+        // ------------------------------------------------------------------
+
+        // Raw moments of the (reward-weighted) phase-type distribution:
+        // moments(power)[k-1] = E[T^k] for k = 1..power. Mirrors Python
+        // Graph.moments(power, rewards). rewards, when given, must have one
+        // entry per vertex.
+        std::vector<double> moments(int power, std::vector<double> rewards = std::vector<double>()) {
+            if (!rewards.empty() && rewards.size() != this->c_graph()->vertices_length) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                    (int) this->c_graph()->vertices_length, (int) rewards.size());
+                throw std::runtime_error(message);
+            }
+            if (power <= 0) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: power must be a strictly positive integer. Got %i", power);
+                throw std::runtime_error(message);
+            }
+
+            std::vector<double> res(power);
+            std::vector<double> rewards2 = this->expected_waiting_time(rewards);
+            std::vector<double> rewards3(rewards2.size());
+            res[0] = rewards2[0];
+
+            for (int i = 1; i < power; ++i) {
+                if (!rewards.empty()) {
+                    for (int j = 0; j < (int) rewards2.size(); ++j) {
+                        rewards3[j] = rewards2[j] * rewards[j];
+                    }
+                } else {
+                    rewards3 = rewards2;
+                }
+
+                rewards2 = this->expected_waiting_time(rewards3);
+
+                long factorial = 1;
+                for (int k = 2; k <= i + 1; ++k) {
+                    factorial *= k;
+                }
+                res[i] = (double) factorial * rewards2[0];
+            }
+
+            return res;
+        }
+
+        // Expectation E[T] (first moment). Mirrors Python Graph.expectation();
+        // equal to expected_waiting_time()[0].
+        double expectation(std::vector<double> rewards = std::vector<double>()) {
+            return this->moments(1, rewards)[0];
+        }
+
+        // Variance Var[T]. Mirrors Python Graph.variance().
+        double variance(std::vector<double> rewards = std::vector<double>()) {
+            std::vector<double> exp = this->expected_waiting_time(rewards);
+            std::vector<double> second;
+
+            if (rewards.empty()) {
+                second = this->expected_waiting_time(exp);
+            } else {
+                std::vector<double> new_rewards(exp.size());
+                for (int i = 0; i < (int) exp.size(); ++i) {
+                    new_rewards[i] = exp[i] * rewards[i];
+                }
+                second = this->expected_waiting_time(new_rewards);
+            }
+
+            return (2 * second[0] - exp[0] * exp[0]);
+        }
+
+        // Covariance for multivariate phase-type. Mirrors Python
+        // Graph.covariance(). Both reward vectors are required and must have
+        // one entry per vertex (covariance is undefined without them).
+        double covariance(std::vector<double> rewards1 = std::vector<double>(),
+                          std::vector<double> rewards2 = std::vector<double>()) {
+            if (rewards1.size() != this->c_graph()->vertices_length ||
+                rewards2.size() != this->c_graph()->vertices_length) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: covariance requires two reward vectors of length %i "
+                    "(one entry per vertex); got %i and %i",
+                    (int) this->c_graph()->vertices_length,
+                    (int) rewards1.size(), (int) rewards2.size());
+                throw std::runtime_error(message);
+            }
+
+            std::vector<double> exp1 = this->expected_waiting_time(rewards1);
+            std::vector<double> exp2 = this->expected_waiting_time(rewards2);
+
+            std::vector<double> new_rewards(exp1.size());
+
+            for (int i = 0; i < (int) exp1.size(); ++i) {
+                new_rewards[i] = exp1[i] * rewards2[i];
+            }
+            std::vector<double> second1 = this->expected_waiting_time(new_rewards);
+
+            for (int i = 0; i < (int) exp1.size(); ++i) {
+                new_rewards[i] = exp2[i] * rewards1[i];
+            }
+            std::vector<double> second2 = this->expected_waiting_time(new_rewards);
+
+            return (second1[0] + second2[0] - exp1[0] * exp2[0]);
+        }
+
+        // Discrete-phase-type expectation (mean number of jumps). Mirrors
+        // Python Graph.expectation_discrete().
+        double expectation_discrete(std::vector<double> rewards = std::vector<double>()) {
+            return this->moments(1, rewards)[0];
+        }
+
+        // Discrete-phase-type variance. Mirrors Python Graph.variance_discrete().
+        double variance_discrete(std::vector<double> rewards = std::vector<double>()) {
+            if (!rewards.empty() && rewards.size() != this->c_graph()->vertices_length) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                    (int) this->c_graph()->vertices_length, (int) rewards.size());
+                throw std::runtime_error(message);
+            }
+            if (rewards.empty()) {
+                std::vector<double> m = this->moments(2);
+                return m[1] - 2 * m[0];
+            } else {
+                std::vector<double> sq_rewards(rewards.size());
+                for (int i = 0; i < (int) rewards.size(); ++i) {
+                    sq_rewards[i] = rewards[i] * rewards[i];
+                }
+                std::vector<double> momentsr = this->moments(2, rewards);
+                std::vector<double> momentsrr = this->moments(1, sq_rewards);
+                return momentsr[1] - momentsr[0] * momentsr[0] - momentsrr[0];
+            }
+        }
+
+        // Discrete-phase-type covariance. Mirrors Python
+        // Graph.covariance_discrete(). Both reward vectors are required.
+        double covariance_discrete(std::vector<double> rewards1 = std::vector<double>(),
+                                   std::vector<double> rewards2 = std::vector<double>()) {
+            if (rewards1.size() != this->c_graph()->vertices_length ||
+                rewards2.size() != this->c_graph()->vertices_length) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: covariance_discrete requires two reward vectors of "
+                    "length %i (one entry per vertex); got %i and %i",
+                    (int) this->c_graph()->vertices_length,
+                    (int) rewards1.size(), (int) rewards2.size());
+                throw std::runtime_error(message);
+            }
+
+            std::vector<double> sq_rewards(rewards1.size());
+            for (int i = 0; i < (int) rewards1.size(); ++i) {
+                sq_rewards[i] = rewards1[i] * rewards2[i];
+            }
+
+            std::vector<double> rw1to2(rewards1.size());
+            std::vector<double> rw2to1(rewards2.size());
+            std::vector<double> exp1 = this->expected_waiting_time(rewards1);
+            std::vector<double> exp2 = this->expected_waiting_time(rewards2);
+
+            for (int i = 0; i < (int) rewards1.size(); ++i) {
+                rw1to2[i] = exp1[i] * rewards2[i];
+                rw2to1[i] = exp2[i] * rewards1[i];
+            }
+
+            return this->expected_waiting_time(rw1to2)[0] +
+                   this->moments(1, sq_rewards)[0] -
+                   this->moments(1, rewards1)[0] *
+                   this->moments(1, rewards2)[0];
+        }
+
+        // --- Same-name forwarders over existing C++ methods ---
+
+        // Update parameterized edge weights from theta (linear/log inner
+        // product). Python name for update_weights_parameterized.
+        void update_weights(std::vector<double> scalars, bool use_log = false) {
+            this->update_weights_parameterized(scalars, use_log);
+        }
+        // Callback-based weight update. Python name for the callback overload
+        // of update_weights_parameterized.
+        void update_weights(
+            std::vector<double> scalars,
+            std::function<double(const std::vector<double>&, const std::vector<double>&)> callback) {
+            this->update_weights_parameterized(scalars, callback);
+        }
+
+        // Discrete reward transform. Python name for dph_reward_transform.
+        Graph reward_transform_discrete(std::vector<int> rewards) {
+            return this->dph_reward_transform(rewards);
+        }
+
+        // Per-state accumulated visits after `jumps` steps (discrete). Python
+        // name for dph_accumulated_visits.
+        std::vector<double> accumulated_visits(int jumps) {
+            return this->dph_accumulated_visits(jumps);
+        }
+
+        // Discrete PMF / CDF at `jumps`. Python names for dph_pmf / dph_cdf.
+        double pdf_discrete(int jumps) {
+            return this->dph_pmf(jumps);
+        }
+        double cdf_discrete(int jumps) {
+            return this->dph_cdf(jumps);
+        }
+
+        // Deep copy. Python name (alongside the existing clone()).
+        Graph copy() {
+            return this->clone();
+        }
+
+        // Per-state occupancy probability at `time`. Python name (alias) for
+        // stop_probability; matches Python's state_probability = stop_probability.
+        std::vector<double> state_probability(double time, int64_t granularity = 0) {
+            return this->stop_probability(time, granularity);
+        }
+
+        // Sample a full path through the Markov chain: (vertex indices, entry
+        // times). Python name for random_sample_path.
+        std::pair<std::vector<size_t>, std::vector<double>> sample_path() {
+            return this->random_sample_path();
+        }
+
+        // Sample a path conditioned on backward probabilities. Python name for
+        // random_sample_path_conditioned.
+        std::pair<std::vector<size_t>, std::vector<double>> sample_path_conditioned(
+            std::vector<double> backward_probs) {
+            return this->random_sample_path_conditioned(backward_probs);
+        }
+
+        // Draw n independent samples from the (reward-weighted) distribution.
+        // Python name for repeated random_sample. rewards, when given, must
+        // have one entry per vertex; omitted -> unit rewards (NULL to the C
+        // sampler, which treats it as unit weights).
+        std::vector<long double> sample(size_t n, std::vector<double> rewards = std::vector<double>()) {
+            if (!rewards.empty() && rewards.size() != this->c_graph()->vertices_length) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                    (int) this->c_graph()->vertices_length, (int) rewards.size());
+                throw std::runtime_error(message);
+            }
+            std::vector<long double> res(n);
+            double *rw = rewards.empty() ? NULL : &rewards[0];
+            for (size_t i = 0; i < n; ++i) {
+                res[i] = ptd_random_sample(this->c_graph(), rw);
+            }
+            return res;
+        }
+
+        // Traditional matrix representation (SIM, IPV, states, 1-based indices).
+        // Python name for the matrix export; mirrors Graph.as_matrices()
+        // field-for-field. Vertices may be reordered relative to vertices();
+        // `indices` gives the 1-based vertex numbers. (Inline: uses only the C
+        // phase-type-distribution struct, no phasic::Vertex.)
+        MatrixRepresentation as_matrices() {
+            struct ptd_phase_type_distribution *dist =
+                ptd_graph_as_phase_type_distribution(this->c_graph());
+            if (dist == NULL) {
+                throw std::runtime_error(
+                    "Graph::as_matrices: failed to build phase-type distribution");
+            }
+
+            size_t n = dist->length;
+            size_t sl = this->state_length();
+
+            MatrixRepresentation rep;
+            rep.states.assign(n, std::vector<int>(sl));
+            rep.sim.assign(n, std::vector<double>(n));
+            rep.ipv.assign(n, 0.0);
+            rep.indices.assign(n, 0);
+
+            for (size_t i = 0; i < n; ++i) {
+                rep.ipv[i] = dist->initial_probability_vector[i];
+                rep.indices[i] = dist->vertices[i]->index + 1;
+                for (size_t j = 0; j < n; ++j) {
+                    rep.sim[i][j] = dist->sub_intensity_matrix[i][j];
+                }
+                for (size_t j = 0; j < sl; ++j) {
+                    rep.states[i][j] = dist->vertices[i]->state[j];
+                }
+            }
+
+            ptd_phase_type_distribution_destroy(dist);
+            return rep;
+        }
+
+        // Per-vertex state matrix over vertices(): row i is vertex i's state.
+        // Python name for Graph.states(). (Defined out-of-line in
+        // phasiccpp.cpp: uses phasic::Vertex, which is completed after Graph.)
+        std::vector<std::vector<int>> states();
+
+        // Build a graph from the traditional (IPV, SIM[, states]) matrix form.
+        // Python name for Graph.from_matrices(); states defaults to
+        // [0],[1],[2],... when omitted. (Defined out-of-line in phasiccpp.cpp:
+        // uses phasic::Vertex.)
+        static Graph from_matrices(
+            std::vector<double> ipv,
+            std::vector<std::vector<double>> sim,
+            std::vector<std::vector<int>> states = std::vector<std::vector<int>>());
+
+        // ---- Tier 2 additions (graph queries / transforms) ----
+
+        // Reward vector (length n_vertices): 1.0 for each vertex with an edge to
+        // an absorbing state (a vertex with no outgoing edges), else 0.0. Python
+        // name for Graph.absorbing_state_rewards(). Used to read a Laplace-
+        // transform value: laplace_transform(theta).expectation(rewards).
+        std::vector<double> absorbing_state_rewards() {
+            struct ptd_graph *g = this->c_graph();
+            size_t n = g->vertices_length;
+            std::vector<double> rewards(n, 0.0);
+            for (size_t i = 0; i < n; ++i) {
+                struct ptd_vertex *v = g->vertices[i];
+                for (size_t k = 0; k < v->edges_length; ++k) {
+                    if (v->edges[k]->to->edges_length == 0) {
+                        rewards[i] = 1.0;
+                        break;
+                    }
+                }
+            }
+            return rewards;
+        }
+
+        // Probability that a trajectory from the starting vertex visits at least
+        // one vertex with reward > 0 before absorption:
+        //   p = sum_v alpha_v * P(reach a rewarded vertex | start at v).
+        // Python name for Graph.reward_visit_probability() (concrete-theta path;
+        // the Python JAX/FFI path has no C++ equivalent). If theta is non-empty
+        // the edge weights are updated from it first, and — mirroring Python —
+        // that update is NOT rolled back.
+        double reward_visit_probability(
+            std::vector<double> rewards,
+            std::vector<double> theta = std::vector<double>()) {
+            size_t n_v = this->c_graph()->vertices_length;
+            if (rewards.size() != n_v) {
+                char message[1024];
+                snprintf(message, 1024,
+                    "reward_visit_probability: rewards must have length "
+                    "n_vertices=%i; got %i", (int) n_v, (int) rewards.size());
+                throw std::runtime_error(message);
+            }
+
+            std::vector<size_t> rewarded;
+            for (size_t i = 0; i < n_v; ++i) {
+                if (rewards[i] > 0.0) rewarded.push_back(i);
+            }
+            if (rewarded.empty()) {
+                return 0.0;
+            }
+
+            if (!theta.empty()) {
+                this->update_weights(theta);
+            }
+
+            std::vector<double> h = this->backward_probabilities(rewarded);
+
+            // alpha (IPV): starting-vertex edge weights, keyed by target index.
+            std::vector<double> alpha(n_v, 0.0);
+            struct ptd_vertex *sv = this->c_graph()->starting_vertex;
+            for (size_t k = 0; k < sv->edges_length; ++k) {
+                double w = sv->edges[k]->weight;
+                if (w > 0.0) {
+                    alpha[sv->edges[k]->to->index] = w;
+                }
+            }
+
+            double p = 0.0;
+            for (size_t i = 0; i < n_v; ++i) {
+                p += alpha[i] * h[i];
+            }
+            return p;
+        }
+
+        // Continue the callback-based build from vertex `vertex_index` onward
+        // (and any vertices discovered thereafter). Python name for
+        // Graph.extend(): the same breadth-first exploration as from_callback,
+        // but starting mid-graph, so a caller can hand-add vertices/edges and
+        // then explore their successors. Unlike Python (which tracks the
+        // last-built length), the resume index is explicit here. Defined
+        // out-of-line in phasiccpp.cpp (uses phasic::Vertex).
+        void extend(const TransitionCallback &callback, size_t vertex_index);
+
+        // Return a discretized copy of this graph (original unchanged): an
+        // auxiliary vertex is added per transient state and the graph is
+        // normalized, producing a discrete phase-type distribution. Python name
+        // for Graph.discretize(); the returned DiscretizeResult carries the new
+        // graph and its reward vector (1 for aux vertices) — Python attaches the
+        // rewards as an attribute, which C++ cannot. `rate` must be in (0, 1)
+        // (scalar overload) or a callback state->rate. Parameterized graphs are
+        // not supported (the Python path widens the coefficient layout, which has
+        // no C++ equivalent) and raise. Defined out-of-line in phasiccpp.cpp.
+        DiscretizeResult discretize(double rate, bool skip_existing = false);
+        DiscretizeResult discretize(
+            std::function<double(const std::vector<int>&)> rate_fn,
+            bool skip_existing = false);
+
+        // Analyse this (parameterized) graph and recommend build/eval settings
+        // with reasons — parallel_elimination (from the SCC structure) and the
+        // evaluation path (from max_rate -> auto-granularity). Python name for
+        // Graph.profile(); `theta` (default all-ones) sets the reference point for
+        // max_rate. The measured dyn-ordering probe is not ported (dyn_ordering is
+        // reported "not probed"). Defined out-of-line in phasiccpp.cpp.
+        GraphProfile profile(std::vector<double> theta = std::vector<double>());
 
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
@@ -1051,6 +1512,12 @@ namespace phasic {
         friend class VertexLinkedList;
 
         friend class Vertex;
+    };
+
+    // Definition deferred until here so the Graph member is a complete type.
+    struct DiscretizeResult {
+        Graph graph;                 // the discretized copy (original unchanged)
+        std::vector<int> rewards;    // 1 for auxiliary vertices, else 0
     };
 
     class Vertex {

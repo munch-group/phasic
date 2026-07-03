@@ -28,6 +28,8 @@
 #include <cerrno>
 #include <cstring>
 #include <vector>
+#include <thread>       // std::thread::hardware_concurrency (Graph::profile)
+#include <algorithm>    // std::max / std::min (Graph::profile)
 #include "phasiccpp.h"
 
 /* While it seems very strange to have this in a C file, the R code
@@ -293,6 +295,406 @@ size_t phasic::Graph::edges_length() {
 
 bool phasic::Graph::parameterized() {
     return c_graph()->parameterized;
+}
+
+// Python-API-name parity: per-vertex state matrix over vertices() (row i is
+// vertex i's state). Mirrors the pybind _states helper. Defined here (not
+// inline in the header) only so it can predate the phasic::Vertex definition.
+std::vector<std::vector<int>> phasic::Graph::states() {
+    struct ptd_graph *graph = c_graph();
+    size_t sl = graph->state_length;
+    std::vector<std::vector<int>> res(graph->vertices_length, std::vector<int>(sl));
+    for (size_t i = 0; i < graph->vertices_length; ++i) {
+        for (size_t j = 0; j < sl; ++j) {
+            res[i][j] = graph->vertices[i]->state[j];
+        }
+    }
+    return res;
+}
+
+// Python-API-name parity: build a graph from the traditional (IPV, SIM[,
+// states]) matrix form. Faithful port of the pybind from_matrices lambda; uses
+// the leak-free by-value vertex API instead of the *_p variants the lambda used.
+phasic::Graph phasic::Graph::from_matrices(
+    std::vector<double> ipv,
+    std::vector<std::vector<double>> sim,
+    std::vector<std::vector<int>> states) {
+    size_t n = ipv.size();
+
+    if (sim.size() != n) {
+        throw std::runtime_error("SIM must be square and have same dimension as IPV length");
+    }
+    for (size_t i = 0; i < n; ++i) {
+        if (sim[i].size() != n) {
+            throw std::runtime_error("SIM must be square and have same dimension as IPV length");
+        }
+    }
+
+    bool have_states = !states.empty();
+    size_t state_dim = 1;
+    if (have_states) {
+        if (states.size() != n) {
+            throw std::runtime_error("states must have same number of rows as IPV length");
+        }
+        state_dim = states[0].size();
+    }
+
+    Graph graph(state_dim);
+    std::vector<Vertex> vertices;
+    vertices.reserve(n);
+
+    int s = 0;
+    if (have_states) {
+        for (size_t i = 0; i < n; ++i) {
+            std::vector<int> state(state_dim);
+            for (size_t j = 0; j < state_dim; ++j) {
+                state[j] = states[i][j];
+            }
+            vertices.push_back(graph.find_or_create_vertex(state));
+        }
+    } else {
+        for (s = 0; s < (int) n; ++s) {
+            std::vector<int> state = {s};
+            vertices.push_back(graph.find_or_create_vertex(state));
+        }
+    }
+
+    // Absorbing vertex: state (state_dim copies of s) mirrors the pybind lambda
+    // (s == n for default states, s == 0 when explicit states are supplied).
+    std::vector<int> absorbing_state(state_dim, s);
+    Vertex absorbing = graph.find_or_create_vertex(absorbing_state);
+
+    Vertex start = graph.starting_vertex();
+    double sum_ipv = 0.0;
+    for (size_t i = 0; i < n; ++i) {
+        if (ipv[i] > 0) {
+            start.add_edge(vertices[i], ipv[i]);
+            sum_ipv += ipv[i];
+        }
+    }
+
+    if (sum_ipv < 0.99999) {
+        throw std::runtime_error("Initial probability vector does not sum to one\n");
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        double row_sum = 0.0;
+        for (size_t j = 0; j < n; ++j) {
+            if (i != j && sim[i][j] > 0) {
+                vertices[i].add_edge(vertices[j], sim[i][j]);
+                row_sum += sim[i][j];
+            }
+        }
+        double exit_rate = -(sim[i][i] + row_sum);
+        if (exit_rate > 0.000001) {
+            vertices[i].add_edge(absorbing, exit_rate);
+        }
+    }
+
+    return graph;
+}
+
+// Python-API-name parity: continue the callback-based build from `vertex_index`
+// onward. Same breadth-first loop as from_callback (find_or_create_vertex
+// appends and deduplicates; ptd_vertex* stays valid across growth), but resuming
+// mid-graph instead of from vertex 1. Defined here (not inline) because it uses
+// phasic::Vertex, which is completed after the Graph class.
+void phasic::Graph::extend(const phasic::TransitionCallback &callback, size_t vertex_index) {
+    for (size_t index = vertex_index; index < vertices_length(); ++index) {
+        Vertex vertex = vertex_at(index);
+        std::vector<Transition> transitions = callback(vertex.state());
+
+        for (const auto &t : transitions) {
+            Vertex child = find_or_create_vertex(t.state);
+            if (t.coefficients.empty()) {
+                vertex.add_edge(child, t.weight);
+            } else {
+                vertex.add_edge_parameterized(child, t.weight, t.coefficients);
+            }
+        }
+    }
+}
+
+// Python-API-name parity: discretize (callback-rate core). Faithful port of the
+// Python discretize() non-parameterized path: clone, add an auxiliary vertex per
+// transient state, normalize, and return the reward vector marking aux vertices.
+// The `verts` snapshot is taken before the loop so newly-added aux vertices are
+// not themselves processed (matching Python's `for v in new_graph.vertices()`).
+phasic::DiscretizeResult phasic::Graph::discretize(
+    std::function<double(const std::vector<int>&)> rate_fn, bool skip_existing) {
+    if (this->parameterized()) {
+        throw std::runtime_error(
+            "discretize: parameterized graphs are not supported in the C++ API. "
+            "The Python parameterized path widens the per-edge coefficient layout "
+            "(_rebuild_with_wider_layout), which has no C++ equivalent. Build a "
+            "discrete graph directly, or discretize in Python.");
+    }
+
+    Graph new_graph = this->clone();
+    std::vector<Vertex> verts = new_graph.vertices();  // snapshot before adding aux
+    size_t start_index = new_graph.starting_vertex().c_vertex()->index;
+    size_t vlength = new_graph.vertices_length();
+    std::vector<size_t> aux_indices;
+
+    for (Vertex &vertex : verts) {
+        if (vertex.c_vertex()->index == start_index || vertex.edges_length() == 0) {
+            continue;
+        }
+
+        if (skip_existing) {
+            bool has_aux = false, is_aux = false;
+            std::vector<Edge> ve = vertex.edges();
+            for (Edge &edge : ve) {
+                Vertex to = edge.to();
+                std::vector<int> tst = to.state();
+                int s = 0;
+                for (int x : tst) s += x;
+                if (s == 0 && to.edges_length() > 0 &&
+                    to.edges()[0].to().c_vertex()->index == vertex.c_vertex()->index) {
+                    has_aux = true;
+                    aux_indices.push_back(to.c_vertex()->index);
+                    vlength -= 1;
+                    break;
+                }
+            }
+            std::vector<int> vst = vertex.state();
+            int vs = 0;
+            for (int x : vst) vs += x;
+            if (vs == 0) is_aux = true;
+            if (has_aux || is_aux) continue;
+        }
+
+        double _rate = rate_fn(vertex.state());
+        Vertex aux = vertex.add_aux_vertex(_rate);
+        aux.set_aux(true);
+        aux_indices.push_back(aux.c_vertex()->index);
+    }
+
+    std::vector<int> rewards(vlength + aux_indices.size(), 0);
+    for (size_t idx : aux_indices) {
+        rewards[idx] = 1;
+    }
+
+    new_graph.normalize();
+
+    return DiscretizeResult{ std::move(new_graph), std::move(rewards) };
+}
+
+// Python-API-name parity: discretize (scalar-rate overload). Validates the rate
+// lies in (0, 1) then delegates to the callback core.
+phasic::DiscretizeResult phasic::Graph::discretize(double rate, bool skip_existing) {
+    if (rate <= 0.0 || rate >= 1.0) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "discretize: rate must be in (0, 1), got %g", rate);
+        throw std::runtime_error(msg);
+    }
+    return this->discretize(
+        [rate](const std::vector<int>&) { return rate; }, skip_existing);
+}
+
+// Python-API-name parity: structural + eval-path graph profile. Faithful port of
+// the cheap tiers of src/phasic/profile.py (SCC structure -> parallel_elimination
+// recommendation; max_rate -> eval-path recommendation). The measured
+// dyn-ordering probe is not ported (it needs pybind-internal elimination-timing
+// plumbing); dyn_ordering is reported as "not probed".
+phasic::GraphProfile phasic::Graph::profile(std::vector<double> theta) {
+    // Recommendation thresholds — keep in sync with profile.py.
+    const double PARALLEL_MIN_FRAC = 0.25;
+    const double PARALLEL_MAX_DOMINANCE = 0.5;
+    const double PATH_GRANULARITY_WARN = 1e5;
+
+    unsigned cpu = std::thread::hardware_concurrency();
+    if (cpu == 0) cpu = 1;
+
+    // --- SCC structure (Tarjan O(V+E)) ---
+    // Use the C SCC API directly rather than the C++ SCCGraph wrapper: SCCGraph's
+    // methods are defined in scc_graph.cpp and compiled -fvisibility=hidden into
+    // the extension, so a translation unit that includes phasiccpp.cpp WITHOUT
+    // also linking scc_graph.cpp (e.g. the cppimport test fixture) cannot resolve
+    // them. The C functions are exported and the struct fields carry the same
+    // information (internal_vertices_length == SCC size; edge->to->index == the
+    // target SCC's position, which equals its array index).
+    struct ptd_scc_graph *scc = ptd_find_strongly_connected_components(this->c_graph());
+    if (scc == NULL) {
+        throw std::runtime_error("profile: SCC decomposition failed");
+    }
+    size_t n = scc->vertices_length;
+
+    std::vector<size_t> sizes(n);
+    for (size_t i = 0; i < n; ++i) sizes[i] = scc->vertices[i]->internal_vertices_length;
+    size_t total = 0;
+    for (size_t s : sizes) total += s;
+    if (total == 0) total = 1;
+
+    // Sink-first levels: level_of[i] = 0 if no outgoing edges, else
+    // 1 + max(level_of[target]). Memoised DFS, mirroring compute_scc_levels().
+    std::vector<std::vector<size_t>> outgoing(n);
+    for (size_t i = 0; i < n; ++i) {
+        struct ptd_scc_vertex *sv = scc->vertices[i];
+        outgoing[i].reserve(sv->edges_length);
+        for (size_t e = 0; e < sv->edges_length; ++e) {
+            outgoing[i].push_back(sv->edges[e]->to->index);
+        }
+    }
+    ptd_scc_graph_destroy(scc);
+    std::vector<int> level_of(n, -1);
+    std::function<int(size_t)> level = [&](size_t i) -> int {
+        if (level_of[i] >= 0) return level_of[i];
+        if (outgoing[i].empty()) { level_of[i] = 0; return 0; }
+        int m = 0;
+        for (size_t j : outgoing[i]) m = std::max(m, level(j));
+        level_of[i] = 1 + m;
+        return level_of[i];
+    };
+    for (size_t i = 0; i < n; ++i) level(i);
+
+    int max_level = 0;
+    for (int lv : level_of) max_level = std::max(max_level, lv);
+    std::vector<std::vector<size_t>> levels(max_level + 1);
+    for (size_t i = 0; i < n; ++i) levels[level_of[i]].push_back(i);
+
+    size_t max_width = 0;
+    for (auto &lv : levels) max_width = std::max(max_width, lv.size());
+    size_t parallel_vertices = 0;
+    for (auto &lv : levels)
+        if (lv.size() >= 2)
+            for (size_t i : lv) parallel_vertices += sizes[i];
+    size_t critical = 0;
+    for (auto &lv : levels) {
+        size_t mx = 0;
+        for (size_t i : lv) mx = std::max(mx, sizes[i]);
+        critical += mx;
+    }
+    if (critical == 0) critical = 1;
+
+    double parallelizable_frac = (double) parallel_vertices / (double) total;
+    double speedup_inf = (double) total / (double) critical;
+    double speedup = std::min(speedup_inf, (double) cpu);
+    size_t largest = 0;
+    for (size_t s : sizes) largest = std::max(largest, s);
+    double largest_frac = (double) largest / (double) total;
+
+    // --- max_rate (drives auto-granularity) ---
+    // Only recompute weights from theta when the graph is actually parameterized
+    // (update_weights refuses on a constant graph); a constant graph keeps its
+    // constructed weights, which give the same max_rate. Mirrors the intent of
+    // profile.py's `_max_rate` (its graphs are parameterized, so it always
+    // updates; a C++ caller may hand a constant graph).
+    size_t pl = this->c_graph()->param_length;
+    if (this->parameterized()) {
+        std::vector<double> th;
+        if (theta.empty()) {
+            th.assign(pl, 1.0);
+        } else {
+            if (theta.size() != pl) {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                    "profile: theta must have length param_length=%i; got %i",
+                    (int) pl, (int) theta.size());
+                throw std::runtime_error(msg);
+            }
+            th = theta;
+        }
+        this->update_weights(th);
+    }
+    double mr = 0.0;
+    for (Vertex v : this->vertices()) {
+        double r = (double) v.rate();
+        if (r > mr) mr = r;
+    }
+    double auto_g = 2.0 * mr;
+
+    // --- assemble ---
+    GraphProfile p;
+    p.n_vertices = this->vertices_length();
+    p.n_edges = this->edges_length();
+    p.param_length = pl;
+    p.max_rate = mr;
+    p.auto_granularity = auto_g;
+    p.n_sccs = n;
+    p.largest_scc = largest;
+    p.largest_scc_frac = largest_frac;
+    p.n_levels = levels.size();
+    p.max_level_width = max_width;
+    p.parallelizable_frac = parallelizable_frac;
+    p.speedup_ceiling = speedup;
+    p.cpu_count = cpu;
+
+    char buf[512];
+
+    if (cpu <= 1) {
+        p.parallel_elimination = false;
+        p.parallel_elimination_reason = "leave OFF (single core available)";
+    } else if (max_width < 2) {
+        p.parallel_elimination = false;
+        p.parallel_elimination_reason =
+            "leave OFF (condensation is a chain/one SCC — nothing independent "
+            "to run in parallel)";
+    } else if (parallelizable_frac < PARALLEL_MIN_FRAC) {
+        p.parallel_elimination = false;
+        snprintf(buf, sizeof(buf),
+            "leave OFF (only %.0f%% of work is at width>=2 levels)",
+            parallelizable_frac * 100.0);
+        p.parallel_elimination_reason = buf;
+    } else if (largest_frac > PARALLEL_MAX_DOMINANCE) {
+        p.parallel_elimination = false;
+        snprintf(buf, sizeof(buf),
+            "marginal (one SCC is %.0f%% of vertices — Amdahl-bound, ceiling ~%.1fx)",
+            largest_frac * 100.0, speedup);
+        p.parallel_elimination_reason = buf;
+    } else {
+        p.parallel_elimination = true;
+        snprintf(buf, sizeof(buf),
+            "RECOMMEND ON (%zu independent SCCs at the widest level, %u cores; "
+            "ceiling ~%.1fx; parallelizable_frac %.0f%%)",
+            max_width, cpu, speedup, parallelizable_frac * 100.0);
+        p.parallel_elimination_reason = buf;
+    }
+
+    p.dyn_ordering_reason =
+        "not probed (the measured dyn-ordering probe is not implemented in the "
+        "C++ API; run graph.profile() in Python for it)";
+
+    if (auto_g >= PATH_GRANULARITY_WARN) {
+        p.path = "sojourn";
+        snprintf(buf, sizeof(buf),
+            "forward-PDF will be SLOW per eval (max_rate %.3g -> granularity %.3g); "
+            "IF your likelihood is over a joint/discrete index rather than continuous "
+            "times, use the max_rate-independent joint/sojourn path", mr, auto_g);
+        p.path_reason = buf;
+    } else {
+        p.path = "forward";
+        snprintf(buf, sizeof(buf),
+            "forward-PDF OK (max_rate %.3g -> granularity %.3g)", mr, auto_g);
+        p.path_reason = buf;
+    }
+
+    return p;
+}
+
+std::string phasic::GraphProfile::apply_snippet() const {
+    if (parallel_elimination) {
+        return "phasic.configure(parallel_elimination=True)";
+    }
+    return "# defaults are fine for this graph";
+}
+
+std::string phasic::GraphProfile::report() const {
+    std::ostringstream os;
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+        "phasic graph profile — %zu vertices, %zu edges, param_length=%zu",
+        n_vertices, n_edges, param_length);
+    os << buf << "\n";
+    snprintf(buf, sizeof(buf),
+        "  SCC structure : %zu SCCs, largest %zu (%.0f%%), %zu levels, widest level %zu",
+        n_sccs, largest_scc, largest_scc_frac * 100.0, n_levels, max_level_width);
+    os << buf << "\n";
+    os << "  parallel_elim : " << parallel_elimination_reason << "\n";
+    os << "  dyn_ordering  : " << dyn_ordering_reason << "\n";
+    os << "  eval path     : " << path_reason << "\n";
+    os << "  -> " << apply_snippet();
+    return os.str();
 }
 
 phasic::PhaseTypeDistribution phasic::Graph::phase_type_distribution() {
