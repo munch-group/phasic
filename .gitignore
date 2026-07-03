@@ -17,6 +17,7 @@ src/*.dll
 build/
 **/*.so
 
+.pytest_cache/
 
 /.quarto/
 
