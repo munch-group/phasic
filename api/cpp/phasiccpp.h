@@ -240,6 +240,20 @@ namespace phasic {
             this->rf_graph->granularity_markov = o.rf_graph->granularity_markov;
             this->rf_graph->borrowed = o.rf_graph->borrowed;
             *(this->rf_graph->references) += 1;
+            // Propagate the C++-side members. The forward-state caches (_pdf/_cdf/
+            // …) MUST be copied, not left empty: the copy shares o's rf_graph and
+            // thus its (possibly already-stepped) ph_context, so an empty cache
+            // here would make pdf()/cdf() index out of bounds. The formula string,
+            // epoch metadata, and construction callback carry semantic state.
+            this->_pdf = o._pdf;
+            this->_cdf = o._cdf;
+            this->_dph_pmf = o._dph_pmf;
+            this->_dph_cdf = o._dph_cdf;
+            this->_weight_formula_src = o._weight_formula_src;
+            this->_epoch_state_index = o._epoch_state_index;
+            this->_n_epochs = o._n_epochs;
+            this->_base_param_length = o._base_param_length;
+            this->_callback = o._callback;
         }
 
         // Move constructor - transfers ownership without sharing references
@@ -247,6 +261,15 @@ namespace phasic {
         Graph(Graph &&o) noexcept {
             this->rf_graph = o.rf_graph;
             o.rf_graph = nullptr;
+            this->_pdf = std::move(o._pdf);
+            this->_cdf = std::move(o._cdf);
+            this->_dph_pmf = std::move(o._dph_pmf);
+            this->_dph_cdf = std::move(o._dph_cdf);
+            this->_weight_formula_src = std::move(o._weight_formula_src);
+            this->_epoch_state_index = o._epoch_state_index;
+            this->_n_epochs = o._n_epochs;
+            this->_base_param_length = o._base_param_length;
+            this->_callback = std::move(o._callback);
         }
 
         Graph(size_t state_length) {
@@ -857,6 +880,9 @@ namespace phasic {
         // last-built length), the resume index is explicit here. Defined
         // out-of-line in phasiccpp.cpp (uses phasic::Vertex).
         void extend(const TransitionCallback &callback, size_t vertex_index);
+        // Overload using the graph's stored construction callback (set by
+        // from_callback). Raises if the graph has no stored callback.
+        void extend(size_t vertex_index);
 
         // Return a discretized copy of this graph (original unchanged): an
         // auxiliary vertex is added per transient state and the graph is
@@ -908,14 +934,15 @@ namespace phasic {
         // Add an epoch boundary at `time`, returning a NEW graph (original
         // unchanged) with a widened state/coefficient layout: epoch-transition
         // edges are wired from stop_probability(time)/accumulated_visiting_time(time)
-        // and the next epoch's state space is explored via `callback`. Python name
-        // for Graph.add_epoch(). Because the C++ Graph does not store its
-        // construction callback, `callback` is REQUIRED here (Python defaults it
-        // to the stored one). Supports the no-StateIndexer path; the base graph
-        // should be parameterized and have current weights (call update_weights
-        // first). Epoch metadata is carried on the returned graph so a further
-        // add_epoch chains. Defined out-of-line in phasiccpp.cpp.
-        Graph add_epoch(double time, const TransitionCallback &callback);
+        // and the next epoch's state space is explored via a callback. Python name
+        // for Graph.add_epoch(). `callback` defaults to the graph's stored
+        // construction callback (set by from_callback); pass one explicitly for a
+        // manually-built graph or to override. Raises if neither is available.
+        // Supports the no-StateIndexer path; the base graph should be
+        // parameterized and have current weights (call update_weights first).
+        // Epoch metadata is carried on the returned graph so a further add_epoch
+        // chains. Defined out-of-line in phasiccpp.cpp.
+        Graph add_epoch(double time, const TransitionCallback &callback = TransitionCallback());
 
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
@@ -1545,6 +1572,17 @@ namespace phasic {
             this->rf_graph->dph_context = o.rf_graph->dph_context;
             *(this->rf_graph->references) += 1;
 
+            // Propagate the C++-side members (see the copy constructor).
+            this->_pdf = o._pdf;
+            this->_cdf = o._cdf;
+            this->_dph_pmf = o._dph_pmf;
+            this->_dph_cdf = o._dph_cdf;
+            this->_weight_formula_src = o._weight_formula_src;
+            this->_epoch_state_index = o._epoch_state_index;
+            this->_n_epochs = o._n_epochs;
+            this->_base_param_length = o._base_param_length;
+            this->_callback = o._callback;
+
             return *this;
         }
 
@@ -1578,6 +1616,10 @@ namespace phasic {
         int _epoch_state_index = -1;      // -1 = no epoch dimension yet
         int _n_epochs = 0;                // number of epoch boundaries added
         int _base_param_length = -1;      // -1 = unset (use param_length())
+        // Construction callback stored by from_callback (empty for a graph built
+        // manually or via Graph(size_t)); lets extend()/add_epoch() default to it,
+        // mirroring Python's stored self._callback.
+        TransitionCallback _callback;
 
         friend class VertexLinkedList;
 

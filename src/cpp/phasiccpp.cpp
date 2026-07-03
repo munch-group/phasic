@@ -253,6 +253,10 @@ phasic::Graph phasic::Graph::from_callback(
         }
     }
 
+    // Store the construction callback so extend()/add_epoch() can default to it
+    // (mirrors Python's self._callback). Propagated by the copy/move/assign ops.
+    graph._callback = callback;
+
     return graph;  // NRVO / move ctor (phasiccpp.h) — leak-free
 }
 
@@ -417,6 +421,17 @@ void phasic::Graph::extend(const phasic::TransitionCallback &callback, size_t ve
             }
         }
     }
+}
+
+// Overload: continue the build from `vertex_index` using the stored construction
+// callback (set by from_callback). Mirrors Python extend(callback=None, ...).
+void phasic::Graph::extend(size_t vertex_index) {
+    if (!this->_callback) {
+        throw std::runtime_error(
+            "extend: this graph has no stored callback (it was not built via "
+            "Graph::from_callback); call extend(callback, vertex_index) instead.");
+    }
+    this->extend(this->_callback, vertex_index);
 }
 
 // Python-API-name parity: discretize (callback-rate core). Faithful port of the
@@ -1322,6 +1337,15 @@ static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
 // Graph.add_epoch() (no-StateIndexer path). callback is required because the C++
 // Graph does not store its construction callback.
 phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCallback &callback) {
+    // Resolve the callback: an explicit argument wins, otherwise fall back to the
+    // stored construction callback (set by from_callback), mirroring Python.
+    const phasic::TransitionCallback &cb = callback ? callback : this->_callback;
+    if (!cb) {
+        throw std::runtime_error(
+            "add_epoch: no callback available. Either build the graph via "
+            "Graph::from_callback (which stores its callback) or pass a callback "
+            "to add_epoch().");
+    }
     bool is_first = (this->_epoch_state_index < 0);
     int extra_state = is_first ? 1 : 0;
     int base_param_length = (this->_base_param_length >= 0)
@@ -1339,6 +1363,10 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
         ng._n_epochs = this->_n_epochs + 1;
     }
     ng._base_param_length = base_param_length;
+    // Store the BASE callback (not the epoch wrapper) on the returned graph so a
+    // subsequent add_epoch()/extend() chains off it, mirroring Python's
+    // new_graph._base_callback.
+    ng._callback = cb;
 
     int epoch_idx = ng._n_epochs;
     int epoch_state_idx = ng._epoch_state_index;
@@ -1385,7 +1413,7 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
     const int npl = new_param_length;
     const int dyn_start = new_epoch_dynamics_start;
     phasic::TransitionCallback wrapper =
-        [callback, eidx, e_num, base_pl, npl, dyn_start]
+        [cb, eidx, e_num, base_pl, npl, dyn_start]
         (const std::vector<int> &state) -> std::vector<phasic::Transition> {
         if ((int) state.size() <= eidx || state[eidx] != e_num) return {};
         std::vector<int> base_state;
@@ -1393,7 +1421,7 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
         for (int k = 0; k < (int) state.size(); ++k)
             if (k != eidx) base_state.push_back(state[k]);
 
-        std::vector<phasic::Transition> transitions = callback(base_state);
+        std::vector<phasic::Transition> transitions = cb(base_state);
         std::vector<phasic::Transition> result;
         result.reserve(transitions.size());
         for (const phasic::Transition &t : transitions) {
