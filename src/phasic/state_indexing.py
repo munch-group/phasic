@@ -375,11 +375,7 @@ class PropertySet:
                 ]
             else:
                 # Return list of dataclasses (default)
-                PropsClass = make_dataclass(
-                    f'{self.name.capitalize()}Props',
-                    [(p.name, int) for p in self.properties],
-                    frozen=True
-                )
+                PropsClass = self._props_class()
                 return [
                     PropsClass(**{
                         p.name: int(decoded[j, i])
@@ -414,12 +410,29 @@ class PropertySet:
             return decoded_values
         else:
             # Return dataclass (default)
-            PropsClass = make_dataclass(
+            PropsClass = self._props_class()
+            return PropsClass(**decoded_values)
+
+    def _props_class(self) -> type:
+        """Return this PropertySet's frozen result dataclass, built once.
+
+        Name and fields are fixed at construction, so the class is memoized
+        on the instance. Previously make_dataclass (which runs exec/compile
+        to synthesize a new frozen class) was called on every scalar
+        index_to_props, and StateIndexer.index_to_props routes each element
+        of an ndarray through that scalar path — recompiling a throwaway
+        class per element (~660x slower than one build + O(N) instantiation).
+        Mirrors StateIndexer's _result_class caching.
+        """
+        cls = getattr(self, '_props_dataclass', None)
+        if cls is None:
+            cls = make_dataclass(
                 f'{self.name.capitalize()}Props',
                 [(p.name, int) for p in self.properties],
                 frozen=True
             )
-            return PropsClass(**decoded_values)
+            self._props_dataclass = cls
+        return cls
 
     def i2p(self, *args: Any, **kwargs: Any) -> dict[str, int] | list[dict[str, int]] | npt.NDArray[np.integer] | object | list[object]:
         """Alias for :meth:`index_to_props`."""
