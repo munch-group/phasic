@@ -205,6 +205,42 @@ def _c_trace_to_python(trace_ptr: int) -> EliminationTrace | None:
         return None
 
 
+def _pickle_source_is_trusted(path) -> bool:
+    """Return True only if ``path`` is safe to ``pickle.load``.
+
+    Safe means: owned by the current user, not group/world-writable, and
+    inside a directory that is likewise owned by the current user and not
+    group/world-writable (so a peer cannot swap the file after the check —
+    there is no TOCTOU window because they lack write access to both). An
+    attacker cannot ``chown`` a planted file to the victim, so the uid check
+    is the core defence; the mode checks additionally reject the shared
+    group-writable ``PHASIC_CACHE_DIR`` setup, where pickle sharing is the
+    RCE vector and callers should use the C JSON cache instead.
+
+    On platforms without POSIX ownership (Windows) there is no shared-uid
+    threat model here, so this returns True.
+    """
+    if not hasattr(os, "getuid"):
+        return True
+    import stat as _stat
+    uid = os.getuid()
+    try:
+        st = os.stat(path)
+    except OSError:
+        return False
+    if st.st_uid != uid:
+        return False
+    if st.st_mode & (_stat.S_IWGRP | _stat.S_IWOTH):
+        return False
+    try:
+        dst = os.stat(os.path.dirname(os.path.abspath(path)))
+    except OSError:
+        return False
+    if dst.st_uid != uid or (dst.st_mode & (_stat.S_IWGRP | _stat.S_IWOTH)):
+        return False
+    return True
+
+
 def load_trace_from_cache(hash_hex: str) -> EliminationTrace | None:
     """
     Load elimination trace from disk cache.
@@ -260,6 +296,21 @@ def load_trace_from_cache(hash_hex: str) -> EliminationTrace | None:
     cache_file = cache_dir / f"{hash_hex}.pkl"
 
     if cache_file.exists():
+        # pickle.load executes arbitrary code via __reduce__. The trace cache
+        # dir can be a SHARED filesystem (PHASIC_CACHE_DIR, the documented
+        # distributed setup) and <hash> is a deterministic graph hash any
+        # peer can compute for a known model, so an attacker could plant a
+        # malicious <hash>.pkl. Only load pickles that are owned by us and
+        # not writable by group/other (nor sitting in a group/world-writable
+        # directory a peer could swap files in). Cross-user sharing should
+        # use the C JSON cache tried above, which does not execute code.
+        if not _pickle_source_is_trusted(cache_file):
+            logger.warning(
+                "Refusing to load pickle trace cache %s: not owned by the "
+                "current user or is group/world-writable (possible cross-user "
+                "tampering). Treating as cache miss; use the C JSON cache for "
+                "shared caches.", cache_file)
+            return None
         try:
             import pickle
 
