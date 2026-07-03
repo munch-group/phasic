@@ -156,9 +156,16 @@ def _c_trace_to_python(trace_ptr: int) -> EliminationTrace | None:
                     const_value=op_dict['const_value']
                 )
             elif op_type == OpType.PARAM:
+                # PARAM ops carry the parameter index in the dedicated
+                # param_idx field (record_elimination_trace sets it there,
+                # and both executors read op.param_idx). Putting it into
+                # operands left param_idx=None, so replay did
+                # extended_params[None] -> a spurious newaxis, crashing
+                # multi-parameter models with "setting an array element
+                # with a sequence".
                 op = Operation(
                     op_type=OpType.PARAM,
-                    operands=[op_dict['param_idx']]
+                    param_idx=op_dict['param_idx']
                 )
             elif op_type == OpType.DOT:
                 op = Operation(
