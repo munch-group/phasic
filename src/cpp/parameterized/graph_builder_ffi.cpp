@@ -160,14 +160,26 @@ ffi::Error ComputePmfFfiImpl(
             // BATCHED: Process multiple theta/times combinations
             size_t batch_size = std::max(theta_batch_size, times_batch_size);
 
-            // Times can be either batched (same size as theta) or singleton (broadcast to all theta)
-            bool times_is_broadcast = (times_batch_size == 1 && theta_batch_size > 1);
+            // Under vmap_method="expand_dims" an unmapped operand arrives with a
+            // size-1 leading axis and must be BROADCAST across the batch — it is
+            // NOT expanded to the full batch size. Either operand may be the
+            // broadcast one, so guard both; indexing the size-1 operand as
+            // data + b*len for b>0 would read past its single row.
+            bool times_is_broadcast = (times_batch_size == 1 && batch_size > 1);
+            bool theta_is_broadcast = (theta_batch_size == 1 && batch_size > 1);
+            if (theta_batch_size > 1 && times_batch_size > 1
+                    && theta_batch_size != times_batch_size) {
+                return ffi::Error::InvalidArgument(
+                    "Batch sizes must match: theta=" + std::to_string(theta_batch_size)
+                    + " times=" + std::to_string(times_batch_size));
+            }
 
             // Process each batch element in parallel using OpenMP
             #pragma omp parallel for if(batch_size > 1)
             for (size_t b = 0; b < batch_size; b++) {
                 // Build graph for this batch element
-                const double* theta_b = theta_data + (b * theta_len);
+                const double* theta_b = theta_is_broadcast ? theta_data
+                                                            : (theta_data + (b * theta_len));
                 Graph g = builder->build(theta_b, theta_len);
 
                 // Get times for this batch (either indexed or broadcast)
@@ -402,15 +414,25 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
         // BATCHED: Process multiple theta/times combinations
         size_t batch_size = std::max(theta_batch_size, times_batch_size);
 
-        // Times can be either batched (same size as theta) or singleton (broadcast to all theta)
-        bool times_is_broadcast = (times_batch_size == 1 && theta_batch_size > 1);
+        // Guard both operands for vmap "expand_dims" broadcast (see
+        // ComputePmfFfiImpl); indexing a size-1 operand as data + b*len
+        // for b>0 would over-read it.
+        bool times_is_broadcast = (times_batch_size == 1 && batch_size > 1);
+        bool theta_is_broadcast = (theta_batch_size == 1 && batch_size > 1);
+        if (theta_batch_size > 1 && times_batch_size > 1
+                && theta_batch_size != times_batch_size) {
+            return ffi::Error::InvalidArgument(
+                "Batch sizes must match: theta=" + std::to_string(theta_batch_size)
+                + " times=" + std::to_string(times_batch_size));
+        }
 
         // Process each batch element in parallel using OpenMP
         #pragma omp parallel for if(batch_size > 1)
         for (size_t b = 0; b < batch_size; b++) {
             try {
                 // Build graph for this batch element
-                const double* theta_b = theta_data + (b * theta_len);
+                const double* theta_b = theta_is_broadcast ? theta_data
+                                                            : (theta_data + (b * theta_len));
                 Graph g = builder->build(theta_b, theta_len);
 
                 // Get times for this batch (either indexed or broadcast)
@@ -608,13 +630,26 @@ ffi::Error ComputePmfMultivariateFfiImpl(
 
             bool times_is_broadcast = (times_batch_size == 1 && batch_size > 1);
             bool rewards_is_broadcast = (rewards_batch_size == 1 && batch_size > 1);
+            bool theta_is_broadcast = (theta_batch_size == 1 && batch_size > 1);
+            // Any operand with a leading axis > 1 must match the batch size;
+            // otherwise indexing it as data + b*len over-reads (see
+            // ComputePmfFfiImpl).
+            if ((theta_batch_size > 1 && theta_batch_size != batch_size)
+                    || (times_batch_size > 1 && times_batch_size != batch_size)
+                    || (rewards_batch_size > 1 && rewards_batch_size != batch_size)) {
+                return ffi::Error::InvalidArgument(
+                    "Batch sizes must match: theta=" + std::to_string(theta_batch_size)
+                    + " times=" + std::to_string(times_batch_size)
+                    + " rewards=" + std::to_string(rewards_batch_size));
+            }
 
             // Process each batch element in parallel using OpenMP
             #pragma omp parallel for if(batch_size > 1)
             for (size_t b = 0; b < batch_size; b++) {
                 try {
                     // Build graph for this batch element
-                    const double* theta_b = theta_data + (b * theta_len);
+                    const double* theta_b = theta_is_broadcast ? theta_data
+                                                               : (theta_data + (b * theta_len));
                     Graph g = builder->build(theta_b, theta_len);
 
                     // Get times/rewards for this batch (either indexed or broadcast)
@@ -964,29 +999,81 @@ ffi::Error BackwardProbabilitiesFfiImpl(
             builder_cache[json_str] = builder;
         }
 
+        // theta: (theta_len,) or (batch, theta_len) under vmap.
         auto theta_dims = theta.dimensions();
-        size_t theta_len = theta_dims[theta_dims.size() - 1];
+        size_t theta_batch_size = 1, theta_len;
+        if (theta_dims.size() == 1) {
+            theta_len = theta_dims[0];
+        } else if (theta_dims.size() == 2) {
+            theta_batch_size = theta_dims[0];
+            theta_len = theta_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("theta must be 1D or 2D array");
+        }
+
+        // targets: (n_targets,) or (batch, n_targets).
         auto target_dims = target_vertices.dimensions();
         size_t n_targets = target_dims[target_dims.size() - 1];
+        size_t target_batch_size = (target_dims.size() >= 2) ? target_dims[0] : 1;
+
+        // result: (n_verts,) or (batch, n_verts). The last dim is the caller's
+        // declared per-element vertex count; writes MUST be bounded by it.
+        auto res_dims = result->dimensions();
+        size_t result_batch = 1, n_verts_declared;
+        if (res_dims.size() == 1) {
+            n_verts_declared = res_dims[0];
+        } else {
+            result_batch = res_dims[0];
+            n_verts_declared = res_dims[res_dims.size() - 1];
+        }
+
+        size_t batch_size = std::max({theta_batch_size, target_batch_size, result_batch});
+        bool theta_is_broadcast = (theta_batch_size == 1 && batch_size > 1);
+        bool target_is_broadcast = (target_batch_size == 1 && batch_size > 1);
+        if ((theta_batch_size > 1 && theta_batch_size != batch_size)
+                || (target_batch_size > 1 && target_batch_size != batch_size)) {
+            return ffi::Error::InvalidArgument(
+                "Batch sizes must match: theta=" + std::to_string(theta_batch_size)
+                + " targets=" + std::to_string(target_batch_size));
+        }
 
         const double* theta_data = theta.typed_data();
         const int32_t* target_data = target_vertices.typed_data();
         double* result_data = result->typed_data();
 
-        // Build concrete graph with these theta values
-        Graph g = builder->build(theta_data, theta_len);
+        for (size_t b = 0; b < batch_size; b++) {
+            const double* theta_b = theta_is_broadcast ? theta_data
+                                                       : (theta_data + b * theta_len);
+            const int32_t* target_b = target_is_broadcast ? target_data
+                                                          : (target_data + b * n_targets);
 
-        std::vector<size_t> targets(n_targets);
-        for (size_t i = 0; i < n_targets; i++) {
-            targets[i] = static_cast<size_t>(target_data[i]);
-        }
+            Graph g = builder->build(theta_b, theta_len);
+            size_t n_verts = g.c_graph()->vertices_length;
+            // Bound the write by the declared buffer length; a caller that
+            // under-declares n_vertices would otherwise overrun the XLA buffer.
+            if (n_verts != n_verts_declared) {
+                return ffi::Error::InvalidArgument(
+                    "backward_probabilities: result buffer has n_vertices="
+                    + std::to_string(n_verts_declared)
+                    + " but graph has " + std::to_string(n_verts));
+            }
 
-        double* h = ptd_backward_probabilities(g.c_graph(), targets.data(), n_targets);
-        size_t n_verts = g.c_graph()->vertices_length;
-        for (size_t i = 0; i < n_verts; i++) {
-            result_data[i] = h[i];
+            std::vector<size_t> targets(n_targets);
+            for (size_t i = 0; i < n_targets; i++) {
+                targets[i] = static_cast<size_t>(target_b[i]);
+            }
+
+            double* h = ptd_backward_probabilities(g.c_graph(), targets.data(), n_targets);
+            if (h == nullptr) {
+                return ffi::Error::Internal(
+                    "ptd_backward_probabilities returned NULL");
+            }
+            double* result_b = result_data + b * n_verts_declared;
+            for (size_t i = 0; i < n_verts_declared; i++) {
+                result_b[i] = h[i];
+            }
+            free(h);
         }
-        free(h);
 
         return ffi::Error::Success();
     } catch (const std::exception& e) {
