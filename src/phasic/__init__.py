@@ -620,6 +620,30 @@ def _propagate_weight_formula(src: 'Graph', dst: 'Graph') -> None:
                              int(tape['n_coeff']))
 
 
+def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
+    """Copy the full Python-side weight configuration from ``src`` to a
+    derived graph ``dst`` and re-install the compiled tape on ``dst``.
+
+    Unlike :func:`_propagate_weight_formula` (formula-only, for the
+    joint-graph constructors), this copies *every* mode — linear, log,
+    callback, and formula — so graphs derived via ``clone()``/``copy()``,
+    ``from_serialized()``, ``_rebuild_with_wider_layout()`` (add_epoch /
+    discretize) and ``laplace_transform()`` do not silently revert to
+    ``'linear'`` or end up in ``'formula'`` mode with no tape. The C-level
+    clone does not copy the weight tape, so a formula graph must have the
+    tape re-installed on the derived live graph here.
+    """
+    dst._weight_mode = getattr(src, '_weight_mode', 'linear')
+    dst._weight_callback = getattr(src, '_weight_callback', None)
+    dst._weight_formula = getattr(src, '_weight_formula', None)
+    tape = getattr(src, '_weight_formula_tape', None)
+    dst._weight_formula_tape = tape
+    if tape is not None:
+        dst._set_weight_tape(list(tape['ops']), list(tape['consts']),
+                             int(tape['stack_depth']), int(tape['n_theta']),
+                             int(tape['n_coeff']))
+
+
 def _fixed_mask_from_fixed(fixed, theta_dim):
     """Build a ``(theta_dim,)`` 0/1 mask marking fixed parameters, or ``None``.
 
@@ -3960,8 +3984,7 @@ class Graph(_Graph):
         # Copy metadata from source graph
         result._callback = self._callback
         result._callback_kwargs = self._callback_kwargs.copy() if self._callback_kwargs else {}
-        result._weight_mode = self._weight_mode
-        result._weight_callback = self._weight_callback
+        _propagate_weight_state(self, result)
         result._last_callback_vertices_length = result.vertices_length()
         # COMPOSABLE_MIGRATION: original implementation
         # return Graph(super().laplace_transform(theta))
@@ -5052,6 +5075,20 @@ class Graph(_Graph):
         # backward compatibility with caches serialized before this field
         # existed).
         graph.dyn_ordering = bool(data.get('dyn_ordering', False))
+
+        # Restore the Python-side weight configuration. serialize() persists
+        # weight_mode always and the compiled tape in formula mode; without
+        # this the reconstructed graph silently reverts to 'linear' (a
+        # formula/log graph then evaluates plain inner-product weights).
+        graph._weight_mode = data.get('weight_mode', 'linear')
+        tape = data.get('weight_formula_tape')
+        if tape is not None:
+            graph._weight_formula = tape.get('src')
+            graph._weight_formula_tape = tape
+            graph._set_weight_tape(
+                list(tape['ops']), list(tape['consts']),
+                int(tape['stack_depth']), int(tape['n_theta']),
+                int(tape['n_coeff']))
 
         return graph
 
@@ -10077,6 +10114,9 @@ extern "C" {{
         cloned = Graph(super().clone())
         cloned.is_discrete = self.is_discrete
         cloned._cache_trace = self._cache_trace
+        # Carry the weight mode/callback/formula tape; the C-level clone
+        # does not copy the tape and Graph(_Graph) resets to 'linear'.
+        _propagate_weight_state(self, cloned)
         # Don't copy trace - clone starts fresh
         cloned._trace = None
         cloned._trace_dirty = True
@@ -10149,8 +10189,12 @@ extern "C" {{
         # Copy Python metadata
         new_graph._callback = self._callback
         new_graph._callback_kwargs = self._callback_kwargs.copy() if self._callback_kwargs else {}
-        new_graph._weight_mode = self._weight_mode
-        new_graph._weight_callback = self._weight_callback
+        # Carry the full weight state (mode + callback + formula tape).
+        # Previously only mode+callback were copied, leaving a formula graph
+        # in mode='formula' with tape=None (raises on serialize / silently
+        # reverts to linear). Extra coeff slots are appended, so the tape's
+        # original coefficient indices remain valid.
+        _propagate_weight_state(self, new_graph)
         new_graph.is_discrete = self.is_discrete
         new_graph._last_callback_vertices_length = new_graph.vertices_length()
 
