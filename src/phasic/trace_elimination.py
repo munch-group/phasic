@@ -36,6 +36,7 @@ Version: 0.1.0 (Phase 1)
 
 from __future__ import annotations
 
+import hashlib
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any
@@ -1627,6 +1628,36 @@ def trace_to_jax_fn(trace: EliminationTrace):
 # SVGD Integration (Phase 3)
 # ============================================================================
 
+def _cpp_trace_source_and_hash(trace: EliminationTrace, observed_data,
+                               granularity: int):
+    """Generate the standalone C++ source for ``trace`` and its cache hash.
+
+    The cache hash is ``sha256`` of the *generated source*. That source
+    embeds every value that determines the result — operation types,
+    constant edge weights (``operations_consts``), DOT coefficient vectors
+    (``operations_coeffs_flat``), operands, param indices, edge
+    probabilities, targets, the ``observed_times`` and the ``GRANULARITY``.
+
+    Hashing the source (rather than only the trace *topology* — n_vertices,
+    the state matrix, and the ``vertex_rates`` index array, as the previous
+    key did) is what makes the compiled-library cache correct: two models
+    with identical graph structure but different coefficients or constant
+    weights produce different source and therefore different hashes, so
+    ``_compile_trace_library``'s skip-if-exists can never return a stale
+    ``.so`` compiled for a numerically different model.
+
+    Returns
+    -------
+    (str, str)
+        ``(cpp_code, trace_hash)`` where ``trace_hash`` is a 16-hex-char
+        digest suitable as the ``/tmp`` library filename stem.
+    """
+    from . import _generate_cpp_from_trace
+    cpp_code = _generate_cpp_from_trace(trace, observed_data, granularity)
+    trace_hash = hashlib.sha256(cpp_code.encode()).hexdigest()[:16]
+    return cpp_code, trace_hash
+
+
 def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None,
                             granularity: int = 0, use_cpp: bool = True, use_log: bool = False):
     """
@@ -1750,26 +1781,12 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
         import hashlib
         from . import _generate_cpp_from_trace, _compile_trace_library, _wrap_trace_log_likelihood_for_jax
 
-        # Generate C++ code embedding trace data and observations
+        # Generate C++ code embedding trace data and observations, and derive
+        # the compiled-library cache key from that source (see
+        # _cpp_trace_source_and_hash for why the source is the correct key).
         logger.debug("Generating C++ code from trace...")
-        cpp_code = _generate_cpp_from_trace(trace, observed_data, granularity)
-
-        # Create hash for caching (based on trace + observations + granularity)
-        # Serialize trace to deterministic string for cache key
-        import json
-        trace_dict = {
-            'n_vertices': trace.n_vertices,
-            'param_length': trace.param_length,
-            'state_length': trace.state_length,
-            'is_discrete': trace.is_discrete,
-            'n_operations': len(trace.operations),
-            # Use hash of states and vertex_rates for compact key
-            'states_hash': hashlib.sha256(trace.states.tobytes()).hexdigest()[:8],
-            'vertex_rates_hash': hashlib.sha256(trace.vertex_rates.tobytes()).hexdigest()[:8],
-        }
-        trace_str = json.dumps(trace_dict, sort_keys=True)
-        cache_key = f"{trace_str}_{observed_data.tobytes()}_{granularity}"
-        trace_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
+        cpp_code, trace_hash = _cpp_trace_source_and_hash(
+            trace, observed_data, granularity)
 
         logger.debug("Trace hash for C++ cache: %s", trace_hash)
 
