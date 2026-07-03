@@ -31,7 +31,8 @@
 #include <thread>       // std::thread::hardware_concurrency (Graph::profile)
 #include <algorithm>    // std::max / std::min (Graph::profile)
 #include <memory>       // std::unique_ptr (weight_formula AST)
-#include <map>          // std::map (weight_formula const dedup)
+#include <map>          // std::map (weight_formula const dedup / serialize)
+#include <set>          // std::set (serialize param-edge pairs)
 #include <cctype>       // isdigit/isalpha/... (weight_formula tokenizer)
 #include "phasiccpp.h"
 
@@ -1105,6 +1106,163 @@ void phasic::Graph::weight_formula(const std::string &formula) {
 
 std::string phasic::Graph::weight_formula() const {
     return this->_weight_formula_src;
+}
+
+// Python-API-name parity: serialize the graph to arrays. Faithful port of the
+// topological part of Python Graph.serialize() (parameterized edges are pulled
+// out first and their (from,to) pairs excluded from the regular/constant edge
+// lists; coefficient-less edges go to constant_edges). theta_dim = the graph's
+// param_length. Python-runtime metadata (weight_mode/dyn_ordering/tape) is not
+// carried.
+phasic::SerializedGraph phasic::Graph::serialize() {
+    std::vector<Vertex> verts = this->vertices();
+    size_t n = verts.size();
+    size_t sl = this->state_length();
+    size_t pl = this->c_graph()->param_length;  // theta_dim
+
+    SerializedGraph out;
+    out.state_length = sl;
+    out.n_vertices = n;
+    out.param_length = pl;
+    out.states.assign(n, std::vector<int>(sl));
+    out.vertex_indices.assign(n, 0);
+
+    std::map<size_t, size_t> idx_to_enum;  // C vertex index -> enumeration position
+    for (size_t i = 0; i < n; ++i) {
+        std::vector<int> st = verts[i].state();
+        for (size_t j = 0; j < sl; ++j) out.states[i][j] = st[j];
+        size_t vi = verts[i].c_vertex()->index;
+        out.vertex_indices[i] = vi;
+        idx_to_enum[vi] = i;
+    }
+
+    Vertex start = this->starting_vertex();
+    size_t start_vidx = start.c_vertex()->index;
+
+    // Parameterized edges first (and record their (from,to) pairs).
+    std::set<std::pair<size_t, size_t>> param_pairs;
+    if (pl > 0) {
+        for (size_t i = 0; i < n; ++i) {
+            if (verts[i].c_vertex()->index == start_vidx) continue;
+            std::vector<ParameterizedEdge> pes = verts[i].parameterized_edges();
+            for (ParameterizedEdge &pe : pes) {
+                size_t to_vi = pe.to().c_vertex()->index;
+                std::map<size_t, size_t>::iterator it = idx_to_enum.find(to_vi);
+                if (it == idx_to_enum.end()) continue;
+                size_t to = it->second;
+                size_t clen = pe.coefficients_length();
+                std::vector<double> es = pe.edge_state(clen);
+                if (!es.empty()) {
+                    std::vector<double> row;
+                    row.reserve(2 + es.size());
+                    row.push_back((double) i);
+                    row.push_back((double) to);
+                    for (double c : es) row.push_back(c);
+                    out.param_edges.push_back(row);
+                    param_pairs.insert(std::make_pair(i, to));
+                }
+            }
+        }
+    }
+
+    // Regular (coefficient-carrying) and constant (coefficient-less) edges.
+    for (size_t i = 0; i < n; ++i) {
+        if (verts[i].c_vertex()->index == start_vidx) continue;
+        std::vector<Edge> es = verts[i].edges();
+        for (Edge &e : es) {
+            size_t to_vi = e.to().c_vertex()->index;
+            std::map<size_t, size_t>::iterator it = idx_to_enum.find(to_vi);
+            if (it == idx_to_enum.end()) continue;
+            size_t to = it->second;
+            if (param_pairs.count(std::make_pair(i, to))) continue;
+            std::vector<double> row;
+            row.push_back((double) i);
+            row.push_back((double) to);
+            row.push_back(e.weight());
+            if (e.coefficients_length() == 0) out.constant_edges.push_back(row);
+            else out.edges.push_back(row);
+        }
+    }
+
+    // Starting-vertex edges (never parameterized).
+    std::vector<Edge> ses = start.edges();
+    for (Edge &e : ses) {
+        size_t to_vi = e.to().c_vertex()->index;
+        std::map<size_t, size_t>::iterator it = idx_to_enum.find(to_vi);
+        if (it == idx_to_enum.end()) continue;
+        std::vector<double> row;
+        row.push_back((double) it->second);
+        row.push_back(e.weight());
+        out.start_edges.push_back(row);
+    }
+
+    return out;
+}
+
+// Python-API-name parity: rebuild a graph from serialize() output. Faithful port
+// of Python Graph.from_serialized(): create the vertices (reusing the starting
+// vertex where the recorded C index matches), then add parameterized, regular,
+// and starting edges. Coefficient-less constant_edges are not re-added (matching
+// Python).
+phasic::Graph phasic::Graph::from_serialized(const SerializedGraph &data) {
+    size_t n = data.n_vertices;
+    size_t sl = data.state_length;
+    size_t pl = data.param_length;
+
+    size_t coeff_len = pl;
+    if (!data.param_edges.empty() && data.param_edges[0].size() >= 2) {
+        coeff_len = data.param_edges[0].size() - 2;
+    }
+
+    Graph graph(sl);
+    // Pin param_length up front only when edges carry MORE coefficients than
+    // param_length (decoupled models), matching Python; otherwise let the first
+    // parameterized edge lock it.
+    if (pl > 0 && coeff_len > pl) {
+        graph.set_param_length(pl);
+    }
+
+    Vertex start = graph.starting_vertex();
+    size_t start_c_idx = start.c_vertex()->index;
+
+    std::vector<Vertex> idx_to_vertex;
+    idx_to_vertex.reserve(n);
+    for (size_t idx = 0; idx < n; ++idx) {
+        if (data.vertex_indices[idx] == start_c_idx) {
+            idx_to_vertex.push_back(start);
+        } else {
+            idx_to_vertex.push_back(graph.find_or_create_vertex(data.states[idx]));
+        }
+    }
+
+    for (const std::vector<double> &row : data.param_edges) {
+        size_t from = (size_t) row[0];
+        size_t to = (size_t) row[1];
+        std::vector<double> es(row.begin() + 2, row.end());
+        idx_to_vertex[from].add_edge_parameterized(idx_to_vertex[to], 0.0, es);
+    }
+    for (const std::vector<double> &row : data.edges) {
+        size_t from = (size_t) row[0];
+        size_t to = (size_t) row[1];
+        idx_to_vertex[from].add_edge(idx_to_vertex[to], row[2]);
+    }
+    for (const std::vector<double> &row : data.start_edges) {
+        size_t to = (size_t) row[0];
+        start.add_edge(idx_to_vertex[to], row[1]);
+    }
+
+    // Ensure param_length is set after all edges (mirrors Python's trailing
+    // set_param_length wrapped in try/except: it can fail if the value is already
+    // locked, which is fine).
+    if (pl > 0) {
+        try {
+            graph.set_param_length(pl);
+        } catch (const std::exception &) {
+            // already locked by the first parameterized edge — matches Python
+        }
+    }
+
+    return graph;
 }
 
 phasic::PhaseTypeDistribution phasic::Graph::phase_type_distribution() {

@@ -158,6 +158,25 @@ namespace phasic {
     // complete Graph type); forward-declared here so Graph can name it.
     struct DiscretizeResult;
 
+    // Array representation of a graph produced by Graph::serialize() and consumed
+    // by Graph::from_serialized(), mirroring the fields of Python's
+    // serialize()/from_serialized() dict. Row-indexed by an enumeration position
+    // (0..n_vertices-1); edge rows reference those positions. Regular (constant-
+    // valued but coefficient-carrying) and coefficient-less (constant_edges)
+    // edges are kept separate, as in Python. Python-runtime metadata
+    // (weight_mode/dyn_ordering/formula tape) is intentionally omitted.
+    struct SerializedGraph {
+        std::vector<std::vector<int>> states;             // (n, state_length)
+        std::vector<size_t> vertex_indices;               // (n,) underlying C vertex indices
+        std::vector<std::vector<double>> edges;           // [from, to, weight]
+        std::vector<std::vector<double>> constant_edges;  // [from, to, weight] (coefficient-less)
+        std::vector<std::vector<double>> start_edges;     // [to, weight]
+        std::vector<std::vector<double>> param_edges;     // [from, to, coeff0, coeff1, ...]
+        size_t param_length = 0;
+        size_t state_length = 0;
+        size_t n_vertices = 0;
+    };
+
     class Graph {
     public:
         Graph(struct ptd_graph *graph) {
@@ -873,6 +892,18 @@ namespace phasic {
         // Getter: the formula string most recently set (empty if none). Python
         // name parity for reading the `weight_formula` property.
         std::string weight_formula() const;
+
+        // Serialize the graph to an array representation (states + edges + params).
+        // Python name for Graph.serialize(); returns a SerializedGraph rather than
+        // Python's numpy dict. Round-trips via from_serialized(). Defined
+        // out-of-line in phasiccpp.cpp (uses phasic::Vertex/Edge).
+        SerializedGraph serialize();
+
+        // Reconstruct a graph from serialize() output. Python name for
+        // Graph.from_serialized(); rebuilds vertices + parameterized/regular/start
+        // edges (coefficient-less constant_edges are not re-added, matching
+        // Python). Defined out-of-line in phasiccpp.cpp.
+        static Graph from_serialized(const SerializedGraph &data);
 
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
