@@ -25,6 +25,7 @@ Example Usage:
 from __future__ import annotations
 
 import os
+import sys
 import json
 import shutil
 import tarfile
@@ -297,6 +298,27 @@ class CacheManager:
         print(f"  Size: {metadata['total_size_mb']:.1f} MB")
         print(f"  Metadata: {metadata_file}")
 
+    @staticmethod
+    def _reject_unsafe_member(member: tarfile.TarInfo, base_realpath: str) -> None:
+        """Raise ValueError if a tar member is unsafe to extract into base.
+
+        Blocks absolute paths, ``..`` traversal, and symlink/hardlink/device
+        members. ``base_realpath`` must be ``os.path.realpath(cache_dir)``.
+        """
+        name = member.name
+        if member.issym() or member.islnk():
+            raise ValueError(
+                f"Refusing to extract link member from tarball: {name!r}")
+        if not (member.isfile() or member.isdir()):
+            raise ValueError(
+                f"Refusing to extract special (non file/dir) member: {name!r}")
+        if os.path.isabs(name) or name.startswith(('/', '\\')):
+            raise ValueError(f"Refusing absolute path in tarball: {name!r}")
+        target = os.path.realpath(os.path.join(base_realpath, name))
+        if target != base_realpath and not target.startswith(base_realpath + os.sep):
+            raise ValueError(
+                f"Refusing path traversal in tarball: {name!r} escapes cache dir")
+
     def import_cache(
         self,
         tarball_path: Path | str,
@@ -327,18 +349,34 @@ class CacheManager:
 
         print(f"Importing cache from {tarball_path}")
 
+        base = os.path.realpath(self.cache_dir)
+
         with tarfile.open(tarball_path, 'r:*') as tar:
             members = tar.getmembers()
             print(f"  Extracting {len(members)} files...")
 
             for member in members:
+                # Reject path traversal, absolute paths, and links before
+                # touching the filesystem. A crafted/corrupted tarball with a
+                # member named e.g. "../../../../home/user/.bashrc" (or a
+                # symlink) would otherwise let tar.extract write outside
+                # cache_dir (CVE-2007-4559). tar.extract() on Python < 3.14
+                # still uses the fully-trusted legacy behaviour.
+                self._reject_unsafe_member(member, base)
+
                 dest_path = self.cache_dir / member.name
 
                 if dest_path.exists() and not overwrite:
                     print(f"  Skipping (exists): {member.name}")
                     continue
 
-                tar.extract(member, self.cache_dir)
+                # Defense in depth: the 'data' extraction filter (Python 3.12+)
+                # independently blocks traversal/links; the manual check above
+                # keeps us safe on 3.10/3.11 where the kwarg does not exist.
+                if sys.version_info >= (3, 12):
+                    tar.extract(member, self.cache_dir, filter='data')
+                else:
+                    tar.extract(member, self.cache_dir)
 
         print("✓ Import complete")
 
