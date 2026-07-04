@@ -97,9 +97,16 @@ cfg["sources"] += [os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp")]
 # Resolve ptd_* symbols at runtime from whatever's already loaded in the
 # Python process. The phasic Python package loads phasic_pybind.so into
 # the interpreter, which exports the ptd_* C symbols. Dynamic-lookup
-# defers resolution to module-load time. On Linux this is the default
-# behaviour; on macOS we have to ask for it; on Windows we'd need to
-# link against an import library.
+# defers resolution to module-load time. IMPORTANT: this only works if
+# phasic_pybind's symbols are in the GLOBAL dynamic-linker scope, but
+# CPython loads extensions with RTLD_LOCAL. So before importing this module
+# you must re-open phasic_pybind with RTLD_GLOBAL, e.g.:
+#     import os, glob, ctypes, phasic
+#     _pb = glob.glob(os.path.join(os.path.dirname(phasic.__file__),
+#                                  "phasic_pybind*.so"))[0]
+#     ctypes.CDLL(_pb, mode=os.RTLD_NOW | os.RTLD_GLOBAL)
+# On macOS we additionally pass -undefined,dynamic_lookup below; on Windows
+# we'd need to link against an import library.
 if sys.platform == "darwin":
     # -undefined,dynamic_lookup defers ptd_* symbol resolution to load time.
     # -w silences the harmless "duplicate -rpath" linker warning that
