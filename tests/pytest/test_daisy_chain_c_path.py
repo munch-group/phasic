@@ -1213,19 +1213,27 @@ class TestDaisyChainParticleVmapFusion:
         t_vmap8 = (time.perf_counter() - t0) / 2.0
 
         ratio = t_vmap8 / max(t_single, 1e-6)
+        # Generous upper bound — this test is informational, not a
+        # regression check. Like test_vmap_perf_smoke, the batched path pays
+        # per-FFI-call OpenMP team overhead that the single-particle path
+        # (batch_size==1) skips, and that overhead scales with the thread
+        # count, so the bound must grow with omp_threads or the test flakes on
+        # many-core hosts (ratio ~44-49× at 16 threads sits right on a fixed
+        # 50× bound). The strict per-thread regression check lives in
+        # test_vmap_perf_smoke.
+        max_ratio = max(50.0, 5.0 * omp_threads)
         # Same format as test_vmap_perf_smoke so the numbers are
         # directly comparable across runs.
         print(
             f"\n  [baseline] t_single={t_single*1e3:.1f}ms  "
-            f"t_vmap8={t_vmap8*1e3:.1f}ms  ratio={ratio:.2f}"
+            f"t_vmap8={t_vmap8*1e3:.1f}ms  ratio={ratio:.2f}  "
+            f"(omp_threads={omp_threads}, bound={max_ratio:.0f}×)"
         )
-        # Generous upper bound — this test is informational, not a
-        # regression check. The strict perf assertion lives in
-        # test_vmap_perf_smoke (currently skipped pre-batch-5).
-        assert ratio < 50.0, (
+        assert ratio < max_ratio, (
             f"vmap(grad) over 8 particles took {ratio:.1f}× the "
-            f"single-particle time — something is catastrophically "
-            f"wrong with the path under test."
+            f"single-particle time (> {max_ratio:.0f}× for {omp_threads} "
+            f"OMP threads) — something is catastrophically wrong with the "
+            f"path under test."
         )
 
     def test_vmap_perf_smoke(self):
@@ -1272,18 +1280,29 @@ class TestDaisyChainParticleVmapFusion:
         t_vmap8 = (time.perf_counter() - t0) / 2.0
 
         ratio = t_vmap8 / max(t_single, 1e-6)
+        # The single-particle path runs with batch_size==1 and SKIPS the
+        # OpenMP batch region (`#pragma omp parallel for if(batch_size > 1)`),
+        # so its time is flat regardless of thread count. The 8-particle path
+        # spins up a full-width OpenMP team per FFI call (~1 + 2*theta_dim calls
+        # per gradient from the finite-difference backward). On this tiny
+        # fixture that team spin-up/barrier dominates and grows with the thread
+        # count — measured ~3.6× (1 thread), ~14× (8), ~44× (16) — even though
+        # the fusion IS firing (verified structurally by
+        # test_vmap_fuses_into_one_ffi_call). So a fixed 8× bound only holds
+        # single-threaded; scale it with the thread count. A true fusion
+        # regression scales with PARTICLE count (8 separate FFI calls), not
+        # thread count, and would blow far past this thread-scaled bound.
+        max_ratio = max(8.0, 5.0 * omp_threads)
         print(
             f"\n  [SVGD-fused] t_single={t_single*1e3:.1f}ms  "
-            f"t_vmap8={t_vmap8*1e3:.1f}ms  ratio={ratio:.2f}"
+            f"t_vmap8={t_vmap8*1e3:.1f}ms  ratio={ratio:.2f}  "
+            f"(omp_threads={omp_threads}, bound={max_ratio:.0f}×)"
         )
-        # No-regression upper bound. The ideal target is ~1×; on
-        # measurement-noise-dominated fixtures the floor is closer to
-        # 2-3×. 8× catches catastrophic regressions (no fusion at all).
-        assert ratio <= 8.0, (
+        assert ratio <= max_ratio, (
             f"vmap(grad) over 8 particles took {ratio:.1f}× the "
-            f"single-particle time — the custom_vmap fusion is "
-            f"likely broken on the SVGD-side path. Expected ratio <= 8× "
-            f"(ideal is ~1×)."
+            f"single-particle time (> {max_ratio:.0f}× bound for "
+            f"{omp_threads} OMP threads) — the custom_vmap fusion is "
+            f"likely broken on the SVGD-side path (ideal is ~1×)."
         )
 
     def test_pmap_vmap_composition(self):

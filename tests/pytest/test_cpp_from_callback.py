@@ -20,6 +20,25 @@ import pytest
 import phasic  # import before creating numpy arrays used by the x64 FFI
 from phasic import Graph
 
+# The cppimport fixture below links phasiccpp.cpp and references phasic's C
+# API symbols — including the thread-local ``ptd_err``. Those must resolve
+# from the already-loaded ``phasic_pybind`` extension at dlopen time, but
+# CPython loads extensions with ``RTLD_LOCAL | RTLD_NOW``, so the extension's
+# symbols are not in the global scope. Function symbols would bind lazily, but
+# ``ptd_err`` is a TLS symbol that must bind eagerly at load, so the fixture
+# aborts with ``undefined symbol: ptd_err``. Re-open the extension with
+# ``RTLD_GLOBAL`` to promote its symbols into the global namespace; this works
+# even though ``phasic`` was already imported under the default flags.
+if hasattr(os, "RTLD_GLOBAL"):
+    import ctypes as _ctypes
+    import glob as _glob
+
+    _pb = _glob.glob(
+        os.path.join(os.path.dirname(phasic.__file__), "phasic_pybind*.so")
+    )
+    if _pb:
+        _ctypes.CDLL(_pb[0], mode=os.RTLD_NOW | os.RTLD_GLOBAL)
+
 cppimport = pytest.importorskip("cppimport")
 
 _FIXTURE = os.path.join(os.path.dirname(__file__), "_cpp_from_callback_fixture.cpp")

@@ -113,7 +113,14 @@ cfg["sources"] += [os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp")]
 cfg["extra_compile_args"] += ["-std=c++17"]
 
 # Resolve ptd_* symbols at runtime from whatever's already loaded in the
-# Python process (phasic_pybind.so exports the ptd_* C symbols).
+# Python process (phasic_pybind.so exports the ptd_* C symbols). NOTE: this
+# requires phasic_pybind's symbols to be in the GLOBAL dynamic-linker scope,
+# but CPython loads extensions with RTLD_LOCAL — so before importing this
+# module, re-open phasic_pybind with RTLD_GLOBAL:
+#     import os, glob, ctypes, phasic
+#     _pb = glob.glob(os.path.join(os.path.dirname(phasic.__file__),
+#                                  "phasic_pybind*.so"))[0]
+#     ctypes.CDLL(_pb, mode=os.RTLD_NOW | os.RTLD_GLOBAL)
 if sys.platform == "darwin":
     cfg["extra_link_args"] += [
         "-Wl,-undefined,dynamic_lookup",

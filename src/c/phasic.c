@@ -11494,7 +11494,26 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
 
     // Auto-select granularity with higher minimum for numerical stability
     if (granularity == 0) {
-        granularity = (int64_t)(max_rate * 2);
+        // (int64_t)(max_rate * 2) is undefined behavior once max_rate*2 exceeds
+        // INT64_MAX (~9.2e18): the cast collapses to a garbage (usually negative)
+        // value that is then floored to 1000, so the rate/granularity check below
+        // fails with a misleading "Increase the granularity" message. Detect the
+        // overflow (and any NaN/Inf max_rate) up front and report the real cause —
+        // an outsized rate, typically a diverged model or unscaled rate/time units.
+        double desired_granularity = max_rate * 2.0;
+        if (!(desired_granularity <= 9.0e18)) {
+            snprintf(
+                    (char *) ptd_err,
+                    sizeof(ptd_err),
+                    "Maximum outgoing rate (%.3e) is too large to build a phase-type "
+                    "distribution: the auto-selected granularity (~2x the max rate) would "
+                    "overflow the representable range. This usually means the model "
+                    "diverged or the rate/time units need rescaling.\n",
+                    max_rate
+            );
+            return NULL;
+        }
+        granularity = (int64_t)(desired_granularity);
         if (granularity < 1000) {
             PTD_LOG_DEBUG("Auto-selected granularity (%lld) increased to minimum (1000) for numerical stability", (long long) granularity);
             granularity = 1000;
@@ -11982,7 +12001,25 @@ int ptd_graph_pdf_with_gradient(
     // Higher minimum granularity (1000) improves numerical stability
     // Discretization error scales as O(1/granularity²)
     if (granularity == 0) {
-        granularity = (size_t)(lambda * 2.0);
+        // Same overflow hazard as ptd_probability_distribution_context_create:
+        // (size_t)(lambda * 2.0) is undefined once lambda*2 leaves the size_t
+        // range, silently yielding a garbage granularity. Reject an outsized rate
+        // with a clear message instead (a diverged model / unscaled units).
+        double desired_granularity = lambda * 2.0;
+        if (!(desired_granularity <= 9.0e18)) {
+            snprintf(
+                    (char *) ptd_err,
+                    sizeof(ptd_err),
+                    "Maximum outgoing rate (%.3e) is too large to compute a phase-type "
+                    "PDF gradient: the auto-selected granularity (~2x the max rate) would "
+                    "overflow. This usually means the model diverged or the rate/time "
+                    "units need rescaling.\n",
+                    lambda
+            );
+            free(lambda_grad);
+            return -1;
+        }
+        granularity = (size_t)(desired_granularity);
         if (granularity < 1000) {
             PTD_LOG_DEBUG("Auto-selected granularity (%zu) increased to minimum (1000) for gradient computation", granularity);
             granularity = 1000;
