@@ -491,33 +491,6 @@ def _compute_pmf_from_ctypes(theta: ArrayLike, times: ArrayLike, compute_func: A
     return output_np
 
 
-def _create_jax_callback_wrapper(compute_func: Any, graph_data: dict, discrete: bool) -> Callable:
-    """
-    Create a pure JAX-compatible callback wrapper.
-
-    Returns a function compatible with jax.pure_callback that maintains
-    purity and supports JAX transformations.
-    """
-    from jax import pure_callback
-
-    def compute_pmf_pure(times, granularity=100):
-        """Pure function wrapper for JAX compatibility"""
-        def compute_impl(times_arr):
-            # For parameterized models, theta comes from outer scope
-            # For static models, graph_data is fixed
-            return _compute_pmf_from_ctypes(
-                np.array([]),  # Empty theta for static graphs
-                times_arr,
-                compute_func,
-                graph_data,
-                granularity,
-                discrete
-            )
-
-        result_shape_dtypes = jax.ShapeDtypeStruct(times.shape, jnp.float32)
-        return pure_callback(compute_impl, result_shape_dtypes, times)
-
-    return compute_pmf_pure
 
 
 def _create_jax_parameterized_wrapper(compute_func: Any, graph_builder: Callable, discrete: bool) -> Callable:
