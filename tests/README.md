@@ -99,18 +99,6 @@ Organized into test classes with more detailed testing:
 - `TestMultivariateSampling` - Multivariate sampling
 
 **Total: 60+ tests for JAX integration**
-
-### `test_symbolic_dag.py`
-**Symbolic DAG and parameterized edges** (requires JAX)
-
-- `TestSymbolicDAG` - Symbolic elimination and instantiation
-- `TestParameterizedEdges` - Parameterized edge functionality
-- `TestSymbolicPerformance` - Performance characteristics
-- `TestSymbolicWithCallback` - Callback-based symbolic graphs
-- `TestSymbolicEdgeCases` - Edge cases and error handling
-
-**Total: 40+ tests for symbolic DAG functionality**
-
 ### `test_utilities_integration.py`
 **Utilities and integration features**
 
@@ -163,9 +151,6 @@ python tests/test_api_comprehensive.py
 
 # JAX integration (requires JAX)
 pytest tests/test_jax_integration.py -v
-
-# Symbolic DAG (requires JAX)
-pytest tests/test_symbolic_dag.py -v
 
 # Utilities
 pytest tests/test_utilities_integration.py -v
@@ -224,12 +209,6 @@ The test suite covers:
 - vmap vectorization
 - Batch operations
 
-### Symbolic DAG
-- eliminate_to_dag() - Symbolic elimination
-- SymbolicDAG.instantiate() - Fast parameter evaluation
-- Parameterized edges
-- Performance optimization
-
 ### Advanced Features
 - Reward transformations
 - Expected visits
@@ -260,7 +239,7 @@ The test suite covers:
 
 2. **Plotting tests** require matplotlib and graphviz. Tests handle missing dependencies gracefully.
 
-3. **Parameterized graphs** and **symbolic DAG** require JAX for full functionality.
+3. **Parameterized graphs** require JAX for full functionality.
 
 4. Some tests may show INFO messages about "building reward compute graph" - this is normal behavior.
 
