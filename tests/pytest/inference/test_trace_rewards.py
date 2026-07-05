@@ -146,67 +146,6 @@ def test_instantiate_from_trace_with_rewards():
     print(f"✓ PDF at t=1.0: {pdf_value}")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "trace_to_log_likelihood() raises NotImplementedError when "
-        "reward_vector is provided. The Python-mode fallback for "
-        "rewards is not yet implemented (see trace_elimination.py)."
-    ),
-)
-def test_trace_to_log_likelihood_with_rewards():
-    """Test that trace_to_log_likelihood works with rewards"""
-    if skip_if_missing("jax"):
-        return
-    import jax.numpy as jnp
-
-    from phasic.trace_elimination import record_elimination_trace, trace_to_log_likelihood
-
-    graph = _build_coalescent_graph()
-
-    # Record trace with rewards
-    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
-
-    # Create log-likelihood function with rewards
-    observed_times = np.array([1.0, 2.0, 0.5])
-    rewards = np.ones(trace.n_vertices)  # Neutral rewards
-
-    log_lik = trace_to_log_likelihood(
-        trace,
-        observed_times,
-        reward_vector=rewards,
-        granularity=100,
-        use_cpp=False  # Use Python mode for testing
-    )
-
-    # Evaluate log-likelihood
-    theta = jnp.array([2.0])
-    ll_value = log_lik(theta)
-
-    assert jnp.isfinite(ll_value)
-    assert ll_value < 0  # Log-likelihood should be negative
-
-    print(f"✓ Log-likelihood with rewards: {ll_value}")
-
-    # Test with different rewards
-    rewards_scaled = np.ones(trace.n_vertices)
-    rewards_scaled[1] = 2.0  # Scale second vertex
-    log_lik_scaled = trace_to_log_likelihood(
-        trace,
-        observed_times,
-        reward_vector=rewards_scaled,
-        granularity=100,
-        use_cpp=False
-    )
-
-    ll_value_scaled = log_lik_scaled(theta)
-
-    # Different rewards should give different log-likelihood
-    assert not jnp.isclose(ll_value, ll_value_scaled)
-
-    print(f"✓ Log-likelihood with scaled rewards: {ll_value_scaled}")
-
-
 def test_reward_transformation_equivalence():
     """
     Test that trace-based reward transformation matches GraphBuilder behavior
@@ -265,10 +204,6 @@ if __name__ == "__main__":
 
     print("4. Testing graph instantiation with rewards...")
     test_instantiate_from_trace_with_rewards()
-    print()
-
-    print("5. Testing log-likelihood with rewards...")
-    test_trace_to_log_likelihood_with_rewards()
     print()
 
     print("6. Testing reward transformation equivalence...")

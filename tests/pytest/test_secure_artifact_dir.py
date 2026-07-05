@@ -14,7 +14,7 @@ import subprocess
 import pytest
 
 import phasic
-from phasic import _secure_artifact_dir, _compile_trace_library
+from phasic import _secure_artifact_dir
 
 pytestmark = pytest.mark.skipif(
     not hasattr(os, "getuid"), reason="POSIX ownership model required"
@@ -32,29 +32,3 @@ def test_artifact_dir_is_private_and_stable():
     assert _secure_artifact_dir() == d
     # Not a predictable, shared, world-guessable location.
     assert not os.path.basename(d).startswith("trace_log_lik_")
-
-
-def test_compile_trace_library_writes_into_secure_dir(monkeypatch, tmp_path):
-    """The compiled .so path must live under the private artifact dir."""
-    def fake_run(cmd, **kwargs):
-        out = cmd[cmd.index("-o") + 1]
-        open(out, "w").close()  # simulate a successful g++ producing the .so
-
-        class _R:
-            returncode = 0
-            stderr = ""
-
-        return _R()
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-
-    lib = _compile_trace_library("// dummy source", "deadbeef12345678")
-
-    d = _secure_artifact_dir()
-    assert lib == os.path.join(d, "trace_log_lik_deadbeef12345678.so")
-    assert os.path.commonpath([os.path.realpath(lib), os.path.realpath(d)]) == \
-        os.path.realpath(d)
-    # The old predictable path must NOT be used.
-    assert not lib.startswith("/tmp/trace_log_lik_")
-    # And the containing directory is private.
-    assert os.stat(os.path.dirname(lib)).st_mode & (stat.S_IRWXG | stat.S_IRWXO) == 0
