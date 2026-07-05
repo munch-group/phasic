@@ -123,8 +123,6 @@ struct ptd_avl_node *ptd_avl_tree_find_or_insert(struct ptd_avl_tree *avl_tree, 
 
 struct ptd_avl_node *ptd_avl_tree_find(const struct ptd_avl_tree *avl_tree, const int *key);
 
-struct ptd_vertex *ptd_avl_tree_find_vertex(const struct ptd_avl_tree *avl_tree, const int *key);
-
 size_t ptd_avl_tree_max_depth(void *avl_vec_vertex);
 
 struct ptd_directed_graph;
@@ -855,28 +853,6 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
     struct ptd_graph *graph
 );
 
-/**
- * Instantiate a complete graph from trace evaluation result
- *
- * Creates a new graph with all vertices and edges from the evaluated trace.
- * The graph will have concrete edge weights computed from the trace evaluation.
- *
- * @param result Trace evaluation result with concrete rates and probabilities
- * @param trace Original elimination trace (for vertex states and structure)
- * @return New graph instance, or NULL on error
- *
- * Notes:
- * - The returned graph is NOT normalized
- * - Caller must call ptd_graph_destroy() when done
- * - Vertices are created from trace->states
- * - Edge weights are computed as: weight = prob / inv_rate
- *
- * Time complexity: O(n + m) where n = vertices, m = edges
- */
-struct ptd_graph *ptd_instantiate_from_trace(
-    const struct ptd_trace_result *result,
-    const struct ptd_elimination_trace *trace
-);
 
 /**
  * Destroy elimination trace and free all memory
@@ -1428,32 +1404,6 @@ int ptd_graph_pdf_with_gradient(
     double *pdf_gradient
 );
 
-/**
- * Compute PDF for parameterized graph using current parameters
- *
- * This function uses the parameters set via ptd_graph_update_weight_parameterized()
- * to compute the PDF value and optionally its gradient. It provides a convenient
- * interface that doesn't require passing parameters explicitly.
- *
- * @param graph Parameterized graph with current_params set via update_weight_parameterized
- * @param time Time at which to evaluate PDF
- * @param granularity Uniformization granularity (0 = auto-select)
- * @param pdf_value Output: PDF value at specified time
- * @param pdf_gradient Output: gradient array (size = param_length), or NULL if gradients not needed
- * @return 0 on success, -1 on error
- *
- * @note Call ptd_graph_update_weight_parameterized() first to set parameters
- * @note If pdf_gradient is NULL, only PDF is computed (faster)
- * @note If pdf_gradient is non-NULL, both PDF and gradient are computed using
- *       ptd_graph_pdf_with_gradient() for machine-precision accuracy
- */
-int ptd_graph_pdf_parameterized(
-    struct ptd_graph *graph,
-    double time,
-    size_t granularity,
-    double *pdf_value,
-    double *pdf_gradient
-);
 
 #ifndef PTD_INTEGRATE_EXCEPTIONS
 #define DIE_ERROR(error_code, error, ...) do {     \
