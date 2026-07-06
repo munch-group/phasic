@@ -100,6 +100,9 @@ python_functions = "test_*"
 # run completes). 600s clears the slow SVGD accuracy tests (~150-300s). Requires
 # pytest-timeout (declared in deps).
 addopts = "--capture=tee-sys --timeout=600" # capture stdout/stderr AND print it
+markers = [
+    "equivalence: Stage-2 bit-identity / equivalence gate pinning duplicate implementations before the Stage-3 refactor unifies them (see tests/pytest/test_gate_*.py).",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
@@ -123,6 +126,7 @@ gh = ">=2.81.0,<3"
 quartodoc = ">=0.11.1,<0.12"
 pip = "*"
 cmake = ">=4.1.2,<5"
+gcovr = ">=8,<9"                 # native C/C++ gcov coverage report (pixi task: coverage-cpp)
 eigen = ">=3.4.0,<4"
 nlohmann_json = ">=3.11.0"
 ipykernel = ">=7.1.0,<8"
@@ -202,6 +206,14 @@ description = "Removes untracked files and directories but respects your .gitign
 [tool.pixi.tasks.test]
 cmd = "mkdir -p tests/pytest/tmp && jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{\"skip-execution\"}' --output-dir tests/pytest/tmp && pytest tests/pytest/"
 description = "Run tests"
+
+[tool.pixi.tasks.test-cpp]
+cmd = "cmake -S . -B build-tests -DPHASIC_BUILD_TESTS=ON && cmake --build build-tests --target test_c test_cpp -j && ctest --test-dir build-tests --output-on-failure"
+description = "Build and run the native C/C++ CTest executables (test_c, test_cpp). Standalone build dir because the scikit-build/pip build dir is ephemeral."
+
+[tool.pixi.tasks.coverage-cpp]
+cmd = "cmake -S . -B build-tests -DPHASIC_BUILD_TESTS=ON -DPHASIC_COVERAGE=ON && cmake --build build-tests --target test_c test_cpp -j && find build-tests -name '*.gcda' -delete; ctest --test-dir build-tests --output-on-failure && gcovr --root . --gcov-executable gcov -f 'src/c/' -f 'src/cpp/' -f 'api/cpp/scc_graph\\.cpp' --txt -o coverage-native.txt --html-details coverage-native.html build-tests && cat coverage-native.txt"
+description = "Native C/C++ gcov coverage: instrumented CTest build + gcovr report (needs gcovr in env)."
 
 [tool.pixi.tasks.commit]
 cmd = "./scripts/git-commit.sh"

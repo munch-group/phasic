@@ -405,13 +405,50 @@ install(FILES
 # )
 ####################
 
-# # Test executables ###################################################
-# # Phase 5 Week 2: Symbolic gradient tests
-# add_executable(test_symbolic_gradient tests/test_symbolic_gradient.c)
-# target_link_libraries(test_symbolic_gradient libphasic)
-# target_include_directories(test_symbolic_gradient PRIVATE api/c)
+# Native C/C++ CTest + gcov coverage wiring ##########################
+# Both options default OFF so the normal scikit-build / conda pip build
+# (which only wants the phasic_pybind extension) is completely unaffected.
+# Enable them explicitly for a standalone tests build:
+#   cmake -S . -B build-tests -DPHASIC_BUILD_TESTS=ON -DPHASIC_COVERAGE=ON
+#   cmake --build build-tests -j
+#   ctest --test-dir build-tests --output-on-failure
+# The scikit-build/pip build directory is ephemeral, so CTest can NOT run from
+# the installed package — it needs this persistent standalone build dir.
+option(PHASIC_BUILD_TESTS "Build native C/C++ CTest executables"        OFF)
+option(PHASIC_COVERAGE    "Instrument libphasic/libphasiccpp with gcov" OFF)
 
-# # Phase 5 Week 3: Forward algorithm gradient tests
-# add_executable(test_pdf_gradient tests/test_pdf_gradient.c)
-# target_link_libraries(test_pdf_gradient libphasic)
-# target_include_directories(test_pdf_gradient PRIVATE api/c)
+if(PHASIC_COVERAGE)
+    if(MSVC)
+        message(FATAL_ERROR "PHASIC_COVERAGE needs a GCC/Clang toolchain")
+    endif()
+    message(STATUS "PHASIC_COVERAGE=ON: --coverage on libphasic + libphasiccpp")
+    # PUBLIC so the flags propagate to the test executables' compile+link lines
+    # (they link these libs); -O0 -g keeps gcov line mapping accurate.
+    foreach(_covtgt libphasic libphasiccpp)
+        target_compile_options(${_covtgt} PUBLIC -O0 -g --coverage)
+        target_link_options(${_covtgt}    PUBLIC --coverage)
+    endforeach()
+endif()
+
+if(PHASIC_BUILD_TESTS)
+    enable_testing()
+
+    # C API test (tests/cpp/tester.cpp, compiled as C++). The source #includes
+    # "../api/c/phasic.h" — a stale relative path from when it lived in tests/ (it
+    # is now in tests/cpp/), so `tests` is put on the include path to resolve
+    # ../api/... unambiguously. phasic.h in turn #includes "phasic_log.h" (in
+    # src/c), so src/c must be on the path too. libphasic carries the C core.
+    add_executable(test_c tests/cpp/tester.cpp)
+    target_include_directories(test_c PRIVATE tests api/c src/c)
+    target_link_libraries(test_c PRIVATE libphasic)
+    add_test(NAME test_c COMMAND test_c)
+
+    # C++ API test (tests/cpp/testcpp.cpp). Uses the C++ Graph/Vertex wrappers via
+    # "../api/cpp/phasiccpp.h" (which pulls in the C headers). Same stale-relative
+    # include -> `tests` on the path. libphasiccpp already contains the full C
+    # core, so no separate libphasic link is needed.
+    add_executable(test_cpp tests/cpp/testcpp.cpp)
+    target_include_directories(test_cpp PRIVATE tests api/cpp src/cpp src/c)
+    target_link_libraries(test_cpp PRIVATE libphasiccpp)
+    add_test(NAME test_cpp COMMAND test_cpp)
+endif()

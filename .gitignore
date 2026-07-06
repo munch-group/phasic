@@ -71,3 +71,18 @@ sc-phasic-*.out
 
 /docs/**/.rendered*
 /tests/**/.rendered*
+
+# Stage-2 native CTest / gcov coverage build + reports
+/build-tests/
+/build-cov/
+*.gcda
+*.gcno
+*.gcov
+/coverage-native.txt
+/coverage-native*.html
+/coverage-native*.css
+/coverage-native*.json
+# Python coverage.py outputs (coverage machinery config .coveragerc is tracked)
+/.coverage
+/.coverage.*
+/.coverage_html/

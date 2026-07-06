@@ -1,0 +1,79 @@
+name: native-tests
+
+# The repo previously had no test CI (only conda-release / pypi-release /
+# quarto-publish). This workflow adds the Stage-2 regression net:
+#   1. the native C/C++ CTest executables (tests/cpp) + gcov coverage, and
+#   2. the Python bit-identity equivalence gates (tests/pytest/test_gate_*.py).
+# Both are the safety net the Stage-3 god-object / de-duplication refactor relies on.
+
+on:
+  push:
+    branches: [master, "stage*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: native-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ctest-native:
+    name: C/C++ CTest + gcov coverage
+    runs-on: ubuntu-latest          # linux-64 is a declared pixi platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          cache: true
+
+      # Standalone CMake build — NOT the scikit-build/pip install, whose build
+      # dir is ephemeral. Runs inside the pixi env so MPFR/GMP/pybind/JAX resolve
+      # (the CMakeLists FATAL_ERRORs if MPFR/GMP are missing on Linux).
+      - name: Configure (tests + coverage)
+        run: pixi run cmake -S . -B build-tests -DPHASIC_BUILD_TESTS=ON -DPHASIC_COVERAGE=ON
+
+      - name: Build native test executables
+        run: pixi run cmake --build build-tests --target test_c test_cpp -j
+
+      - name: Run CTest
+        run: pixi run ctest --test-dir build-tests --output-on-failure
+
+      - name: Coverage report (gcovr)
+        run: |
+          find build-tests -name '*.gcda' -delete || true
+          pixi run ctest --test-dir build-tests >/dev/null
+          pixi run gcovr --root . --gcov-executable "$(command -v gcov)" \
+            -f 'src/c/' -f 'src/cpp/' -f 'api/cpp/scc_graph\.cpp' \
+            --txt coverage-native.txt --xml coverage-native.xml \
+            --html-details coverage-native.html build-tests
+          cat coverage-native.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-coverage
+          path: |
+            coverage-native.txt
+            coverage-native.xml
+            coverage-native*.html
+
+  python-equivalence-gates:
+    name: Python equivalence gates (FFI vs pybind bit-identity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          cache: true
+
+      # Real (non-editable) install so the compiled FFI fast path is exercised —
+      # this is the build that exposes get_compute_pmf_ffi_capsule. The gates
+      # assert they lowered to the @ptd_compute_* custom-call, not pure_callback,
+      # so they would fail loudly on a build without XLA-FFI.
+      - name: Build + install extension (FFI fast path)
+        run: pixi run install-dev
+
+      - name: Run Stage-2 equivalence gates
+        run: pixi run pytest tests/pytest -m equivalence -v
