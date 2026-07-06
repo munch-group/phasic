@@ -10188,21 +10188,92 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
     size_t n = graph->vertices_length;
     struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
 
-    // Allocate results matrix as a single flat block of n*k doubles,
-    // row-major: results_flat[v*k + r] = accumulated reward at vertex
-    // v for reward vector r. Previously this was n separate calloc(k)
-    // allocations which produced 5380 mallocs per call on a 5380-vertex
-    // graph — under OpenMP fanout that's the dominant cost (allocator
-    // arena lock contention on macOS libmalloc). One calloc removes
-    // the contention and keeps the working set contiguous.
+    // Expected sojourn (residence) time at `k` target vertices. Both paths below
+    // replay the same linear elimination trace, whose command
+    //     (from, to, mult):  results[from] += results[to] * mult
+    // evaluated forward with a reward seed s (results[v] initialised to s[v])
+    // yields, at the starting vertex 0,  results[0] = sum_v sojourn(v) * s[v].
+    //
+    // (A) ADJOINT (default). sojourn(v) is exactly d results[0] / d s[v] -- the
+    //     gradient of that scalar w.r.t. the seed. Reverse-mode differentiation
+    //     produces the gradient for ALL v in a SINGLE pass over the trace using
+    //     O(n) memory: seed adjoint[0] = 1, walk the commands in REVERSE order
+    //     applying the transpose update  adjoint[to] += adjoint[from] * mult,
+    //     then sojourn(v) = adjoint[v]. The requested targets are gathered from
+    //     that length-n vector. O(n) memory + O(len(trace)) time.
+    //
+    // (B) FORWARD (legacy, opt-in via PHASIC_SOJOURN_FORWARD=1). One one-hot
+    //     reward column per target, replayed forward together as an n*k dense
+    //     matrix: O(n*k) memory + O(len(trace)*k) time. Retained purely as a
+    //     bit-for-bit correctness reference / escape hatch -- it allocates
+    //     n*k doubles and OOMs once the state space is large (the joint-
+    //     probability table over a big graph is exactly n ~ k, i.e. n^2),
+    //     which is why the adjoint is the default.
+    const char *fwd_env = getenv("PHASIC_SOJOURN_FORWARD");
+    const bool use_forward = (fwd_env != NULL && fwd_env[0] == '1' && fwd_env[1] == '\0');
+
+    if (!use_forward) {
+        // ---- (A) adjoint fast path ----
+        double *adjoint = (double *) calloc(n, sizeof(double));
+        if (adjoint == NULL) {
+            PTD_LOG_ERROR("Failed to allocate adjoint sojourn vector (%zu doubles)", n);
+            return NULL;
+        }
+        adjoint[0] = 1.0;  // starting vertex index = 0
+
+        // Reverse replay. The guards mirror the forward path's limit
+        // conventions in the transpose direction:
+        //   0 x inf = 0 : a zero multiplier contributes nothing (skip);
+        //   inf x 0 = 0 : the transpose multiplies adjoint[from], so skip the
+        //                 infinite command when that operand is 0 (the forward
+        //                 path guards on results[to], the operand it multiplies,
+        //                 for the same reason).
+        // Trap / deficit-sink vertices whose forward sojourn is NaN stay NaN
+        // here as well, but they are never among the requested targets -- the
+        // t-vertices that carry joint probability all have finite sojourn.
+        for (size_t ci = compute->length; ci-- > 0; ) {
+            struct ptd_reward_increase cmd = compute->commands[ci];
+
+            if (cmd.multiplier == 0.0) {
+                continue;
+            }
+            if (isinf(cmd.multiplier) && adjoint[cmd.from] == 0.0) {
+                continue;
+            }
+            adjoint[cmd.to] += adjoint[cmd.from] * cmd.multiplier;
+        }
+
+        double *sojourn_times = (double *) malloc(k * sizeof(double));
+        if (sojourn_times == NULL) {
+            PTD_LOG_ERROR("Failed to allocate sojourn times array");
+            free(adjoint);
+            return NULL;
+        }
+        for (size_t r = 0; r < k; r++) {
+            size_t vertex_idx = indices[r];
+            if (vertex_idx >= n) {
+                PTD_LOG_ERROR("Invalid vertex index %zu (graph has %zu vertices)", vertex_idx, n);
+                free(adjoint);
+                free(sojourn_times);
+                return NULL;
+            }
+            sojourn_times[r] = adjoint[vertex_idx];
+        }
+
+        free(adjoint);
+        return sojourn_times;
+    }
+
+    // ---- (B) forward reference path (PHASIC_SOJOURN_FORWARD=1) ----
+    // Allocate results matrix as a single flat block of n*k doubles, row-major:
+    // results_flat[v*k + r] = accumulated reward at vertex v for reward vector r.
     double *results_flat = (double *) calloc(n * k, sizeof(double));
     if (results_flat == NULL) {
         PTD_LOG_ERROR("Failed to allocate results matrix (%zu x %zu doubles)", n, k);
         return NULL;
     }
 
-    // Initialize with one-hot vectors for each target index
-    // reward vector r has value 1 at vertex indices[r]
+    // Initialize with one-hot vectors: reward vector r has value 1 at indices[r].
     for (size_t r = 0; r < k; r++) {
         size_t vertex_idx = indices[r];
         if (vertex_idx >= n) {
@@ -10213,13 +10284,12 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
         results_flat[vertex_idx * k + r] = 1.0;
     }
 
-    // Apply all elimination trace commands to k reward vectors
-    // Command: results[from][r] += results[to][r] * multiplier for all r
+    // Apply all elimination trace commands to k reward vectors:
+    // results[from][r] += results[to][r] * multiplier for all r.
     for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
         struct ptd_reward_increase cmd = compute->commands[cmd_idx];
 
-        // Handle 0 × ∞ = 0 (limit interpretation)
-        // Skip when multiplier is zero to avoid NaN from 0.0 × inf
+        // 0 x inf = 0 (limit interpretation): skip a zero multiplier.
         if (cmd.multiplier == 0.0) {
             continue;
         }
@@ -10227,32 +10297,18 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
         double *from_row = results_flat + cmd.from * k;
         double *to_row = results_flat + cmd.to * k;
         double multiplier = cmd.multiplier;
-
-        // Check if multiplier is infinite
         bool mult_is_inf = isinf(multiplier);
 
-        // Inner loop: only k columns instead of n
         for (size_t r = 0; r < k; r++) {
-            // Handle inf × 0 = 0 (limit interpretation)
+            // inf x 0 = 0 (limit interpretation).
             if (mult_is_inf && to_row[r] == 0.0) {
                 continue;
             }
             from_row[r] += to_row[r] * multiplier;
         }
-
-        // Debug: check for NaN
-        #ifdef DEBUG
-        for (size_t r = 0; r < k; r++) {
-            if (isnan(from_row[r])) {
-                PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
-                    cmd.from, r, cmd_idx);
-            }
-        }
-        #endif
     }
 
-    // Extract sojourn times: results[starting_vertex][r] for each reward vector r
-    // Starting vertex is at index 0
+    // Extract sojourn times at the starting vertex (index 0) for each column.
     double *sojourn_times = (double *) malloc(k * sizeof(double));
     if (sojourn_times == NULL) {
         PTD_LOG_ERROR("Failed to allocate sojourn times array");
@@ -10266,7 +10322,6 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
 
     free(results_flat);
 
-    // PTD_LOG_DEBUG("Computed sojourn times for %zu target states (out of %zu total)", k, n);
     return sojourn_times;
 }
 
