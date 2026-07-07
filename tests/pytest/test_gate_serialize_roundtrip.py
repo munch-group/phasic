@@ -41,7 +41,10 @@ def _to_json(ser: dict) -> str:
 def _path_A(ser) -> np.ndarray:
     """Python parser: from_serialized -> update_weights -> native pdf."""
     g = Graph.from_serialized(ser)
-    assert Graph.from_serialized.__module__ == "phasic"          # pure-Python parser ran
+    # pure-Python parser ran (NOT the C++ GraphBuilder). Post-WS-C from_serialized
+    # lives in phasic._graph_serialize (assigned onto Graph); the C++ parser would
+    # be phasic.phasic_pybind.parameterized.
+    assert "phasic_pybind" not in Graph.from_serialized.__module__
     g.update_weights(THETA)
     return np.array([g.pdf(float(t), granularity=GRAN) for t in TIMES])
 
