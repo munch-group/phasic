@@ -1,0 +1,15 @@
+[run]
+branch = True
+source = phasic
+parallel = False
+relative_files = True
+
+[paths]
+phasic =
+    src/phasic
+    */site-packages/phasic
+    .pixi/envs/default/lib/python3.13/site-packages/phasic
+
+[report]
+show_missing = True
+skip_empty = False
