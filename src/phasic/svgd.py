@@ -342,6 +342,44 @@ def _wrap_model_with_exposure(model: Callable, exposure: jnp.ndarray,
 # Helper Functions
 # ============================================================================
 
+# Offset added inside log() so that an exactly-zero PMF gives a finite (very
+# negative) log-likelihood rather than -inf.
+_PMF_LOG_OFFSET = 1e-10
+
+# A PMF below this is not round-off — it is a genuinely negative "probability",
+# which means the graph was solved at an invalid (negative) rate. It is also
+# exactly the point at which log(pmf + _PMF_LOG_OFFSET) becomes undefined, so
+# a value past it would otherwise surface one step later as an opaque NaN.
+_PMF_NEG_TOL = -_PMF_LOG_OFFSET
+
+
+def _check_negative_pmf(negative_mask, worst_pmf) -> None:
+    """Raise if the model returned a negative "probability".
+
+    Host-side half of the ``jax.debug.callback`` guards in
+    ``_log_lik_from_pmf``. A probability cannot be negative, so a PMF past
+    ``_PMF_NEG_TOL`` is never round-off — it means the graph was solved at an
+    invalid (negative) rate, and the solver's output is therefore not a
+    probability at all.
+
+    Without this the value flows into ``log(pmf + _PMF_LOG_OFFSET)``, which
+    yields NaN; the NaN then poisons the gradient and the particles, and only
+    surfaces an iteration later as an opaque "model returned NaN" from a
+    theta that is by then already NaN. Reporting it here names the real cause
+    at the point it happens.
+    """
+    if np.any(negative_mask):
+        raise ValueError(
+            f"Model returned NEGATIVE PMF values for valid observations "
+            f"(count: {np.sum(negative_mask)}, most negative: "
+            f"{float(worst_pmf):.4e}). A probability cannot be negative: this "
+            f"means the graph was evaluated at a negative rate, so the "
+            f"solver's output is not a probability distribution. Check that "
+            f"every edge weight stays >= 0 over the theta range being "
+            f"explored — under 'linear' weights that requires theta >= 0."
+        )
+
+
 def _inverse_softplus(theta: jnp.ndarray) -> jnp.ndarray:
     """Inverse of softplus: phi = log(exp(theta) - 1).
 
@@ -5832,10 +5870,13 @@ class SVGD:
 
         if self._sparse_format:
             # Sparse format: all values are valid (no NaN). NaN PMF means
-            # the model misbehaved at this theta.
+            # the model misbehaved at this theta. A NEGATIVE PMF means it was
+            # evaluated at an invalid (negative) rate — see _check_negative_pmf.
             pmf_mask = ~jnp.isnan(pmf_vals)
+            negative_pmf = pmf_vals < _PMF_NEG_TOL
+            min_pmf = jnp.min(pmf_vals)
 
-            def _check_sparse(mask):
+            def _check_sparse(mask, neg_mask, worst):
                 if not np.all(mask):
                     nan_count = np.sum(~mask)
                     raise ValueError(
@@ -5843,8 +5884,9 @@ class SVGD:
                         f"Check model implementation and parameter values. "
                         f"NaN count: {nan_count}"
                     )
+                _check_negative_pmf(neg_mask, worst)
 
-            jax.debug.callback(_check_sparse, pmf_mask)
+            jax.debug.callback(_check_sparse, pmf_mask, negative_pmf, min_pmf)
 
             if has_zero_inflated:
                 # Continuous density term: contribute only for r > 0
@@ -5853,10 +5895,14 @@ class SVGD:
                 obs_values = jnp.asarray(self.observed_data.values)
                 positive_mask = obs_values > 0.0
                 log_lik = jnp.sum(
-                    jnp.where(positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
+                    jnp.where(
+                        positive_mask,
+                        jnp.log(pmf_vals + _PMF_LOG_OFFSET),
+                        0.0,
+                    )
                 )
             else:
-                log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+                log_lik = jnp.sum(jnp.log(pmf_vals + _PMF_LOG_OFFSET))
         else:
             # Dense format: missing observations (NaN in data) are skipped;
             # NaN PMF on a valid observation is an error.
@@ -5886,17 +5932,31 @@ class SVGD:
                 obs_positive_mask = obs_mask
                 invalid_pmf = obs_mask & ~pmf_mask
 
-            def _check_dense(invalid_mask):
+            # A NEGATIVE PMF on a valid observation is the actual invariant
+            # violation — see _check_negative_pmf. Checked alongside NaN so it
+            # is reported at its source rather than surfacing one step later as
+            # an opaque NaN out of log().
+            negative_pmf = obs_positive_mask & (pmf_vals < _PMF_NEG_TOL)
+            min_pmf = jnp.min(
+                jnp.where(obs_positive_mask, pmf_vals, jnp.inf)
+            )
+
+            def _check_dense(invalid_mask, neg_mask, worst):
                 if np.any(invalid_mask):
                     raise ValueError(
                         f"Model returned NaN PMF values for valid observations. "
                         f"Check model implementation and parameter values. "
                         f"NaN count: {np.sum(invalid_mask)}"
                     )
+                _check_negative_pmf(neg_mask, worst)
 
-            jax.debug.callback(_check_dense, invalid_pmf)
+            jax.debug.callback(_check_dense, invalid_pmf, negative_pmf, min_pmf)
             log_lik = jnp.sum(
-                jnp.where(obs_positive_mask, jnp.log(pmf_vals + 1e-10), 0.0)
+                jnp.where(
+                    obs_positive_mask,
+                    jnp.log(pmf_vals + _PMF_LOG_OFFSET),
+                    0.0,
+                )
             )
 
         if has_zero_inflated:

@@ -680,6 +680,121 @@ def _fixed_indices_set_from_mask(fixed_mask):
     return set(int(i) for i in np.where(m == 1)[0])
 
 
+# Finite-difference step used by the model builders' custom_vjp backward
+# passes. The step is RELATIVE to |theta_i| so it stays well scaled at any
+# parameter magnitude: a fixed absolute step is a 0.1% perturbation on a rate
+# of 1e-4 and a 0.00001% one on a rate of 1e0.
+_FD_REL_STEP = 1e-6      # ~cbrt(f64 eps): near-optimal for a central difference
+_FD_MIN_STEP = 1e-15     # floor, so theta_i == 0 still moves. Kept well below
+                         # _FD_REL_STEP * theta for any rate we expect to see
+                         # (a per-generation mutation rate is routinely 1e-8),
+                         # so the step stays genuinely RELATIVE down to
+                         # theta ~ 1e-9 and only degrades near zero.
+_FD_MIN_THETA = 1e-15    # lower bound for a rate-typed probe. STRICTLY positive:
+                         # a rate of exactly 0 makes a vertex unreachable, and the
+                         # moments elimination then divides by a zero exit rate
+                         # ("numerical catastrophe: multiplier=nan"). It is 6
+                         # orders below the smallest rate anyone fits (~1e-9), so
+                         # unlike the 1e-9 clamp it replaces it never binds on a
+                         # real parameter — it only keeps a collapsed one off zero.
+
+
+def _fd_probe_points(theta, i, weight_mode):
+    """Probe points and divisor for a well-scaled, validity-preserving
+    central difference on ``theta[i]``.
+
+    Returns ``(theta_plus, theta_minus, denom)`` such that the derivative
+    estimate is ``(f(theta_plus) - f(theta_minus)) / denom``.
+
+    A fixed ABSOLUTE step (``eps = 1e-7``) has two failure modes on a
+    rate-typed parameter whose natural scale is small — e.g. a coalescent rate
+    ``theta = 1/N ~ 1e-4``:
+
+    1. It is badly scaled: 1e-7 is a 0.1% perturbation of 1e-4, so the estimate
+       carries large truncation error even in the healthy regime.
+    2. It goes NEGATIVE as soon as ``theta_i < eps``. The graph solvers accept a
+       negative rate without complaint and return negative "probabilities",
+       which inverts and explodes the gradient (observed: a sign flip and a
+       ~1e6 magnitude blow-up as theta_i crossed 1e-7).
+
+    A relative step is very nearly validity-preserving on its own —
+    ``theta_i - h`` is ``theta_i * (1 - _FD_REL_STEP)``, which keeps theta's
+    SIGN at any magnitude — which is why the fix is the relative step, not a
+    bigger clamp. A clamp alone cannot do the job: the ``min_theta = 1e-9`` this
+    replaces sat right on top of rates people actually fit (a per-generation
+    mutation rate is routinely 1e-8), so it distorted the probe exactly where it
+    mattered. The only case a relative step can still cross zero is when the
+    ``_FD_MIN_STEP`` floor dominates, i.e. theta_i is itself ~0.
+
+    ``weight_mode`` is the graph's weight mode; it decides what "valid" means
+    for theta, and each mode gets the probe rule its own validity domain needs:
+
+    ``'linear'``
+        ``weight = dot(c, theta)`` — theta IS the rate scale and must stay
+        non-negative. The minus point is floored at ``_FD_MIN_THETA``, which is
+        STRICTLY positive: a rate of exactly zero makes a vertex unreachable and
+        the moments elimination then divides by a zero exit rate ("numerical
+        catastrophe: multiplier=nan"). The floor sits ~6 orders below any rate
+        that gets fitted in practice, so it never binds on a real parameter — it
+        only keeps a fully collapsed one off zero.
+
+    ``'log'``
+        ``weight = prod(c_k * theta_k)``, computed in log-space. This is NOT a
+        log-scale on theta: the C layer requires EVERY ``(c_k * theta_k)``
+        product to be STRICTLY positive and raises otherwise (phasic.c:5712), so
+        theta is constrained at least as tightly as under ``'linear'`` — more so,
+        since ``'linear'`` tolerates theta == 0 and this does not. The probe is
+        therefore purely MULTIPLICATIVE (``theta_i * (1 +/- _FD_REL_STEP)``) with
+        NO absolute floor: that preserves theta's sign and never crosses zero at
+        any magnitude, so it stays inside the validity domain even where a
+        coefficient is negative and theta must be negative to match it. At
+        ``theta_i == 0`` the FORWARD is already invalid here (``c * 0 == 0`` is
+        non-positive), so the degenerate zero-width step is harmless: the forward
+        raises before the divisor is used.
+
+    ``'callback'`` / ``'formula'``
+        The user's expression may be ``c0*t0`` or ``exp(t0)``; its validity
+        domain is not ours to assume, so no floor is applied. The relative step
+        still removes the sign-flip hazard, and ``_check_weight`` loudly rejects
+        any negative weight that does arise.
+
+    ``denom`` is the ACTUAL separation of the two probe points, not an assumed
+    ``2 * h``, so the estimate stays consistent when a floor binds: it degrades
+    smoothly from a central to a one-sided difference at the boundary.
+    """
+    import jax.numpy as jnp
+
+    # Fail loudly on an unknown mode. This used to be a `nonneg: bool`, and a
+    # stale `nonneg=True` would now compare unequal to every known mode and
+    # SILENTLY disable the floor -- i.e. the exact hazard this helper exists to
+    # remove. Never guess a mode.
+    if weight_mode not in ('linear', 'log', 'callback', 'formula', None):
+        raise ValueError(
+            f"_fd_probe_points: weight_mode must be one of 'linear', 'log', "
+            f"'callback', 'formula', or None (opaque user semantics), got "
+            f"{weight_mode!r}. Note this argument replaced the old `nonneg` "
+            f"bool -- pass the graph's weight mode, not a flag."
+        )
+
+    theta_i = theta[i]
+
+    if weight_mode == 'log':
+        # Multiplicative: sign-preserving and zero-avoiding by construction.
+        h = _FD_REL_STEP * jnp.abs(theta_i)
+        hi = theta_i + h
+        lo = theta_i - h
+        return theta.at[i].set(hi), theta.at[i].set(lo), hi - lo
+
+    h = jnp.maximum(_FD_REL_STEP * jnp.abs(theta_i), _FD_MIN_STEP)
+    lo = theta_i - h
+    if weight_mode == 'linear':
+        lo = jnp.maximum(lo, _FD_MIN_THETA)
+    # Guarantee hi > lo (hence denom >= h > 0) even when the floor lifted lo
+    # above theta_i - h.
+    hi = jnp.maximum(theta_i + h, lo + h)
+    return theta.at[i].set(hi), theta.at[i].set(lo), hi - lo
+
+
 def _apply_weight_callback(serialized: dict, theta: np.ndarray, callback: Callable) -> dict:
     """Apply a weight callback to produce a non-parameterized serialized graph.
 
@@ -908,11 +1023,18 @@ def _compile_wrapper_library(wrapper_code: str, lib_name: str, extra_includes: l
         # installs put __file__ under site-packages where no `src/` exists,
         # producing an opaque "no such file" clang error. Detect that here
         # and emit a self-explanatory message.
+        # Must match what CMake links into libphasiccpp (CMakeLists.txt) —
+        # phasic.c calls into the SCC machinery (ptd_scc_compose_in_progress
+        # etc.), so omitting scc_synthetic.c / scc_compose.c / scc_graph.cpp
+        # left this JIT compile with unresolved symbols at link time.
         sources = [
             f'{pkg_dir}/src/cpp/phasiccpp.cpp',
+            f'{pkg_dir}/api/cpp/scc_graph.cpp',
             f'{pkg_dir}/src/c/phasic.c',
             f'{pkg_dir}/src/c/phasic_hash.c',
             f'{pkg_dir}/src/c/phasic_log.c',
+            f'{pkg_dir}/src/c/scc_synthetic.c',
+            f'{pkg_dir}/src/c/scc_compose.c',
         ]
         missing = [s for s in sources if not os.path.exists(s)]
         if missing:
@@ -929,30 +1051,65 @@ def _compile_wrapper_library(wrapper_code: str, lib_name: str, extra_includes: l
                 "PHASIC_SOURCE_DIR to point at one."
             )
 
-        # Base compilation command
-        cmd = [
-            'g++', '-O3', '-fPIC', '-shared', '-std=c++14',
+        # Include set must match what CMake gives the real build
+        # (CMakeLists.txt: `libphasiccpp PRIVATE src/cpp src/c`) — in
+        # particular src/c, because api/c/phasic.h does
+        # `#include "phasic_log.h"` and that header lives in src/c, not api/c.
+        includes = [
             f'-I{pkg_dir}',
             f'-I{pkg_dir}/api/cpp',
             f'-I{pkg_dir}/api/c',
             f'-I{pkg_dir}/include',
+            f'-I{pkg_dir}/src/cpp',
+            f'-I{pkg_dir}/src/c',
         ]
-
-        # Add extra includes if provided
         if extra_includes:
-            for inc in extra_includes:
-                cmd.append(f'-I{inc}')
+            includes += [f'-I{inc}' for inc in extra_includes]
 
-        # Add source files
-        cmd.extend([wrapper_file, *sources, '-o', lib_path])
+        # The C sources must be compiled AS C, not as C++. A single g++ command
+        # over mixed sources compiles the .c files in C++ mode, where legal C
+        # (e.g. scc_compose.c's goto past an initialiser) is a hard error. CMake
+        # builds them with the C compiler; mirror that: compile each translation
+        # unit with the right frontend, then link with the C++ driver (the
+        # public headers carry extern "C" guards, so the C objects link in
+        # cleanly).
+        c_sources = [s for s in sources if s.endswith('.c')]
+        cxx_sources = [wrapper_file] + [s for s in sources if s.endswith('.cpp')]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Compilation failed:\n{result.stderr}")
+        objects = []
+        with tempfile.TemporaryDirectory() as objdir:
+            for i, src in enumerate(c_sources):
+                obj = os.path.join(objdir, f'c_{i}.o')
+                _run_cc(
+                    ['cc', '-O3', '-fPIC', '-std=c11', '-c', src, '-o', obj]
+                    + includes,
+                    src,
+                )
+                objects.append(obj)
+            for i, src in enumerate(cxx_sources):
+                obj = os.path.join(objdir, f'cxx_{i}.o')
+                _run_cc(
+                    ['g++', '-O3', '-fPIC', '-std=c++14', '-c', src, '-o', obj]
+                    + includes,
+                    src,
+                )
+                objects.append(obj)
+            _run_cc(
+                ['g++', '-shared', *objects, '-o', lib_path], 'link',
+            )
     finally:
         os.unlink(wrapper_file)
 
     return lib_path
+
+
+def _run_cc(cmd: list[str], what: str) -> None:
+    """Run one compile/link step, surfacing the compiler's own diagnostics."""
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Compilation failed ({what}):\n{result.stderr}"
+        )
 
 
 def _setup_ctypes_signatures(lib: Any, has_pmf: bool = True, has_dph: bool = True) -> None:
@@ -3513,17 +3670,19 @@ class Graph(_Graph):
                 pdf = model_pure(theta, times)
                 return pdf, (theta, times)
 
+            fd_mode = getattr(graph, '_weight_mode', 'linear')
+
             def jax_model_bwd(res, g):
                 theta, times = res
                 n_params = theta.shape[0]
-                eps = 1e-7
                 theta_bar = []
                 for i in range(n_params):
-                    theta_plus = theta.at[i].add(eps)
-                    theta_minus = theta.at[i].add(-eps)
+                    theta_plus, theta_minus, denom = _fd_probe_points(
+                        theta, i, fd_mode
+                    )
                     pdf_plus = model_pure(theta_plus, times)
                     pdf_minus = model_pure(theta_minus, times)
-                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / denom)
                     theta_bar.append(grad_i)
                 return jnp.array(theta_bar), None
 
@@ -3634,22 +3793,24 @@ class Graph(_Graph):
                 pdf = model_pure(theta, times)
                 return pdf, (theta, times)
 
+            fd_mode = getattr(graph, '_weight_mode', 'linear')
+
             def jax_model_bwd(res, g):
                 """Backward pass: compute gradients via finite differences."""
                 theta, times = res
                 n_params = theta.shape[0]
-                eps = 1e-7
 
                 # Finite difference gradients
                 theta_bar = []
                 for i in range(n_params):
-                    theta_plus = theta.at[i].add(eps)
-                    theta_minus = theta.at[i].add(-eps)
+                    theta_plus, theta_minus, denom = _fd_probe_points(
+                        theta, i, fd_mode
+                    )
 
                     pdf_plus = model_pure(theta_plus, times)
                     pdf_minus = model_pure(theta_minus, times)
 
-                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / denom)
                     theta_bar.append(grad_i)
 
                 return jnp.array(theta_bar), None
@@ -3934,7 +4095,16 @@ extern "C" {{
                          const int* jumps, int n_jumps,
                          double* output) {{
         phasic::Graph g = build_model(theta, n_params);
-        g.normalize();  // Normalize for discrete mode
+        // NO normalize() here. In a DPH the edge weights ARE the per-step
+        // transition probabilities and the deficit (1 - row sum) is the
+        // implicit stay-in-place probability. The continuous normalize()
+        // rescales every vertex's outgoing weights to sum to 1, which turns
+        // the chain into a deterministic walk: on a 2-phase chain it made
+        // P(T = 2) = 1 and P(T = n) = 0 otherwise, and — because the rescaling
+        // divides theta out — made the gradient identically zero. The FFI
+        // handler (ComputePmfFfiImpl) calls dph_pmf directly with no
+        // normalisation; match it. A model whose row sums exceed 1 is invalid
+        // and the DPH context rejects it, which is the correct behaviour.
         for (int i = 0; i < n_jumps; i++) {{
             output[i] = g.dph_pmf(jumps[i]);
         }}
@@ -3997,19 +4167,24 @@ extern "C" {{
         def jax_model_bwd(res, g):
             theta, times = res
             n_params = theta.shape[0]
-            eps = 1e-7
 
-            # Finite differences for gradient
+            # Finite differences for gradient.
+            # weight_mode=None: this path loads the USER's build_model(theta, n),
+            # which may give theta any meaning it likes, so we cannot assert
+            # that theta scales rates. The relative step is what removes the
+            # sign-flip hazard here — it preserves theta's sign at any
+            # magnitude — and it needs no such assumption.
             theta_bar = []
             for i in range(n_params):
-                theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].add(-eps)
+                theta_plus, theta_minus, denom = _fd_probe_points(
+                    theta, i, weight_mode=None
+                )
 
                 # Call underlying computation, not jax_model
                 pmf_plus = _compute_pmf_pure(theta_plus, times)
                 pmf_minus = _compute_pmf_pure(theta_minus, times)
 
-                grad_i = jnp.sum(g * (pmf_plus - pmf_minus) / (2 * eps))
+                grad_i = jnp.sum(g * (pmf_plus - pmf_minus) / denom)
                 theta_bar.append(grad_i)
 
             return jnp.array(theta_bar), None
@@ -4380,7 +4555,13 @@ extern "C" {{
 
             structure_json_local = _json_mod_local.dumps(structure_local)
 
-            eps_local = 1e-7
+            # Each weight mode gets the probe rule its validity domain needs:
+            # 'linear' floors the minus-probe at a strictly-positive value;
+            # 'log' uses a sign-preserving multiplicative step (it requires
+            # every (c_k*theta_k) product to be STRICTLY positive -- it is NOT
+            # a log-scale on theta); 'callback'/'formula' get no floor.
+            # See _fd_probe_points.
+            fd_mode_local = getattr(self, '_weight_mode', 'linear')
             # FD backward skips ONLY truly-fixed positions, not slave
             # positions — see fd_skip_indices computation above.
             fixed_set_local = set(int(i) for i in fd_skip_indices)
@@ -4436,13 +4617,12 @@ extern "C" {{
                     if i in fixed_set_local:
                         grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                         continue
-                    tp = theta_flat.at[i].add(eps_local)
-                    tm = theta_flat.at[i].add(-eps_local)
+                    tp, tm, denom = _fd_probe_points(
+                        theta_flat, i, fd_mode_local
+                    )
                     jp = _forward(tp)
                     jm = _forward(tm)
-                    grads.append(
-                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                    )
+                    grads.append(jnp.sum(cotangent * (jp - jm) / denom))
                 return (jnp.stack(grads),)
 
             _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
@@ -4581,9 +4761,14 @@ extern "C" {{
             structure_json_local = _json_mod_local.dumps(structure_local)
 
             # Per-obs forward + custom_vjp (FD) wrapping a SINGLE batched
-            # FFI call. eps matches the legacy daisy_chain_joint_probs
-            # FD pattern.
-            eps_local = 1e-7
+            # FFI call.
+            # Each weight mode gets the probe rule its validity domain needs:
+            # 'linear' floors the minus-probe at a strictly-positive value;
+            # 'log' uses a sign-preserving multiplicative step (it requires
+            # every (c_k*theta_k) product to be STRICTLY positive -- it is NOT
+            # a log-scale on theta); 'callback'/'formula' get no floor.
+            # See _fd_probe_points.
+            fd_mode_local = getattr(self, '_weight_mode', 'linear')
             # FD backward skips ONLY truly-fixed positions, not slave
             # positions — see fd_skip_indices computation above for why.
             fixed_set_local = set(int(i) for i in fd_skip_indices)
@@ -4676,13 +4861,12 @@ extern "C" {{
                     if i in fixed_set_local:
                         grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                         continue
-                    tp = theta_flat.at[i].add(eps_local)
-                    tm = theta_flat.at[i].add(-eps_local)
+                    tp, tm, denom = _fd_probe_points(
+                        theta_flat, i, fd_mode_local
+                    )
                     jp = _per_obs_core(tp)
                     jm = _per_obs_core(tm)
-                    grads.append(
-                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                    )
+                    grads.append(jnp.sum(cotangent * (jp - jm) / denom))
                 return (jnp.stack(grads),)
 
             _per_obs_autodiff.defvjp(_per_obs_fwd, _per_obs_bwd)
@@ -6310,6 +6494,24 @@ extern "C" {{
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
 
+        # `_generate_cpp_from_graph` below emits a build_model() whose weight
+        # computation is a hardcoded LINEAR dot product: the graph's weight_mode
+        # never reaches the generated C++. Silently returning linear moments for
+        # a 'log'/'callback'/'formula' graph is a WRONG ANSWER with no error --
+        # on a test chain it returned E[T] = 0.325 where the truth was 0.75.
+        # Fail loudly instead. (`pmf_and_moments_from_graph` DOES honour the
+        # mode: it routes through GraphBuilder / a callback branch.)
+        _wm = getattr(graph, '_weight_mode', 'linear')
+        if _wm != 'linear':
+            raise ValueError(
+                f"moments_from_graph() supports weight_mode='linear' only, got "
+                f"{_wm!r}. This path JIT-compiles a build_model() that computes "
+                f"edge weights as a linear dot product, so a {_wm!r} graph would "
+                f"silently get LINEAR moments rather than the ones its weight "
+                f"rule implies. Use Graph.pmf_and_moments_from_graph(), which "
+                f"honours every weight mode."
+            )
+
         # Generate C++ build_model() code
         cpp_code = _generate_cpp_from_graph(serialized)
 
@@ -6345,10 +6547,19 @@ extern "C" {{
 
         output[0] = rewards2[0];  // First moment (mean)
 
+        // Raw moments of a phase-type: E[T^k] = k! * w^(k)[start], where
+        // w^(1) = expected_waiting_time(unit rewards) and each subsequent
+        // vector is obtained by feeding the PREVIOUS one back in as the reward
+        // vector: w^(k+1) = expected_waiting_time(rewards = w^(k)).
+        //
+        // This previously did `rewards3[j] = rewards2[j] * pow(rewards2[j], i)`
+        // — raising each entry to a power instead of passing it through — which
+        // computes a different quantity entirely. On Erlang(2, rate=1) it
+        // returned E[T^2] = 10 against a true value of 6. The bug was invisible
+        // because _compile_wrapper_library could not build this wrapper at all.
         for (int i = 1; i < nr_moments; i++) {{
-            // Compute higher moments
             for (int j = 0; j < (int)rewards3.size(); j++) {{
-                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
+                rewards3[j] = rewards2[j];
             }}
 
             rewards2 = g.expected_waiting_time(rewards3);
@@ -6407,21 +6618,23 @@ extern "C" {{
             moments = _compute_pure(theta)
             return moments, theta
 
+        fd_mode = getattr(graph, '_weight_mode', 'linear')
+
         def moments_fn_bwd(theta, g):
             n_params = theta.shape[0]
-            eps = 1e-7
 
             # Finite differences for gradient
             theta_bar = []
             for i in range(n_params):
-                theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].add(-eps)
+                theta_plus, theta_minus, denom = _fd_probe_points(
+                    theta, i, fd_mode
+                )
 
                 # Call underlying computation, not moments_fn
                 moments_plus = _compute_pure(theta_plus)
                 moments_minus = _compute_pure(theta_minus)
 
-                grad_i = jnp.sum(g * (moments_plus - moments_minus) / (2 * eps))
+                grad_i = jnp.sum(g * (moments_plus - moments_minus) / denom)
                 theta_bar.append(grad_i)
 
             return (jnp.array(theta_bar),)
@@ -6529,6 +6742,14 @@ extern "C" {{
         # skipped (their gradient is 0 and SVGD discards it). Threaded from
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
+
+        # Each weight mode gets the probe rule its validity domain needs:
+        # 'linear' floors the minus-probe at a strictly-positive value; 'log'
+        # uses a sign-preserving multiplicative step (it requires every
+        # (c_k*theta_k) product to be STRICTLY positive -- it is NOT a
+        # log-scale on theta); 'callback'/'formula' get no floor.
+        # See _fd_probe_points.
+        fd_mode = getattr(graph, '_weight_mode', 'linear')
 
         # Callback mode: Python-level weight computation
         if serialized.get('weight_mode') == 'callback':
@@ -6659,18 +6880,14 @@ extern "C" {{
             def cdf_zero_bwd_cb(res, g_cz):
                 theta, rewards = res
                 n_params = theta.shape[0]
-                eps = 1e-7
-                min_theta = 1e-9
                 grads = []
                 for i in range(n_params):
                     if i in _fixed_dims:
                         grads.append(0.0)
                         continue
-                    theta_plus = theta.at[i].add(eps)
-                    theta_minus = theta.at[i].set(
-                        jnp.maximum(theta[i] - eps, min_theta)
+                    theta_plus, theta_minus, actual_diff = _fd_probe_points(
+                        theta, i, fd_mode
                     )
-                    actual_diff = theta_plus[i] - theta_minus[i]
                     cz_plus = _cdf_zero_pure_cb(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure_cb(theta_minus, rewards)
                     grad_i = jnp.sum(
@@ -6906,18 +7123,14 @@ extern "C" {{
             def cdf_zero_bwd(res, g_cz):
                 theta, rewards = res
                 n_params = theta.shape[0]
-                eps = 1e-7
-                min_theta = 1e-9
                 grads = []
                 for i in range(n_params):
                     if i in _fixed_dims:
                         grads.append(0.0)
                         continue
-                    theta_plus = theta.at[i].add(eps)
-                    theta_minus = theta.at[i].set(
-                        jnp.maximum(theta[i] - eps, min_theta)
+                    theta_plus, theta_minus, actual_diff = _fd_probe_points(
+                        theta, i, fd_mode
                     )
-                    actual_diff = theta_plus[i] - theta_minus[i]
                     cz_plus = _cdf_zero_pure(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure(theta_minus, rewards)
                     grad_i = jnp.sum(g_cz * (cz_plus - cz_minus) / actual_diff)
@@ -6957,12 +7170,13 @@ extern "C" {{
             g_pmf, g_moments = g  # Unpack gradient tuple
 
             n_params = theta.shape[0]
-            eps = 1e-7
 
-            # Finite differences for gradient
-            # Clamp lower perturbation to stay positive (theta comes from
-            # softplus which can be as small as 1e-9, smaller than eps)
-            min_theta = 1e-9
+            # Finite differences for gradient. theta comes from softplus and
+            # can be far smaller than any fixed absolute step (a per-generation
+            # mutation rate is routinely 1e-8), so the step is relative and the
+            # minus-probe is kept non-negative — see _fd_probe_points. This
+            # replaces a `min_theta = 1e-9` clamp that kept the probe positive
+            # but pinned an absolute scale and left the step badly conditioned.
             theta_bar = []
             for i in range(n_params):
                 # Skip fixed parameters: their gradient is 0 and SVGD discards
@@ -6971,9 +7185,9 @@ extern "C" {{
                 if i in _fixed_dims:
                     theta_bar.append(0.0)
                     continue
-                theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].set(jnp.maximum(theta[i] - eps, min_theta))
-                actual_diff = theta_plus[i] - theta_minus[i]
+                theta_plus, theta_minus, actual_diff = _fd_probe_points(
+                    theta, i, fd_mode
+                )
 
                 # Call underlying computation, not model
                 pmf_plus, moments_plus = _compute_pure(theta_plus, times, rewards)
@@ -7104,6 +7318,24 @@ extern "C" {{
         import jax
         import jax.numpy as jnp
         from .ffi_wrappers import compute_sojourn_times_ffi
+
+        # ComputeSojournTimesFfiImpl calls ptd_graph_update_weights(...,
+        # /*use_log=*/false) directly (graph_builder_ffi.cpp:887, :941),
+        # bypassing GraphBuilder and hardcoding LINEAR weights. A 'log' graph
+        # would therefore silently get the linear answer (verified: identical
+        # output for linear and log where the log rates differ). 'callback' and
+        # 'formula' ARE honoured (see the callback branch below), so only 'log'
+        # is rejected here.
+        _wm = getattr(graph, '_weight_mode', 'linear')
+        if _wm == 'log':
+            raise ValueError(
+                "pmf_from_graph_joint_index() does not support "
+                "weight_mode='log': the sojourn FFI handler computes edge "
+                "weights linearly, so a 'log' graph would silently receive "
+                "LINEAR weights instead of the product rule 'log' implies. "
+                "Use weight_mode='formula' (e.g. a product expression) or "
+                "'callback', both of which are honoured."
+            )
 
         # Serialize the graph
         serialized = graph.serialize(theta_dim=theta_dim)
@@ -7386,12 +7618,13 @@ extern "C" {{
             fixed_mask_np = np.asarray(fixed_mask)
             fixed_indices_set = set(np.where(fixed_mask_np == 1)[0].tolist())
 
+        fd_mode = getattr(graph, '_weight_mode', 'linear')
+
         def model_bwd(res, g):
             theta, vertex_indices = res
             g_visits, g_moments = g  # Unpack gradient tuple
 
             n_params = theta.shape[0]
-            eps = 1e-7
 
             # Finite differences for gradient
             theta_bar = []
@@ -7402,14 +7635,15 @@ extern "C" {{
                     theta_bar.append(0.0)
                     continue
 
-                theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].add(-eps)
+                theta_plus, theta_minus, denom = _fd_probe_points(
+                    theta, i, fd_mode
+                )
 
                 visits_plus, _ = _compute_pure(theta_plus, vertex_indices)
                 visits_minus, _ = _compute_pure(theta_minus, vertex_indices)
 
                 # Gradient only from visits (moments are dummy zeros)
-                grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / (2 * eps))
+                grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / denom)
                 theta_bar.append(grad_i)
 
             return jnp.array(theta_bar), None, None  # gradients for theta, vertex_indices, rewards
@@ -9311,6 +9545,19 @@ extern "C" {{
                 "joint_stop_prob_graph()."
             )
 
+        # Both daisy FFI handlers call ptd_graph_update_weights(...,
+        # /*use_log=*/false) directly (graph_builder_ffi.cpp:1528 for
+        # DaisyChainJointProbs; :1782 and :1827 for DaisyChainSojourn), so a
+        # 'log' graph would silently be evaluated with LINEAR weights.
+        if getattr(self, '_weight_mode', 'linear') == 'log':
+            raise ValueError(
+                "daisy_chain_joint_probs() does not support weight_mode='log': "
+                "the daisy FFI handlers compute edge weights linearly, so a "
+                "'log' graph would silently receive LINEAR weights instead of "
+                "the product rule 'log' implies. Use weight_mode='formula' or "
+                "'callback'."
+            )
+
         _ensure_jax_active()
         epoch_thetas_arr = jnp.asarray(epoch_thetas)
         if epoch_thetas_arr.ndim != 2:
@@ -9456,9 +9703,11 @@ extern "C" {{
             )
 
         # Wrap the forward in a custom_vjp so jax.grad works via finite
-        # differences. eps=1e-7 matches the established pattern at
-        # __init__.py:4322 (vanilla pmf_from_graph_joint_index).
-        eps = 1e-7
+        # differences. Each weight mode gets the probe rule its validity domain
+        # needs -- 'log' in particular is NOT a log-scale on theta; it requires
+        # every (c_k*theta_k) product to be STRICTLY positive.
+        # See _fd_probe_points.
+        fd_mode = getattr(self, '_weight_mode', 'linear')
 
         # Normalise fixed_indices to a Python set so the bwd rule can
         # skip FD evaluations on fixed slots — both saving compute and,
@@ -9483,11 +9732,10 @@ extern "C" {{
                 if i in fixed_set:
                     grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                     continue
-                tp = theta_flat.at[i].add(eps)
-                tm = theta_flat.at[i].add(-eps)
+                tp, tm, denom = _fd_probe_points(theta_flat, i, fd_mode)
                 jp = _forward(tp)
                 jm = _forward(tm)
-                grads.append(jnp.sum(cotangent * (jp - jm) / (2.0 * eps)))
+                grads.append(jnp.sum(cotangent * (jp - jm) / denom))
             return (jnp.stack(grads),)
 
         _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)

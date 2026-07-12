@@ -1220,6 +1220,37 @@ ffi::Error SamplePathConditionedFfiImpl(
 }
 
 // ===========================================================================
+// Negative-rate guard (shared by both daisy-chain handlers)
+// ===========================================================================
+//
+// A transition rate cannot be negative. When theta drives an edge weight below
+// zero, NOTHING downstream complains: ptd_graph_update_weights accepts it, and
+// the elimination / uniformization solvers happily run on it and return
+// negative "probabilities". Those then invert and explode any gradient built on
+// top (an FD backward that probes theta_i - eps below zero was observed to flip
+// the gradient's sign and inflate it by ~12 orders of magnitude), and only
+// surface much later as an opaque NaN. Fail loudly at the source instead.
+//
+// The tolerance absorbs round-off in the coefficient dot product; edge weights
+// come from small-integer coefficients times theta, so genuine round-off is
+// ~1e-19. A weight past this bound is a sign error, not noise. Exactly-zero
+// weights are legal (they simply remove the edge) and must NOT trip the guard.
+constexpr double kMinEdgeWeight = -1e-12;
+
+// Most negative edge weight in the graph, or 0.0 if none is negative.
+static double most_negative_edge_weight(struct ptd_graph* g) {
+    double worst = 0.0;
+    for (size_t i = 0; i < g->vertices_length; ++i) {
+        struct ptd_vertex* v = g->vertices[i];
+        for (size_t j = 0; j < v->edges_length; ++j) {
+            const double w = v->edges[j]->weight;
+            if (w < worst) worst = w;
+        }
+    }
+    return worst;
+}
+
+// ===========================================================================
 // DaisyChainJointProbsFfiImpl: full daisy-chain joint-probs in C
 // ===========================================================================
 //
@@ -1427,6 +1458,11 @@ ffi::Error DaisyChainJointProbsFfiImpl(
         );
 #endif
 
+        // Negative-rate detection, shared across the OpenMP batch loop. We
+        // cannot return from inside the loop, so record and report after it.
+        bool neg_rate_seen = false;
+        double neg_rate_worst = 0.0;
+
         // Per-batch daisy chain. OpenMP parallelises over batch
         // elements; each thread reuses a persistent Graph across
         // batch elements via update_weights (no per-iter alloc).
@@ -1507,6 +1543,27 @@ ffi::Error DaisyChainJointProbsFfiImpl(
                     goto next_batch;
                 }
 
+                // Rates must be >= 0. See most_negative_edge_weight: the
+                // solvers below would otherwise run on a negative rate and
+                // return negative "probabilities" without complaint.
+                {
+                    const double worst_w =
+                        most_negative_edge_weight(g.c_graph());
+                    if (worst_w < kMinEdgeWeight) {
+                        #pragma omp critical(daisy_neg_rate)
+                        {
+                            neg_rate_seen = true;
+                            if (worst_w < neg_rate_worst)
+                                neg_rate_worst = worst_w;
+                        }
+                        for (size_t k = 0; k < n_t; ++k) {
+                            result_b[k] =
+                                std::numeric_limits<double>::quiet_NaN();
+                        }
+                        goto next_batch;
+                    }
+                }
+
                 // Decide which time to evaluate stop_probability at.
                 const double t_step =
                     (epoch < n_epochs - 1) ? epoch_dts[epoch] : t_eval;
@@ -1569,6 +1626,17 @@ ffi::Error DaisyChainJointProbsFfiImpl(
             }
             continue;
             next_batch:;  // jump target on per-batch error
+        }
+
+        if (neg_rate_seen) {
+            return ffi::Error::InvalidArgument(
+                "DaisyChainJointProbsFfiImpl: theta produced a NEGATIVE "
+                "transition rate (most negative edge weight: " +
+                std::to_string(neg_rate_worst) +
+                "). A rate cannot be negative -- the solver's output would "
+                "not be a probability distribution. Under 'linear' weights "
+                "this means some theta component went below zero."
+            );
         }
 
         return ffi::Error::Success();
@@ -1680,6 +1748,11 @@ ffi::Error DaisyChainSojournFfiImpl(
         double* result_data = result->typed_data();
         const size_t batch_size = std::max(theta_bs, ipv_bs);
 
+        // Negative-rate detection, shared across the OpenMP batch loop. We
+        // cannot return from inside the loop, so record and report after it.
+        bool neg_rate_seen = false;
+        double neg_rate_worst = 0.0;
+
         #pragma omp parallel for if(batch_size > 1)
         for (size_t b = 0; b < batch_size; ++b) {
             const double* theta_b = (theta_bs > 1) ? theta_data + b * theta_len : theta_data;
@@ -1707,6 +1780,19 @@ ffi::Error DaisyChainSojournFfiImpl(
                 const double* theta_e = theta_b + epoch * param_length;
                 ptd_graph_update_ipv(gj->c_graph(), ipv_work.data(), n_ipv);
                 ptd_graph_update_weights(gj->c_graph(), const_cast<double*>(theta_e), static_cast<size_t>(param_length), false);
+                // Rates must be >= 0; see most_negative_edge_weight.
+                {
+                    const double worst_w = most_negative_edge_weight(gj->c_graph());
+                    if (worst_w < kMinEdgeWeight) {
+                        #pragma omp critical(daisy_neg_rate)
+                        {
+                            neg_rate_seen = true;
+                            if (worst_w < neg_rate_worst) neg_rate_worst = worst_w;
+                        }
+                        failed = true;
+                        break;
+                    }
+                }
                 std::vector<double> raw;
                 try { raw = gj->stop_probability(epoch_dts[epoch], granularity); }
                 catch (const std::exception& e) { failed = true; break; }
@@ -1739,6 +1825,22 @@ ffi::Error DaisyChainSojournFfiImpl(
             }
             ptd_graph_update_ipv(gs->c_graph(), sojourn_ipv.data(), sojourn_n_ipv);
             ptd_graph_update_weights(gs->c_graph(), const_cast<double*>(theta_final), static_cast<size_t>(param_length), false);
+            // Rates must be >= 0; see most_negative_edge_weight. The final
+            // epoch's elimination read is just as happy to run on a negative
+            // rate as the stop_probability solve above.
+            {
+                const double worst_w = most_negative_edge_weight(gs->c_graph());
+                if (worst_w < kMinEdgeWeight) {
+                    #pragma omp critical(daisy_neg_rate)
+                    {
+                        neg_rate_seen = true;
+                        if (worst_w < neg_rate_worst) neg_rate_worst = worst_w;
+                    }
+                    for (size_t k = 0; k < n_t; ++k)
+                        result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                    continue;
+                }
+            }
             std::vector<size_t> idx(n_t);
             for (size_t k = 0; k < n_t; ++k) idx[k] = static_cast<size_t>(sojourn_t_indices[k]);
             double* soj = ptd_expected_sojourn_time_subset(gs->c_graph(), idx.data(), n_t);
@@ -1762,6 +1864,17 @@ ffi::Error DaisyChainSojournFfiImpl(
                 result_b[k] = r_v * soj[k] * handoff_mass;
             }
             free(soj);
+        }
+
+        if (neg_rate_seen) {
+            return ffi::Error::InvalidArgument(
+                "DaisyChainSojournFfiImpl: theta produced a NEGATIVE "
+                "transition rate (most negative edge weight: " +
+                std::to_string(neg_rate_worst) +
+                "). A rate cannot be negative -- the solver's output would "
+                "not be a probability distribution. Under 'linear' weights "
+                "this means some theta component went below zero."
+            );
         }
 
         return ffi::Error::Success();

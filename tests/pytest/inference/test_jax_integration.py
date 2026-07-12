@@ -404,6 +404,54 @@ class TestMomentsFromGraph:
         assert jnp.all(jnp.isfinite(moments))
 
 
+class TestMomentsFromGraphValues:
+    """moments_from_graph must return the CORRECT raw moments.
+
+    The two tests above only assert `isfinite` and `> 0`, which a wrong answer
+    passes just as happily — and one did: the wrapper's recursion raised each
+    entry of the waiting-time vector to a power instead of feeding it back in
+    as the reward vector, so E[T^2] came out 10 on Erlang(2, rate=1) against a
+    true value of 6. Check the values against closed form.
+    """
+
+    @staticmethod
+    def _erlang2():
+        """s -> v3 -(theta0)-> v2 -(theta1)-> v1(absorbing)."""
+        g = Graph(1)
+        s = g.starting_vertex()
+        v3 = g.find_or_create_vertex([3])
+        v2 = g.find_or_create_vertex([2])
+        v1 = g.find_or_create_vertex([1])
+        s.add_edge(v3, 1.0)
+        v3.add_edge(v2, [1.0, 0.0])   # rate = theta0
+        v2.add_edge(v1, [0.0, 1.0])   # rate = theta1
+        return g
+
+    def test_raw_moments_match_closed_form(self):
+        # Both rates 1 => Erlang(2, 1), whose raw moments are E[T^n] = (n+1)!
+        import math
+        moments_fn = Graph.moments_from_graph(self._erlang2(), nr_moments=4)
+        m = np.asarray(moments_fn(jnp.asarray([1.0, 1.0], dtype=jnp.float64)))
+        expected = np.array([math.factorial(n + 1) for n in range(1, 5)],
+                            dtype=np.float64)
+        np.testing.assert_allclose(m, expected, rtol=1e-9)
+
+    def test_agrees_with_ffi_moments_path(self):
+        # Distinct rates => hypoexponential: E[T] = 1/2 + 1/0.5 = 2.5,
+        # Var = 1/4 + 4, so E[T^2] = Var + mean^2 = 10.5.
+        theta = jnp.asarray([2.0, 0.5], dtype=jnp.float64)
+        m_jit = np.asarray(
+            Graph.moments_from_graph(self._erlang2(), nr_moments=2)(theta)
+        )
+        _, m_ffi = Graph.pmf_and_moments_from_graph(
+            self._erlang2(), nr_moments=2
+        )(theta, jnp.asarray([1.0], dtype=jnp.float64))
+        m_ffi = np.asarray(m_ffi).ravel()[:2]
+
+        np.testing.assert_allclose(m_jit, [2.5, 10.5], rtol=1e-9)
+        np.testing.assert_allclose(m_jit, m_ffi, rtol=1e-9)
+
+
 class TestPMFAndMomentsFromGraph:
     """Test combined PMF and moments computation."""
 

@@ -150,3 +150,64 @@ def test_g1_pmf_and_moments_rewards_moments_close():
                                            3, discrete=False, granularity=GRAN,
                                            rewards=jnp.asarray(rew))
     np.testing.assert_allclose(np.asarray(mom_f), np.asarray(mom_py), rtol=1e-12, atol=0.0)
+
+
+# ---------------------------------------------------------------------------
+# Discrete PMF is EXACT — not a step-wise approximation
+# ---------------------------------------------------------------------------
+#
+# The continuous PDF is a uniformization approximation whose error scales as
+# 1/granularity (~5e-4 at the default). The DISCRETE pmf is not: dph_pmf(jumps)
+# takes no granularity and steps the chain exactly. Pin that, because it is a
+# property a refactor can silently destroy — and one did: the JIT wrapper for
+# pmf_from_cpp(discrete=True) called the CONTINUOUS normalize(), which rescales
+# every vertex's outgoing weights to sum to 1. That turns the chain into a
+# deterministic walk (P(T = n_phases) = 1, else 0) and, since the rescaling
+# divides theta out, makes the gradient identically zero.
+
+
+def _two_phase_dph(p0, p1):
+    """s -> v3 -(p0)-> v2 -(p1)-> v1(absorbing).
+
+    In a DPH an edge weight IS the per-step transition probability and the
+    deficit (1 - row sum) is the implicit stay-in-place probability, so with
+    p0 == p1 == p the jump count is NegBinomial(2, p).
+    """
+    g = phasic.Graph(1)
+    s = g.starting_vertex()
+    v3 = g.find_or_create_vertex([3])
+    v2 = g.find_or_create_vertex([2])
+    v1 = g.find_or_create_vertex([1])
+    s.add_edge(v3, 1.0)
+    v3.add_edge(v2, [1.0, 0.0])
+    v2.add_edge(v1, [0.0, 1.0])
+    return g
+
+
+def test_g1_discrete_pmf_is_exact_not_discretised():
+    # NegBinomial(2, p): P(T = n) = (n-1) p^2 (1-p)^(n-2), n >= 2.
+    p = 0.3
+    jumps = np.array([2.0, 3.0, 5.0, 10.0, 20.0])
+    expected = (jumps - 1) * p ** 2 * (1 - p) ** (jumps - 2)
+
+    model = phasic.Graph.pmf_from_graph(_two_phase_dph(p, p), discrete=True)
+    got = np.asarray(model(jnp.asarray([p, p]), jnp.asarray(jumps)))
+
+    # Machine precision — NOT the ~5e-4 the granularity-bound continuous path
+    # would give. A wrong-but-plausible answer must not slip through, so this
+    # is rtol=1e-12, not "isfinite and > 0".
+    np.testing.assert_allclose(got, expected, rtol=1e-12, atol=0.0)
+
+
+def test_g1_discrete_pmf_actually_depends_on_theta():
+    # Guards the normalize() failure mode directly: under it the PMF collapsed
+    # to P(T = 2) = 1 and became CONSTANT in theta, so the gradient vanished.
+    jumps = jnp.asarray([2.0, 3.0, 5.0])
+    model = phasic.Graph.pmf_from_graph(_two_phase_dph(0.3, 0.3), discrete=True)
+
+    a = np.asarray(model(jnp.asarray([0.3, 0.3]), jumps))
+    b = np.asarray(model(jnp.asarray([0.7, 0.3]), jumps))
+
+    assert not np.allclose(a, b), "discrete PMF is not responding to theta"
+    # and it must not be the degenerate deterministic walk
+    assert not np.allclose(a, [1.0, 0.0, 0.0]), "chain collapsed to a deterministic walk"
