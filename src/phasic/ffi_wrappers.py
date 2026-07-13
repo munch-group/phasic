@@ -1291,45 +1291,21 @@ def _rvp_fwd(structure_json, theta, target_vertices, initial_ipv):
     return out, (theta, target_vertices, initial_ipv)
 
 
-@functools.lru_cache(maxsize=32)
-def _weight_mode_from_json_str(structure_json: str) -> str:
-    """Cached weight-mode lookup for the JSON-string form."""
-    return json.loads(structure_json).get('weight_mode', 'linear')
-
-
-def _weight_mode_of(structure) -> str:
-    """Weight mode of a serialized graph (``Graph.serialize`` emits it).
-
-    Callers pass EITHER the serialized dict (``g.serialize()``) or its JSON
-    string, so accept both. The string form is cached — it is a static (nondiff)
-    argument parsed once per trace, and the graph JSON can be large; the dict
-    form is already parsed and is not hashable, so it is read directly.
-    """
-    if isinstance(structure, dict):
-        return structure.get('weight_mode', 'linear')
-    return _weight_mode_from_json_str(structure)
-
-
 def _rvp_bwd(structure_json, res, cotangent):
     theta, target_vertices, initial_ipv = res
-    # Relative, positivity-preserving FD step. A fixed absolute eps=1e-7 drove
-    # theta_i - eps NEGATIVE for any rate below it (routine: a per-generation
-    # mutation rate is ~1e-8), and the solvers accept a negative rate silently.
-    # See phasic._fd_probe_points. Imported lazily: ffi_wrappers is imported
-    # from phasic/__init__, so a module-level import would be circular.
-    from . import _fd_probe_points
-    fd_mode = _weight_mode_of(structure_json)
+    eps = 1e-7
     n_params = int(theta.shape[-1])
     grads = []
     for i in range(n_params):
-        tp, tm, denom = _fd_probe_points(theta, i, fd_mode)
+        tp = theta.at[i].add(eps)
+        tm = theta.at[i].add(-eps)
         fp = _reward_visit_probability_forward(
             structure_json, tp, target_vertices, initial_ipv,
         )
         fm = _reward_visit_probability_forward(
             structure_json, tm, target_vertices, initial_ipv,
         )
-        grads.append(cotangent * (fp - fm) / denom)
+        grads.append(cotangent * (fp - fm) / (2.0 * eps))
     return (
         jnp.stack(grads),
         jnp.zeros_like(target_vertices, dtype=jnp.float64),

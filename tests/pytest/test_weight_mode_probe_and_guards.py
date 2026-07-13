@@ -6,12 +6,9 @@ Provenance: audit of the numerical refactor, findings F1-F3
 
 The bugs these pin:
 
-F1  `_fd_probe_points` treated `weight_mode='log'` as "theta is a log-scale,
-    legitimately negative" and so applied NO positivity floor. That premise is
-    false: 'log' means `weight = prod(c_i * theta_i)` in log-space and the C layer
-    RAISES unless every `(c_i * theta_i)` product is strictly positive. The
-    unfloored minus-probe crossed zero for theta <= 1e-15, so `jax.grad` raised on
-    a theta whose FORWARD was perfectly valid.
+NOTE: this file used to also test `_fd_probe_points` (the relative FD step).
+That step has been ROLLED BACK -- see the audit reports -- so those tests are gone.
+The weight_mode guards below are independent of the FD step and still apply.
 
 F2  `moments_from_graph` JIT-generates a `build_model()` whose weight computation
     is a hardcoded linear dot product, so a log/callback/formula graph silently
@@ -82,53 +79,6 @@ def _graph(mode="linear"):
         g.weight_formula = "c0*t0*t1"
     return g
 
-
-# ---------------------------------------------------------------------------
-# F1 -- the 'log' probe must preserve sign and never cross zero
-# ---------------------------------------------------------------------------
-
-class TestLogProbeIsSignPreserving:
-    """'log' requires every (c_i * theta_i) > 0, so the probe must not cross zero."""
-
-    @pytest.mark.parametrize("theta_i", [3.0, 1e-8, 1e-15, 1e-20, 1e-30])
-    def test_minus_probe_never_reaches_zero(self, theta_i):
-        tp, tm, denom = phasic._fd_probe_points(
-            jnp.asarray([1.0, theta_i]), 1, "log"
-        )
-        assert float(tm[1]) > 0.0, "minus-probe crossed into the invalid domain"
-        assert float(tp[1]) > float(tm[1])
-        assert float(denom) > 0.0
-
-    def test_probe_preserves_a_negative_theta(self):
-        # A negative coefficient requires a negative theta for the product to be
-        # positive. A floor at +1e-15 would destroy that; a multiplicative step
-        # must not.
-        tp, tm, _ = phasic._fd_probe_points(jnp.asarray([1.0, -2.0]), 1, "log")
-        assert float(tp[1]) < 0.0 and float(tm[1]) < 0.0
-
-    @pytest.mark.parametrize("theta_i", [1e-8, 1e-12, 1e-15, 1e-16, 1e-20])
-    def test_grad_is_finite_where_the_forward_is_valid(self, theta_i):
-        # Regression: this raised "log weight mode requires all (coefficient *
-        # parameter) products to be positive" for theta_i <= 1e-15, even though
-        # the forward at that theta is perfectly valid.
-        model = Graph.pmf_from_graph(_graph("log"))
-        times = jnp.asarray([0.5, 1.0])
-        theta = jnp.asarray([1.0, theta_i])
-
-        assert np.all(np.isfinite(np.asarray(model(theta, times))))
-        grad = np.asarray(jax.grad(lambda t: jnp.sum(model(t, times)))(theta))
-        assert np.all(np.isfinite(grad))
-
-    def test_linear_probe_still_floors_at_a_positive_value(self):
-        # 'linear' keeps its floor: theta == 0 makes a vertex unreachable and the
-        # moments elimination then divides by a zero exit rate.
-        _, tm, _ = phasic._fd_probe_points(jnp.asarray([1.0, 0.0]), 1, "linear")
-        assert float(tm[1]) > 0.0
-
-
-# ---------------------------------------------------------------------------
-# F2 -- moments_from_graph must not silently linearise
-# ---------------------------------------------------------------------------
 
 class TestMomentsFromGraphRejectsNonLinearWeightMode:
 

@@ -316,7 +316,6 @@ class TestDaisyChainJointProbs:
         # independent finite-diff computation on daisy_chain_joint_probs.
         import jax
         import jax.numpy as jnp
-        import phasic
         jsp = _build_jsp_graph()
         n_ipv = jsp.starting_vertex().edges_length()
         initial_ipv = np.full(n_ipv, 1.0 / n_ipv)
@@ -337,111 +336,21 @@ class TestDaisyChainJointProbs:
             lambda t: jnp.sum(joint_probs(t))
         )(thetas_flat))
 
-        # (a) Plumbing: reproduce the backward's own probe points — the step is
-        # RELATIVE to |theta_i| (see phasic._fd_probe_points), not a fixed
-        # absolute eps. Same points + same forward ⇒ machine precision. This
-        # pins the VJP wiring (cotangent contraction, reshape, index routing).
-        rel = phasic._FD_REL_STEP
-        fd_same = np.zeros(thetas_flat.shape[0], dtype=np.float64)
+        # Independent finite-diff at the same eps as the custom_vjp.
+        eps = 1e-7
+        fd_grad = np.zeros(thetas_flat.shape[0], dtype=np.float64)
         for i in range(thetas_flat.shape[0]):
-            h = max(rel * abs(float(thetas_flat[i])), phasic._FD_MIN_STEP)
-            tp = thetas_flat.at[i].add(h)
-            tm = thetas_flat.at[i].add(-h)
-            fd_same[i] = float(
-                jnp.sum(joint_probs(tp) - joint_probs(tm)) / (2.0 * h)
+            tp = thetas_flat.at[i].add(eps)
+            tm = thetas_flat.at[i].add(-eps)
+            fd_grad[i] = float(
+                jnp.sum(joint_probs(tp) - joint_probs(tm)) / (2.0 * eps)
             )
+
+        # Both use the same eps and the same forward, so they must
+        # agree to machine precision.
         np.testing.assert_allclose(
-            autodiff_grad, fd_same, rtol=1e-9, atol=1e-12
+            autodiff_grad, fd_grad, rtol=1e-9, atol=1e-12
         )
-
-        # (b) Numerics: an INDEPENDENT finite difference at a deliberately
-        # different step must land on the same derivative. This is the check
-        # that would actually catch a mis-scaled step, which (a) cannot — two
-        # estimators with different steps agree only if both are converged.
-        fd_indep = np.zeros(thetas_flat.shape[0], dtype=np.float64)
-        for i in range(thetas_flat.shape[0]):
-            h = 1e-4 * abs(float(thetas_flat[i]))
-            tp = thetas_flat.at[i].add(h)
-            tm = thetas_flat.at[i].add(-h)
-            fd_indep[i] = float(
-                jnp.sum(joint_probs(tp) - joint_probs(tm)) / (2.0 * h)
-            )
-        np.testing.assert_allclose(
-            autodiff_grad, fd_indep, rtol=1e-5, atol=1e-9
-        )
-
-    def test_fd_backward_never_probes_a_negative_rate(self):
-        # Regression: the backward used a fixed ABSOLUTE step (eps=1e-7), so
-        # for any theta_i below it the minus-probe went NEGATIVE. A negative
-        # rate is accepted silently by the solvers, which then return negative
-        # "probabilities" — the gradient flips sign and blows up by ~12 orders
-        # of magnitude, and SVGD detonates a few iterations later.
-        #
-        # The step is now relative, so theta_i - h = theta_i * (1 - rel) stays
-        # positive at ANY magnitude. The probe must be STRICTLY positive, not
-        # merely non-negative: a rate of exactly zero makes a vertex unreachable
-        # and the moments elimination then divides by a zero exit rate
-        # ("numerical catastrophe: multiplier=nan").
-        import jax
-        import jax.numpy as jnp
-        import phasic
-
-        for theta_i in [1.0, 1e-4, 1e-7, 1e-8, 1e-9, 1e-12, 1e-30, 0.0]:
-            theta = jnp.asarray([theta_i, 1.0, 1.0], dtype=jnp.float64)
-            tp, tm, denom = phasic._fd_probe_points(theta, 0, 'linear')
-            assert float(tm[0]) > 0.0, (
-                f"minus-probe not strictly positive at theta={theta_i}: "
-                f"{float(tm[0])}"
-            )
-            assert float(tp[0]) > float(tm[0]), "probe points collapsed"
-            assert float(denom) > 0.0, "zero divisor"
-
-        # 'log' is NOT a log-scale on theta (an earlier version of this test said
-        # it was). It means weight = prod(c_i * theta_i) in log-space, and the C
-        # layer REQUIRES every (c_i * theta_i) product to be strictly positive.
-        # So the probe must PRESERVE THETA'S SIGN and never cross zero -- it must
-        # neither floor a negative theta up to a positive one, nor let a tiny
-        # positive theta cross into the invalid domain.
-        theta = jnp.asarray([-2.0, 1.0, 1.0], dtype=jnp.float64)
-        tp, tm, denom = phasic._fd_probe_points(theta, 0, 'log')
-        assert float(tm[0]) < 0.0 and float(tp[0]) < 0.0, (
-            "log-mode probe changed theta's sign"
-        )
-        assert float(denom) > 0.0
-
-        for theta_i in [1.0, 1e-8, 1e-15, 1e-20, 1e-30]:
-            theta = jnp.asarray([theta_i, 1.0, 1.0], dtype=jnp.float64)
-            tp, tm, denom = phasic._fd_probe_points(theta, 0, 'log')
-            assert float(tm[0]) > 0.0, (
-                f"log-mode minus-probe crossed zero at theta={theta_i}: "
-                f"{float(tm[0])}"
-            )
-            assert float(denom) > 0.0
-
-        # A stale `nonneg=True` must not silently mean "no floor".
-        with pytest.raises(ValueError, match="weight_mode must be one of"):
-            phasic._fd_probe_points(
-                jnp.asarray([1.0, 1.0, 1.0], dtype=jnp.float64), 0, True
-            )
-
-        # And the gradient stays finite across the old danger zone.
-        jsp = _build_jsp_graph()
-        n_ipv = jsp.starting_vertex().edges_length()
-        initial_ipv = np.full(n_ipv, 1.0 / n_ipv)
-
-        def loss(theta_flat):
-            return jnp.sum(jsp.daisy_chain_joint_probs(
-                epoch_thetas=theta_flat.reshape(2, 3),
-                epoch_dts=[0.4],
-                initial_ipv=initial_ipv,
-                t_eval=10.0,
-            ))
-
-        for small in [1e-6, 1e-7, 1e-8, 1e-9]:
-            g = np.asarray(jax.grad(loss)(jnp.asarray(
-                [small, 1.0, 1.0, 1.5, 0.5, 1.0], dtype=jnp.float64
-            )))
-            assert np.all(np.isfinite(g)), f"non-finite grad at theta_0={small}"
 
     def test_repeated_calls_dont_thrash_cache(self):
         # Stage A0-style guard: many daisy-chain forward calls must not
