@@ -7,6 +7,7 @@
 #include <memory>
 #include <limits>
 #include <mutex>
+#include <cstring>   // std::strncpy in BatchError (allocation-free error recording)
 #include <nlohmann/json.hpp>
 
 #ifdef PHASIC_HAVE_OPENMP
@@ -22,6 +23,70 @@ namespace parameterized {
 namespace ffi_handlers {
 
 namespace ffi = xla::ffi;
+
+// ===========================================================================
+// OpenMP exception safety
+// ===========================================================================
+//
+// An exception must NEVER escape an OpenMP structured block. The OpenMP spec
+// requires a throw inside a parallel region to be caught by the SAME thread,
+// INSIDE that region. Letting one escape calls std::terminate and HARD-KILLS the
+// process -- uncatchable, no Python traceback, no checkpoint:
+//
+//     libc++abi: terminating due to uncaught exception of type
+//                std::invalid_argument: ...
+//     Abort trap: 6
+//
+// It fires even on a SINGLE thread: `if(batch_size > 1)` (or `> 4`) still *opens*
+// a region, with a team of one. So OMP_NUM_THREADS=1 is not a workaround, and
+// neither is a small batch that keeps the `if` clause false.
+//
+// The loop bodies can throw from several places -- GraphBuilder::build() (theta
+// length mismatch; a non-positive 'log' product; a negative/non-finite 'formula'
+// weight), compute_moments_impl(), the rewards parsing, and the C layer (a DPH
+// row sum > 1.0001 makes pdf()/dph_pmf() throw). So the WHOLE loop body is
+// wrapped, not just build().
+//
+// Measured BEFORE this fix, with jax.vmap over 2 elements (SVGD vmaps over its
+// particles, so batch_size > 1 is the DEFAULT path): ComputePmfFfiImpl,
+// ComputeMomentsFfiImpl, ComputeSojournTimesFfiImpl and
+// SamplePathConditionedFfiImpl all aborted the interpreter. The remaining
+// handlers already caught per-iteration and were unaffected.
+//
+// The daisy-chain handlers had already hand-rolled this pattern (record under
+// `omp critical`, report after the loop); BatchError generalises it.
+struct BatchError {
+    // Fixed inline buffer, filled without allocating: a std::string assignment
+    // inside the `omp critical` could itself throw std::bad_alloc (from within a
+    // catch handler, inside a structured block) and re-trigger the very
+    // std::terminate this guards against. A char buffer + strncpy cannot throw.
+    static constexpr size_t kMsgCap = 480;
+    bool seen = false;
+    char msg[kMsgCap] = {0};
+
+    void record(const std::exception& e) noexcept {
+        set(e.what());
+    }
+
+    void record_unknown() noexcept {
+        set("unknown (non-std::exception) error in batched FFI handler");
+    }
+
+    // `seen`/`msg` are shared across the team; keep the FIRST error (which
+    // iteration wins is not deterministic under threads, but the FAILURE is).
+    void set(const char* what) noexcept {
+        #pragma omp critical(ffi_batch_error)
+        {
+            if (!seen) {
+                seen = true;
+                std::strncpy(msg, what, kMsgCap - 1);
+                msg[kMsgCap - 1] = '\0';
+            }
+        }
+    }
+
+    std::string message() const { return std::string(msg); }
+};
 
 // Thread-local cache for GraphBuilder instances
 // Key: JSON string, Value: GraphBuilder instance
@@ -174,31 +239,48 @@ ffi::Error ComputePmfFfiImpl(
                     + " times=" + std::to_string(times_batch_size));
             }
 
-            // Process each batch element in parallel using OpenMP
+            // Process each batch element in parallel using OpenMP.
+            // The body is wrapped: an exception escaping this structured block
+            // would call std::terminate. See BatchError.
+            BatchError berr;
             #pragma omp parallel for if(batch_size > 1)
             for (size_t b = 0; b < batch_size; b++) {
-                // Build graph for this batch element
-                const double* theta_b = theta_is_broadcast ? theta_data
-                                                            : (theta_data + (b * theta_len));
-                Graph g = builder->build(theta_b, theta_len);
-
-                // Get times for this batch (either indexed or broadcast)
-                const double* times_b = times_is_broadcast ? times_data : (times_data + (b * n_times));
-
                 // Get result pointer for this batch
                 double* result_b = result_data + (b * n_times);
+                try {
+                    // Build graph for this batch element
+                    const double* theta_b = theta_is_broadcast ? theta_data
+                                                                : (theta_data + (b * theta_len));
+                    Graph g = builder->build(theta_b, theta_len);
 
-                // Compute PMF/PDF
-                if (discrete) {
-                    for (size_t i = 0; i < n_times; i++) {
-                        int jump_count = static_cast<int>(times_b[i]);
-                        result_b[i] = g.dph_pmf(jump_count);
+                    // Get times for this batch (either indexed or broadcast)
+                    const double* times_b = times_is_broadcast ? times_data : (times_data + (b * n_times));
+
+                    // Compute PMF/PDF
+                    if (discrete) {
+                        for (size_t i = 0; i < n_times; i++) {
+                            int jump_count = static_cast<int>(times_b[i]);
+                            result_b[i] = g.dph_pmf(jump_count);
+                        }
+                    } else {
+                        for (size_t i = 0; i < n_times; i++) {
+                            result_b[i] = g.pdf(times_b[i], granularity);
+                        }
                     }
-                } else {
+                } catch (const std::exception& e) {
+                    berr.record(e);
                     for (size_t i = 0; i < n_times; i++) {
-                        result_b[i] = g.pdf(times_b[i], granularity);
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                } catch (...) {
+                    berr.record_unknown();
+                    for (size_t i = 0; i < n_times; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
                     }
                 }
+            }
+            if (berr.seen) {
+                return ffi::Error::InvalidArgument(berr.message());
             }
         } else {
             // NOT BATCHED: theta shape (n_params,), times shape (n_times,)
@@ -283,14 +365,17 @@ ffi::Error ComputeMomentsFfiImpl(
         if (theta_batch_size > 1) {
             // BATCHED: Process multiple theta values
             // Process each batch element in parallel using OpenMP
+            // Body wrapped: an exception escaping an OpenMP structured block
+            // calls std::terminate. See BatchError.
+            BatchError berr;
             #pragma omp parallel for if(theta_batch_size > 1)
             for (size_t b = 0; b < theta_batch_size; b++) {
+                // Get result pointer for this batch
+                double* result_b = result_data + (b * nr_moments);
+                try {
                 // Build graph for this batch element
                 const double* theta_b = theta_data + (b * theta_len);
                 Graph g = builder->build(theta_b, theta_len);
-
-                // Get result pointer for this batch
-                double* result_b = result_data + (b * nr_moments);
 
                 // Compute moments
                 std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
@@ -299,6 +384,20 @@ ffi::Error ComputeMomentsFfiImpl(
                 for (int i = 0; i < nr_moments; i++) {
                     result_b[i] = moments_vec[i];
                 }
+                } catch (const std::exception& e) {
+                    berr.record(e);
+                    for (int i = 0; i < nr_moments; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                } catch (...) {
+                    berr.record_unknown();
+                    for (int i = 0; i < nr_moments; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                }
+            }
+            if (berr.seen) {
+                return ffi::Error::InvalidArgument(berr.message());
             }
         } else {
             // NOT BATCHED: theta shape (n_params,)
@@ -426,9 +525,19 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                 + " times=" + std::to_string(times_batch_size));
         }
 
-        // Process each batch element in parallel using OpenMP
+        // Process each batch element in parallel using OpenMP.
+        //
+        // This loop already had a per-element try/catch (which is why it did
+        // not abort), but the catch SWALLOWED the error: it NaN-filled the
+        // moments buffer, left the PMF buffer untouched (a plausible-looking
+        // 0.0 row), and the handler returned Success(). A throwing particle
+        // therefore silently poisoned the batch. Now record via BatchError and
+        // re-raise after the loop -- fail loudly, never silently. See BatchError.
+        BatchError berr;
         #pragma omp parallel for if(batch_size > 1)
         for (size_t b = 0; b < batch_size; b++) {
+            double* pmf_b = pmf_data + (b * n_times);
+            double* moments_b = moments_data + (b * nr_moments);
             try {
                 // Build graph for this batch element
                 const double* theta_b = theta_is_broadcast ? theta_data
@@ -437,10 +546,6 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
 
                 // Get times for this batch (either indexed or broadcast)
                 const double* times_b = times_is_broadcast ? times_data : (times_data + (b * n_times));
-
-                // Get result pointers for this batch
-                double* pmf_b = pmf_data + (b * n_times);
-                double* moments_b = moments_data + (b * nr_moments);
 
                 // Compute PMF/PDF
                 if (discrete) {
@@ -469,13 +574,21 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                     moments_b[i] = moments_vec[i];
                 }
             } catch (const std::exception& e) {
-                // In parallel region, we can't return error directly
-                // Set error in moments output as NaN to signal failure
-                double* moments_b = moments_data + (b * nr_moments);
-                for (int i = 0; i < nr_moments; i++) {
-                    moments_b[i] = std::numeric_limits<double>::quiet_NaN();
-                }
+                berr.record(e);
+                for (size_t i = 0; i < n_times; i++) pmf_b[i] =
+                    std::numeric_limits<double>::quiet_NaN();
+                for (int i = 0; i < nr_moments; i++) moments_b[i] =
+                    std::numeric_limits<double>::quiet_NaN();
+            } catch (...) {
+                berr.record_unknown();
+                for (size_t i = 0; i < n_times; i++) pmf_b[i] =
+                    std::numeric_limits<double>::quiet_NaN();
+                for (int i = 0; i < nr_moments; i++) moments_b[i] =
+                    std::numeric_limits<double>::quiet_NaN();
             }
+        }
+        if (berr.seen) {
+            return ffi::Error::InvalidArgument(berr.message());
         }
     } else {
         // NOT BATCHED: theta shape (n_params,), times shape (n_times,)
@@ -644,8 +757,14 @@ ffi::Error ComputePmfMultivariateFfiImpl(
             }
 
             // Process each batch element in parallel using OpenMP
+            // Same silent-swallow bug as ComputePmfAndMomentsFfiImpl: the
+            // pre-existing catch NaN-filled and the handler returned Success(),
+            // so a throwing particle silently poisoned the batch. Record via
+            // BatchError and re-raise after the loop. See BatchError.
+            BatchError berr;
             #pragma omp parallel for if(batch_size > 1)
             for (size_t b = 0; b < batch_size; b++) {
+                double* result_b = result_data + (b * n_times * n_features);
                 try {
                     // Build graph for this batch element
                     const double* theta_b = theta_is_broadcast ? theta_data
@@ -659,9 +778,6 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                     const double* rewards_b = rewards_is_broadcast
                         ? rewards_data
                         : (rewards_data + (b * n_vertices * n_features));
-
-                    // Get result pointer for this batch
-                    double* result_b = result_data + (b * n_times * n_features);
 
                     // Process each feature dimension independently (sparse mode)
                     for (size_t j = 0; j < n_features; j++) {
@@ -694,12 +810,19 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                         }
                     }
                 } catch (const std::exception& e) {
-                    // In parallel region, set error as NaN
-                    double* result_b = result_data + (b * n_times * n_features);
+                    berr.record(e);
+                    for (size_t i = 0; i < n_times * n_features; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                } catch (...) {
+                    berr.record_unknown();
                     for (size_t i = 0; i < n_times * n_features; i++) {
                         result_b[i] = std::numeric_limits<double>::quiet_NaN();
                     }
                 }
+            }
+            if (berr.seen) {
+                return ffi::Error::InvalidArgument(berr.message());
             }
         } else {
             // NOT BATCHED: theta shape (n_params,), times shape (n_times, n_features)
@@ -859,8 +982,12 @@ ffi::Error ComputeSojournTimesFfiImpl(
                 sojourn_num_threads = static_cast<int>(batch_size);
             if (sojourn_num_threads < 1) sojourn_num_threads = 1;
 #endif
+            // Body wrapped: an exception escaping an OpenMP structured block
+            // calls std::terminate. See BatchError.
+            BatchError berr;
             #pragma omp parallel for if(batch_size > 1) num_threads(sojourn_num_threads)
             for (size_t b = 0; b < batch_size; b++) {
+                try {
                 const double* theta_b = theta_data + (b * theta_len);
 
                 // Per-thread Graph reuse: build once on first use, then
@@ -922,6 +1049,22 @@ ffi::Error ComputeSojournTimesFfiImpl(
                     std::memcpy(result_b, sojourn_ptr, n_indices * sizeof(double));
                     free(sojourn_ptr);
                 }
+                } catch (const std::exception& e) {
+                    berr.record(e);
+                    double* result_b = result_data + (b * n_indices);
+                    for (size_t i = 0; i < n_indices; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                } catch (...) {
+                    berr.record_unknown();
+                    double* result_b = result_data + (b * n_indices);
+                    for (size_t i = 0; i < n_indices; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                }
+            }
+            if (berr.seen) {
+                return ffi::Error::InvalidArgument(berr.message());
             }
 
         } else {
@@ -1147,53 +1290,99 @@ ffi::Error SamplePathConditionedFfiImpl(
                     }
                 }
 
-                // Sample all paths in parallel (graph and bp_cache are read-only)
+                // Sample all paths in parallel (graph and bp_cache are read-only).
+                // Body wrapped: an exception escaping an OpenMP structured block
+                // calls std::terminate. See BatchError.
+                BatchError berr;
                 #pragma omp parallel for if(batch_size > 4)
                 for (size_t b = 0; b < batch_size; b++) {
-                    int32_t tv = target_data[target_batch > 1 ? b : 0];
-                    unsigned int rng_seed = static_cast<unsigned int>(
-                        seed_data[seed_batch > 1 ? b : 0]
-                    );
-                    ptd_random_sample_path_conditioned_fixed(
-                        g.c_graph(), bp_cache[tv], ml, rng_seed,
-                        indices_out + b * ml, times_out + b * ml
-                    );
+                    try {
+                        int32_t tv = target_data[target_batch > 1 ? b : 0];
+                        unsigned int rng_seed = static_cast<unsigned int>(
+                            seed_data[seed_batch > 1 ? b : 0]
+                        );
+                        ptd_random_sample_path_conditioned_fixed(
+                            g.c_graph(), bp_cache[tv], ml, rng_seed,
+                            indices_out + b * ml, times_out + b * ml
+                        );
+                    } catch (const std::exception& e) {
+                        berr.record(e);
+                        for (int i = 0; i < ml; i++) {
+                            indices_out[b * ml + i] = -1;
+                            times_out[b * ml + i] =
+                                std::numeric_limits<double>::quiet_NaN();
+                        }
+                    } catch (...) {
+                        berr.record_unknown();
+                        for (int i = 0; i < ml; i++) {
+                            indices_out[b * ml + i] = -1;
+                            times_out[b * ml + i] =
+                                std::numeric_limits<double>::quiet_NaN();
+                        }
+                    }
                 }
 
                 // Free cached backward probs
                 for (auto& [key, ptr] : bp_cache) {
                     free(ptr);
                 }
+                if (berr.seen) {
+                    return ffi::Error::InvalidArgument(berr.message());
+                }
             } else {
-                // Theta varies per batch element: build graph per element
+                // Theta varies per batch element: build graph per element.
+                // Body wrapped: build() throws (bad theta length; non-positive
+                // 'log' product; negative 'formula' weight) and an exception
+                // escaping an OpenMP structured block calls std::terminate.
+                // See BatchError.
+                BatchError berr;
                 #pragma omp parallel for if(batch_size > 4)
                 for (size_t b = 0; b < batch_size; b++) {
-                    std::shared_ptr<GraphBuilder> local_builder;
-                    auto local_it = builder_cache.find(json_str);
-                    if (local_it != builder_cache.end()) {
-                        local_builder = local_it->second;
-                    } else {
-                        local_builder = std::make_shared<GraphBuilder>(json_str);
-                        builder_cache[json_str] = local_builder;
+                    try {
+                        std::shared_ptr<GraphBuilder> local_builder;
+                        auto local_it = builder_cache.find(json_str);
+                        if (local_it != builder_cache.end()) {
+                            local_builder = local_it->second;
+                        } else {
+                            local_builder = std::make_shared<GraphBuilder>(json_str);
+                            builder_cache[json_str] = local_builder;
+                        }
+
+                        const double* theta_b = theta_data + b * theta_len;
+                        int32_t tv = target_data[target_batch > 1 ? b : 0];
+                        unsigned int rng_seed = static_cast<unsigned int>(
+                            seed_data[seed_batch > 1 ? b : 0]
+                        );
+
+                        Graph g = local_builder->build(theta_b, theta_len);
+                        size_t target_sz = static_cast<size_t>(tv);
+                        double* h = ptd_backward_probabilities(
+                            g.c_graph(), &target_sz, 1
+                        );
+
+                        ptd_random_sample_path_conditioned_fixed(
+                            g.c_graph(), h, ml, rng_seed,
+                            indices_out + b * ml, times_out + b * ml
+                        );
+                        free(h);
+                    } catch (const std::exception& e) {
+                        berr.record(e);
+                        for (int i = 0; i < ml; i++) {
+                            indices_out[b * ml + i] = -1;
+                            times_out[b * ml + i] =
+                                std::numeric_limits<double>::quiet_NaN();
+                        }
+                    } catch (...) {
+                        berr.record_unknown();
+                        for (int i = 0; i < ml; i++) {
+                            indices_out[b * ml + i] = -1;
+                            times_out[b * ml + i] =
+                                std::numeric_limits<double>::quiet_NaN();
+                        }
                     }
-
-                    const double* theta_b = theta_data + b * theta_len;
-                    int32_t tv = target_data[target_batch > 1 ? b : 0];
-                    unsigned int rng_seed = static_cast<unsigned int>(
-                        seed_data[seed_batch > 1 ? b : 0]
-                    );
-
-                    Graph g = local_builder->build(theta_b, theta_len);
-                    size_t target_sz = static_cast<size_t>(tv);
-                    double* h = ptd_backward_probabilities(
-                        g.c_graph(), &target_sz, 1
-                    );
-
-                    ptd_random_sample_path_conditioned_fixed(
-                        g.c_graph(), h, ml, rng_seed,
-                        indices_out + b * ml, times_out + b * ml
-                    );
-                    free(h);
+                }
+                if (berr.seen) {
+                    return ffi::Error::InvalidArgument(berr.message());
                 }
             }
         } else {
@@ -1724,6 +1913,18 @@ ffi::Error DaisyChainSojournFfiImpl(
             std::vector<double> dummy(param_length, 1.0);
             phasic::Graph probe = jsp_builder->build(dummy.data(), static_cast<size_t>(param_length));
             jsp_n_vertices = probe.vertices_length();
+        }
+        // Probe soj_builder too, OUTSIDE the OpenMP region below. Its only build
+        // (a unit-weight topology build, per-thread cached) sits inside the
+        // parallel-for at ~1960; if that build throws -- e.g. a 'log'/'formula'
+        // sojourn graph with a non-positive unit-weight product -- the exception
+        // would escape the structured block and std::terminate. Forcing the
+        // throw here (inside the function-level try/catch) makes it a catchable
+        // ffi::Error instead. The build is a topology-only probe, so the result
+        // is discarded.
+        {
+            std::vector<double> dummy(param_length, 1.0);
+            (void) soj_builder->build(dummy.data(), static_cast<size_t>(param_length));
         }
         std::vector<int> collapsed_pos(jsp_n_vertices, -1);
         { int rank = 0; for (size_t i = 0; i < jsp_n_vertices; ++i) { if (aux_set.count(static_cast<int>(i))) continue; collapsed_pos[i] = rank++; } }
