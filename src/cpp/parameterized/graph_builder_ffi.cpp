@@ -117,6 +117,9 @@ ffi::Error ComputePmfFfiImpl(
             }
         }
 
+        // Discreteness: per-call flag OR the graph's own is_discrete (serialize).
+        bool is_disc = discrete || builder->is_discrete();
+
         // Extract buffer dimensions
         // NOTE: With vmap, buffers may have batch dimension added
         // theta: 1D (n_params,) OR 2D (batch, n_params)
@@ -189,7 +192,7 @@ ffi::Error ComputePmfFfiImpl(
                 double* result_b = result_data + (b * n_times);
 
                 // Compute PMF/PDF
-                if (discrete) {
+                if (is_disc) {
                     for (size_t i = 0; i < n_times; i++) {
                         int jump_count = static_cast<int>(times_b[i]);
                         result_b[i] = g.dph_pmf(jump_count);
@@ -204,7 +207,7 @@ ffi::Error ComputePmfFfiImpl(
             // NOT BATCHED: theta shape (n_params,), times shape (n_times,)
             Graph g = builder->build(theta_data, theta_len);
 
-            if (discrete) {
+            if (is_disc) {
                 for (size_t i = 0; i < n_times; i++) {
                     int jump_count = static_cast<int>(times_data[i]);
                     result_data[i] = g.dph_pmf(jump_count);
@@ -292,8 +295,9 @@ ffi::Error ComputeMomentsFfiImpl(
                 // Get result pointer for this batch
                 double* result_b = result_data + (b * nr_moments);
 
-                // Compute moments
+                // Compute moments (discrete correction for a DPH)
                 std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+                if (builder->is_discrete()) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
                 // Copy to output buffer
                 for (int i = 0; i < nr_moments; i++) {
@@ -304,8 +308,9 @@ ffi::Error ComputeMomentsFfiImpl(
             // NOT BATCHED: theta shape (n_params,)
             Graph g = builder->build(theta_data, theta_len);
 
-            // Compute moments
+            // Compute moments (discrete correction for a DPH)
             std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+            if (builder->is_discrete()) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
             // Copy to output buffer
             for (int i = 0; i < nr_moments; i++) {
@@ -352,6 +357,11 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
             );
         }
     }
+
+    // Discreteness: per-call flag OR the graph's own is_discrete (propagated
+    // via serialize). A DPH must read dph_pmf and apply the discrete moment
+    // correction.
+    bool is_disc = discrete || builder->is_discrete();
 
     // Extract buffer dimensions
     // With vmap, buffers may have batch dimension added
@@ -443,7 +453,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                 double* moments_b = moments_data + (b * nr_moments);
 
                 // Compute PMF/PDF
-                if (discrete) {
+                if (is_disc) {
                     for (size_t i = 0; i < n_times; i++) {
                         int jump_count = static_cast<int>(times_b[i]);
                         pmf_b[i] = g.dph_pmf(jump_count);
@@ -454,7 +464,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                     }
                 }
 
-                // Compute moments using same graph
+                // Compute moments using same graph (discrete correction for a DPH)
                 std::vector<double> rewards_vec;
                 if (n_rewards > 0) {
                     const double* rewards_b = (rewards_batch_size > 1)
@@ -463,6 +473,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                     rewards_vec.assign(rewards_b, rewards_b + n_rewards);
                 }
                 std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+                if (is_disc) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
                 // Copy moments to output buffer
                 for (int i = 0; i < nr_moments; i++) {
@@ -483,7 +494,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
             Graph g = builder->build(theta_data, theta_len);
 
             // Compute PMF/PDF
-            if (discrete) {
+            if (is_disc) {
                 for (size_t i = 0; i < n_times; i++) {
                     int jump_count = static_cast<int>(times_data[i]);
                     pmf_data[i] = g.dph_pmf(jump_count);
@@ -494,12 +505,13 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                 }
             }
 
-            // Compute moments using same graph
+            // Compute moments using same graph (discrete correction for a DPH)
             std::vector<double> rewards_vec;
             if (n_rewards > 0) {
                 rewards_vec.assign(rewards_data, rewards_data + n_rewards);
             }
             std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+            if (is_disc) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
             // Copy moments to output buffer
             for (int i = 0; i < nr_moments; i++) {
@@ -553,6 +565,10 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                 );
             }
         }
+
+        // Discreteness: per-call flag OR the graph's own is_discrete (serialize).
+        // A DPH uses the discrete reward transform (integer rewards) and dph_pmf.
+        bool is_disc = discrete || builder->is_discrete();
 
         // Extract buffer dimensions
         // With vmap, buffers may have batch dimension added
@@ -671,8 +687,10 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                             rewards_vec[v] = rewards_b[v * n_features + j];
                         }
 
-                        // Transform graph with these rewards
-                        Graph g_transformed = g.reward_transform(rewards_vec);
+                        // Transform graph with these rewards (discrete for a DPH)
+                        Graph g_transformed = is_disc
+                            ? g.reward_transform_discrete(GraphBuilder::rewards_to_int_or_throw(rewards_vec))
+                            : g.reward_transform(rewards_vec);
 
                         // Compute PDF for all time points in this feature
                         for (size_t i = 0; i < n_times; i++) {
@@ -685,7 +703,7 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                             }
 
                             // Compute PDF/PMF
-                            if (discrete) {
+                            if (is_disc) {
                                 int jump_count = static_cast<int>(time_ij);
                                 result_b[i * n_features + j] = g_transformed.dph_pmf(jump_count);
                             } else {
@@ -713,8 +731,10 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                     rewards_vec[v] = rewards_data[v * n_features + j];
                 }
 
-                // Transform graph with these rewards
-                Graph g_transformed = g.reward_transform(rewards_vec);
+                // Transform graph with these rewards (discrete for a DPH)
+                Graph g_transformed = is_disc
+                    ? g.reward_transform_discrete(GraphBuilder::rewards_to_int_or_throw(rewards_vec))
+                    : g.reward_transform(rewards_vec);
 
                 // Compute PDF for all time points in this feature
                 for (size_t i = 0; i < n_times; i++) {
@@ -727,7 +747,7 @@ ffi::Error ComputePmfMultivariateFfiImpl(
                     }
 
                     // Compute PDF/PMF
-                    if (discrete) {
+                    if (is_disc) {
                         int jump_count = static_cast<int>(time_ij);
                         result_data[i * n_features + j] = g_transformed.dph_pmf(jump_count);
                     } else {
