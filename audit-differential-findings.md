@@ -353,3 +353,134 @@ graph the combined PMF uses" pin; flipping/removing the Q7.1 strict-xfail is the
 
 **Not fixed here:** pre-existing (out of the refactoring-bug scope), pinned as a documented
 strict-xfail, and owned by Stage-3. Fixing it in isolation would silently unpin a Stage-3 gate.
+
+---
+
+## F-008 .. F-011 — the four deferred phase-2 "HIGH" bugs (N1–N4), personally reproduced
+
+These four were **relayed** from `audit-phase2-adversarial-verdict.md`, not personally verified.
+Per the audit discipline (never build on a relayed claim) each was re-reproduced against an
+independent reference, root-caused at source, and dated against `3082ebc6`.
+
+**Headline: all four are REAL but PRE-EXISTING — none is refactoring-introduced.** "Pre-existing"
+≠ "minor": severity runs from silent-wrong-answer (N1, N2), through a memory-safety OOB read (N4),
+to a substantive wrong-posterior-in-exports (N3 — escalated from an earlier "cosmetic" call of mine
+by the adversarial pass below). They all live in the `discrete=True` / rewards / tied-epoch corner of
+the API, which the refactor did not touch: `graph_builder.cpp` (the pybind engine and
+`compute_moments_impl`) is **byte-identical** baseline→HEAD
+(`git diff --quiet 3082ebc6 HEAD -- src/cpp/parameterized/graph_builder.cpp`), the svgd.py diff is
+only the negative-PMF guards, and the `_daisy_chain_svgd_model` tying region diffs empty. Each
+verdict was then stress-tested by a 5-agent adversarial pass (see the consolidated note). Reproduction
+harnesses: `scratchpad/verify_N_all.py`, `n4_oob.py`, `verify_N3_escalation.py`.
+
+### F-008 (N1) — `discrete=True` + rewards applies the CONTINUOUS reward transform → wrong DPH PMF
+**Verdict: REAL, PRE-EXISTING, silent wrong answer.**
+2-phase DPH, integer rewards `[1,2,1,0]`. Independent references: `reward_transform_discrete`
+(correct DPH transform, requires int rewards) vs `reward_transform` (continuous, accepts floats).
+```
+correct  reward_transform_discrete  -> P(N=2)=0.0000   (reward-weighting pushes min jumps past 2)
+wrong    reward_transform (continuous) -> P(N=2)=0.0450
+LIBRARY  pmf_and_moments_from_graph(discrete=True, rewards) -> 0.0450  == CONTINUOUS
+```
+Root cause at source: `graph_builder_ffi.cpp:791,840` (`ComputePmfMultivariateFfiImpl`) do
+`g.reward_transform(rewards_vec)` unconditionally, then read `dph_pmf` under `if (discrete)`
+(:804/:853). The `discrete` flag switches the PMF *read* but never the reward *transform*. The
+default pybind path (`compute_pmf_and_moments`, graph_builder.cpp) has the same shape. **Dated
+PRE-EXISTING** (graph_builder.cpp unchanged). Per `feedback_no_silent_fallbacks` this should
+either dispatch to `reward_transform_discrete` under `discrete=True`, or raise.
+
+### F-009 (N2) — DPH moments computed with the CONTINUOUS formula (2nd moment too large by E[N])
+**Verdict: REAL, PRE-EXISTING, silent wrong answer — with a closed-form proof.**
+Same DPH. True moments from `dph_pmf` summation (mass 1.0): `E[N]=6.667, E[N²]=60.000`.
+```
+library pmf_and_moments_from_graph(discrete=True) moments = [6.6667, 66.6667]
+E[N]  exact (err 1e-16);  E[N²] = 66.667 vs true 60.000  ->  excess = 6.667 = E[N] EXACTLY
+```
+Closed form: continuous_m2 − discrete_m2 = `2(I−P)⁻² − (I−P)⁻¹(I+P)(I−P)⁻¹ = (I−P)⁻¹`, and
+`α(I−P)⁻¹·1 = E[N]`. So the 2nd moment is provably the continuous phase-type formula, overcounting
+by exactly E[N]. Root cause: `compute_moments_impl(Graph&, int nr_moments, rewards)`
+(graph_builder.cpp:479) has **no `discrete` parameter** and is called with none from the
+PmfAndMoments handler (graph_builder_ffi.cpp:570/615). **Dated PRE-EXISTING** — the signature is
+identical at `3082ebc6:src/cpp/parameterized/graph_builder.cpp:479`; discrete moments have
+*never* been implemented. (E[N] is correct, which masks the bug in any mean-only check.)
+
+### F-010 (N3) — tied SLAVE exported as a 0.0 sentinel → wrong posterior in programmatic exports
+**Verdict: REAL and SUBSTANTIVE (not cosmetic), PRE-EXISTING. An adversarial pass OVERTURNED an
+earlier "cosmetic" call of mine — I had only checked `summary()`; the sentinel leaks UNFLAGGED into
+every OTHER export path.** Daisy-chain SVGD (`tied=[(0,[0,1])]`, 2 epochs, param_length 3; master
+idx 0, slave idx 3).
+
+What IS correct (personally verified): the FIT is fine. `_apply_tying`
+(`theta.at[slaves].set(theta[masters])`, __init__.py:4318/4503/4743) overwrites the slave with the
+master inside every forward pass and the VJP scatters the gradient back — feeding `res.model` a
+slave of 0, 999, or master all give the *identical* per-obs likelihood. `degrees_of_freedom`/AIC/BIC
+correctly exclude the slave (pinned by tests/inference/test_model_selection.py). And `summary()`
+correctly prints `Parameter 3: Tied→θ[0]`/NA.
+
+Why it is NOT cosmetic: the slave stays at sentinel `0.0` in the raw exported arrays (locked in
+`broadcast_fixed`, :4335; the theta_init consistency copy at :5884 is clobbered by the per-step
+fixed-value re-tile), and that sentinel flows UNFLAGGED into the canonical exports:
+```
+raw theta_mean:            master=-9.355   slave=0.000
+get_results()['theta_mean']: master=0.00034  slave=0.69315   (softplus(0)=0.693, NO tie flag)
+round-trip softplus:       master rate 0.000087  vs  slave rate 0.693147  ->  8012x wrong
+summary():  Parameter 3  Tied→θ[0]  NA      (the ONLY path that flags it)
+```
+`get_results()` (the primary programmatic result dict), `map_estimate_from_particles()`, and
+`plot_posterior()` report the tied parameter as `softplus(0)=0.693` with no "Tied" annotation — an
+~8000× wrong rate — and any user who round-trips the exported theta into a fresh graph/likelihood
+(bypassing the in-model `_apply_tying`) silently gets that wrong rate and a wrong log-likelihood
+(ΔLL≈0.83 nats). So the POSTERIOR ESTIMATE of a tied parameter is silently wrong everywhere except
+the printed `summary()` table. **Dated PRE-EXISTING** — `_daisy_chain_svgd_model` (the full 792-line
+tying region) is byte-identical at baseline `3082ebc6` (region diff = exit 0) and the svgd.py
+summary/export code sits outside every refactor hunk. **Touches SVGD → `feedback_no_change_svgd`
+applies: investigate only, do not modify.** A future fix (separate change) would apply `_apply_tying`
+to the exported particle matrix once post-optimization so raw exports mirror the master.
+
+### F-011 (N4) — reward vector SHORTER than n_vertices → OOB / uninitialized-heap read
+**Verdict: REAL memory-safety bug, PRE-EXISTING. Manifests non-deterministically.**
+`pmf_and_moments_from_graph` performs no reward-length validation. A too-LONG vector is benign
+(extras ignored, in-bounds). A too-SHORT vector (len 2 < n_vertices 4) reads past the buffer.
+The forward pass looks deterministic within one process (stable adjacent heap), but the FD
+gradient exposes it, and it is **non-deterministic across processes** on identical input:
+```
+6 fresh processes, identical code+input, eager grad wrt theta:
+  [0.444080, 0]  [0.444080, 0]  [0.444080, 0]  [2906414.9, 0]  [0.444080, 0]  [0.444080, 94225.1]
+```
+A correct program is deterministic on identical input; this is not. (Adversarial cross-check: the
+FORWARD pass itself is also non-deterministic across processes — 11/12 runs gave `mom=[2.0,8.0]`,
+one gave `[2.5,10.5]` — so it is not merely FD amplification.) Root cause (read from source): the
+OOB is in the C layer — `_ptd_graph_reward_transform` (src/c/phasic.c:6189-6193) loops
+`i < vertices_length` reading `__rewards[original_indices[i]]`, but `__rewards` points at a heap
+buffer sized to the reward array's *own* length, so a length-2 reward makes `__rewards[2]`,`[3]`
+OOB reads. No length check precedes it on the `pmf_and_moments` path (graph_builder.cpp, unchanged).
+**Dated PRE-EXISTING** — the OOB loop in phasic.c is byte-identical baseline↔HEAD. Dating
+correction (from the adversarial pass): the refactor did NOT *add* `_validate_rewards` — it *moved*
+it into the new `_graph_reward_validation.py` (identical logic, rebound as a `Graph` method at
+`__init__.py:3160`); `Graph.reward_transform` already validated reward length at baseline `3082ebc6`.
+The asymmetry the bug rests on holds at BOTH revisions: `reward_transform` validates,
+`pmf_and_moments_from_graph*` does not. Per `feedback_no_silent_fallbacks` the parameterized reward
+path should validate `len(rewards) == n_vertices` and raise (mirroring the `reward_transform` shape
+check), rather than read OOB.
+
+### Consolidated: no refactoring regression; adversarially verified
+All four roots are pre-existing: N1/N2/N4 in `graph_builder.cpp` + native `phasic.c` (byte-identical
+baseline→HEAD), N3 in the `_daisy_chain_svgd_model` tying region (diff = exit 0). All predate
+`9b8bc3f6`. **Verified by a 5-agent adversarial pass** (each agent told to REFUTE its verdict, each
+ran its own reproduction): N1 UPHELD (discrete reference triangulated by hand derivation + 4M-sample
+Monte Carlo); N2 UPHELD and strengthened to a closed-form `library = true + E[N]` over 12
+theta/graph combos across 3 topologies; N4 UPHELD (forward pass itself non-deterministic across
+processes) with the dating correction above; **N3's "cosmetic" call REFUTED → escalated to
+substantive** (the sentinel leaks into `get_results()`/`plot_posterior()`/round-trip, ~8000× wrong
+rate, only `summary()` is safe).
+
+One behavioural divergence the refactor DID introduce, but a BENEFICIAL one and OFF the default
+path: the FFI exception-handling rewrite (the audit's own OpenMP / silent-NaN fix in
+`graph_builder_ffi.cpp`) turns a THROWING discrete+reward (N1) or discrete-moment (N2) call on the
+`use_ffi=True` path from *silent-poison-then-`Success()`* into a loud `InvalidArgument` — hardening,
+not a regression; the FFI reward pointer arithmetic (N4) is unchanged.
+
+These are pre-existing latent bugs in the discrete/rewards/tied surface, out of the refactoring-bug
+scope. Fixing them is a separate deliberate change (N3 is off-limits under `feedback_no_change_svgd`);
+doing it on this branch would be scope creep with its own regression surface. Suggested guard: a
+strict-xfail per bug so a future fix cannot silently un-pin.
