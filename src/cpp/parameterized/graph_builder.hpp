@@ -304,6 +304,7 @@ private:
     int n_vertices_;        // Number of vertices (excluding starting vertex)
     WeightMode weight_mode_ = WeightMode::LINEAR;
     bool dyn_ordering_ = false;   // dynamic min-degree elimination ordering
+    bool is_discrete_ = false;    // graph is a DPH (from serialize 'is_discrete')
 
     // weight_mode_ == FORMULA: per-edge weight tape (parsed once from the
     // 'weight_formula_tape' JSON). Evaluated in C via

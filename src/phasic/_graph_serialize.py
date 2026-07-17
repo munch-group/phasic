@@ -215,6 +215,12 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         # this, graph.dyn_ordering=True does NOT reach the rebuilt
         # graph (only the PHASIC_DYN_ORDERING env var did).
         'dyn_ordering': bool(self.dyn_ordering),
+        # Carry discreteness for the same reason: without it the
+        # GraphBuilder is blind to is_discrete and the parameterized
+        # path applies the continuous reward transform and continuous
+        # moments to a DPH (wrong answers). The rebuilt graph dispatches
+        # the reward transform / moment correction on this flag.
+        'is_discrete': bool(self.is_discrete),
     }
     # Carry the compiled weight tape ONLY in formula mode, so the FFI
     # GraphBuilder that rebuilds this graph evaluates the formula in C.
@@ -617,6 +623,14 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
     # backward compatibility with caches serialized before this field
     # existed).
     graph.dyn_ordering = bool(data.get('dyn_ordering', False))
+
+    # Restore discreteness (default False for caches written before this
+    # field existed). Latch was_dph too, mirroring discretize() /
+    # reward_transform_discrete(), so a restored DPH behaves like a
+    # freshly-discretized one (dispatch + auto-normalisation invariants).
+    if bool(data.get('is_discrete', False)):
+        graph.is_discrete = True
+        graph.set_was_dph(True)
 
     # Restore the Python-side weight configuration. serialize() persists
     # weight_mode always and the compiled tape in formula mode; without
