@@ -626,7 +626,7 @@ py::array_t<double> GraphBuilder::compute_pmf(
 // reward transform requires. DPH rewards count steps, so a non-integer or
 // negative value is a user error to surface, not something to silently
 // truncate (no silent fallback).
-static std::vector<int> rewards_to_int_or_throw(const std::vector<double>& r) {
+std::vector<int> GraphBuilder::rewards_to_int_or_throw(const std::vector<double>& r) {
     std::vector<int> out(r.size());
     for (size_t i = 0; i < r.size(); i++) {
         double v = r[i];
@@ -640,6 +640,53 @@ static std::vector<int> rewards_to_int_or_throw(const std::vector<double>& r) {
         out[i] = static_cast<int>(rounded);
     }
     return out;
+}
+
+namespace {
+// Small combinatorial helpers for the continuous->discrete moment conversion.
+double d_factorial(int n) { double r = 1.0; for (int i = 2; i <= n; i++) r *= i; return r; }
+double d_binomial(int n, int k) {
+    if (k < 0 || k > n) return 0.0;
+    return d_factorial(n) / (d_factorial(k) * d_factorial(n - k));
+}
+// Stirling numbers of the second kind, S(n,k) = k*S(n-1,k) + S(n-1,k-1).
+double d_stirling2(int n, int k) {
+    if (k == 0) return (n == 0) ? 1.0 : 0.0;
+    if (k > n) return 0.0;
+    if (k == n || k == 1) return 1.0;
+    return k * d_stirling2(n - 1, k) + d_stirling2(n - 1, k - 1);
+}
+}  // namespace
+
+// A DPH's compute_moments_impl returns the CONTINUOUS waiting-time raw moments
+// m[j-1] = E[T^j] = j! * a U^j 1 (U = (I-P)^-1). Because U commutes with P, the
+// discrete count N relates to them graph-independently:
+//   continuous power moment   u_j        = E[T^j]/j!            = a U^j 1
+//   discrete factorial moment F_r = E[(N)_r] = r! * sum_i C(r-1,i)(-1)^i u_{r-i}
+//   discrete raw moment       E[N^k]     = sum_r StirlingS2(k,r) F_r
+// (order 2 reduces to E[N^2] = m[1]-m[0], the identity behind the N2 fix and
+// the variance_discrete fix.)
+void GraphBuilder::continuous_to_discrete_moments(std::vector<double>& m) {
+    int k = static_cast<int>(m.size());
+    if (k == 0) return;
+    std::vector<double> u(k + 1, 0.0);
+    for (int j = 1; j <= k; j++) u[j] = m[j - 1] / d_factorial(j);
+    std::vector<double> F(k + 1, 0.0);
+    for (int r = 1; r <= k; r++) {
+        double s = 0.0;
+        for (int i = 0; i <= r - 1; i++) {
+            double sign = (i % 2 == 0) ? 1.0 : -1.0;
+            s += d_binomial(r - 1, i) * sign * u[r - i];
+        }
+        F[r] = d_factorial(r) * s;
+    }
+    std::vector<double> out(k, 0.0);
+    for (int kk = 1; kk <= k; kk++) {
+        double s = 0.0;
+        for (int r = 1; r <= kk; r++) s += d_stirling2(kk, r) * F[r];
+        out[kk - 1] = s;
+    }
+    m.swap(out);
 }
 
 std::pair<py::array_t<double>, py::array_t<double>>
@@ -780,6 +827,7 @@ GraphBuilder::compute_pmf_and_moments(
                 // Compute moments for feature j from transformed graph
                 // Note: g_transformed already has rewards applied, so pass empty vector
                 moments_2d[j] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[j]);
             }
         } else {
             // === UNIVARIATE CASE: Single PDF ===
@@ -817,6 +865,7 @@ GraphBuilder::compute_pmf_and_moments(
                 // Compute moments from transformed graph
                 // Note: g_transformed already has rewards applied, so pass empty vector
                 moments_2d[0] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[0]);
             } else {
                 // Use original graph (no transformation)
                 // Skip NaN times - return NaN in output for those positions
@@ -841,6 +890,7 @@ GraphBuilder::compute_pmf_and_moments(
 
                 // Compute moments from original graph (no rewards)
                 moments_2d[0] = compute_moments_impl(g, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[0]);
             }
         }
     }
