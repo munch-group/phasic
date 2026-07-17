@@ -296,3 +296,60 @@ sufficiency proof.
 mere engine-capability gaps -- Q7.1 (reward-PMF cross-path divergence), Q5 (discrete moments
 crash), Q6a/b (serialize round-trip data loss), Q10/#9 (SCC ordering). They are documented,
 pinned, and owned by Stage-3.
+
+---
+
+## F-007 — Q7.1 reward-PMF cross-path divergence — REAL, opt-in-only, PRE-EXISTING, Stage-3-owned
+
+**Verdict: a genuine reachable correctness bug -- `pmf_and_moments_from_graph(..., use_ffi=True)`
+with rewards returns the UNTRANSFORMED PMF instead of the reward-transformed one. But it is
+reachable only by an explicit `use_ffi=True` opt-in, no production path hits it, it is
+PRE-EXISTING (not refactoring-introduced), and it is already documented and owned by Stage-3
+(the Q7.1 strict-xfail). Investigated, not fixed.**
+
+### The divergence (docstring is decisive on which side is correct)
+`pmf_and_moments_from_graph_multivariate` docstring: rewards "define the marginal distribution".
+So the PMF must be the reward-TRANSFORMED distribution. Two backends:
+- pybind `compute_pmf_and_moments` (graph_builder.cpp:741): `g.reward_transform(rewards)` then pdf
+  -> **CORRECT**.
+- FFI `ComputePmfAndMomentsFfiImpl` (graph_builder_ffi.cpp): pdf on the untransformed graph
+  -> **WRONG** (only the PMF; the reward-MOMENTS agree to 1 ulp -- expected_waiting_time(rewards)
+  is math-equivalent to reward_transform-then-moments).
+
+### Verified by execution against an independent oracle
+Oracle = `g.reward_transform(REW).pdf(t)` (correct) vs `g.pdf(t)` (untransformed), matched
+granularity:
+```
+reward-transformed pdf (CORRECT) = [1.58859, 0.72769, 0.20154]
+untransformed pdf     (WRONG)    = [1.77206, 0.55463, 0.08481]   (differ by 1.38 rel)
+
+pmf_and_moments_from_graph(use_ffi=False)  -> TRANSFORMED (correct)   [the DEFAULT]
+pmf_and_moments_from_graph(use_ffi=True )  -> UNTRANSFORMED (WRONG)
+multivariate (per-feature rewards)         -> TRANSFORMED (correct)
+```
+
+### Scope & reachability (the key result)
+- **Default is correct.** `use_ffi=False` is the method default; the resolution
+  (`__init__.py:6774`: `if not use_ffi: use_ffi=False; else: use_ffi=config._use_ffi`) keeps FFI
+  OFF unless the caller explicitly passes `use_ffi=True`. So `config._use_ffi=True` never forces
+  the wrong path by itself.
+- **No production caller opts in.** Every svgd dispatch (`__init__.py:5793,5800,5806,6043,6048,
+  6053`) uses the default; the multivariate path delegates to the default 1D pybind path
+  (confirmed CORRECT above). The only `use_ffi=True` in src/phasic is a comment (`:7077`).
+- So the wrong PMF is reachable ONLY by a user who explicitly writes
+  `pmf_and_moments_from_graph(g, rewards=..., use_ffi=True)`.
+
+### Dated: PRE-EXISTING
+The baseline `3082ebc6` `ComputePmfAndMomentsFfiImpl` has **zero** `reward_transform` calls too
+-- the FFI handler computed the PMF on the untransformed graph before the refactoring. Not
+introduced by it.
+
+### The fix (for Stage-3, one handler)
+In `ComputePmfAndMomentsFfiImpl`, when rewards != None, compute the PMF on
+`g.reward_transform(rewards)` -- mirroring the pybind path (graph_builder.cpp:741) and the
+multivariate FFI handler (graph_builder_ffi.cpp:675, which already does this). The moments path
+is already correct and must be left as-is. This is exactly the "Stage-3 Q7 must unify which
+graph the combined PMF uses" pin; flipping/removing the Q7.1 strict-xfail is the forcing function.
+
+**Not fixed here:** pre-existing (out of the refactoring-bug scope), pinned as a documented
+strict-xfail, and owned by Stage-3. Fixing it in isolation would silently unpin a Stage-3 gate.
