@@ -695,6 +695,21 @@ GraphBuilder::compute_pmf_and_moments(
         // preserving even on the multivariate path.
         Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
+        // A reward vector shorter than the graph reads out of bounds inside
+        // ptd_graph_reward_transform / expected_waiting_time (both take a raw
+        // pointer and loop over vertices_length). n_vertices above is taken
+        // from the reward array's own shape, so validate it against the graph
+        // before any reward is consumed. Fail loud rather than read heap.
+        if (has_rewards) {
+            size_t graph_nv = g.c_graph()->vertices_length;
+            if (n_vertices != graph_nv) {
+                throw std::runtime_error(
+                    "rewards length (" + std::to_string(n_vertices) +
+                    ") must equal the number of graph vertices (" +
+                    std::to_string(graph_nv) + ")");
+            }
+        }
+
         if (is_2d_rewards) {
             // === MULTIVARIATE CASE: Compute PDF per feature ===
             pmf_2d.resize(n_times, std::vector<double>(n_features));

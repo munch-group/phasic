@@ -361,7 +361,11 @@ double _variance_discrete(
   if (rewards.empty()) {
       std::vector<double> m = _moments(graph, 2);
 
-      return m[1] - 2*m[0];
+      // DPH variance from the continuous waiting-time moments. The continuous
+      // 2nd moment overcounts by E[N] (U=(I-P)^-1 commutes with P), so the
+      // discrete raw 2nd moment is m[1]-m[0], and Var[N] = E[N^2]-E[N]^2
+      // = m[1] - m[0] - m[0]*m[0]. (The rewards branch below already does this.)
+      return m[1] - m[0] - m[0] * m[0];
   } else {
       // std::vector<double> rw = as<std::vector<double> >(rewards);
       std::vector<double> sq_rewards(rewards.size());
