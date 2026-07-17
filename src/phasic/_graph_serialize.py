@@ -220,7 +220,10 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         # path applies the continuous reward transform and continuous
         # moments to a DPH (wrong answers). The rebuilt graph dispatches
         # the reward transform / moment correction on this flag.
-        'is_discrete': bool(self.is_discrete),
+        # getattr default: is_discrete is a Python-Graph attribute; serialize
+        # may be invoked on a raw pybind base Graph (e.g. the SLURM work-unit
+        # path), which has no such attribute and is never discrete.
+        'is_discrete': bool(getattr(self, 'is_discrete', False)),
     }
     # Carry the compiled weight tape ONLY in formula mode, so the FFI
     # GraphBuilder that rebuilds this graph evaluates the formula in C.
