@@ -40,11 +40,14 @@ full suite — pre-existing failures exist)
 ### Batch 1 — surgical, independent (do first)
 - **`variance_discrete`** (`phasic_pybind.cpp:364`): empty-rewards branch returns `m[1]-2*m[0]`
   (= 53.33 for the test DPH); correct is `m[1]-m[0]-m[0]*m[0]` (= 15.556). The **rewards** branch
-  (`:376`) is already correct. One-line fix.
-- **N4** reward-length validation on `pmf_and_moments_from_graph*` (Python entry, mirroring
-  `_validate_rewards`) so a wrong-length reward raises instead of the OOB read in
-  `_ptd_graph_reward_transform` (`phasic.c`).
-- Tests: `variance_discrete`==closed form on 3 DPHs; wrong-length rewards → raises (no OOB).
+  (`:376`) is already correct. One-line fix. **DONE.**
+- **N4** reward-length validation: attempted, then **REVERTED**. The parameterized-path reward-length
+  convention is underspecified — existing tests (`inference/test_rewards_support.py`,
+  `inference/test_multivariate.py`) pass rewards of length *vertices − 1* ("one per vertex excluding
+  start"), while the canonical `_validate_rewards` uses `vertices_length()`. A strict
+  `len == vertices_length` guard broke that valid usage (21 pre-existing tests). The OOB on a
+  genuinely-too-short vector is real but pre-existing; a correct guard needs the convention decided
+  first (what is the canonical reward length on this path?). Left unfixed pending that decision.
 
 ### Batch 2 — is_discrete propagation + N1
 - `serialize()` (`__init__.py` near `:754`) add `result['is_discrete']`.

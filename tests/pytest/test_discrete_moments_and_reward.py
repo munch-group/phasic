@@ -7,8 +7,6 @@ Background (pre-existing bugs fixed on branch fix/is-discrete-propagation):
     GraphBuilder (the whole parameterized/JAX path) was blind to discreteness and
     applied the CONTINUOUS reward transform and CONTINUOUS moments to a DPH.
   * variance_discrete() returned m[1]-2*m[0] (wrong) instead of m[1]-m[0]-m[0]^2.
-  * pmf_and_moments_from_graph took the reward length from the reward array shape
-    and read out of bounds for a short reward vector.
 
 Every assertion is anchored to an INDEPENDENT oracle: closed-form dph_pmf
 summation, or reward_transform_discrete, never the code path under test.
@@ -142,23 +140,6 @@ def test_discrete_moments_ffi_matches_pybind():
     _, momp = mp(jnp.asarray(theta), jnp.asarray([2.0, 3.0, 4.0]))
     _, momf = mf(jnp.asarray(theta), jnp.asarray([2.0, 3.0, 4.0]))
     np.testing.assert_allclose(np.asarray(momf), np.asarray(momp), rtol=1e-12, atol=1e-12)
-
-
-# --------------------------------------------------------------------------- N4: reward-length validation
-@pytest.mark.parametrize("badlen", [1, 3, 8])  # graph has 4 vertices
-def test_wrong_length_rewards_raise_not_oob(badlen):
-    """A reward vector whose length != n_vertices must raise, not read out of bounds."""
-    rw = np.linspace(0.5, 2.0, badlen)
-    m = Graph.pmf_and_moments_from_graph(dph((1.0, 1.0)), nr_moments=2, discrete=False)
-    with pytest.raises(Exception):
-        m(jnp.asarray([1.0, 2.0]), jnp.asarray([0.5, 1.0]), jnp.asarray(rw))
-
-
-def test_correct_length_rewards_ok():
-    rw = np.linspace(0.5, 2.0, 4)
-    m = Graph.pmf_and_moments_from_graph(dph((1.0, 1.0)), nr_moments=2, discrete=False)
-    pmf, _ = m(jnp.asarray([1.0, 2.0]), jnp.asarray([0.5, 1.0]), jnp.asarray(rw))
-    assert np.all(np.isfinite(np.asarray(pmf)))
 
 
 # --------------------------------------------------------------------------- regression: continuous unchanged
