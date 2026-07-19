@@ -581,6 +581,52 @@ def _secure_artifact_dir() -> str:
     return _ARTIFACT_DIR
 
 
+def _continuous_to_discrete_moments(m: np.ndarray) -> np.ndarray:
+    """Convert continuous waiting-time raw moments ``[E[T], E[T^2], ...]`` to
+    discrete raw moments ``[E[N], E[N^2], ...]`` for a DPH.
+
+    There is no native discrete-moment routine in the C layer — the ``*_discrete``
+    helpers (``expectation_discrete``, ``variance_discrete``) all compute the
+    continuous moments via ``expected_waiting_time`` and then apply an algebraic
+    correction. This is the same correction, generalised to arbitrary order.
+
+    Graph-independent because ``U = (I-P)^-1`` commutes with ``P``:
+      continuous power moment   ``u_j        = E[T^j]/j! = a U^j 1``
+      discrete factorial moment ``F_r = E[(N)_r] = r! * sum_i C(r-1,i)(-1)^i u_{r-i}``
+      discrete raw moment       ``E[N^k]     = sum_r StirlingS2(k,r) F_r``
+    Order 2 reduces to ``E[N^2] = m[1]-m[0]``. Mirrors
+    ``GraphBuilder::continuous_to_discrete_moments`` used on the parameterized path.
+    """
+    from math import comb, factorial
+
+    m = np.asarray(m, dtype=np.float64)
+    k = len(m)
+    if k == 0:
+        return m
+    u = [0.0] * (k + 1)
+    for j in range(1, k + 1):
+        u[j] = m[j - 1] / factorial(j)
+    F = [0.0] * (k + 1)
+    for r in range(1, k + 1):
+        F[r] = factorial(r) * sum(
+            comb(r - 1, i) * (-1) ** i * u[r - i] for i in range(r)
+        )
+
+    def _stirling2(n: int, kk: int) -> float:
+        if kk == 0:
+            return 1.0 if n == 0 else 0.0
+        if kk > n:
+            return 0.0
+        if kk == n or kk == 1:
+            return 1.0
+        return kk * _stirling2(n - 1, kk) + _stirling2(n - 1, kk - 1)
+
+    out = np.zeros(k)
+    for kk in range(1, k + 1):
+        out[kk - 1] = sum(_stirling2(kk, r) * F[r] for r in range(1, kk + 1))
+    return out
+
+
 def _serialize_graph_data(serialized: dict) -> dict:
     """Extract and prepare graph arrays for computation."""
     states_flat = serialized['states'].flatten()
@@ -1988,7 +2034,12 @@ class Graph(_Graph):
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
-            return super().moments_discrete(power, rewards=rewards, **kwargs)
+            # No native discrete-moment routine exists (super().moments_discrete
+            # is unbound); the C layer only computes continuous waiting-time
+            # moments. Convert them to discrete raw moments -- the same identity
+            # variance_discrete uses (m[1]-m[0]-m[0]^2), generalised. Exact for a DPH.
+            cont = super().moments(power, rewards=rewards, **kwargs)
+            return _continuous_to_discrete_moments(cont)
         else:
             return super().moments(power, rewards=rewards, **kwargs)
 

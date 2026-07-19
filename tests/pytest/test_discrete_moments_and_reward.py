@@ -34,8 +34,12 @@ def dph(probs=(1.0, 1.0), set_discrete=False):
         coeff[i] = 1.0
         vs[i].add_edge(vs[i + 1], coeff)
     if set_discrete:
+        # is_discrete only (NOT was_dph): a native DPH already carries per-step
+        # probabilities, so the was_dph auto-normalisation in update_weights would
+        # rescale each vertex's out-edges to sum to 1 and collapse it to a
+        # deterministic walk. (That native-DPH vs discretize() inconsistency is
+        # tracked separately.)
         g.is_discrete = True
-        g.set_was_dph(True)
     return g
 
 
@@ -117,6 +121,24 @@ def test_discrete_moments_match_summation(probs, theta):
     m = Graph.pmf_and_moments_from_graph(dph(probs), nr_moments=3, discrete=True)
     _, mom = m(jnp.asarray(theta), jnp.asarray([2.0, 3.0, 4.0]))
     assert _rel(np.asarray(mom), tm) < 1e-6
+
+
+@pytest.mark.parametrize("probs,theta", CASES)
+def test_graph_moments_discrete_matches_summation(probs, theta):
+    """The Graph.moments(discrete=True) instance method (was unbound) gives discrete raw
+    moments matching the dph_pmf summation, orders 1-3."""
+    g = dph(probs, set_discrete=True)
+    g.update_weights(list(theta))
+    tm = true_discrete_moments(probs, theta, 3)
+    got = np.asarray(g.moments(3, discrete=True))
+    assert _rel(got, tm) < 1e-6
+
+
+def test_moments_discrete_requires_is_discrete():
+    g = dph((1.0, 1.0))  # not flagged discrete
+    g.update_weights([0.3, 0.3])
+    with pytest.raises(ValueError):
+        g.moments(2, discrete=True)
 
 
 def test_discrete_reward_moments_match_transformed_summation():
