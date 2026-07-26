@@ -107,13 +107,31 @@ valid DPH; plus a native-DPH round-trip (is_discrete, was_dph=False) that stays 
 Keep `vertices_length()` (all vertices incl. start/absorbing; a couple of entries are "don't care").
 Transient-only convention shelved as a separate future UX change.
 
-## 5. Batches (test-gated)
+## 5. Batches (test-gated) — ALL DONE
 
-- **B1a** — C++ guards: length check in `compute_pmf_and_moments` (pybind) + the FFI handlers +
-  `expected_waiting_time`/continuous `covariance` wrappers, against `n_vertices_`/`vertices_length`.
-- **B1b** — Python `.shape`-only guard at the top of each `_compute_pure` + `_multivariate`
-  (jit/grad/vmap-safe); reconcile the 1D/2D orientation. Fix mis-lengthed tests + docstrings.
-- **B2** — serialize `was_dph` via `get_was_dph()`; `from_serialized` faithful restore with
-  absent-key default `is_discrete`; drop the unconditional latch. Cross-version + native-DPH gates.
+- **B1b** — DONE (`bd751e03`). Jit/grad/vmap-safe `.shape`-only guard (`_check_rewards_len`) at the
+  top of each of the three `_compute_pure` closures; multivariate factory inherits it via
+  `model_1d`. Reconciled the 2D orientation on the canonical `(n_features, n_vertices)`: SVGD's
+  model-validation slice `self.rewards[:, :test_times.shape[1]]` corrupted the vertex axis (silent
+  OOB; loose 2D SVGD tests passed on garbage) — now passes the reward whole; fixed the misleading
+  doc. Fixed mis-lengthed tests (`test_rewards_support` V−1→V, `test_multivariate` V+1→V). Verified
+  clean `ValueError` under eager/jit/grad.
+- **B1a** — DONE (`66a5976d`). Guarded the shared C++ primitives `expected_waiting_time`,
+  `reward_transform[_p]`, `dph_reward_transform[_p]` — higher leverage than per-handler checks:
+  they transitively cover pybind `compute_pmf_and_moments`, every FFI handler, and continuous
+  `_covariance` (its `expected_waiting_time` calls precede the `rewards[i]` loop). FFI multivariate
+  extracts the reward buffer's own vertex dim (in-bounds); the length-vs-graph mismatch is caught by
+  the guarded `reward_transform`.
+- **B2** — DONE (`3cb3846f`). serialize `was_dph` via `get_was_dph()`; `from_serialized` faithful
+  restore, absent-key default `is_discrete`; dropped the unconditional latch. Native-DPH round-trip
+  stays un-normalised; discretize round-trip stays valid; cross-version pre-B2 payload validated.
 
-Each batch: `pixi run install-dev`, targeted tests, no full-suite gate (pre-existing failures exist).
+## 6. Follow-ups discovered during implementation (separate, out of scope)
+
+- **G5 residue (FFI multivariate orientation).** `ComputePmfMultivariateFfiImpl` reads a 2D reward
+  as `(n_vertices, n_features)` (`graph_builder_ffi.cpp:613`), opposite to the canonical
+  `(n_features, n_vertices)`. The `use_ffi=True` multivariate path is off the default; the primitive
+  guard still prevents OOB. Reconcile if that path is promoted.
+- **Parameterized-`discretize()` round-trip fidelity.** A *parameterized* discretize()'d graph does
+  not fully round-trip through `serialize` + re-`update_weights` (E[N] off by ~1). Structural/param
+  gap, unrelated to `was_dph`; affects caching of such graphs.
