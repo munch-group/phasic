@@ -65,11 +65,11 @@ def test_rewards_transformation():
     pmf_standard, moments_standard = model(theta, times, rewards=None)
 
     # Compute with uniform rewards (should equal standard moments)
-    rewards_uniform = jnp.array([1.0, 1.0])  # One per vertex (excluding start)
+    rewards_uniform = jnp.array([1.0, 1.0, 1.0])  # one per vertex (== vertices_length())
     pmf_uniform, moments_uniform = model(theta, times, rewards=rewards_uniform)
 
-    # Compute with non-uniform rewards
-    rewards_custom = jnp.array([2.0, 0.5])
+    # Compute with non-uniform rewards (index 2 is the absorbing vertex, reward 1.0)
+    rewards_custom = jnp.array([2.0, 0.5, 1.0])
     pmf_custom, moments_custom = model(theta, times, rewards=rewards_custom)
 
     # PMF should be identical with uniform rewards (graph is unchanged)
@@ -103,7 +103,7 @@ def test_vmap_with_rewards():
     # Batch of theta values
     theta_batch = jnp.array([[1.0], [2.0], [3.0]])
     times = jnp.array([0.5, 1.0])
-    rewards = jnp.array([1.0])
+    rewards = jnp.array([1.0, 1.0])  # one per vertex (== vertices_length())
 
     # vmap over theta batch
     vmapped_model = jax.vmap(lambda t: model(t, times, rewards))

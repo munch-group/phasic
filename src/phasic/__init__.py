@@ -6581,6 +6581,28 @@ extern "C" {{
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
 
+        # Reward-length guard. Rewards are one per vertex, so the vertex axis
+        # (the LAST axis, for 1D and (n_features, n_vertices) 2D) must equal
+        # vertices_length(). Without this a short vector reads out of bounds in
+        # ptd_graph_reward_transform / expected_waiting_time. This is a
+        # STATIC-SHAPE check (shapes are concrete even for jit/vmap tracers), so
+        # it is safe under jit/grad/vmap -- unlike _validate_rewards, whose
+        # np.asarray + coverage BFS would raise TracerArrayConversionError. It
+        # runs at the top of every _compute_pure, so the custom_vjp fwd/bwd
+        # (SVGD's grad path, which does not run the primal) are covered too.
+        _n_vertices = int(serialized.get('n_vertices', 0))
+
+        def _check_rewards_len(rewards):
+            if rewards is None:
+                return
+            shp = jnp.asarray(rewards).shape
+            if len(shp) == 0 or int(shp[-1]) != _n_vertices:
+                raise ValueError(
+                    f"rewards: the last axis must be n_vertices={_n_vertices} "
+                    f"(one reward per vertex = vertices_length()), got shape "
+                    f"{tuple(int(s) for s in shp)}."
+                )
+
         # Callback mode: Python-level weight computation
         if serialized.get('weight_mode') == 'callback':
             import json
@@ -6606,6 +6628,7 @@ extern "C" {{
                 )
 
             def _compute_pure(theta, times, rewards=None):
+                _check_rewards_len(rewards)
                 # Determine output shapes based on rewards dimensionality.
                 # Match the FFI / pybind paths (univariate vs multivariate).
                 if rewards is not None and jnp.asarray(rewards).ndim == 2:
@@ -6773,6 +6796,7 @@ extern "C" {{
                 Supports: jit, vmap, pmap with true multi-core execution
                 FFI caching: GraphBuilder cached by JSON structure
                 """
+                _check_rewards_len(rewards)
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
                 return model_ffi_partial(theta=theta, times=times, rewards=rewards)
@@ -6829,6 +6853,7 @@ extern "C" {{
             # Helper function for pure callback (used in forward and backward pass)
             def _compute_pure(theta, times, rewards=None):
                 """Pure computation without custom_vjp wrapper"""
+                _check_rewards_len(rewards)
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
 
