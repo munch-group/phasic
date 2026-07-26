@@ -224,6 +224,13 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         # may be invoked on a raw pybind base Graph (e.g. the SLURM work-unit
         # path), which has no such attribute and is never discrete.
         'is_discrete': bool(getattr(self, 'is_discrete', False)),
+        # was_dph is the C-level auto-normalisation latch (set by discretize()):
+        # a discretize()'d graph NEEDS it (its multi-out-edge vertices must
+        # renormalise on update_weights), a native DPH must NOT (normalising
+        # collapses it to a deterministic walk). It lives on the base graph, so
+        # read it via get_was_dph() -- there is no Python 'was_dph' attribute --
+        # which is also safe on a raw pybind base graph (SLURM path).
+        'was_dph': bool(self.get_was_dph()),
     }
     # Carry the compiled weight tape ONLY in formula mode, so the FFI
     # GraphBuilder that rebuilds this graph evaluates the formula in C.
@@ -627,12 +634,16 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
     # existed).
     graph.dyn_ordering = bool(data.get('dyn_ordering', False))
 
-    # Restore discreteness (default False for caches written before this
-    # field existed). Latch was_dph too, mirroring discretize() /
-    # reward_transform_discrete(), so a restored DPH behaves like a
-    # freshly-discretized one (dispatch + auto-normalisation invariants).
-    if bool(data.get('is_discrete', False)):
-        graph.is_discrete = True
+    # Restore discreteness + the was_dph normalisation latch FAITHFULLY (default
+    # False for caches written before these fields existed). is_discrete drives
+    # Python-level dispatch; was_dph drives update_weights auto-normalisation --
+    # required for a discretize()'d graph, WRONG for a native DPH (it would
+    # collapse it to a deterministic walk). The absent-key default for was_dph
+    # is is_discrete, so a pre-B2 cache (no was_dph key) keeps today's
+    # "latch-on-discrete" behaviour for old discretized graphs, while a native
+    # DPH serialized post-B2 carries was_dph=False and stays un-normalised.
+    graph.is_discrete = bool(data.get('is_discrete', False))
+    if bool(data.get('was_dph', data.get('is_discrete', False))):
         graph.set_was_dph(True)
 
     # Restore the Python-side weight configuration. serialize() persists
