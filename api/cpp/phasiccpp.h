@@ -425,7 +425,28 @@ namespace phasic {
         // graph cache survives this call (Stage A0 invariant).
         void update_ipv(std::vector<double> ipv);
 
+        // Rewards are one per vertex; the C reward routines loop over
+        // vertices_length, so a wrong-length vector reads out of bounds. Throw
+        // instead. (expected_waiting_time additionally allows an empty vector =
+        // unit rewards, so it does its own check.)
+        void _check_reward_length(size_t n, const char *fn) {
+            if (n != (size_t) this->c_graph()->vertices_length) {
+                throw std::runtime_error(
+                    std::string(fn) + ": rewards length " + std::to_string(n) +
+                    " must equal the number of vertices " +
+                    std::to_string((size_t) this->c_graph()->vertices_length));
+            }
+        }
+
         std::vector<double> expected_waiting_time(std::vector<double> rewards = std::vector<double>()) {
+            // A reward vector must have one entry per vertex; ptd_expected_waiting_time
+            // reads vertices_length entries, so a short vector reads out of bounds.
+            if (!rewards.empty() && rewards.size() != (size_t) this->c_graph()->vertices_length) {
+                throw std::runtime_error(
+                    "expected_waiting_time: rewards length " + std::to_string(rewards.size()) +
+                    " must equal the number of vertices " +
+                    std::to_string((size_t) this->c_graph()->vertices_length));
+            }
             double *ptr = ptd_expected_waiting_time(
                     this->c_graph(),
                     rewards.empty() ? NULL : &rewards[0]
@@ -1194,6 +1215,7 @@ namespace phasic {
         Graph *reward_transform_p(std::vector<double> rewards);
 
         Graph dph_reward_transform(std::vector<int> rewards) {
+            _check_reward_length(rewards.size(), "dph_reward_transform");
             struct ptd_graph *res = ptd_graph_dph_reward_transform(c_graph(), &rewards[0]);
 
             if (res == NULL) {
@@ -1204,6 +1226,7 @@ namespace phasic {
         }
 
         Graph *dph_reward_transform_p(std::vector<int> rewards) {
+            _check_reward_length(rewards.size(), "dph_reward_transform");
             struct ptd_graph *res = ptd_graph_dph_reward_transform(c_graph(), &rewards[0]);
 
             if (res == NULL) {

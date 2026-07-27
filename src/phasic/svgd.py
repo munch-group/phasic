@@ -5543,7 +5543,7 @@ class SVGD:
             )
 
         self.nr_moments = nr_moments
-        self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
+        self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_features, n_vertices)
         self.optimizer = optimizer
 
         # Validate and store preconditioner setting.
@@ -5623,15 +5623,14 @@ class SVGD:
             else:
                 test_times = self.observed_data[:min(2, len(self.observed_data))]
 
-            # Test with rewards if provided
+            # Test with rewards if provided. A 2D reward is (n_features,
+            # n_vertices) -- its LAST axis is vertices, not features, so it must
+            # NOT be sliced to match test_times' feature columns (an earlier
+            # version sliced [:, :test_times.shape[1]], which corrupted the
+            # vertex axis of an (n_features, n_vertices) reward). The reward is
+            # independent of the number of test observations, so pass it whole.
             if self.rewards is not None:
-                # For 2D rewards, extract first 2 columns to match test_times
-                # (only for dense format - sparse format doesn't need this)
-                if not self._sparse_format and jnp.asarray(self.rewards).ndim == 2 and test_times.ndim == 2:
-                    test_rewards = jnp.asarray(self.rewards)[:, :test_times.shape[1]]
-                else:
-                    test_rewards = self.rewards
-                result = self.model(test_theta, test_times, rewards=test_rewards)
+                result = self.model(test_theta, test_times, rewards=self.rewards)
             else:
                 result = self.model(test_theta, test_times, rewards=None)
 

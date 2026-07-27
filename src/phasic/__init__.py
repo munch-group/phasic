@@ -581,6 +581,52 @@ def _secure_artifact_dir() -> str:
     return _ARTIFACT_DIR
 
 
+def _continuous_to_discrete_moments(m: np.ndarray) -> np.ndarray:
+    """Convert continuous waiting-time raw moments ``[E[T], E[T^2], ...]`` to
+    discrete raw moments ``[E[N], E[N^2], ...]`` for a DPH.
+
+    There is no native discrete-moment routine in the C layer — the ``*_discrete``
+    helpers (``expectation_discrete``, ``variance_discrete``) all compute the
+    continuous moments via ``expected_waiting_time`` and then apply an algebraic
+    correction. This is the same correction, generalised to arbitrary order.
+
+    Graph-independent because ``U = (I-P)^-1`` commutes with ``P``:
+      continuous power moment   ``u_j        = E[T^j]/j! = a U^j 1``
+      discrete factorial moment ``F_r = E[(N)_r] = r! * sum_i C(r-1,i)(-1)^i u_{r-i}``
+      discrete raw moment       ``E[N^k]     = sum_r StirlingS2(k,r) F_r``
+    Order 2 reduces to ``E[N^2] = m[1]-m[0]``. Mirrors
+    ``GraphBuilder::continuous_to_discrete_moments`` used on the parameterized path.
+    """
+    from math import comb, factorial
+
+    m = np.asarray(m, dtype=np.float64)
+    k = len(m)
+    if k == 0:
+        return m
+    u = [0.0] * (k + 1)
+    for j in range(1, k + 1):
+        u[j] = m[j - 1] / factorial(j)
+    F = [0.0] * (k + 1)
+    for r in range(1, k + 1):
+        F[r] = factorial(r) * sum(
+            comb(r - 1, i) * (-1) ** i * u[r - i] for i in range(r)
+        )
+
+    def _stirling2(n: int, kk: int) -> float:
+        if kk == 0:
+            return 1.0 if n == 0 else 0.0
+        if kk > n:
+            return 0.0
+        if kk == n or kk == 1:
+            return 1.0
+        return kk * _stirling2(n - 1, kk) + _stirling2(n - 1, kk - 1)
+
+    out = np.zeros(k)
+    for kk in range(1, k + 1):
+        out[kk - 1] = sum(_stirling2(kk, r) * F[r] for r in range(1, kk + 1))
+    return out
+
+
 def _serialize_graph_data(serialized: dict) -> dict:
     """Extract and prepare graph arrays for computation."""
     states_flat = serialized['states'].flatten()
@@ -2030,7 +2076,12 @@ class Graph(_Graph):
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
-            return super().moments_discrete(power, rewards=rewards, **kwargs)
+            # No native discrete-moment routine exists (super().moments_discrete
+            # is unbound); the C layer only computes continuous waiting-time
+            # moments. Convert them to discrete raw moments -- the same identity
+            # variance_discrete uses (m[1]-m[0]-m[0]^2), generalised. Exact for a DPH.
+            cont = super().moments(power, rewards=rewards, **kwargs)
+            return _continuous_to_discrete_moments(cont)
         else:
             return super().moments(power, rewards=rewards, **kwargs)
 
@@ -6608,6 +6659,28 @@ extern "C" {{
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
 
+        # Reward-length guard. Rewards are one per vertex, so the vertex axis
+        # (the LAST axis, for 1D and (n_features, n_vertices) 2D) must equal
+        # vertices_length(). Without this a short vector reads out of bounds in
+        # ptd_graph_reward_transform / expected_waiting_time. This is a
+        # STATIC-SHAPE check (shapes are concrete even for jit/vmap tracers), so
+        # it is safe under jit/grad/vmap -- unlike _validate_rewards, whose
+        # np.asarray + coverage BFS would raise TracerArrayConversionError. It
+        # runs at the top of every _compute_pure, so the custom_vjp fwd/bwd
+        # (SVGD's grad path, which does not run the primal) are covered too.
+        _n_vertices = int(serialized.get('n_vertices', 0))
+
+        def _check_rewards_len(rewards):
+            if rewards is None:
+                return
+            shp = jnp.asarray(rewards).shape
+            if len(shp) == 0 or int(shp[-1]) != _n_vertices:
+                raise ValueError(
+                    f"rewards: the last axis must be n_vertices={_n_vertices} "
+                    f"(one reward per vertex = vertices_length()), got shape "
+                    f"{tuple(int(s) for s in shp)}."
+                )
+
         # Callback mode: Python-level weight computation
         if serialized.get('weight_mode') == 'callback':
             import json
@@ -6633,6 +6706,7 @@ extern "C" {{
                 )
 
             def _compute_pure(theta, times, rewards=None):
+                _check_rewards_len(rewards)
                 # Determine output shapes based on rewards dimensionality.
                 # Match the FFI / pybind paths (univariate vs multivariate).
                 if rewards is not None and jnp.asarray(rewards).ndim == 2:
@@ -6800,6 +6874,7 @@ extern "C" {{
                 Supports: jit, vmap, pmap with true multi-core execution
                 FFI caching: GraphBuilder cached by JSON structure
                 """
+                _check_rewards_len(rewards)
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
                 return model_ffi_partial(theta=theta, times=times, rewards=rewards)
@@ -6856,6 +6931,7 @@ extern "C" {{
             # Helper function for pure callback (used in forward and backward pass)
             def _compute_pure(theta, times, rewards=None):
                 """Pure computation without custom_vjp wrapper"""
+                _check_rewards_len(rewards)
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
 

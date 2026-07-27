@@ -1765,6 +1765,7 @@ std::vector<phasic::ParameterizedEdge> phasic::Vertex::parameterized_edges() {
 // }
 
 phasic::Graph phasic::Graph::reward_transform(std::vector<double> rewards) {
+    _check_reward_length(rewards.size(), "reward_transform");
     struct ptd_graph *res = ptd_graph_reward_transform(this->c_graph(), &rewards[0]);
 
     if (res == NULL) {
@@ -1775,6 +1776,7 @@ phasic::Graph phasic::Graph::reward_transform(std::vector<double> rewards) {
 }
 
 phasic::Graph *phasic::Graph::reward_transform_p(std::vector<double> rewards) {
+  _check_reward_length(rewards.size(), "reward_transform");
   struct ptd_graph *res = ptd_graph_reward_transform(this->c_graph(), &rewards[0]);
 
   if (res == NULL) {

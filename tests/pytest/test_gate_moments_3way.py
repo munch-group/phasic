@@ -85,15 +85,17 @@ def test_g2_ffi_core_matches_direct_and_proves_ffi_path():
                       jnp.asarray(THETA), target="ptd_compute_moments")
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Q5: Graph.moments(discrete=True) -> super().moments_discrete (__init__.py:2250) "
-    "but no moments_discrete pybind binding exists in phasic_pybind.cpp; raises "
-    "AttributeError. Stage-3 must add the binding/port or remove the discrete "
-    "branch. Uses a discretized graph so the ValueError guard is bypassed."))
-def test_g2_moments_discrete_unbound_xfail():
+def test_g2_moments_discrete_now_bound():
+    """Q5 resolved: Graph.moments(discrete=True) no longer raises (super().moments_discrete
+    was unbound). No native discrete-moment routine exists, so it converts the continuous
+    waiting-time moments to discrete raw moments. The 1st discrete moment must equal
+    expectation_discrete() (an independent existing path)."""
     g = _build().discretize(0.5)          # is_discrete=True; bypasses the continuous guard
     assert g.is_discrete
-    g.moments(2, discrete=True)           # -> AttributeError: no 'moments_discrete'
+    g.update_weights([1.0] * g.param_length())   # discretize adds a coeff slot
+    m = np.asarray(g.moments(2, discrete=True))
+    assert m.shape == (2,) and np.all(np.isfinite(m))
+    assert abs(m[0] - g.expectation_discrete()) < 1e-9
 
 
 @pytest.mark.skip(reason=(

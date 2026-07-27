@@ -267,6 +267,23 @@ public:
      */
     std::vector<double> compute_moments_impl(Graph& g, int nr_moments, const std::vector<double>& rewards);
 
+    /** True if this graph is a DPH (serialize 'is_discrete'). Public for FFI handlers. */
+    bool is_discrete() const { return is_discrete_; }
+
+    /**
+     * Convert a double reward vector to the integer vector the discrete (DPH)
+     * reward transform requires; throws on a negative or non-integer value.
+     * Public/static for use by both the pybind and FFI reward paths.
+     */
+    static std::vector<int> rewards_to_int_or_throw(const std::vector<double>& r);
+
+    /**
+     * In place, convert continuous raw moments [E[T], E[T^2], ...] to discrete
+     * raw moments [E[N], E[N^2], ...] for a DPH. Graph-independent (U=(I-P)^-1
+     * commutes with P). Public/static for use by the pybind and FFI moment paths.
+     */
+    static void continuous_to_discrete_moments(std::vector<double>& m);
+
     /** Weight computation mode for parameterized edges. */
     enum class WeightMode { LINEAR, LOG, FORMULA };
 
@@ -304,6 +321,7 @@ private:
     int n_vertices_;        // Number of vertices (excluding starting vertex)
     WeightMode weight_mode_ = WeightMode::LINEAR;
     bool dyn_ordering_ = false;   // dynamic min-degree elimination ordering
+    bool is_discrete_ = false;    // graph is a DPH (from serialize 'is_discrete')
 
     // weight_mode_ == FORMULA: per-edge weight tape (parsed once from the
     // 'weight_formula_tape' JSON). Evaluated in C via

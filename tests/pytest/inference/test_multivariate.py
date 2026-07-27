@@ -35,7 +35,7 @@ class TestMultivariateModel:
 
         theta = jnp.array([2.0])
         times = jnp.array([0.5, 1.0, 1.5])
-        rewards_1d = jnp.array([1.0, 2.0, 0.5, 1.5])
+        rewards_1d = jnp.array([1.0, 2.0, 0.5])
 
         # Both should give same results
         pmf_1d, moments_1d = model_1d(theta, times, rewards=rewards_1d)
@@ -71,7 +71,7 @@ class TestMultivariateModel:
         theta = jnp.array([2.0])
         n_times = 5
         n_features = 3
-        n_vertices = 4
+        n_vertices = 3
 
         times = jnp.linspace(0.5, 2.5, n_times)
         # As of v0.22.22 the reward matrix shape is (n_features, n_vertices)
@@ -92,7 +92,7 @@ class TestMultivariateModel:
         theta = jnp.array([2.0])
         n_times = 5
         n_features = 3
-        n_vertices = 4
+        n_vertices = 3
 
         # Different times for each feature
         times_2d = jnp.array([
@@ -118,14 +118,14 @@ class TestMultivariateModel:
 
         theta = jnp.array([2.0])
         times = jnp.array([0.5, 1.0, 1.5])
-        n_vertices = 4
+        n_vertices = 3
         n_features = 3
 
-        # Create 2D rewards with different values per feature
+        # Create 2D rewards with different values per feature (one per vertex)
         rewards_2d = jnp.array([
-            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
-            [2.0, 1.0, 1.5, 0.5],  # Feature 1 reward vector
-            [0.5, 1.5, 2.0, 1.0]   # Feature 2 reward vector
+            [1.0, 2.0, 0.5],  # Feature 0 reward vector
+            [2.0, 1.0, 1.5],  # Feature 1 reward vector
+            [0.5, 1.5, 2.0]   # Feature 2 reward vector
         ])
 
         # Compute 2D result
@@ -162,7 +162,7 @@ class TestSVGDMultivariate:
         graph = create_simple_exponential_graph()
 
         observed_data = jnp.array([0.5, 1.0, 1.5, 2.0])
-        rewards = jnp.array([1.0, 2.0, 0.5, 1.5])
+        rewards = jnp.array([1.0, 2.0, 0.5])
 
         # This should not raise an error
         from phasic import SVGD
@@ -191,7 +191,7 @@ class TestSVGDMultivariate:
         true_rate = 2.0
         observed_data = np.random.exponential(scale=1/true_rate, size=20)
 
-        rewards = jnp.array([1.0, 2.0, 0.5, 1.5])
+        rewards = jnp.array([1.0, 2.0, 0.5])
 
         from phasic import SVGD
         model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
@@ -234,10 +234,10 @@ class TestSVGDMultivariate:
             for _ in range(n_obs)
         ])
 
-        n_vertices = 4
+        n_vertices = 3
         rewards_2d = jnp.array([
-            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
-            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
+            [1.0, 2.0, 0.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0]   # Feature 1 reward vector
         ])
 
         from phasic import SVGD
@@ -278,10 +278,10 @@ class TestSVGDMultivariate:
             for _ in range(n_obs)
         ])
 
-        n_vertices = 4
+        n_vertices = 3
         rewards_2d = jnp.array([
-            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
-            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
+            [1.0, 2.0, 0.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0]   # Feature 1 reward vector
         ])
 
         from phasic import SVGD
@@ -322,7 +322,7 @@ class TestGraphSVGDAPI:
         # Generate synthetic data
         np.random.seed(42)
         observed_data = np.random.exponential(scale=0.5, size=20)
-        rewards = jnp.array([1.0, 2.0, 0.5, 1.5])
+        rewards = jnp.array([1.0, 2.0, 0.5])
 
         # This should not raise an error
         svgd = graph.svgd(
@@ -353,8 +353,8 @@ class TestGraphSVGDAPI:
         ])
 
         rewards_2d = jnp.array([
-            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
-            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
+            [1.0, 2.0, 0.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0]   # Feature 1 reward vector
         ])
 
         svgd = graph.svgd(

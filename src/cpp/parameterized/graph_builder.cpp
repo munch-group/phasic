@@ -65,6 +65,14 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
             dyn_ordering_ = j.at("dyn_ordering").get<bool>();
         }
 
+        // Discreteness flag (default false). Lets graph.is_discrete propagate
+        // to this rebuilt graph so the reward transform and moments dispatch
+        // on it -- without this the parameterized path applies the continuous
+        // reward transform and continuous moments to a DPH (N1/N2).
+        if (j.contains("is_discrete")) {
+            is_discrete_ = j.at("is_discrete").get<bool>();
+        }
+
         // Parse states
         states_.reserve(n_vertices_);
         auto states_json = j.at("states");
@@ -614,6 +622,73 @@ py::array_t<double> GraphBuilder::compute_pmf(
     return result;
 }
 
+// Convert a double reward vector to the integer vector the discrete (DPH)
+// reward transform requires. DPH rewards count steps, so a non-integer or
+// negative value is a user error to surface, not something to silently
+// truncate (no silent fallback).
+std::vector<int> GraphBuilder::rewards_to_int_or_throw(const std::vector<double>& r) {
+    std::vector<int> out(r.size());
+    for (size_t i = 0; i < r.size(); i++) {
+        double v = r[i];
+        double rounded = std::round(v);
+        if (v < 0.0 || std::abs(v - rounded) > 1e-9) {
+            throw std::runtime_error(
+                "discrete (DPH) reward transform requires non-negative integer "
+                "rewards; got " + std::to_string(v) + " at index " +
+                std::to_string(i));
+        }
+        out[i] = static_cast<int>(rounded);
+    }
+    return out;
+}
+
+namespace {
+// Small combinatorial helpers for the continuous->discrete moment conversion.
+double d_factorial(int n) { double r = 1.0; for (int i = 2; i <= n; i++) r *= i; return r; }
+double d_binomial(int n, int k) {
+    if (k < 0 || k > n) return 0.0;
+    return d_factorial(n) / (d_factorial(k) * d_factorial(n - k));
+}
+// Stirling numbers of the second kind, S(n,k) = k*S(n-1,k) + S(n-1,k-1).
+double d_stirling2(int n, int k) {
+    if (k == 0) return (n == 0) ? 1.0 : 0.0;
+    if (k > n) return 0.0;
+    if (k == n || k == 1) return 1.0;
+    return k * d_stirling2(n - 1, k) + d_stirling2(n - 1, k - 1);
+}
+}  // namespace
+
+// A DPH's compute_moments_impl returns the CONTINUOUS waiting-time raw moments
+// m[j-1] = E[T^j] = j! * a U^j 1 (U = (I-P)^-1). Because U commutes with P, the
+// discrete count N relates to them graph-independently:
+//   continuous power moment   u_j        = E[T^j]/j!            = a U^j 1
+//   discrete factorial moment F_r = E[(N)_r] = r! * sum_i C(r-1,i)(-1)^i u_{r-i}
+//   discrete raw moment       E[N^k]     = sum_r StirlingS2(k,r) F_r
+// (order 2 reduces to E[N^2] = m[1]-m[0], the identity behind the N2 fix and
+// the variance_discrete fix.)
+void GraphBuilder::continuous_to_discrete_moments(std::vector<double>& m) {
+    int k = static_cast<int>(m.size());
+    if (k == 0) return;
+    std::vector<double> u(k + 1, 0.0);
+    for (int j = 1; j <= k; j++) u[j] = m[j - 1] / d_factorial(j);
+    std::vector<double> F(k + 1, 0.0);
+    for (int r = 1; r <= k; r++) {
+        double s = 0.0;
+        for (int i = 0; i <= r - 1; i++) {
+            double sign = (i % 2 == 0) ? 1.0 : -1.0;
+            s += d_binomial(r - 1, i) * sign * u[r - i];
+        }
+        F[r] = d_factorial(r) * s;
+    }
+    std::vector<double> out(k, 0.0);
+    for (int kk = 1; kk <= k; kk++) {
+        double s = 0.0;
+        for (int r = 1; r <= kk; r++) s += d_stirling2(kk, r) * F[r];
+        out[kk - 1] = s;
+    }
+    m.swap(out);
+}
+
 std::pair<py::array_t<double>, py::array_t<double>>
 GraphBuilder::compute_pmf_and_moments(
     py::array_t<double> theta,
@@ -695,6 +770,12 @@ GraphBuilder::compute_pmf_and_moments(
         // preserving even on the multivariate path.
         Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
+        // Discreteness: honour the per-call flag OR the graph's own
+        // is_discrete (propagated through serialize). A DPH must use the
+        // discrete reward transform (integer rewards), dph_pmf, and the
+        // discrete moment correction -- not their continuous counterparts.
+        bool is_disc = discrete || is_discrete_;
+
         if (is_2d_rewards) {
             // === MULTIVARIATE CASE: Compute PDF per feature ===
             pmf_2d.resize(n_times, std::vector<double>(n_features));
@@ -702,12 +783,14 @@ GraphBuilder::compute_pmf_and_moments(
 
             // Compute PDF/PMF and moments per feature (each with its own reward transformation)
             for (size_t j = 0; j < n_features; j++) {
-                // Transform graph for feature j
-                Graph g_transformed = g.reward_transform(rewards_2d[j]);
+                // Transform graph for feature j (discrete transform for a DPH)
+                Graph g_transformed = is_disc
+                    ? g.reward_transform_discrete(rewards_to_int_or_throw(rewards_2d[j]))
+                    : g.reward_transform(rewards_2d[j]);
 
                 // Compute PDF/PMF for feature j from transformed graph
                 // Skip NaN times - return NaN in output for those positions
-                if (discrete) {
+                if (is_disc) {
                     for (size_t t = 0; t < n_times; t++) {
                         if (std::isnan(times_vec[t])) {
                             pmf_2d[t][j] = std::numeric_limits<double>::quiet_NaN();
@@ -729,6 +812,7 @@ GraphBuilder::compute_pmf_and_moments(
                 // Compute moments for feature j from transformed graph
                 // Note: g_transformed already has rewards applied, so pass empty vector
                 moments_2d[j] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[j]);
             }
         } else {
             // === UNIVARIATE CASE: Single PDF ===
@@ -737,12 +821,14 @@ GraphBuilder::compute_pmf_and_moments(
 
             // Check if we need to transform the graph
             if (!rewards_vec_1d.empty()) {
-                // Transform graph with rewards
-                Graph g_transformed = g.reward_transform(rewards_vec_1d);
+                // Transform graph with rewards (discrete transform for a DPH)
+                Graph g_transformed = is_disc
+                    ? g.reward_transform_discrete(rewards_to_int_or_throw(rewards_vec_1d))
+                    : g.reward_transform(rewards_vec_1d);
 
                 // Compute PDF/PMF from transformed graph
                 // Skip NaN times - return NaN in output for those positions
-                if (discrete) {
+                if (is_disc) {
                     for (size_t t = 0; t < n_times; t++) {
                         if (std::isnan(times_vec[t])) {
                             pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
@@ -764,10 +850,11 @@ GraphBuilder::compute_pmf_and_moments(
                 // Compute moments from transformed graph
                 // Note: g_transformed already has rewards applied, so pass empty vector
                 moments_2d[0] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[0]);
             } else {
                 // Use original graph (no transformation)
                 // Skip NaN times - return NaN in output for those positions
-                if (discrete) {
+                if (is_disc) {
                     for (size_t t = 0; t < n_times; t++) {
                         if (std::isnan(times_vec[t])) {
                             pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
@@ -788,6 +875,7 @@ GraphBuilder::compute_pmf_and_moments(
 
                 // Compute moments from original graph (no rewards)
                 moments_2d[0] = compute_moments_impl(g, nr_moments, std::vector<double>());
+                if (is_disc) continuous_to_discrete_moments(moments_2d[0]);
             }
         }
     }
