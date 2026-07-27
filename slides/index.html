@@ -6,8 +6,8 @@
 <script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
 <link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="index_files/libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.9.38">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.10.18">
 
   <meta name="author" content="Kasper Munch">
   <title>Phase-type distribution graphs for population genetics</title>
@@ -20,10 +20,13 @@
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
     */
-    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     ul.task-list{list-style: none;}
     ul.task-list li input[type="checkbox"] {
@@ -204,7 +207,7 @@
 <div class="quarto-title-authors">
 <div class="quarto-title-author">
 <div class="quarto-title-author-name">
-Kasper Munch 
+Kasper Munch
 </div>
         <p class="quarto-title-affiliation">
             BiRC, Department of Molecular Biology and Genetics, Aarhus University
@@ -463,29 +466,29 @@ Kasper Munch
 </section>
 <section id="api" class="slide level2">
 <h2>API</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href=""></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb1-2"><a href=""></a></span>
-<span id="cb1-3"><a href=""></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb1-4"><a href=""></a>    transitions <span class="op">=</span> []</span>
-<span id="cb1-5"><a href=""></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb1-6"><a href=""></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
-<span id="cb1-7"><a href=""></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb1-8"><a href=""></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb1-9"><a href=""></a>                <span class="cf">continue</span></span>
-<span id="cb1-10"><a href=""></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb1-11"><a href=""></a>                <span class="cf">continue</span> </span>
-<span id="cb1-12"><a href=""></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb1-13"><a href=""></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb1-14"><a href=""></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb1-15"><a href=""></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb1-16"><a href=""></a>            rate <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
-<span id="cb1-17"><a href=""></a>            transitions.append((new, rate))</span>
-<span id="cb1-18"><a href=""></a>    <span class="cf">return</span> transitions</span>
-<span id="cb1-19"><a href=""></a></span>
-<span id="cb1-20"><a href=""></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb1-21"><a href=""></a>initial_state <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
-<span id="cb1-22"><a href=""></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial_state)</span>
-<span id="cb1-23"><a href=""></a>graph.moments(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="" aria-label="1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb1-2"><a href="" aria-label="2"></a></span>
+<span id="cb1-3"><a href="" aria-label="3"></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb1-4"><a href="" aria-label="4"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb1-5"><a href="" aria-label="5"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb1-6"><a href="" aria-label="6"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
+<span id="cb1-7"><a href="" aria-label="7"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb1-8"><a href="" aria-label="8"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb1-9"><a href="" aria-label="9"></a>                <span class="cf">continue</span></span>
+<span id="cb1-10"><a href="" aria-label="10"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb1-11"><a href="" aria-label="11"></a>                <span class="cf">continue</span> </span>
+<span id="cb1-12"><a href="" aria-label="12"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb1-13"><a href="" aria-label="13"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb1-14"><a href="" aria-label="14"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb1-15"><a href="" aria-label="15"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-16"><a href="" aria-label="16"></a>            rate <span class="op">=</span> state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)</span>
+<span id="cb1-17"><a href="" aria-label="17"></a>            transitions.append((new, rate))</span>
+<span id="cb1-18"><a href="" aria-label="18"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb1-19"><a href="" aria-label="19"></a></span>
+<span id="cb1-20"><a href="" aria-label="20"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb1-21"><a href="" aria-label="21"></a>initial_state <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb1-22"><a href="" aria-label="22"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial_state)</span>
+<span id="cb1-23"><a href="" aria-label="23"></a>graph.moments(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <!-- =============================================================================== -->
 </section>
 <section id="docs" class="slide level2">
@@ -1839,7 +1842,7 @@ Figure&nbsp;11
         margin: 0.1,
 
         math: {
-          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js',
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js',
           config: 'TeX-AMS_HTML-full',
           tex2jax: {
             inlineMath: [['\\(','\\)']],
