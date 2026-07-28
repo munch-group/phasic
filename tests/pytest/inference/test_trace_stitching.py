@@ -102,8 +102,8 @@ def test_stitch_vs_direct_simple():
 
     try:
         import jax.numpy as jnp
-        result_direct = evaluate_trace_jax(trace_direct, jnp.array(params))
-        result_stitched = evaluate_trace_jax(trace_stitched, jnp.array(params))
+        result_direct = evaluate_trace_jax(trace_direct, jnp.array(params), use_log=False)
+        result_stitched = evaluate_trace_jax(trace_stitched, jnp.array(params), use_log=False)
 
         # Compare vertex_rates (should be identical)
         print(f"Direct vertex_rates: {result_direct['vertex_rates']}")

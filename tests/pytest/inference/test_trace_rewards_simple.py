@@ -45,7 +45,7 @@ def test_simple_reward_transformation():
     theta = np.array([2.0])  # Rate = 2.0
     rewards_neutral = np.ones(trace.n_vertices)
 
-    result_neutral = evaluate_trace(trace, params=theta, rewards=rewards_neutral)
+    result_neutral = evaluate_trace(trace, params=theta, rewards=rewards_neutral, use_log=False)
     print(f"✓ Evaluated with neutral rewards")
     print(f"  - vertex_rates: {result_neutral['vertex_rates']}")
 
@@ -54,13 +54,13 @@ def test_simple_reward_transformation():
     rewards_scaled = np.ones(trace.n_vertices)
     rewards_scaled[_transient_index(trace)] = 2.0
 
-    result_scaled = evaluate_trace(trace, params=theta, rewards=rewards_scaled)
+    result_scaled = evaluate_trace(trace, params=theta, rewards=rewards_scaled, use_log=False)
     print(f"✓ Evaluated with scaled rewards (2x on transient vertex)")
     print(f"  - vertex_rates: {result_scaled['vertex_rates']}")
 
     # Instantiate graphs
-    graph_neutral = instantiate_from_trace(trace, params=theta, rewards=rewards_neutral)
-    graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled)
+    graph_neutral = instantiate_from_trace(trace, params=theta, rewards=rewards_neutral, use_log=False)
+    graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled, use_log=False)
 
     # Compute PDF at t=1.0
     pdf_neutral = graph_neutral.pdf(1.0, granularity=200)
@@ -105,7 +105,7 @@ def test_reward_transformation_theory():
     rewards = np.ones(trace.n_vertices)
     rewards[_transient_index(trace)] = reward
 
-    graph_transformed = instantiate_from_trace(trace, params=theta, rewards=rewards)
+    graph_transformed = instantiate_from_trace(trace, params=theta, rewards=rewards, use_log=False)
     # Effective rate is 6.0 — uniformization needs higher granularity than
     # default to stay under 5% at rate*t = 6.
     pdf_actual = graph_transformed.pdf(1.0, granularity=2000)

@@ -966,9 +966,32 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
 # Trace Evaluation
 # ============================================================================
 
+def _require_explicit_use_log(use_log, fn_name):
+    """Reject a missing ``use_log`` on trace replay (F-004).
+
+    The elimination trace records UNIT weights and does NOT record the graph's
+    weight mode -- log vs linear is a replay-time interpretation of DOT ops. A
+    trace built from a ``weight_mode='log'`` graph is byte-identical to a linear
+    one (same graph hash, same cache entry), so replay cannot infer the mode.
+    The old ``use_log=False`` default therefore silently computed LINEAR rates
+    for a log-mode trace. Requiring an explicit value turns that silent
+    wrong-answer into an immediate error for direct low-level callers; the live
+    graph's ``weight_mode`` is the source of truth
+    (``use_log = graph._weight_mode == 'log'``).
+    """
+    if use_log is None:
+        raise ValueError(
+            f"{fn_name}: use_log must be given explicitly (True for a "
+            "weight_mode='log' graph, False otherwise). The elimination trace "
+            "does not record the weight mode, so replay cannot infer it and a "
+            "wrong/omitted value would silently compute the other mode. Pass "
+            "use_log=(graph._weight_mode == 'log')."
+        )
+
+
 def evaluate_trace(trace: EliminationTrace, params: np.ndarray | None = None,
                   rewards: np.ndarray | None = None,
-                  use_log: bool = False) -> dict[str, Any]:
+                  use_log: bool | None = None) -> dict[str, Any]:
     """
     Evaluate elimination trace with concrete parameter values
 
@@ -982,9 +1005,12 @@ def evaluate_trace(trace: EliminationTrace, params: np.ndarray | None = None,
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
-    use_log : bool, optional
-        If True, interpret DOT operations as log-space products.
-        Default: False
+    use_log : bool
+        Whether to interpret DOT operations as log-space products
+        (weight_mode='log'). REQUIRED -- pass True for a log-mode graph, False
+        otherwise. There is no default: the trace records unit weights, not the
+        weight mode, so an omitted/wrong value would silently compute the other
+        mode (F-004). Passing None raises.
 
     Returns
     -------
@@ -1001,6 +1027,7 @@ def evaluate_trace(trace: EliminationTrace, params: np.ndarray | None = None,
     This executes the operation sequence with concrete values, producing
     the final graph structure ready for instantiation.
     """
+    _require_explicit_use_log(use_log, "evaluate_trace")
     # Validate parameters
     if trace.param_length > 0:
         if params is None:
@@ -1336,7 +1363,7 @@ def trace_from_graph(graph) -> EliminationTrace:
 
 def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray | None = None,
                           rewards: np.ndarray | None = None,
-                          use_log: bool = False):
+                          use_log: bool | None = None):
     """
     Instantiate graph from trace
 
@@ -1350,9 +1377,12 @@ def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray | None = 
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
-    use_log : bool, optional
-        If True, interpret DOT operations as log-space products.
-        Default: False
+    use_log : bool
+        Whether to interpret DOT operations as log-space products
+        (weight_mode='log'). REQUIRED -- pass True for a log-mode graph, False
+        otherwise. There is no default: the trace records unit weights, not the
+        weight mode, so an omitted/wrong value would silently compute the other
+        mode (F-004). Passing None raises.
 
     Returns
     -------
@@ -1375,6 +1405,8 @@ def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray | None = 
     transformation from the trace evaluation, so the returned graph reflects
     the reward-transformed distribution.
     """
+    _require_explicit_use_log(use_log, "instantiate_from_trace")
+
     # Import the wrapped Graph class from the module, not pybind directly
     # This ensures we get the full Python API with proper as_matrices() support
     from . import Graph as _Graph
@@ -1440,7 +1472,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray | None = 
 # JAX Integration (Phase 2)
 # ============================================================================
 
-def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: bool = False) -> dict[str, Any]:
+def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: bool | None = None) -> dict[str, Any]:
     """
     Evaluate elimination trace with JAX arrays (jit/grad/vmap compatible)
 
@@ -1459,9 +1491,12 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: b
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
-    use_log : bool, optional
-        If True, interpret DOT operations as log-space products.
-        Default: False
+    use_log : bool
+        Whether to interpret DOT operations as log-space products
+        (weight_mode='log'). REQUIRED -- pass True for a log-mode graph, False
+        otherwise. There is no default: the trace records unit weights, not the
+        weight mode, so an omitted/wrong value would silently compute the other
+        mode (F-004). Passing None raises.
 
     Returns
     -------
@@ -1492,6 +1527,8 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: b
     >>> params_batch = jnp.array([[1.0, 2.0, 3.0], [0.5, 1.0, 1.5]])
     >>> results = batch_fn(params_batch)
     """
+    _require_explicit_use_log(use_log, "evaluate_trace_jax")
+
     try:
         import jax.numpy as jnp
     except ImportError:

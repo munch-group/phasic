@@ -60,7 +60,7 @@ def trace_fixture(request):
     builder = GRAPH_BUILDERS[request.param]
     graph, theta_np = builder()
     trace = record_elimination_trace(graph, theta_dim=len(theta_np))
-    eager = evaluate_trace(trace, theta_np)
+    eager = evaluate_trace(trace, theta_np, use_log=False)
     return trace, jnp.asarray(theta_np, dtype=jnp.float64), np.asarray(
         eager["vertex_rates"], dtype=np.float64
     )
@@ -73,7 +73,7 @@ def trace_fixture(request):
 
 def test_jit_matches_eager(trace_fixture):
     trace, theta, eager_rates = trace_fixture
-    jit_eval = jax.jit(lambda p: evaluate_trace_jax(trace, p)["vertex_rates"])
+    jit_eval = jax.jit(lambda p: evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])
     jit_rates = np.asarray(jit_eval(theta))
     np.testing.assert_allclose(jit_rates, eager_rates, rtol=1e-12, atol=1e-15)
 
@@ -82,7 +82,7 @@ def test_jit_recompilation_avoided(trace_fixture):
     """Calling a jitted function twice with identical input shape and dtype
     must hit the JAX cache, not recompile. We probe via _cache_size."""
     trace, theta, _ = trace_fixture
-    jit_eval = jax.jit(lambda p: evaluate_trace_jax(trace, p)["vertex_rates"])
+    jit_eval = jax.jit(lambda p: evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])
     jit_eval(theta).block_until_ready()
     n_compiles_after_first = jit_eval._cache_size()
     jit_eval(theta).block_until_ready()
@@ -101,11 +101,11 @@ def test_vmap_matches_per_call(trace_fixture):
     # Build a batch of theta vectors by scaling theta
     factors = jnp.array([0.5, 1.0, 1.5, 2.0], dtype=jnp.float64).reshape(-1, 1)
     batch = factors * theta.reshape(1, -1)
-    vmap_eval = jax.vmap(lambda p: evaluate_trace_jax(trace, p)["vertex_rates"])
+    vmap_eval = jax.vmap(lambda p: evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])
     batched_rates = np.asarray(vmap_eval(batch))
     # Compare to per-element loop
     for i in range(batch.shape[0]):
-        per = np.asarray(evaluate_trace_jax(trace, batch[i])["vertex_rates"])
+        per = np.asarray(evaluate_trace_jax(trace, batch[i], use_log=False)["vertex_rates"])
         np.testing.assert_allclose(batched_rates[i], per, rtol=1e-12, atol=1e-15)
 
 
@@ -118,7 +118,7 @@ def test_grad_finite(trace_fixture):
     trace, theta, _ = trace_fixture
 
     def loss(p):
-        return jnp.sum(evaluate_trace_jax(trace, p)["vertex_rates"])
+        return jnp.sum(evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])
 
     g = jax.grad(loss)(theta)
     g_np = np.asarray(g)
@@ -131,7 +131,7 @@ def test_grad_matches_finite_difference(trace_fixture):
     trace, theta, _ = trace_fixture
 
     def loss(p):
-        return float(jnp.sum(evaluate_trace_jax(trace, p)["vertex_rates"]))
+        return float(jnp.sum(evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"]))
 
     eps = 1e-5
     fd = np.zeros(theta.shape, dtype=np.float64)
@@ -141,7 +141,7 @@ def test_grad_matches_finite_difference(trace_fixture):
         fd[k] = (loss(plus) - loss(minus)) / (2 * eps)
 
     autograd = np.asarray(
-        jax.grad(lambda p: jnp.sum(evaluate_trace_jax(trace, p)["vertex_rates"]))(theta)
+        jax.grad(lambda p: jnp.sum(evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"]))(theta)
     )
     np.testing.assert_allclose(autograd, fd, rtol=1e-4, atol=1e-7)
 
@@ -160,11 +160,11 @@ def test_pmap_matches_sequential(trace_fixture):
     n = jax.local_device_count()
     factors = jnp.linspace(0.5, 2.0, n, dtype=jnp.float64).reshape(-1, 1)
     batch = factors * theta.reshape(1, -1)
-    pmap_eval = jax.pmap(lambda p: evaluate_trace_jax(trace, p)["vertex_rates"])
+    pmap_eval = jax.pmap(lambda p: evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])
     pmap_rates = np.asarray(pmap_eval(batch))
     # Verify against per-element eager
     for i in range(n):
-        per = np.asarray(evaluate_trace_jax(trace, batch[i])["vertex_rates"])
+        per = np.asarray(evaluate_trace_jax(trace, batch[i], use_log=False)["vertex_rates"])
         np.testing.assert_allclose(pmap_rates[i], per, rtol=1e-12, atol=1e-15)
 
 
@@ -193,7 +193,7 @@ def test_named_sharding_matches_unsharded(trace_fixture):
 
     @jax.jit
     def fan(theta_batch):
-        return jax.vmap(lambda p: evaluate_trace_jax(trace, p)["vertex_rates"])(
+        return jax.vmap(lambda p: evaluate_trace_jax(trace, p, use_log=False)["vertex_rates"])(
             theta_batch
         )
 
@@ -226,7 +226,7 @@ def test_disk_cache_round_trip_across_processes(tmp_path):
     graph, theta = builder()
     trace = record_elimination_trace(graph, theta_dim=len(theta))
     parent_rates = np.asarray(
-        evaluate_trace(trace, theta)["vertex_rates"], dtype=np.float64
+        evaluate_trace(trace, theta, use_log=False)["vertex_rates"], dtype=np.float64
     )
 
     trace_path = tmp_path / "trace.pkl"
@@ -243,7 +243,7 @@ def test_disk_cache_round_trip_across_processes(tmp_path):
         f"with open({str(trace_path)!r}, 'rb') as fh:\n"
         "    trace = pickle.load(fh)\n"
         f"theta = np.array({list(theta)!r}, dtype=np.float64)\n"
-        "rates = evaluate_trace(trace, theta)['vertex_rates']\n"
+        "rates = evaluate_trace(trace, theta, use_log=False)['vertex_rates']\n"
         "print(json.dumps(list(map(float, rates))))\n"
     )
     proc = subprocess.run(
@@ -396,7 +396,7 @@ def test_slurm_multi_node_trace_cache_round_trip():
     from phasic.trace_serialization import load_trace_from_cache
 
     trace = load_trace_from_cache(cache_path)
-    rates = np.asarray(evaluate_trace(trace, theta)["vertex_rates"])
+    rates = np.asarray(evaluate_trace(trace, theta, use_log=False)["vertex_rates"])
     assert np.all(np.isfinite(rates))
     assert rates.shape[0] == graph.vertices_length()
 

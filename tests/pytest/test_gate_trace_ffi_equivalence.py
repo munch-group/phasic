@@ -216,18 +216,26 @@ def test_discrete_pmf_pybind_ffi_agree():
 # --------------------------------------------------------------------------- the footgun, pinned
 @requires_sources
 def test_trace_requires_use_log():
-    """F-004: replaying a LOG-mode trace WITHOUT use_log silently computes LINEAR.
+    """F-004: the trace does not record weight_mode, so replay cannot infer it.
 
-    This pins the footgun. If a future change makes instantiate_from_trace auto-detect
-    weight_mode, this test XPASSes and strict mode forces its removal -- a forcing function.
+    Fixed: omitting use_log now RAISES instead of silently computing LINEAR for a
+    LOG-mode trace. The same trace still yields either answer depending on the
+    explicit use_log the caller passes (use_log=True -> the log answer, matching
+    pybind; use_log=False -> the linear answer) -- proving the trace is mode-blind
+    and the mode is a replay-time choice the caller must make deliberately.
     """
     g = chain("log")
     theta = [1.0, 2.0]
     tr = te.record_elimination_trace(g, theta_dim=2)
-    rb_wrong = te.instantiate_from_trace(tr, params=np.asarray(theta, np.float64))  # use_log defaulted False
+
+    # Omitting use_log is now an immediate error, not a silent linear result.
+    with pytest.raises(ValueError, match="use_log must be given"):
+        te.instantiate_from_trace(tr, params=np.asarray(theta, np.float64))
+
+    rb_wrong = te.instantiate_from_trace(tr, params=np.asarray(theta, np.float64), use_log=False)
     rb_right = te.instantiate_from_trace(tr, params=np.asarray(theta, np.float64), use_log=True)
     # linear rates (8,5) -> E[T]=0.325 ; log rates (12,4) -> E[T]=0.3333
-    assert abs(rb_wrong.expectation() - 0.325) < 1e-9, "expected the LINEAR (wrong) answer"
+    assert abs(rb_wrong.expectation() - 0.325) < 1e-9, "use_log=False must give the LINEAR answer"
     assert abs(rb_right.expectation() - (1 / 12 + 1 / 4)) < 1e-9, "use_log=True must give the log answer"
     pybind_mean = _pybind(lambda: chain("log"), theta)["mean"]
     assert abs(rb_right.expectation() - pybind_mean) < 1e-9   # the correct path matches pybind

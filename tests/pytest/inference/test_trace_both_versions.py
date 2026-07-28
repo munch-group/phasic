@@ -40,7 +40,7 @@ def test_simple_version_no_rewards():
 
     # Instantiate graph
     theta = np.array([2.0])
-    graph_inst = instantiate_from_trace(trace, params=theta)
+    graph_inst = instantiate_from_trace(trace, params=theta, use_log=False)
 
     # Compute PDF
     pdf = graph_inst.pdf(1.0, granularity=200)
@@ -73,7 +73,7 @@ def test_full_version_no_rewards():
 
     # Instantiate graph
     theta = np.array([2.0])
-    graph_inst = instantiate_from_trace(trace, params=theta)
+    graph_inst = instantiate_from_trace(trace, params=theta, use_log=False)
 
     # Compute PDF
     pdf = graph_inst.pdf(1.0, granularity=200)
@@ -108,7 +108,7 @@ def test_full_version_with_rewards():
     theta = np.array([2.0])
     rewards = np.ones(trace.n_vertices)
 
-    graph_neutral = instantiate_from_trace(trace, params=theta, rewards=rewards)
+    graph_neutral = instantiate_from_trace(trace, params=theta, rewards=rewards, use_log=False)
     pdf_neutral = graph_neutral.pdf(1.0, granularity=200)
 
     # Theoretical: λ exp(-λt) = 2.0 * exp(-2.0)
@@ -128,7 +128,7 @@ def test_full_version_with_rewards():
                          if list(trace.states[i]) == [2])
     rewards_scaled[transient_idx] = 3.0
 
-    graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled)
+    graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled, use_log=False)
     # Uniformization error scales like rate*t/granularity; at scaled rate 6.0
     # and t=1.0 we need granularity higher than 200 to stay under 5%.
     pdf_scaled = graph_scaled.pdf(1.0, granularity=2000)

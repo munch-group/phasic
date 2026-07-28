@@ -74,7 +74,7 @@ def test_evaluate_trace_with_rewards():
     theta = np.array([1.0])
     rewards = np.ones(trace.n_vertices)  # Neutral rewards (no effect)
 
-    result = evaluate_trace(trace, params=theta, rewards=rewards)
+    result = evaluate_trace(trace, params=theta, rewards=rewards, use_log=False)
 
     assert 'vertex_rates' in result
     assert 'edge_probs' in result
@@ -85,7 +85,7 @@ def test_evaluate_trace_with_rewards():
     # children — not the IPV from vertex 0, which is always 1 by definition.
     rewards_scaled = np.ones(trace.n_vertices)
     rewards_scaled[1] = 2.0
-    result_scaled = evaluate_trace(trace, params=theta, rewards=rewards_scaled)
+    result_scaled = evaluate_trace(trace, params=theta, rewards=rewards_scaled, use_log=False)
 
     # Probabilities out of the rewarded vertex must change
     assert not np.allclose(result['edge_probs'][1], result_scaled['edge_probs'][1])
@@ -111,7 +111,7 @@ def test_evaluate_trace_jax_with_rewards():
     theta = jnp.array([1.0])
     rewards = jnp.ones(trace.n_vertices)
 
-    result = evaluate_trace_jax(trace, params=theta, rewards=rewards)
+    result = evaluate_trace_jax(trace, params=theta, rewards=rewards, use_log=False)
 
     assert 'vertex_rates' in result
     assert 'edge_probs' in result
@@ -132,7 +132,7 @@ def test_instantiate_from_trace_with_rewards():
     theta = np.array([2.0])
     rewards = np.ones(trace.n_vertices)
 
-    graph_instantiated = instantiate_from_trace(trace, params=theta, rewards=rewards)
+    graph_instantiated = instantiate_from_trace(trace, params=theta, rewards=rewards, use_log=False)
 
     # Graph should be instantiated successfully
     assert graph_instantiated.vertices_length() > 0
@@ -166,7 +166,7 @@ def test_reward_transformation_equivalence():
     rewards = np.ones(trace.n_vertices)
 
     # Instantiate from trace with rewards
-    graph_trace = instantiate_from_trace(trace, params=theta, rewards=rewards)
+    graph_trace = instantiate_from_trace(trace, params=theta, rewards=rewards, use_log=False)
 
     # Compute PDF at several points
     times = np.array([0.5, 1.0, 1.5, 2.0])

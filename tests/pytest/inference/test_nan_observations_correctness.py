@@ -33,7 +33,7 @@ def test_nan_correctness_univariate():
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
-    graph_inst = instantiate_from_trace(trace, params=np.array([true_theta]))
+    graph_inst = instantiate_from_trace(trace, params=np.array([true_theta]), use_log=False)
 
     # Generate observations from true parameter
     np.random.seed(42)
@@ -168,7 +168,7 @@ def test_nan_correctness_multivariate():
 
     for i in range(n_features):
         reward_i = np.array(rewards[i, :])
-        graph_i = instantiate_from_trace(trace, params=np.array([true_theta]), rewards=reward_i)
+        graph_i = instantiate_from_trace(trace, params=np.array([true_theta]), rewards=reward_i, use_log=False)
         samples = np.array(graph_i.sample(n))
         a[i, i*n:(i+1)*n] = samples
 
@@ -249,7 +249,7 @@ def test_nan_vs_filtered_equivalence():
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
-    graph_inst = instantiate_from_trace(trace, params=np.array([true_theta]))
+    graph_inst = instantiate_from_trace(trace, params=np.array([true_theta]), use_log=False)
 
     np.random.seed(42)
     n_samples = 50

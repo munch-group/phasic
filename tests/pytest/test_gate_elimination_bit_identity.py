@@ -165,7 +165,7 @@ def test_g5_pmf_equivalence(name):
     # Impl A (raises here for cyclic/formula -> xfail before any comparison)
     src, theta = build()
     trace = record_elimination_trace(src, theta_dim=len(theta))
-    rebuilt = instantiate_from_trace(trace, params=np.asarray(theta, np.float64))
+    rebuilt = instantiate_from_trace(trace, params=np.asarray(theta, np.float64), use_log=False)
     _assert_py_engine(trace, rebuilt, theta)
     # Impl B
     cg, _ = build()
@@ -184,7 +184,7 @@ def test_g5_moments_equivalence(name):
     build = BUILDERS[name]
     src, theta = build()
     trace = record_elimination_trace(src, theta_dim=len(theta))
-    rebuilt = instantiate_from_trace(trace, params=np.asarray(theta, np.float64))
+    rebuilt = instantiate_from_trace(trace, params=np.asarray(theta, np.float64), use_log=False)
     _assert_py_engine(trace, rebuilt, theta)
     cg, _ = build()
     builder = _c_builder(cg, theta)

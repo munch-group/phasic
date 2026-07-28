@@ -60,7 +60,7 @@ def test_trace_graph():
     print(f"Trace recorded: {len(trace.operations)} operations")
 
     # Instantiate with theta=10.0
-    graph_inst = instantiate_from_trace(trace, params=np.array([10.0]))
+    graph_inst = instantiate_from_trace(trace, params=np.array([10.0]), use_log=False)
     print(f"Instantiated graph: {graph_inst.vertices_length()} vertices")
 
     # Check edge structure
@@ -111,7 +111,7 @@ def test_simple_concrete_trace():
     print(f"Param length: {trace.param_length}")
 
     # Instantiate (no params needed)
-    graph_inst = instantiate_from_trace(trace, params=None)
+    graph_inst = instantiate_from_trace(trace, params=None, use_log=False)
     print(f"Instantiated graph: {graph_inst.vertices_length()} vertices")
 
     # Normalize

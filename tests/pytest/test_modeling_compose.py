@@ -459,7 +459,7 @@ class TestCachingComposedGraphs:
         # Trace-based
         # theta layout: [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans]
         theta = np.array([1.0, 0.0, 0.5, 1.0])
-        concrete = instantiate_from_trace(trace, theta)
+        concrete = instantiate_from_trace(trace, theta, use_log=False)
         trace_moments = concrete.moments(3)
 
         # Direct

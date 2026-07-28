@@ -172,7 +172,7 @@ def _build_concrete_pair(name: str) -> tuple[Graph, Graph, np.ndarray]:
     # from update_weights or the elimination trace recorder.
     source, _ = builder()
     trace = record_elimination_trace(source, theta_dim=len(theta))
-    rebuilt = instantiate_from_trace(trace, params=theta)
+    rebuilt = instantiate_from_trace(trace, params=theta, use_log=False)
     return direct, rebuilt, theta
 
 
