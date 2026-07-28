@@ -6707,6 +6707,31 @@ class SVGD:
                 optimizer=self.optimizer
             )
 
+        # Re-tie tied slave parameters before export (F-010).
+        # `_daisy_chain_svgd_model` locks each tied *slave* flat index at a 0.0
+        # sentinel and only copies master->slave INSIDE the forward pass (a
+        # scatter on a copy, never persisted). So run_svgd's particles/history
+        # still carry 0.0 at slave columns -- and softplus(0)=0.693 makes every
+        # downstream surface (theta_mean, get_results, history) ~8000x wrong.
+        # Only summary() resolves them today (via slave_to_master). Resolve them
+        # once here, at the single result-finalization point, so ALL surfaces
+        # agree. Copy is in UNCONSTRAINED space: the shared per-dim transform
+        # (softplus) then reproduces the master's rate at the slave.
+        _tying_info = getattr(self.model, '_tying_info', None) or {}
+        _slave_to_master = _tying_info.get('slave_to_master', {})
+        if _slave_to_master:
+            _P = np.array(results['particles'])            # (n_particles, theta_dim)
+            for _slave, _master in _slave_to_master.items():
+                _P[:, _slave] = _P[:, _master]
+            results['particles'] = _P
+            results['theta_mean'] = _P.mean(axis=0)
+            results['theta_std'] = _P.std(axis=0)
+            if results.get('history') is not None:
+                _H = np.array(results['history'])          # (n_steps, n_particles, theta_dim)
+                for _slave, _master in _slave_to_master.items():
+                    _H[:, :, _slave] = _H[:, :, _master]
+                results['history'] = _H
+
         # Store results as attributes
         self.particles = results['particles']
         self.theta_mean = results['theta_mean']
@@ -6752,6 +6777,20 @@ class SVGD:
             # and need to be transformed back to THETA space for reporting
             particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
 
+            # Re-tie tied slaves in CONSTRAINED space (F-010). The model applies
+            # the tie AFTER the transform (theta_transformed[slave] =
+            # theta_transformed[master], see _log_prob_unified), and a slave may
+            # carry a DIFFERENT per-dim transform than its master -- e.g. a
+            # BetaPrior master (sigmoid) vs a masked slave (default softplus) --
+            # so the unconstrained copy done in optimize() does NOT make the
+            # constrained slave equal the master. Mirror the model here so every
+            # constrained surface (theta_mean/std, HPD, particles, history)
+            # reports the master's value at the slave, matching what was fit.
+            _s2m = (getattr(self.model, '_tying_info', None) or {}).get('slave_to_master', {})
+            for _sl, _ma in _s2m.items():
+                particles_constrained = particles_constrained.at[:, _sl].set(
+                    particles_constrained[:, _ma])
+
             theta_mean = particles_constrained.mean(axis=0)
             theta_std = particles_constrained.std(axis=0)
 
@@ -6775,6 +6814,9 @@ class SVGD:
             if self.history is not None:
                 # Transform history as well - ALL dimensions need transformation
                 history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
+                for _sl, _ma in _s2m.items():
+                    history_constrained = history_constrained.at[..., _sl].set(
+                        history_constrained[..., _ma])
                 results['history'] = history_constrained
                 results['history_unconstrained'] = self.history
         else:
@@ -6837,6 +6879,14 @@ class SVGD:
         # Transform to constrained space unless unconstrained is requested
         if not unconstrained and self.param_transform is not None:
             map_particle = self.param_transform(map_particle)
+            # Re-tie slaves in CONSTRAINED space (F-010): mirror the model's
+            # post-transform tie, so a slave carrying a different per-dim
+            # transform than its master still reports the master's value rather
+            # than softplus(phi_master). (Unconstrained requests already carry
+            # phi[slave]=phi[master] from optimize(), so no tie is needed there.)
+            _s2m = (getattr(self.model, '_tying_info', None) or {}).get('slave_to_master', {})
+            for _sl, _ma in _s2m.items():
+                map_particle = map_particle.at[_sl].set(map_particle[_ma])
 
         return map_particle.tolist(), log_probs[map_idx].item()
 
