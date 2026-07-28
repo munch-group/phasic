@@ -4,7 +4,7 @@ import logging
 import os
 import platform
 from time import time, sleep
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 import warnings
 import matplotlib
 import numpy as np
@@ -4427,6 +4427,44 @@ def compute_sample_moments(data: jnp.ndarray | SparseObservations, nr_moments: i
 # SVGD Class for Object-Oriented Interface
 # ============================================================================
 
+# Options that configure ``Graph.svgd`` BEFORE the model callable is built (they
+# shape the daisy-chain / joint-index / discrete model). The direct
+# ``SVGD(model=...)`` path receives an already-built model and cannot act on
+# them, so passing one almost always means the caller wanted ``Graph.svgd``.
+_GRAPH_SVGD_ONLY_KWARGS = frozenset({
+    'epoch_starts', 'tied', 'joint_index', 'discrete', 'callback',
+    'daisy_chain_t_eval', 'daisy_chain_granularity', 'daisy_chain_probe_theta',
+    'daisy_chain_t_eval_tol',
+})
+
+
+def _reject_svgd_only_kwargs(unexpected: dict) -> None:
+    """Raise a helpful ``TypeError`` for kwargs the direct ``SVGD`` path can't use.
+
+    ``Graph.svgd``-only options (epochs/tying/joint-index/discreteness) are
+    pre-model-construction concerns baked into the model callable; the direct
+    path takes the finished callable. Point the caller at the supported route
+    instead of Python's bare "unexpected keyword argument".
+    """
+    names = sorted(unexpected)
+    graph_only = [n for n in names if n in _GRAPH_SVGD_ONLY_KWARGS]
+    other = [n for n in names if n not in _GRAPH_SVGD_ONLY_KWARGS]
+    if graph_only:
+        raise TypeError(
+            f"SVGD(...) received {graph_only}, which are Graph.svgd() options, not "
+            "direct-SVGD parameters. Epochs, tying, joint-index and discreteness are "
+            "pre-model-construction concerns baked into the model callable, so the "
+            "direct SVGD(model=...) path cannot act on them. Either build AND fit in one "
+            "step with Graph.svgd(observations, epoch_starts=..., tied=..., ...), or reuse "
+            "an existing epoch model by passing theta_dim=n_epochs*param_length and "
+            "omitting these options."
+            + (f" (Also unexpected: {other}.)" if other else "")
+        )
+    raise TypeError(
+        f"SVGD.__init__() got unexpected keyword argument(s): {other}"
+    )
+
+
 class SVGD:
     r"""
     Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
@@ -4836,7 +4874,16 @@ class SVGD:
                  preconditioner: str | _PreconditionerBase | None = None,
                  exposure: jnp.ndarray | float | None = None,
                  exposure_param_index: int | None = None,
-                 _validated: bool = False) -> None:
+                 _validated: bool = False,
+                 **_unexpected: Any) -> None:
+
+        # A bare TypeError for e.g. `epoch_starts=` is unhelpful: those are
+        # Graph.svgd() model-construction options, not direct-SVGD parameters.
+        # Reject them with a pointer to the supported route (fix D of the LRT /
+        # model-reuse work). Graph.svgd passes only real SVGD params, so
+        # `_unexpected` is empty on the internal path.
+        if _unexpected:
+            _reject_svgd_only_kwargs(_unexpected)
 
         # Run the combinational validator unless ``Graph.svgd``
         # already did so (it sets _validated=True before calling us).

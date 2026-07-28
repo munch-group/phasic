@@ -44,6 +44,7 @@ __all__ = [
     "aic",
     "bic",
     "likelihood_ratio_test",
+    "likelihood_ratio_test_at",
     "compare",
     "AICResult",
     "BICResult",
@@ -446,6 +447,135 @@ def likelihood_ratio_test(
 
     from scipy.stats import chi2
     # df may be ≤ 0 in non-strict mode; guard the p-value computation
+    p_value = float(chi2.sf(statistic, df)) if df > 0 else float("nan")
+
+    return LRTResult(
+        statistic=statistic,
+        df=int(df),
+        p_value=p_value,
+        log_likelihood_full=ll_full,
+        log_likelihood_nested=ll_nested,
+        k_full=int(k_full),
+        k_nested=int(k_nested),
+        n=int(n_full),
+    )
+
+
+def likelihood_ratio_test_at(
+    full: "SVGD",
+    nested: "SVGD",
+    *,
+    strict: bool = True,
+    consistency_atol: float = 1e-4,
+) -> LRTResult:
+    """Wilks LRT for a nested pair whose restriction is baked into the model.
+
+    Use this instead of :func:`likelihood_ratio_test` when ``full`` and
+    ``nested`` are built from **different model callables** — the case for epoch
+    (daisy-chain) joint-prob models where a *tied* fit and a *free* fit are
+    separate callables (tying is applied inside the model, so
+    ``full.model is nested.model`` can never hold and
+    :func:`likelihood_ratio_test` rejects the pair).
+
+    Both fits are scored on the SAME (full) likelihood: ``LL_full`` at the full
+    fit's MAP and ``LL_nested`` at the nested fit's MAP, both evaluated through
+    ``full.log_likelihood``. Because the nested restriction is a *constrained
+    sub-case* of the full model (e.g. a tied fit's constrained MAP has the tied
+    parameters equal across epochs — a valid point in the full model's flat
+    ``n_epochs × param_length`` coordinates), scoring the nested MAP on the full
+    model yields the nested model's own likelihood there.
+
+    That equality is enforced at runtime (``consistency_atol``) and REPLACES the
+    same-model identity guard: if scoring the nested MAP on the full model does
+    NOT match the nested model's own likelihood, the two fits are not on the same
+    likelihood (different graph/data/epochs) and the test is rejected.
+
+    Parameters
+    ----------
+    full, nested : SVGD
+        Fitted SVGD instances over the same data/graph/epochs, with the same
+        ``theta_dim`` and ``n_observations``. ``nested`` must have fewer free
+        parameters (``degrees_of_freedom``) than ``full`` and its restriction
+        must be expressible in ``full``'s coordinates.
+    strict : bool, default=True
+        If True, validation failures raise ``ValueError``; else they warn.
+    consistency_atol : float, default=1e-4
+        Relative tolerance for the constrained-sub-case check
+        ``|full.LL(nested_MAP) - nested.LL(nested_MAP)|``.
+
+    Returns
+    -------
+    LRTResult
+        Same dataclass as :func:`likelihood_ratio_test`.
+
+    Notes
+    -----
+    Both log-likelihoods are evaluated at the posterior **MAP** particle of each
+    fit (constrained space), consistent with each other. Unlike
+    :func:`likelihood_ratio_test` there is no ``refine`` option — refining a
+    tied model's MAP is not currently reliable, and the MAP particles already
+    give a consistent pair.
+    """
+    _check_fitted(full)
+    _check_fitted(nested)
+
+    if full.theta_dim != nested.theta_dim:
+        _violate(
+            strict,
+            f"theta_dim mismatch: full={full.theta_dim}, nested={nested.theta_dim}. "
+            "Both fits must share the flat (n_epochs x param_length) layout.",
+        )
+
+    n_full = full.n_observations
+    n_nested = nested.n_observations
+    if n_full != n_nested:
+        _violate(
+            strict,
+            f"n_observations mismatch: full={n_full}, nested={n_nested}",
+        )
+
+    k_full = full.degrees_of_freedom
+    k_nested = nested.degrees_of_freedom
+    df = k_full - k_nested
+    if df <= 0:
+        _violate(
+            strict,
+            f"LRT requires k_full > k_nested, got k_full={k_full}, k_nested={k_nested}",
+        )
+
+    # Nested fit's constrained MAP. For a tied model the tied (slave) columns
+    # already equal their masters here (constrained-space re-tie at export), so
+    # this vector is a valid point in the FULL model's coordinates.
+    theta_nested = nested.map_estimate_from_particles()[0]
+
+    ll_full = float(full.log_likelihood())                          # full @ its MAP
+    ll_nested = float(full.log_likelihood(theta=theta_nested))      # full @ nested's MAP
+
+    # Safety net replacing the same-model identity check: scoring the nested MAP
+    # on the FULL model must match the nested model's OWN likelihood there, or
+    # the two fits are not on the same likelihood and the statistic is meaningless.
+    ll_nested_own = float(nested.log_likelihood(theta=theta_nested))
+    if abs(ll_nested - ll_nested_own) > consistency_atol * (1.0 + abs(ll_nested_own)):
+        _violate(
+            strict,
+            "nested fit is not a constrained sub-case of the full model: scoring the "
+            f"nested MAP on the full model gives {ll_nested:.6f}, but the nested model's "
+            f"own likelihood there is {ll_nested_own:.6f}. Both fits must share the same "
+            "likelihood (same graph, data, epochs) and the nested restriction must be "
+            "expressible in the full model's coordinates.",
+        )
+
+    if ll_nested > ll_full + 1e-6:
+        _violate(
+            strict,
+            f"LL_nested ({ll_nested:.4f}) > LL_full ({ll_full:.4f}). A true nested "
+            "restriction cannot exceed the full model's likelihood; check that the fits "
+            "share data/graph and have converged.",
+        )
+
+    statistic = max(0.0, 2.0 * (ll_full - ll_nested))
+
+    from scipy.stats import chi2
     p_value = float(chi2.sf(statistic, df)) if df > 0 else float("nan")
 
     return LRTResult(
