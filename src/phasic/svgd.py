@@ -4052,6 +4052,18 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
     else:
         raise ValueError(f"Invalid parallel_mode: {actual_parallel_mode}")
 
+    # Sanitize non-finite per-particle scores (SVGD divergence robustness). A
+    # diverged particle -- one whose theta implies an uncomputable transition
+    # rate -- can yield a nan/inf score even when the forward is made fail-soft
+    # (e.g. a finite-difference step that catastrophically cancels at extreme
+    # theta). The kernel matmul below (einsum over j) couples ALL particles, so a
+    # single nan row would poison the entire cloud on the next step. Zero the
+    # offending rows: that particle then contributes nothing to the kernel-
+    # weighted drift and is carried back toward the cloud by the repulsion term.
+    # jnp.where keeps every finite score bit-identical, so converged runs are
+    # unaffected -- this only ever fires on an already-pathological particle.
+    grad_log_p = jnp.where(jnp.isfinite(grad_log_p), grad_log_p, 0.0)
+
     # Compute kernel and kernel gradient (in reduced space if fixed_mask provided)
     K, grad_K = kernel.compute_kernel_grad(particles_for_grad)
 

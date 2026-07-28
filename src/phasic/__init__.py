@@ -1229,6 +1229,69 @@ def _invalidates_trace(method: Callable) -> Callable:
     return wrapper
 
 
+# Smallest positive PMF returned when a diverged theta is uncomputable, so
+# log(pmf) is a large finite negative rather than -inf -> nan (F: SVGD divergence
+# robustness). See _is_rate_blowup / the fail-soft callbacks in
+# pmf_and_moments_from_graph.
+_PMF_FLOOR = 1e-300
+
+
+# The native distribution build reports an uncomputable (diverged/unscaled) rate
+# in three distinct ways as the rate grows, spanning TWO exception types:
+#   - rate ~2.5e8 .. 1e18: ValueError "... too many forward-algorithm steps (cap:
+#     1e9)"  (api/cpp/phasiccpp.h; granularity*time exceeds the step cap)
+#   - rate >~ 1e18:        RuntimeError "... too large to build/compute a
+#     phase-type distribution"  (src/c/phasic.c; auto-granularity would overflow)
+#   - legacy discrete:     "... Increase the granularity"
+# A diverging SVGD particle enters the ValueError band FIRST, so BOTH types must
+# be treated as fail-soft.
+_RATE_BLOWUP_EXC = (RuntimeError, ValueError)
+
+
+def _is_rate_blowup(exc: BaseException) -> bool:
+    """True iff ``exc`` is a native 'implied rate too large to build a phase-type
+    distribution' error — a diverged/unscaled theta, NOT a code bug.
+
+    A single SVGD particle can wander to a theta whose implied transition rate is
+    astronomically large; the native distribution build then raises and, crossing
+    the jax.pure_callback boundary, aborts the whole optimize() run. The fail-soft
+    callbacks catch ONLY this class of error (across both RuntimeError and
+    ValueError, see ``_RATE_BLOWUP_EXC``) and return a finite penalty so the
+    optimizer steps away; every other error still propagates. Matching is on the
+    exact rate-blowup / step-cap messages, so genuine bugs are never swallowed.
+    """
+    msg = str(exc)
+    return (
+        "too large to build a phase-type" in msg
+        or "too large to compute a phase-type" in msg
+        or "too many forward-algorithm steps" in msg
+        or "Increase the granularity" in msg
+    )
+
+
+def _rate_blowup_penalty(times, nr_moments, rewards):
+    """Finite (pmf, moments) penalty matching the shapes the native
+    compute_pmf_and_moments would have returned, for a diverged/uncomputable
+    theta. pmf = _PMF_FLOOR (so log(pmf) is finite-negative), moments = 0."""
+    times = np.asarray(times)
+    if rewards is not None and np.asarray(rewards).ndim == 2:
+        n_features = np.asarray(rewards).shape[1]
+        pmf = np.full((times.shape[0], n_features), _PMF_FLOOR, dtype=np.float64)
+        moments = np.zeros((n_features, nr_moments), dtype=np.float64)
+    else:
+        pmf = np.full(times.shape, _PMF_FLOOR, dtype=np.float64)
+        moments = np.zeros((nr_moments,), dtype=np.float64)
+    return pmf, moments
+
+
+def _cdf_zero_blowup_penalty(rewards):
+    """Finite cdf_zero penalty (shaped like the native output) for a diverged
+    theta on the zero-inflation path. A tiny positive value keeps any downstream
+    log(cdf_zero) / log(1 - cdf_zero) finite rather than nan."""
+    if rewards is not None and np.asarray(rewards).ndim == 2:
+        n_features = np.asarray(rewards).shape[0]
+        return np.full((n_features,), _PMF_FLOOR, dtype=np.float64)
+    return np.full((1,), _PMF_FLOOR, dtype=np.float64)
 
 
 class Graph(_Graph):
@@ -6699,11 +6762,16 @@ extern "C" {{
                 concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
                 json_str = json.dumps(_make_json_serializable(concrete))
                 builder = cpp_module.parameterized.GraphBuilder(json_str)
-                return builder.compute_pmf_and_moments(
-                    np.zeros(0), times_np,
-                    nr_moments=nr_moments, discrete=discrete,
-                    granularity=0, rewards=rewards_np
-                )
+                try:
+                    return builder.compute_pmf_and_moments(
+                        np.zeros(0), times_np,
+                        nr_moments=nr_moments, discrete=discrete,
+                        granularity=0, rewards=rewards_np
+                    )
+                except _RATE_BLOWUP_EXC as _e:
+                    if not _is_rate_blowup(_e):
+                        raise
+                    return _rate_blowup_penalty(times_np, nr_moments, rewards_np)
 
             def _compute_pure(theta, times, rewards=None):
                 _check_rewards_len(rewards)
@@ -6770,11 +6838,16 @@ extern "C" {{
                 json_str = json.dumps(_make_json_serializable(concrete))
                 builder_cb = cpp_module.parameterized.GraphBuilder(json_str)
                 times_dummy = np.array([1.0], dtype=np.float64)
-                _, _, cz = builder_cb.compute_pmf_moments_and_cdf_zero(
-                    np.zeros(0), times_dummy,
-                    nr_moments=1, discrete=discrete,
-                    granularity=0, rewards=rewards_np,
-                )
+                try:
+                    _, _, cz = builder_cb.compute_pmf_moments_and_cdf_zero(
+                        np.zeros(0), times_dummy,
+                        nr_moments=1, discrete=discrete,
+                        granularity=0, rewards=rewards_np,
+                    )
+                except _RATE_BLOWUP_EXC as _e:
+                    if not _is_rate_blowup(_e):
+                        raise
+                    cz = _cdf_zero_blowup_penalty(rewards_np)
                 return cz
 
             def _cdf_zero_pure_cb(theta, rewards):
@@ -6825,9 +6898,10 @@ extern "C" {{
                     actual_diff = theta_plus[i] - theta_minus[i]
                     cz_plus = _cdf_zero_pure_cb(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure_cb(theta_minus, rewards)
-                    grad_i = jnp.sum(
-                        g_cz * (cz_plus - cz_minus) / actual_diff
-                    )
+                    # Guard actual_diff == 0 at extreme theta (see model_bwd).
+                    _ok = actual_diff != 0.0
+                    grad_i = jnp.sum(g_cz * jnp.where(
+                        _ok, (cz_plus - cz_minus) / jnp.where(_ok, actual_diff, 1.0), 0.0))
                     grads.append(grad_i)
                 return jnp.array(grads), None
 
@@ -6905,27 +6979,44 @@ extern "C" {{
                     pmf_results = []
                     moments_results = []
                     for theta_single in theta_np:
-                        pmf, moments = builder.compute_pmf_and_moments(
-                            theta_single,
-                            times_unbatched,
-                            nr_moments=nr_moments,
-                            discrete=discrete,
-                            granularity=0,
-                            rewards=rewards_np  # Pass optional rewards
-                        )
+                        try:
+                            pmf, moments = builder.compute_pmf_and_moments(
+                                theta_single,
+                                times_unbatched,
+                                nr_moments=nr_moments,
+                                discrete=discrete,
+                                granularity=0,
+                                rewards=rewards_np  # Pass optional rewards
+                            )
+                        except _RATE_BLOWUP_EXC as _e:
+                            # Diverged particle: uncomputable rate. Penalise THIS
+                            # particle only (not the whole batch) with a finite
+                            # loss so the optimizer steps away instead of the run
+                            # crashing across the pure_callback boundary. Only the
+                            # rate-blowup error is swallowed; anything else raises.
+                            if not _is_rate_blowup(_e):
+                                raise
+                            pmf, moments = _rate_blowup_penalty(
+                                times_unbatched, nr_moments, rewards_np)
                         pmf_results.append(pmf)
                         moments_results.append(moments)
                     return np.array(pmf_results), np.array(moments_results)
                 else:
                     # Unbatched case
-                    pmf, moments = builder.compute_pmf_and_moments(
-                        theta_np,
-                        times_np,
-                        nr_moments=nr_moments,
-                        discrete=discrete,
-                        granularity=0,
-                        rewards=rewards_np  # Pass optional rewards
-                    )
+                    try:
+                        pmf, moments = builder.compute_pmf_and_moments(
+                            theta_np,
+                            times_np,
+                            nr_moments=nr_moments,
+                            discrete=discrete,
+                            granularity=0,
+                            rewards=rewards_np  # Pass optional rewards
+                        )
+                    except _RATE_BLOWUP_EXC as _e:
+                        if not _is_rate_blowup(_e):
+                            raise
+                        pmf, moments = _rate_blowup_penalty(
+                            times_np, nr_moments, rewards_np)
                     return pmf, moments
 
             # Helper function for pure callback (used in forward and backward pass)
@@ -7007,19 +7098,32 @@ extern "C" {{
                 if theta_np.ndim == 2:
                     cdf_zeros = []
                     for theta_single in theta_np:
-                        _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
-                            theta_single, times_np,
-                            nr_moments=1, discrete=discrete,
-                            granularity=0, rewards=rewards_np,
-                        )
+                        try:
+                            _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
+                                theta_single, times_np,
+                                nr_moments=1, discrete=discrete,
+                                granularity=0, rewards=rewards_np,
+                            )
+                        except _RATE_BLOWUP_EXC as _e:
+                            # Diverged particle on the auto-attached zero-inflation
+                            # path: penalise this particle (finite) instead of
+                            # aborting the run. See _is_rate_blowup.
+                            if not _is_rate_blowup(_e):
+                                raise
+                            cz = _cdf_zero_blowup_penalty(rewards_np)
                         cdf_zeros.append(cz)
                     return np.array(cdf_zeros)
                 else:
-                    _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
-                        theta_np, times_np,
-                        nr_moments=1, discrete=discrete,
-                        granularity=0, rewards=rewards_np,
-                    )
+                    try:
+                        _, _, cz = builder.compute_pmf_moments_and_cdf_zero(
+                            theta_np, times_np,
+                            nr_moments=1, discrete=discrete,
+                            granularity=0, rewards=rewards_np,
+                        )
+                    except _RATE_BLOWUP_EXC as _e:
+                        if not _is_rate_blowup(_e):
+                            raise
+                        cz = _cdf_zero_blowup_penalty(rewards_np)
                     return cz
 
             def _cdf_zero_pure(theta, rewards):
@@ -7074,7 +7178,11 @@ extern "C" {{
                     actual_diff = theta_plus[i] - theta_minus[i]
                     cz_plus = _cdf_zero_pure(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure(theta_minus, rewards)
-                    grad_i = jnp.sum(g_cz * (cz_plus - cz_minus) / actual_diff)
+                    # Guard actual_diff == 0 at extreme (diverged) theta (see
+                    # model_bwd): finite 0 gradient, not nan. Value-preserving.
+                    _ok = actual_diff != 0.0
+                    grad_i = jnp.sum(g_cz * jnp.where(
+                        _ok, (cz_plus - cz_minus) / jnp.where(_ok, actual_diff, 1.0), 0.0))
                     grads.append(grad_i)
                 return jnp.array(grads), None
 
@@ -7136,9 +7244,21 @@ extern "C" {{
                 # Combine gradients from both PMF and moments
                 # Use nansum to handle NaN values in PMF (from missing observations)
                 # NaN in PMF means the observation was missing, so it shouldn't contribute to gradient
-                pmf_diff = (pmf_plus - pmf_minus) / actual_diff
+                #
+                # Guard actual_diff == 0: at an extreme (diverged) theta the +/-eps
+                # probes collapse to the same float64 value (eps underflows against
+                # a huge |theta|), so actual_diff -> 0 and the division would yield
+                # nan. The forward is already fail-soft to a constant penalty there,
+                # so the true FD slope is ~0; return a finite 0 gradient. This keeps
+                # the likelihood score finite so the PRIOR's restoring force pulls
+                # the diverged particle back, instead of a nan poisoning the coupled
+                # SVGD kernel. Value-preserving for normal theta (actual_diff != 0).
+                _ok = actual_diff != 0.0
+                _safe = jnp.where(_ok, actual_diff, 1.0)
+                pmf_diff = jnp.where(_ok, (pmf_plus - pmf_minus) / _safe, 0.0)
                 grad_pmf_i = jnp.nansum(g_pmf * pmf_diff)
-                grad_moments_i = jnp.sum(g_moments * (moments_plus - moments_minus) / actual_diff)
+                grad_moments_i = jnp.sum(
+                    g_moments * jnp.where(_ok, (moments_plus - moments_minus) / _safe, 0.0))
                 grad_i = grad_pmf_i + grad_moments_i
 
                 theta_bar.append(grad_i)
