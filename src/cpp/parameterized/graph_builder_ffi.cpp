@@ -558,19 +558,14 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                 // Get times for this batch (either indexed or broadcast)
                 const double* times_b = times_is_broadcast ? times_data : (times_data + (b * n_times));
 
-                // Compute PMF/PDF
-                if (is_disc) {
-                    for (size_t i = 0; i < n_times; i++) {
-                        int jump_count = static_cast<int>(times_b[i]);
-                        pmf_b[i] = g.dph_pmf(jump_count);
-                    }
-                } else {
-                    for (size_t i = 0; i < n_times; i++) {
-                        pmf_b[i] = g.pdf(times_b[i], granularity);
-                    }
-                }
-
-                // Compute moments using same graph (discrete correction for a DPH)
+                // Extract this element's reward vector (if any) BEFORE computing
+                // the PMF. Rewards reweight the graph, so BOTH the PMF and the
+                // moments must be read from the reward-transformed graph --
+                // mirroring the pybind compute_pmf_and_moments path
+                // (graph_builder.cpp). Previously the FFI computed the PMF on
+                // the untransformed g and fed real rewards to the continuous
+                // moment path, so with rewards the PMF was linearised and (for a
+                // DPH) the moments were ~2-5% off (F-007 / Q7.1).
                 std::vector<double> rewards_vec;
                 if (n_rewards > 0) {
                     const double* rewards_b = (rewards_batch_size > 1)
@@ -578,7 +573,39 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                         : rewards_data;
                     rewards_vec.assign(rewards_b, rewards_b + n_rewards);
                 }
-                std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+
+                std::vector<double> moments_vec;
+                if (!rewards_vec.empty()) {
+                    // Reward-transform once; PMF and moments both read from it.
+                    // Moments then take EMPTY rewards -- g_transformed already
+                    // carries them. A DPH uses the integer transform.
+                    Graph g_transformed = is_disc
+                        ? g.reward_transform_discrete(GraphBuilder::rewards_to_int_or_throw(rewards_vec))
+                        : g.reward_transform(rewards_vec);
+                    if (is_disc) {
+                        for (size_t i = 0; i < n_times; i++) {
+                            int jump_count = static_cast<int>(times_b[i]);
+                            pmf_b[i] = g_transformed.dph_pmf(jump_count);
+                        }
+                    } else {
+                        for (size_t i = 0; i < n_times; i++) {
+                            pmf_b[i] = g_transformed.pdf(times_b[i], granularity);
+                        }
+                    }
+                    moments_vec = builder->compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+                } else {
+                    if (is_disc) {
+                        for (size_t i = 0; i < n_times; i++) {
+                            int jump_count = static_cast<int>(times_b[i]);
+                            pmf_b[i] = g.dph_pmf(jump_count);
+                        }
+                    } else {
+                        for (size_t i = 0; i < n_times; i++) {
+                            pmf_b[i] = g.pdf(times_b[i], granularity);
+                        }
+                    }
+                    moments_vec = builder->compute_moments_impl(g, nr_moments, std::vector<double>());
+                }
                 if (is_disc) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
                 // Copy moments to output buffer
@@ -607,24 +634,43 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
         try {
             Graph g = builder->build(theta_data, theta_len);
 
-            // Compute PMF/PDF
-            if (is_disc) {
-                for (size_t i = 0; i < n_times; i++) {
-                    int jump_count = static_cast<int>(times_data[i]);
-                    pmf_data[i] = g.dph_pmf(jump_count);
-                }
-            } else {
-                for (size_t i = 0; i < n_times; i++) {
-                    pmf_data[i] = g.pdf(times_data[i], granularity);
-                }
-            }
-
-            // Compute moments using same graph (discrete correction for a DPH)
+            // Extract the reward vector (if any) BEFORE computing the PMF: both
+            // the PMF and the moments must read from the reward-transformed
+            // graph, mirroring pybind compute_pmf_and_moments (F-007 / Q7.1).
             std::vector<double> rewards_vec;
             if (n_rewards > 0) {
                 rewards_vec.assign(rewards_data, rewards_data + n_rewards);
             }
-            std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+
+            std::vector<double> moments_vec;
+            if (!rewards_vec.empty()) {
+                Graph g_transformed = is_disc
+                    ? g.reward_transform_discrete(GraphBuilder::rewards_to_int_or_throw(rewards_vec))
+                    : g.reward_transform(rewards_vec);
+                if (is_disc) {
+                    for (size_t i = 0; i < n_times; i++) {
+                        int jump_count = static_cast<int>(times_data[i]);
+                        pmf_data[i] = g_transformed.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t i = 0; i < n_times; i++) {
+                        pmf_data[i] = g_transformed.pdf(times_data[i], granularity);
+                    }
+                }
+                moments_vec = builder->compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+            } else {
+                if (is_disc) {
+                    for (size_t i = 0; i < n_times; i++) {
+                        int jump_count = static_cast<int>(times_data[i]);
+                        pmf_data[i] = g.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t i = 0; i < n_times; i++) {
+                        pmf_data[i] = g.pdf(times_data[i], granularity);
+                    }
+                }
+                moments_vec = builder->compute_moments_impl(g, nr_moments, std::vector<double>());
+            }
             if (is_disc) GraphBuilder::continuous_to_discrete_moments(moments_vec);
 
             // Copy moments to output buffer

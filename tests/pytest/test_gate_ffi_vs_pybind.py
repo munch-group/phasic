@@ -11,9 +11,13 @@ real risk this gate must catch before Stage-3 Q7 unifies them.
 Every test proves the FFI side actually lowered to the ``@ptd_compute_*``
 custom-call (not the ``pure_callback`` fallback) via ``_gate_backend``.
 
-Known divergence: with ``rewards != None`` the FFI combined handler computes the
-PMF on the UNTRANSFORMED graph (graph_builder_ffi.cpp:492) while the pybind path
-uses the reward-transformed graph (graph_builder.cpp:741) -> xfail(strict) Q7.1.
+Q7.1 (FIXED): with ``rewards != None`` the FFI combined handler used to compute
+the PMF on the UNTRANSFORMED graph (graph_builder_ffi.cpp ~562/611) and feed real
+rewards to the continuous moment path, while the pybind path reward-transforms
+first (graph_builder.cpp ~787/825). Both now reward-transform once and read the
+PMF and moments from the transformed graph, so the reward tests below are
+FFI==pybind gates (continuous: bit-identical; discrete: the ~2-5% moment gap is
+closed).
 """
 from __future__ import annotations
 
@@ -117,15 +121,13 @@ def test_g1_pmf_and_moments_bit_identity_no_rewards():
 
 
 # --------------------------------------------------------------------------- #
-# rewards!=None  ->  known divergence (Q7.1) + math-equal-not-bit-equal moments
+# rewards!=None  ->  Q7.1 fixed: FFI now reward-transforms, matching pybind
 # --------------------------------------------------------------------------- #
-@pytest.mark.xfail(strict=True, reason=(
-    "Q7.1: FFI ComputePmfAndMomentsFfiImpl computes the combined PMF on the "
-    "UNTRANSFORMED graph (graph_builder_ffi.cpp:492) while pybind "
-    "compute_pmf_and_moments uses the reward-transformed graph "
-    "(graph_builder.cpp:741); rewards!=None PMFs differ. Stage-3 Q7 must unify "
-    "which graph the combined PMF uses."))
-def test_g1_pmf_and_moments_rewards_pmf_divergence():
+def test_g1_pmf_and_moments_rewards_pmf_matches_pybind():
+    """Was strict-xfail Q7.1: the FFI combined handler computed the PMF on the
+    UNTRANSFORMED graph, so a rewards!=None PMF diverged from pybind. The FFI now
+    reward-transforms once and reads the PMF from the transformed graph, so the
+    two paths run the same C kernel on the same graph -> bit-identical."""
     g = coalescent_graph(4)
     sj = structure_str(g)
     rew = np.linspace(0.5, 2.0, g.vertices_length())
@@ -137,10 +139,12 @@ def test_g1_pmf_and_moments_rewards_pmf_divergence():
     np.testing.assert_array_equal(np.asarray(pmf_f), np.asarray(pmf_py))
 
 
-def test_g1_pmf_and_moments_rewards_moments_close():
-    """FFI reward-moments (expected_waiting_time(rewards) then *rewards) and pybind
-    (reward_transform then standard moments) are math-equivalent but ~1 ulp apart.
-    Pin agreement to a tight rtol, not bit-identity."""
+def test_g1_pmf_and_moments_rewards_moments_match_pybind():
+    """Both paths now compute reward moments as
+    ``compute_moments_impl(reward_transform(g), {})`` -- previously the FFI fed
+    real rewards to the CONTINUOUS moment path (expected_waiting_time(rewards)
+    then *rewards), which was only ~1 ulp off in the continuous case but is the
+    same code now, so this is bit-identity."""
     g = coalescent_graph(4)
     sj = structure_str(g)
     rew = np.linspace(0.5, 2.0, g.vertices_length())
@@ -149,7 +153,47 @@ def test_g1_pmf_and_moments_rewards_moments_close():
     _, mom_f = compute_pmf_and_moments_ffi(sj, jnp.asarray(THETA), jnp.asarray(TIMES),
                                            3, discrete=False, granularity=GRAN,
                                            rewards=jnp.asarray(rew))
-    np.testing.assert_allclose(np.asarray(mom_f), np.asarray(mom_py), rtol=1e-12, atol=0.0)
+    np.testing.assert_array_equal(np.asarray(mom_f), np.asarray(mom_py))
+
+
+def test_g1_pmf_and_moments_discrete_integer_rewards_match_pybind():
+    """Discrete + integer rewards: the fix's real teeth. Before it, the FFI fed
+    real-valued rewards to the continuous moment path and THEN applied the
+    discrete correction -- mathematically inconsistent, ~2-5% off pybind
+    (measured [20, 530, 17870] FFI vs [20, 520, 17000] pybind). Now both do
+    ``reward_transform_discrete(int rewards)`` -> empty-reward moments ->
+    correction, so PMF and moments both match pybind. No prior discrete-reward
+    moment gate existed."""
+    g = dph_graph(3, 0.2)
+    sj = structure_str(g)
+    th = np.array([1.0])
+    jumps = np.array([2.0, 3.0, 4.0, 5.0, 6.0])
+    rew = np.array([1.0, 2.0, 1.0, 2.0][: g.vertices_length()], dtype=np.float64)
+    assert len(rew) == g.vertices_length()
+    b = _builder(sj)
+    b.compute_pmf_and_moments(np.array([0.7]), jumps, 3, True, GRAN, rew)   # prime
+    pmf_py, mom_py = b.compute_pmf_and_moments(th, jumps, 3, True, GRAN, rew)
+    pmf_f, mom_f = compute_pmf_and_moments_ffi(sj, jnp.asarray(th), jnp.asarray(jumps),
+                                               3, discrete=True, granularity=GRAN,
+                                               rewards=jnp.asarray(rew))
+    np.testing.assert_array_equal(np.asarray(pmf_f), np.asarray(pmf_py))
+    np.testing.assert_array_equal(np.asarray(mom_f), np.asarray(mom_py))
+
+
+def test_g1_discrete_noninteger_rewards_raises_not_silently_wrong():
+    """No-silent-fallback: discrete + NON-integer rewards must raise (via
+    rewards_to_int_or_throw), not return a plausible number. Before the fix the
+    FFI fed the real rewards straight to the continuous moment path and returned
+    one."""
+    g = dph_graph(3, 0.2)
+    sj = structure_str(g)
+    th = np.array([1.0])
+    jumps = np.array([2.0, 3.0, 4.0])
+    rew = np.array([1.0, 1.5, 1.0][: g.vertices_length()], dtype=np.float64)
+    with pytest.raises(Exception):
+        compute_pmf_and_moments_ffi(sj, jnp.asarray(th), jnp.asarray(jumps),
+                                    3, discrete=True, granularity=GRAN,
+                                    rewards=jnp.asarray(rew))
 
 
 # ---------------------------------------------------------------------------
