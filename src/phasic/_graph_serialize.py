@@ -496,6 +496,10 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
     # Note: The starting vertex may be included in the states array,
     # so we need to check for it and reuse it instead of creating a duplicate
     idx_to_vertex = {}
+    # Track which states have already been materialised so the FIRST occurrence
+    # of each state is registered in the graph's AVL lookup tree while later
+    # duplicates are not (see the branch below for why).
+    seen_states: set = set()
     for idx in range(n_vertices):
         state = states[idx].tolist()
 
@@ -504,14 +508,28 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
         if vertex_indices[idx] == start_vertex_c_idx:
             idx_to_vertex[idx] = start
         else:
+            state_key = tuple(state)
             try:
-                # create_vertex (NOT find_or_create_vertex): preserve vertex
-                # identity per serialized index, matching GraphBuilder's
-                # create_vertex_p. find_or_create_vertex merges by state, which
-                # collapses distinct same-state vertices -- e.g. every discretize
-                # aux vertex has the all-zero state, so a >=2-aux graph merged its
-                # aux vertices into one and mis-routed their back-edges (Q6b).
-                vertex = graph.create_vertex(state)
+                if state_key in seen_states:
+                    # DUPLICATE state (>= 2nd occurrence): create_vertex preserves
+                    # a distinct vertex per serialized index -- matching
+                    # GraphBuilder's create_vertex_p -- instead of merging by
+                    # state. This is what makes e.g. the many all-zero-state
+                    # discretize aux vertices survive the round-trip as distinct
+                    # vertices with correctly-routed back-edges (Q6b). These
+                    # intentional duplicates are not added to the lookup tree.
+                    vertex = graph.create_vertex(state)
+                else:
+                    # FIRST occurrence of this state: find_or_create_vertex ALSO
+                    # registers the state in the AVL lookup tree so that
+                    # Graph.find_vertex works on the reloaded graph. Callers such
+                    # as joint_prob_graph do `self.find_vertex(state)`, so a graph
+                    # rebuilt purely with create_vertex (which never touches the
+                    # tree) reported "No such vertex" for every state -- broken for
+                    # any graph loaded from the on-disk graph cache. No merge can
+                    # happen here because no earlier vertex carries this state yet.
+                    vertex = graph.find_or_create_vertex(state)
+                    seen_states.add(state_key)
                 idx_to_vertex[idx] = vertex
             except Exception as e:
                 raise RuntimeError(
