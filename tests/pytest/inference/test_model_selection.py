@@ -354,7 +354,9 @@ def test_lrt_basic_correct_df_and_pvalue():
     np.random.seed(99)
     data = np.random.exponential(scale=0.5, size=150)  # λ=2
 
-    # SAME model callable used for both fits — required by strict LRT.
+    # SAME model callable for both fits — the fast structural LRT path (and the
+    # only one that supports refine=True; equivalent distinct callables are also
+    # accepted now, via the runtime constrained-sub-case check).
     g = _build_two_param_graph()
     model = Graph.pmf_and_moments_from_graph(
         g, nr_moments=2, discrete=False, theta_dim=2
@@ -377,32 +379,82 @@ def test_lrt_basic_correct_df_and_pvalue():
     assert res.log_likelihood_full + 1e-6 >= res.log_likelihood_nested
 
 
-def test_lrt_strict_model_identity_mismatch():
-    """Two fits built from separate pmf_and_moments_from_graph calls
-    fail the strict identity check, even with the same graph."""
+def test_lrt_equivalent_separate_builds_not_rejected_on_identity():
+    """Fix A / Batch 1: distinct-but-equivalent callables are no longer rejected
+    SOLELY on model identity. The old "SAME model callable" guard is gone; the
+    pair is routed through the runtime constrained-sub-case check + fixed-mask
+    nesting instead, so `df` is recognised (2 free vs 1).
+
+    (Uses strict=False and only asserts the identity policy is gone + df: two
+    INDEPENDENT stochastic fits do not guarantee the free fit dominates, so the
+    separate LL-inversion guard may legitimately warn here — that is orthogonal
+    to the identity policy this test pins. The clean-acceptance-with-statistic
+    case is covered by the tied-vs-free epoch test, where the fits are
+    consistent and the full model provably dominates.)"""
     np.random.seed(7)
     data = np.random.exponential(scale=0.5, size=80)
 
-    # Build the model TWICE — yields distinct callable objects.
+    # Build the model TWICE — yields distinct callable objects, same likelihood.
     svgd_a, _ = _fit_two_param(data, n_iterations=200, seed=1)
     svgd_b, _ = _fit_two_param(data, n_iterations=200, seed=1,
                                fixed=[(1, 4.0)])
-    with pytest.raises(ValueError, match="SAME model callable"):
-        ms.likelihood_ratio_test(svgd_a, svgd_b)
-
-
-def test_lrt_strict_false_warns_instead():
-    np.random.seed(7)
-    data = np.random.exponential(scale=0.5, size=80)
-    svgd_a, _ = _fit_two_param(data, n_iterations=200, seed=1)
-    svgd_b, _ = _fit_two_param(data, n_iterations=200, seed=1,
-                               fixed=[(1, 4.0)])
+    assert svgd_a.model is not svgd_b.model
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        # Should still produce a result (with warnings)
+        res = ms.likelihood_ratio_test(svgd_a, svgd_b, strict=False)
+    # The identity policy is gone: nothing complains about "SAME model callable".
+    assert all("SAME model callable" not in str(w.message) for w in caught)
+    assert isinstance(res, ms.LRTResult)
+    assert res.df == 1                       # nesting recognised (2 free vs 1)
+    assert res.k_full == 2 and res.k_nested == 1
+
+
+def test_lrt_nonequivalent_different_callables_rejected():
+    """Fix A / Batch 1: a NON-equivalent different-callable pair (fits on
+    DIFFERENT data) is caught by the runtime constrained-sub-case check that
+    replaced the identity guard -- raising in strict, warning in non-strict --
+    rather than being silently accepted."""
+    np.random.seed(7)
+    data_a = np.random.exponential(scale=0.5, size=80)
+    data_b = np.random.exponential(scale=1.5, size=80)   # different scale
+    svgd_a, _ = _fit_two_param(data_a, n_iterations=200, seed=1)
+    svgd_b, _ = _fit_two_param(data_b, n_iterations=200, seed=1,
+                               fixed=[(1, 4.0)])
+    assert svgd_a.model is not svgd_b.model
+    with pytest.raises(ValueError):
+        ms.likelihood_ratio_test(svgd_a, svgd_b)         # strict: rejects
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
         res = ms.likelihood_ratio_test(svgd_a, svgd_b, strict=False)
     assert isinstance(res, ms.LRTResult)
     assert any(issubclass(w.category, RuntimeWarning) for w in caught)
+
+
+def test_lrt_different_callable_nonsuperset_rejected():
+    """Fix A / Batch 1: the different-callable branch keeps _check_nested_fixed,
+    so a non-superset pair (nested frees a parameter the full fit fixes) is
+    rejected even though its likelihoods might coincide at the nested MAP."""
+    np.random.seed(7)
+    data = np.random.exponential(scale=0.5, size=80)
+    # Separate builds -> distinct callables. full fixes {0}; nested fixes {1}
+    # (not a superset of {0}).
+    svgd_full, _ = _fit_two_param(data, n_iterations=200, seed=1, fixed=[(0, 2.0)])
+    svgd_nested, _ = _fit_two_param(data, n_iterations=200, seed=1, fixed=[(1, 4.0)])
+    assert svgd_full.model is not svgd_nested.model
+    with pytest.raises(ValueError, match="free|superset"):
+        ms.likelihood_ratio_test(svgd_full, svgd_nested)
+
+
+def test_lrt_refine_rejected_for_different_callables():
+    """Fix A / Batch 1: refine=True is unsupported when the two fits use
+    different model callables (refining a tied/constrained MAP is unreliable)."""
+    np.random.seed(7)
+    data = np.random.exponential(scale=0.5, size=80)
+    svgd_a, _ = _fit_two_param(data, n_iterations=200, seed=1)
+    svgd_b, _ = _fit_two_param(data, n_iterations=200, seed=1, fixed=[(1, 4.0)])
+    assert svgd_a.model is not svgd_b.model
+    with pytest.raises(ValueError, match="refine"):
+        ms.likelihood_ratio_test(svgd_a, svgd_b, refine=True)
 
 
 def test_lrt_theta_dim_mismatch_raises():

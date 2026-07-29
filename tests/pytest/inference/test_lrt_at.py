@@ -154,14 +154,21 @@ def epoch_tied_free_pair():
 
 def test_lrt_at_tied_vs_free_epoch(epoch_tied_free_pair):
     full, nested = epoch_tied_free_pair
-    # likelihood_ratio_test would reject this pair (different callables); the new
-    # function must accept it and give a coherent result.
     assert full.model is not nested.model
-    with pytest.raises(ValueError):
-        ms.likelihood_ratio_test(full, nested)  # same-model identity guard fires
-    res = ms.likelihood_ratio_test_at(full, nested, strict=False)
-    assert res.df == 1                       # 2 free coal rates vs 1 tied
-    assert res.statistic >= 0.0
+    # Fix A / Batch 1: the CANONICAL likelihood_ratio_test now accepts a
+    # provably-equivalent different-callable (tied-vs-free epoch) pair directly
+    # -- it no longer raises on the model-identity guard -- and agrees with
+    # likelihood_ratio_test_at to machine precision.
+    res_at = ms.likelihood_ratio_test_at(full, nested, strict=False)
+    res = ms.likelihood_ratio_test(full, nested)        # strict default: no raise
+    assert res.df == res_at.df == 1                      # 2 free coal rates vs 1 tied
+    assert res.statistic == pytest.approx(res_at.statistic, rel=1e-9)
+    assert res.log_likelihood_full == pytest.approx(res_at.log_likelihood_full, rel=1e-9)
+    assert res.log_likelihood_nested == pytest.approx(res_at.log_likelihood_nested, rel=1e-9)
     assert 0.0 <= res.p_value <= 1.0
     # nested is a genuine constrained sub-case -> no meaningful LL inversion
     assert res.log_likelihood_nested <= res.log_likelihood_full + 1e-4
+    # refine is unsupported on the different-callable path (tied MAP refine is
+    # unreliable) -- must raise regardless of strict.
+    with pytest.raises(ValueError, match="refine"):
+        ms.likelihood_ratio_test(full, nested, refine=True)

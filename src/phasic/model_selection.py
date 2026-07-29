@@ -328,6 +328,7 @@ def likelihood_ratio_test(
     *,
     refine: bool = False,
     strict: bool = True,
+    consistency_atol: float = 1e-4,
 ) -> LRTResult:
     """Wilks likelihood-ratio test for two nested models.
 
@@ -338,27 +339,45 @@ def likelihood_ratio_test(
     Parameters
     ----------
     full, nested : SVGD
-        Fitted SVGD instances. Both must use the SAME model callable
-        (typically a single :meth:`Graph.pmf_and_moments_from_graph`
-        result), the same observed data, and the same ``theta_dim``.
-        The nested fit must fix every parameter that the full fit fixes
-        (at the same values), plus at least one additional parameter.
+        Fitted SVGD instances over the same data/graph with the same
+        ``theta_dim``. Both must represent the SAME likelihood function —
+        either the *same* ``model`` object (fast structural path), OR two
+        callables that are **provably equivalent**, e.g. a *tied-vs-free*
+        epoch (daisy-chain) pair where tying is baked into the model so the
+        callables necessarily differ. In the different-callable case
+        equivalence is verified at runtime (the nested fit's MAP must score
+        identically under both models), so the canonical function accepts the
+        pair directly instead of forcing you to :func:`likelihood_ratio_test_at`.
+        The nested fit must fix every parameter the full fit fixes (at the same
+        values), plus at least one additional restriction.
 
-        The canonical pattern is::
+        The canonical (same-model) pattern is::
 
             model = Graph.pmf_and_moments_from_graph(graph)
             full   = SVGD(model, data, theta_dim=k).optimize()
             nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()
 
+        The tied-vs-free epoch pattern (different callables) also works::
+
+            full   = jpg.svgd(obs, epoch_starts=[0, t1])
+            nested = jpg.svgd(obs, epoch_starts=[0, t1], tied=[(0, [0, 1])])
+
     refine : bool, default=False
         If True, refine the MAP for both fits via gradient ascent before
-        evaluating their log-likelihoods.
+        evaluating their log-likelihoods. **Not supported when the two fits use
+        different model callables** (refining a tied/constrained MAP is
+        unreliable — see :func:`likelihood_ratio_test_at`); passing
+        ``refine=True`` there raises ``ValueError``.
 
     strict : bool, default=True
         If True (recommended), all validation failures raise ``ValueError``.
         If False, they emit a ``RuntimeWarning`` instead. Loosen only
         when you understand why your fits look non-nested but are
         nevertheless on the same restriction structure.
+    consistency_atol : float, default=1e-4
+        Relative tolerance for the different-callable constrained-sub-case
+        check ``|full.LL(nested_MAP) - nested.LL(nested_MAP)|`` (see
+        :func:`likelihood_ratio_test_at`). Ignored on the same-model path.
 
     Returns
     -------
@@ -371,9 +390,11 @@ def likelihood_ratio_test(
     ------
     ValueError
         In strict mode, on any of: mismatched ``theta_dim``,
-        mismatched ``n_observations``, different model callables,
-        non-superset fixed mask, mismatched fixed values, df ≤ 0,
-        or LL inversion (nested > full).
+        mismatched ``n_observations``, non-superset fixed mask, mismatched
+        fixed values, df ≤ 0, LL inversion (nested > full), or (for
+        different-callable pairs) a failed constrained-sub-case equivalence
+        check. Always (regardless of ``strict``): ``refine=True`` combined
+        with different model callables.
 
     Examples
     --------
@@ -411,17 +432,29 @@ def likelihood_ratio_test(
             f"n_observations mismatch: full={n_full}, nested={n_nested}",
         )
 
-    if full.model is not nested.model:
-        _violate(
-            strict,
-            "LRT requires both fits to use the SAME model callable. "
-            "Build the model once and pass it to both SVGD constructors:\n"
-            "    model = Graph.pmf_and_moments_from_graph(graph)\n"
-            "    full   = SVGD(model, data, theta_dim=k).optimize()\n"
-            "    nested = SVGD(model, data, theta_dim=k, fixed=[(0, 1.0)]).optimize()",
+    if full.model is nested.model:
+        # Same model object: nesting is a structural fixed-mask relationship.
+        _check_nested_fixed(full, nested, strict)
+    else:
+        # Different model callables (e.g. a tied-vs-free epoch pair — tying is
+        # baked into the model, so `full.model is nested.model` can never hold).
+        # Accept iff the pair is provably the SAME likelihood function: keep the
+        # structural fixed-mask nesting check (so a non-superset pair whose
+        # likelihoods merely coincide at the nested MAP is still rejected — it
+        # would otherwise carry a meaningless df) AND verify the
+        # constrained-sub-case equality at runtime by delegating to
+        # `likelihood_ratio_test_at`, which scores both fits refine-free at the
+        # nested MAP and enforces the equivalence within `consistency_atol`.
+        if refine:
+            raise ValueError(
+                "refine=True is not supported when the two fits use different "
+                "model callables (refining a tied/constrained MAP is "
+                "unreliable); omit refine. See likelihood_ratio_test_at."
+            )
+        _check_nested_fixed(full, nested, strict)
+        return likelihood_ratio_test_at(
+            full, nested, strict=strict, consistency_atol=consistency_atol
         )
-
-    _check_nested_fixed(full, nested, strict)
 
     k_full = full.degrees_of_freedom
     k_nested = nested.degrees_of_freedom
