@@ -503,6 +503,12 @@ def _create_jax_parameterized_wrapper(compute_func: Any, graph_builder: Callable
     Create a pure JAX-compatible wrapper for parameterized models.
 
     Handles models where graph structure depends on parameters.
+
+    NOTE: only used by Graph.pmf_from_graph_parameterized, which is DISABLED (see
+    CLAUDE.md "Disabled paths / follow-ups"); it is unreachable today. It carries
+    bug 5: `jax`/`jnp` are the module-level lazily-imported globals (None until
+    _ensure_jax_active() runs, which this path never calls), and it hardcodes
+    jnp.float32 where the FFI requires F64. Fix both on revival.
     """
     from jax import pure_callback
 
@@ -3872,7 +3878,28 @@ class Graph(_Graph):
         >>> theta = jnp.array([1.5])
         >>> times = jnp.linspace(0, 5, 50)
         >>> pdf = model(theta, times)
+
+        .. note::
+           **DISABLED** pending a fix -- see CLAUDE.md "Disabled paths / follow-ups".
         """
+        # DISABLED: this builder-based (theta -> Graph) path is unused -- SVGD, the
+        # LRT, and pmf_and_moments_from_graph all use the graph-based parameterized
+        # API (pmf_from_graph / pmf_and_moments_from_graph) -- and it is broken:
+        #   bug 5a: never calls _ensure_jax_active(), so the module-level jax/jnp
+        #           are None -> AttributeError at _create_jax_parameterized_wrapper;
+        #   bug 5b: hardcodes jnp.float32 where the F64 FFI requires float64;
+        #   F-001:  its discrete branch still calls g.normalize() (a native-DPH
+        #           normalize that collapses the chain to a deterministic walk --
+        #           the same defect fixed as "bug 4" in pmf_from_cpp).
+        # See CLAUDE.md "Disabled paths / follow-ups" for the revival checklist. The
+        # original implementation is preserved below (now unreachable) for revival.
+        raise NotImplementedError(
+            "Graph.pmf_from_graph_parameterized is disabled pending a fix "
+            "(bugs 5a/5b + the F-001 normalize; see CLAUDE.md 'Disabled paths / "
+            "follow-ups'). Use Graph.pmf_from_graph or Graph.pmf_and_moments_from_graph "
+            "(the parameterized-graph API) instead."
+        )
+
         # Create wrapper code (both continuous and discrete)
         wrapper_code = '''
 #include "phasiccpp.h"

@@ -71,3 +71,15 @@ Edges can carry coefficient vectors and be re-weighted per θ via `update_weight
 ## Release workflow
 
 Version lives in `pyproject.toml`. `pixi run bump [patch|minor|major]` bumps and commits; `pixi run release` tags and triggers conda/pypi builds; `pixi run version` chains test → docs → bump → release. Docs are Quarto/quartodoc (`pixi run docs`, `pixi run api`).
+
+## Disabled paths / follow-ups
+
+### `Graph.pmf_from_graph_parameterized` — disabled, needs revival
+
+The **builder-based** (`θ → Graph` *function*) likelihood API `Graph.pmf_from_graph_parameterized` (and its only helper `_create_jax_parameterized_wrapper`, both in `src/phasic/__init__.py`) is **disabled** — it raises `NotImplementedError`; the original implementation is preserved directly below the raise (now unreachable) for revival. It is **unused**: SVGD, the model-selection LRT (`model_selection.py`), and everything else route through the **graph-based** parameterized API (`pmf_from_graph` / `pmf_and_moments_from_graph`, which take a pre-built parameterized `Graph` whose edges carry coefficient vectors). It was also **broken** three ways:
+
+- **bug 5a** — it never calls `_ensure_jax_active()`, so the module-level lazy `jax`/`jnp` are `None` → `AttributeError: 'NoneType' has no 'ShapeDtypeStruct'` (unless another JAX path activated them first).
+- **bug 5b** — it hardcodes `jnp.float32` for the `pure_callback` result, but the FFI/native path returns/expects **F64** → `Wrong buffer dtype: expected F64 but got F32`.
+- **F-001** — its `discrete=True` C wrapper still calls `g.normalize()` on the raw graph. For a native DPH that continuous normalize collapses the chain to a deterministic walk (and zeroes the gradient) — the same defect fixed as "bug 4" in `pmf_from_cpp` (which documents "NO normalize() here").
+
+**Revival checklist:** (1) call `_ensure_jax_active()` at the top of the returned model fn (fix 5a); (2) declare the `pure_callback` result dtype as `times.dtype` / F64, not `jnp.float32` (fix 5b); (3) delete the `g.normalize()` in the discrete `compute_dph_pmf_from_arrays` wrapper, or reject row-sum > 1 (fix F-001, mirroring `pmf_from_cpp`); (4) un-skip and strengthen its tests in `tests/pytest/inference/test_jax_integration.py` (`TestPMFFromGraphParameterized`, `TestJAXGradients`, and `test_jit_parameterized` / `test_jit_with_grad` / `test_vmap_over_parameters` / `test_vmap_nested`, currently `@pytest.mark.skip`) so they assert **values** against a native oracle (they only checked `pmf.shape` before, which is why the normalize bug went unnoticed); add a discrete cross-path gate (`pmf_from_graph_parameterized` == `pmf_from_cpp` == FFI, vs a NegBinomial closed form) on a row-sum≠1 graph. Only worth doing if the builder-function style is actually wanted — otherwise the graph-based API fully covers it.
