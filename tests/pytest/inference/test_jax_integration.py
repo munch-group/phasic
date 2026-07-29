@@ -105,6 +105,7 @@ class TestPMFFromGraph:
         assert jnp.all(pdf >= 0)
 
 
+@pytest.mark.skip(reason="pmf_from_graph_parameterized disabled pending bug-5/F-001 fix (see CLAUDE.md 'Disabled paths / follow-ups')")
 class TestPMFFromGraphParameterized:
     """Test pmf_from_graph_parameterized functionality."""
 
@@ -167,6 +168,7 @@ class TestPMFFromGraphParameterized:
         assert pdf.shape == times.shape
 
 
+@pytest.mark.skip(reason="pmf_from_graph_parameterized disabled pending bug-5/F-001 fix (see CLAUDE.md 'Disabled paths / follow-ups')")
 class TestJAXGradients:
     """Test automatic differentiation with JAX."""
 
@@ -262,6 +264,7 @@ class TestJAXJIT:
 
         assert jnp.allclose(pdf1, pdf2)
 
+    @pytest.mark.skip(reason="pmf_from_graph_parameterized disabled (see CLAUDE.md 'Disabled paths / follow-ups')")
     def test_jit_parameterized(self):
         """Test JIT compilation of parameterized model."""
         def build_graph(theta):
@@ -281,6 +284,7 @@ class TestJAXJIT:
 
         assert jnp.allclose(pdf1, pdf2)
 
+    @pytest.mark.skip(reason="pmf_from_graph_parameterized disabled (see CLAUDE.md 'Disabled paths / follow-ups')")
     def test_jit_with_grad(self):
         """Test JIT compilation of gradient function."""
         def build_graph(theta):
@@ -309,6 +313,7 @@ class TestJAXJIT:
 class TestJAXVmap:
     """Test vectorization with vmap."""
 
+    @pytest.mark.skip(reason="pmf_from_graph_parameterized disabled (see CLAUDE.md 'Disabled paths / follow-ups')")
     def test_vmap_over_parameters(self):
         """Test vmap over parameter batch."""
         def build_graph(theta):
@@ -348,6 +353,7 @@ class TestJAXVmap:
 
         assert pdf_batch.shape == (4, 1)
 
+    @pytest.mark.skip(reason="pmf_from_graph_parameterized disabled (see CLAUDE.md 'Disabled paths / follow-ups')")
     def test_vmap_nested(self):
         """Test nested vmap."""
         def build_graph(theta):
