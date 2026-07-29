@@ -73,6 +73,20 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
             is_discrete_ = j.at("is_discrete").get<bool>();
         }
 
+        // was_dph: the C-level auto-normalisation latch. A discretize()/joint-prob
+        // DPH needs its out-edges renormalised to sum to 1 on every update_weights
+        // (weights are recomputed from coefficients each theta); a native DPH must
+        // NOT be (its weights already are per-step probabilities). Absent-key
+        // default is is_discrete_ -- matching the Python restore in
+        // _graph_serialize.py so pre-B2 discretized caches still renormalise here.
+        // Without this the parameterized/FFI backend skips the renorm the native
+        // pybind path applies, diverging on a discretized parameterized graph.
+        if (j.contains("was_dph")) {
+            was_dph_ = j.at("was_dph").get<bool>();
+        } else {
+            was_dph_ = is_discrete_;
+        }
+
         // Parse states
         states_.reserve(n_vertices_);
         auto states_json = j.at("states");
@@ -204,6 +218,17 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
     // variant for this rebuilt graph (matches PHASIC_DYN_ORDERING / the
     // dyn_ordering property on the originating Graph).
     g.c_graph()->use_dyn_ordering = dyn_ordering_;
+
+    // Enable the auto-normalisation latch on the rebuilt graph so
+    // ptd_graph_update_weights (called below and on every persistent-graph
+    // refresh) renormalises each vertex's out-edges to sum to 1 after recomputing
+    // weights from coefficients -- matching the native pybind path. Required for a
+    // discretize()/joint-prob DPH; a no-op for an already-normalised graph. Mirror
+    // the pybind set_was_dph false->true transition (phasic_pybind.cpp).
+    if (was_dph_ && !g.c_graph()->was_dph) {
+        g.c_graph()->dph_compute_invalidated = true;
+    }
+    g.c_graph()->was_dph = was_dph_;
 
     // Get starting vertex
     Vertex* start = g.starting_vertex_p();

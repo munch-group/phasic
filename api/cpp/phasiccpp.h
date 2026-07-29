@@ -1686,6 +1686,14 @@ namespace phasic {
 
         void add_edge_parameterized(Vertex &to, double weight, std::vector<double> edge_state);
 
+        // Append a coefficient-less CONSTANT edge (this -> to) via direct
+        // ptd_edge struct manipulation, bypassing the EDGE_MODE_PARAMETERIZED
+        // lock (mirrors add_aux_vertex_constant / GraphBuilder::build). Its
+        // weight stays fixed across update_weights (coefficients_length == 0).
+        // Used by Graph.from_serialized to rebuild the aux back-edges of a
+        // discretize()/joint-stop-prob parameterised graph.
+        void add_edge_constant(Vertex &to, double weight);
+
         Vertex add_aux_vertex(double rate);
 
         Vertex add_aux_vertex(std::vector<double> rate_coeffs);

@@ -4122,6 +4122,19 @@ Notes
 - Auxiliary vertices can be identified by their all-zero state
 )delim")
 
+    .def("add_edge_constant",
+        [](phasic::Vertex& self, phasic::Vertex& to, double weight) {
+            self.add_edge_constant(to, weight);
+        },
+        py::arg("to"), py::arg("weight"),
+        R"delim(
+Append a coefficient-less CONSTANT edge (self -> to), bypassing the
+EDGE_MODE lock so it can coexist with parameterised edges. The weight is
+fixed across update_weights(). This is the round-trip primitive used by
+Graph.from_serialized to rebuild the aux back-edges of a discretize()/
+joint-stop-prob parameterised graph; prefer add_edge()/add_aux_vertex_*
+for normal construction.
+)delim")
     .def("add_aux_vertex_constant",
         [](phasic::Vertex& self, double weight) -> phasic::Vertex {
             return self.add_aux_vertex_constant(weight);

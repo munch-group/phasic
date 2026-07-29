@@ -143,11 +143,11 @@ def deserialize_scc_synth(data: dict[str, Any]):
     -----
     Synthetic SCC graphs frequently contain auxiliary vertices
     with the same state (e.g. all zero-state phantom/per-channel
-    absorbing vertices). The standard ``Graph.from_serialized``
-    uses ``find_or_create_vertex`` and would collapse these into
-    a single vertex, which breaks the topology. This deserialiser
-    uses ``create_vertex`` to preserve every vertex distinctly,
-    matching the synth's original layout.
+    absorbing vertices). This deserialiser uses ``create_vertex``
+    to preserve every vertex distinctly, matching the synth's
+    original layout rather than collapsing same-state vertices
+    (which would break the topology). ``Graph.from_serialized``
+    now does the same, for the same reason.
     """
     from phasic import Graph
 

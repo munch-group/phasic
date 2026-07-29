@@ -3168,9 +3168,13 @@ class Graph(_Graph):
             result = Graph(super().reward_transform_discrete(rewards))
             # Wrapping the C++ _Graph runs __init__, which resets
             # is_discrete=False; a reward-transformed DPH is still
-            # discrete, so restore the flag (mirroring discretize()).
+            # discrete, so restore the flag.
             result.is_discrete = True
-            result.set_was_dph(True)
+            # Propagate was_dph from the SOURCE, don't latch True: a discretize()
+            # source (was_dph=True) still needs auto-normalisation, but a NATIVE
+            # DPH (was_dph=False) must not be renormalised or it collapses to a
+            # deterministic walk.
+            result.set_was_dph(self.get_was_dph())
             return result
         else:
             return Graph(super().reward_transform(rewards))
@@ -3203,7 +3207,9 @@ class Graph(_Graph):
         # reward_transform); otherwise downstream pmf/moments dispatch
         # to the continuous path.
         result.is_discrete = True
-        result.set_was_dph(True)
+        # Propagate was_dph from the source (see reward_transform): a native DPH
+        # (was_dph=False) must not be latched to auto-normalise.
+        result.set_was_dph(self.get_was_dph())
         return result
 
     def laplace_transform(self, theta: float) -> Self:

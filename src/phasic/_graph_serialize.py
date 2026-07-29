@@ -505,7 +505,13 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
             idx_to_vertex[idx] = start
         else:
             try:
-                vertex = graph.find_or_create_vertex(state)
+                # create_vertex (NOT find_or_create_vertex): preserve vertex
+                # identity per serialized index, matching GraphBuilder's
+                # create_vertex_p. find_or_create_vertex merges by state, which
+                # collapses distinct same-state vertices -- e.g. every discretize
+                # aux vertex has the all-zero state, so a >=2-aux graph merged its
+                # aux vertices into one and mis-routed their back-edges (Q6b).
+                vertex = graph.create_vertex(state)
                 idx_to_vertex[idx] = vertex
             except Exception as e:
                 raise RuntimeError(
@@ -597,6 +603,36 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
                 f"  Weight: {weight}\n"
                 f"  Error: {e}"
             ) from e
+
+    # Re-add coefficient-less CONSTANT edges (e.g. the aux back-edges of a
+    # discretize()/joint-stop-prob parameterised graph). serialize() routes these
+    # to a dedicated 'constant_edges' list because a plain add_edge() would trip
+    # the EDGE_MODE lock on a parameterised graph; add_edge_constant bypasses it,
+    # matching the C++ GraphBuilder reconstruction. Absent/empty for
+    # non-parameterised graphs, so this is a no-op there. Without this the aux
+    # back-edges were dropped on round-trip, collapsing a discretized graph
+    # (E[N]=1.0) on the disk-cache / SLURM path.
+    constant_edges = np.asarray(
+        data.get('constant_edges', np.empty((0, 3))), dtype=np.float64
+    )
+    if constant_edges.ndim == 2 and constant_edges.shape[0] > 0:
+        for edge_data in constant_edges:
+            from_idx = int(edge_data[0])
+            to_idx = int(edge_data[1])
+            weight = float(edge_data[2])
+            if not (0 <= from_idx < n_vertices and 0 <= to_idx < n_vertices):
+                raise RuntimeError(
+                    "Graph deserialization failed: constant edge has invalid index "
+                    f"(from_idx={from_idx}, to_idx={to_idx}, valid=[0, {n_vertices}))"
+                )
+            try:
+                idx_to_vertex[from_idx].add_edge_constant(idx_to_vertex[to_idx], weight)
+            except Exception as e:
+                raise RuntimeError(
+                    "Graph deserialization failed: cannot add constant edge\n"
+                    f"  From vertex {from_idx} to {to_idx}, weight {weight}\n"
+                    f"  Error: {e}"
+                ) from e
 
     # Add starting vertex regular edges
     start = graph.starting_vertex()

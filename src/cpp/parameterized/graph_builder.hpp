@@ -322,6 +322,9 @@ private:
     WeightMode weight_mode_ = WeightMode::LINEAR;
     bool dyn_ordering_ = false;   // dynamic min-degree elimination ordering
     bool is_discrete_ = false;    // graph is a DPH (from serialize 'is_discrete')
+    bool was_dph_ = false;        // needs per-theta out-edge renormalisation
+                                  // (from serialize 'was_dph'; a discretize()/
+                                  // joint-prob DPH, NOT a native DPH)
 
     // weight_mode_ == FORMULA: per-edge weight tape (parsed once from the
     // 'weight_formula_tape' JSON). Evaluated in C via

@@ -105,24 +105,23 @@ def test_g3_roundtrip_bit_identical():
     np.testing.assert_array_equal(a, b)     # EXACT: shared native kernel, identical structure
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Q6a: from_serialized DROPS constant_edges (src/phasic/__init__.py never reads the "
-    "'constant_edges' key) while GraphBuilder::build rebuilds them "
-    "(graph_builder.cpp:276-306). Stage-3 must teach from_serialized to read them."))
-def test_g3_constant_edges_divergence():
+def test_g3_constant_edges_matches():
+    # Q6a (FIXED): from_serialized now re-adds coefficient-less constant_edges via
+    # the add_edge_constant primitive (see Graph.from_serialized in
+    # _graph_serialize.py), matching GraphBuilder::build's reconstruction. The two
+    # deserialization paths therefore agree on a graph that uses constant_edges.
     ser = _g_const().serialize()
     assert ser["constant_edges"].shape[0] > 0     # feature actually exercised
     a, b = _path_A(ser), _path_B(ser)
-    np.testing.assert_array_equal(a, b)           # currently FALSE -> xfail
+    np.testing.assert_array_equal(a, b)           # from_serialized == GraphBuilder
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Q6b: from_serialized merges duplicate-state vertices via find_or_create_vertex "
-    "(__init__.py:4342) while GraphBuilder ignores vertex_indices and preserves identity "
-    "via create_vertex_p (graph_builder.cpp:233). Stage-3 must unify how vertex_indices "
-    "is honored."))
-def test_g3_vertex_indices_divergence():
+def test_g3_vertex_indices_matches():
+    # Q6b (FIXED): from_serialized now rebuilds vertices with create_vertex (not
+    # find_or_create_vertex), preserving per-index identity like GraphBuilder's
+    # create_vertex_p, so duplicate-state vertices are no longer merged. The two
+    # deserialization paths therefore agree on a graph with duplicate states.
     ser = _g_dup().serialize()
     assert len({tuple(r) for r in ser["states"].tolist()}) < ser["n_vertices"]  # dup states present
     a, b = _path_A(ser), _path_B(ser)
-    np.testing.assert_array_equal(a, b)           # currently FALSE -> xfail
+    np.testing.assert_array_equal(a, b)           # from_serialized == GraphBuilder

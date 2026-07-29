@@ -1698,6 +1698,39 @@ phasic::Vertex phasic::Vertex::add_aux_vertex_constant(double weight) {
 }
 
 
+void phasic::Vertex::add_edge_constant(Vertex &to, double weight) {
+    // Append a coefficient-less constant edge (this -> to) by manipulating the
+    // ptd_edge struct directly, bypassing the EDGE_MODE_PARAMETERIZED lock so it
+    // can coexist with parameterised edges. Mirrors the append_constant_edge
+    // trick in add_aux_vertex_constant and GraphBuilder::build(). update_weights
+    // skips coefficients_length == 0 edges, so the weight stays constant.
+    struct ptd_edge *edge = (struct ptd_edge *) malloc(sizeof(*edge));
+    if (edge == NULL) {
+        throw std::runtime_error("add_edge_constant: failed to allocate edge");
+    }
+    edge->to = to.c_vertex();
+    edge->weight = weight;
+    edge->coefficients_length = 0;
+    edge->coefficients = NULL;
+    edge->should_free_coefficients = false;
+
+    struct ptd_vertex *from_v = this->vertex;
+    struct ptd_edge **new_edges = (struct ptd_edge **) realloc(
+        from_v->edges,
+        (from_v->edges_length + 1) * sizeof(struct ptd_edge *)
+    );
+    if (new_edges == NULL) {
+        free(edge);
+        throw std::runtime_error("add_edge_constant: failed to grow edge array");
+    }
+    from_v->edges = new_edges;
+    from_v->edges[from_v->edges_length] = edge;
+    from_v->edges_length++;
+
+    graph.notify_change();
+}
+
+
 std::vector<int> phasic::Vertex::state() {
     return std::vector<int>(
             this->vertex->state,
