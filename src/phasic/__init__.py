@@ -2734,8 +2734,8 @@ class Graph(_Graph):
         if not callable(rate):
             if not isinstance(rate, (int, float, np.integer, np.floating)):
                 raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-            if rate <= 0 or rate >= 1:
-                raise ValueError(f"rate must be in (0, 1), got {rate}")
+            if rate <= 0:
+                raise ValueError(f"rate must be larger than 0, got {rate}")
 
         vlength = self.vertices_length()
         aux_indices = []
@@ -2797,9 +2797,9 @@ class Graph(_Graph):
         if not callable(rate):
             if not isinstance(rate, (int, float, np.integer, np.floating)):
                 raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-            if rate <= 0 or rate >= 1:
-                raise ValueError(f"rate must be in (0, 1), got {rate}")
-
+            if rate <= 0:
+                raise ValueError(f"rate must be larger than 0, got {rate}")
+            
         # For parameterized graphs with scalar rate, widen layout to add a coeff slot
         if self.parameterized() and not callable(rate):
             new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
