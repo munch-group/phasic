@@ -4189,6 +4189,41 @@ extern "C" {{
         return jax_model
 
 
+    def _map_joint_observations_to_indices(self, observed_data, *, seed=None):
+        """Map joint-observation outcome tuples to joint-prob-table vertex indices.
+
+        Each observation (a tuple over the non-``prob`` outcome columns) is
+        looked up in ``self.joint_prob_table()``. A degenerate outcome that maps
+        to more than one index is resolved by sampling proportional to the
+        outcomes' probability. Pass ``seed`` for a deterministic tie-break; the
+        default ``seed=None`` uses the global ``np.random`` stream (bit-identical
+        to the historic inline mapping in ``Graph.svgd``).
+
+        This is the single implementation shared by ``Graph.svgd`` (joint-index /
+        daisy-chain paths) and ``Graph.epoch_model``; both feed the returned
+        1-D index list to the daisy-chain / joint-index model as
+        ``observed_indices``.
+        """
+        rng = np.random if seed is None else np.random.RandomState(seed)
+        joint_prob_table = self.joint_prob_table()
+        obs2idx = joint_prob_table.groupby(
+            joint_prob_table.columns[:-1].to_list()
+        ).groups
+        obs_indices = []
+        for obs in observed_data:
+            idx = obs2idx[tuple(obs)]
+            if idx.size > 1:
+                # observation maps to multiple indices: sample by probability
+                p = joint_prob_table.loc[idx, 'prob'].to_numpy()
+                p = p / p.sum()
+                chosen_idx = rng.choice(idx, p=p)
+                obs_indices.append(chosen_idx.item())
+            else:
+                # unique index
+                obs_indices.append(idx.item())
+        return obs_indices
+
+
     def _daisy_chain_svgd_model(
         self,
         *,
@@ -4204,6 +4239,7 @@ extern "C" {{
         exposure_arr=None,
         exposure_param_index: int | None = None,
         final_read: str = 'sojourn',
+        bake_fd_skip: bool = True,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4448,8 +4484,18 @@ extern "C" {{
         # _apply_tying scatter's VJP can route them back into the
         # master. Mixing the two would zero out the per-slave gradient
         # contributions and underestimate dL/d(master).
+        # bake_fd_skip=True (the Graph.svgd default) skips FD partials at the
+        # truly-fixed indices for efficiency. A reusable "free" model
+        # (Graph.epoch_model) passes bake_fd_skip=False so NO slot is skipped:
+        # the FD backward then returns correct gradients for EVERY slot, so the
+        # same model object can be fit with an ARBITRARY `fixed` set at the SVGD
+        # level (no build-time/fit-time superset constraint). This is
+        # bit-identical to bake_fd_skip=True on the non-fixed slots, since SVGD
+        # never reads a fixed slot's gradient (it optimises the learnable
+        # subspace); it only changes the discarded fixed-slot partials.
         fd_skip_indices = (
-            list(fixed_indices) if fixed_indices is not None else []
+            list(fixed_indices)
+            if (bake_fd_skip and fixed_indices is not None) else []
         )
 
         # Extend broadcast_fixed to also lock slave positions. The
@@ -4978,6 +5024,136 @@ extern "C" {{
             theta_dim,
             _mask_fixed(broadcast_priors),
             broadcast_fixed,
+        )
+
+
+    def epoch_model(
+        self,
+        observed_data,
+        epoch_starts,
+        *,
+        prior=None,
+        fixed=None,
+        exposure=None,
+        exposure_param_index: int | None = None,
+        daisy_chain_t_eval: float | str | None = None,
+        daisy_chain_probe_theta=None,
+        daisy_chain_t_eval_tol: float = 1e-3,
+        daisy_chain_granularity: int = 0,
+        final_read: str = 'sojourn',
+        seed: int | None = None,
+        verbose: bool = False,
+    ) -> "FreeEpochModel":
+        """Build a reusable **free** (untied) daisy-chain epoch model.
+
+        This is the epoch/time-inhomogeneous analogue of the public
+        :meth:`pmf_and_moments_from_graph`: it returns a *reusable* model object
+        instead of fitting immediately (as ``Graph.svgd(epoch_starts=...)``
+        does). Build the (expensive) JSP graph + model **once**, then fit it many
+        times via :meth:`FreeEpochModel.fit`. Because two fits from the same
+        object share ``.model``,
+        :func:`phasic.model_selection.likelihood_ratio_test(full, nested)` takes
+        the fast same-model path — a free-vs-fixed nested LRT on an epoch model.
+        (A *tied*-vs-free LRT instead uses ``Graph.svgd(tied=...)`` +
+        ``likelihood_ratio_test`` directly; tying is out of scope here.)
+
+        ``self`` must be a **continuous-time joint-probability graph**
+        (``graph.joint_prob_graph(indexer, ..., discrete=False)``).
+
+        Parameters
+        ----------
+        observed_data : sequence
+            Joint observations (outcome tuples over the joint-prob table's
+            non-``prob`` columns). Mapped to vertex indices internally.
+        epoch_starts : array-like of float
+            ``epoch_starts[0] == 0``; the rest are additional epoch start times.
+            ``n_epochs = len(epoch_starts)``; the flat theta has length
+            ``n_epochs * param_length``.
+        prior, fixed : optional
+            Per-epoch (local index) prior / fixings, broadcast across epochs —
+            same semantics as ``Graph.svgd``'s ``prior``/``fixed`` under
+            ``epoch_starts``. These are baked as the model's *base* restriction;
+            :meth:`FreeEpochModel.fit` can add MORE (in flat index space).
+        exposure, exposure_param_index : optional
+            Per-observation exposure scaling; baked into the model (do not
+            re-pass to ``fit``).
+        daisy_chain_t_eval, daisy_chain_probe_theta, daisy_chain_t_eval_tol, daisy_chain_granularity, final_read
+            As in :meth:`svgd` (the ``'auto'`` probe, granularity, sojourn read).
+        seed : int, optional
+            Seed for the observation-mapping tie-break (degenerate outcome
+            groups). ``None`` (default) uses the global ``np.random`` stream, as
+            ``Graph.svgd`` does. Pass a seed for reproducible mapping.
+
+        Returns
+        -------
+        FreeEpochModel
+            Carries ``model``, ``theta_dim``, ``observed_data`` (mapped indices),
+            ``prior``, ``fixed`` (base), epoch metadata, and ``.fit(...)``.
+
+        Examples
+        --------
+        >>> m = jpg.epoch_model(obs, epoch_starts=[0, 0.5], fixed=[(1, mu)],
+        ...                     prior=LogGaussPrior(ci=[1/50_000, 1/5000]))
+        >>> full   = m.fit(n_iterations=500)
+        >>> nested = m.fit(fixed=[(0, 1e-4)], n_iterations=500)  # flat index
+        >>> import phasic.model_selection as ms
+        >>> ms.likelihood_ratio_test(full, nested)   # same-model fast path
+        """
+        _ensure_jax_active()
+        if not self._joint_prob_base_graph_indexer:
+            raise ValueError(
+                "Graph.epoch_model requires a joint-probability graph. Construct "
+                "one with graph.joint_prob_graph(indexer, ..., discrete=False)."
+            )
+        # 1. observations -> joint-prob vertex indices (shared mapping helper).
+        mapped = self._map_joint_observations_to_indices(observed_data, seed=seed)
+        # 2. resolve t_eval (numeric / None default / 'auto' probe).
+        resolved_t_eval = self._resolve_daisy_chain_t_eval(
+            daisy_chain_t_eval=daisy_chain_t_eval,
+            epoch_starts=epoch_starts,
+            probe_theta=daisy_chain_probe_theta,
+            tol=daisy_chain_t_eval_tol,
+            granularity=daisy_chain_granularity,
+            verbose=verbose,
+        )
+        # 3. per-observation exposure array (scalar broadcasts to len(mapped)).
+        _daisy_exposure = (
+            np.asarray(exposure, dtype=np.float64).ravel()
+            if exposure is not None else None
+        )
+        if _daisy_exposure is not None and _daisy_exposure.size == 1:
+            _daisy_exposure = np.full(
+                (len(mapped),), float(_daisy_exposure.item()), dtype=np.float64
+            )
+        # 4. build the FREE model (user_tied=None) with NO baked FD-skip, so ANY
+        #    `fixed` set may be applied per fit at the SVGD level.
+        model, theta_dim, prior_out, fixed_out = self._daisy_chain_svgd_model(
+            observed_indices=mapped,
+            epoch_starts=epoch_starts,
+            t_eval=resolved_t_eval,
+            user_prior=prior,
+            user_fixed=fixed,
+            user_tied=None,
+            sd=5.0,
+            verbose=verbose,
+            granularity=daisy_chain_granularity,
+            exposure_arr=_daisy_exposure,
+            exposure_param_index=exposure_param_index,
+            final_read=final_read,
+            bake_fd_skip=False,
+        )
+        from .epoch_model import FreeEpochModel
+        es = np.asarray(epoch_starts, dtype=np.float64).ravel()
+        return FreeEpochModel(
+            model=model,
+            theta_dim=theta_dim,
+            observed_data=mapped,
+            prior=prior_out,
+            fixed=fixed_out,
+            n_epochs=int(es.size),
+            param_length=self.param_length(),
+            t_eval=resolved_t_eval,
+            epoch_starts=es.tolist(),
         )
 
 
@@ -5755,21 +5931,9 @@ extern "C" {{
                         "Cannot use joint_index=True."
                     )
                 # map observed data to indices in joint probability table
-                joint_prob_table = self.joint_prob_table()
-                obs_indices = []
-                obs2idx = joint_prob_table.groupby(joint_prob_table.columns[:-1].to_list()).groups
-                for obs in observed_data:
-                    idx = obs2idx[tuple(obs)]
-                    if idx.size > 1:
-                        # if observation maps to multiple indices, sample according to their probabilities
-                        p = joint_prob_table.loc[idx, 'prob'].to_numpy()
-                        p = p / p.sum()
-                        chosen_idx = np.random.choice(idx, p=p)
-                        obs_indices.append(chosen_idx.item())
-                    else:
-                        # else just return the unique index
-                        obs_indices.append(idx.item())
-                observed_data = obs_indices
+                # (shared helper; seed=None keeps the historic global-RNG
+                # tie-break behaviour, bit-identical to the previous inline code)
+                observed_data = self._map_joint_observations_to_indices(observed_data)
 
                 # Check for unsupported combinations. The validator (R3/R4)
                 # already raises on these before model construction; kept here
@@ -10690,3 +10854,9 @@ def __getattr__(name: str):
             globals()[name] = value
             return value
     raise AttributeError(f"module 'phasic' has no attribute {name!r}")
+
+
+# Reusable free daisy-chain epoch model returned by Graph.epoch_model. Not
+# JAX-dependent at import (SVGD is imported lazily inside FreeEpochModel.fit),
+# so bind it directly rather than via the JAX-lazy __getattr__ above.
+from .epoch_model import FreeEpochModel  # noqa: E402,F401
