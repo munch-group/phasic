@@ -566,6 +566,22 @@ namespace phasic {
             return J;
         }
 
+        // B3 discrete/was_dph extension (production): exact d[discrete m]/dtheta
+        // Jacobian for a discrete (is_discrete) parameterized graph, covering both
+        // was_dph=True (Graph.discretize(), renormalised edges) and was_dph=False
+        // (native DPH). theta must match what the caller most recently passed to
+        // update_weights(). Returned FLAT (row-major nr_moments*param_length).
+        // Empty => not applicable (caller falls back to FD).
+        std::vector<double> moments_grad_theta_dph(int nr_moments, std::vector<double> theta) {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            if (P == 0 || nr_moments < 1 || theta.size() != P) return std::vector<double>();
+            std::vector<double> J(static_cast<size_t>(nr_moments) * P, 0.0);
+            int rc = ptd_moments_grad_theta_dph(this->c_graph(), nr_moments,
+                                                theta.data(), theta.size(), J.data());
+            if (rc != 0) return std::vector<double>();
+            return J;
+        }
+
         // ------------------------------------------------------------------
         // Python-API-name parity (additive).
         //

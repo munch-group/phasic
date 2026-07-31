@@ -1916,6 +1916,13 @@ str
       py::call_guard<py::gil_scoped_release>(),
       "B3 Batch-3: exact moment-vector Jacobian d[m]/dtheta, flat row-major "
       "(nr_moments*param_length); empty => not applicable (FD fallback).")
+    .def("_moments_grad_theta_dph", &phasic::Graph::moments_grad_theta_dph,
+      py::arg("nr_moments"), py::arg("theta"),
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 discrete/was_dph: exact discrete moment-vector Jacobian "
+      "d[discrete m]/dtheta, flat row-major (nr_moments*param_length); "
+      "theta must match the values most recently passed to update_weights(); "
+      "empty => not applicable (FD fallback).")
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::arg("indices") = std::vector<size_t>(),
       py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(

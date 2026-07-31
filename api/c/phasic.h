@@ -473,6 +473,20 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
 int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
         double *J_out);
 
+/* B3 discrete/was_dph extension: exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta
+ * for the DISCRETE raw moment vector of a discrete (is_discrete) parameterized
+ * graph -- covers both was_dph=True (discretize(), renormalised edges) and
+ * was_dph=False (native DPH, edge weight IS c_e.theta directly). theta/theta_len
+ * must match the values the caller most recently passed to update_weights()
+ * (needed to reconstruct the per-vertex renorm Jacobian for was_dph graphs;
+ * unused arithmetically when was_dph is False beyond the length check). J_out
+ * must hold nr_moments*graph->param_length doubles (row-major: row k =
+ * d(discrete m_k)/dtheta). Returns 0 on success; -1 for FD fallback (declines
+ * on MPFR-conditioned tapes or unsupported topologies, e.g. a vertex mixing
+ * constant and parameterized out-edges). See b3-batch3-mpfr-and-discrete-derisk.md. */
+int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len, double *J_out);
+
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
 bool ptd_graph_is_acyclic(struct ptd_graph *graph);

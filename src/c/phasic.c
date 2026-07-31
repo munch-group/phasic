@@ -10853,6 +10853,19 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
                     || sp.v >= graph->vertices_length
                     || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
             struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+            /* The tape registers EVERY edge weight as a free input, including
+             * coefficient-less constant edges (coefficients_length==0,
+             * coefficients==NULL -- e.g. the aux back-edges from
+             * add_aux_vertex/add_aux_vertex_constant, used by
+             * Graph.discretize() and Graph.joint_stop_prob_graph()). Such an
+             * edge's weight never depends on theta, so its exact gradient
+             * contribution is 0 -- skip it rather than dereference a NULL
+             * coefficients pointer (found via the discrete/was_dph extension,
+             * see B3-DISCRETE-MERGE-REVIEW.md sec 3.1: this was an always-
+             * latent segfault for ANY continuous parameterized graph built
+             * with add_aux_vertex/add_aux_vertex_constant, not just discrete
+             * ones -- just never previously exercised). */
+            if (e->coefficients_length == 0) continue;
             for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
         }
     }
@@ -10860,6 +10873,280 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
 
     free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
     free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+#undef RV
+#undef RB
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    return ok ? 0 : -1;
+}
+
+/* ===== B3 discrete/was_dph extension: small combinatorial helpers for the
+ * continuous->discrete moment correction. Mirror GraphBuilder's file-local
+ * d_factorial/d_binomial/d_stirling2 (graph_builder.cpp:672-683) exactly;
+ * duplicated here (rather than shared) because they live in different
+ * translation units (C vs C++) with no common header for this leaf helper. */
+static double ptd_dph_factorial(int n) {
+    double r = 1.0;
+    for (int i = 2; i <= n; i++) r *= (double)i;
+    return r;
+}
+static double ptd_dph_binomial(int n, int k) {
+    if (k < 0 || k > n) return 0.0;
+    return ptd_dph_factorial(n) / (ptd_dph_factorial(k) * ptd_dph_factorial(n - k));
+}
+static double ptd_dph_stirling2(int n, int k) {
+    if (k == 0) return (n == 0) ? 1.0 : 0.0;
+    if (k > n) return 0.0;
+    if (k == n || k == 1) return 1.0;
+    return (double)k * ptd_dph_stirling2(n - 1, k) + ptd_dph_stirling2(n - 1, k - 1);
+}
+
+/* Applies, IN PLACE, the fixed (theta-independent) linear map from continuous
+ * power-moment space to discrete raw-moment space (mirrors
+ * GraphBuilder::continuous_to_discrete_moments, graph_builder.cpp:694) to
+ * EVERY COLUMN of J (row-major K x P: J[k*P+j] = d(continuous m_k)/dtheta_j
+ * on input, d(discrete m_k)/dtheta_j on output). Valid because the map is
+ * linear in the K axis, so applying it per column equals the chain rule
+ * (verified vs jax.jacobian, experiments/dr_discrete_moment_correction.py). */
+static void ptd_dph_correct_discrete_moment_grad(double *J, size_t K, size_t P) {
+    if (K == 0 || P == 0) return;
+    double *u = (double *) calloc(K + 1, sizeof(double));
+    double *F = (double *) calloc(K + 1, sizeof(double));
+    double *col = (double *) malloc(K * sizeof(double));
+    for (size_t j = 0; j < P; ++j) {
+        for (size_t k = 0; k < K; ++k) col[k] = J[k * P + j];
+        for (size_t jj = 1; jj <= K; ++jj) {
+            u[jj] = col[jj - 1] / ptd_dph_factorial((int) jj);
+        }
+        for (size_t r = 1; r <= K; ++r) {
+            double s = 0.0;
+            for (size_t i = 0; i < r; ++i) {
+                double sign = (i % 2 == 0) ? 1.0 : -1.0;
+                s += ptd_dph_binomial((int) (r - 1), (int) i) * sign * u[r - i];
+            }
+            F[r] = ptd_dph_factorial((int) r) * s;
+        }
+        for (size_t kk = 1; kk <= K; ++kk) {
+            double s = 0.0;
+            for (size_t r = 1; r <= kk; ++r) s += ptd_dph_stirling2((int) kk, (int) r) * F[r];
+            J[(kk - 1) * P + j] = s;
+        }
+    }
+    free(u); free(F); free(col);
+}
+
+/* ===== B3 discrete/was_dph extension: exact Jacobian d[discrete m]/dtheta.
+ * Reuses ptd_moments_grad_theta's forward moment chain + reverse chain +
+ * stage-2 param-tape reverse VERBATIM (unchanged: the stage-1 reverse only
+ * ever reads the CURRENT edge->weight as an opaque free variable, so it is
+ * agnostic to whether that value is a direct linear w_e = c_e.theta or a
+ * was_dph-renormalised p_e = w_e/S_v -- verified in
+ * b3-batch3-mpfr-and-discrete-derisk.md). The only new math: (1) the final
+ * edge->theta contraction branches on graph->was_dph between the plain
+ * linear rule (same as ptd_moments_grad_theta) and the renorm quotient rule
+ * dp_e/dtheta_j = (c_e^j - p_e*sum_e' c_e'^j) / S_v (sibling coupling,
+ * de-risked vs jax.jacobian in experiments/dr_dph_renorm_jacobian.py); (2)
+ * the discrete moment correction is applied to every output column
+ * afterwards (ptd_dph_correct_discrete_moment_grad), since the primal for a
+ * discrete graph is continuous_to_discrete_moments(continuous moments)
+ * regardless of was_dph. Declines (-1) on: MPFR-conditioned tapes (same gate
+ * as the continuous path); a was_dph vertex whose out-edges mix constant
+ * (coefficients_length==0) and parameterized edges -- S_v would need the
+ * constant edges' pre-renormalisation weight, which is not recoverable from
+ * the current (already divided) edge->weight and does not arise for any
+ * graph produced by Graph.discretize() (its only constant edges are lone
+ * aux back-edges, never mixed with a parameterized sibling). */
+int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len, double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    size_t P = graph->param_length, K = (size_t) nr_moments;
+    if (theta_len != P) return -1;
+
+    /* Precompute per-vertex S_v = sum_e' (c_e' . theta) and SigmaCv[v][j] =
+     * sum_e' c_e'^j, over PARAMETERIZED out-edges only (constant out-edges,
+     * e.g. discretize()'s aux back-edges, are never tape inputs and so never
+     * need a theta-gradient contribution). Only needed when graph->was_dph;
+     * for a native DPH (was_dph=False) edge->weight IS c_e.theta directly, so
+     * the plain linear contraction applies, exactly like the continuous
+     * path. Declines if any was_dph vertex mixes constant + parameterized
+     * out-edges (S_v would need the constant edge's raw weight, which is not
+     * recoverable post-renormalisation). */
+    double *Sv = NULL, *SigmaCv = NULL;
+    if (graph->was_dph) {
+        Sv = (double *) calloc(graph->vertices_length, sizeof(double));
+        SigmaCv = (double *) calloc(graph->vertices_length * P, sizeof(double));
+        int mixed = 0;
+        for (size_t v = 0; v < graph->vertices_length && !mixed; ++v) {
+            struct ptd_vertex *vertex = graph->vertices[v];
+            if (vertex == graph->starting_vertex) continue;
+            int has_param = 0, has_const = 0;
+            for (size_t e = 0; e < vertex->edges_length; ++e) {
+                struct ptd_edge *edge = vertex->edges[e];
+                if (edge->coefficients_length == 0) { has_const = 1; continue; }
+                has_param = 1;
+                double w = 0.0;
+                for (size_t j = 0; j < P; ++j) w += edge->coefficients[j] * theta[j];
+                Sv[v] += w;
+                for (size_t j = 0; j < P; ++j) SigmaCv[v * P + j] += edge->coefficients[j];
+            }
+            if (has_param && has_const) mixed = 1;
+        }
+        if (mixed) { free(Sv); free(SigmaCv); return -1; }
+    }
+
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) { free(Sv); free(SigmaCv); return -1; }
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) {
+        free(Sv); free(SigmaCv);
+        ptd_parameterized_reward_compute_graph_destroy(ptape);
+        return -1;
+    }
+
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+    size_t target = 0;
+    double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
+    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inv[k]=*off->inputs[k];
+    double *s0=(double*)malloc((L?L:1)*sizeof(double));
+    double *s1=(double*)malloc((L?L:1)*sizeof(double));
+    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    double *nm=(double*)malloc((L?L:1)*sizeof(double));
+    size_t nc=0;
+#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+    for (size_t i=0;i<L;++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
+        switch (c.type) {
+            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
+            case 1: *rf += (*rt)*c.multiplier; break;
+            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
+            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
+            case 4: *rf = 1.0 - *rf; break;
+            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
+            case 6: *rf = 0.0; break;
+            default: break;
+        }
+    }
+    if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
+        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+        free(Sv); free(SigmaCv);
+        ptd_pcg_desc_off_destroy(off);
+        ptd_parameterized_reward_compute_graph_destroy(ptape);
+        return -1;
+    }
+    double *seeds = (double*)malloc((K+1)*n*sizeof(double));
+    double *snaptos = (double*)malloc((K?K:1)*(nc?nc:1)*sizeof(double));
+    for (size_t v=0; v<n; ++v) seeds[v]=1.0;
+    for (size_t j=1;j<=K;++j) {
+        double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
+        for (size_t v=0; v<n; ++v) out[v]=seed[v];
+        for (size_t c=0;c<nc;++c) {
+            st[c]=out[nb[c]]; double m=nm[c];
+            if (isinf(m) && out[nb[c]]==0.0) continue;
+            if (m!=0.0) out[na[c]] += out[nb[c]]*m;
+        }
+    }
+    int ok=1;
+    double *dm=(double*)malloc((nc?nc:1)*sizeof(double));
+    double *bar_out=(double*)malloc(n*sizeof(double));
+    double *adj=(double*)malloc(n*sizeof(double));
+    double *bmem=(double*)malloc(md*sizeof(double));
+    double *binp=(double*)malloc((ni?ni:1)*sizeof(double));
+#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
+    for (size_t outk=0; ok && outk<K; ++outk) {
+        for (size_t c=0;c<nc;++c) dm[c]=0.0;
+        for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
+        for (size_t j=K; j>=1; --j) {
+            for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
+            if (outk == j-1) {
+                double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
+                adj[target] += fac;
+            }
+            double *st = snaptos + (j-1)*nc;
+            for (long c=(long)nc-1;c>=0;--c) {
+                double m=nm[c];
+                if (isinf(m) && st[c]==0.0) continue;
+                dm[c] += adj[na[c]] * st[c];
+                if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
+            }
+            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];
+            if (j==1) break;
+        }
+        for (size_t i=0;i<md;++i) bmem[i]=0.0;
+        for (size_t k=0;k<ni;++k) binp[k]=0.0;
+        long numptr=(long)nc-1;
+        for (long i=(long)L-1;i>=0;--i) {
+            struct ptd_pcg_command_off c = off->commands[i];
+            double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
+            switch (c.type) {
+                case 0: if (bm) *bm += dm[numptr]; numptr--; break;
+                case 1: *bt += (*bf)*c.multiplier; break;
+                case 3: { double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break;
+                case 2: *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;
+                case 4: *bf = -(*bf); break;
+                case 5: { double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break;
+                case 6: *bf = 0.0; break;
+                default: break;
+            }
+        }
+        /* contract edge -> theta into J_out row outk. was_dph: renorm
+         * quotient rule (sibling coupling via Sv/SigmaCv); else: plain
+         * linear rule (same as ptd_moments_grad_theta). */
+        for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
+        for (size_t k=0; k<ni; ++k) {
+            struct ptd_pcg_input_spec sp = off->input_specs[k];
+            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                    || sp.v >= graph->vertices_length
+                    || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
+            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+            /* The tape registers EVERY edge weight (incl. coefficient-less
+             * constant edges, e.g. discretize()'s aux back-edges) as a free
+             * input, regardless of whether it varies with theta. A constant
+             * edge's weight never depends on theta, so its exact gradient
+             * contribution is 0 -- skip it (coefficients is NULL, unlike
+             * ptd_moments_grad_theta which assumes every tape input is
+             * parameterized; that assumption is safe there only because the
+             * continuous/exact path is never invoked on aux-vertex graphs). */
+            /* A starting-vertex edge is an IPV probability: update_weights()
+             * NEVER recomputes its weight from theta (skipped from both the
+             * coefficient dot-product AND, effectively, the renorm -- its
+             * out-edges' weights are theta-independent constants, so their
+             * total is too), regardless of whether it happens to carry a
+             * (possibly widened/padded) non-empty coefficient array. Its true
+             * dp_e/dtheta is therefore identically 0 -- skip it rather than
+             * risk 0 * (a quotient-rule term that can be +-inf when Sv is
+             * uncomputed/zero for this vertex, which is 0*inf = NaN in
+             * IEEE754, not 0). */
+            if (e->coefficients_length == 0
+                    || graph->vertices[sp.v] == graph->starting_vertex) continue;
+            if (graph->was_dph) {
+                double p_e = e->weight;
+                double S = Sv[sp.v];
+                const double *sigma = SigmaCv + sp.v * P;
+                for (size_t j=0;j<P;++j) {
+                    J_out[outk*P + j] += binp[k] * (e->coefficients[j] - p_e * sigma[j]) / S;
+                }
+            } else {
+                for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
+            }
+        }
+    }
+    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
+    if (ok) ptd_dph_correct_discrete_moment_grad(J_out, K, P);
+    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
+
+    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+    free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+    free(Sv); free(SigmaCv);
 #undef RV
 #undef RB
     ptd_pcg_desc_off_destroy(off);

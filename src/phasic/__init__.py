@@ -6923,13 +6923,21 @@ extern "C" {{
         # B3 (opt-in, additive): replace the finite-difference d(moments)/dθ with
         # the EXACT reverse-mode θ-adjoint Jacobian over the elimination tape
         # (fixes the mixed-scale FD defect for the WHOLE moment vector, not just
-        # the first moment). Scope: continuous, weight_mode='linear', monolithic.
-        # model_bwd swaps the moments FD term for J^T·g_moments and falls back to
-        # FD if the C path reports not-applicable for a given θ. Default off → FD
-        # unchanged.
+        # the first moment). Scope: weight_mode='linear', monolithic; continuous
+        # OR discrete (both was_dph=True i.e. Graph.discretize(), and was_dph=False
+        # native DPH -- see ptd_moments_grad_theta_dph). model_bwd swaps the
+        # moments FD term for J^T·g_moments and falls back to FD if the C path
+        # reports not-applicable for a given θ. Default off → FD unchanged.
+        #
+        # Effective discreteness mirrors GraphBuilder::compute_pmf_and_moments's
+        # own `is_disc = discrete || is_discrete_` dispatch exactly: a graph
+        # flagged is_discrete produces discrete moments even when the caller
+        # passes discrete=False (test_is_discrete_propagates_without_per_call_flag),
+        # so the exact-grad gate must follow the SAME effective flag or it would
+        # silently apply the continuous Jacobian to a discrete forward.
         _wm = serialized.get('weight_mode', 'linear')
-        _exact_grad_enabled = (bool(exact_moment_grad) and not discrete
-                               and _wm in (None, 'linear'))
+        _effective_discrete = bool(discrete) or bool(serialized.get('is_discrete', False))
+        _exact_grad_enabled = (bool(exact_moment_grad) and _wm in (None, 'linear'))
         _exact_moments_jac_np = None
         if _exact_grad_enabled:
             _exact_graph = graph.clone()
@@ -6944,8 +6952,13 @@ extern "C" {{
 
                 def _one(t):
                     _exact_graph.update_weights(t)
-                    J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
-                                   dtype=np.float64)
+                    if _effective_discrete:
+                        J = np.asarray(
+                            _exact_graph._moments_grad_theta_dph(_exact_K, t.tolist()),
+                            dtype=np.float64)
+                    else:
+                        J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
+                                       dtype=np.float64)
                     return (J.reshape(_shape) if J.size == _exact_K * param_length
                             else np.full(_shape, np.nan))
 
