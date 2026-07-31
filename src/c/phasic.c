@@ -2088,7 +2088,23 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                 if (_off == NULL) {
                     PTD_LOG_ERROR("PCG_SELFCHECK: convert_to_offset returned NULL "
                                   "(n_cmds=%zu)", _n);
-                } else {
+                }
+#ifdef PHASIC_B3_VALIDATORS
+                else if (getenv("PHASIC_DBG_STASH_OFF") != NULL) {
+                    /* B3 validator: stash the CLEAN pre-execution _off and SKIP
+                     * the _oo self-comparison. Building _oo runs the _off
+                     * executor, which writes *fromT into _off->mem_base in place
+                     * -- that would dirty the stashed mem_base (the exact
+                     * post-vs-pre execution pitfall documented at :2060), so
+                     * ptd_debug_fwdmode_grad would replay from post-exec mem. */
+                    if (graph->_dbg_off_clean != NULL)
+                        ptd_pcg_desc_off_destroy(
+                            (struct ptd_desc_reward_compute_parameterized_off *)
+                                graph->_dbg_off_clean);
+                    graph->_dbg_off_clean = _off;
+                }
+#endif
+                else {
                     struct ptd_desc_reward_compute *_ro = graph->reward_compute_graph;
                     struct ptd_desc_reward_compute *_oo =
                         ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off(_off);
@@ -2960,6 +2976,9 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph_off = NULL;
+#ifdef PHASIC_B3_VALIDATORS
+    graph->_dbg_off_clean = NULL;  /* B3 validator only; see phasic.h */
+#endif
     graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
@@ -4617,6 +4636,12 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
     if (graph->parameterized_reward_compute_graph_off != NULL) {
         ptd_pcg_desc_off_destroy(graph->parameterized_reward_compute_graph_off);
     }
+#ifdef PHASIC_B3_VALIDATORS
+    if (graph->_dbg_off_clean != NULL) {  /* B3 validator stash; normally NULL */
+        ptd_pcg_desc_off_destroy(
+            (struct ptd_desc_reward_compute_parameterized_off *)graph->_dbg_off_clean);
+    }
+#endif
 
 #ifdef HAVE_MPFR
     if (graph->reward_compute_graph_mpfr != NULL) {
@@ -10324,6 +10349,524 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
 
     return sojourn_times;
 }
+
+#ifdef PHASIC_B3_VALIDATORS
+/* ================= B3 Tier-3 DE-RISK (non-shippable validator) =================
+ * Replays the REAL parameterized+numeric elimination tape (via the _off form
+ * from ptd_pcg_convert_to_offset, mirroring the executor at
+ * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized) at the current
+ * edge weights, computing E[T] (result[0], reward=1) and, by FORWARD-MODE,
+ * dE[T]/d(input edge weight k) for every _off input; plus a self-contained
+ * central difference of the same tape forward. Confirms the tape is a complete,
+ * correct differentiable trace and the _off operand provenance resolves. */
+static double ptd_dbg_run_tape(
+        const struct ptd_desc_reward_compute_parameterized_off *off,
+        const double *mem0, const double *inp0, size_t n_vertices,
+        const double *input_dot, double *ewt_dot_out) {
+    /* Mirror ptd_graph_build_ex_absorbation_time_comp_graph_parameterized_off
+     * EXACTLY: each operand resolves (via ptd_pcg_resolve) to a slot in EITHER
+     * mem_base OR inputs[], and the executor writes *fromT in place -- so
+     * elimination mutates input (edge-weight) slots too. We therefore keep
+     * LOCAL mutable copies of BOTH mem and the input values, and resolve every
+     * operand into whichever, never touching the graph's real edge weights. A
+     * parallel forward-mode tangent rides alongside. */
+    size_t md = off->mem_doubles, ni = off->n_inputs;
+    int tang = (input_dot != NULL);
+    double *mem = (double *) malloc(md * sizeof(double));
+    double *inv = (double *) malloc((ni ? ni : 1) * sizeof(double));
+    memcpy(mem, mem0, md * sizeof(double));
+    memcpy(inv, inp0, ni * sizeof(double));
+    double *memd = tang ? (double *) calloc(md, sizeof(double)) : NULL;
+    double *invd = tang ? (double *) malloc((ni ? ni : 1) * sizeof(double)) : NULL;
+    if (tang) for (size_t k = 0; k < ni; ++k) invd[k] = input_dot[k];
+    size_t cap = off->length + 1;
+    uint64_t *nf = (uint64_t*)malloc(cap*sizeof(uint64_t));
+    uint64_t *nt = (uint64_t*)malloc(cap*sizeof(uint64_t));
+    double *nm = (double*)malloc(cap*sizeof(double));
+    double *nmd = (double*)malloc(cap*sizeof(double));
+    size_t nc = 0;
+/* Resolve an operand to a pointer into the LOCAL mem/inv copy (mirrors
+ * ptd_pcg_resolve); RVAL for values, RTAN for tangents. NULL for OP_NULL. */
+#define RVAL(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+                 ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+#define RTAN(op) ((op).kind==PTD_PCG_OP_MEM ? &memd[(op).mem_offset] : \
+                 ((op).kind==PTD_PCG_OP_INPUT ? &invd[(op).input_idx] : (double*)NULL))
+    for (size_t i = 0; i < off->length; ++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf = RVAL(c.fromT), *rt = RVAL(c.toT), *rm = RVAL(c.multiplierptr);
+        double *rfd = tang ? RTAN(c.fromT) : NULL;
+        double *rtd = tang ? RTAN(c.toT)   : NULL;
+        double *rmd = tang ? RTAN(c.multiplierptr) : NULL;
+        switch (c.type) {
+            case 0: /* NEW_ADD -- mirror add_command(): a DIAGONAL (from==to)
+                     * command stores (multiplier - 1) (the identity subtraction
+                     * from Gaussian elimination); off-diagonal stores it as-is.
+                     * The -1 is a constant, so the tangent is unchanged. */
+                nf[nc]=c.from; nt[nc]=c.to;
+                nm[nc] = (c.from==c.to) ? (*rm - 1.0) : *rm;
+                if (tang) nmd[nc]=*rmd;
+                nc++;
+                break;
+            case 1: { /* P: *fromT += *toT * multiplier(const) */
+                if (tang) *rfd += (*rtd)*c.multiplier;
+                *rf += (*rt)*c.multiplier; } break;
+            case 3: { /* PP: *fromT += *toT * *mptr */
+                double tv=*rt, mv=*rm;
+                if (tang) *rfd += (*rtd)*mv + tv*(*rmd);
+                *rf += tv*mv; } break;
+            case 2: { /* INV: *fromT = 1/ *fromT */
+                double fv=*rf;
+                if (tang) *rfd = -(*rfd)/(fv*fv);
+                *rf = 1.0/fv; } break;
+            case 4: /* ONE_MINUS: *fromT = 1 - *fromT */
+                if (tang) *rfd = -(*rfd);
+                *rf = 1.0 - *rf; break;
+            case 5: { /* DIVIDE: *fromT /= *toT */
+                double fv=*rf, tv=*rt;
+                if (tang) *rfd = (*rfd)/tv - fv*(*rtd)/(tv*tv);
+                *rf = fv/tv; } break;
+            case 6: /* ZERO */ *rf=0.0; if (tang) *rfd=0.0; break;
+            default: break;
+        }
+    }
+    double *res = (double*)malloc(n_vertices*sizeof(double));
+    double *resd = tang ? (double*)calloc(n_vertices,sizeof(double)) : NULL;
+    for (size_t v=0; v<n_vertices; ++v){ res[v]=1.0; if(resd) resd[v]=0.0; }
+    for (size_t j=0;j<nc;++j){
+        double m = nm[j], md_ = nmd ? nmd[j] : 0.0;
+        /* inf*0 (res[to]==0): native skips entirely (0*inf=0 limit). */
+        if (isinf(m) && res[nt[j]]==0.0) continue;
+        /* Tangent d(res[from]) += d(res[to])*m + res[to]*d(m). This must be
+         * applied even when m==0 (a diagonal whose weight is exactly 1, so
+         * stored multiplier weight-1==0) -- there m_dot can still be nonzero,
+         * and skipping the whole command (as the primal does) would drop that
+         * gradient term (the forward-mode bug at mixed diagonal-==-1 points). */
+        if (resd) resd[nf[j]] += resd[nt[j]]*m + res[nt[j]]*md_;
+        /* Primal: skip m==0 to match native exactly and avoid 0*inf=nan. */
+        if (m != 0.0) res[nf[j]] += res[nt[j]]*m;
+    }
+    double q = res[0];
+    if (ewt_dot_out) *ewt_dot_out = resd ? resd[0] : 0.0;
+    free(mem); free(inv); free(nf); free(nt); free(nm); free(nmd); free(res);
+    if (memd) free(memd);
+    if (invd) free(invd);
+    if (resd) free(resd);
+#undef RVAL
+#undef RTAN
+    return q;
+}
+
+/* Acquire the CLEAN pre-execution _off tape (the exact tape native replays), not
+ * a post-hoc convert of the dirtied param-tape mem. Force a fresh param-tape
+ * rebuild (dph_compute_invalidated wipes any prior build), enable the
+ * pre-executor SELFCHECK convert (:2069) and the stash hook (:2115), then
+ * precompute -- the stash lands in graph->_dbg_off_clean with mem_base = the
+ * state the executor STARTS from. Ownership is TRANSFERRED to the caller (the
+ * graph field is cleared); caller must ptd_pcg_desc_off_destroy() it. */
+static struct ptd_desc_reward_compute_parameterized_off *
+ptd_dbg_acquire_clean_off(struct ptd_graph *graph) {
+    setenv("PHASIC_PCG_SELFCHECK", "1", 1);
+    setenv("PHASIC_DBG_STASH_OFF", "1", 1);
+    if (graph->_dbg_off_clean != NULL) {
+        ptd_pcg_desc_off_destroy(
+            (struct ptd_desc_reward_compute_parameterized_off *)graph->_dbg_off_clean);
+        graph->_dbg_off_clean = NULL;
+    }
+    graph->dph_compute_invalidated = true;
+    int pc = ptd_precompute_reward_compute_graph(graph);
+    unsetenv("PHASIC_DBG_STASH_OFF");
+    unsetenv("PHASIC_PCG_SELFCHECK");
+    if (pc) return NULL;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        (struct ptd_desc_reward_compute_parameterized_off *)graph->_dbg_off_clean;
+    graph->_dbg_off_clean = NULL;  /* transfer ownership to caller */
+    return off;
+}
+
+int ptd_debug_fwdmode_grad(struct ptd_graph *graph,
+        double *ewt_out, double **fwd_out, double **cd_out, size_t *ni_out) {
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_dbg_acquire_clean_off(graph);
+    if (off == NULL) return -1;  /* stash did not fire (not parameterized?) */
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles;
+    double *mem0 = (double*)malloc(md*sizeof(double));
+    memcpy(mem0, off->mem_base, md*sizeof(double));
+    /* Snapshot initial input VALUES (current edge weights) into a local copy;
+     * central difference perturbs this copy, never the graph's edge weights. */
+    double *inp0 = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inp0[k] = *off->inputs[k];
+    double *fwd = (double*)calloc(ni,sizeof(double));
+    double *cd  = (double*)calloc(ni,sizeof(double));
+    double *idot= (double*)calloc(ni,sizeof(double));
+    *ewt_out = ptd_dbg_run_tape(off, mem0, inp0, n, NULL, NULL);
+    for (size_t k=0;k<ni;++k){
+        memset(idot,0,ni*sizeof(double)); idot[k]=1.0;
+        double qd=0.0; ptd_dbg_run_tape(off, mem0, inp0, n, idot, &qd); fwd[k]=qd;
+        double w0=inp0[k];
+        double eps = 1e-6*(fabs(w0)>0.0?fabs(w0):1.0);
+        inp0[k]=w0+eps; double qp = ptd_dbg_run_tape(off, mem0, inp0, n, NULL, NULL);
+        inp0[k]=w0-eps; double qm = ptd_dbg_run_tape(off, mem0, inp0, n, NULL, NULL);
+        inp0[k]=w0; cd[k]=(qp-qm)/(2.0*eps);
+    }
+    free(mem0); free(inp0); free(idot);
+    ptd_pcg_desc_off_destroy(off);  /* acquire transferred ownership to us */
+    *fwd_out=fwd; *cd_out=cd; *ni_out=ni;
+    return 0;
+}
+
+/* ===== B3 Batch-1: reverse-mode theta-adjoint over the REAL _off two-tier tape.
+ * Computes dQ/d(input edge weight) for Q = E[T] = result[target] with seed all-1
+ * (first moment, continuous). Ports the verified reference interpreter
+ * experiments/dr_twotier_full_adjoint.py, adapted to the real _off form and the
+ * two Batch-0 findings:
+ *   - add_command stores (multiplier-1) for DIAGONAL (from==to) numeric commands;
+ *     the -1 is constant so the glue bar[mptr]+=dm is unchanged, but the primal /
+ *     snapshot / stage-1 transpose use the real m_c = weight-1.
+ *   - the mult==0 primal-skip must NOT skip the gradient: dm_c=adj[a]*snap_to is
+ *     emitted regardless; only the transpose adj[b]+=adj[a]*m_c is a no-op at 0.
+ * Operands resolve to mem_base OR inputs[]; adjoints ride on bmem[]/binp[] and the
+ * answer is binp[]. Never touches the graph's real edge weights (local copies). */
+static int ptd_dbg_reverse_tape(
+        const struct ptd_desc_reward_compute_parameterized_off *off,
+        const double *mem0, const double *inp0, size_t n_vertices,
+        size_t target, double *q_out, double *grad_out /* size ni */) {
+    size_t md = off->mem_doubles, ni = off->n_inputs, L = off->length;
+    double *mem = (double*)malloc(md*sizeof(double));       memcpy(mem, mem0, md*sizeof(double));
+    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));memcpy(inv, inp0, ni*sizeof(double));
+    double *s0  = (double*)malloc((L?L:1)*sizeof(double));  /* operand primal snapshots */
+    double *s1  = (double*)malloc((L?L:1)*sizeof(double));
+    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));/* numeric command from */
+    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));/* numeric command to   */
+    double *nm  = (double*)malloc((L?L:1)*sizeof(double));  /* m_c (diagonal -1 applied) */
+    double *nto = (double*)malloc((L?L:1)*sizeof(double));  /* snap result[to] at exec */
+    size_t nc = 0;
+#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+    /* ---- param tape forward: mutate mem/inv, snapshot operand primals, record
+     * numeric commands (m_c with diagonal -1) ---- */
+    for (size_t i=0;i<L;++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
+        switch (c.type) {
+            case 0: { /* NEW_ADD */
+                double mc = (c.from==c.to) ? (*rm - 1.0) : *rm;
+                na[nc]=c.from; nb[nc]=c.to; nm[nc]=mc; nc++;
+            } break;
+            case 1: /* P  */ *rf += (*rt)*c.multiplier; break;
+            case 3: /* PP */ s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
+            case 2: /* INV*/ s0[i]=*rf; *rf = 1.0/(*rf); break;
+            case 4: /* OM */ *rf = 1.0 - *rf; break;
+            case 5: /* DIV*/ s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
+            case 6: /* ZERO*/ *rf = 0.0; break;
+            default: break;
+        }
+    }
+    /* ---- numeric replay forward: seed all-1, snapshot result[to] per command ---- */
+    double *res = (double*)malloc(n_vertices*sizeof(double));
+    for (size_t v=0;v<n_vertices;++v) res[v]=1.0;
+    for (size_t j=0;j<nc;++j) {
+        nto[j] = res[nb[j]];                                /* snapshot BEFORE update */
+        double m = nm[j];
+        if (isinf(m) && res[nb[j]]==0.0) continue;          /* inf*0 skip (native) */
+        if (m != 0.0) res[na[j]] += res[nb[j]]*m;           /* primal skip on 0 (native) */
+    }
+    if (q_out) *q_out = res[target];
+    /* ---- stage 1: reverse the numeric replay -> dm[c] ---- */
+    double *adj = (double*)calloc(n_vertices, sizeof(double));
+    adj[target] = 1.0;
+    double *dm = (double*)malloc((nc?nc:1)*sizeof(double));
+    for (long c=(long)nc-1;c>=0;--c) {
+        double m = nm[c];
+        if (isinf(m) && nto[c]==0.0) { dm[c]=0.0; continue; }/* mirror forward inf*0 skip */
+        dm[c] = adj[na[c]] * nto[c];                        /* emit BEFORE transpose */
+        if (m != 0.0) adj[nb[c]] += adj[na[c]] * m;         /* transpose; m==0 no-op */
+    }
+    /* ---- stage 2: reverse the param tape (REPLACE/kill per op) + glue dm ---- */
+    double *bmem = (double*)calloc(md, sizeof(double));
+    double *binp = (double*)calloc(ni?ni:1, sizeof(double));
+#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
+    long numptr = (long)nc - 1;
+    for (long i=(long)L-1;i>=0;--i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
+        switch (c.type) {
+            case 0: /* NEW_ADD glue (in-order at the op) */
+                if (bm) *bm += dm[numptr];
+                numptr--; break;
+            case 1: /* P  */ *bt += (*bf)*c.multiplier; break;                 /* keep bf */
+            case 3: { /* PP */ double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break; /* keep bf */
+            case 2: /* INV*/ *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;          /* REPLACE */
+            case 4: /* OM */ *bf = -(*bf); break;                             /* REPLACE */
+            case 5: { /* DIV*/ double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break; /* REPLACE */
+            case 6: /* ZERO*/ *bf = 0.0; break;                               /* kill */
+            default: break;
+        }
+    }
+    for (size_t k=0;k<ni;++k) grad_out[k] = binp[k];
+    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+    free(nto); free(res); free(adj); free(dm); free(bmem); free(binp);
+#undef RV
+#undef RB
+    return 0;
+}
+
+int ptd_debug_reverse_grad(struct ptd_graph *graph,
+        double *ewt_out, double **grad_out, size_t *ni_out) {
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_dbg_acquire_clean_off(graph);
+    if (off == NULL) return -1;
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles;
+    double *mem0 = (double*)malloc(md*sizeof(double));
+    memcpy(mem0, off->mem_base, md*sizeof(double));
+    double *inp0 = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inp0[k] = *off->inputs[k];
+    double *grad = (double*)calloc(ni?ni:1, sizeof(double));
+    double q = 0.0;
+    int rc = ptd_dbg_reverse_tape(off, mem0, inp0, n, /*target=*/0, &q, grad);
+    free(mem0); free(inp0);
+    ptd_pcg_desc_off_destroy(off);  /* acquire transferred ownership to us */
+    if (rc) { free(grad); return -1; }
+    *ewt_out = q; *grad_out = grad; *ni_out = ni;
+    return 0;
+}
+#endif /* PHASIC_B3_VALIDATORS (validators: run_tape/acquire/fwdmode/reverse) */
+
+/* B3 Batch-3 (MPFR safety gate): would the primal (expected_waiting_time) divert
+ * to MPFR for this tape? If so, the double-precision tape adjoint would be
+ * inconsistent with the MPFR forward, so the exact gradient must decline (the
+ * caller falls back to FD, which differentiates the same MPFR forward). Mirrors
+ * ptd_expected_waiting_time's gate EXACTLY (nm[] carries the same numeric
+ * multipliers as reward_compute_graph, incl. the diagonal -1). Only relevant when
+ * MPFR is compiled in; without it the forward stays double and the adjoint
+ * matches, so no fallback is needed. */
+static int ptd_dbg_tape_needs_mpfr(const double *nm, size_t nc) {
+#ifdef HAVE_MPFR
+    double pmax = 0.0, pmin = INFINITY;
+    for (size_t c = 0; c < nc; ++c) {
+        double m = nm[c];
+        if (!isinf(m) && m != 0.0) {
+            double a = fabs(m);
+            if (a > pmax) pmax = a;
+            if (a < pmin) pmin = a;
+        }
+    }
+    double cond = (pmin != INFINITY && pmax > 0.0) ? (pmax / pmin) : 0.0;
+    double thr = 1e12;
+    const char *e = getenv("PHASIC_CONDITION_THRESHOLD");
+    if (e != NULL) thr = atof(e);
+    if (getenv("PHASIC_FORCE_MPFR") != NULL) return 1;
+    return cond > thr;
+#else
+    (void)nm; (void)nc;
+    return 0;
+#endif
+}
+
+#ifdef PHASIC_B3_VALIDATORS
+/* ===== B3 Batch-2: reverse-mode gradient of the FIRST moment. Validator-only:
+ * superseded by ptd_moments_grad_theta (K=1 case). Kept as a de-risk oracle.
+ * Computes E[T] (=moments[0], result[0], seed all-1) and d(E[T])/dtheta_j for a
+ * continuous / weight_mode=linear / monolithic parameterized graph, WITHOUT env
+ * vars or global state (thread-safe): builds a LOCAL param-tape recorder (whose
+ * mem starts clean because the numeric executor never runs on it), converts to
+ * the _off form (clean mem_base), runs the validated reverse tape adjoint for
+ * dQ/d(edge weight), then contracts to dtheta via the linear edge Jacobian
+ * dw_e/dtheta_j = coefficients[j]. dtheta_out must hold graph->param_length
+ * doubles. Returns 0 on success; -1 if not applicable (caller falls back to FD):
+ * non-parameterized, external/log/formula inputs, or a non-finite result. */
+int ptd_moment0_grad_theta(struct ptd_graph *graph,
+        double *ewt_out, double *dtheta_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    size_t P = graph->param_length;
+    /* Build a LOCAL param tape (the recorder; does NOT run the numeric executor,
+     * so its mem stays in the clean pre-execution state). Match the primal's
+     * ordering choice. Not attached to graph->parameterized_reward_compute_graph,
+     * so it never interferes with the graph's own cached tape. */
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);  /* clean mem_base */
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles;
+    double *mem0 = (double*)malloc(md*sizeof(double));
+    memcpy(mem0, off->mem_base, md*sizeof(double));
+    double *inp0 = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inp0[k] = *off->inputs[k];
+    double *ge = (double*)calloc(ni?ni:1, sizeof(double));  /* dQ/d(edge weight) */
+    double q = 0.0;
+    int rc = ptd_dbg_reverse_tape(off, mem0, inp0, n, /*target=*/0, &q, ge);
+
+    int ok = (rc == 0);
+    for (size_t j=0;j<P;++j) dtheta_out[j] = 0.0;
+    /* Contract edge -> theta: dtheta_j = sum_k ge[k] * coeff_j(edge k). Each input
+     * k must be an internal EDGE weight (byte 0); EXTERNAL (SCC) / sub-double
+     * inputs mean the graph is out of the linear/monolithic scope -> FD fallback. */
+    for (size_t k=0; ok && k<ni; ++k) {
+        struct ptd_pcg_input_spec sp = off->input_specs[k];
+        if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                || sp.v >= graph->vertices_length
+                || sp.e >= graph->vertices[sp.v]->edges_length) { ok = 0; break; }
+        struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+        for (size_t j=0;j<P;++j) dtheta_out[j] += ge[k] * e->coefficients[j];
+    }
+    if (ok) for (size_t j=0;j<P;++j) if (!isfinite(dtheta_out[j])) { ok = 0; break; }
+    if (ok && !isfinite(q)) ok = 0;
+    if (ok && ewt_out) *ewt_out = q;
+
+    free(mem0); free(inp0); free(ge);
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    return ok ? 0 : -1;
+}
+#endif /* PHASIC_B3_VALIDATORS (validator: ptd_moment0_grad_theta) */
+
+/* ===== B3 Batch-3: exact Jacobian d[m_0..m_{K-1}]/dtheta for the standard
+ * moment vector (K=nr_moments). The moment recurrence (graph_builder.cpp:512)
+ * is a_1=ewt(ones), a_{j+1}=ewt(a_j), m_k=(k+1)!*a_{k+1}[0], and EVERY ewt
+ * replays the SAME numeric tape with a new seed. The reverse is a CHAIN: each
+ * replay's reverse yields dm[] contributions AND a seed-adjoint that becomes the
+ * next-lower replay's output cotangent; stage-2 (param reverse -> edge grads)
+ * runs once per output moment on the accumulated dm[]. Verified build-free vs
+ * JAX autodiff (experiments/dr_moment_chain_adjoint.py, 230/230). J_out is
+ * row-major nr_moments*param_length; continuous / linear / monolithic. Returns 0
+ * on success, -1 (FD fallback) otherwise. */
+int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
+        double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    size_t P = graph->param_length, K = (size_t)nr_moments;
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+    size_t target = 0;
+    double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
+    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inv[k]=*off->inputs[k];
+    double *s0=(double*)malloc((L?L:1)*sizeof(double));
+    double *s1=(double*)malloc((L?L:1)*sizeof(double));
+    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    double *nm=(double*)malloc((L?L:1)*sizeof(double));
+    size_t nc=0;
+#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+    /* param tape forward: snapshot operand primals, record numeric commands */
+    for (size_t i=0;i<L;++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
+        switch (c.type) {
+            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
+            case 1: *rf += (*rt)*c.multiplier; break;
+            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
+            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
+            case 4: *rf = 1.0 - *rf; break;
+            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
+            case 6: *rf = 0.0; break;
+            default: break;
+        }
+    }
+    /* MPFR safety gate: if the primal would use MPFR for this (ill-conditioned)
+     * tape, the double adjoint is inconsistent with the MPFR forward -> decline
+     * so the caller falls back to FD. */
+    if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
+        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+        ptd_pcg_desc_off_destroy(off);
+        ptd_parameterized_reward_compute_graph_destroy(ptape);
+        return -1;
+    }
+    /* forward moment chain: seeds[j] (j=0..K), snap_to per replay (j=1..K) */
+    double *seeds = (double*)malloc((K+1)*n*sizeof(double));
+    double *snaptos = (double*)malloc((K?K:1)*(nc?nc:1)*sizeof(double));
+    for (size_t v=0; v<n; ++v) seeds[v]=1.0;                 /* a_0 = ones */
+    for (size_t j=1;j<=K;++j) {
+        double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
+        for (size_t v=0; v<n; ++v) out[v]=seed[v];
+        for (size_t c=0;c<nc;++c) {
+            st[c]=out[nb[c]]; double m=nm[c];
+            if (isinf(m) && out[nb[c]]==0.0) continue;
+            if (m!=0.0) out[na[c]] += out[nb[c]]*m;
+        }
+    }
+    /* per-output-moment reverse chain + stage-2 + edge->theta contraction */
+    int ok=1;
+    double *dm=(double*)malloc((nc?nc:1)*sizeof(double));
+    double *bar_out=(double*)malloc(n*sizeof(double));
+    double *adj=(double*)malloc(n*sizeof(double));
+    double *bmem=(double*)malloc(md*sizeof(double));
+    double *binp=(double*)malloc((ni?ni:1)*sizeof(double));
+#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
+    for (size_t outk=0; ok && outk<K; ++outk) {
+        for (size_t c=0;c<nc;++c) dm[c]=0.0;
+        for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
+        for (size_t j=K; j>=1; --j) {
+            for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
+            if (outk == j-1) {                                /* m_outk = j! * a_j[target] */
+                double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
+                adj[target] += fac;
+            }
+            double *st = snaptos + (j-1)*nc;
+            for (long c=(long)nc-1;c>=0;--c) {
+                double m=nm[c];
+                if (isinf(m) && st[c]==0.0) continue;
+                dm[c] += adj[na[c]] * st[c];
+                if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
+            }
+            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];     /* seed-adjoint -> replay j-1 */
+            if (j==1) break;                                  /* size_t underflow guard */
+        }
+        /* stage-2: reverse the param tape ONCE on the accumulated dm[] */
+        for (size_t i=0;i<md;++i) bmem[i]=0.0;
+        for (size_t k=0;k<ni;++k) binp[k]=0.0;
+        long numptr=(long)nc-1;
+        for (long i=(long)L-1;i>=0;--i) {
+            struct ptd_pcg_command_off c = off->commands[i];
+            double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
+            switch (c.type) {
+                case 0: if (bm) *bm += dm[numptr]; numptr--; break;
+                case 1: *bt += (*bf)*c.multiplier; break;
+                case 3: { double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break;
+                case 2: *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;
+                case 4: *bf = -(*bf); break;
+                case 5: { double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break;
+                case 6: *bf = 0.0; break;
+                default: break;
+            }
+        }
+        /* contract edge -> theta into J_out row outk */
+        for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
+        for (size_t k=0; k<ni; ++k) {
+            struct ptd_pcg_input_spec sp = off->input_specs[k];
+            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                    || sp.v >= graph->vertices_length
+                    || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
+            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+            for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
+        }
+    }
+    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
+
+    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+    free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+#undef RV
+#undef RB
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    return ok ? 0 : -1;
+}
+/* =============================================================================*/
 
 double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
     // Precompute elimination trace if not already done

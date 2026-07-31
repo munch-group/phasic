@@ -17,6 +17,11 @@ else()
 endif()
 
 project(phasic VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
+# B3 gradient de-risk validators (ptd_debug_fwdmode_grad / ptd_debug_reverse_grad
+# / ptd_moment0_grad_theta + the _off env-stash). OFF in production builds; the
+# shipped exact-gradient path (ptd_moments_grad_theta) does not depend on them.
+# Enable for validation/CI:  CMAKE_ARGS="-DPHASIC_B3_VALIDATORS=ON" pixi run install-dev
+option(PHASIC_B3_VALIDATORS "Build B3 gradient de-risk validators (non-production)" OFF)
 include(GNUInstallDirs)
 include(FetchContent)
 
@@ -36,6 +41,9 @@ if(PHASIC_HAVE_MPFR)
     target_link_libraries(libphasic PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
     target_link_directories(libphasic PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
     target_compile_definitions(libphasic PRIVATE HAVE_MPFR)
+endif()
+if(PHASIC_B3_VALIDATORS)
+    target_compile_definitions(libphasic PRIVATE PHASIC_B3_VALIDATORS)
 endif()
 install(TARGETS libphasic
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -59,6 +67,9 @@ if(PHASIC_HAVE_MPFR)
     target_link_libraries(libphasiccpp PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
     target_link_directories(libphasiccpp PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
     target_compile_definitions(libphasiccpp PRIVATE HAVE_MPFR)
+endif()
+if(PHASIC_B3_VALIDATORS)
+    target_compile_definitions(libphasiccpp PRIVATE PHASIC_B3_VALIDATORS)
 endif()
 install(TARGETS libphasiccpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -311,6 +322,9 @@ if(PHASIC_HAVE_MPFR)
     target_include_directories(phasic_pybind PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
     target_link_directories(phasic_pybind PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
     target_compile_definitions(phasic_pybind PRIVATE HAVE_MPFR)
+endif()
+if(PHASIC_B3_VALIDATORS)
+    target_compile_definitions(phasic_pybind PRIVATE PHASIC_B3_VALIDATORS)
 endif()
 
 # Add XLA FFI include directory if available

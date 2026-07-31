@@ -28,6 +28,7 @@
 #include <cstring>
 #include <errno.h>
 #include <vector>
+#include <tuple>
 #include <stdexcept>
 #include <cmath>
 #include <iterator>
@@ -507,6 +508,62 @@ namespace phasic {
 
                 return res;
             }
+        }
+
+#ifdef PHASIC_B3_VALIDATORS
+        // B3 de-risk validators (-DPHASIC_B3_VALIDATORS only; absent in production).
+        // (E[T], forward-mode dE[T]/d(edge weight) per _off input, self-contained
+        // central diff per input).
+        std::tuple<double, std::vector<double>, std::vector<double>>
+        debug_fwdmode_grad() {
+            double ewt = 0.0; double *fwd = nullptr, *cd = nullptr; size_t ni = 0;
+            if (ptd_debug_fwdmode_grad(this->c_graph(), &ewt, &fwd, &cd, &ni) != 0) {
+                PTD_THROW_AND_CLEAR();
+            }
+            std::vector<double> f(fwd, fwd + ni), c(cd, cd + ni);
+            free(fwd); free(cd);
+            return std::make_tuple(ewt, f, c);
+        }
+
+        // B3 Batch-1 (non-shippable): (E[T], reverse-mode theta-adjoint
+        // dE[T]/d(edge weight) per _off input).
+        std::tuple<double, std::vector<double>>
+        debug_reverse_grad() {
+            double ewt = 0.0; double *g = nullptr; size_t ni = 0;
+            if (ptd_debug_reverse_grad(this->c_graph(), &ewt, &g, &ni) != 0) {
+                PTD_THROW_AND_CLEAR();
+            }
+            std::vector<double> gv(g, g + ni);
+            free(g);
+            return std::make_tuple(ewt, gv);
+        }
+
+        // B3 Batch-2 (production): (E[T], exact d(E[T])/dtheta) for a
+        // continuous/linear/monolithic parameterized graph. Returns success flag
+        // as an empty grad vector when the exact path is not applicable (caller
+        // falls back to FD) rather than throwing.
+        std::tuple<double, std::vector<double>>
+        moment0_grad_theta() {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            std::vector<double> dtheta(P, 0.0);
+            double ewt = 0.0;
+            int rc = ptd_moment0_grad_theta(this->c_graph(), &ewt,
+                                            P ? dtheta.data() : nullptr);
+            if (rc != 0) return std::make_tuple(0.0, std::vector<double>());
+            return std::make_tuple(ewt, dtheta);
+        }
+#endif /* PHASIC_B3_VALIDATORS */
+
+        // B3 Batch-3 (production): exact moment-vector Jacobian d[m]/dtheta,
+        // returned FLAT (row-major nr_moments*param_length). Empty => not
+        // applicable (caller falls back to FD).
+        std::vector<double> moments_grad_theta(int nr_moments) {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            if (P == 0 || nr_moments < 1) return std::vector<double>();
+            std::vector<double> J(static_cast<size_t>(nr_moments) * P, 0.0);
+            int rc = ptd_moments_grad_theta(this->c_graph(), nr_moments, J.data());
+            if (rc != 0) return std::vector<double>();
+            return J;
         }
 
         // ------------------------------------------------------------------

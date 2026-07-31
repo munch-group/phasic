@@ -1901,6 +1901,21 @@ str
     >>> graph.expected_waiting_time([0,2,1,0]) # => [0.6, 0.2, 0.1]
       )delim")
 
+#ifdef PHASIC_B3_VALIDATORS
+    .def("_debug_fwdmode_grad", &phasic::Graph::debug_fwdmode_grad,
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 de-risk: (E[T], forward-mode dE[T]/d(edge weight), central-diff) over the real tape.")
+    .def("_debug_reverse_grad", &phasic::Graph::debug_reverse_grad,
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 Batch-1: (E[T], reverse-mode theta-adjoint dE[T]/d(edge weight)) over the real _off tape.")
+    .def("_moment0_grad_theta", &phasic::Graph::moment0_grad_theta,
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 Batch-2: (E[T], exact d(E[T])/dtheta); empty grad vector => not applicable (FD fallback).")
+#endif /* PHASIC_B3_VALIDATORS */
+    .def("_moments_grad_theta", &phasic::Graph::moments_grad_theta, py::arg("nr_moments"),
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 Batch-3: exact moment-vector Jacobian d[m]/dtheta, flat row-major "
+      "(nr_moments*param_length); empty => not applicable (FD fallback).")
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::arg("indices") = std::vector<size_t>(),
       py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(

@@ -43,17 +43,19 @@ import jax  # noqa: E402
 # Model: S -> [3] --t0--> [2] --t1--> [1(absorbing)].  Time to absorption =
 # Exp(t0) + Exp(t1), so E[T] = 1/t0 + 1/t1 (verified: model forward == closed
 # form), and the EXACT gradient is [-1/t0^2, -1/t1^2].
-def _two_stage_model():
+def _two_stage_model(exact_moment_grad=False):
     g = Graph(1)
     s = g.starting_vertex()
     v3 = g.find_or_create_vertex([3]); v2 = g.find_or_create_vertex([2]); v1 = g.find_or_create_vertex([1])
     s.add_edge(v3, 1.0)
     v3.add_edge(v2, [1.0, 0.0])
     v2.add_edge(v1, [0.0, 1.0])
-    return Graph.pmf_and_moments_from_graph(g, nr_moments=2, theta_dim=2)
+    return Graph.pmf_and_moments_from_graph(
+        g, nr_moments=2, theta_dim=2, exact_moment_grad=exact_moment_grad)
 
 
-_MODEL_A = _two_stage_model()
+_MODEL_A = _two_stage_model()                       # finite-difference backward
+_MODEL_A_EXACT = _two_stage_model(exact_moment_grad=True)  # B3 exact θ-adjoint
 _TIMES = jnp.array([1.0])
 
 
@@ -62,11 +64,30 @@ def _ET(theta):
     return moments[0]
 
 
+def _ET_exact(theta):
+    _pmf, moments = _MODEL_A_EXACT(theta, _TIMES)
+    return moments[0]
+
+
+def _ET2_exact(theta):
+    _pmf, moments = _MODEL_A_EXACT(theta, _TIMES)
+    return moments[1]
+
+
 def _oracle(theta):
     return np.array([-1.0 / theta[0] ** 2, -1.0 / theta[1] ** 2])
 
 
+def _oracle_m1(theta):
+    # d/dθ of E[T^2] = 2(1/t0^2 + 1/t1^2 + 1/(t0 t1))
+    t0, t1 = theta
+    return np.array([-4.0 / t0 ** 3 - 2.0 / (t0 ** 2 * t1),
+                     -4.0 / t1 ** 3 - 2.0 / (t0 * t1 ** 2)])
+
+
 _grad_A = jax.grad(_ET)
+_grad_A_exact = jax.grad(_ET_exact)
+_grad_A_exact_m1 = jax.grad(_ET2_exact)
 
 
 def test_fd_gradient_accurate_at_moderate_scale():
@@ -77,15 +98,44 @@ def test_fd_gradient_accurate_at_moderate_scale():
     np.testing.assert_allclose(fd, _oracle(theta), rtol=1e-3)
 
 
-@pytest.mark.xfail(strict=True, reason="FD gradient broken at mixed parameter "
-                   "scales (B3): abs eps=1e-7 gives 4-9% error at theta=[1,1e-8]")
 def test_fd_gradient_correct_at_mixed_scale():
     """At theta=[1, 1e-8] the absolute-step central difference is 4-9% wrong on
-    BOTH components (the small param's step even straddles a negative rate).
-    A correct (analytic) gradient would match the oracle to ~1e-9."""
+    BOTH components (the small param's step even straddles a negative rate). The
+    B3 exact reverse-mode θ-adjoint (opt-in via ``exact_moment_grad=True``)
+    matches the closed-form oracle to machine precision here — this is the
+    previously-xfailed pin, now flipped by the exact-gradient fix."""
+    theta = [1.0, 1e-8]
+    exact = np.array(_grad_A_exact(jnp.array(theta)))
+    np.testing.assert_allclose(exact, _oracle(theta), rtol=1e-9)
+
+
+def test_fd_gradient_still_broken_at_mixed_scale_without_fix():
+    """Documents that the DEFAULT (finite-difference) backward remains defective
+    at mixed scale — the exact path is opt-in, so default behaviour is unchanged
+    and the FD error is what motivates B3."""
     theta = [1.0, 1e-8]
     fd = np.array(_grad_A(jnp.array(theta)))
-    np.testing.assert_allclose(fd, _oracle(theta), rtol=1e-2)
+    rel = np.max(np.abs(fd - _oracle(theta)) / np.abs(_oracle(theta)))
+    assert rel > 1e-3, f"expected FD to be grossly wrong at mixed scale, got rel={rel:.2e}"
+
+
+def test_exact_second_moment_gradient_correct_at_mixed_scale():
+    """B3 Batch-3 (higher moments): the exact reverse-mode Jacobian makes the
+    SECOND moment's gradient correct at mixed scale too. FD is ~359% wrong on
+    d(E[T^2])/dθ at θ=[1,1e-8]; the exact θ-adjoint chain matches the closed form
+    to machine precision."""
+    theta = [1.0, 1e-8]
+    exact = np.array(_grad_A_exact_m1(jnp.array(theta)))
+    np.testing.assert_allclose(exact, _oracle_m1(theta), rtol=1e-9)
+
+
+def test_fd_second_moment_gradient_broken_without_fix():
+    """The DEFAULT FD backward is even worse on the second moment at mixed scale
+    (~359% error) — motivates extending the exact path to higher moments."""
+    theta = [1.0, 1e-8]
+    fd = np.array(jax.grad(lambda t: _MODEL_A(t, _TIMES)[1][1])(jnp.array(theta)))
+    rel = np.max(np.abs(fd - _oracle_m1(theta)) / np.abs(_oracle_m1(theta)))
+    assert rel > 1e-2, f"expected FD 2nd-moment gradient grossly wrong, got rel={rel:.2e}"
 
 
 def test_fd_no_single_step_works_at_mixed_scale():

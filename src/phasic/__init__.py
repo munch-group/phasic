@@ -6822,7 +6822,8 @@ extern "C" {{
     def pmf_and_moments_from_graph(cls, graph: Graph, nr_moments: int = 2,
                                    discrete: bool = False, use_ffi: bool = False,
                                    theta_dim: int | None = None,
-                                   fixed_mask: Any = None) -> Callable:
+                                   fixed_mask: Any = None,
+                                   exact_moment_grad: bool = False) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -6918,6 +6919,42 @@ extern "C" {{
         # skipped (their gradient is 0 and SVGD discards it). Threaded from
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
+
+        # B3 (opt-in, additive): replace the finite-difference d(moments)/dθ with
+        # the EXACT reverse-mode θ-adjoint Jacobian over the elimination tape
+        # (fixes the mixed-scale FD defect for the WHOLE moment vector, not just
+        # the first moment). Scope: continuous, weight_mode='linear', monolithic.
+        # model_bwd swaps the moments FD term for J^T·g_moments and falls back to
+        # FD if the C path reports not-applicable for a given θ. Default off → FD
+        # unchanged.
+        _wm = serialized.get('weight_mode', 'linear')
+        _exact_grad_enabled = (bool(exact_moment_grad) and not discrete
+                               and _wm in (None, 'linear'))
+        _exact_moments_jac_np = None
+        if _exact_grad_enabled:
+            _exact_graph = graph.clone()
+            _exact_K = int(nr_moments)
+
+            def _exact_moments_jac_np(theta_np):
+                # Host callback: set the private clone's weights at θ and read the
+                # exact moment-vector Jacobian d[m]/dθ (nr_moments × param_length)
+                # from C. NaNs when the exact path is not applicable → FD fallback.
+                th = np.asarray(theta_np, dtype=np.float64)
+                _shape = (_exact_K, param_length)
+
+                def _one(t):
+                    _exact_graph.update_weights(t)
+                    J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
+                                   dtype=np.float64)
+                    return (J.reshape(_shape) if J.size == _exact_K * param_length
+                            else np.full(_shape, np.nan))
+
+                if th.ndim == 1:
+                    return _one(th)
+                out = np.empty((th.shape[0], _exact_K, param_length), dtype=np.float64)
+                for _b in range(th.shape[0]):
+                    out[_b] = _one(th[_b])
+                return out
 
         # Reward-length guard. Rewards are one per vertex, so the vertex axis
         # (the LAST axis, for 1D and (n_features, n_vertices) 2D) must equal
@@ -7418,6 +7455,20 @@ extern "C" {{
             n_params = theta.shape[0]
             eps = 1e-7
 
+            # B3 (opt-in): exact moment-vector Jacobian J = d[m]/dθ (nr_moments ×
+            # n_params) via a host callback into the reverse-mode C adjoint. The
+            # exact moments contribution to θ_bar is then J^T · g_moments. None
+            # when disabled → pure FD. _exact_ok gates a fallback to FD if the C
+            # path reported not-applicable (NaN) for this θ.
+            _exact_tbm = None
+            if _exact_grad_enabled:
+                _exactJ = jax.pure_callback(
+                    _exact_moments_jac_np,
+                    jax.ShapeDtypeStruct((nr_moments, param_length), jnp.float64),
+                    theta, vmap_method='expand_dims')
+                _exact_ok = jnp.all(jnp.isfinite(_exactJ))
+                _exact_tbm = _exactJ.T @ g_moments  # (n_params,)
+
             # Finite differences for gradient
             # Clamp lower perturbation to stay positive (theta comes from
             # softplus which can be as small as 1e-9, smaller than eps)
@@ -7454,8 +7505,13 @@ extern "C" {{
                 _safe = jnp.where(_ok, actual_diff, 1.0)
                 pmf_diff = jnp.where(_ok, (pmf_plus - pmf_minus) / _safe, 0.0)
                 grad_pmf_i = jnp.nansum(g_pmf * pmf_diff)
-                grad_moments_i = jnp.sum(
-                    g_moments * jnp.where(_ok, (moments_plus - moments_minus) / _safe, 0.0))
+                moments_diff = jnp.where(_ok, (moments_plus - moments_minus) / _safe, 0.0)
+                grad_moments_i = jnp.sum(g_moments * moments_diff)
+                if _exact_tbm is not None:
+                    # Swap the WHOLE moments FD term for the exact (J^T·g_moments)_i,
+                    # keeping FD for pmf. Fall back to the FD term if the exact
+                    # path was not applicable for this θ (NaN sentinel).
+                    grad_moments_i = jnp.where(_exact_ok, _exact_tbm[i], grad_moments_i)
                 grad_i = grad_pmf_i + grad_moments_i
 
                 theta_bar.append(grad_i)

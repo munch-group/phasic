@@ -248,6 +248,15 @@ struct ptd_graph {
     struct ptd_weight_tape **wf_residuals;
     size_t wf_residuals_length;
     struct ptd_weight_tape *wf_residuals_for_tape;
+
+#ifdef PHASIC_B3_VALIDATORS
+    /* DEBUG (B3 gradient validator; -DPHASIC_B3_VALIDATORS builds only): clean
+     * PRE-execution _off elimination tape, stashed by
+     * ptd_precompute_reward_compute_graph when PHASIC_DBG_STASH_OFF is set, and
+     * consumed by ptd_debug_fwdmode_grad. NULL in normal operation; absent from
+     * production builds. Owned by the graph. */
+    void *_dbg_off_clean;
+#endif
 };
 
 struct ptd_edge {
@@ -443,6 +452,26 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph);
  * @return Array of k sojourn times (must be freed by caller), or NULL on error
  */
 double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *indices, size_t k);
+
+#ifdef PHASIC_B3_VALIDATORS
+/* B3 de-risk validators (-DPHASIC_B3_VALIDATORS builds only; absent in
+ * production). forward-mode dE[T]/d(edge weight) + central difference; reverse-
+ * mode theta-adjoint dE[T]/d(edge weight); and the first-moment dtheta
+ * (superseded by ptd_moments_grad_theta). *out arrays malloc'd; caller frees. */
+int ptd_debug_fwdmode_grad(struct ptd_graph *graph,
+        double *ewt_out, double **fwd_out, double **cd_out, size_t *ni_out);
+int ptd_debug_reverse_grad(struct ptd_graph *graph,
+        double *ewt_out, double **grad_out, size_t *ni_out);
+int ptd_moment0_grad_theta(struct ptd_graph *graph,
+        double *ewt_out, double *dtheta_out);
+#endif /* PHASIC_B3_VALIDATORS */
+
+/* B3 Batch-3 (production): exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta for the
+ * standard moment vector of a continuous / weight_mode=linear / monolithic
+ * parameterized graph. J_out must hold nr_moments*graph->param_length doubles
+ * (row-major: row k = d(m_k)/dtheta). Returns 0 on success; -1 for FD fallback. */
+int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
+        double *J_out);
 
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
