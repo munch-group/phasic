@@ -3918,24 +3918,106 @@ def _svgd_update_jitted(particles: jnp.ndarray, K: jnp.ndarray, grad_K: jnp.ndar
 
 
 # How many times a single particle's per-step gradient norm may exceed the
-# BATCH MEDIAN before it is treated as diverged (SVGD divergence robustness,
-# extending the isfinite sanitization below to the finite-but-absurd case).
-# Some loss terms have a genuine mathematical singularity in theta (e.g.
-# moment regularization against an exponential's E[T]=1/theta, E[T^2]=2/theta^2
+# HEALTHY BATCH MEDIAN before it is treated as diverged (SVGD divergence
+# robustness, extending the isfinite sanitization in
+# _sanitize_and_clip_grad_log_p to the finite-but-absurd case). Some loss
+# terms have a genuine mathematical singularity in theta (e.g. moment
+# regularization against an exponential's E[T]=1/theta, E[T^2]=2/theta^2
 # blows up as theta->0), so a particle that wanders close enough gets a
-# gradient that is enormous but NOT nan/inf -- isfinite() does not catch it,
-# and it can fling that one particle to an extreme value in a single step
-# (observed: theta going from a normal O(1) range to O(1e6) in one iteration).
+# gradient that is enormous but NOT nan/inf -- isfinite() does not catch it.
 # Both FD and the exact reverse-mode adjoint compute the SAME correct (and
-# correctly huge) analytic gradient there -- this is not a bug in either
-# gradient method, just an unclipped magnitude. The threshold is relative to
-# the CURRENT BATCH's own median (not an absolute constant) so it self-
-# calibrates across models/parameter scales instead of needing per-model
-# tuning; 1e4 is generous enough that normal cross-particle variation (curvature
-# differences of a few orders of magnitude are common and fine) is never
-# clipped, while a many-orders-of-magnitude outlier is caught and rescaled
-# (not zeroed, unlike the nan/inf case -- direction is still informative here).
+# correctly huge) analytic gradient there (verified: agree with a closed-form
+# derivative to 6+ significant figures) -- this is not a bug in either
+# gradient method. What actually flings a particle to an extreme value in one
+# step (observed: theta going from a normal O(1) range to O(1e6)) is that the
+# EXPLICIT SVGD UPDATE ITSELF is numerically unstable once a particle enters
+# a high-curvature region: the local update-map multiplier is
+# ~1 - lr*H(theta)/n_particles, and near a steep singularity |H| can be large
+# enough that this is >> 1 in magnitude -- any particle that enters that
+# region gets ejected DETERMINISTICALLY, by construction of explicit-Euler-
+# style updates at a fixed step size, regardless of which gradient method
+# (or which tiny amount of numerical noise) put it there. It is not a
+# "chaos" story about FD-vs-exact noise amplifying unpredictably; whichever
+# run's trajectory happens to wander into the unstable basin first will
+# diverge. The threshold below is relative to the CURRENT BATCH's own median
+# (not an absolute constant) so it self-calibrates across models/parameter
+# scales instead of needing per-model tuning; 1e4 is generous enough that
+# normal cross-particle variation (curvature differences of a few orders of
+# magnitude are common and fine) is never clipped, while a many-orders-of-
+# magnitude outlier is caught and rescaled (not zeroed, unlike the nan/inf
+# case -- direction is still informative here). This does not structurally
+# guarantee no particle can ever reach an expensive-to-evaluate region (a
+# jump just under the threshold is still possible, and the continuous PDF's
+# uniformization cost is unguarded between the "slow" and the much higher
+# rate-blowup threshold in _is_rate_blowup) -- it is a heuristic mitigation
+# of the observed failure mode, not a structural proof.
 _GRAD_NORM_CLIP_MULT = 1e4
+
+
+def _sanitize_and_clip_grad_log_p(grad_log_p: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Sanitize non-finite per-particle scores, then clip a finite-but-absurd
+    per-particle gradient norm relative to the HEALTHY batch's own median.
+
+    Two-stage SVGD divergence robustness:
+
+    1. Zero any element that is nan/inf. A diverged particle -- one whose
+       theta implies an uncomputable transition rate -- can yield a nan/inf
+       score even when the forward is made fail-soft (e.g. a finite-
+       difference step that catastrophically cancels at extreme theta). The
+       kernel matmul in svgd_step (einsum over j) couples ALL particles, so a
+       single nan row would poison the entire cloud on the next step. Zero
+       the offending elements: that particle then contributes nothing (in
+       that dimension) to the kernel-weighted drift and is carried back
+       toward the cloud by the repulsion term. Bit-identical for an
+       all-finite batch.
+    2. Clip: a merely-huge-but-finite gradient (see _GRAD_NORM_CLIP_MULT)
+       still points the right way, just too far, so RESCALE (not zero) any
+       particle whose norm exceeds _GRAD_NORM_CLIP_MULT times the median norm
+       of the OTHER, still-finite particles -- excluding stage 1's own
+       zeroed rows from that reference is essential: if enough particles
+       diverge simultaneously (nan/inf in stage 1), the median over the FULL
+       (post-sanitize) batch can itself be ~0, which would clip every
+       remaining healthy particle's gradient down to ~0 too (worse than not
+       clipping at all). Falls back to no clipping (scale=1 everywhere) if
+       there is no finite row left to reference against. scale <= 1.0
+       always, so an already-well-scaled batch is bit-identical.
+
+    Returns (clipped grad_log_p, number of particles actually rescaled in
+    stage 2 -- for the caller to log; stage-1 zeroing is not counted, it has
+    its own long-standing "this only fires on an already-pathological
+    particle" guarantee).
+    """
+    _row_all_finite = jnp.all(jnp.isfinite(grad_log_p), axis=-1)
+    grad_log_p = jnp.where(jnp.isfinite(grad_log_p), grad_log_p, 0.0)
+
+    _grad_norms = jnp.linalg.norm(grad_log_p, axis=-1)
+    _healthy_norms = jnp.where(_row_all_finite, _grad_norms, jnp.nan)
+    _median_norm = jnp.nanmedian(_healthy_norms)
+    # No finite row to reference at all (whole batch diverged this step) ->
+    # nan; treat as "no reference available", i.e. clip nothing (inf
+    # threshold) rather than propagate nan into the clip norm.
+    _median_norm = jnp.where(jnp.isnan(_median_norm), jnp.inf, jnp.maximum(_median_norm, 1e-300))
+    _clip_norm = _GRAD_NORM_CLIP_MULT * _median_norm
+    _scale = jnp.minimum(1.0, _clip_norm / jnp.maximum(_grad_norms, 1e-300))
+    grad_log_p = grad_log_p * _scale[:, None]
+    _n_clipped = jnp.sum(_scale < 1.0)
+    return grad_log_p, _n_clipped
+
+
+def _warn_grad_norm_clipped(n_clipped, n_particles) -> None:
+    """Host-side half of the jax.debug.callback guard in svgd_step. Not
+    silent: a clipped particle's update this step was damped/redirected, so
+    the user is told, mirroring the no-silent-fallback principle applied
+    elsewhere in this codebase (see pmf_and_moments_from_graph's
+    exact_moment_grad logging)."""
+    n_clipped = int(n_clipped)
+    if n_clipped > 0:
+        logger.warning(
+            "svgd_step: clipped %d/%d particle gradient norm(s) exceeding "
+            "%.0fx the healthy batch median (a loss singularity or a "
+            "diverging particle was encountered) -- inference for those "
+            "particles is damped, not exact, for this step.",
+            n_clipped, int(n_particles), _GRAD_NORM_CLIP_MULT)
 
 
 def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel, step_size: float,
@@ -4073,31 +4155,11 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
     else:
         raise ValueError(f"Invalid parallel_mode: {actual_parallel_mode}")
 
-    # Sanitize non-finite per-particle scores (SVGD divergence robustness). A
-    # diverged particle -- one whose theta implies an uncomputable transition
-    # rate -- can yield a nan/inf score even when the forward is made fail-soft
-    # (e.g. a finite-difference step that catastrophically cancels at extreme
-    # theta). The kernel matmul below (einsum over j) couples ALL particles, so a
-    # single nan row would poison the entire cloud on the next step. Zero the
-    # offending rows: that particle then contributes nothing to the kernel-
-    # weighted drift and is carried back toward the cloud by the repulsion term.
-    # jnp.where keeps every finite score bit-identical, so converged runs are
-    # unaffected -- this only ever fires on an already-pathological particle.
-    grad_log_p = jnp.where(jnp.isfinite(grad_log_p), grad_log_p, 0.0)
-
-    # Clip a FINITE-but-absurd per-particle gradient norm relative to the
-    # batch's own median (see _GRAD_NORM_CLIP_MULT). Rescale (preserve
-    # direction) rather than zero -- unlike the nan/inf case above, a merely-
-    # huge-but-finite gradient still points the right way, just too far.
-    # jnp.maximum(median_norm, ...) floors the reference scale so an
-    # (unlikely) near-zero median doesn't spuriously clip small legitimate
-    # gradients; scale <= 1.0 always, so a fully converged/well-scaled batch
-    # (every norm already <= the clip threshold) is bit-identical.
-    _grad_norms = jnp.linalg.norm(grad_log_p, axis=-1)
-    _median_norm = jnp.maximum(jnp.median(_grad_norms), 1e-300)
-    _clip_norm = _GRAD_NORM_CLIP_MULT * _median_norm
-    _scale = jnp.minimum(1.0, _clip_norm / jnp.maximum(_grad_norms, 1e-300))
-    grad_log_p = grad_log_p * _scale[:, None]
+    # Sanitize non-finite per-particle scores AND clip a finite-but-absurd
+    # per-particle gradient norm (SVGD divergence robustness). See
+    # _sanitize_and_clip_grad_log_p's docstring.
+    grad_log_p, _n_clipped = _sanitize_and_clip_grad_log_p(grad_log_p)
+    jax.debug.callback(_warn_grad_norm_clipped, _n_clipped, n_particles)
 
     # Compute kernel and kernel gradient (in reduced space if fixed_mask provided)
     K, grad_K = kernel.compute_kernel_grad(particles_for_grad)
