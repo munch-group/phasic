@@ -3917,6 +3917,27 @@ def _svgd_update_jitted(particles: jnp.ndarray, K: jnp.ndarray, grad_K: jnp.ndar
     return particles + step_size * phi
 
 
+# How many times a single particle's per-step gradient norm may exceed the
+# BATCH MEDIAN before it is treated as diverged (SVGD divergence robustness,
+# extending the isfinite sanitization below to the finite-but-absurd case).
+# Some loss terms have a genuine mathematical singularity in theta (e.g.
+# moment regularization against an exponential's E[T]=1/theta, E[T^2]=2/theta^2
+# blows up as theta->0), so a particle that wanders close enough gets a
+# gradient that is enormous but NOT nan/inf -- isfinite() does not catch it,
+# and it can fling that one particle to an extreme value in a single step
+# (observed: theta going from a normal O(1) range to O(1e6) in one iteration).
+# Both FD and the exact reverse-mode adjoint compute the SAME correct (and
+# correctly huge) analytic gradient there -- this is not a bug in either
+# gradient method, just an unclipped magnitude. The threshold is relative to
+# the CURRENT BATCH's own median (not an absolute constant) so it self-
+# calibrates across models/parameter scales instead of needing per-model
+# tuning; 1e4 is generous enough that normal cross-particle variation (curvature
+# differences of a few orders of magnitude are common and fine) is never
+# clipped, while a many-orders-of-magnitude outlier is caught and rescaled
+# (not zeroed, unlike the nan/inf case -- direction is still informative here).
+_GRAD_NORM_CLIP_MULT = 1e4
+
+
 def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel, step_size: float,
               compiled_grad: callable | None = None,
               parallel_mode: str = 'vmap', n_devices: int | None = None,
@@ -4063,6 +4084,20 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
     # jnp.where keeps every finite score bit-identical, so converged runs are
     # unaffected -- this only ever fires on an already-pathological particle.
     grad_log_p = jnp.where(jnp.isfinite(grad_log_p), grad_log_p, 0.0)
+
+    # Clip a FINITE-but-absurd per-particle gradient norm relative to the
+    # batch's own median (see _GRAD_NORM_CLIP_MULT). Rescale (preserve
+    # direction) rather than zero -- unlike the nan/inf case above, a merely-
+    # huge-but-finite gradient still points the right way, just too far.
+    # jnp.maximum(median_norm, ...) floors the reference scale so an
+    # (unlikely) near-zero median doesn't spuriously clip small legitimate
+    # gradients; scale <= 1.0 always, so a fully converged/well-scaled batch
+    # (every norm already <= the clip threshold) is bit-identical.
+    _grad_norms = jnp.linalg.norm(grad_log_p, axis=-1)
+    _median_norm = jnp.maximum(jnp.median(_grad_norms), 1e-300)
+    _clip_norm = _GRAD_NORM_CLIP_MULT * _median_norm
+    _scale = jnp.minimum(1.0, _clip_norm / jnp.maximum(_grad_norms, 1e-300))
+    grad_log_p = grad_log_p * _scale[:, None]
 
     # Compute kernel and kernel gradient (in reduced space if fixed_mask provided)
     K, grad_K = kernel.compute_kernel_grad(particles_for_grad)
