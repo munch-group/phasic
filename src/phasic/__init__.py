@@ -7515,13 +7515,33 @@ extern "C" {{
             n_params = theta.shape[0]
             eps = 1e-7
 
-            # B3 (opt-in): exact moment-vector Jacobian J = d[m]/dθ (nr_moments ×
+            # B3: exact moment-vector Jacobian J = d[m]/dθ (nr_moments ×
             # n_params) via a host callback into the reverse-mode C adjoint. The
             # exact moments contribution to θ_bar is then J^T · g_moments. None
             # when disabled → pure FD. _exact_ok gates a fallback to FD if the C
             # path reported not-applicable (NaN) for this θ.
+            #
+            # rewards are NOT supported by the exact path: _exact_graph (the
+            # private clone _exact_moments_jac_np operates on) is never
+            # reward-transformed, and neither ptd_moments_grad_theta nor
+            # ptd_moments_grad_theta_dph take a rewards argument at all -- so
+            # J is always the Jacobian of the STANDARD (reward=all-ones)
+            # moments, silently wrong whenever the forward actually returned
+            # reward-transformed moments (rewards is not None). rewards'
+            # None-ness/size is static per traced call (a genuine Python
+            # None or a concrete shape, never a runtime-varying value), so
+            # this check is safe as plain Python control flow, no
+            # pure_callback needed. No silent fallback: log why, same as the
+            # weight_mode/decline cases above.
+            _rewards_provided = rewards is not None and jnp.asarray(rewards).size > 0
             _exact_tbm = None
-            if _exact_grad_enabled:
+            if _exact_grad_enabled and _rewards_provided:
+                _grad_logger.info(
+                    "pmf_and_moments_from_graph: exact moment gradient does "
+                    "not yet support rewards -- using finite differences for "
+                    "the moments gradient for this call."
+                )
+            elif _exact_grad_enabled:
                 _exactJ = jax.pure_callback(
                     _exact_moments_jac_np,
                     jax.ShapeDtypeStruct((nr_moments, param_length), jnp.float64),
