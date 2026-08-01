@@ -6823,7 +6823,7 @@ extern "C" {{
                                    discrete: bool = False, use_ffi: bool = False,
                                    theta_dim: int | None = None,
                                    fixed_mask: Any = None,
-                                   exact_moment_grad: bool = False) -> Callable:
+                                   exact_moment_grad: bool = True) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -6844,6 +6844,19 @@ extern "C" {{
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected by probing edge states. Providing this explicitly avoids
             potential issues with auto-detection reading garbage memory.
+        exact_moment_grad : bool, default=True
+            Use the exact reverse-mode theta-adjoint for the moments gradient
+            instead of finite differences. Covers weight_mode in {None, 'linear'}
+            (continuous and discrete, including Graph.discretize()'d graphs).
+            Whenever finite differences are used instead -- because
+            exact_moment_grad=False was passed explicitly, the graph's
+            weight_mode is out of scope (log/formula/callback), or the exact
+            computation declines at a given theta (e.g. an ill-conditioned
+            elimination tape) -- an INFO-level log message via
+            ``logging.getLogger('phasic')`` states why, so the choice of
+            gradient method is never silent. Set ``PHASIC_LOG_LEVEL=INFO`` (or
+            ``logging.getLogger('phasic').setLevel(logging.INFO)``) to see
+            these; the default log level (WARNING) suppresses them.
 
         Returns
         -------
@@ -6920,14 +6933,23 @@ extern "C" {{
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
 
-        # B3 (opt-in, additive): replace the finite-difference d(moments)/dθ with
-        # the EXACT reverse-mode θ-adjoint Jacobian over the elimination tape
-        # (fixes the mixed-scale FD defect for the WHOLE moment vector, not just
-        # the first moment). Scope: weight_mode='linear', monolithic; continuous
-        # OR discrete (both was_dph=True i.e. Graph.discretize(), and was_dph=False
-        # native DPH -- see ptd_moments_grad_theta_dph). model_bwd swaps the
-        # moments FD term for J^T·g_moments and falls back to FD if the C path
-        # reports not-applicable for a given θ. Default off → FD unchanged.
+        # B3 (default-on, additive): replace the finite-difference d(moments)/dθ
+        # with the EXACT reverse-mode θ-adjoint Jacobian over the elimination
+        # tape (fixes the mixed-scale FD defect for the WHOLE moment vector,
+        # not just the first moment). Scope: weight_mode='linear', monolithic;
+        # continuous OR discrete (both was_dph=True i.e. Graph.discretize(), and
+        # was_dph=False native DPH -- see ptd_moments_grad_theta_dph). model_bwd
+        # swaps the moments FD term for J^T·g_moments and falls back to FD if
+        # the C path reports not-applicable for a given θ.
+        #
+        # No silent fallback: whenever FD ends up being used instead of the
+        # exact path -- exact_moment_grad=False passed explicitly, weight_mode
+        # out of scope (checked once here, statically), or a per-theta decline
+        # inside _one() below (checked dynamically, e.g. MPFR conditioning) --
+        # an INFO-level log line via get_logger(__name__) states why. Default
+        # log level is WARNING (see logging_config.py), so these are invisible
+        # unless the caller opts in with PHASIC_LOG_LEVEL=INFO; functional
+        # behaviour is unchanged from before this line was added.
         #
         # Effective discreteness mirrors GraphBuilder::compute_pmf_and_moments's
         # own `is_disc = discrete || is_discrete_` dispatch exactly: a graph
@@ -6935,9 +6957,25 @@ extern "C" {{
         # passes discrete=False (test_is_discrete_propagates_without_per_call_flag),
         # so the exact-grad gate must follow the SAME effective flag or it would
         # silently apply the continuous Jacobian to a discrete forward.
+        _grad_logger = get_logger(__name__)
         _wm = serialized.get('weight_mode', 'linear')
         _effective_discrete = bool(discrete) or bool(serialized.get('is_discrete', False))
-        _exact_grad_enabled = (bool(exact_moment_grad) and _wm in (None, 'linear'))
+        if not bool(exact_moment_grad):
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact_moment_grad=False -- using "
+                "finite differences for the moments gradient."
+            )
+            _exact_grad_enabled = False
+        elif _wm not in (None, 'linear'):
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact moment gradient not "
+                "available for weight_mode=%r (only None/'linear' is "
+                "supported) -- using finite differences for the moments "
+                "gradient.", _wm
+            )
+            _exact_grad_enabled = False
+        else:
+            _exact_grad_enabled = True
         _exact_moments_jac_np = None
         if _exact_grad_enabled:
             _exact_graph = graph.clone()
@@ -6946,7 +6984,8 @@ extern "C" {{
             def _exact_moments_jac_np(theta_np):
                 # Host callback: set the private clone's weights at θ and read the
                 # exact moment-vector Jacobian d[m]/dθ (nr_moments × param_length)
-                # from C. NaNs when the exact path is not applicable → FD fallback.
+                # from C. NaNs when the exact path is not applicable → FD fallback
+                # (logged at INFO, see _one() below).
                 th = np.asarray(theta_np, dtype=np.float64)
                 _shape = (_exact_K, param_length)
 
@@ -6959,6 +6998,14 @@ extern "C" {{
                     else:
                         J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
                                        dtype=np.float64)
+                    if J.size != _exact_K * param_length:
+                        _grad_logger.info(
+                            "pmf_and_moments_from_graph: exact moment gradient "
+                            "declined at theta=%s (ill-conditioned elimination "
+                            "tape, or -- for a was_dph graph -- a vertex mixing "
+                            "a constant and a parameterized out-edge) -- using "
+                            "finite differences for this step.", t.tolist()
+                        )
                     return (J.reshape(_shape) if J.size == _exact_K * param_length
                             else np.full(_shape, np.nan))
 

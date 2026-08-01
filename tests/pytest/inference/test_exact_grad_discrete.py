@@ -12,6 +12,9 @@ for the math (renorm quotient-rule Jacobian + discrete moment correction).
 Every assertion is anchored to an INDEPENDENT oracle: native central-difference
 of graph.moments(K, discrete=True) (never the exact-grad code path itself).
 """
+import contextlib
+import logging
+
 import numpy as np
 import pytest
 
@@ -163,20 +166,27 @@ def test_exact_grad_vmap_matches_fd_was_dph():
 
 
 # --------------------------------------------------------------------------- default path unchanged
-def test_default_path_byte_identical_to_fd_discrete():
-    """exact_moment_grad defaults to False: the discrete path must be
-    completely unaffected (byte-identical FD), same guarantee as the
-    continuous default."""
+def test_default_path_byte_identical_to_explicit_exact_discrete():
+    """exact_moment_grad now defaults to True: omitting the kwarg must be
+    byte-identical to passing exact_moment_grad=True explicitly (same
+    guarantee as the continuous default), and explicit exact_moment_grad=False
+    must still give the (different, FD-based) result -- no silent behavior
+    change depending on how the kwarg is spelled."""
     theta = jnp.asarray([0.3, 0.4])
     times = jnp.asarray([2.0, 3.0])
     model_default = Graph.pmf_and_moments_from_graph(
         _erlang().discretize(0.5), nr_moments=2, discrete=True)
+    model_exact_explicit = Graph.pmf_and_moments_from_graph(
+        _erlang().discretize(0.5), nr_moments=2, discrete=True, exact_moment_grad=True)
     model_fd_explicit = Graph.pmf_and_moments_from_graph(
         _erlang().discretize(0.5), nr_moments=2, discrete=True, exact_moment_grad=False)
 
     g_default = np.asarray(jax.grad(lambda th: jnp.sum(model_default(th, times)[1]))(theta))
+    g_exact = np.asarray(jax.grad(lambda th: jnp.sum(model_exact_explicit(th, times)[1]))(theta))
     g_fd = np.asarray(jax.grad(lambda th: jnp.sum(model_fd_explicit(th, times)[1]))(theta))
-    np.testing.assert_array_equal(g_default, g_fd)
+    np.testing.assert_array_equal(g_default, g_exact)
+    assert _rel(g_default, g_fd) < 1e-4  # FD is still a close approximation, just not identical
+    assert not np.array_equal(g_default, g_fd)  # but genuinely a different code path
 
 
 # --------------------------------------------------------------------------- MPFR decline -> FD fallback
@@ -191,3 +201,75 @@ def test_exact_grad_falls_back_to_fd_at_extreme_condition():
     times = jnp.asarray([2.0, 3.0])
     grad = np.asarray(jax.grad(lambda th: jnp.sum(model(th, times)[1]))(theta))
     assert np.all(np.isfinite(grad))
+
+
+# --------------------------------------------------------------------------- no silent fallback: INFO logging
+class _CollectingHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+@contextlib.contextmanager
+def _capture_phasic_info_logs():
+    """The 'phasic' logger has propagate=False (logging_config.py), so
+    pytest's caplog (root-based) never sees its records. Attach a handler
+    directly and force the level to INFO for the duration of the test,
+    restoring both afterward."""
+    logger = logging.getLogger('phasic')
+    handler = _CollectingHandler()
+    handler.setLevel(logging.INFO)
+    previous_level = logger.level
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    try:
+        yield handler
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(previous_level)
+
+
+def test_no_silent_fallback_logs_on_explicit_fd():
+    """exact_moment_grad=False must log why FD is being used -- never silent."""
+    with _capture_phasic_info_logs() as handler:
+        model = Graph.pmf_and_moments_from_graph(
+            _erlang().discretize(0.5), nr_moments=2, discrete=True, exact_moment_grad=False)
+        jax.grad(lambda th: jnp.sum(model(th, jnp.asarray([2.0, 3.0]))[1]))(jnp.asarray([0.3, 0.4]))
+    messages = [r.getMessage() for r in handler.records]
+    assert any("exact_moment_grad=False" in m and "finite differences" in m for m in messages)
+
+
+def test_no_silent_fallback_logs_on_out_of_scope_weight_mode():
+    """A weight_mode outside {None,'linear'} must log why exact grad was
+    skipped, even though exact_moment_grad defaults to True."""
+    g = _erlang()
+    g.weight_mode = 'log'
+    with _capture_phasic_info_logs() as handler:
+        Graph.pmf_and_moments_from_graph(g, nr_moments=2)
+    messages = [r.getMessage() for r in handler.records]
+    assert any("weight_mode" in m and "finite differences" in m for m in messages)
+
+
+def test_no_silent_fallback_logs_on_dynamic_decline():
+    """An ill-conditioned theta (MPFR decline) must log why FD was used for
+    that step, in addition to staying finite (test above)."""
+    model = Graph.pmf_and_moments_from_graph(
+        _erlang().discretize(0.5), nr_moments=2, discrete=True, exact_moment_grad=True)
+    with _capture_phasic_info_logs() as handler:
+        jax.grad(lambda th: jnp.sum(model(th, jnp.asarray([2.0, 3.0]))[1]))(jnp.asarray([1.0, 1e-13]))
+    messages = [r.getMessage() for r in handler.records]
+    assert any("declined at theta" in m and "finite differences" in m for m in messages)
+
+
+def test_default_is_silent_when_exact_succeeds():
+    """No FD-related log line should appear when the exact path is used
+    successfully (the default, well-conditioned case) -- logging should be
+    informative about DEVIATIONS from the default, not routine noise."""
+    model = Graph.pmf_and_moments_from_graph(_erlang().discretize(0.5), nr_moments=2, discrete=True)
+    with _capture_phasic_info_logs() as handler:
+        jax.grad(lambda th: jnp.sum(model(th, jnp.asarray([2.0, 3.0]))[1]))(jnp.asarray([0.3, 0.4]))
+    messages = [r.getMessage() for r in handler.records]
+    assert not any("finite differences" in m for m in messages)
