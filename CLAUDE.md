@@ -131,6 +131,25 @@ out of scope for that pass:
   `pmf_and_moments_from_graph` (so it inherits the default-on exact path and
   its logging automatically), but a caller cannot force FD directly through
   this entry point — only by editing the underlying 1-D model construction.
+- **Reverse-tape skeleton duplication** (flagged during the log-weight-mode
+  batch, `b3-log-weight-mode-plan.md`). `ptd_moments_grad_theta` (linear),
+  `ptd_moments_grad_theta_dph` (discrete/was_dph), and
+  `ptd_moments_grad_theta_log` (log) in `src/c/phasic.c` are three
+  near-identical (~150 line) copies of the same stage-0 (forward moment
+  chain + MPFR gate) / stage-1 (reverse chain) / stage-2 (param-tape
+  reverse) skeleton — only the per-edge contraction step differs. A bug
+  (the coefficient-length-0 tape-input skip) already had to be fixed
+  identically in two copies during the discrete batch. An adversarial
+  review of the log-mode plan argued for extracting the shared core into
+  one static helper (verifiable via re-running the three existing gates —
+  `dr_moments_jac_gate.py`, `dr_mpfr_gate_test.py`,
+  `dr_dph_moments_jac_gate.py`, `dr_log_mode_moments_jac_gate.py` — as a
+  value-identical check) before any further weight-mode variant is added.
+  Deliberately NOT done unilaterally: this repo has an explicit, repeatedly
+  stated preference for purely additive changes
+  ([[feedback_no_modify_existing]]), and refactoring shipped, gate-verified
+  functions is exactly the kind of change that preference means asking
+  about first. Worth doing before a 4th variant (`'formula'`) is attempted.
 
 None of these are regressions from the default flip (the multivariate/
 moments_from_graph/method_of_moments gaps predate it and were never in
