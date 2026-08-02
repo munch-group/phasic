@@ -33,8 +33,13 @@ def two_param_dense():
 
 
 def three_param_two_edge():
-    """4-vertex chain, 3 params, two edges each using all 3 params
-    (dense, sibling-independent -- exercises P>2 and multiple edges)."""
+    """4-vertex chain, 3 params, two edges each using all 3 params.
+
+    NOTE (found via adversarial review): both edges' coefficient PRODUCTS
+    are equal (1.0*0.5*2.0 == 2.0*1.0*0.5 == 1.0), so in log mode the two
+    edges are numerically indistinguishable at every theta -- this fixture
+    alone cannot catch an edge-index-mapping bug in the C contraction. See
+    four_param_branching below for one that can."""
     g = Graph(1)
     s = g.starting_vertex()
     v3 = g.find_or_create_vertex([3])
@@ -45,6 +50,39 @@ def three_param_two_edge():
     v2.add_edge_parameterized(v1, 0.0, [2.0, 1.0, 0.5])
     g.weight_mode = 'log'
     return g
+
+
+def four_param_branching():
+    """5-vertex graph with a BRANCHING vertex (v3 has two out-edges) and 4
+    params, where every edge's coefficient product is genuinely different
+    (1.0, 10.5, 1.5, 0.5) -- the four edges have distinguishable weight
+    values at every theta, so an edge-index-mapping bug would be caught."""
+    g = Graph(1)
+    s = g.starting_vertex()
+    v3 = g.find_or_create_vertex([3])
+    v2 = g.find_or_create_vertex([2])
+    v1 = g.find_or_create_vertex([1])
+    v0 = g.find_or_create_vertex([0])
+    s.add_edge(v3, 1.0)
+    v3.add_edge_parameterized(v2, 0.0, [2.0, 0.1, 5.0, 1.0])     # prod c = 1.0
+    v3.add_edge_parameterized(v1, 0.0, [0.5, 3.0, 1.0, 7.0])     # prod c = 10.5 (branch)
+    v2.add_edge_parameterized(v0, 0.0, [1.0, 2.0, 0.25, 3.0])    # prod c = 1.5
+    v1.add_edge_parameterized(v0, 0.0, [4.0, 0.5, 2.0, 0.125])   # prod c = 0.5
+    g.weight_mode = 'log'
+    return g
+
+
+def closed_form_log_mode_jacobian(theta, m):
+    """Exact oracle for ANY log-mode graph: in log mode w_e =
+    prod_i(c_e[i]*theta_i) = (prod_i theta_i) * (prod_i c_e[i]) -- the
+    theta-product factors out identically across every edge, so the raw
+    moments are homogeneous of degree -r in theta: m_r(theta) =
+    m_r(1)*(prod_i theta_i)^(-r), giving dm_r/dtheta_j = -r*m_r/theta_j
+    exactly, independent of the specific graph topology/coefficients."""
+    theta = np.asarray(theta, dtype=np.float64)
+    m = np.asarray(m, dtype=np.float64)
+    K, P = len(m), len(theta)
+    return np.array([[-(k + 1) * m[k] / theta[j] for j in range(P)] for k in range(K)])
 
 
 def native_moments(build, theta, K):
@@ -94,6 +132,22 @@ def main():
     ok_all &= check_case("two_param_dense", two_param_dense, [0.5, 5.0], 2)
     ok_all &= check_case("three_param_two_edge", three_param_two_edge, [1.0, 2.0, 0.5], 2)
     ok_all &= check_case("three_param_two_edge", three_param_two_edge, [1.0, 2.0, 0.5], 3)
+
+    print("\n=== branching, distinguishable-edge fixture vs EXACT closed form (not CD) ===")
+    theta_b = [1e3, 1e-2, 5.0, 0.2]
+    K_b = 3
+    g_native = four_param_branching()
+    g_native.update_weights(theta_b, log=True)
+    m_b = np.asarray(g_native.moments(K_b))
+    J_closed = closed_form_log_mode_jacobian(theta_b, m_b)
+    g_exact = four_param_branching()
+    g_exact.update_weights(theta_b, log=True)
+    J_exact = np.asarray(g_exact._moments_grad_theta_log(K_b, theta_b)).reshape(K_b, 4)
+    err_b = np.max(np.abs(J_closed - J_exact) / np.maximum(np.abs(J_closed), 1e-300))
+    ok_b = err_b < 1e-9
+    print(f"  four_param_branching theta={theta_b}: max_rel_err(closed_form, exact)={err_b:.3e} "
+          f"{'OK' if ok_b else 'FAIL'}")
+    ok_all &= ok_b
 
     print("\n=== mixed-scale theta (log mode) ===")
     ok_all &= check_case("two_param_dense mixed", two_param_dense, [1.0, 1e-3], 2,

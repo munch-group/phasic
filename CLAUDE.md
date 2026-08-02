@@ -58,7 +58,7 @@ Parameter inference methods are `Graph` methods: `svgd()` (Stein Variational Gra
 
 ### Parameterized edges & weight modes
 
-Edges can carry coefficient vectors and be re-weighted per θ via `update_weights(theta)`. Weight modes: **linear/log** (dot product of edge coefficients with θ — lengths must match), or **callback/formula** (`weight_formula.py`, a small expression language over `t0..` = θ and `c0..` = full coefficients, allowing auxiliary data in coefficients beyond θ). `theta_dim` is the parameter dimension; for formula/callback modes it is resolved at inference time rather than at construction.
+Edges can carry coefficient vectors and be re-weighted per θ via `update_weights(theta)`. Weight modes: **linear** (dot product of edge coefficients with θ: `w = Σ c_k θ_k` — lengths must match), **log** (PRODUCT of edge coefficients with θ, computed in log-space for stability: `w = Π(c_k θ_k)` over ALL k, requiring every `c_k θ_k > 0` — this is NOT a dot product and NOT "θ on a log scale"; conflating the two produced a real bug, see the B3 log-weight-mode gradient below), or **callback/formula** (`weight_formula.py`, a small expression language over `t0..` = θ and `c0..` = full coefficients, allowing auxiliary data in coefficients beyond θ). `theta_dim` is the parameter dimension; for formula/callback modes it is resolved at inference time rather than at construction.
 
 ### State indexing
 
@@ -87,16 +87,22 @@ The **builder-based** (`θ → Graph` *function*) likelihood API `Graph.pmf_from
 ### B3 exact moment gradient (`exact_moment_grad`, now default `True`) — known gaps, flagged not fixed
 
 `Graph.pmf_and_moments_from_graph`'s exact reverse-mode moment-vector adjoint
-(continuous + discrete/was_dph, `weight_mode='linear'`) defaults to `True`
-as of commit `f89b5b2b`; FD is used (and logged at INFO) only when out of
-scope or explicitly requested. Found via adversarial review of that
-default-flip (three independent review passes tasked with refuting, not
-confirming); two real bugs surfaced there were fixed (rewards silently
-ignored by the exact Jacobian, commit `315ce9c8`; a gradient-norm-clip
-defect in `svgd_step` that could crush healthy particles' gradients when a
-majority of a batch diverges simultaneously, commit `839a6400`). The
-following were flagged during that same review but judged lower-severity /
-out of scope for that pass:
+(continuous + discrete/was_dph for `weight_mode='linear'`; continuous only
+for `weight_mode='log'`, added in the log-weight-mode batch,
+`b3-log-weight-mode-plan.md`) defaults to `True` as of commit `f89b5b2b`;
+FD is used (and logged at INFO) only when out of scope or explicitly
+requested. Found via adversarial review of the default-flip (three
+independent review passes tasked with refuting, not confirming); two real
+bugs surfaced there were fixed (rewards silently ignored by the exact
+Jacobian, commit `315ce9c8`; a gradient-norm-clip defect in `svgd_step` that
+could crush healthy particles' gradients when a majority of a batch
+diverges simultaneously, commit `839a6400`). A separate adversarial review
+of the log-weight-mode PLAN (before any C was written) caught two more
+would-be bugs pre-emptively (the private clone needed `update_weights(t,
+log=True)`; `discretize()`+`log` does not always fail elsewhere, so the
+was_dph/is_discrete exclusion is load-bearing, not defensive) — see
+`b3-log-weight-mode-plan.md` D1. The following were flagged across these
+reviews but judged lower-severity / out of scope for those passes:
 
 - **fwd/bwd inconsistency at rate-blowup.** When the primal hits the
   existing `_rate_blowup_penalty` (theta implies an uncomputable rate; the
@@ -104,10 +110,10 @@ out of scope for that pass:
   FD correctly differentiates through that penalty (its probes re-evaluate
   the same fail-soft forward, so the FD slope reflects the penalty), but the
   exact path has no equivalent guard — `ptd_moments_grad_theta` /
-  `ptd_moments_grad_theta_dph` just compute the true analytic Jacobian of
-  the (never-computed) real moments, as if the penalty hadn't fired. No
-  test currently exercises this combination (exact_moment_grad=True at a
-  theta past the rate-blowup threshold).
+  `ptd_moments_grad_theta_dph` / `ptd_moments_grad_theta_log` just compute
+  the true analytic Jacobian of the (never-computed) real moments, as if
+  the penalty hadn't fired. No test currently exercises this combination
+  (exact_moment_grad=True at a theta past the rate-blowup threshold).
 - **Unguarded "slow band" in continuous PDF cost.** Between a "normal" rate
   and the much higher threshold where `_is_rate_blowup`/the native step-cap
   actually fires (~2.5e8, `src/phasic/__init__.py` `_RATE_BLOWUP_EXC`

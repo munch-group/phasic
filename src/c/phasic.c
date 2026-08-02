@@ -11037,7 +11037,12 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
              * ptd_moments_grad_theta_dph even though a directly-constructed
              * parameterized start edge was NOT found to register as a tape
              * input in practice (verified empirically against the shipped
-             * linear function; see b3-log-weight-mode-plan.md). */
+             * linear function; see b3-log-weight-mode-plan.md). NOTE: this
+             * guard's unreachability currently rests on
+             * _graph_serialize.py's `if False:` around start_param_edges
+             * (serialize() never emits a parameterized start edge) -- if a
+             * future change revives that branch, re-verify this guard is
+             * still exercised/correct rather than assuming it stays dead. */
             if (graph->vertices[sp.v] == graph->starting_vertex) continue;
             struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
             if (e->coefficients_length == 0) continue;
