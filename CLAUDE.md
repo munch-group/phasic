@@ -83,3 +83,60 @@ The **builder-based** (`θ → Graph` *function*) likelihood API `Graph.pmf_from
 - **F-001** — its `discrete=True` C wrapper still calls `g.normalize()` on the raw graph. For a native DPH that continuous normalize collapses the chain to a deterministic walk (and zeroes the gradient) — the same defect fixed as "bug 4" in `pmf_from_cpp` (which documents "NO normalize() here").
 
 **Revival checklist:** (1) call `_ensure_jax_active()` at the top of the returned model fn (fix 5a); (2) declare the `pure_callback` result dtype as `times.dtype` / F64, not `jnp.float32` (fix 5b); (3) delete the `g.normalize()` in the discrete `compute_dph_pmf_from_arrays` wrapper, or reject row-sum > 1 (fix F-001, mirroring `pmf_from_cpp`); (4) un-skip and strengthen its tests in `tests/pytest/inference/test_jax_integration.py` (`TestPMFFromGraphParameterized`, `TestJAXGradients`, and `test_jit_parameterized` / `test_jit_with_grad` / `test_vmap_over_parameters` / `test_vmap_nested`, currently `@pytest.mark.skip`) so they assert **values** against a native oracle (they only checked `pmf.shape` before, which is why the normalize bug went unnoticed); add a discrete cross-path gate (`pmf_from_graph_parameterized` == `pmf_from_cpp` == FFI, vs a NegBinomial closed form) on a row-sum≠1 graph. Only worth doing if the builder-function style is actually wanted — otherwise the graph-based API fully covers it.
+
+### B3 exact moment gradient (`exact_moment_grad`, now default `True`) — known gaps, flagged not fixed
+
+`Graph.pmf_and_moments_from_graph`'s exact reverse-mode moment-vector adjoint
+(continuous + discrete/was_dph, `weight_mode='linear'`) defaults to `True`
+as of commit `f89b5b2b`; FD is used (and logged at INFO) only when out of
+scope or explicitly requested. Found via adversarial review of that
+default-flip (three independent review passes tasked with refuting, not
+confirming); two real bugs surfaced there were fixed (rewards silently
+ignored by the exact Jacobian, commit `315ce9c8`; a gradient-norm-clip
+defect in `svgd_step` that could crush healthy particles' gradients when a
+majority of a batch diverges simultaneously, commit `839a6400`). The
+following were flagged during that same review but judged lower-severity /
+out of scope for that pass:
+
+- **fwd/bwd inconsistency at rate-blowup.** When the primal hits the
+  existing `_rate_blowup_penalty` (theta implies an uncomputable rate; the
+  forward returns a fixed 0-moments penalty instead of the real PMF/moments),
+  FD correctly differentiates through that penalty (its probes re-evaluate
+  the same fail-soft forward, so the FD slope reflects the penalty), but the
+  exact path has no equivalent guard — `ptd_moments_grad_theta` /
+  `ptd_moments_grad_theta_dph` just compute the true analytic Jacobian of
+  the (never-computed) real moments, as if the penalty hadn't fired. No
+  test currently exercises this combination (exact_moment_grad=True at a
+  theta past the rate-blowup threshold).
+- **Unguarded "slow band" in continuous PDF cost.** Between a "normal" rate
+  and the much higher threshold where `_is_rate_blowup`/the native step-cap
+  actually fires (~2.5e8, `src/phasic/__init__.py` `_RATE_BLOWUP_EXC`
+  comment), the continuous PDF's uniformization cost scales with
+  rate·granularity·Σt with no guard at all. The `svgd_step` gradient-norm
+  clip (`_GRAD_NORM_CLIP_MULT`, `src/phasic/svgd.py`) makes a particle
+  landing in this band far less likely (it damps the update that would
+  fling a particle there) but does not structurally prevent it — a
+  different model/regularization/seed could still land a particle in the
+  slow band and pay the cost every iteration thereafter.
+- **`Graph.moments_from_graph` and `Graph.method_of_moments` are entirely
+  separate FD-only code paths**, untouched by the exact-grad work.
+  `moments_from_graph` has its own `custom_vjp` with an unconditional
+  central-difference backward (`src/phasic/__init__.py`, no
+  `exact_moment_grad` param, no logging). `method_of_moments.py` hands its
+  model to `scipy.optimize.least_squares` with no `jac=`, so scipy computes
+  its own internal FD Jacobian, independent of `exact_moment_grad`, with no
+  visibility either way.
+- **`pmf_and_moments_from_graph_multivariate` has no `exact_moment_grad`
+  passthrough kwarg.** It composes correctly via per-feature calls to
+  `pmf_and_moments_from_graph` (so it inherits the default-on exact path and
+  its logging automatically), but a caller cannot force FD directly through
+  this entry point — only by editing the underlying 1-D model construction.
+
+None of these are regressions from the default flip (the multivariate/
+moments_from_graph/method_of_moments gaps predate it and were never in
+scope; the rate-blowup and slow-band gaps are pre-existing robustness edges
+that the clip merely makes less likely to hit). Worth a dedicated follow-up
+pass: de-risk each fix independently (as with the two bugs already found),
+and put every plan and every fix through adversarial review before
+merging — the two real defects fixed this session were both found by
+review, not by the original implementation or its own tests.
