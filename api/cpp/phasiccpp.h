@@ -582,6 +582,22 @@ namespace phasic {
             return J;
         }
 
+        // B3 log-weight-mode extension (production): exact d[m]/dtheta Jacobian
+        // for a continuous, weight_mode='log' parameterized graph. theta must
+        // match what the caller most recently passed to
+        // update_weights(theta, log=True). Returned FLAT (row-major
+        // nr_moments*param_length). Empty => not applicable (caller falls back
+        // to FD; e.g. the graph is discrete/was_dph, or MPFR-conditioned).
+        std::vector<double> moments_grad_theta_log(int nr_moments, std::vector<double> theta) {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            if (P == 0 || nr_moments < 1 || theta.size() != P) return std::vector<double>();
+            std::vector<double> J(static_cast<size_t>(nr_moments) * P, 0.0);
+            int rc = ptd_moments_grad_theta_log(this->c_graph(), nr_moments,
+                                                theta.data(), theta.size(), J.data());
+            if (rc != 0) return std::vector<double>();
+            return J;
+        }
+
         // ------------------------------------------------------------------
         // Python-API-name parity (additive).
         //

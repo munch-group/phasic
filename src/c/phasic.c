@@ -10880,6 +10880,184 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
     return ok ? 0 : -1;
 }
 
+/* ===== B3 log-weight-mode extension: exact Jacobian d[m_0..m_{K-1}]/dtheta
+ * for a CONTINUOUS, weight_mode='log' parameterized graph. Reuses
+ * ptd_moments_grad_theta's stage-0 (forward moment chain + MPFR gate) /
+ * stage-1 (reverse chain) / stage-2 (param-tape reverse) VERBATIM -- proven
+ * agnostic to how edge->weight relates to theta (the was_dph batch already
+ * established this; the reverse only ever reads the current edge->weight as
+ * an opaque free variable). The only new math is the edge->theta
+ * contraction: weight_mode='log' computes w_e = exp(sum_i log(c_e[i]*theta[i]))
+ * over ALL i in 0..param_length-1 (every parameterized edge multiplies EVERY
+ * theta component, unlike linear's sparse dot product), so by the product
+ * rule dw_e/dtheta_j = w_e/theta_j for every j. The C layer's update_weights
+ * already requires every c_e[i]*theta[i] > 0 strictly (raises otherwise), so
+ * in any graph that reaches this function no theta[j] is ever exactly 0 --
+ * the division is safe by construction, not something this function needs
+ * to additionally guard. Verified build-free vs jax.jacobian of the same
+ * log-space computation (experiments/dr_log_mode_edge_jacobian.py, ALL PASS,
+ * incl. mixed/extreme-mixed scale) and against native central-difference
+ * (experiments/dr_log_mode_moments_jac_gate.py).
+ *
+ * Declines (-1, FD fallback) for a was_dph graph: log+discretize() is NOT
+ * guaranteed to fail at update_weights (confirmed by direct repro --
+ * discretize() via a callable rate does not widen the coefficient layout
+ * and can pass log's positivity check), so this exclusion is load-bearing,
+ * not defensive redundancy. See b3-log-weight-mode-plan.md. NOTE:
+ * is_discrete (native DPH, was_dph=False) has NO C-level ptd_graph field --
+ * it is a Python-only attribute reaching C++ only via serialize()'s JSON for
+ * the GraphBuilder/FFI forward path, never onto the raw C struct -- so it
+ * cannot be checked here. The caller (pmf_and_moments_from_graph's Python
+ * gate) MUST exclude is_discrete before ever calling this function; was_dph
+ * is checked here only as an additional safety net for the subset of
+ * is_discrete graphs that DO set it.
+ *
+ * theta/theta_len must match the values the caller most recently passed to
+ * update_weights(theta, log=True). J_out is row-major nr_moments*param_length. */
+int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len, double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    if (graph->was_dph) return -1;
+    size_t P = graph->param_length, K = (size_t)nr_moments;
+    if (theta_len != P) return -1;
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+    size_t target = 0;
+    double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
+    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t k=0;k<ni;++k) inv[k]=*off->inputs[k];
+    double *s0=(double*)malloc((L?L:1)*sizeof(double));
+    double *s1=(double*)malloc((L?L:1)*sizeof(double));
+    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    double *nm=(double*)malloc((L?L:1)*sizeof(double));
+    size_t nc=0;
+#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+    for (size_t i=0;i<L;++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
+        switch (c.type) {
+            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
+            case 1: *rf += (*rt)*c.multiplier; break;
+            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
+            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
+            case 4: *rf = 1.0 - *rf; break;
+            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
+            case 6: *rf = 0.0; break;
+            default: break;
+        }
+    }
+    if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
+        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+        ptd_pcg_desc_off_destroy(off);
+        ptd_parameterized_reward_compute_graph_destroy(ptape);
+        return -1;
+    }
+    double *seeds = (double*)malloc((K+1)*n*sizeof(double));
+    double *snaptos = (double*)malloc((K?K:1)*(nc?nc:1)*sizeof(double));
+    for (size_t v=0; v<n; ++v) seeds[v]=1.0;
+    for (size_t j=1;j<=K;++j) {
+        double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
+        for (size_t v=0; v<n; ++v) out[v]=seed[v];
+        for (size_t c=0;c<nc;++c) {
+            st[c]=out[nb[c]]; double m=nm[c];
+            if (isinf(m) && out[nb[c]]==0.0) continue;
+            if (m!=0.0) out[na[c]] += out[nb[c]]*m;
+        }
+    }
+    int ok=1;
+    double *dm=(double*)malloc((nc?nc:1)*sizeof(double));
+    double *bar_out=(double*)malloc(n*sizeof(double));
+    double *adj=(double*)malloc(n*sizeof(double));
+    double *bmem=(double*)malloc(md*sizeof(double));
+    double *binp=(double*)malloc((ni?ni:1)*sizeof(double));
+#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
+    for (size_t outk=0; ok && outk<K; ++outk) {
+        for (size_t c=0;c<nc;++c) dm[c]=0.0;
+        for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
+        for (size_t j=K; j>=1; --j) {
+            for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
+            if (outk == j-1) {
+                double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
+                adj[target] += fac;
+            }
+            double *st = snaptos + (j-1)*nc;
+            for (long c=(long)nc-1;c>=0;--c) {
+                double m=nm[c];
+                if (isinf(m) && st[c]==0.0) continue;
+                dm[c] += adj[na[c]] * st[c];
+                if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
+            }
+            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];
+            if (j==1) break;
+        }
+        for (size_t i=0;i<md;++i) bmem[i]=0.0;
+        for (size_t k=0;k<ni;++k) binp[k]=0.0;
+        long numptr=(long)nc-1;
+        for (long i=(long)L-1;i>=0;--i) {
+            struct ptd_pcg_command_off c = off->commands[i];
+            double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
+            switch (c.type) {
+                case 0: if (bm) *bm += dm[numptr]; numptr--; break;
+                case 1: *bt += (*bf)*c.multiplier; break;
+                case 3: { double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break;
+                case 2: *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;
+                case 4: *bf = -(*bf); break;
+                case 5: { double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break;
+                case 6: *bf = 0.0; break;
+                default: break;
+            }
+        }
+        /* contract edge -> theta into J_out row outk: log-mode product rule,
+         * dw_e/dtheta_j = w_e/theta_j for ALL j (every param multiplies into
+         * every log-mode edge -- not conditioned on coefficients[j], unlike
+         * linear). */
+        for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
+        for (size_t k=0; k<ni; ++k) {
+            struct ptd_pcg_input_spec sp = off->input_specs[k];
+            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                    || sp.v >= graph->vertices_length
+                    || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
+            /* Same tape-input hygiene as the linear/dph functions: a
+             * coefficient-less constant edge's weight never depends on
+             * theta (contributes 0); a starting-vertex edge's weight is
+             * never recomputed by update_weights regardless of mode (its
+             * true dw/dtheta is 0 too) -- included for consistency with
+             * ptd_moments_grad_theta_dph even though a directly-constructed
+             * parameterized start edge was NOT found to register as a tape
+             * input in practice (verified empirically against the shipped
+             * linear function; see b3-log-weight-mode-plan.md). */
+            if (graph->vertices[sp.v] == graph->starting_vertex) continue;
+            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+            if (e->coefficients_length == 0) continue;
+            for (size_t j=0;j<P;++j) {
+                J_out[outk*P + j] += binp[k] * (e->weight / theta[j]);
+            }
+        }
+    }
+    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
+
+    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+    free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+#undef RV
+#undef RB
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    return ok ? 0 : -1;
+}
+/* =============================================================================*/
+
 /* ===== B3 discrete/was_dph extension: small combinatorial helpers for the
  * continuous->discrete moment correction. Mirror GraphBuilder's file-local
  * d_factorial/d_binomial/d_stirling2 (graph_builder.cpp:672-683) exactly;

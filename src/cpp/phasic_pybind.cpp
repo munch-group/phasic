@@ -1923,6 +1923,14 @@ str
       "d[discrete m]/dtheta, flat row-major (nr_moments*param_length); "
       "theta must match the values most recently passed to update_weights(); "
       "empty => not applicable (FD fallback).")
+    .def("_moments_grad_theta_log", &phasic::Graph::moments_grad_theta_log,
+      py::arg("nr_moments"), py::arg("theta"),
+      py::call_guard<py::gil_scoped_release>(),
+      "B3 log-weight-mode: exact moment-vector Jacobian d[m]/dtheta for a "
+      "continuous weight_mode='log' graph, flat row-major "
+      "(nr_moments*param_length); theta must match the values most recently "
+      "passed to update_weights(theta, log=True); empty => not applicable "
+      "(FD fallback).")
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::arg("indices") = std::vector<size_t>(),
       py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(

@@ -487,6 +487,18 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
 int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
         const double *theta, size_t theta_len, double *J_out);
 
+/* B3 log-weight-mode extension: exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta
+ * for a CONTINUOUS, weight_mode='log' parameterized graph (w_e =
+ * exp(sum_i log(c_e[i].theta_i)), product rule dw_e/dtheta_j = w_e/theta_j).
+ * theta/theta_len must match the values the caller most recently passed to
+ * update_weights(theta, log=True). J_out must hold
+ * nr_moments*graph->param_length doubles (row-major). Returns 0 on success;
+ * -1 for FD fallback (declines on MPFR-conditioned tapes, or if the graph is
+ * discrete/was_dph -- that combination is not supported, see
+ * b3-log-weight-mode-plan.md). */
+int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len, double *J_out);
+
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
 bool ptd_graph_is_acyclic(struct ptd_graph *graph);
