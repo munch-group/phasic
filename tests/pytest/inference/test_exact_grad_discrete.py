@@ -243,10 +243,15 @@ def test_no_silent_fallback_logs_on_explicit_fd():
 
 
 def test_no_silent_fallback_logs_on_out_of_scope_weight_mode():
-    """A weight_mode outside {None,'linear'} must log why exact grad was
-    skipped, even though exact_moment_grad defaults to True."""
+    """A weight_mode outside {None,'linear','log'} must log why exact grad
+    was skipped, even though exact_moment_grad defaults to True.
+    weight_mode='callback' is permanently out of scope (an arbitrary Python
+    function is not analytically differentiable in general) -- 'log' moved
+    IN scope in the log-weight-mode batch, so it can no longer serve as the
+    out-of-scope example here (see test_exact_grad_log_weight_mode.py for
+    log-mode coverage)."""
     g = _erlang()
-    g.weight_mode = 'log'
+    g.weight_callback = lambda theta, coefficients: float(coefficients[0] * theta[0])
     with _capture_phasic_info_logs() as handler:
         Graph.pmf_and_moments_from_graph(g, nr_moments=2)
     messages = [r.getMessage() for r in handler.records]

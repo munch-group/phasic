@@ -6846,13 +6846,16 @@ extern "C" {{
             potential issues with auto-detection reading garbage memory.
         exact_moment_grad : bool, default=True
             Use the exact reverse-mode theta-adjoint for the moments gradient
-            instead of finite differences. Covers weight_mode in {None, 'linear'}
-            (continuous and discrete, including Graph.discretize()'d graphs).
-            Whenever finite differences are used instead -- because
-            exact_moment_grad=False was passed explicitly, the graph's
-            weight_mode is out of scope (log/formula/callback), or the exact
-            computation declines at a given theta (e.g. an ill-conditioned
-            elimination tape) -- an INFO-level log message via
+            instead of finite differences. Covers weight_mode in
+            {None, 'linear'} (continuous and discrete, including
+            Graph.discretize()'d graphs) and weight_mode='log' (continuous
+            only -- a discrete/was_dph graph combined with 'log' is not
+            supported and always uses finite differences). Whenever finite
+            differences are used instead -- because exact_moment_grad=False
+            was passed explicitly, the graph's weight_mode is out of scope
+            ('formula'/'callback', or 'log' on a discrete/was_dph graph), or
+            the exact computation declines at a given theta (e.g. an
+            ill-conditioned elimination tape) -- an INFO-level log message via
             ``logging.getLogger('phasic')`` states why, so the choice of
             gradient method is never silent. Set ``PHASIC_LOG_LEVEL=INFO`` (or
             ``logging.getLogger('phasic').setLevel(logging.INFO)``) to see
@@ -6960,18 +6963,26 @@ extern "C" {{
         _grad_logger = get_logger(__name__)
         _wm = serialized.get('weight_mode', 'linear')
         _effective_discrete = bool(discrete) or bool(serialized.get('is_discrete', False))
+        # log-mode scope: continuous only. Confirmed by direct repro (not
+        # assumed) that a was_dph graph combined with weight_mode='log' is
+        # NOT guaranteed to fail elsewhere (a callable-rate discretize() can
+        # pass log's positivity check), so `not _effective_discrete` here is
+        # load-bearing, not defensive redundancy -- see
+        # b3-log-weight-mode-plan.md.
+        _log_scope_ok = (_wm == 'log' and not _effective_discrete)
+        _linear_scope_ok = (_wm in (None, 'linear'))
         if not bool(exact_moment_grad):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact_moment_grad=False -- using "
                 "finite differences for the moments gradient."
             )
             _exact_grad_enabled = False
-        elif _wm not in (None, 'linear'):
+        elif not (_linear_scope_ok or _log_scope_ok):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact moment gradient not "
-                "available for weight_mode=%r (only None/'linear' is "
-                "supported) -- using finite differences for the moments "
-                "gradient.", _wm
+                "available for weight_mode=%r (only None/'linear'/'log' -- "
+                "'log' only for continuous graphs -- is supported) -- using "
+                "finite differences for the moments gradient.", _wm
             )
             _exact_grad_enabled = False
         else:
@@ -6980,6 +6991,7 @@ extern "C" {{
         if _exact_grad_enabled:
             _exact_graph = graph.clone()
             _exact_K = int(nr_moments)
+            _exact_is_log = _log_scope_ok
 
             def _exact_moments_jac_np(theta_np):
                 # Host callback: set the private clone's weights at θ and read the
@@ -6990,10 +7002,21 @@ extern "C" {{
                 _shape = (_exact_K, param_length)
 
                 def _one(t):
-                    _exact_graph.update_weights(t)
+                    # CRITICAL: the clone's weights must be computed with the
+                    # SAME weight rule the actual model uses, or the "exact"
+                    # Jacobian would silently differentiate the wrong
+                    # function (linear dot-product weights instead of log
+                    # product weights) -- found via adversarial review of
+                    # this batch's plan BEFORE this wiring was written; see
+                    # b3-log-weight-mode-plan.md D1.1.
+                    _exact_graph.update_weights(t, log=_exact_is_log)
                     if _effective_discrete:
                         J = np.asarray(
                             _exact_graph._moments_grad_theta_dph(_exact_K, t.tolist()),
+                            dtype=np.float64)
+                    elif _exact_is_log:
+                        J = np.asarray(
+                            _exact_graph._moments_grad_theta_log(_exact_K, t.tolist()),
                             dtype=np.float64)
                     else:
                         J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
