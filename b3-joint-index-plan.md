@@ -103,12 +103,62 @@ arrays entirely, a simplification relative to reverse-mode). This gives the
    derivations agreeing this precisely is strong evidence neither has a
    compensating pair of errors.
 
-## Scope this batch: CONTINUOUS / `weight_mode='linear'` only
+## Adversarial review findings (D1) — incorporated throughout
 
-Mirrors the ORIGINAL B3 phasing exactly (continuous first, discrete/was_dph
-as a separate follow-up batch; log/formula/callback each their own
-follow-up) — each batch stays reviewable and each scope decision is
-re-derived from the CURRENT forward behavior, not assumed:
+A math-stats-checker review of this plan (before any C was written, per
+standing instruction) confirmed the core derivation (transpose duality,
+`sojourn(v) = M[target,v]`) but found four problems, all fixed in the
+sections below; a fifth was found by independently re-verifying the
+review's own claims against source (I have Bash/execution access the
+reviewer didn't in this session):
+
+1. **Segfault risk** — "coefficient-length-0 edges need no seeding guard"
+   was wrong (would dereference `NULL`). Fixed in "C implementation design"
+   above (NULL-safe seeding, matching the discrete/was_dph batch's own
+   already-fixed bug of the same class).
+2. **Silent-wrong-gradient risk** — the primal and tangent sojourn-walk
+   guards are NOT symmetric (diagonal `multiplier-1` storage means `m==0`
+   can coexist with nonzero `mdot`). Fixed in "C implementation design"
+   above; also requires extending `dr_sojourn_fwdmode_adjoint.py` to model
+   this case before D2 (see Batches, D1.5).
+3. **Overbroad scope** — deferring ALL `is_discrete` graphs (not just
+   `was_dph`) was unnecessarily conservative. Corrected in "Scope this
+   batch" above: only `was_dph` is deferred.
+4. **Undesigned host-callback/vmap wiring.** Fixed in "Wiring" above.
+5. **(found via my own independent source re-verification, not in the
+   original review) Performance-regression risk from the "two calls"
+   design was correctly flagged by the review, but the ROOT CAUSE is
+   broader than call count**: `ptd_moments_grad_theta` — the function this
+   batch's C code was drafted to mirror — rebuilds the entire `O(n^3)`
+   parameterized tape from scratch on EVERY call, with no cache reuse
+   (confirmed directly, `phasic.c:10743-10750`,`:10874-10879`), unlike the
+   PRIMAL sojourn/moments paths (`ptd_expected_sojourn_time_subset`,
+   `ptd_expected_waiting_time`) and the current FFI-based FD path
+   (`ComputeSojournTimesFfiImpl`, `graph_builder_ffi.cpp:1060-1078`), both
+   of which reuse a graph-level/per-thread cached tape and pay the `O(n^3)`
+   cost once per graph lifetime, not once per call. Copying
+   `ptd_moments_grad_theta`'s pattern verbatim — even collapsed to one call
+   — would still rebuild `O(n^3)` on every SVGD gradient step, a severe
+   regression specifically on the large joint-probability graphs (`n` up to
+   ~7×10^5) this function targets, where the current FD path pays that cost
+   only once. Fixed in "C implementation design" above: the new function
+   calls `ptd_precompute_reward_compute_graph` and reuses
+   `graph->parameterized_reward_compute_graph[_off]`, exactly like the
+   primal sojourn function already does. (This is a pre-existing gap in the
+   shipped moments/log/dph gradient functions too, but fixing THOSE is out
+   of scope here — flagged as a CLAUDE.md follow-up instead, since "never
+   modify existing code" unless asked.)
+
+## Scope this batch: CONTINUOUS + native-DPH / `weight_mode='linear'` only
+
+> **Revised after D1 adversarial review** (see "Adversarial review findings"
+> below) — the original draft deferred ALL `is_discrete` graphs alongside
+> `was_dph`. That was overbroad: `was_dph` is the only C-level exclusion this
+> function actually needs.
+
+Mirrors the ORIGINAL B3 phasing (log/formula/callback/baked-mode each their
+own follow-up) — each scope decision is re-derived from the CURRENT forward
+behavior, not assumed:
 
 - **`weight_mode='log'`**: already rejected at the FORWARD level for
   joint-index (`pmf_from_graph_joint_index` raises `ValueError` for `'log'`
@@ -121,15 +171,26 @@ re-derived from the CURRENT forward behavior, not assumed:
   its own bytecode-tape adjoint; `'callback'` is arbitrary Python, not
   analytically differentiable in general). Decline + log why, same
   no-silent-fallback pattern.
-- **`is_discrete`/`was_dph` graphs**: joint-probability graphs are
-  frequently discrete in practice (`test_sojourn_subset_adjoint.py`'s own
-  fixture parametrizes `discrete=True/False`) — this is a real, deferred
-  gap, not a corner case. Left for a dedicated follow-up because it needs
-  the SAME was_dph renormalization quotient-rule contraction derived in the
-  discrete/was_dph batch (`ptd_moments_grad_theta_dph`), combined with this
-  batch's NEW forward-mode-through-the-sojourn-recurrence — a genuinely new
-  combination that deserves its own de-risk pass, not a decision made
-  unilaterally inside this already-large batch. Decline + log why.
+- **`was_dph` graphs ONLY are deferred** (native DPH, `is_discrete=True,
+  was_dph=False`, IS in scope this batch). Verified three independent ways
+  that native DPH needs zero special-casing for this quantity: (1)
+  `ComputeSojournTimesFfiImpl` (`graph_builder_ffi.cpp:955`) has NO
+  `is_discrete`/`discrete` branch anywhere in its body (grepped directly,
+  zero matches); (2) `ptd_expected_sojourn_time_subset`
+  (`src/c/phasic.c:10206`) likewise has no `is_discrete` branch — same
+  reversed-walk code runs for both continuous and native-DPH graphs; (3)
+  precedent from the shipped moments-gradient functions: `ptd_moments_grad_theta`
+  declines ONLY on `graph->was_dph` (`phasic.c:10921`), never on
+  `is_discrete` — the existing comment there states plainly "`is_discrete`
+  (native DPH, `was_dph=False`) has NO C-level `ptd_graph` field" (`phasic.c:10907`),
+  i.e. at the C level a native-DPH graph IS a continuous/linear graph; only
+  `was_dph` (the discretize()-quotient-rule renormalization) is a genuinely
+  different computation, requiring the SAME was_dph contraction rule derived
+  in the discrete/was_dph batch (`ptd_moments_grad_theta_dph`) combined with
+  this batch's forward-mode sojourn recurrence — a new combination deserving
+  its own de-risk pass. Only `graph->was_dph` triggers the decline; the
+  Python-level gate mirrors this (no separate `is_discrete` check needed,
+  same as the log-mode batch's own gate). Decline + log why for `was_dph`.
 - **`observed_indices` baked/dedup mode** (the `custom_vmap`-batched
   unique-index path used for large-repeat-count SVGD datasets): also
   deferred. Supporting it correctly requires scatter-adding the upstream
@@ -149,46 +210,138 @@ re-derived from the CURRENT forward behavior, not assumed:
 
 ## C implementation design
 
+> **Revised after D1 adversarial review + independent verification** (see
+> "Adversarial review findings" below) — three corrections from the original
+> draft: (1) the "no seeding guard needed" claim was wrong and would
+> segfault; (2) the primal/tangent guards are NOT symmetric; (3) the tape
+> must be obtained via the graph-level CACHE, not rebuilt from scratch (the
+> original draft copied `ptd_moments_grad_theta`'s uncached pattern, which
+> would be a severe regression on the large graphs this function targets).
+
 New `int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
 const size_t *indices, size_t k, const double *theta, size_t theta_len,
 double *J_out)`:
 
-- Declines (-1, FD fallback) if `graph->was_dph` (mirrors the log-mode
-  function's decline; `is_discrete` has no C-level `ptd_graph` field, so
-  the Python wiring's `not _effective_discrete`-style gate is the load-bearing
-  check for native-DPH graphs, exactly as established for the log-mode
-  batch — the C-level `was_dph` check is a secondary net for the subset
-  that sets it).
-- Stage-0 (shared with `ptd_moments_grad_theta`, reused verbatim): build the
-  parameterized off-tape, replay once at the current theta to record
-  `(na[c], nb[c], nm[c])` and the param-tape's per-op snapshots; apply the
-  SAME `ptd_dbg_tape_needs_mpfr` gate.
-- NEW: for each of the `P` theta components, seed the param-tape TANGENT
-  with `idot[input k] = coefficients[edge for input k][j]`, propagate
-  through the param tape's arithmetic ops (P/PP/INV/ONE_MINUS/DIVIDE —
-  identical formulas to the existing `ptd_dbg_run_tape` validator, ported
-  into production rather than left validator-only) to get
-  `mdot[c] = d(nm[c])/d(theta_j)` for every numeric command; then propagate
-  `(y[], y_dot[])` TOGETHER through the sojourn recurrence (seed
-  `y[target]=1, y_dot[v]=0`; walk `c=nc-1..0`:
-  `y_dot[nb[c]] += y_dot[na[c]]*nm[c] + y[na[c]]*mdot[c]`, THEN
-  `y[nb[c]] += y[na[c]]*nm[c]`); gather `y_dot[indices[r]]` into
-  `J_out[r*P+j]` for the `k` requested indices.
-- Coefficient-length-0 / starting-vertex tape-input skip guards: N/A here —
-  those guards exist in the CONTRACTION step of the reverse-mode functions
-  (`binp[k] * coefficients[j]`); this function seeds tangents INTO the param
-  tape instead of reading gradients OUT of it, so a coefficient-less or
-  starting-vertex edge simply gets `idot=0` naturally (its coefficient row
-  is all-zero or it's never an `off->inputs[]` entry at all) — no separate
-  guard needed, but this equivalence should be spot-checked in the gate,
-  not assumed.
+- Declines (-1, FD fallback) if `graph->was_dph` (see scope section above —
+  this is the ONLY C-level exclusion needed; native DPH needs none).
+- **Stage-0: obtain the tape via the CACHE, not a fresh rebuild.** Call
+  `ptd_precompute_reward_compute_graph(graph)` first — the SAME entrypoint
+  `ptd_expected_sojourn_time_subset` and `ptd_expected_waiting_time` already
+  call (`phasic.c:10208`, `:10043`), which populates/reuses
+  `graph->parameterized_reward_compute_graph` (or `..._off` on a Stage-A2
+  on-disk cache hit) exactly once per graph lifetime (invalidated only by
+  `dph_compute_invalidated`, e.g. `set_was_dph(true)`), guarded by the
+  per-graph `compute_graph_lock` mutex. Then obtain the offset form: reuse
+  `graph->parameterized_reward_compute_graph_off` if already populated
+  (cache hit), else convert the cached raw tape once via
+  `ptd_pcg_convert_to_offset(graph->parameterized_reward_compute_graph, graph, NULL, 0)`
+  — this conversion is an `O(commands)` linear pass, NOT the `O(n^3)`
+  elimination (which already ran, cached). **Do NOT call
+  `ptd_graph_ex_absorbation_time_comp_graph_parameterized[_dyn]` directly**
+  the way `ptd_moments_grad_theta` does — that call rebuilds the whole
+  `O(n^3)` tape from scratch with no cache check, and is destroyed at the
+  end of every invocation (confirmed directly, `phasic.c:10743-10750` +
+  `:10874-10879`; this is a pre-existing, already-shipped inefficiency in
+  the moments/log/dph gradient functions, tolerable there because moment
+  graphs are typically modest-sized — NOT tolerable here, where target
+  graphs are exactly the large joint-probability case, `n` up to ~7×10^5
+  per `test_sojourn_subset_adjoint.py`). This is a deliberate DIFFERENCE
+  from the pattern the other B3 gradient functions follow — not a bug in
+  them, just the wrong pattern to copy for this one. (Fixing the existing
+  functions' lack of caching is out of scope for this batch — see the new
+  CLAUDE.md follow-up note.)
+  With the cache reused, replay the tape once at the current theta to
+  record `(na[c], nb[c], nm[c])` and the param-tape's per-op snapshots
+  (same stage-0 arithmetic `ptd_moments_grad_theta` already has, lines
+  10766-10779); apply the SAME `ptd_dbg_tape_needs_mpfr` gate.
+- **Input-spec validation, done ONCE up front** (mirrors
+  `ptd_moments_grad_theta`'s contraction-step check, `phasic.c:10852-10854`,
+  but performed BEFORE seeding rather than skipped): for every tape input
+  `k`, validate `off->input_specs[k]` is `PTD_PCG_PTR_EDGE`, `byte == 0`,
+  and `v`/`e` in bounds — decline (-1) if not (out of scope, not a silent
+  wrong answer).
+- **Seeding — the corrected, NULL-safe version.** For each of the `P` theta
+  components `j`: for every tape input `k`, look up
+  `e = graph->vertices[sp.v]->edges[sp.e]`. **If
+  `e->coefficients_length == 0`, set `idot[k] = 0` WITHOUT dereferencing
+  `e->coefficients`** (it is `NULL` for such edges, not an all-zero row) —
+  this is the exact same NULL-pointer class already found and fixed in the
+  discrete/was_dph batch (`phasic.c:10856-10868`, its own comment explicitly
+  names `add_aux_vertex`/`add_aux_vertex_constant` — i.e.
+  `Graph.discretize()` and **`Graph.joint_stop_prob_graph()`** — as
+  producers of exactly such edges; joint-prob graphs are THIS function's
+  target workload, not a theoretical corner case). Otherwise
+  `idot[k] = e->coefficients[j]`. Propagate `idot[]` through the param
+  tape's arithmetic ops (P/PP/INV/ONE_MINUS/DIVIDE — identical formulas to
+  the existing `ptd_dbg_run_tape` validator, `phasic.c:10362`, ported into
+  production rather than left validator-only) to get
+  `mdot[c] = d(nm[c])/d(theta_j)` for every numeric command.
+- **Sojourn recurrence — asymmetric guards, NOT the primal's guards
+  copy-pasted onto the tangent.** Propagate `(y[], y_dot[])` TOGETHER (seed
+  `y[target]=1, y_dot[v]=0`; walk `c=nc-1..0`):
+  ```
+  for (c = nc; c-- > 0; ) {
+      a = na[c]; b = nb[c]; m = nm[c]; md = mdot[c];
+
+      // TANGENT: skip ONLY the inf-with-zero-operand case -- NOT m==0
+      if (!(isinf(m) && y[a] == 0.0))
+          y_dot[b] += y_dot[a]*m + y[a]*md;
+
+      // PRIMAL: unchanged from production -- skips on EITHER m==0 OR inf-with-zero-operand
+      if (m == 0.0) continue;
+      if (isinf(m) && y[a] == 0.0) continue;
+      y[b] += y[a]*m;
+  }
+  ```
+  The primal keeps BOTH guards the existing `ptd_expected_sojourn_time_subset`
+  adjoint uses (`m==0` skip; `isinf(m) && y[a]==0` skip). **The tangent
+  update must NOT share the `m==0` skip.** Root cause: diagonal commands
+  (`from==to`) store `multiplier - 1`, not `multiplier`
+  (`phasic.c:10770`), so a diagonal edge whose CURRENT weight is exactly
+  1.0 stores `nm[c] == 0` even though its derivative `mdot[c]` can be
+  nonzero (the weight varies with theta near 1.0) — skipping the tangent
+  update on `m==0` would silently drop that gradient term. This exact trap
+  already bit the original moment-chain forward-mode validator (its own
+  comment, `phasic.c:10439-10446`); `experiments/dr_sojourn_fwdmode_adjoint.py`'s
+  random-tape generator does not model diagonal-minus-1 at all and must be
+  extended with an explicit case before its "ALL PASS" covers this (see D1
+  fix-up below, done before D2).
+  Gather `y_dot[indices[r]]` into `J_out[r*P+j]` for the `k` requested
+  indices (see "Wiring" for how `indices`/`k` are chosen — ONE call, not
+  two).
 
 ## Wiring: `pmf_from_graph_joint_index`'s `model_bwd`
 
-`sojourn_probs[i] = obs_sojourn[i] / norm`, `norm = sum(all_sojourn)`. Given
-`J_obs` (`k_obs × P`) and `J_all` (`k_all × P`) from two calls to the new C
-function (one per index set — see "why two calls" below), the quotient rule
-is applied directly in Python/JAX (no further C needed):
+`sojourn_probs[i] = obs_sojourn[i] / norm`, `norm = sum(all_sojourn)`.
+
+> **Revised after D1 adversarial review** — the original draft called the
+> new C function TWICE (once per index set), reasoned as "a modest constant
+> factor." That reasoning didn't account for the Stage-0 fix above: once the
+> tape is cache-reused, a call's cost is `O(P·nc)`, genuinely small — so
+> doubling it is not the dangerous part per se, but it's still unnecessary
+> work with a strictly simpler alternative available. Collapsed to ONE call.
+
+**Single call, over the union of both index sets.** `vertex_indices`
+(observed) and `all_terminal_indices` are BOTH static — fixed once when the
+model is built (`all_terminal_indices` is already sorted+deduped at
+construction time today; `vertex_indices` is whatever the caller passed to
+`pmf_from_graph_joint_index`). At model-construction time (not inside the
+per-gradient-call hot path), compute once:
+
+```python
+union_indices = np.union1d(vertex_indices_np, all_terminal_indices_np)   # sorted, deduped
+obs_pos  = np.searchsorted(union_indices, vertex_indices_np)             # static gather map
+all_pos  = np.searchsorted(union_indices, all_terminal_indices_np)       # static gather map
+```
+
+Every gradient call then does ONE call to the new C function with
+`indices = union_indices`, producing `J_union` (`k_union × P`), then two
+`O(k)` static gathers (no repeated tape work): `J_obs = J_union[obs_pos]`,
+`J_all = J_union[all_pos]`. This is simpler than the original two-call
+design AND strictly cheaper (one forward-mode pass set instead of two,
+`union_indices` computed once and closed over, not recomputed per call).
+The quotient rule is then applied directly in Python/JAX (no further C
+needed):
 
 ```
 dnorm[j]        = sum_v J_all[v, j]
@@ -196,51 +349,92 @@ d(sojourn_probs[i])/d(theta_j) = (J_obs[i,j]*norm - obs_sojourn[i]*dnorm[j]) / n
 theta_bar[j]    = sum_i g_visits[i] * d(sojourn_probs[i])/d(theta_j)
 ```
 
-**Two C calls, not one combined index set**: the forward already makes two
-separate FFI calls (`obs_idx`, `all_terminal_idx`) today; mirroring that
-structure exactly is simpler than deduplicating the two index sets in
-Python, at the cost of 2×P forward-mode passes instead of P — a modest,
-deliberate constant-factor cost (not the `O(n)`-vs-`O(n²)` scale of blowup
-this initiative cares about), not a premature-optimization violation.
+### Host-callback / vmap wiring (undesigned in the original draft)
+
+The original draft never specified how the new C function's output crosses
+into JAX. Design, mirroring the established `pmf_and_moments_from_graph`
+pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
+
+- A persistent `_exact_graph` (a `Graph` built once via `GraphBuilder`/pybind
+  at model-construction time, same object reused for the whole SVGD run) is
+  closed over by the new gradient function, exactly as the moments/log-mode
+  batches already do.
+- `union_indices`/`obs_pos`/`all_pos` are plain NumPy arrays computed ONCE
+  at model-construction time and closed over in the Python closure — they
+  are NOT traced/batched JAX values and do NOT need to cross the
+  `pure_callback` boundary as an operand (this is a simplification relative
+  to the original draft's unresolved "how does `vertex_indices` cross as a
+  runtime pure_callback argument" question — because the index sets here
+  are static per-model, not per-particle or per-call, they behave exactly
+  like `theta_dim`/`fixed_mask` in the existing pattern: closed-over
+  constants, not callback operands).
+- `_exact_graph.update_weights(t)` MUST be called inside the callback
+  before every gradient read — this is the exact defect class the log-mode
+  batch's own fix caught (a stale-weights bug from forgetting this call).
+- `ndim` dispatch for batched theta under `vmap(grad(...))`: mirror
+  `__init__.py:7035-7039` exactly — `if th.ndim == 1: return _one(th)` else
+  loop the batch, stacking results.
+- Decline path: the C function returns empty/`-1` for `was_dph`,
+  MPFR-ill-conditioned, or out-of-scope input-spec cases. Python detects
+  the empty return, logs an INFO message naming WHICH reason (distinguish
+  `was_dph` / MPFR / input-spec-out-of-scope — same no-silent-fallback
+  pattern as every other B3 batch), and falls back to the existing
+  100%-FD `model_bwd` unchanged.
 
 ## Batches
 
 - **D0 — build-free de-risk (DONE)**: math derivation +
   `experiments/dr_sojourn_fwdmode_adjoint.py` (3 independent checks, ALL PASS).
-- **D1 — adversarial review of THIS PLAN** before any C is written (per
-  standing instruction this session): is the forward-mode derivation
-  actually complete? Is the "no discrete/was_dph this batch" exclusion
-  airtight (does anything reach the new C function for a discrete graph
-  without going through the Python gate first)? Is the "two separate calls"
-  design actually correct (do `J_obs`/`J_all` need to share any per-call
-  state, e.g. the parameterized off-tape build, that would be wasted work
-  if rebuilt twice)? Any edge case (empty index sets, a single-vertex
-  target, `P=1`) missed?
-- **D2 — C implementation** (only after D1 is clean).
+- **D1 — adversarial review of THIS PLAN (DONE)**: math-stats-checker
+  review + independent source re-verification, 5 findings, all incorporated
+  above (see "Adversarial review findings").
+- **D1.5 — extend the de-risk script** (before D2, not after): add the
+  diagonal-`multiplier-1` storage convention and BOTH guards (primal
+  `m==0`-skip + tangent NOT skipping on `m==0`) to
+  `dr_sojourn_fwdmode_adjoint.py`'s tape model, with a dedicated case where
+  a diagonal command's current weight is exactly 1.0 at theta but varies
+  with theta (`nm[c]==0`, `mdot[c]!=0`) — the current generator cannot
+  produce this, so its "ALL PASS" doesn't cover it yet. Re-run to confirm
+  ALL PASS under the corrected, production-faithful model before writing
+  any C.
+- **D2 — C implementation** (only after D1.5 is clean): includes the
+  cache-reuse fix (`ptd_precompute_reward_compute_graph`, not a raw
+  rebuild), the NULL-safe seeding, the asymmetric guards, and the
+  single-call/union-indices design — all per "C implementation design"
+  above.
 - **D3 — gate against native central-difference** of
   `Graph.expected_sojourn_time(indices)` (the same production PRIMAL used
-  by the forward), at benign + mixed-scale theta, on continuous joint-prob
-  fixtures built the same way `test_sojourn_subset_adjoint.py` does
-  (`StateIndexer`/`with_ipv`/`joint_prob_graph`, `discrete=False`). Re-run
-  the existing gates (`dr_moments_jac_gate.py`, `dr_mpfr_gate_test.py`,
+  by the forward), at benign + mixed-scale theta, on continuous AND
+  native-DPH joint-prob fixtures built the same way
+  `test_sojourn_subset_adjoint.py` does (`StateIndexer`/`with_ipv`/
+  `joint_prob_graph`, `discrete=True/False`). Re-run the existing gates
+  (`dr_moments_jac_gate.py`, `dr_mpfr_gate_test.py`,
   `dr_dph_moments_jac_gate.py`, `dr_log_mode_moments_jac_gate.py`) as a
-  no-regression check (this batch touches no existing function).
-- **D4 — Python wiring**: new `exact_moment_grad`-style kwarg (name to be
-  finalized in review — precedent is `exact_moment_grad`, but this function
-  has no "moments" concept; consider `exact_grad` or reuse the same name
-  for consistency) on `pmf_from_graph_joint_index`, defaulting to `True`
-  from the start (no separate default-flip step needed this time, since
-  there is no existing opt-in behavior to preserve — this function has
-  never had an exact path). No-silent-fallback logging for every excluded
-  case (out-of-scope weight mode, discrete/was_dph, baked mode, MPFR
-  decline).
+  no-regression check (this batch touches no existing function). **New,
+  required this batch**: benchmark wall-clock, exact-gradient (single call,
+  cache-reused) vs current FD (2×P FFI calls, per-thread cached graph), on
+  a realistic large joint-prob graph (aim for `n`/`k` in the
+  `test_sojourn_subset_adjoint.py` range, not a toy fixture) — confirm the
+  cache-reuse fix actually delivers a net win (expected: `O(P·nc)` exact vs
+  `O(P·nc)` FD-but-2×-the-constant, i.e. exact should be faster, not just
+  "not slower") before deciding the new kwarg defaults to `True`.
+- **D4 — Python wiring**: new `exact_grad` kwarg (name finalized in
+  review — NOT `exact_moment_grad`, since this function's second output is
+  `dummy_moments = jnp.zeros(2)`, no "moments" concept exists here) on
+  `pmf_from_graph_joint_index`. Default depends on the D3 benchmark result
+  (`True` if it's a clear win, matching every other B3 batch's precedent of
+  defaulting exact-on; otherwise default `False` with a documented reason
+  and revisit). No-silent-fallback logging for every excluded case
+  (out-of-scope weight mode, `was_dph`, baked mode, MPFR decline, input-spec
+  out-of-scope).
 - **D5 — tests + adversarial review of the FIX**: new
   `tests/pytest/inference/test_exact_grad_joint_index.py` (matches native
   central-diff, grad+vmap, default picks it up automatically, every
-  exclusion declines+logs correctly, MPFR-decline-stays-finite). Full
-  regression sweep. Submit the implemented diff to adversarial review
-  before considering the batch complete — this exact rhythm caught two real
-  bugs in the log-weight-mode batch's fix that a green test suite alone had
+  exclusion declines+logs correctly, MPFR-decline-stays-finite, a
+  diagonal-weight-exactly-1 fixture per finding 2 above). Full regression
+  sweep. Submit the implemented diff to adversarial review before
+  considering the batch complete — this exact rhythm caught two real bugs
+  in the log-weight-mode batch's fix that a green test suite alone had
   missed.
 
 ## Cross-cutting notes
@@ -251,6 +445,17 @@ this initiative cares about), not a premature-optimization violation.
   existing `PHASIC_B3_VALIDATORS`-guarded `ptd_dbg_run_tape`/
   `ptd_debug_fwdmode_grad`), but promoting it to an UNGUARDED production
   path is new — worth flagging explicitly in review.
-- Follow-ups this batch documents but does not attempt: discrete/was_dph
-  joint-index, `weight_mode='formula'` (shared with the general
+- This is also the **first B3 gradient function designed to reuse the
+  graph-level tape cache** (`ptd_precompute_reward_compute_graph`) instead
+  of rebuilding from scratch per call — a deliberate departure from the
+  `ptd_moments_grad_theta`/`_log`/`_dph` pattern, necessary because this
+  function's target graphs are the large joint-probability case where an
+  uncached `O(n^3)` rebuild per gradient call would be a severe regression.
+  Worth a CLAUDE.md follow-up note that the existing moments/log/dph
+  gradient functions have this same no-caching gap (tolerable there so far
+  because moment-graphs are typically small — not yet benchmarked at scale,
+  so "tolerable" is an assumption worth eventually checking too).
+- Follow-ups this batch documents but does not attempt: `was_dph`
+  joint-index (native DPH IS in scope, see Scope section),
+  `weight_mode='formula'`/`'callback'` (shared with the general
   formula-adjoint follow-up), `observed_indices` baked-mode support.
