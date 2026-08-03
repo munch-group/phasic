@@ -98,10 +98,18 @@ arrays entirely, a simplification relative to reverse-mode). This gives the
    machine precision (worst rel. err 4.4e-16).
 3. **Independent cross-check**: the SAME forward-mode result vs the SLOW
    alternative (reverse-mode moment-chain machinery, run once per target
-   vertex with seed `e_v` — a completely different code path): 76/76 match
+   vertex with seed `e_v` — a completely different code path): 79/79 match
    to machine precision (worst rel. err 3.4e-16). Two independent
    derivations agreeing this precisely is strong evidence neither has a
    compensating pair of errors.
+4. **(D1.5, added after plan review)** Diagonal-`multiplier-1` storage
+   convention (`phasic.c:10770`) added to the tape model, plus the
+   asymmetric primal/tangent guards. A crafted (non-random) case with a
+   diagonal command at weight exactly 1.0 confirms: the corrected function
+   matches `jax.jacobian` exactly; a deliberately-wrong variant that
+   (incorrectly) shares the primal's `m==0` skip on the tangent produces a
+   materially different, wrong answer at the same point — proving the
+   check actually discriminates the bug rather than passing regardless.
 
 ## Adversarial review findings (D1) — incorporated throughout
 
@@ -388,15 +396,14 @@ pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
 - **D1 — adversarial review of THIS PLAN (DONE)**: math-stats-checker
   review + independent source re-verification, 5 findings, all incorporated
   above (see "Adversarial review findings").
-- **D1.5 — extend the de-risk script** (before D2, not after): add the
-  diagonal-`multiplier-1` storage convention and BOTH guards (primal
-  `m==0`-skip + tangent NOT skipping on `m==0`) to
-  `dr_sojourn_fwdmode_adjoint.py`'s tape model, with a dedicated case where
-  a diagonal command's current weight is exactly 1.0 at theta but varies
-  with theta (`nm[c]==0`, `mdot[c]!=0`) — the current generator cannot
-  produce this, so its "ALL PASS" doesn't cover it yet. Re-run to confirm
-  ALL PASS under the corrected, production-faithful model before writing
-  any C.
+- **D1.5 — extend the de-risk script (DONE)**: added the diagonal-
+  `multiplier-1` storage convention and both guards (primal `m==0`-skip;
+  tangent NOT skipping on `m==0`) to `dr_sojourn_fwdmode_adjoint.py`'s tape
+  model, plus a crafted diagonal-weight-exactly-1 case and a deliberately-
+  wrong guard variant to prove that case discriminates. All checks pass:
+  259/259 primal, 243/243 forward-mode-vs-jax, 79/79 forward-vs-reverse
+  cross-check, and the new crafted case (correct matches jax exactly, wrong
+  variant diverges as expected).
 - **D2 — C implementation** (only after D1.5 is clean): includes the
   cache-reuse fix (`ptd_precompute_reward_compute_graph`, not a raw
   rebuild), the NULL-safe seeding, the asymmetric guards, and the
