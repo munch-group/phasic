@@ -11336,6 +11336,220 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
     ptd_parameterized_reward_compute_graph_destroy(ptape);
     return ok ? 0 : -1;
 }
+
+/* ===== B3 joint-index extension: forward-mode theta-adjoint for the SOJOURN
+ * vector (ptd_expected_sojourn_time_subset). See b3-joint-index-plan.md.
+ *
+ * Every other B3 gradient function above differentiates a FEW-output
+ * quantity (nr_moments, small) w.r.t. MANY-ish inputs (theta, param_length)
+ * via REVERSE-mode: one backward pass gives every theta component at once.
+ * Sojourn is the opposite shape: MANY outputs (sojourn(v) for up to n target
+ * vertices -- confirmed in the hundreds of thousands for real joint-
+ * probability graphs, tests/pytest/test_sojourn_subset_adjoint.py) but FEW
+ * inputs (param_length, typically 1-10). Reverse-mode here would cost
+ * O(k*nc) (one pass per requested vertex) -- exactly the O(n*k) blowup
+ * ptd_expected_sojourn_time_subset's own adjoint exists to avoid for the
+ * PRIMAL. So this function uses FORWARD-mode instead: one pass PER THETA
+ * COMPONENT (P total), each giving the FULL (n,) sojourn-gradient vector in
+ * one O(nc) pass -- O(P*nc) total, independent of k/n beyond the O(nc) cost
+ * the primal already pays. This is the first B3 gradient function to use
+ * forward-mode in production; the param-tape tangent formulas below are not
+ * new (they are ptd_dbg_run_tape's already-shipped-as-a-validator logic,
+ * ptd_dbg_run_tape:10362, promoted to an unguarded production path here).
+ * De-risked build-free (experiments/dr_sojourn_fwdmode_adjoint.py): primal
+ * vs JAX (259/259), forward-mode vs jax.jacobian (243/243), forward-mode vs
+ * an independent reverse-mode-per-target-vertex cross-check (79/79), plus a
+ * crafted diagonal-weight-exactly-1 case validating the guard asymmetry
+ * below (all machine-precision, see the plan for the full D1 review).
+ *
+ * Stage-0 (param-tape forward: build (na,nb,nm) numeric commands + operand
+ * snapshots s0/s1, MPFR gate) is IDENTICAL to ptd_moments_grad_theta's own
+ * stage-0 -- reused verbatim, not re-derived.
+ *
+ * Unlike ptd_moments_grad_theta (which rebuilds the whole O(n^3)
+ * parameterized tape from scratch on every call, tolerable there because
+ * moment-graphs are typically modest-sized), this function REUSES the
+ * graph-level tape cache via ptd_precompute_reward_compute_graph -- the
+ * same entrypoint ptd_expected_sojourn_time_subset and
+ * ptd_expected_waiting_time already call. Deliberate: this function's
+ * target graphs ARE the large joint-probability case (n up to ~7x10^5),
+ * where an uncached O(n^3) rebuild per gradient call would regress badly
+ * against the current FD path (which reuses a per-thread-cached graph via
+ * the FFI, graph_builder_ffi.cpp ComputeSojournTimesFfiImpl). See the plan's
+ * "Adversarial review findings" #5.
+ *
+ * Guards in the sojourn recurrence are DELIBERATELY ASYMMETRIC between
+ * primal and tangent: a diagonal (from==to) numeric command stores
+ * (multiplier - 1), so a diagonal edge at weight exactly 1.0 stores m==0
+ * while its theta-derivative can be nonzero. The primal keeps
+ * ptd_expected_sojourn_time_subset's existing guards (skip on m==0 OR
+ * isinf-with-zero-operand); the tangent must skip ONLY the isinf case, never
+ * m==0, or it would silently drop that gradient term. Production's own
+ * reverse-mode moments gradient (this function's stage-2 walk, just above)
+ * already uses the identical asymmetry (dm[c] accumulation unconditional,
+ * only the adj[]-continuation guarded on m!=0) -- an established idiom here,
+ * not a novel invention.
+ *
+ * Declines (-1, FD fallback) for: non-parameterized graphs; was_dph graphs
+ * (discretize()'s renormalization needs a different quotient-rule
+ * contraction, deferred -- see the plan's scope section; native DPH,
+ * is_discrete=True/was_dph=False, needs NO special handling and is NOT
+ * excluded here, confirmed both ComputeSojournTimesFfiImpl and
+ * ptd_expected_sojourn_time_subset have zero is_discrete branching); any
+ * tape input whose spec is not a plain internal edge weight (SCC/external
+ * inputs are out of scope); an MPFR-conditioned tape (mirrors the
+ * continuous moments gate).
+ *
+ * indices/k select which of the n sojourn-gradient rows to gather -- pass
+ * the union of every index set the caller needs (see the plan's "Wiring"
+ * section for why one call over a union beats two calls over the parts).
+ * J_out must hold k*graph->param_length doubles (row-major: row r =
+ * d(sojourn(indices[r]))/dtheta). Returns 0 on success; -1 for FD fallback. */
+int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (graph->was_dph) return -1;
+    size_t P = graph->param_length;
+    if (k == 0) return 0;
+
+    if (ptd_precompute_reward_compute_graph(graph)) return -1;
+
+    struct ptd_desc_reward_compute_parameterized_off *off;
+    int owns_off = 0;
+    if (graph->parameterized_reward_compute_graph_off != NULL) {
+        off = graph->parameterized_reward_compute_graph_off;
+    } else if (graph->parameterized_reward_compute_graph != NULL) {
+        off = ptd_pcg_convert_to_offset(graph->parameterized_reward_compute_graph, graph, NULL, 0);
+        if (off == NULL) return -1;
+        owns_off = 1;
+    } else {
+        return -1;
+    }
+
+    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+
+    for (size_t r = 0; r < k; ++r) {
+        if (indices[r] >= n) { if (owns_off) ptd_pcg_desc_off_destroy(off); return -1; }
+    }
+
+    /* Validate every tape input is a plain internal edge weight and cache its
+     * edge pointer -- done ONCE up front, not per theta component. A
+     * coefficients_length==0 edge (e.g. the aux back-edges from
+     * add_aux_vertex/add_aux_vertex_constant used by Graph.discretize() and
+     * Graph.joint_stop_prob_graph() -- this function's target workload, not
+     * a corner case) is left in the array and seeded to idot=0 below WITHOUT
+     * dereferencing its NULL coefficients pointer (the same NULL-pointer
+     * class already found and fixed in the discrete/was_dph batch, see
+     * ptd_moments_grad_theta's contraction step above). */
+    int ok = 1;
+    struct ptd_edge **edge_for_input =
+        (struct ptd_edge **) malloc((ni ? ni : 1) * sizeof(struct ptd_edge *));
+    for (size_t kk = 0; kk < ni; ++kk) {
+        struct ptd_pcg_input_spec sp = off->input_specs[kk];
+        if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                || sp.v >= graph->vertices_length
+                || sp.e >= graph->vertices[sp.v]->edges_length) { ok = 0; break; }
+        edge_for_input[kk] = graph->vertices[sp.v]->edges[sp.e];
+    }
+    if (!ok) {
+        free(edge_for_input);
+        if (owns_off) ptd_pcg_desc_off_destroy(off);
+        return -1;
+    }
+
+    double *mem = (double*)malloc(md*sizeof(double));
+    memcpy(mem, off->mem_base, md*sizeof(double));
+    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
+    for (size_t kk=0; kk<ni; ++kk) inv[kk] = *off->inputs[kk];
+    double *s0=(double*)malloc((L?L:1)*sizeof(double));
+    double *s1=(double*)malloc((L?L:1)*sizeof(double));
+    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
+    double *nm=(double*)malloc((L?L:1)*sizeof(double));
+    size_t nc=0;
+#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
+    /* Stage-0: param-tape forward -- IDENTICAL to ptd_moments_grad_theta's. */
+    for (size_t i=0;i<L;++i) {
+        struct ptd_pcg_command_off c = off->commands[i];
+        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
+        switch (c.type) {
+            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
+            case 1: *rf += (*rt)*c.multiplier; break;
+            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
+            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
+            case 4: *rf = 1.0 - *rf; break;
+            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
+            case 6: *rf = 0.0; break;
+            default: break;
+        }
+    }
+
+    if (ptd_dbg_tape_needs_mpfr(nm, nc)) ok = 0;
+
+    double *mem_dot = ok ? (double*)malloc((md?md:1)*sizeof(double)) : NULL;
+    double *inv_dot = ok ? (double*)malloc((ni?ni:1)*sizeof(double)) : NULL;
+    double *mdot    = ok ? (double*)malloc((nc?nc:1)*sizeof(double)) : NULL;
+    double *y       = ok ? (double*)malloc(n*sizeof(double)) : NULL;
+    double *y_dot   = ok ? (double*)malloc(n*sizeof(double)) : NULL;
+#define RD(op) ((op).kind==PTD_PCG_OP_MEM ? &mem_dot[(op).mem_offset] : \
+               ((op).kind==PTD_PCG_OP_INPUT ? &inv_dot[(op).input_idx] : (double*)NULL))
+    for (size_t j=0; ok && j<P; ++j) {
+        for (size_t i=0;i<md;++i) mem_dot[i]=0.0;
+        for (size_t kk=0; kk<ni; ++kk) {
+            struct ptd_edge *e = edge_for_input[kk];
+            inv_dot[kk] = (e->coefficients_length == 0) ? 0.0 : e->coefficients[j];
+        }
+        /* Stage-1: param-tape tangent, seeded via the coefficient column --
+         * identical formulas to ptd_dbg_run_tape (P/PP/INV/OM/DIV/ZERO),
+         * reusing stage-0's s0/s1 snapshots rather than re-walking mem[]. */
+        size_t ncr = 0;
+        for (size_t i=0;i<L;++i) {
+            struct ptd_pcg_command_off c = off->commands[i];
+            double *rfd=RD(c.fromT), *rtd=RD(c.toT), *rmd=RD(c.multiplierptr);
+            switch (c.type) {
+                case 0: mdot[ncr] = *rmd; ncr++; break;
+                case 1: *rfd += (*rtd)*c.multiplier; break;
+                case 3: *rfd += (*rtd)*s1[i] + s0[i]*(*rmd); break;
+                case 2: *rfd = -(*rfd)/(s0[i]*s0[i]); break;
+                case 4: *rfd = -(*rfd); break;
+                case 5: *rfd = (*rfd)/s1[i] - s0[i]*(*rtd)/(s1[i]*s1[i]); break;
+                case 6: *rfd = 0.0; break;
+                default: break;
+            }
+        }
+
+        /* Sojourn recurrence: seed y[target=0]=1 (mirrors
+         * ptd_expected_sojourn_time_subset), walk REVERSED with roles
+         * swapped, primal + tangent interleaved (forward-mode needs the
+         * LIVE evolving y[], not a pre-recorded snapshot). */
+        for (size_t v=0; v<n; ++v) { y[v]=0.0; y_dot[v]=0.0; }
+        y[0] = 1.0;
+        for (size_t c=nc; c-- > 0; ) {
+            size_t a=na[c], b=nb[c]; double m=nm[c], md_=mdot[c];
+            /* TANGENT: skip ONLY the inf-with-zero-operand case -- NOT m==0. */
+            if (!(isinf(m) && y[a]==0.0)) y_dot[b] += y_dot[a]*m + y[a]*md_;
+            /* PRIMAL: unchanged from ptd_expected_sojourn_time_subset. */
+            if (m == 0.0) continue;
+            if (isinf(m) && y[a]==0.0) continue;
+            y[b] += y[a]*m;
+        }
+        for (size_t r=0;r<k;++r) J_out[r*P+j] = y_dot[indices[r]];
+    }
+
+    if (ok) for (size_t x=0; x<k*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
+
+    free(edge_for_input); free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+    if (mem_dot) free(mem_dot);
+    if (inv_dot) free(inv_dot);
+    if (mdot) free(mdot);
+    if (y) free(y);
+    if (y_dot) free(y_dot);
+    if (owns_off) ptd_pcg_desc_off_destroy(off);
+#undef RV
+#undef RD
+    return ok ? 0 : -1;
+}
 /* =============================================================================*/
 
 double *ptd_expected_sojourn_time(struct ptd_graph *graph) {

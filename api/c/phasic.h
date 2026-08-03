@@ -499,6 +499,21 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
 int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
         const double *theta, size_t theta_len, double *J_out);
 
+/* B3 joint-index extension: exact FORWARD-mode Jacobian
+ * d[sojourn(indices[0..k-1])]/dtheta for a continuous, weight_mode='linear'
+ * parameterized graph (native DPH, is_discrete=True/was_dph=False, is also
+ * supported -- only was_dph=True is excluded). Unlike the reverse-mode
+ * moments-gradient functions above, this uses forward-mode (one pass per
+ * theta component, not per output) since sojourn has many outputs and few
+ * inputs -- see the implementation comment in phasic.c for the full
+ * rationale and b3-joint-index-plan.md for the de-risk evidence. J_out must
+ * hold k*graph->param_length doubles (row-major: row r =
+ * d(sojourn(indices[r]))/dtheta). Returns 0 on success; -1 for FD fallback
+ * (declines on was_dph, MPFR-conditioned tapes, or out-of-scope tape
+ * inputs). */
+int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out);
+
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
 bool ptd_graph_is_acyclic(struct ptd_graph *graph);

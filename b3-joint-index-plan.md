@@ -404,34 +404,73 @@ pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
   259/259 primal, 243/243 forward-mode-vs-jax, 79/79 forward-vs-reverse
   cross-check, and the new crafted case (correct matches jax exactly, wrong
   variant diverges as expected).
-- **D2 — C implementation** (only after D1.5 is clean): includes the
-  cache-reuse fix (`ptd_precompute_reward_compute_graph`, not a raw
-  rebuild), the NULL-safe seeding, the asymmetric guards, and the
-  single-call/union-indices design — all per "C implementation design"
-  above.
-- **D3 — gate against native central-difference** of
-  `Graph.expected_sojourn_time(indices)` (the same production PRIMAL used
-  by the forward), at benign + mixed-scale theta, on continuous AND
-  native-DPH joint-prob fixtures built the same way
-  `test_sojourn_subset_adjoint.py` does (`StateIndexer`/`with_ipv`/
-  `joint_prob_graph`, `discrete=True/False`). Re-run the existing gates
-  (`dr_moments_jac_gate.py`, `dr_mpfr_gate_test.py`,
-  `dr_dph_moments_jac_gate.py`, `dr_log_mode_moments_jac_gate.py`) as a
-  no-regression check (this batch touches no existing function). **New,
-  required this batch**: benchmark wall-clock, exact-gradient (single call,
-  cache-reused) vs current FD (2×P FFI calls, per-thread cached graph), on
-  a realistic large joint-prob graph (aim for `n`/`k` in the
-  `test_sojourn_subset_adjoint.py` range, not a toy fixture) — confirm the
-  cache-reuse fix actually delivers a net win (expected: `O(P·nc)` exact vs
-  `O(P·nc)` FD-but-2×-the-constant, i.e. exact should be faster, not just
-  "not slower") before deciding the new kwarg defaults to `True`.
+- **D2 — C implementation (DONE)**: `ptd_sojourn_grad_theta_subset`
+  (`src/c/phasic.c`, after `ptd_moments_grad_theta_dph`), declared in
+  `api/c/phasic.h`, wrapped as `phasic::Graph::sojourn_grad_theta_subset`
+  (`api/cpp/phasiccpp.h`) and exposed as `_sojourn_grad_theta_subset` via
+  pybind (mirrors `_moments_grad_theta`'s exposure pattern exactly). Takes
+  no `theta` parameter (matches `ptd_moments_grad_theta`'s own convention —
+  theta is implicit via the graph's current `update_weights`-mutated edge
+  weights; only the log/dph variants need explicit theta, for their own
+  renormalisation-specific reasons). Includes the cache-reuse fix
+  (`ptd_precompute_reward_compute_graph`, not a raw rebuild), the NULL-safe
+  seeding, the asymmetric guards, and the single-call/union-indices design
+  — all per "C implementation design" above. `pixi run install-dev` builds
+  clean; a hand smoke-test matched native central-difference to ~3e-11.
+- **D3 — gate against native central-difference (DONE)**:
+  `experiments/dr_sojourn_grad_theta_gate.py`. ALL PASS across continuous
+  chains/branching (incl. mixed-scale theta), native-DPH fixtures
+  (`is_discrete=True, was_dph=False`), and realistic joint-probability
+  graphs built the same way `test_sojourn_subset_adjoint.py` does
+  (`StateIndexer`/`joint_prob_graph`, `discrete=False`); confirms the
+  `was_dph` decline on both a `discretize()` fixture AND (found during this
+  gate, not anticipated) `joint_prob_graph(..., discrete=True)` itself,
+  which turns out to set `was_dph=True` internally (renormalising), NOT
+  "native DPH" — confirmed via `g.get_was_dph()` directly, so this decline
+  is CORRECT/expected, not a bug; confirms the MPFR decline and an empty-
+  indices edge case. Re-ran the existing gates (`dr_moments_jac_gate.py`,
+  `dr_mpfr_gate_test.py`, `dr_dph_moments_jac_gate.py`,
+  `dr_log_mode_moments_jac_gate.py`) as a no-regression check — all still
+  ALL PASS (this batch touches no existing function).
+
+  **Benchmark result — corrects the plan's original expectation.** The
+  original draft expected exact to be unconditionally faster once the
+  cache-reuse fix landed. Measured reality: the cache-reuse fix eliminates
+  the CATASTROPHIC `O(n^3)`-per-call regression (the thing that actually
+  mattered for large joint-prob graphs) but a smaller `O(L)`
+  `ptd_pcg_convert_to_offset` step (converting the cached RAW parameterized
+  tape to offset form) is still redone on every call — this conversion is
+  NOT itself cached (a further cache would need a new `ptd_graph` field
+  with its own invalidation lifecycle; deliberately not added this batch,
+  see "Cross-cutting notes"). Since FD pays no equivalent fixed cost (it
+  reads the already-numeric `graph->reward_compute_graph` cache directly),
+  both paths scale ~linearly in the number of theta parameters `P`, but
+  exact carries a fixed per-call overhead (convert + stage-0) amortized
+  over `P` tangent passes while FD's `2·P` calls carry none — so exact's
+  RELATIVE advantage grows with `P`, crossing over around `P`≈10–20 for a
+  representative 2000-vertex chain (`P`=2: FD 4× faster; `P`=10: roughly at
+  parity; `P`=50: exact ~2.9× faster), while the joint-index-model's own
+  native `P`=2 (coalescent rate + mutation rate) sits on the FD-favoured
+  side of that crossover (FD ~2.6× faster on a realistic `n`=39603 graph).
+  Exact-mode's value proposition for THIS function is therefore primarily
+  **correctness** (removing FD's mixed-scale gradient defect — the reason
+  the whole B3 initiative exists, per `CLAUDE.md`), not raw speed, for the
+  small-`P` models this specific function is most used on today; it is
+  also a clear speed win for richer (`P`≳10) models. See D4 for how this
+  informs the default.
 - **D4 — Python wiring**: new `exact_grad` kwarg (name finalized in
   review — NOT `exact_moment_grad`, since this function's second output is
   `dummy_moments = jnp.zeros(2)`, no "moments" concept exists here) on
-  `pmf_from_graph_joint_index`. Default depends on the D3 benchmark result
-  (`True` if it's a clear win, matching every other B3 batch's precedent of
-  defaulting exact-on; otherwise default `False` with a documented reason
-  and revisit). No-silent-fallback logging for every excluded case
+  `pmf_from_graph_joint_index`. Given D3's finding (exact is a correctness
+  win always, a speed win only for `P`≳10-20), default to `True` anyway,
+  matching every other B3 batch's precedent that correctness (avoiding FD's
+  documented mixed-scale defect) outweighs a modest constant-factor
+  slowdown at small `P` — the catastrophic regression risk the plan
+  originally worried about (`O(n^3)` per call) IS eliminated; what remains
+  is a bounded, well-characterized trade-off, not an open risk. Flag this
+  default choice explicitly for the D5 fix-review to weigh in on, since it
+  is a judgment call informed by, but not unambiguously dictated by, the
+  benchmark. No-silent-fallback logging for every excluded case
   (out-of-scope weight mode, `was_dph`, baked mode, MPFR decline, input-spec
   out-of-scope).
 - **D5 — tests + adversarial review of the FIX**: new
@@ -458,6 +497,18 @@ pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
   `ptd_moments_grad_theta`/`_log`/`_dph` pattern, necessary because this
   function's target graphs are the large joint-probability case where an
   uncached `O(n^3)` rebuild per gradient call would be a severe regression.
+  This reuse is PARTIAL: `graph->parameterized_reward_compute_graph` (the
+  RAW tape) is cached and reused, but `ptd_pcg_convert_to_offset`'s
+  `O(commands)` conversion to offset form is NOT itself cached (redone
+  every call) — caching that too would need a new `struct ptd_graph` field
+  with its own invalidation lifecycle (tied into
+  `dph_compute_invalidated`/`ptd_precompute_reward_compute_graph`'s
+  existing free/rebuild logic), which is exactly the kind of change to
+  shared, already-shipped infrastructure this project's standing preference
+  is to avoid without asking first ([[feedback_no_modify_existing]]).
+  Deliberately not attempted this batch; see D3's benchmark for the
+  resulting (bounded, characterized, not catastrophic) performance profile
+  this leaves in place.
   Worth a CLAUDE.md follow-up note that the existing moments/log/dph
   gradient functions have this same no-caching gap (tolerable there so far
   because moment-graphs are typically small — not yet benchmarked at scale,

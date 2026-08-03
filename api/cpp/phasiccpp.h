@@ -598,6 +598,21 @@ namespace phasic {
             return J;
         }
 
+        // B3 joint-index extension (production): exact FORWARD-mode Jacobian
+        // d[sojourn(indices)]/dtheta for a continuous, weight_mode='linear'
+        // parameterized graph (native DPH also supported; was_dph excluded).
+        // Returned FLAT (row-major indices.size()*param_length). Empty =>
+        // not applicable (caller falls back to FD).
+        std::vector<double> sojourn_grad_theta_subset(std::vector<size_t> indices) {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            if (P == 0 || indices.empty()) return std::vector<double>();
+            std::vector<double> J(indices.size() * P, 0.0);
+            int rc = ptd_sojourn_grad_theta_subset(this->c_graph(),
+                                                   indices.data(), indices.size(), J.data());
+            if (rc != 0) return std::vector<double>();
+            return J;
+        }
+
         // ------------------------------------------------------------------
         // Python-API-name parity (additive).
         //
