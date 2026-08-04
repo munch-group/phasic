@@ -608,3 +608,249 @@ pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
   joint-index (native DPH IS in scope, see Scope section),
   `weight_mode='formula'`/`'callback'` (shared with the general
   formula-adjoint follow-up), `observed_indices` baked-mode support.
+
+## D6 — `lax.cond`/`vmap` redesign (follow-up batch, user-requested)
+
+Addresses the D5 fix-review's significant finding directly (see above):
+`jax.lax.cond` cannot skip a branch once its predicate is batched, which
+it always is under SVGD's `vmap(grad(loss))(particles)` — so the current
+wiring pays FD *and* exact on every call whenever `exact_grad=True`, not
+FD-only-when-needed. The interim fix (D5) was to flip the default to
+`False`. This batch redesigns the wiring so the intended behavior — pay
+FD only when exact genuinely can't be used — actually holds under `vmap`,
+which would let the default become `True` again.
+
+### The mechanism: move the choice out of the traced graph entirely
+
+`vmap` can only skip a branch of a Python-level `if`/`else` when the
+condition is a plain Python value fixed at TRACE time (not a JAX array
+computed from a traced input) — confirmed directly, build-free, in
+`experiments/dr_lax_cond_vmap_derisk.py` (D6.0, all three claims below
+CONFIRMED with call-counting spies, not just from documentation):
+
+1. `lax.cond` under `vmap` with an always-True batched predicate traces
+   AND executes both branches (reproduces the bug).
+2. A Python `if <static bool>: … else: …` under `vmap` traces (and
+   therefore executes, at any batch size) only the chosen branch.
+3. Raising a Python exception inside a `jax.pure_callback` host function
+   propagates as a real exception at the call site, both for a plain
+   `grad(...)` call and under `vmap(grad(...))` (the vmap case wraps the
+   message in a `"CpuCallback error…"` preamble but the original
+   exception type and message survive intact inside it).
+
+This means: decline reasons that are **static** (fixed once, never vary
+per call) can be resolved with a plain `if`/`else` and cost nothing when
+unused, exactly as `_jix_exact_enabled` (weight_mode/`was_dph`/baked/
+`theta_dim`) already does today. Decline reasons that are **dynamic**
+(vary per theta, i.e. per SVGD particle/iteration) cannot be resolved
+this way without giving up the automatic per-call fallback — there is no
+way to have BOTH "skip the unneeded branch under vmap" AND "gracefully
+fall back to FD for whichever specific particles need it" for a
+genuinely per-call condition; this is a hard JAX/XLA limitation, not an
+engineering gap in this wiring.
+
+### Which decline reasons are actually dynamic?
+
+Re-examining the three C-level decline reasons
+(`ptd_sojourn_grad_theta_subset`, see "C implementation design" above):
+
+- **`was_dph`**: a graph-level flag, invariant across every call for a
+  given model. Already resolved statically via `_jix_was_dph`.
+- **Out-of-scope tape input** (an edge spec that isn't
+  `PTD_PCG_PTR_EDGE`/byte-0/in-range): purely a function of graph
+  TOPOLOGY, not of theta's numeric value — if it declines at one theta it
+  declines at every theta, and vice versa. Currently only detected
+  dynamically (by calling the C function and getting an empty result) —
+  this can be resolved STATICALLY too, once, since it never varies.
+- **MPFR conditioning**: the ONLY genuinely theta-dependent decline
+  reason — the elimination tape's condition number depends on the actual
+  edge weights, i.e. on theta.
+
+So a single **construction-time probe** — call
+`_jix_exact_graph._sojourn_grad_theta_subset([0])` once, at a reference
+theta — resolves BOTH the topology-only reason (its result generalizes to
+every future theta) AND gives a reasonable signal for the MPFR reason (at
+least at that reference point). It cannot guarantee the MPFR gate will
+also hold at every OTHER theta the optimizer visits later — that
+residual risk is the trade-off the user decision below is about.
+
+**Reference theta for the probe: `theta = ones(param_length)`.** Simple,
+deterministic, reproducible (matches the reference point already used
+elsewhere in this session's de-risk work, e.g. D1's `edge_weights_at_theta0
+= coeff_matrix @ ones`). A single index (`[0]`) is enough — the decline
+reasons the probe checks are graph-wide or theta-wide, not
+index-specific, so probing more indices adds cost without adding
+information. Cost: ONE extra `_sojourn_grad_theta_subset` call at
+construction time only (not per gradient step) — for a large joint-prob
+graph this pays the one-time cache-build cost the FIRST use of ANY
+gradient method already pays regardless (per D2's cache-reuse design), so
+it is not a new category of cost, just possibly moved slightly earlier.
+
+### Failure mode once committed: raise (user decision, asked directly)
+
+Once the probe succeeds, `model_bwd` commits unconditionally to the exact
+path for the rest of that model's lifetime — no per-call `lax.cond`, no
+implicit FD fallback. If some LATER theta (a specific SVGD particle at a
+specific iteration) hits the MPFR gate, the C function returns empty and
+the host callback **raises a `RuntimeError`** naming the theta and the
+reason, rather than silently falling back or crashing with an opaque
+shape-mismatch error. This was presented to the user as an explicit
+three-way choice (raise / keep the per-call fallback and accept no `vmap`
+speedup / — a third "accept the current cost" option had already been
+superseded by flipping the default in D5) — the user chose **raise**,
+for the reasons already given in the AskUserQuestion: no silent fallback,
+consistent with this codebase's stated principle, and a hard stop is
+preferable to an unnoticed problem for a Bayesian inference tool. Claim 3
+above (raising propagates correctly, including under `vmap`) is exactly
+what makes this failure mode viable rather than a debugging dead end.
+
+### Design
+
+```python
+_exact_sojourn_jac_np = None      # unchanged in spirit: the host callback
+_jix_probed_ok = False            # NEW: latched once at construction
+
+if _jix_exact_enabled:
+    _jix_exact_graph = graph.clone()
+    _jix_param_length = param_length_actual
+    _jix_all_terminal_np = all_terminal_indices_np
+
+    def _exact_sojourn_jac_np(theta_np, vertex_indices_np):
+        th = np.asarray(theta_np, dtype=np.float64)
+        vi = np.asarray(vertex_indices_np, dtype=np.int64).ravel()
+        _jix_exact_graph.update_weights(th.tolist())
+        union_idx = np.union1d(vi, _jix_all_terminal_np)
+        raw = _jix_exact_graph._sojourn_grad_theta_subset(union_idx.tolist())
+        if not raw:
+            raise RuntimeError(
+                "pmf_from_graph_joint_index: exact sojourn gradient "
+                f"(exact_grad=True) declined at theta={th.tolist()} -- an "
+                "ill-conditioned elimination tape at this specific theta "
+                "(the construction-time probe at theta=ones succeeded, so "
+                "this is a THETA-SPECIFIC decline, not a structural one). "
+                "No automatic finite-difference fallback is available once "
+                "the exact path has been committed to for this model -- "
+                "pass exact_grad=False, or investigate why this theta is "
+                "ill-conditioned."
+            )
+        J_union = np.asarray(raw, dtype=np.float64).reshape(
+            union_idx.shape[0], _jix_param_length)
+        obs_pos = np.searchsorted(union_idx, vi)
+        all_pos = np.searchsorted(union_idx, _jix_all_terminal_np)
+        return J_union[obs_pos], J_union[all_pos]
+
+    # Construction-time probe -- theta=ones, single index. Resolves the
+    # topology-only decline reason for ALL future theta, and the MPFR gate
+    # at this reference point. A probe failure is treated exactly like a
+    # static structural exclusion (pure FD, no wiring overhead) -- it is
+    # NOT re-tried per call.
+    _probe_theta = np.ones(_jix_param_length, dtype=np.float64)
+    _jix_exact_graph.update_weights(_probe_theta.tolist())
+    _probe_raw = _jix_exact_graph._sojourn_grad_theta_subset([0])
+    if _probe_raw and len(_probe_raw) == _jix_param_length:
+        _jix_probed_ok = True
+    else:
+        _jix_grad_logger.info(
+            "pmf_from_graph_joint_index: exact sojourn gradient declined "
+            "at the construction-time probe (theta=ones) -- an "
+            "out-of-scope tape input, or an ill-conditioned elimination "
+            "tape even at this benign reference point -- using finite "
+            "differences for the whole model."
+        )
+```
+
+`model_bwd` becomes a plain, non-traced Python `if` on
+`_jix_exact_enabled and _jix_probed_ok` (both ordinary Python bools fixed
+before any tracing happens) instead of a per-call `lax.cond` on a traced
+`exact_ok`:
+
+```python
+def model_bwd(res, g):
+    theta, vertex_indices = res
+    g_visits, g_moments = g
+    n_params = theta.shape[0]
+
+    def _fd_theta_bar():
+        ...  # UNCHANGED
+
+    if not (_jix_exact_enabled and _jix_probed_ok):
+        theta_bar = _fd_theta_bar()
+    else:
+        _vi_norm = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+        all_sojourn_exact = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
+        norm_exact = jnp.sum(all_sojourn_exact)
+        obs_sojourn_exact = compute_sojourn_times_ffi(structure_dict, theta, _vi_norm)
+        J_obs, J_all = jax.pure_callback(
+            _exact_sojourn_jac_np,
+            (jax.ShapeDtypeStruct(_vi_norm.shape + (n_params,), jnp.float64),
+             jax.ShapeDtypeStruct(all_terminal_indices.shape + (n_params,), jnp.float64)),
+            theta, _vi_norm, vmap_method='sequential',
+        )
+        dnorm_exact = jnp.sum(J_all, axis=0)
+        d_probs_exact = (J_obs*norm_exact - obs_sojourn_exact[:,None]*dnorm_exact[None,:]) / norm_exact**2
+        theta_bar = d_probs_exact.T @ g_visits
+        if fixed_indices_set:
+            theta_bar = theta_bar * _fixed_keep   # unchanged
+
+    return theta_bar, None, None
+```
+
+No `exact_ok`/`jnp.isfinite` check remains in the committed path — the
+callback's own `if not raw: raise` replaces it (matching D1.5/D2's
+"decline via empty return" C-level contract, just surfaced as an
+exception instead of a NaN sentinel once committed).
+
+### What does NOT change
+
+- `_jix_exact_enabled`'s static gate (weight_mode/`was_dph`/baked/
+  `theta_dim`) — unchanged, still resolved once, still logged.
+- The C function, the quotient-rule math, the union/`searchsorted`
+  gather, `fixed_mask` handling — all unchanged (D5's fixes stand).
+- `exact_grad=False` behavior — unchanged (still 100% FD, byte-identical
+  to before any of this work).
+
+### Should the default flip back to `True`?
+
+Deliberately deferred to a SEPARATE decision after this redesign ships
+and is gated/tested — not bundled into this batch. Even with the `vmap`
+issue fixed, forward-mode's cost still scales with `P` (D3's benchmark:
+crossover around `P`≈10–20), so `exact_grad=True` would still be a
+mild-to-moderate slowdown at this model's typical native `P`=2, now
+WITHOUT an automatic per-call FD fallback for a later ill-conditioned
+theta. Whether that trade (guaranteed-correctness-with-a-hard-stop vs.
+FD's documented mixed-scale defect, at small `P`) is worth defaulting to
+is exactly the kind of judgment call this session has been bringing to
+the user rather than deciding unilaterally — raised again at D9 below,
+not assumed here.
+
+### Batches
+
+- **D6.0 — build-free de-risk (DONE)**: `experiments/dr_lax_cond_vmap_derisk.py`,
+  3/3 claims CONFIRMED.
+- **D6.1 — adversarial review of THIS ADDENDUM** before any wiring change
+  (per standing instruction): is the probe genuinely sufficient to
+  generalize the topology-only decline reason to every theta? Is there a
+  scenario where the probe SUCCEEDS at theta=ones but the graph is
+  actually out of scope for some OTHER structural reason not caught by a
+  single-index, single-theta check? Does raising inside `model_bwd`'s
+  `pure_callback` interact safely with `jax.custom_vjp`'s bookkeeping
+  (e.g. does a raised exception during the backward pass leave any global
+  state — the private `_jix_exact_graph` clone's weights, any cache —
+  inconsistent for a SUBSEQUENT, non-raising call)? Is the raised
+  exception's message actually reachable/legible to an end user running
+  full SVGD (not just a bare `jax.grad` call), given the wrapping observed
+  under `vmap`?
+- **D6.2 — implement**: the wiring change above.
+- **D6.3 — tests**: extend `test_exact_grad_joint_index.py` with a
+  probe-success case (confirms `vmap`'s FD branch is genuinely never
+  traced — e.g. via a call-counting spy on `_fd_theta_bar`, mirroring
+  `dr_lax_cond_vmap_derisk.py`'s claim-2 methodology, not just a value
+  check, since a value-only check cannot distinguish "skipped" from
+  "computed but discarded"), a probe-failure case (graph with an
+  out-of-scope tape input — reuse `Graph.discretize()`'s aux-edge pattern
+  or a purpose-built fixture — falls back to FD with no wiring overhead,
+  exactly like a static exclusion), and a post-probe MPFR-decline case
+  (raises `RuntimeError` with the theta and reason in the message, both
+  under plain `grad` and under `vmap(grad(...))`).
+- **D6.4 — adversarial review of the FIX** before considering this batch
+  complete, per the same rhythm as every prior batch.
