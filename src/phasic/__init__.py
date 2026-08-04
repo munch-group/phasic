@@ -7652,7 +7652,8 @@ extern "C" {{
     def pmf_from_graph_joint_index(cls, graph: Graph, theta_dim: int | None = None,
                                     fixed_mask: Any = None,
                                     exclude_vertices: list[int] | None = None,
-                                    observed_indices: Any = None) -> Callable:
+                                    observed_indices: Any = None,
+                                    exact_grad: bool = True) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -7697,6 +7698,19 @@ extern "C" {{
             When ``observed_indices`` is ``None`` (default), the legacy path
             is used and ``vertex_indices`` is read from the model's runtime
             argument as before.
+        exact_grad : bool, default=True
+            Use the exact forward-mode theta-adjoint for the sojourn-vector
+            gradient instead of finite differences. Covers weight_mode
+            'linear' (continuous and native DPH -- discrete=True/was_dph=
+            False graphs need no special-casing here); NOT yet supported
+            for weight_mode in {'formula', 'callback'}, a ``was_dph`` graph
+            (``Graph.discretize()``), or ``observed_indices`` baked mode --
+            each falls back to finite differences with an INFO-level log
+            via ``logging.getLogger('phasic')`` stating why (set
+            ``PHASIC_LOG_LEVEL=INFO`` to see these). A per-call decline
+            (e.g. an ill-conditioned elimination tape) also falls back to
+            finite differences for that call only, silently in the sense
+            that no exception is raised, but logged the same way.
 
         Returns
         -------
@@ -7805,6 +7819,106 @@ extern "C" {{
             _uniq_idx_jnp = None
             _inverse_idx_jnp = None
             _n_obs_baked = None
+
+        # B3 joint-index extension (default-on, additive): replace the
+        # finite-difference d(sojourn_probs)/dtheta with the EXACT forward-
+        # mode theta-adjoint over the elimination tape
+        # (Graph._sojourn_grad_theta_subset). Scope: weight_mode='linear'
+        # only (log is already rejected above; 'formula'/'callback' are not
+        # supported here, matching precedent from the other B3 batches);
+        # was_dph excluded (needs a different, deferred quotient-rule
+        # contraction -- native DPH, is_discrete=True/was_dph=False, needs
+        # NO special-casing and is NOT excluded, confirmed neither
+        # ComputeSojournTimesFfiImpl nor ptd_expected_sojourn_time_subset
+        # branch on is_discrete); observed_indices baked mode excluded
+        # (deferred -- would need a scatter-add of the upstream cotangent by
+        # the inverse-index map before the quotient rule, a separate piece
+        # of work). See b3-joint-index-plan.md.
+        #
+        # No silent fallback: whenever FD ends up being used instead --
+        # exact_grad=False passed explicitly, weight_mode/was_dph/baked-mode
+        # out of scope (checked once here, statically), or a per-call
+        # decline inside _exact_sojourn_jac_np below (e.g. MPFR
+        # conditioning or an out-of-scope tape input) -- an INFO-level log
+        # line via get_logger(__name__) states why.
+        _jix_grad_logger = get_logger(__name__)
+        _jix_was_dph = bool(graph.get_was_dph())
+        _jix_linear_scope_ok = (_wm in (None, 'linear'))
+        if not bool(exact_grad):
+            _jix_grad_logger.info(
+                "pmf_from_graph_joint_index: exact_grad=False -- using "
+                "finite differences for the sojourn gradient."
+            )
+            _jix_exact_enabled = False
+        elif not _jix_linear_scope_ok:
+            _jix_grad_logger.info(
+                "pmf_from_graph_joint_index: exact sojourn gradient not "
+                "available for weight_mode=%r (only 'linear'/None is "
+                "supported) -- using finite differences.", _wm
+            )
+            _jix_exact_enabled = False
+        elif _jix_was_dph:
+            _jix_grad_logger.info(
+                "pmf_from_graph_joint_index: exact sojourn gradient not "
+                "yet supported for a was_dph graph (Graph.discretize()) -- "
+                "using finite differences. Native DPH (is_discrete=True, "
+                "was_dph=False) IS supported."
+            )
+            _jix_exact_enabled = False
+        elif _baked:
+            _jix_grad_logger.info(
+                "pmf_from_graph_joint_index: exact sojourn gradient not "
+                "yet supported with observed_indices baked mode -- using "
+                "finite differences."
+            )
+            _jix_exact_enabled = False
+        else:
+            _jix_exact_enabled = True
+
+        _exact_sojourn_jac_np = None
+        if _jix_exact_enabled:
+            _jix_exact_graph = graph.clone()
+            _jix_param_length = param_length_actual
+            _jix_all_terminal_np = all_terminal_indices_np
+
+            def _exact_sojourn_jac_np(theta_np, vertex_indices_np):
+                # Host callback: set the private clone's weights at theta and
+                # read the exact sojourn-gradient Jacobian d[sojourn]/dtheta
+                # from C, gathered at BOTH the observed and all-terminal
+                # index sets via a SINGLE call over their union (see the
+                # plan's "Wiring" section for why one call over a union beats
+                # two calls over the parts). vertex_indices is a genuine
+                # per-call argument here (unlike theta_dim/fixed_mask), since
+                # the non-baked model reads it from the runtime observed
+                # data, not from a construction-time constant -- so the
+                # union must be computed INSIDE the callback (on concrete
+                # values), not precomputed in Python before tracing.
+                # NaN sentinel (of the REQUIRED output shape) when the exact
+                # path is not applicable -> FD fallback (logged here, since
+                # this runs as a host callback, not traced Python).
+                th = np.asarray(theta_np, dtype=np.float64)
+                vi = np.asarray(vertex_indices_np, dtype=np.int64).ravel()
+                obs_shape = (vi.shape[0], _jix_param_length)
+                all_shape = (_jix_all_terminal_np.shape[0], _jix_param_length)
+
+                _jix_exact_graph.update_weights(th.tolist())
+                union_idx = np.union1d(vi, _jix_all_terminal_np)
+                raw = _jix_exact_graph._sojourn_grad_theta_subset(union_idx.tolist())
+                if not raw:
+                    _jix_grad_logger.info(
+                        "pmf_from_graph_joint_index: exact sojourn gradient "
+                        "declined at theta=%s (was_dph, an ill-conditioned "
+                        "elimination tape, or an out-of-scope tape input) -- "
+                        "using finite differences for this call.", th.tolist()
+                    )
+                    return np.full(obs_shape, np.nan), np.full(all_shape, np.nan)
+
+                J_union = np.asarray(raw, dtype=np.float64).reshape(
+                    union_idx.shape[0], _jix_param_length,
+                )
+                obs_pos = np.searchsorted(union_idx, vi)
+                all_pos = np.searchsorted(union_idx, _jix_all_terminal_np)
+                return J_union[obs_pos], J_union[all_pos]
 
         # Callback weight mode: the C++ JSON parser only knows 'linear'
         # and 'log'. For 'callback', apply the user's weight_callback
@@ -8041,26 +8155,70 @@ extern "C" {{
             n_params = theta.shape[0]
             eps = 1e-7
 
-            # Finite differences for gradient
-            theta_bar = []
-            for i in range(n_params):
-                # Skip finite differences for fixed parameters - gradient is zero
-                # This is critical for correct chain rule when using compiled_grad_reduced
-                if i in fixed_indices_set:
-                    theta_bar.append(0.0)
-                    continue
+            def _fd_theta_bar():
+                # Finite differences for gradient (unchanged from before this
+                # batch). Skip perturbation for fixed parameters -- gradient
+                # is zero; critical for correct chain rule when using
+                # compiled_grad_reduced.
+                tb = []
+                for i in range(n_params):
+                    if i in fixed_indices_set:
+                        tb.append(jnp.zeros((), dtype=theta.dtype))
+                        continue
+                    theta_plus = theta.at[i].add(eps)
+                    theta_minus = theta.at[i].add(-eps)
+                    visits_plus, _ = _compute_pure(theta_plus, vertex_indices)
+                    visits_minus, _ = _compute_pure(theta_minus, vertex_indices)
+                    # Gradient only from visits (moments are dummy zeros)
+                    grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / (2 * eps))
+                    tb.append(grad_i)
+                return jnp.stack(tb)
 
-                theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].add(-eps)
+            if _exact_sojourn_jac_np is None:
+                theta_bar = _fd_theta_bar()
+            else:
+                # Quotient rule: sojourn_probs[i] = obs_sojourn[i] / norm,
+                # norm = sum(all_sojourn). Always pay the CHEAP union-based
+                # callback + two small FFI sojourn calls to check
+                # applicability for this theta; only pay the EXPENSIVE
+                # 2*n_params FD loop (via lax.cond, not jnp.where) when the
+                # exact path actually declines -- jnp.where alone would
+                # compute BOTH branches unconditionally and erase exact's
+                # win outright. (lax.cond's skip only manifests for a single,
+                # non-vmapped call; under SVGD's vmap(grad(loss))(particles)
+                # a batched predicate lowers to a select over both branches,
+                # same cost as jnp.where -- a JAX/XLA limitation, not
+                # specific to this wiring, so lax.cond is never worse and
+                # sometimes better.)
+                all_sojourn_exact = compute_sojourn_times_ffi(
+                    structure_dict, theta, all_terminal_indices)
+                norm_exact = jnp.sum(all_sojourn_exact)
+                obs_sojourn_exact = compute_sojourn_times_ffi(
+                    structure_dict, theta, vertex_indices)
 
-                visits_plus, _ = _compute_pure(theta_plus, vertex_indices)
-                visits_minus, _ = _compute_pure(theta_minus, vertex_indices)
+                J_obs, J_all = jax.pure_callback(
+                    _exact_sojourn_jac_np,
+                    (jax.ShapeDtypeStruct(vertex_indices.shape + (n_params,), jnp.float64),
+                     jax.ShapeDtypeStruct(all_terminal_indices.shape + (n_params,), jnp.float64)),
+                    theta, vertex_indices,
+                    vmap_method='sequential',
+                )
+                exact_ok = jnp.all(jnp.isfinite(J_obs)) & jnp.all(jnp.isfinite(J_all))
+                dnorm_exact = jnp.sum(J_all, axis=0)
+                d_probs_exact = (
+                    J_obs * norm_exact - obs_sojourn_exact[:, None] * dnorm_exact[None, :]
+                ) / (norm_exact ** 2)
+                exact_tbm = d_probs_exact.T @ g_visits  # (n_params,)
+                if fixed_indices_set:
+                    _fixed_keep = jnp.array(
+                        [0.0 if i in fixed_indices_set else 1.0 for i in range(n_params)],
+                        dtype=exact_tbm.dtype,
+                    )
+                    exact_tbm = exact_tbm * _fixed_keep
 
-                # Gradient only from visits (moments are dummy zeros)
-                grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / (2 * eps))
-                theta_bar.append(grad_i)
+                theta_bar = jax.lax.cond(exact_ok, lambda: exact_tbm, _fd_theta_bar)
 
-            return jnp.array(theta_bar), None, None  # gradients for theta, vertex_indices, rewards
+            return theta_bar, None, None  # gradients for theta, vertex_indices, rewards
 
         model.defvjp(model_fwd, model_bwd)
         # Source graph reference (see ``pmf_and_moments_from_graph``).
