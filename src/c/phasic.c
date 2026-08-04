@@ -11418,6 +11418,18 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
     int owns_off = 0;
     if (graph->parameterized_reward_compute_graph_off != NULL) {
         off = graph->parameterized_reward_compute_graph_off;
+        /* An mmap-loaded rev-3 descriptor (Stage-A2 on-disk cache,
+         * ptd_load_pcg_rev3_mmap) never carries input_specs -- it is set
+         * to NULL unconditionally (phasic.c:3816, "a loaded descriptor is
+         * never re-saved"), since input_specs exists only for save/re-bind,
+         * not for the numeric replay the mmap path is built for. This
+         * function's seeding loop below dereferences off->input_specs[kk]
+         * for every one of the off->n_inputs tape inputs -- decline instead
+         * of a NULL-pointer segfault (found via adversarial review of the
+         * D6 plan; the guard is needed regardless of D6, since it is
+         * reachable today whenever PHASIC_REWARD_COMPUTE_CACHE=1 is set and
+         * the on-disk cache is warm). */
+        if (off->n_inputs > 0 && off->input_specs == NULL) return -1;
     } else if (graph->parameterized_reward_compute_graph != NULL) {
         off = ptd_pcg_convert_to_offset(graph->parameterized_reward_compute_graph, graph, NULL, 0);
         if (off == NULL) return -1;
