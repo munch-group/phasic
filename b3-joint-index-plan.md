@@ -458,30 +458,121 @@ pattern (`_exact_graph` + `_one(t)`, `__init__.py:~7024-7039`):
   small-`P` models this specific function is most used on today; it is
   also a clear speed win for richer (`P`≳10) models. See D4 for how this
   informs the default.
-- **D4 — Python wiring**: new `exact_grad` kwarg (name finalized in
-  review — NOT `exact_moment_grad`, since this function's second output is
-  `dummy_moments = jnp.zeros(2)`, no "moments" concept exists here) on
-  `pmf_from_graph_joint_index`. Given D3's finding (exact is a correctness
-  win always, a speed win only for `P`≳10-20), default to `True` anyway,
-  matching every other B3 batch's precedent that correctness (avoiding FD's
-  documented mixed-scale defect) outweighs a modest constant-factor
-  slowdown at small `P` — the catastrophic regression risk the plan
-  originally worried about (`O(n^3)` per call) IS eliminated; what remains
-  is a bounded, well-characterized trade-off, not an open risk. Flag this
-  default choice explicitly for the D5 fix-review to weigh in on, since it
-  is a judgment call informed by, but not unambiguously dictated by, the
-  benchmark. No-silent-fallback logging for every excluded case
-  (out-of-scope weight mode, `was_dph`, baked mode, MPFR decline, input-spec
+- **D4 — Python wiring (DONE)**: new `exact_grad` kwarg (name finalized in
+  the D1 review — NOT `exact_moment_grad`, since this function's second
+  output is `dummy_moments = jnp.zeros(2)`, no "moments" concept exists
+  here) on `pmf_from_graph_joint_index`. `model_bwd` always pays the cheap
+  union-based callback + two small FFI sojourn calls to determine
+  applicability, then uses `jax.lax.cond(exact_ok, lambda: exact_tbm,
+  _fd_theta_bar)` so the expensive `2*n_params`-call FD loop is (in
+  principle) only paid when the exact path declines. **Originally
+  defaulted to `True`** per this section's original reasoning below — see
+  "Adversarial review of the FIX" for why that default was wrong and
+  reversed to `False` (initially matching D3's own finding, exact is a
+  correctness win always but a speed win only for `P`≳10-20, matching
+  every other B3 batch's default-`True` precedent seemed reasonable — the
+  additional problem the fix-review found, that `lax.cond` cannot actually
+  skip anything under SVGD's real `vmap` usage, was not visible from the
+  isolated D3 benchmark and only surfaced by reviewing the WIRED
+  composition). No-silent-fallback logging for every excluded case
+  (out-of-scope weight mode, `was_dph`, baked mode, a `theta_dim`
+  overriding the graph's own `param_length`, MPFR decline, input-spec
   out-of-scope).
-- **D5 — tests + adversarial review of the FIX**: new
+- **D5 — tests + adversarial review of the FIX (DONE)**: new
   `tests/pytest/inference/test_exact_grad_joint_index.py` (matches native
-  central-diff, grad+vmap, default picks it up automatically, every
-  exclusion declines+logs correctly, MPFR-decline-stays-finite, a
-  diagonal-weight-exactly-1 fixture per finding 2 above). Full regression
-  sweep. Submit the implemented diff to adversarial review before
-  considering the batch complete — this exact rhythm caught two real bugs
-  in the log-weight-mode batch's fix that a green test suite alone had
-  missed.
+  central-diff on continuous branching + native-DPH fixtures, grad+vmap,
+  default behavior, every exclusion declines+logs correctly including the
+  new `theta_dim` check, MPFR-decline-stays-finite, an unsorted/
+  duplicated/subset-indices fixture, an FFI-vs-clone primal-consistency
+  check, `fixed_mask` zeroing). Full regression sweep (`tests/pytest/
+  inference/`, 332 passed / 1 pre-existing unrelated flake / 45 skipped /
+  12 xfailed — the failure, `test_svgd_correctness.py::
+  test_basic_convergence`, is a stochastic posterior-mean tolerance check
+  on an unrelated exponential-distribution model with no joint-index
+  involvement, consistent with this project's documented pre-existing test
+  flakiness, not caused by this batch).
+
+  **Adversarial review of the FIX** (math-stats-checker, full report in
+  session history) confirmed the C function's math, NULL-safety,
+  cache-reuse ownership/lifecycle, and `was_dph`/native-DPH scoping are all
+  correct (tried to break each and could not), and confirmed the Python
+  wiring's union/searchsorted gather and quotient-rule re-derivation are
+  correct. It found:
+  - **(fixed)** The tangent guard's `m==0` fix (required, see the C design
+    section above) had re-introduced a `0 * inf -> NaN` hazard: dropping
+    the whole-update `m==0` skip means each of the update's two summands
+    now needs its OWN `0*inf=0` guard, not just the outer
+    `isinf(m) && y[a]==0` one — real on production graphs with trap/
+    deficit-sink vertices (confirmed finite `y[v]`/`y_dot[v]` there is not
+    guaranteed), though fail-soft today (the resulting NaN already trips
+    the existing `isfinite` sweep and correctly declines to FD) — fixed
+    with per-summand guards, a no-op on every currently-passing case.
+  - **(fixed)** No allocation in the new C function was NULL-checked, and
+    — because the offset-conversion is NOT itself cached (see the
+    Cross-cutting note below) — this function allocates and frees several
+    tape-length-sized arrays on EVERY call, unlike the FD path. On the
+    large joint-probability graphs this function targets this could be a
+    genuine multi-GB spike, not just a missing safety net. Fixed: NULL
+    checks on every allocation (decline to FD rather than segfault), plus
+    a conservative size guard (`L > 5e7` declines) as a safety net pending
+    real measurement on production-scale graphs.
+  - **(fixed — the significant one)** `jax.lax.cond` does not skip a
+    branch when its predicate is *batched*, which it always is under
+    SVGD's actual `vmap(grad(loss))(particles)` — JAX/XLA computes BOTH
+    branches and selects. So the wiring's "only pay FD when exact
+    declines" design does not hold under the primary real usage pattern:
+    `exact_grad=True` cost FD **plus** exact on every call, not FD only
+    when needed. Combined with D3's own finding (exact alone is ~2–4×
+    slower than FD alone at this model's typical native `P`=2), defaulting
+    to `True` was a real regression under `vmap` for the common case, not
+    the "modest, bounded" trade-off this section originally concluded from
+    the *isolated* C-level benchmark. Presented to the user as a genuine
+    judgment call (fix the `lax.cond`/`vmap` composition to restore the
+    full benefit at the cost of losing automatic per-call MPFR fallback
+    under `vmap`, vs. flip the default, vs. accept the cost as the price of
+    guaranteed correctness) — resolved by flipping the default to `False`,
+    the lowest-risk option: the wiring itself is unchanged (still correct,
+    still useful for direct non-`vmap`ped calls and as an explicit opt-in
+    for richer, `P`≳10 models), only the kwarg's default changed. This is
+    the only B3 exact-gradient kwarg in the codebase that defaults to
+    `False` — documented explicitly in the docstring, unlike every sibling
+    kwarg's default-`True` precedent.
+  - **(fixed)** Two shape/dtype wiring fragilities that would turn a
+    previously-working FD call into a hard `pure_callback` error once
+    `exact_grad=True`: a non-1-D `vertex_indices` (the callback always
+    returns a raveled shape; the declared `ShapeDtypeStruct` did not match
+    unless the input was already 1-D) and a `theta_dim` overriding the
+    graph's own `param_length` (the C function reads `param_length` off
+    the clone, silently disagreeing with the wiring's `param_length_actual`
+    used for every reshape). Both fixed: normalize `vertex_indices` via
+    `jnp.atleast_1d` consistently before use, and add a static
+    `theta_dim`-mismatch decline to the scope gate.
+  - **(not changed — noted, no defect demonstrated)** The exact path's
+    quotient rule mixes a primal from the FFI-rebuilt graph
+    (`compute_sojourn_times_ffi`, used for `norm_exact`/`obs_sojourn_exact`)
+    with a Jacobian from a separately-built `graph.clone()` (used for
+    `J_obs`/`J_all`) — two independently-built elimination tapes the
+    pure-FD path never had to keep consistent. Added a direct test
+    (`test_exact_sojourn_jac_np_ffi_and_clone_agree_on_primal`) asserting
+    the two representations' primal sojourn values agree, rather than only
+    checking it indirectly through the end-to-end gradient (which routes
+    through a THIRD representation, `graph.expected_sojourn_time`, as the
+    CD oracle, and could mask a small systematic offset as CD error).
+  - **(not changed — noted)** The MPFR-conditioning decline's rationale
+    ("mirrors the continuous moments gate") does not actually transfer:
+    `ptd_moments_grad_theta`'s gate protects against a genuine primal/
+    gradient MPFR-representation mismatch that has no counterpart here
+    (`ptd_expected_sojourn_time_subset` has no MPFR path at all), so the
+    gate here is a pure, and build-dependent (inert without `HAVE_MPFR`),
+    conservatism knob rather than a correctness necessity. Left as-is
+    (declining to FD on an ill-conditioned tape is still a reasonable,
+    conservative default) but the comment should eventually be corrected
+    to not claim a rationale that doesn't apply — tracked as a follow-up,
+    not blocking.
+  - **(not changed — noted)** No fixture in the new test suite has an
+    infinite/NaN primal sojourn value (a trap/deficit-sink vertex), so the
+    `0*inf` decline path fixed above is untested and its real decline rate
+    on production graphs is unmeasured.
 
 ## Cross-cutting notes
 

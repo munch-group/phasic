@@ -11432,6 +11432,24 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         if (indices[r] >= n) { if (owns_off) ptd_pcg_desc_off_destroy(off); return -1; }
     }
 
+    /* Size guard (found via adversarial review of the implemented fix):
+     * unlike the FD path (which reads the already-numeric, cached
+     * graph->reward_compute_graph), this function allocates ~40 bytes per
+     * tape command (s0/s1/na/nb/nm below) PLUS -- when the Stage-A2
+     * on-disk offset cache is not populated (its default state) -- a full
+     * ptd_pcg_convert_to_offset() copy of the tape, allocated and freed on
+     * EVERY call. On the large joint-probability graphs this function
+     * targets (n up to ~7e5, see b3-joint-index-plan.md), L can be large
+     * enough that this becomes a real, repeated memory spike rather than a
+     * one-time cost. Decline (not segfault/OOM) rather than risk it; the
+     * threshold is a conservative, round-number safety net (~2GB across
+     * the L-sized arrays), not a tuned value -- FD stays correct either
+     * way. */
+    if (L > 50000000) {
+        if (owns_off) ptd_pcg_desc_off_destroy(off);
+        return -1;
+    }
+
     /* Validate every tape input is a plain internal edge weight and cache its
      * edge pointer -- done ONCE up front, not per theta component. A
      * coefficients_length==0 edge (e.g. the aux back-edges from
@@ -11444,6 +11462,10 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
     int ok = 1;
     struct ptd_edge **edge_for_input =
         (struct ptd_edge **) malloc((ni ? ni : 1) * sizeof(struct ptd_edge *));
+    if (edge_for_input == NULL) {
+        if (owns_off) ptd_pcg_desc_off_destroy(off);
+        return -1;
+    }
     for (size_t kk = 0; kk < ni; ++kk) {
         struct ptd_pcg_input_spec sp = off->input_specs[kk];
         if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
@@ -11457,15 +11479,22 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         return -1;
     }
 
-    double *mem = (double*)malloc(md*sizeof(double));
-    memcpy(mem, off->mem_base, md*sizeof(double));
+    double *mem = (double*)malloc((md?md:1)*sizeof(double));
     double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
-    for (size_t kk=0; kk<ni; ++kk) inv[kk] = *off->inputs[kk];
     double *s0=(double*)malloc((L?L:1)*sizeof(double));
     double *s1=(double*)malloc((L?L:1)*sizeof(double));
     uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
     uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
     double *nm=(double*)malloc((L?L:1)*sizeof(double));
+    if (mem == NULL || inv == NULL || s0 == NULL || s1 == NULL
+            || na == NULL || nb == NULL || nm == NULL) {
+        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+        free(edge_for_input);
+        if (owns_off) ptd_pcg_desc_off_destroy(off);
+        return -1;
+    }
+    memcpy(mem, off->mem_base, md*sizeof(double));
+    for (size_t kk=0; kk<ni; ++kk) inv[kk] = *off->inputs[kk];
     size_t nc=0;
 #define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
                ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
@@ -11492,6 +11521,9 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
     double *mdot    = ok ? (double*)malloc((nc?nc:1)*sizeof(double)) : NULL;
     double *y       = ok ? (double*)malloc(n*sizeof(double)) : NULL;
     double *y_dot   = ok ? (double*)malloc(n*sizeof(double)) : NULL;
+    if (ok && (mem_dot == NULL || inv_dot == NULL || mdot == NULL || y == NULL || y_dot == NULL)) {
+        ok = 0;
+    }
 #define RD(op) ((op).kind==PTD_PCG_OP_MEM ? &mem_dot[(op).mem_offset] : \
                ((op).kind==PTD_PCG_OP_INPUT ? &inv_dot[(op).input_idx] : (double*)NULL))
     for (size_t j=0; ok && j<P; ++j) {
@@ -11527,8 +11559,22 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         y[0] = 1.0;
         for (size_t c=nc; c-- > 0; ) {
             size_t a=na[c], b=nb[c]; double m=nm[c], md_=mdot[c];
-            /* TANGENT: skip ONLY the inf-with-zero-operand case -- NOT m==0. */
-            if (!(isinf(m) && y[a]==0.0)) y_dot[b] += y_dot[a]*m + y[a]*md_;
+            /* TANGENT: NOT the primal's guards verbatim. Dropping the m==0
+             * skip (required -- see the m==0/mdot!=0 diagonal case in the
+             * function comment) would also drop the 0*inf=0 limit
+             * convention on EACH term individually if y[a]/y_dot[a] is
+             * +-inf at a trap/deficit-sink vertex (real on production
+             * joint-prob graphs, see ptd_expected_sojourn_time_subset's own
+             * comment) -- so each of the two summands gets its OWN 0*inf=0
+             * guard instead of one guard over the whole update. This is a
+             * no-op whenever y[a]/y_dot[a] are finite (found via adversarial
+             * review of the implemented fix). */
+            if (!(isinf(m) && y[a]==0.0)) {
+                double t = 0.0;
+                if (m != 0.0) t += y_dot[a]*m;
+                if (md_ != 0.0) t += y[a]*md_;
+                y_dot[b] += t;
+            }
             /* PRIMAL: unchanged from ptd_expected_sojourn_time_subset. */
             if (m == 0.0) continue;
             if (isinf(m) && y[a]==0.0) continue;

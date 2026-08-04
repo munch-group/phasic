@@ -165,3 +165,62 @@ pass: de-risk each fix independently (as with the two bugs already found),
 and put every plan and every fix through adversarial review before
 merging — the two real defects fixed this session were both found by
 review, not by the original implementation or its own tests.
+
+### B3 joint-index exact sojourn gradient (`exact_grad`, default `False`) — known gaps, flagged not fixed
+
+`Graph.pmf_from_graph_joint_index`'s `exact_grad` kwarg (new C function
+`ptd_sojourn_grad_theta_subset`, `src/c/phasic.c`; see
+`b3-joint-index-plan.md` for the full derivation) is the first B3
+exact-gradient kwarg in this codebase to default to **`False`**, not
+`True`. Reason: it uses forward-mode (cost scales with `theta_dim` `P`,
+unlike every other B3 gradient function here, which is reverse-mode and
+`P`-independent), and under SVGD's actual `vmap(grad(loss))(particles)`
+usage the internal `jax.lax.cond` used to skip finite differences when the
+exact path succeeds cannot skip anything — JAX/XLA computes both branches
+of a `cond` whenever its predicate is batched, which it always is here —
+so `exact_grad=True` currently costs FD **plus** the exact computation on
+every call under `vmap`, a net regression at this model's typical native
+`P`=2 (found via adversarial review of the implemented fix, not the
+original plan review). The wiring itself is correct and available as an
+explicit opt-in for richer (`P`≳10-20) models. Follow-ups flagged during
+that same review, judged lower-severity / out of scope for it:
+
+- **The `lax.cond`/`vmap` composition could be redesigned** to resolve
+  applicability via a construction-time probe (a Python bool, not a
+  JAX-traced predicate) instead of a per-call `cond`, which would restore
+  the full speed benefit under `vmap` for large-`P` models and let the
+  default become `True` again. Trade-off: a later theta that hits the MPFR
+  ill-conditioning gate would no longer get an automatic per-call FD
+  fallback under `vmap` (a rare-case robustness loss) — needs a decision on
+  that failure mode (raise vs. some other guarded behavior) before
+  attempting it. Not done this batch; flagged as the natural next step if
+  `exact_grad=True` is to become the default.
+- **The offset-tape conversion (`ptd_pcg_convert_to_offset`) is not
+  itself cached.** `ptd_sojourn_grad_theta_subset` reuses the graph-level
+  RAW parameterized tape cache (`ptd_precompute_reward_compute_graph`),
+  fixing the catastrophic `O(n^3)`-rebuild-per-call risk the original plan
+  worried about, but the `O(commands)` conversion to offset form still
+  happens fresh on every call (the Stage-A2 on-disk cache that would avoid
+  this is off by default). A size guard (`L > 5e7` declines to FD) and
+  NULL-checked allocations were added as a safety net, but the real
+  per-call cost/memory profile on production-scale graphs (`n` up to
+  ~7×10^5) is unmeasured.
+- **The `was_dph`/discrete/was_dph quotient-rule combination remains
+  deferred** (native DPH, `is_discrete=True`/`was_dph=False`, IS
+  supported — only `was_dph=True`, i.e. `Graph.discretize()`, is excluded),
+  as is `weight_mode` in `{'formula', 'callback'}` and `observed_indices`
+  baked/dedup mode (would need a scatter-add of the upstream cotangent by
+  the inverse-index map before the quotient rule).
+- **The MPFR-conditioning decline's rationale doesn't actually transfer**
+  from `ptd_moments_grad_theta`'s gate (which protects against a genuine
+  primal/gradient MPFR-representation mismatch that has no counterpart
+  here — `ptd_expected_sojourn_time_subset` has no MPFR path at all) — the
+  gate is a pure, build-dependent (inert without `HAVE_MPFR`) conservatism
+  knob here, not a correctness necessity. The comment in
+  `ptd_sojourn_grad_theta_subset` should eventually be corrected to not
+  claim a rationale that doesn't apply.
+- **No test fixture exercises a trap/deficit-sink vertex** (an infinite
+  primal sojourn value), so the `0*inf=0`-per-summand tangent guard fix
+  (itself already applied — see the plan) is untested end-to-end and its
+  real decline rate on production coalescent joint-prob graphs (which do
+  have such vertices) is unmeasured.

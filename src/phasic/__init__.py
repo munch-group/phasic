@@ -7653,7 +7653,7 @@ extern "C" {{
                                     fixed_mask: Any = None,
                                     exclude_vertices: list[int] | None = None,
                                     observed_indices: Any = None,
-                                    exact_grad: bool = True) -> Callable:
+                                    exact_grad: bool = False) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -7698,19 +7698,43 @@ extern "C" {{
             When ``observed_indices`` is ``None`` (default), the legacy path
             is used and ``vertex_indices`` is read from the model's runtime
             argument as before.
-        exact_grad : bool, default=True
+        exact_grad : bool, default=False
             Use the exact forward-mode theta-adjoint for the sojourn-vector
-            gradient instead of finite differences. Covers weight_mode
+            gradient instead of finite differences (FD). Covers weight_mode
             'linear' (continuous and native DPH -- discrete=True/was_dph=
             False graphs need no special-casing here); NOT yet supported
             for weight_mode in {'formula', 'callback'}, a ``was_dph`` graph
-            (``Graph.discretize()``), or ``observed_indices`` baked mode --
-            each falls back to finite differences with an INFO-level log
-            via ``logging.getLogger('phasic')`` stating why (set
+            (``Graph.discretize()``), ``observed_indices`` baked mode, or a
+            ``theta_dim`` that overrides the graph's own ``param_length``
+            -- each falls back to FD with an INFO-level log via
+            ``logging.getLogger('phasic')`` stating why (set
             ``PHASIC_LOG_LEVEL=INFO`` to see these). A per-call decline
             (e.g. an ill-conditioned elimination tape) also falls back to
-            finite differences for that call only, silently in the sense
-            that no exception is raised, but logged the same way.
+            FD for that call only, silently in the sense that no exception
+            is raised, but logged the same way.
+
+            Defaults to **False**, unlike every other B3 exact-gradient
+            kwarg in this codebase (which default to ``True``). This
+            function differs from those in a way that matters here: it
+            uses FORWARD-mode (one pass per theta parameter P), not
+            reverse-mode (one pass total, independent of P), so its cost
+            scales with P and only overtakes FD once P is roughly 10-20+ on
+            representative graphs (see ``b3-joint-index-plan.md``'s D3
+            benchmark) -- unlike this P=2 (coalescent rate + mutation rate)
+            model's typical usage. Worse, under SVGD's actual
+            ``vmap(grad(loss))(particles)`` call pattern, the internal
+            ``jax.lax.cond`` used to skip finite differences when the exact
+            path succeeds cannot actually skip anything: JAX/XLA computes
+            BOTH branches of a ``cond`` whenever its predicate is batched,
+            which it always is here (found via adversarial review of the
+            implemented fix). So under vmap, ``exact_grad=True`` currently
+            costs FD **plus** the exact computation on every call, not FD
+            only when the exact path declines. For a P=2 model this is a
+            net regression, not just a smaller win, hence the default stays
+            False. Set ``exact_grad=True`` explicitly for richer models
+            (P roughly 10+) or when FD's documented mixed-scale gradient
+            defect (the reason this whole feature exists) matters more than
+            the added cost.
 
         Returns
         -------
@@ -7870,6 +7894,22 @@ extern "C" {{
                 "pmf_from_graph_joint_index: exact sojourn gradient not "
                 "yet supported with observed_indices baked mode -- using "
                 "finite differences."
+            )
+            _jix_exact_enabled = False
+        elif int(graph.param_length()) != param_length_actual:
+            # The C function reads graph->param_length off the CLONE (built
+            # from the ORIGINAL graph object, not the serialized/theta_dim-
+            # overridden dict); if a caller passed theta_dim != the graph's
+            # own param_length, the clone's Jacobian width would silently
+            # disagree with param_length_actual (used for every reshape/
+            # ShapeDtypeStruct below) -- decline explicitly rather than let
+            # that surface as a reshape error inside a pure_callback (found
+            # via adversarial review of the implemented fix).
+            _jix_grad_logger.info(
+                "pmf_from_graph_joint_index: exact sojourn gradient not "
+                "supported when theta_dim (%r) overrides the graph's own "
+                "param_length (%r) -- using finite differences.",
+                param_length_actual, int(graph.param_length())
             )
             _jix_exact_enabled = False
         else:
@@ -8190,17 +8230,26 @@ extern "C" {{
                 # same cost as jnp.where -- a JAX/XLA limitation, not
                 # specific to this wiring, so lax.cond is never worse and
                 # sometimes better.)
+                # Normalize to 1-D, matching _compute_pure's own
+                # jnp.atleast_1d handling -- res[1] (vertex_indices) is
+                # whatever raw shape the caller passed to model(), and the
+                # callback below always returns a raveled (k_obs, P) array,
+                # so the ShapeDtypeStruct declared for it must match the
+                # SAME normalized shape or a non-1-D vertex_indices would
+                # raise inside the pure_callback (found via adversarial
+                # review of the implemented fix).
+                _vi_norm = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
                 all_sojourn_exact = compute_sojourn_times_ffi(
                     structure_dict, theta, all_terminal_indices)
                 norm_exact = jnp.sum(all_sojourn_exact)
                 obs_sojourn_exact = compute_sojourn_times_ffi(
-                    structure_dict, theta, vertex_indices)
+                    structure_dict, theta, _vi_norm)
 
                 J_obs, J_all = jax.pure_callback(
                     _exact_sojourn_jac_np,
-                    (jax.ShapeDtypeStruct(vertex_indices.shape + (n_params,), jnp.float64),
+                    (jax.ShapeDtypeStruct(_vi_norm.shape + (n_params,), jnp.float64),
                      jax.ShapeDtypeStruct(all_terminal_indices.shape + (n_params,), jnp.float64)),
-                    theta, vertex_indices,
+                    theta, _vi_norm,
                     vmap_method='sequential',
                 )
                 exact_ok = jnp.all(jnp.isfinite(J_obs)) & jnp.all(jnp.isfinite(J_all))
