@@ -1330,29 +1330,31 @@ class TestDiscretize:
         with raises(TypeError, match="rate must be a number or callable"):
             g.discretize("fast")
 
+    # Contract per c673be83 ("Removed mistaken check for rate <= 1"):
+    # rate must be > 0; rates >= 1 are accepted.
     def test_rate_zero(self):
         g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
-        with raises(ValueError, match="rate must be in \\(0, 1\\)"):
+        with raises(ValueError, match="rate must be larger than 0"):
             g.discretize(0.0)
 
     def test_rate_one(self):
         g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
-        with raises(ValueError, match="rate must be in \\(0, 1\\)"):
-            g.discretize(1.0)
+        dg = g.discretize(1.0)
+        assert dg is not None
 
     def test_rate_negative(self):
         g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
-        with raises(ValueError, match="rate must be in \\(0, 1\\)"):
+        with raises(ValueError, match="rate must be larger than 0"):
             g.discretize(-0.5)
 
     def test_rate_greater_than_one(self):
         g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
-        with raises(ValueError, match="rate must be in \\(0, 1\\)"):
-            g.discretize(1.5)
+        dg = g.discretize(1.5)
+        assert dg is not None
 
 
 
