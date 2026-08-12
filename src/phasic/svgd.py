@@ -4531,7 +4531,7 @@ def compute_sample_moments(data: jnp.ndarray | SparseObservations, nr_moments: i
 _GRAPH_SVGD_ONLY_KWARGS = frozenset({
     'epoch_starts', 'tied', 'joint_index', 'discrete', 'callback',
     'daisy_chain_t_eval', 'daisy_chain_granularity', 'daisy_chain_probe_theta',
-    'daisy_chain_t_eval_tol',
+    'daisy_chain_t_eval_tol', 'exact_moment_grad',
 })
 
 

@@ -10699,6 +10699,51 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
     for (size_t k=0;k<ni;++k) inp0[k] = *off->inputs[k];
     double *ge = (double*)calloc(ni?ni:1, sizeof(double));  /* dQ/d(edge weight) */
     double q = 0.0;
+    /* MPFR gate backport (successor pattern, ptd_moments_grad_theta): nm[] are
+     * locals of ptd_dbg_reverse_tape and not otherwise exposed, so recover them
+     * by replaying stage-0 on SCRATCH copies (mem0/inp0 must stay clean for the
+     * reverse-tape call below). Alloc failure declines (FD fallback) rather
+     * than proceeding ungated. */
+    {
+        size_t L = off->length;
+        double *smem = (double*)malloc(md*sizeof(double));
+        double *sinv = (double*)malloc((ni?ni:1)*sizeof(double));
+        double *nm_local = (double*)malloc((L?L:1)*sizeof(double));
+        size_t nc_local = 0;
+        int gate = 1;
+        if (smem != NULL && sinv != NULL && nm_local != NULL) {
+            memcpy(smem, mem0, md*sizeof(double));
+            memcpy(sinv, inp0, ni*sizeof(double));
+#define D2RV(op) ((op).kind==PTD_PCG_OP_MEM ? &smem[(op).mem_offset] : \
+                 ((op).kind==PTD_PCG_OP_INPUT ? &sinv[(op).input_idx] : (double*)NULL))
+            for (size_t i=0;i<L;++i) {
+                struct ptd_pcg_command_off c = off->commands[i];
+                double *rf=D2RV(c.fromT), *rt=D2RV(c.toT), *rm=D2RV(c.multiplierptr);
+                switch (c.type) {
+                    case 0: { /* NEW_ADD: record m_c with the diagonal -1 */
+                        double mc = (c.from==c.to) ? (*rm - 1.0) : *rm;
+                        nm_local[nc_local++] = mc;
+                    } break;
+                    case 1: *rf += (*rt)*c.multiplier; break;
+                    case 3: *rf += (*rt)*(*rm); break;
+                    case 2: *rf = 1.0/(*rf); break;
+                    case 4: *rf = 1.0 - *rf; break;
+                    case 5: *rf = (*rf)/(*rt); break;
+                    case 6: *rf = 0.0; break;
+                    default: break;
+                }
+            }
+#undef D2RV
+            gate = ptd_dbg_tape_needs_mpfr(nm_local, nc_local);
+        }
+        free(smem); free(sinv); free(nm_local);
+        if (gate) {
+            free(mem0); free(inp0); free(ge);
+            ptd_pcg_desc_off_destroy(off);
+            ptd_parameterized_reward_compute_graph_destroy(ptape);
+            return -1;
+        }
+    }
     int rc = ptd_dbg_reverse_tape(off, mem0, inp0, n, /*target=*/0, &q, ge);
 
     int ok = (rc == 0);
@@ -10712,6 +10757,10 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
                 || sp.v >= graph->vertices_length
                 || sp.e >= graph->vertices[sp.v]->edges_length) { ok = 0; break; }
         struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+        /* Constant tape-input edges (coefficients_length==0, e.g. aux vertices)
+         * have dw/dtheta = 0 and a NULL coefficient array: skip, do not deref
+         * (successor pattern). */
+        if (e->coefficients_length == 0) continue;
         for (size_t j=0;j<P;++j) dtheta_out[j] += ge[k] * e->coefficients[j];
     }
     if (ok) for (size_t j=0;j<P;++j) if (!isfinite(dtheta_out[j])) { ok = 0; break; }

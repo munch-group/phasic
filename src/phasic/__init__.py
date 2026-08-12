@@ -5279,6 +5279,7 @@ extern "C" {{
              exposure_param_index: int | None = None,
              validate_rewards: bool = True,
              quiet_assumptions: bool = False,
+             exact_moment_grad: bool | None = None,
              ) -> 'SVGD':
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5425,6 +5426,31 @@ extern "C" {{
             - observed_data are joint observations / vertex indices
             - discrete=True is forced (these models read visit counts, not a density)
             - moment regularization and rewards are not supported (R3/R4)
+        exact_moment_grad : bool or None, default=None
+            Controls the exact moment-gradient path of the underlying
+            ``pmf_and_moments_from_graph`` model — only meaningful for a
+            standard (non-joint) graph WITHOUT rewards (the plain moments
+            model).
+
+            - None (default): not forwarded; the model builder's own default
+              governs (exact moment gradients ON).
+            - False: force finite-difference moment gradients.
+            - True: request the exact (reverse-mode) path explicitly. Note
+              that the model builder's documented declines still govern —
+              formula/callback weight modes decline STATICALLY at
+              construction, ``'log'`` mode on a discrete/``was_dph`` graph
+              declines too, and per-theta MPFR declines remain dynamic (all
+              INFO-logged); this kwarg cannot promise more than the builder
+              delivers.
+
+            An explicit value on any other model kind raises
+            ``SvgdConfigError`` (R29) rather than being silently ignored:
+            with ``rewards`` the exact path currently declines on every call;
+            with ``epoch_starts`` no exact epoch-model gradient exists yet;
+            joint-probability models use the separate forward-mode
+            ``exact_grad`` machinery of ``pmf_from_graph_joint_index``
+            (default False — a different kwarg with a different default, not
+            this one).
         rewards : ArrayLike, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
@@ -5767,6 +5793,7 @@ extern "C" {{
             regularization=_reg_probe,
             nr_moments=nr_moments,
             joint_index=joint_index,
+            exact_moment_grad=exact_moment_grad,
         ))
 
         # Options ledger: record the provenance (default / user / inferred /
@@ -6113,10 +6140,16 @@ extern "C" {{
                         theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
                     )
             else:
-                # No rewards - use standard model
+                # No rewards - use standard model. exact_moment_grad=None is
+                # deliberately NOT forwarded (byte-identical to the callee's
+                # own default resolution); an explicit value reaches only this
+                # leaf — every other leaf rejects it at validation (R29).
+                _emg_kw = ({} if exact_moment_grad is None
+                           else {'exact_moment_grad': exact_moment_grad})
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
                     theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                    **_emg_kw,
                 )
 
             # Zero-inflated likelihood wiring: when the rewards validator
@@ -6767,6 +6800,32 @@ extern "C" {{
         def _compute_moments_pure(theta_flat):
             """Pure function for moment computation"""
             theta_np = np.asarray(theta_flat, dtype=np.float64)
+            # Under vmap ('expand_dims') theta arrives 2-D with the batch as
+            # the leading axis; the callback must return (B, nr_moments).
+            # Without this branch, len(theta_np) is the batch size and the
+            # ctypes call runs against a mis-shaped buffer.
+            if theta_np.ndim == 2:
+                # Preallocate so a B=0 batch returns (0, nr_moments) instead
+                # of np.stack([]) raising (sibling pattern in
+                # _exact_moments_jac_np).
+                out = np.empty((theta_np.shape[0], nr_moments), dtype=np.float64)
+                for b in range(theta_np.shape[0]):
+                    row = np.ascontiguousarray(theta_np[b], dtype=np.float64)
+                    out_row = np.zeros(nr_moments, dtype=np.float64)
+                    lib.compute_moments(
+                        row.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        len(row),
+                        nr_moments,
+                        out_row.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                    )
+                    out[b] = out_row
+                return out
+            if theta_np.ndim > 2:
+                raise ValueError(
+                    f"moments_from_graph: theta has ndim={theta_np.ndim}; "
+                    "only 1-D theta or a single vmap batch dimension (2-D) "
+                    "is supported"
+                )
             output_np = np.zeros(nr_moments, dtype=np.float64)
 
             lib.compute_moments(

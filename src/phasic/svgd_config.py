@@ -125,6 +125,7 @@ LEDGER_OPTION_ORDER = (
     'discrete', 'joint_index', 'theta_dim',
     'n_particles', 'n_iterations', 'learning_rate', 'optimizer',
     'bandwidth', 'preconditioner', 'regularization', 'nr_moments',
+    'exact_moment_grad',
     'positive_params', 'param_transform', 'prior',
     'fixed', 'tied', 'epoch_starts', 'exposure', 'exposure_param_index',
 )
@@ -284,6 +285,11 @@ class SvgdConfig:
     # daisy-chain path), so — unlike callback — it is allowed with epoch_starts;
     # the only constraint is mutual exclusion with callback (rule R22).
     has_weight_formula: bool = False
+    # ``Graph.svgd(exact_moment_grad=...)``. None = not forwarded (the model
+    # builder's own default governs). An explicit True/False is only honored
+    # on the no-rewards moments model ("leaf 5"); every other model kind
+    # rejects it (R29) so the kwarg can never be silently inert.
+    exact_moment_grad: Optional[bool] = None
     # Preconditioner choice introspection. ``preconditioner_choice`` is the raw
     # string the user passed ('auto'/'jacobian'/'fisher'/'none'), 'instance' for a
     # pre-built preconditioner object, or None when the user passed None.
@@ -504,6 +510,7 @@ def from_svgd_call(
     regularization: float = 0.0,
     nr_moments: int = 2,
     joint_index: Any = None,
+    exact_moment_grad: Optional[bool] = None,
     **_unused: Any,
 ) -> SvgdConfig:
     """Build an :class:`SvgdConfig` from a live ``Graph.svgd`` call.
@@ -578,6 +585,9 @@ def from_svgd_call(
         tied_groups=tied_groups,
         has_callback=has_callback,
         has_weight_formula=has_weight_formula,
+        exact_moment_grad=(
+            None if exact_moment_grad is None else bool(exact_moment_grad)
+        ),
     )
 
 
@@ -1098,6 +1108,39 @@ def _check_R28_joint_index_false_incompatible_with_joint_prob(c: SvgdConfig) -> 
         )
 
 
+def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
+    # Batch D.4: an explicit exact_moment_grad is only honored on the
+    # no-rewards moments model (leaf 5). Everywhere else it would be inert
+    # (rewards: the exact path declines on every call until Batch A) or
+    # meaningless (joint-prob/daisy models do not use the moments adjoint),
+    # so reject loudly instead of silently ignoring it.
+    if c.exact_moment_grad is None:
+        return
+    if c.has_epoch_starts:
+        raise SvgdConfigError(
+            "exact_moment_grad is not supported with epoch_starts "
+            "(daisy-chain): no exact-gradient variant exists for the epoch "
+            "model yet. Drop exact_moment_grad."
+        )
+    if c.graph_kind in ('joint_prob', 'joint_stop_prob'):
+        # 'joint_stop_prob' (a joint_stop_prob_graph()) also routes to the
+        # joint-index leaf — the classifier checks _joint_stop_prob_graph
+        # BEFORE the indexer, so testing 'joint_prob' alone leaves a silent
+        # inert-kwarg path (G4 diff-review finding 1).
+        raise SvgdConfigError(
+            "exact_moment_grad does not apply to joint-probability models "
+            f"(graph kind '{c.graph_kind}'); their likelihood uses the "
+            "sojourn adjoint (see pmf_from_graph_joint_index's exact_grad). "
+            "Drop exact_moment_grad."
+        )
+    if c.rewards_kind != 'none':
+        raise SvgdConfigError(
+            "exact_moment_grad with rewards is not supported yet: the exact "
+            "moments adjoint declines on every rewards-bearing call, so the "
+            "kwarg would be inert. Drop exact_moment_grad or rewards."
+        )
+
+
 _RULES = (
     _check_R1_epoch_requires_continuous_joint_prob,
     _check_R2_joint_index_requires_joint_prob,
@@ -1127,6 +1170,7 @@ _RULES = (
     _check_R26_optimizer_excludes_regularization,
     _check_R27_nr_moments_ignored_on_joint_prob,
     _check_R28_joint_index_false_incompatible_with_joint_prob,
+    _check_R29_exact_moment_grad_leaf_scope,
 )
 
 
