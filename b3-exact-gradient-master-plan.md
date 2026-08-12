@@ -977,9 +977,9 @@ that is stated explicitly.
 
 ```
 Phase 1 (mutually independent — start anytime, no gate):
-  D.1  moments_from_graph vmap fix
-  D.2  ptd_moment0_grad_theta guards
-  D.4  Graph.svgd() leaf-5 plumbing
+  D.1  moments_from_graph vmap fix        [MERGED 2026-08-13, 164e2758]
+  D.2  ptd_moment0_grad_theta guards      [MERGED 2026-08-13, 164e2758]
+  D.4  Graph.svgd() leaf-5 plumbing       [MERGED 2026-08-13, 164e2758]
   0    reverse-tape skeleton extraction (zero dependencies -- placed here,
        not gated behind A/B/C, because nothing blocks starting it; it has
        no user-facing value until A/B/C consume it, but there is no reason
@@ -1195,7 +1195,15 @@ on any batch here):
    with no error (rewards-free first-moment path). Pre-existing
    silent-wrong-answer hazard; needs its own guard/doc micro-fix (decline
    or warn in the hierarchical gate), independent of any gradient work.
-7. **NEW (2026-08-11, found by the Deferred-2 plan's adversarial review):
+7. **NEW (2026-08-12, Batch D Tier-1 triage): `pmf_from_cpp`'s callback
+   likely shares the D.1 vmap bug** — its pure_callback wrapper uses
+   `vmap_method='expand_dims'` with no ndim handling
+   (`__init__.py:4174-4183`, read-confirmed by the G4 reviewer; the atlas
+   flagged it as "probable sibling, unconfirmed"). Execution probe deferred:
+   `pmf_from_cpp(cpp_file, ...)` needs a generated C++ model-file fixture,
+   beyond the batch's bounded-probe budget. Fix would mirror D.1's loop
+   (Class B; own micro-batch with a cpp-file fixture).
+8. **NEW (2026-08-11, found by the Deferred-2 plan's adversarial review):
    daisy FFI handlers swallow C-level context-create failures** — the
    exception becomes a NaN row + `Success()`, with no log line at all on
    the default sojourn handler (`graph_builder_ffi.cpp:2065-2082`, `:2148`;

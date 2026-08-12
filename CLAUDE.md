@@ -128,7 +128,13 @@ reviews but judged lower-severity / out of scope for those passes:
   separate FD-only code paths**, untouched by the exact-grad work.
   `moments_from_graph` has its own `custom_vjp` with an unconditional
   central-difference backward (`src/phasic/__init__.py`, no
-  `exact_moment_grad` param, no logging). `method_of_moments.py` hands its
+  `exact_moment_grad` param, no logging). *(Update 2026-08-13, Batch D
+  Tier-1 `164e2758`: its vmap CRASH is fixed — the ctypes callback now
+  handles 2-D batches and rejects ndim>2 loudly — but the backward remains
+  FD-only. Same batch: `Graph.svgd(exact_moment_grad=...)` now exists —
+  forwarded on the no-rewards moments leaf only; every other leaf rejects
+  an explicit value via svgd_config rule R29, so it can never be silently
+  inert.)* `method_of_moments.py` hands its
   model to `scipy.optimize.least_squares` with no `jac=`, so scipy computes
   its own internal FD Jacobian, independent of `exact_moment_grad`, with no
   visibility either way.

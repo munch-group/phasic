@@ -1,8 +1,16 @@
 # B3 test baseline ledger
 
-**Pinned 2026-08-11 · master `cadf1ca4` · rebuilt via `pixi run install-dev`
-immediately before the run (install log: session scratchpad
-`baseline-install.log`).**
+**Re-stamped 2026-08-13 · master `164e2758` (Batch D Tier-1 merge) ·
+verified counts: 1885 passed / 0 failed / 84 skipped / 24 xfailed** —
+obtained from the batch worktree's chunked full-suite run on content
+identical to the merged tree (12 sub-runs, same command semantics; a single
+background run is killed by machine sleep on this host, see the batch merge
+review). Exact baseline arithmetic vs the 2026-08-11 stamp: +6 new
+no-source-dir tests passed, +8 new source-gated skips, xfail map unchanged
+at 24. Known-failure ledger remains EMPTY.
+
+*(Original stamp, superseded: 2026-08-11 · master `cadf1ca4` · rebuilt via
+`pixi run install-dev` immediately before the run.)*
 
 ## Command and result
 
@@ -46,6 +54,22 @@ without a second full run). **The alignment edit is currently uncommitted**
   a materially changed skip count needs an explanation in the merge review.
 - **Warnings (701):** not gated, but a new warning *class* from touched
   code is worth a line in the merge review.
+
+## The sources-on universe (addendum 2026-08-12)
+
+The baseline command runs WITHOUT `PHASIC_SOURCE_DIR`, so tests requiring
+the C/C++ sources on disk (JIT-compile paths) sit in the 76-skip bucket.
+Setting `PHASIC_SOURCE_DIR` un-skips them and exposes **9 pre-existing
+failures, all in `inference/test_jax_integration.py`**
+(TestMomentsFromGraph ×2, TestPMFAndMomentsFromGraph ×2,
+TestBatchOperations ×3, TestMultivariateSampling ×2) — differentially
+confirmed identical on untouched master `19b86d71` (2026-08-12), matching
+the long-documented "9 test_jax_integration failures are PRE-EXISTING
+(fail at param_length check before B3 code)". Rules:
+- **G3 is defined in the no-source-dir universe** (baseline-identical
+  command). Never compare a sources-on run against this ledger's counts.
+- G2 runs that need `PHASIC_SOURCE_DIR` treat exactly these 9 as
+  ledgered known-failures; a 10th sources-on failure is NEW.
 
 ## Scope
 
