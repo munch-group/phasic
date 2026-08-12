@@ -51,7 +51,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.1 | `moments_from_graph` vmap-crash fix | **merged** | branch kept for now (worktree deletable) | `b3-batchD-tier1-plan.md` v2 + merge review | all gates green; G3 1885/0/84/24 | plan 2 refuters + diff 2 refuters (SOUND / SOUND-W-C) | `164e2758` |
 | D.2 | `ptd_moment0_grad_theta` validator guards | **merged** | same | same | validators 5/5 pre + 5/5 post + guards gate ALL PASS | same | `164e2758` |
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
-| 0 | Reverse-tape skeleton extraction | not-started | — | master plan §2 (needs `b3-batch0-plan.md`) | — | — | — |
+| 0 | Reverse-tape skeleton extraction | plan-review | `b3/batch0-skeleton` (planned) | `b3-batch0-plan.md` v1 | — | 2 refuters in flight (2026-08-13) | — |
 | F | D6 `lax.cond`/`vmap` static-dispatch redesign | not-started (design pre-reviewed: `b3-joint-index-plan.md` D6) | — | `b3-joint-index-plan.md` D6 §§ | — | — | — |
 | H | Daisy final-epoch exact gradient | not-started | — | master plan §10 (needs own plan + de-risk) | — | — | — |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
