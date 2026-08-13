@@ -4267,6 +4267,7 @@ extern "C" {{
         exposure_param_index: int | None = None,
         final_read: str = 'sojourn',
         bake_fd_skip: bool = True,
+        exact_final_grad: bool = False,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4314,6 +4315,22 @@ extern "C" {{
         granularity : int, optional
             Uniformization granularity forwarded to the FFI handler's
             ``stop_probability`` calls. ``0`` (default) = auto.
+        exact_final_grad : bool, default=False
+            Batch H (``b3-batchH-plan.md`` v3.1): compute the FINAL
+            epoch's theta gradient EXACTLY (the r_v product-rule term +
+            the C sojourn adjoint with the conditioning gate skipped, at
+            the handoff extracted by pybind replication of the fused FFI
+            chain), leaving earlier epochs' slots on the unchanged
+            full-chain central-difference FD. Requires
+            ``final_read='sojourn'`` and ``weight_mode='linear'``
+            (anything else raises ``ValueError`` at construction — no
+            silent fallback). Once built, a residual C decline in the
+            backward RAISES a diagnostic ``RuntimeError`` (no FD
+            fallback on this path). Measured on the de-risk fixture:
+            final-epoch gradient components ~3.6e5x more accurate than
+            FD, at ~7.4% of the FD backward's cost (net speedup).
+            INTERNAL for now — the public ``Graph.svgd`` plumbing is
+            Batch G leaf 1.
 
         Returns
         -------
@@ -4550,6 +4567,164 @@ extern "C" {{
             raise ValueError(
                 f"final_read must be 'stopprob' or 'sojourn', got {final_read!r}."
             )
+
+        # ---- Batch H: exact FINAL-epoch gradient (exact_final_grad) ----
+        # INTERNAL opt-in kwarg (public Graph.svgd plumbing is Batch G
+        # leaf 1). Design of record: b3-batchH-plan.md v3.1; evidence:
+        # b3-batchH-findings.md (oracle parity 1.4e-13; composed gradient
+        # 3.6e5x more accurate than FD on final-epoch slots at ~7.4% of
+        # the FD backward's cost). Loud scope guards -- no silent
+        # fallbacks (the C adjoint's contraction is linear-only and the
+        # exact block differentiates the sojourn final read).
+        if exact_final_grad:
+            if final_read != 'sojourn':
+                raise ValueError(
+                    "exact_final_grad=True requires final_read='sojourn' "
+                    f"(got {final_read!r}) -- the exact block "
+                    "differentiates the granularity-free sojourn read. "
+                    "Pass exact_final_grad=False for final_read='stopprob'."
+                )
+            if getattr(self, '_weight_mode', 'linear') != 'linear':
+                raise ValueError(
+                    "exact_final_grad=True supports weight_mode='linear' "
+                    f"only (this graph has weight_mode="
+                    f"{self._weight_mode!r}); the C sojourn adjoint's "
+                    "contraction is linear-only. Pass "
+                    "exact_final_grad=False."
+                )
+            if getattr(self, 'was_dph', False):
+                raise ValueError(
+                    "exact_final_grad=True does not support was_dph "
+                    "(Graph.discretize()) graphs."
+                )
+
+        def _make_exact_final_block(jsp_g, sg_g, ipv_tgt, aux_map, gather_l,
+                                    sti_l, init_ipv_np, gran, dts, P_l, n_ep):
+            """Batch H I2: build the host-side exact final-epoch block.
+
+            Returns ``(block, n_t)`` where ``block(theta_full_np)`` gives
+            the ``(n_t, P)`` Jacobian d(final_jp)/d(theta_final) at the
+            handoff extracted from ``theta_full_np``'s earlier epochs --
+            the r_v product-rule term included (final_jp = r_v * soj *
+            mass with r_v theta-dependent; H0 check (iii), 1.4e-13 vs
+            jax.jacobian). Uses PRIVATE clones (never the shared model
+            graphs) and per-call attribute lookup on the clone (the I3
+            test seam). Handoff extraction = the H0-validated pybind
+            replication of the fused FFI handler (tier-1 parity 2.2e-16).
+            """
+            efg_jsp = jsp_g.clone()
+            efg_sg = sg_g.clone()
+            ser = sg_g.serialize(theta_dim=P_l)
+            # serialize emits edges in ENUMERATION space while sti_l is in
+            # vertex-index space; joint_sojourn_graph creates vertices in
+            # index order so the two coincide -- ASSERTED, not assumed
+            # (G4 fold).
+            _vi = np.asarray(ser.get('vertex_indices', []))
+            if _vi.size:
+                assert np.array_equal(_vi, np.arange(int(ser['n_vertices']))), \
+                    "sojourn-graph enumeration != vertex-index space"
+            pe = np.asarray(ser['param_edges'], dtype=np.float64)
+            if pe.size == 0:
+                pe = pe.reshape(0, 2 + P_l)
+            ce = np.asarray(ser['edges'], dtype=np.float64).reshape(-1, 3)
+            # constant_edges included (G4 fold): empty for
+            # joint_sojourn_graph outputs (parameterized edges only), but
+            # including them makes r_v/outdeg match the C handler's live
+            # edges_length criterion for any graph shape.
+            kce = np.asarray(ser.get('constant_edges', []),
+                             dtype=np.float64).reshape(-1, 3) \
+                if np.asarray(ser.get('constant_edges', [])).size else \
+                np.empty((0, 3))
+            outdeg = np.zeros(int(ser['n_vertices']))
+            for arr in (ce, kce, pe):
+                for row in arr:
+                    outdeg[int(row[0])] += 1
+            absorbing = outdeg == 0
+            n_t_l = len(sti_l)
+            tpos = {int(ti): kk for kk, ti in enumerate(sti_l)}
+            r_const = np.zeros(n_t_l)
+            r_coeff = np.zeros((n_t_l, P_l))
+            for row in np.concatenate([ce, kce]) if kce.size else ce:
+                f_, t_ = int(row[0]), int(row[1])
+                if f_ in tpos and absorbing[t_]:
+                    r_const[tpos[f_]] += row[2]
+            for row in pe:
+                f_, t_ = int(row[0]), int(row[1])
+                if f_ in tpos and absorbing[t_]:
+                    r_coeff[tpos[f_]] += row[2:]
+            ipv_tgt_np = np.asarray(ipv_tgt, dtype=np.int64)
+            gather_np = np.asarray(gather_l, dtype=np.int64)
+            sti_list = [int(x) for x in sti_l]
+
+            def block(theta_full_np):
+                th = np.asarray(theta_full_np, dtype=np.float64).ravel()
+                ipv_work = np.asarray(init_ipv_np, dtype=np.float64).copy()
+                for ep in range(n_ep - 1):
+                    efg_jsp.update_ipv(ipv_work)
+                    efg_jsp.update_weights(th[ep * P_l:(ep + 1) * P_l].tolist())
+                    raw = np.asarray(
+                        efg_jsp.stop_probability(dts[ep], granularity=gran)
+                    )
+                    if not np.all(np.isfinite(raw)):
+                        raise RuntimeError(
+                            "exact_final_grad: intermediate-epoch "
+                            "stop_probability returned non-finite values (a "
+                            "swallowed C failure surfaces as NaN on this "
+                            "handler family -- master plan 16b item 8). "
+                            f"theta={th.tolist()}"
+                        )
+                    new = np.empty(ipv_tgt_np.size)
+                    for kk in range(ipv_tgt_np.size):
+                        tgt = int(ipv_tgt_np[kk])
+                        p_ = raw[tgt]
+                        aux = aux_map.get(tgt)
+                        if aux is not None:
+                            p_ += raw[aux]
+                        new[kk] = p_
+                    ipv_work = new
+                alpha = ipv_work[gather_np]
+                mass = float(alpha.sum())
+                theta_final = th[(n_ep - 1) * P_l:]
+                if mass == 0.0:
+                    # Linear-limit Jacobian: final_jp == 0 identically in
+                    # theta_final at zero handoff mass. Production's
+                    # FORWARD NaN-fills here (pre-existing, unchanged by
+                    # Batch H); this branch returns the limit WITHOUT
+                    # calling C, because the C adjoint DECLINES at a zero
+                    # IPV and would otherwise trip the raise below.
+                    # Subnormal-but-nonzero mass deliberately falls
+                    # through to the C call -> decline -> raise
+                    # (micro-gate (d) decision, b3-batchH-findings.md).
+                    return np.zeros((n_t_l, P_l))
+                efg_sg.update_ipv(alpha)
+                efg_sg.update_weights(theta_final.tolist())
+                soj = np.asarray(efg_sg.expected_sojourn_time(sti_list))
+                raw_j = efg_sg._sojourn_grad_theta_subset(
+                    sti_list, skip_condition_gate=True)
+                if not raw_j:
+                    raise RuntimeError(
+                        "exact_final_grad: the exact sojourn adjoint "
+                        "declined at this theta/handoff WITH the "
+                        "conditioning gate skipped. Remaining causes: "
+                        "allocation failure; parameterized-tape "
+                        "precompute failure; the tape size guard "
+                        "(L > 5e7); a non-finite Jacobian row (trap/"
+                        "deficit-sink vertex, or subnormal handoff mass); "
+                        "an mmap-loaded Stage-A2 tape descriptor without "
+                        "input specs (PHASIC_REWARD_COMPUTE_CACHE=1 with "
+                        "a warm on-disk cache); or out-of-scope tape "
+                        "inputs. No FD fallback exists on this path -- "
+                        "pass exact_final_grad=False or investigate. "
+                        f"theta_final={theta_final.tolist()}, handoff "
+                        f"mass={mass:.3e}."
+                    )
+                J_soj = np.asarray(raw_j, dtype=np.float64).reshape(n_t_l, P_l)
+                r_v = r_const + r_coeff @ theta_final
+                return (r_coeff * (soj * mass)[:, None]
+                        + r_v[:, None] * J_soj * mass)
+
+            return block, n_t_l
+
         if exposure_arr is None:
             # No-exposure path: inlined builder that mirrors the exposure
             # branch below MINUS the per-obs scaling. structure_json and
@@ -4624,6 +4799,22 @@ extern "C" {{
 
             structure_json_local = _json_mod_local.dumps(structure_local)
 
+            # Batch H: build the exact final-epoch block (guards passed
+            # above; final_read == 'sojourn' guaranteed so the sojourn
+            # maps exist).
+            _efg_block_np = None
+            if exact_final_grad:
+                _efg_block_np, _efg_n_t = _make_exact_final_block(
+                    jsp, sg,
+                    [int(x) for x in jsp._ipv_target_indices],
+                    {int(k): int(v) for k, v in jsp._t_aux_map.items()},
+                    structure_local["_daisy_chain"]["sojourn_jsp_gather"],
+                    structure_local["_daisy_chain"]["sojourn_t_indices"],
+                    np.asarray(initial_ipv, dtype=np.float64),
+                    int(granularity), [float(x) for x in epoch_dts],
+                    theta_dim_local, int(n_epochs))
+                _efg_final_lo = (n_epochs - 1) * theta_dim_local
+
             eps_local = 1e-7
             # FD backward skips ONLY truly-fixed positions, not slave
             # positions — see fd_skip_indices computation above.
@@ -4688,6 +4879,44 @@ extern "C" {{
                         jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
                     )
                 return (jnp.stack(grads),)
+
+            if _efg_block_np is not None:
+                def _autodiff_bwd(theta_flat, cotangent):  # noqa: F811
+                    """Batch H override (exact_final_grad=True): exact
+                    final-epoch theta slots via the host-callback block;
+                    earlier slots keep the UNCHANGED full-chain central-
+                    difference FD. Static Python dispatch -- the False
+                    path uses the original definition above, untouched.
+                    Slot precedence (plan v3.1): fixed wins (0.0, the
+                    fixed-slot contract); tied slaves get exact values
+                    (the _apply_tying scatter-VJP sums slave->master).
+                    """
+                    n_params = theta_flat.shape[0]
+                    J_final = jax.pure_callback(
+                        _efg_block_np,
+                        jax.ShapeDtypeStruct(
+                            (_efg_n_t, theta_dim_local), jnp.float64),
+                        theta_flat,
+                        vmap_method='sequential',
+                    )
+                    exact_final = cotangent @ J_final  # (P,)
+                    grads = []
+                    for i in range(n_params):
+                        if i in fixed_set_local:
+                            grads.append(
+                                jnp.asarray(0.0, dtype=theta_flat.dtype))
+                            continue
+                        if i >= _efg_final_lo:
+                            grads.append(exact_final[i - _efg_final_lo])
+                            continue
+                        tp = theta_flat.at[i].add(eps_local)
+                        tm = theta_flat.at[i].add(-eps_local)
+                        jp = _forward(tp)
+                        jm = _forward(tm)
+                        grads.append(
+                            jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                        )
+                    return (jnp.stack(grads),)
 
             _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
 
@@ -4845,6 +5074,37 @@ extern "C" {{
                 .multiply(unique_alpha_arr[:, None])
             )
 
+            # Batch H: exact final-epoch block, exposure variant -- one
+            # (n_t, P) block PER UNIQUE exposure value, computed at the
+            # correspondingly-scaled theta, with the chain rule applied
+            # SLOT-SPECIFICALLY: element-wise by
+            # scale_per_unique[u, final_slice], which is 1.0 everywhere
+            # except the exposure_param_index column (a blanket
+            # all-columns scaling would corrupt the non-exposure final
+            # slots by a factor alpha_u -- plan v3.1, C-review MAJOR 2).
+            _efg_block_exp_np = None
+            if exact_final_grad:
+                _efg_block_core, _efg_n_t = _make_exact_final_block(
+                    jsp, sg,
+                    [int(x) for x in jsp._ipv_target_indices],
+                    {int(k): int(v) for k, v in jsp._t_aux_map.items()},
+                    structure_local["_daisy_chain"]["sojourn_jsp_gather"],
+                    structure_local["_daisy_chain"]["sojourn_t_indices"],
+                    np.asarray(initial_ipv, dtype=np.float64),
+                    int(granularity), [float(x) for x in epoch_dts],
+                    theta_dim_local, int(n_epochs))
+                _efg_final_lo = (n_epochs - 1) * theta_dim_local
+                _efg_scale_np = np.asarray(scale_per_unique, dtype=np.float64)
+
+                def _efg_block_exp_np(theta_flat_np):
+                    th = np.asarray(theta_flat_np, dtype=np.float64).ravel()
+                    out = np.empty(
+                        (n_unique, _efg_n_t, theta_dim_local))
+                    for u in range(n_unique):
+                        Ju = _efg_block_core(th * _efg_scale_np[u])
+                        out[u] = Ju * _efg_scale_np[u, _efg_final_lo:][None, :]
+                    return out
+
             from jax import custom_batching as _cb_local
 
             # Core per-particle forward, wrapped with custom_vmap so that
@@ -4928,6 +5188,43 @@ extern "C" {{
                         jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
                     )
                 return (jnp.stack(grads),)
+
+            if _efg_block_exp_np is not None:
+                def _per_obs_bwd(theta_flat, cotangent):  # noqa: F811
+                    """Batch H override (exact_final_grad=True), exposure
+                    variant: exact final-epoch slots via per-unique
+                    blocks gathered to per-obs rows; earlier slots keep
+                    the UNCHANGED full-chain FD. Same slot precedence as
+                    the no-exposure override (fixed wins; tied slaves
+                    exact)."""
+                    n_params = theta_flat.shape[0]
+                    Jb = jax.pure_callback(
+                        _efg_block_exp_np,
+                        jax.ShapeDtypeStruct(
+                            (n_unique, _efg_n_t, theta_dim_local),
+                            jnp.float64),
+                        theta_flat,
+                        vmap_method='sequential',
+                    )
+                    per_obs_J = Jb[inverse_idx_jnp, observed_pos_jnp, :]
+                    exact_final = cotangent @ per_obs_J  # (P,)
+                    grads = []
+                    for i in range(n_params):
+                        if i in fixed_set_local:
+                            grads.append(
+                                jnp.asarray(0.0, dtype=theta_flat.dtype))
+                            continue
+                        if i >= _efg_final_lo:
+                            grads.append(exact_final[i - _efg_final_lo])
+                            continue
+                        tp = theta_flat.at[i].add(eps_local)
+                        tm = theta_flat.at[i].add(-eps_local)
+                        jp = _per_obs_core(tp)
+                        jm = _per_obs_core(tm)
+                        grads.append(
+                            jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                        )
+                    return (jnp.stack(grads),)
 
             _per_obs_autodiff.defvjp(_per_obs_fwd, _per_obs_bwd)
 

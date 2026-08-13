@@ -1933,11 +1933,14 @@ str
       "(FD fallback).")
     .def("_sojourn_grad_theta_subset", &phasic::Graph::sojourn_grad_theta_subset,
       py::arg("indices"),
+      py::arg("skip_condition_gate") = false,
       py::call_guard<py::gil_scoped_release>(),
       "B3 joint-index: exact forward-mode sojourn-vector Jacobian "
       "d[sojourn(indices)]/dtheta for a continuous weight_mode='linear' "
       "graph (native DPH also supported; was_dph excluded), flat row-major "
-      "(len(indices)*param_length); empty => not applicable (FD fallback).")
+      "(len(indices)*param_length); empty => not applicable (FD fallback). "
+      "skip_condition_gate=True (Batch H, user decision 2026-08-13) skips "
+      "ONLY the MPFR conditioning gate; every other decline stays live.")
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::arg("indices") = std::vector<size_t>(),
       py::return_value_policy::move, py::call_guard<py::gil_scoped_release>(), R"delim(

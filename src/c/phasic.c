@@ -11308,8 +11308,9 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
  * section for why one call over a union beats two calls over the parts).
  * J_out must hold k*graph->param_length doubles (row-major: row r =
  * d(sojourn(indices[r]))/dtheta). Returns 0 on success; -1 for FD fallback. */
-int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
-        const size_t *indices, size_t k, double *J_out) {
+static int ptd_b3_sojourn_grad_core(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out,
+        int skip_condition_gate) {
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (graph->was_dph) return -1;
     size_t P = graph->param_length;
@@ -11429,7 +11430,18 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         }
     }
 
-    if (ptd_dbg_tape_needs_mpfr(nm, nc)) ok = 0;
+    /* Conditioning gate. NOTE (16b item 2, corrected here in Batch H):
+     * unlike ptd_moments_grad_theta's gate -- which protects a genuine
+     * primal/gradient MPFR-representation mismatch -- this path's primal
+     * (ptd_expected_sojourn_time_subset) has NO MPFR path at all, so the
+     * gate is a pure conservatism knob here, not a correctness necessity.
+     * Batch H's de-risk measured it declining 100% of realistic
+     * coalescent-scale calls (theta ~1e-4, handoff entries down to
+     * ~5e-148) while the gated answers matched an fp64 oracle to ~1e-13
+     * (experiments/dr_batchH_oracle.py). skip_condition_gate=1 (the
+     * _nogate entry below, user-sanctioned 2026-08-13) bypasses ONLY
+     * this check; the final isfinite sweep stays the live defense. */
+    if (!skip_condition_gate && ptd_dbg_tape_needs_mpfr(nm, nc)) ok = 0;
 
     double *mem_dot = ok ? (double*)malloc((md?md:1)*sizeof(double)) : NULL;
     double *inv_dot = ok ? (double*)malloc((ni?ni:1)*sizeof(double)) : NULL;
@@ -11510,6 +11522,24 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
 #undef RV
 #undef RD
     return ok ? 0 : -1;
+}
+
+/* Public entry, default semantics (conditioning gate ON) -- behavior
+ * identical to the pre-Batch-H function (verified byte-identical by
+ * experiments/dr_batchH_i1_gate.py micro-gate (a)). */
+int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out) {
+    return ptd_b3_sojourn_grad_core(graph, indices, k, J_out, 0);
+}
+
+/* Public ADDITIVE entry (Batch H, user decision 2026-08-13): identical
+ * to ptd_sojourn_grad_theta_subset EXCEPT the MPFR conditioning gate is
+ * skipped (see the 16b-item-2 note at the gate line in the core). Every
+ * other decline stays live: was_dph, the L size guard, allocation
+ * failures, tape-input scope, and the final per-row isfinite sweep. */
+int ptd_sojourn_grad_theta_subset_nogate(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out) {
+    return ptd_b3_sojourn_grad_core(graph, indices, k, J_out, 1);
 }
 /* =============================================================================*/
 

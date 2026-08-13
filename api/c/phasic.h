@@ -514,6 +514,17 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
 int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         const size_t *indices, size_t k, double *J_out);
 
+/* Batch H ADDITIVE entry (user decision 2026-08-13): identical to
+ * ptd_sojourn_grad_theta_subset EXCEPT the MPFR conditioning gate is
+ * skipped -- the de-risk (experiments/dr_batchH_oracle.py) measured the
+ * gate declining 100% of realistic coalescent-scale calls while the
+ * gated answers matched an fp64 oracle to ~1e-13; this path's primal has
+ * no MPFR fallback, so the gate is conservatism, not correctness. Every
+ * other decline stays live (was_dph, size guard, allocation, tape-input
+ * scope, the final per-row isfinite sweep). */
+int ptd_sojourn_grad_theta_subset_nogate(struct ptd_graph *graph,
+        const size_t *indices, size_t k, double *J_out);
+
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
 bool ptd_graph_is_acyclic(struct ptd_graph *graph);

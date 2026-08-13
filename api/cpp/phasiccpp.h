@@ -603,12 +603,21 @@ namespace phasic {
         // parameterized graph (native DPH also supported; was_dph excluded).
         // Returned FLAT (row-major indices.size()*param_length). Empty =>
         // not applicable (caller falls back to FD).
-        std::vector<double> sojourn_grad_theta_subset(std::vector<size_t> indices) {
+        // skip_condition_gate=true routes to the _nogate C entry (Batch H,
+        // user decision 2026-08-13): the MPFR conditioning gate is skipped;
+        // every other decline (was_dph, size guard, allocation, tape scope,
+        // the final isfinite sweep) stays live. Default false = pre-Batch-H
+        // behavior, byte-identical.
+        std::vector<double> sojourn_grad_theta_subset(std::vector<size_t> indices,
+                                                      bool skip_condition_gate = false) {
             size_t P = static_cast<size_t>(this->c_graph()->param_length);
             if (P == 0 || indices.empty()) return std::vector<double>();
             std::vector<double> J(indices.size() * P, 0.0);
-            int rc = ptd_sojourn_grad_theta_subset(this->c_graph(),
-                                                   indices.data(), indices.size(), J.data());
+            int rc = skip_condition_gate
+                ? ptd_sojourn_grad_theta_subset_nogate(this->c_graph(),
+                                                       indices.data(), indices.size(), J.data())
+                : ptd_sojourn_grad_theta_subset(this->c_graph(),
+                                               indices.data(), indices.size(), J.data());
             if (rc != 0) return std::vector<double>();
             return J;
         }
