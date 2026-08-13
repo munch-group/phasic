@@ -125,7 +125,7 @@ LEDGER_OPTION_ORDER = (
     'discrete', 'joint_index', 'theta_dim',
     'n_particles', 'n_iterations', 'learning_rate', 'optimizer',
     'bandwidth', 'preconditioner', 'regularization', 'nr_moments',
-    'exact_moment_grad',
+    'exact_moment_grad', 'exact_final_grad',
     'positive_params', 'param_transform', 'prior',
     'fixed', 'tied', 'epoch_starts', 'exposure', 'exposure_param_index',
 )
@@ -290,6 +290,21 @@ class SvgdConfig:
     # on the no-rewards moments model ("leaf 5"); every other model kind
     # rejects it (R29) so the kwarg can never be silently inert.
     exact_moment_grad: Optional[bool] = None
+    # ``Graph.svgd(exact_final_grad=...)`` (Batch G.1). None = not forwarded
+    # (the daisy builder's own default, False, governs). An explicit
+    # True/False is only honored on the epoch leaf (epoch_starts set);
+    # every other model kind rejects it (R30) so the kwarg can never be
+    # silently inert.
+    exact_final_grad: Optional[bool] = None
+    # The svgd ``final_read`` kwarg, threaded as a NAMED parameter (not
+    # **_unused) so R30's stopprob pre-emption has a real data path.
+    # 'sojourn' is the shipped default; from_model_call leaves it there.
+    final_read: str = 'sojourn'
+    # Combined-form weight mode at validation time: the ``weight_formula``
+    # kwarg wins, then the ``callback`` kwarg, then the graph's own mode.
+    # The combined form is REQUIRED because validation runs BEFORE the
+    # per-call overrides flip the graph's _weight_mode (G.1 plan review).
+    effective_weight_mode: str = 'linear'
     # Preconditioner choice introspection. ``preconditioner_choice`` is the raw
     # string the user passed ('auto'/'jacobian'/'fisher'/'none'), 'instance' for a
     # pre-built preconditioner object, or None when the user passed None.
@@ -511,6 +526,8 @@ def from_svgd_call(
     nr_moments: int = 2,
     joint_index: Any = None,
     exact_moment_grad: Optional[bool] = None,
+    exact_final_grad: Optional[bool] = None,
+    final_read: str = 'sojourn',
     **_unused: Any,
 ) -> SvgdConfig:
     """Build an :class:`SvgdConfig` from a live ``Graph.svgd`` call.
@@ -587,6 +604,15 @@ def from_svgd_call(
         has_weight_formula=has_weight_formula,
         exact_moment_grad=(
             None if exact_moment_grad is None else bool(exact_moment_grad)
+        ),
+        exact_final_grad=(
+            None if exact_final_grad is None else bool(exact_final_grad)
+        ),
+        final_read=str(final_read),
+        effective_weight_mode=(
+            'formula' if weight_formula is not None
+            else ('callback' if callback is not None
+                  else str(getattr(graph, '_weight_mode', 'linear')))
         ),
     )
 
@@ -816,6 +842,22 @@ def _check_R9_exposure_with_vanilla_joint_prob_unsupported(c: SvgdConfig) -> Non
             "exposure, pass epoch_starts=[0.0] (single epoch).\n"
             "  See docs/pages/tutorial/joint-probability.ipynb for the "
             "daisy-chain pattern."
+        )
+    if (c.has_exposure
+            and c.graph_kind == 'joint_stop_prob'
+            and not c.has_epoch_starts):
+        # Batch G.1 (master plan 16b item 9): joint_stop_prob graphs used
+        # to slip through the 'joint_prob'-only check into an untested
+        # composition. NOTE the remedy differs from the joint_prob arm:
+        # R1 forbids epoch_starts on a joint_stop_prob graph, so the fix
+        # is to use the SOURCE joint-prob graph, not to add epochs here.
+        raise SvgdConfigError(
+            "exposure on a joint-stop-probability graph is not supported "
+            "-- no route exists (epoch_starts is not available for this "
+            "graph kind).\n"
+            "  Fix: call svgd() on the source joint-prob graph "
+            "(graph.joint_prob_graph(..., discrete=False)) with "
+            "epoch_starts=[0.0, ...] and exposure there."
         )
 
 
@@ -1119,8 +1161,10 @@ def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
     if c.has_epoch_starts:
         raise SvgdConfigError(
             "exact_moment_grad is not supported with epoch_starts "
-            "(daisy-chain): no exact-gradient variant exists for the epoch "
-            "model yet. Drop exact_moment_grad."
+            "(daisy-chain): the epoch model's exact gradient is the "
+            "separate exact_final_grad kwarg (exact FINAL-epoch slots; "
+            "all slots when epoch_starts=[0.0]). Drop exact_moment_grad; "
+            "use exact_final_grad=True if you want the exact epoch path."
         )
     if c.graph_kind in ('joint_prob', 'joint_stop_prob'):
         # 'joint_stop_prob' (a joint_stop_prob_graph()) also routes to the
@@ -1138,6 +1182,52 @@ def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
             "exact_moment_grad with rewards is not supported yet: the exact "
             "moments adjoint declines on every rewards-bearing call, so the "
             "kwarg would be inert. Drop exact_moment_grad or rewards."
+        )
+
+
+def _check_R30_exact_final_grad_leaf_scope(c: SvgdConfig) -> None:
+    # Batch G.1: an explicit exact_final_grad is only honored on the epoch
+    # leaf (epoch_starts set) with the sojourn final read and a linear
+    # weight mode -- everywhere else it would be inert or meaningless, so
+    # reject loudly (the R29 discipline). Cells where an earlier rule
+    # already rejects the configuration (R1/R9/R16/R21) never reach this
+    # rule; that shadowing is deliberate and recorded in the G.1 plan.
+    if c.exact_final_grad is None:
+        return
+    if not c.has_epoch_starts:
+        if c.graph_kind == 'joint_stop_prob':
+            # Kind-aware advice (G4 fold): R1 forbids epoch_starts on a
+            # joint_stop_prob graph, so "add epoch_starts" would be the
+            # same two-hop dead end this batch's R9 jsp arm fixes.
+            raise SvgdConfigError(
+                "exact_final_grad requires epoch_starts, which is not "
+                "available for a joint-stop-probability graph. Use the "
+                "source joint-prob graph (graph.joint_prob_graph(..., "
+                "discrete=False)) with epoch_starts=[0.0, ...] and "
+                "exact_final_grad there, or drop exact_final_grad."
+            )
+        raise SvgdConfigError(
+            "exact_final_grad requires epoch_starts (it selects the exact "
+            "FINAL-epoch gradient of the epoch model; with "
+            "epoch_starts=[0.0] it covers every parameter). For "
+            "joint-probability models without epochs, the exact machinery "
+            "is pmf_from_graph_joint_index's exact_grad kwarg (svgd "
+            "plumbing for that leaf is not available). Drop "
+            "exact_final_grad or add epoch_starts."
+        )
+    if c.final_read == 'stopprob':
+        raise SvgdConfigError(
+            "exact_final_grad=True/False requires final_read='sojourn' "
+            "(the exact block differentiates the granularity-free sojourn "
+            "read; 'stopprob' has no exact variant). Drop exact_final_grad "
+            "or use final_read='sojourn'."
+        )
+    if c.effective_weight_mode != 'linear':
+        raise SvgdConfigError(
+            "exact_final_grad supports weight_mode='linear' only (the C "
+            "sojourn adjoint's contraction is linear-only); this call "
+            f"resolves to weight_mode='{c.effective_weight_mode}'. Drop "
+            "exact_final_grad."
         )
 
 
@@ -1171,6 +1261,7 @@ _RULES = (
     _check_R27_nr_moments_ignored_on_joint_prob,
     _check_R28_joint_index_false_incompatible_with_joint_prob,
     _check_R29_exact_moment_grad_leaf_scope,
+    _check_R30_exact_final_grad_leaf_scope,
 )
 
 

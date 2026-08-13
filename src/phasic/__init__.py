@@ -4329,8 +4329,8 @@ extern "C" {{
             fallback on this path). Measured on the de-risk fixture:
             final-epoch gradient components ~3.6e5x more accurate than
             FD, at ~7.4% of the FD backward's cost (net speedup).
-            INTERNAL for now — the public ``Graph.svgd`` plumbing is
-            Batch G leaf 1.
+            Public via ``Graph.svgd(exact_final_grad=...)`` since
+            Batch G.1 (rule R30 scopes it to the epoch leaf).
 
         Returns
         -------
@@ -4569,8 +4569,9 @@ extern "C" {{
             )
 
         # ---- Batch H: exact FINAL-epoch gradient (exact_final_grad) ----
-        # INTERNAL opt-in kwarg (public Graph.svgd plumbing is Batch G
-        # leaf 1). Design of record: b3-batchH-plan.md v3.1; evidence:
+        # Public since Batch G.1 via Graph.svgd(exact_final_grad=...)
+        # (R30 scopes it to the epoch leaf).
+        # Design of record: b3-batchH-plan.md v3.1; evidence:
         # b3-batchH-findings.md (oracle parity 1.4e-13; composed gradient
         # 3.6e5x more accurate than FD on final-epoch slots at ~7.4% of
         # the FD backward's cost). Loud scope guards -- no silent
@@ -4582,7 +4583,7 @@ extern "C" {{
                     "exact_final_grad=True requires final_read='sojourn' "
                     f"(got {final_read!r}) -- the exact block "
                     "differentiates the granularity-free sojourn read. "
-                    "Pass exact_final_grad=False for final_read='stopprob'."
+                    "Drop exact_final_grad for final_read='stopprob'."
                 )
             if getattr(self, '_weight_mode', 'linear') != 'linear':
                 raise ValueError(
@@ -5577,6 +5578,7 @@ extern "C" {{
              validate_rewards: bool = True,
              quiet_assumptions: bool = False,
              exact_moment_grad: bool | None = None,
+             exact_final_grad: bool | None = None,
              ) -> 'SVGD':
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5743,11 +5745,37 @@ extern "C" {{
             An explicit value on any other model kind raises
             ``SvgdConfigError`` (R29) rather than being silently ignored:
             with ``rewards`` the exact path currently declines on every call;
-            with ``epoch_starts`` no exact epoch-model gradient exists yet;
+            with ``epoch_starts`` the exact epoch-model gradient is the
+            separate ``exact_final_grad`` kwarg (below);
             joint-probability models use the separate forward-mode
             ``exact_grad`` machinery of ``pmf_from_graph_joint_index``
             (default False — a different kwarg with a different default, not
             this one).
+        exact_final_grad : bool or None, default=None
+            Batch G.1 (public plumbing of the Batch-H epoch-model exact
+            gradient). Only meaningful with ``epoch_starts``: ``True``
+            computes the FINAL epoch's parameter gradients EXACTLY (the
+            earlier epochs' slots keep finite differences — with
+            ``epoch_starts=[0.0]`` every parameter is a final-epoch
+            parameter, so the whole gradient is exact). Requires
+            ``final_read='sojourn'`` and a linear weight mode; an
+            explicit value anywhere else raises ``SvgdConfigError``
+            (R30) rather than being silently ignored. ``None`` (default)
+            = not forwarded; the epoch model keeps its own default
+            (finite differences). Measured on the Batch-H fixtures:
+            final-epoch gradient components ~3.6e5x more accurate than
+            FD at ~7% of the FD backward's cost per model call; note the
+            exact backward evaluates sequentially per unique exposure
+            value per particle on the host. **Failure mode (deliberate,
+            recorded):** once the exact path is active, a residual
+            per-theta decline in the backward RAISES a diagnostic
+            ``RuntimeError`` — under SVGD this means ONE particle whose
+            theta declines halts the ENTIRE cloud mid-optimization;
+            there is no silent per-particle FD fallback. This is also
+            the recommended route for per-observation ``exposure``:
+            ``svgd(obs, exposure=..., exposure_param_index=...,
+            epoch_starts=[0.0], exact_final_grad=True)`` gives batched
+            exposure handling plus fully exact gradients.
         rewards : ArrayLike, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
@@ -6091,6 +6119,8 @@ extern "C" {{
             nr_moments=nr_moments,
             joint_index=joint_index,
             exact_moment_grad=exact_moment_grad,
+            exact_final_grad=exact_final_grad,
+            final_read=final_read,
         ))
 
         # Options ledger: record the provenance (default / user / inferred /
@@ -6379,6 +6409,8 @@ extern "C" {{
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
                         final_read=final_read,
+                        **({} if exact_final_grad is None
+                           else {'exact_final_grad': exact_final_grad}),
                     )
                     # The daisy-chain builder re-derives theta_dim (flat
                     # n_epochs x param_length), and its own broadcast prior and

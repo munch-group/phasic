@@ -249,3 +249,55 @@ test-9 tolerance; tracker vocabulary; None sweep; test-3 value check)
 → folded. Verified: G0/ledger/tracker claims; fold-carried items;
 H obligations; mandate fidelity; authorization chains; anchors; spy
 mechanics; naming; R30 number free.
+
+## Merge review (G5) — 2026-08-13
+
+**All gates green; squash-merged to master.**
+
+- **G0:** front-door smoke GO (both shapes daisy-built, finite;
+  verbatim outputs in `b3-batchG1-findings.md`); ledger fourth stamp
+  `ecd708fc` (1899/0/84/24; expected 1900 on this tree); master delta
+  docs-only (verified by both plan refuters and both diff refuters).
+- **G1:** 17/17 at implementation; **19/19 after the G4 fold** (jsp
+  no-epochs message test + rewards2d None cell added).
+- **G2 + fate table:** 146/3/1 — ZERO existing-test flips; both pinned
+  regexes survived exactly as the pre-filled fate table predicted.
+- **G3:** chunked, **1917 / 0 / 84 / 24** = ledger 1900 + 17 new.
+  Two first-pass single-test transients (groups ac/ad, names not
+  captured — instrumentation gap): both groups green on TWO subsequent
+  runs including a dedicated `-rf` naming pass (67/31/0) — closed as
+  stochastic flakes; full record + candidate manifests in the findings
+  doc. **Process amendment adopted from this: chunked G3 commands
+  always pass `-rf`.** (Post-fold tree carries 19 new tests → next
+  full run expects 1919.)
+- **G4:** two refuters, both SOUND-WITH-CORRECTIONS, **zero
+  shipped-code defects**. Independent verification by the refuters:
+  the cross-install golden RE-EXECUTED from scratch (bitwise
+  identical); public-plumbing gradient vs tight FD rel err ≤ 7.5e-8;
+  spy-count deltas and tolerance actuals measured. All corrections
+  folded (`000c8392`): absolute spy-delta pins (8 in both shapes),
+  corrected+tightened tolerance anchors (measured rel ~1e-6 → tol
+  1e-4), explicit-False rejection cells tested + the
+  stricter-than-plan any-non-None discipline recorded, R30 jsp
+  kind-aware no-epochs message + test, H guard advice aligned,
+  rewards2d cell, golden docstring accuracy.
+
+**Shipped-text statement:** R9 gains a purely-additive jsp arm (its
+own message; joint_prob arm byte-identical — programmatically verified
+prefix-equal by a refuter); R29's message tail updated (first sentence
+kept; zero regex changes needed, verified live); the `Graph.svgd`
+docstring gains the parameter entry + updated stale clause; the H
+builder's INTERNAL markers updated and its stopprob guard advice
+aligned ("Drop exact_final_grad"); `svgd.py` gains ONE user-approved
+token (`_GRAPH_SVGD_ONLY_KWARGS`). R30's stricter-than-letter
+any-non-None discipline is deliberate (R29 precedent), recorded here.
+
+**Deviations (register in the findings doc):** golden as a two-install
+experiment script; test 9's oracle variant covered at builder level +
+forwarding proof (recorded, not re-implemented); tests 3/4 hardened at
+fold; validation-level jsp/rewards2d None cells (reasons in-code).
+
+**Delivered:** the D.3 fold — exposure users now get fully-exact
+gradients via `svgd(obs, exposure=..., epoch_starts=[0.0],
+exact_final_grad=True)`; §16b item 9 closed (R9 jsp hole); Batch G
+leaf 1 done (leaves 3/4 remain blocked on Batch A).
