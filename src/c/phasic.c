@@ -10784,21 +10784,36 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
  * JAX autodiff (experiments/dr_moment_chain_adjoint.py, 230/230). J_out is
  * row-major nr_moments*param_length; continuous / linear / monolithic. Returns 0
  * on success, -1 (FD fallback) otherwise. */
-int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
-        double *J_out) {
-    if (!graph->parameterized || graph->param_length == 0) return -1;
-    if (nr_moments < 1) return -1;
-    size_t P = graph->param_length, K = (size_t)nr_moments;
-    struct ptd_desc_reward_compute_parameterized *ptape =
-        graph->use_dyn_ordering
-            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
-            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
-    if (ptape == NULL) return -1;
-    struct ptd_desc_reward_compute_parameterized_off *off =
-        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
-    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+/* ===== Batch 0: shared stage-0/1/2 core for the moments-gradient family.
+ * Extracted verbatim from ptd_moments_grad_theta (the comment-richest of the
+ * three code-identical copies); the linear/log/dph variants differ ONLY in
+ * their contraction step (the switch below) and their wrapper-side pre/post
+ * passes. Ownership: WRAPPERS build and destroy ptape/off (and any per-kind
+ * ctx); the core allocates and frees only its own locals. Consumers extend
+ * this static core's signature when they land (Batch A: rewards; Batch B:
+ * PTD_B3_FORMULA + internal pre-outk dw/dtheta stage; Batch C: its
+ * pre-contraction exit) — nothing speculative is designed in. */
+enum ptd_b3_contract { PTD_B3_LINEAR, PTD_B3_LOG, PTD_B3_DPH };
 
+struct ptd_b3_dph_ctx { const double *Sv; const double *SigmaCv; };
+
+static int ptd_b3_moments_core(
+        struct ptd_graph *graph,
+        const struct ptd_desc_reward_compute_parameterized_off *off,
+        int nr_moments,
+        const double *theta, size_t theta_len,   /* NULL/0 for linear */
+        enum ptd_b3_contract kind,
+        const struct ptd_b3_dph_ctx *dph_ctx,    /* non-NULL iff DPH */
+        double *J_out) {
+    (void)theta_len;  /* wrapper-validated; kept in the signature for
+                         future consumers (Batch A/B extend it) */
+    size_t P = graph->param_length, K = (size_t)nr_moments;
     size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+    /* [seeding block 1/2 -- Deferred-1 marker] `target` selects the tape
+     * output vertex. A future per-SCC cotangent-seeded VJP (deferred-1 plan
+     * section 4-P2, declined for Batch 0) would generalize ONLY this seeding
+     * block (parts 1+2), never the contraction: stage-1 seeding (input side)
+     * and any stage-2 exit are orthogonal and compose. */
     size_t target = 0;
     double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
     double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
@@ -10831,8 +10846,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
      * so the caller falls back to FD. */
     if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
         free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
-        ptd_pcg_desc_off_destroy(off);
-        ptd_parameterized_reward_compute_graph_destroy(ptape);
+        /* off/ptape are wrapper-owned; the core frees only its locals */
         return -1;
     }
     /* forward moment chain: seeds[j] (j=0..K), snap_to per replay (j=1..K) */
@@ -10841,6 +10855,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
     for (size_t v=0; v<n; ++v) seeds[v]=1.0;                 /* a_0 = ones */
     for (size_t j=1;j<=K;++j) {
         double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
+        /* [Batch-A rewards hook 1/2: seed-scale line] */
         for (size_t v=0; v<n; ++v) out[v]=seed[v];
         for (size_t c=0;c<nc;++c) {
             st[c]=out[nb[c]]; double m=nm[c];
@@ -10862,6 +10877,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
         for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
         for (size_t j=K; j>=1; --j) {
             for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
+            /* [seeding block 2/2 -- Deferred-1 marker] factorial one-hot seed */
             if (outk == j-1) {                                /* m_outk = j! * a_j[target] */
                 double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
                 adj[target] += fac;
@@ -10873,6 +10889,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
                 dm[c] += adj[na[c]] * st[c];
                 if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
             }
+            /* [Batch-A rewards hook 2/2: adjoint-scale line] */
             for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];     /* seed-adjoint -> replay j-1 */
             if (j==1) break;                                  /* size_t underflow guard */
         }
@@ -10894,28 +10911,91 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
                 default: break;
             }
         }
-        /* contract edge -> theta into J_out row outk */
+        /* contract edge -> theta into J_out row outk (per-kind step) */
         for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
-        for (size_t k=0; k<ni; ++k) {
+        for (size_t k=0; ok && k<ni; ++k) {
             struct ptd_pcg_input_spec sp = off->input_specs[k];
             if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
                     || sp.v >= graph->vertices_length
                     || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
             struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
-            /* The tape registers EVERY edge weight as a free input, including
-             * coefficient-less constant edges (coefficients_length==0,
-             * coefficients==NULL -- e.g. the aux back-edges from
-             * add_aux_vertex/add_aux_vertex_constant, used by
-             * Graph.discretize() and Graph.joint_stop_prob_graph()). Such an
-             * edge's weight never depends on theta, so its exact gradient
-             * contribution is 0 -- skip it rather than dereference a NULL
-             * coefficients pointer (found via the discrete/was_dph extension,
-             * see B3-DISCRETE-MERGE-REVIEW.md sec 3.1: this was an always-
-             * latent segfault for ANY continuous parameterized graph built
-             * with add_aux_vertex/add_aux_vertex_constant, not just discrete
-             * ones -- just never previously exercised). */
-            if (e->coefficients_length == 0) continue;
-            for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
+            switch (kind) {
+                case PTD_B3_LINEAR:
+                    /* The tape registers EVERY edge weight as a free input, including
+                     * coefficient-less constant edges (coefficients_length==0,
+                     * coefficients==NULL -- e.g. the aux back-edges from
+                     * add_aux_vertex/add_aux_vertex_constant, used by
+                     * Graph.discretize() and Graph.joint_stop_prob_graph()). Such an
+                     * edge's weight never depends on theta, so its exact gradient
+                     * contribution is 0 -- skip it rather than dereference a NULL
+                     * coefficients pointer (found via the discrete/was_dph extension,
+                     * see B3-DISCRETE-MERGE-REVIEW.md sec 3.1: this was an always-
+                     * latent segfault for ANY continuous parameterized graph built
+                     * with add_aux_vertex/add_aux_vertex_constant, not just discrete
+                     * ones -- just never previously exercised). */
+                    if (e->coefficients_length == 0) break;
+                    for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
+                    break;
+                case PTD_B3_LOG:
+                    /* log-mode product rule: dw_e/dtheta_j = w_e/theta_j for
+                     * ALL j (every param multiplies into every log-mode edge
+                     * -- not conditioned on coefficients[j], unlike linear).
+                     * Same tape-input hygiene as linear/dph: a
+                     * coefficient-less constant edge's weight never depends on
+                     * theta (contributes 0); a starting-vertex edge's weight is
+                     * never recomputed by update_weights regardless of mode (its
+                     * true dw/dtheta is 0 too) -- included for consistency with
+                     * ptd_moments_grad_theta_dph even though a directly-constructed
+                     * parameterized start edge was NOT found to register as a tape
+                     * input in practice (verified empirically against the shipped
+                     * linear function; see b3-log-weight-mode-plan.md). NOTE: this
+                     * guard's unreachability currently rests on
+                     * _graph_serialize.py's `if False:` around start_param_edges
+                     * (serialize() never emits a parameterized start edge) -- if a
+                     * future change revives that branch, re-verify this guard is
+                     * still exercised/correct rather than assuming it stays dead.
+                     * The e->weight read is LIVE from the edge (not the inv[k]
+                     * snapshot) -- kept verbatim from the pre-extraction code. */
+                    if (graph->vertices[sp.v] == graph->starting_vertex) break;
+                    if (e->coefficients_length == 0) break;
+                    for (size_t j=0;j<P;++j) {
+                        J_out[outk*P + j] += binp[k] * (e->weight / theta[j]);
+                    }
+                    break;
+                case PTD_B3_DPH:
+                    /* was_dph: renorm quotient rule (sibling coupling via
+                     * Sv/SigmaCv from the wrapper's pre-pass); else: plain
+                     * linear rule (same as ptd_moments_grad_theta).
+                     * The constant-edge skip mirrors linear's (coefficients is
+                     * NULL for discretize()'s aux back-edges). A starting-vertex
+                     * edge is an IPV probability: update_weights() NEVER
+                     * recomputes its weight from theta (skipped from both the
+                     * coefficient dot-product AND, effectively, the renorm --
+                     * its out-edges' weights are theta-independent constants,
+                     * so their total is too), regardless of whether it happens
+                     * to carry a (possibly widened/padded) non-empty
+                     * coefficient array. Its true dp_e/dtheta is therefore
+                     * identically 0 -- skip it rather than risk 0 * (a
+                     * quotient-rule term that can be +-inf when Sv is
+                     * uncomputed/zero for this vertex, which is 0*inf = NaN in
+                     * IEEE754, not 0). */
+                    if (e->coefficients_length == 0
+                            || graph->vertices[sp.v] == graph->starting_vertex) break;
+                    if (graph->was_dph) {
+                        double p_e = e->weight;
+                        double S = dph_ctx->Sv[sp.v];
+                        const double *sigma = dph_ctx->SigmaCv + sp.v * P;
+                        for (size_t j=0;j<P;++j) {
+                            J_out[outk*P + j] += binp[k] * (e->coefficients[j] - p_e * sigma[j]) / S;
+                        }
+                    } else {
+                        for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
+                    }
+                    break;
+                default:
+                    ok = 0;
+                    break;
+            }
         }
     }
     if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
@@ -10924,9 +11004,37 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
     free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
 #undef RV
 #undef RB
+    return ok ? 0 : -1;
+}
+
+/* Public linear-mode entry (see api/c/phasic.h for the full contract):
+ * J_out row-major nr_moments x param_length; 0 = success, -1 = not
+ * applicable (caller falls back to FD). Thin wrapper over
+ * ptd_b3_moments_core. */
+int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
+        double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    /* Batch 0 M4 (deliberate, reviewed behavior addition): a was_dph graph's
+     * edge weights are renormalized per-step probabilities, not c.theta dot
+     * products -- the linear contraction would silently compute the WRONG
+     * Jacobian. Unreachable via Python routing (_effective_discrete sends
+     * was_dph graphs to _dph), but this makes the C surface safe for direct
+     * callers too: decline early (before the O(n^3) tape build) -> FD. */
+    if (graph->was_dph) return -1;
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+    int rc = ptd_b3_moments_core(graph, off, nr_moments, NULL, 0,
+                                 PTD_B3_LINEAR, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
-    return ok ? 0 : -1;
+    return rc;
 }
 
 /* ===== B3 log-weight-mode extension: exact Jacobian d[m_0..m_{K-1}]/dtheta
@@ -10968,8 +11076,7 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (nr_moments < 1) return -1;
     if (graph->was_dph) return -1;
-    size_t P = graph->param_length, K = (size_t)nr_moments;
-    if (theta_len != P) return -1;
+    if (theta_len != graph->param_length) return -1;
     struct ptd_desc_reward_compute_parameterized *ptape =
         graph->use_dyn_ordering
             ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
@@ -10978,137 +11085,11 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
     struct ptd_desc_reward_compute_parameterized_off *off =
         ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
-
-    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
-    size_t target = 0;
-    double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
-    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
-    for (size_t k=0;k<ni;++k) inv[k]=*off->inputs[k];
-    double *s0=(double*)malloc((L?L:1)*sizeof(double));
-    double *s1=(double*)malloc((L?L:1)*sizeof(double));
-    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
-    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
-    double *nm=(double*)malloc((L?L:1)*sizeof(double));
-    size_t nc=0;
-#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
-               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
-    for (size_t i=0;i<L;++i) {
-        struct ptd_pcg_command_off c = off->commands[i];
-        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
-        switch (c.type) {
-            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
-            case 1: *rf += (*rt)*c.multiplier; break;
-            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
-            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
-            case 4: *rf = 1.0 - *rf; break;
-            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
-            case 6: *rf = 0.0; break;
-            default: break;
-        }
-    }
-    if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
-        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
-        ptd_pcg_desc_off_destroy(off);
-        ptd_parameterized_reward_compute_graph_destroy(ptape);
-        return -1;
-    }
-    double *seeds = (double*)malloc((K+1)*n*sizeof(double));
-    double *snaptos = (double*)malloc((K?K:1)*(nc?nc:1)*sizeof(double));
-    for (size_t v=0; v<n; ++v) seeds[v]=1.0;
-    for (size_t j=1;j<=K;++j) {
-        double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
-        for (size_t v=0; v<n; ++v) out[v]=seed[v];
-        for (size_t c=0;c<nc;++c) {
-            st[c]=out[nb[c]]; double m=nm[c];
-            if (isinf(m) && out[nb[c]]==0.0) continue;
-            if (m!=0.0) out[na[c]] += out[nb[c]]*m;
-        }
-    }
-    int ok=1;
-    double *dm=(double*)malloc((nc?nc:1)*sizeof(double));
-    double *bar_out=(double*)malloc(n*sizeof(double));
-    double *adj=(double*)malloc(n*sizeof(double));
-    double *bmem=(double*)malloc(md*sizeof(double));
-    double *binp=(double*)malloc((ni?ni:1)*sizeof(double));
-#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
-               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
-    for (size_t outk=0; ok && outk<K; ++outk) {
-        for (size_t c=0;c<nc;++c) dm[c]=0.0;
-        for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
-        for (size_t j=K; j>=1; --j) {
-            for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
-            if (outk == j-1) {
-                double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
-                adj[target] += fac;
-            }
-            double *st = snaptos + (j-1)*nc;
-            for (long c=(long)nc-1;c>=0;--c) {
-                double m=nm[c];
-                if (isinf(m) && st[c]==0.0) continue;
-                dm[c] += adj[na[c]] * st[c];
-                if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
-            }
-            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];
-            if (j==1) break;
-        }
-        for (size_t i=0;i<md;++i) bmem[i]=0.0;
-        for (size_t k=0;k<ni;++k) binp[k]=0.0;
-        long numptr=(long)nc-1;
-        for (long i=(long)L-1;i>=0;--i) {
-            struct ptd_pcg_command_off c = off->commands[i];
-            double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
-            switch (c.type) {
-                case 0: if (bm) *bm += dm[numptr]; numptr--; break;
-                case 1: *bt += (*bf)*c.multiplier; break;
-                case 3: { double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break;
-                case 2: *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;
-                case 4: *bf = -(*bf); break;
-                case 5: { double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break;
-                case 6: *bf = 0.0; break;
-                default: break;
-            }
-        }
-        /* contract edge -> theta into J_out row outk: log-mode product rule,
-         * dw_e/dtheta_j = w_e/theta_j for ALL j (every param multiplies into
-         * every log-mode edge -- not conditioned on coefficients[j], unlike
-         * linear). */
-        for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
-        for (size_t k=0; k<ni; ++k) {
-            struct ptd_pcg_input_spec sp = off->input_specs[k];
-            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
-                    || sp.v >= graph->vertices_length
-                    || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
-            /* Same tape-input hygiene as the linear/dph functions: a
-             * coefficient-less constant edge's weight never depends on
-             * theta (contributes 0); a starting-vertex edge's weight is
-             * never recomputed by update_weights regardless of mode (its
-             * true dw/dtheta is 0 too) -- included for consistency with
-             * ptd_moments_grad_theta_dph even though a directly-constructed
-             * parameterized start edge was NOT found to register as a tape
-             * input in practice (verified empirically against the shipped
-             * linear function; see b3-log-weight-mode-plan.md). NOTE: this
-             * guard's unreachability currently rests on
-             * _graph_serialize.py's `if False:` around start_param_edges
-             * (serialize() never emits a parameterized start edge) -- if a
-             * future change revives that branch, re-verify this guard is
-             * still exercised/correct rather than assuming it stays dead. */
-            if (graph->vertices[sp.v] == graph->starting_vertex) continue;
-            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
-            if (e->coefficients_length == 0) continue;
-            for (size_t j=0;j<P;++j) {
-                J_out[outk*P + j] += binp[k] * (e->weight / theta[j]);
-            }
-        }
-    }
-    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
-
-    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
-    free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
-#undef RV
-#undef RB
+    int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
+                                 PTD_B3_LOG, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
-    return ok ? 0 : -1;
+    return rc;
 }
 /* =============================================================================*/
 
@@ -11239,151 +11220,24 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
         ptd_parameterized_reward_compute_graph_destroy(ptape);
         return -1;
     }
-
-    size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
-    size_t target = 0;
-    double *mem = (double*)malloc(md*sizeof(double)); memcpy(mem, off->mem_base, md*sizeof(double));
-    double *inv = (double*)malloc((ni?ni:1)*sizeof(double));
-    for (size_t k=0;k<ni;++k) inv[k]=*off->inputs[k];
-    double *s0=(double*)malloc((L?L:1)*sizeof(double));
-    double *s1=(double*)malloc((L?L:1)*sizeof(double));
-    uint64_t *na=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
-    uint64_t *nb=(uint64_t*)malloc((L?L:1)*sizeof(uint64_t));
-    double *nm=(double*)malloc((L?L:1)*sizeof(double));
-    size_t nc=0;
-#define RV(op) ((op).kind==PTD_PCG_OP_MEM ? &mem[(op).mem_offset] : \
-               ((op).kind==PTD_PCG_OP_INPUT ? &inv[(op).input_idx] : (double*)NULL))
-    for (size_t i=0;i<L;++i) {
-        struct ptd_pcg_command_off c = off->commands[i];
-        double *rf=RV(c.fromT), *rt=RV(c.toT), *rm=RV(c.multiplierptr);
-        switch (c.type) {
-            case 0: { double mcv=(c.from==c.to)?(*rm-1.0):*rm; na[nc]=c.from; nb[nc]=c.to; nm[nc]=mcv; nc++; } break;
-            case 1: *rf += (*rt)*c.multiplier; break;
-            case 3: s0[i]=*rt; s1[i]=*rm; *rf += (*rt)*(*rm); break;
-            case 2: s0[i]=*rf; *rf = 1.0/(*rf); break;
-            case 4: *rf = 1.0 - *rf; break;
-            case 5: s0[i]=*rf; s1[i]=*rt; *rf = (*rf)/(*rt); break;
-            case 6: *rf = 0.0; break;
-            default: break;
+    struct ptd_b3_dph_ctx ctx = { Sv, SigmaCv };
+    int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
+                                 PTD_B3_DPH, &ctx, J_out);
+    /* POST-pass: the theta-independent continuous->discrete correction, then
+     * a SECOND isfinite sweep (the correction itself can produce non-finite
+     * output; the core's sweep ran before it). */
+    if (rc == 0) {
+        ptd_dph_correct_discrete_moment_grad(J_out, K, P);
+        for (size_t x = 0; x < K*P; ++x) {
+            if (!isfinite(J_out[x])) { rc = -1; break; }
         }
     }
-    if (ptd_dbg_tape_needs_mpfr(nm, nc)) {
-        free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
-        free(Sv); free(SigmaCv);
-        ptd_pcg_desc_off_destroy(off);
-        ptd_parameterized_reward_compute_graph_destroy(ptape);
-        return -1;
-    }
-    double *seeds = (double*)malloc((K+1)*n*sizeof(double));
-    double *snaptos = (double*)malloc((K?K:1)*(nc?nc:1)*sizeof(double));
-    for (size_t v=0; v<n; ++v) seeds[v]=1.0;
-    for (size_t j=1;j<=K;++j) {
-        double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
-        for (size_t v=0; v<n; ++v) out[v]=seed[v];
-        for (size_t c=0;c<nc;++c) {
-            st[c]=out[nb[c]]; double m=nm[c];
-            if (isinf(m) && out[nb[c]]==0.0) continue;
-            if (m!=0.0) out[na[c]] += out[nb[c]]*m;
-        }
-    }
-    int ok=1;
-    double *dm=(double*)malloc((nc?nc:1)*sizeof(double));
-    double *bar_out=(double*)malloc(n*sizeof(double));
-    double *adj=(double*)malloc(n*sizeof(double));
-    double *bmem=(double*)malloc(md*sizeof(double));
-    double *binp=(double*)malloc((ni?ni:1)*sizeof(double));
-#define RB(op) ((op).kind==PTD_PCG_OP_MEM ? &bmem[(op).mem_offset] : \
-               ((op).kind==PTD_PCG_OP_INPUT ? &binp[(op).input_idx] : (double*)NULL))
-    for (size_t outk=0; ok && outk<K; ++outk) {
-        for (size_t c=0;c<nc;++c) dm[c]=0.0;
-        for (size_t v=0; v<n; ++v) bar_out[v]=0.0;
-        for (size_t j=K; j>=1; --j) {
-            for (size_t v=0; v<n; ++v) adj[v]=bar_out[v];
-            if (outk == j-1) {
-                double fac=1.0; for (size_t t=2;t<=j;++t) fac*=(double)t;
-                adj[target] += fac;
-            }
-            double *st = snaptos + (j-1)*nc;
-            for (long c=(long)nc-1;c>=0;--c) {
-                double m=nm[c];
-                if (isinf(m) && st[c]==0.0) continue;
-                dm[c] += adj[na[c]] * st[c];
-                if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
-            }
-            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];
-            if (j==1) break;
-        }
-        for (size_t i=0;i<md;++i) bmem[i]=0.0;
-        for (size_t k=0;k<ni;++k) binp[k]=0.0;
-        long numptr=(long)nc-1;
-        for (long i=(long)L-1;i>=0;--i) {
-            struct ptd_pcg_command_off c = off->commands[i];
-            double *bf=RB(c.fromT), *bt=RB(c.toT), *bm=RB(c.multiplierptr);
-            switch (c.type) {
-                case 0: if (bm) *bm += dm[numptr]; numptr--; break;
-                case 1: *bt += (*bf)*c.multiplier; break;
-                case 3: { double v=*bf; *bt += v*s1[i]; *bm += v*s0[i]; } break;
-                case 2: *bf = (*bf)*(-1.0/(s0[i]*s0[i])); break;
-                case 4: *bf = -(*bf); break;
-                case 5: { double v=*bf; *bt += v*(-s0[i]/(s1[i]*s1[i])); *bf = v/s1[i]; } break;
-                case 6: *bf = 0.0; break;
-                default: break;
-            }
-        }
-        /* contract edge -> theta into J_out row outk. was_dph: renorm
-         * quotient rule (sibling coupling via Sv/SigmaCv); else: plain
-         * linear rule (same as ptd_moments_grad_theta). */
-        for (size_t j=0;j<P;++j) J_out[outk*P + j] = 0.0;
-        for (size_t k=0; k<ni; ++k) {
-            struct ptd_pcg_input_spec sp = off->input_specs[k];
-            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
-                    || sp.v >= graph->vertices_length
-                    || sp.e >= graph->vertices[sp.v]->edges_length) { ok=0; break; }
-            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
-            /* The tape registers EVERY edge weight (incl. coefficient-less
-             * constant edges, e.g. discretize()'s aux back-edges) as a free
-             * input, regardless of whether it varies with theta. A constant
-             * edge's weight never depends on theta, so its exact gradient
-             * contribution is 0 -- skip it (coefficients is NULL, unlike
-             * ptd_moments_grad_theta which assumes every tape input is
-             * parameterized; that assumption is safe there only because the
-             * continuous/exact path is never invoked on aux-vertex graphs). */
-            /* A starting-vertex edge is an IPV probability: update_weights()
-             * NEVER recomputes its weight from theta (skipped from both the
-             * coefficient dot-product AND, effectively, the renorm -- its
-             * out-edges' weights are theta-independent constants, so their
-             * total is too), regardless of whether it happens to carry a
-             * (possibly widened/padded) non-empty coefficient array. Its true
-             * dp_e/dtheta is therefore identically 0 -- skip it rather than
-             * risk 0 * (a quotient-rule term that can be +-inf when Sv is
-             * uncomputed/zero for this vertex, which is 0*inf = NaN in
-             * IEEE754, not 0). */
-            if (e->coefficients_length == 0
-                    || graph->vertices[sp.v] == graph->starting_vertex) continue;
-            if (graph->was_dph) {
-                double p_e = e->weight;
-                double S = Sv[sp.v];
-                const double *sigma = SigmaCv + sp.v * P;
-                for (size_t j=0;j<P;++j) {
-                    J_out[outk*P + j] += binp[k] * (e->coefficients[j] - p_e * sigma[j]) / S;
-                }
-            } else {
-                for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
-            }
-        }
-    }
-    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
-    if (ok) ptd_dph_correct_discrete_moment_grad(J_out, K, P);
-    if (ok) for (size_t x=0; x<K*P; ++x) if (!isfinite(J_out[x])) { ok=0; break; }
-
-    free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
-    free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+    /* ctx is wrapper-owned: freed unconditionally, success or decline; the
+     * core never frees it. */
     free(Sv); free(SigmaCv);
-#undef RV
-#undef RB
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
-    return ok ? 0 : -1;
+    return rc;
 }
 
 /* ===== B3 joint-index extension: forward-mode theta-adjoint for the SOJOURN
