@@ -53,7 +53,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
 | 0 | Reverse-tape skeleton extraction | **merged** | branch kept (worktree deletable) | `b3-batch0-plan.md` v2 + merge review | M0-M6 byte-identity; validators 6/6; G2 (9 ledgered); G3 1885/0/84/24 | plan 2 refuters (S-W-C ×2) + diff 2 refuters (SOUND / S-W-C, folded M6) | `d2cca7ab` |
 | F | D6 `lax.cond`/`vmap` static-dispatch redesign | plan-review (= the D6.1 review, first execution) | `b3/batchF-static-dispatch` (planned) | `b3-batchF-plan.md` + `b3-joint-index-plan.md` §D6 | D6.0 de-risk 3/3 (prior session) | 2 refuters in flight (2026-08-13) | — |
-| H | Daisy final-epoch exact gradient | not-started | — | master plan §10 (needs own plan + de-risk) | — | — | — |
+| H | Daisy final-epoch exact gradient | plan-drafted (review queued behind Batch F G4) | derisk/batchH-final-epoch (planned) | b3-batchH-plan.md v1 | — | pending | — |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
 | CC-2 | Cheap check: Deferred-4 Phase 0 sweep (= D4 design-of-record §2) | not-started (~days; needs oracle) | `derisk/d4-mpfr-sweep` (planned) | `deferred-4-mpfr-conditioning-floor-plan.md` §2 | `b3-d4-sweep-findings.md` (future) | D4 plan §8 | — |
 
