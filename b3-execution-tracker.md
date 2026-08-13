@@ -62,12 +62,12 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 
 | id | what | status | gate | plan doc |
 |---|---|---|---|---|
-| D.3 | leaf-2b plumbing (joint-index + exposure) | **plan-review VERDICT: BROKEN — HALTED on a USER DECISION** (both refuters: shipped rule R9 statically rejects the target leaf before model construction; master §6's reachability premise was false — Class-D amendment filed; options = relax R9 / re-scope to jsp / fold into Batch G; §16b item 9 ledgered) | — | b3-batchD3-plan.md v1 + review record |
+| D.3 | leaf-2b plumbing (joint-index + exposure) | **CLOSED — folded into Batch G (user decision 2026-08-13)** after a BROKEN plan-review verdict (shipped rule R9 statically rejects the target leaf; master §6 premise false, Class-D amendment filed). D.3's user value ships via G leaf 1 (epoch-route exact gradients); R9 jsp hole (§16b item 9) fixed in G; review corrections transferred to G's plan | — | b3-batchD3-plan.md v1 + review record + disposition |
 | E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | **unblocked** (F merged; E probes the ACTUAL baked union per F merge review) | — | master plan §7 |
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
-| G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needed H) | **leaf 1 UNBLOCKED** (H merged `ecd708fc`: plumb `exact_final_grad` through `Graph.svgd` with R29-style validation); leaves 3/4 still blocked(A) | per leaf | master plan §9 |
+| G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needed H) | **leaf 1 IN PROGRESS as Batch G.1** (absorbs D.3's user value + obligations: public `exact_final_grad` plumbing, R30 validation, R9 jsp-hole fix, R29-message update); leaves 3/4 still blocked(A) | per leaf | master plan §9 + b3-batchG1-plan.md |
 
 ## Deferred units (parked; activation gates in their plans)
 
