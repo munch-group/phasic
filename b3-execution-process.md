@@ -100,8 +100,11 @@ run green (not merely no-worse):
 | SCC / hierarchical | `test_scc_compose.py`, `test_hierar_elimination_env.py`, `test_scc_*` |
 | FFI handlers | `test_gate_ffi_vs_pybind.py`, `test_gate_trace_ffi_equivalence.py` |
 | SVGD-touching (any) | `test_svgd.py` (slow — run once at G3, not per-iteration) |
+| svgd config/validation (rules, kwargs, ledger) | `test_svgd_config.py`, `inference/test_svgd_exact_moment_grad_kwarg.py`, `inference/test_svgd_exact_final_grad_kwarg.py`, `inference/test_svgd_exposure.py`, `inference/test_svgd_api_parity.py`, `test_svgd_assumptions.py` *(row added 2026-08-13, G.1 G5 — the map predated the rule suites; proposed by the D.3/G.1 reviews)* |
+| Joint-index / sojourn (amended 2026-08-13) | + `inference/test_exact_grad_joint_index.py` (the map predated Batch F's suite) |
 | Gradient defect regression (always, cheap) | `test_fd_gradient_mixed_scale.py` |
 
+<!-- AMENDMENT 2026-08-13 (G.1 G5): chunked G3 commands ALWAYS pass -rf so first-pass failures are named. -->
 **G3 — full-suite differential vs. the baseline ledger.**
 `pixi run pytest tests/pytest/` compared against `b3-test-baseline.md`:
 **zero new failures, zero new errors**; any new XPASS or vanished XFAIL is
