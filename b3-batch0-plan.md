@@ -193,3 +193,38 @@ marked region + G5 dated note) → adopted; 7 (G0 + commit the plan) →
 adopted; 8 (G4 cleanup mandate) → adopted; 9 (CC-2 pinning) → adopted.
 Anchors: both reviewers verified all cited lines at `315a53b4`; the
 stage-0/1/2 code-identity premise was mechanically diffed and CONFIRMED.
+
+## Merge review (G5) — 2026-08-13
+
+**All gates green; squash-merged to master.**
+
+- **G0:** branch base `b4960fe8` == master HEAD; `164e2758..b4960fe8`
+  docs-only — ledger fresh (review-verified independently).
+- **G1 / M-protocol:** M0 ran every reference gate TWICE with byte-compare
+  (all four "PASS + byte-stable" — the protocol-validity pre-check the
+  interface reviewer flagged as unevidenced; log artifacts in the session
+  scratchpad, `m0-*-r{1,2}.out`); M1-M4 each byte-identical on all four
+  gates after `pixi run install-dev`; M5 (CRLF reinstatement) re-verified;
+  M6 (review fold-ins) re-verified. Validators build: 6/6 gates PASS.
+  M4 micro-gate final form: 3/3 (continuous applicable; native-DPH
+  applicable — the was_dph-vs-is_discrete latch cell added per G4
+  finding 2; discretize()'d declines).
+- **G2:** targeted suites green — exactly the 9 ledgered sources-on
+  `test_jax_integration` failures, nothing else (55 passed).
+- **G3:** chunked full suite **1885 / 0 / 84 / 24** — exact ledger match.
+- **G4:** pure-move reviewer **SOUND** (0 critical/major; re-proved the
+  code-identity premise mechanically; every divergence classified as
+  intended; cleanup balanced on every path). Interface/process reviewer
+  **SOUND-WITH-CORRECTIONS** — both majors folded in M6 (comment-marking
+  promises; native-DPH micro-gate cell) plus the const/stale-comment
+  minors and this record's evidence carries.
+
+**Deviations / notes:**
+1. **M5 line-ending incident:** the M1-M3 line surgeries normalized the
+   CRLF file to LF; caught at diff-stat review, repaired wholesale in M5,
+   gates re-verified. Process lesson: byte-level (newline-preserving) file
+   surgery for CRLF sources.
+2. Net diff: ~447 lines on `phasic.c` (−123 net; the three near-identical
+   copies now share one core) + the 34-line micro-gate.
+3. Batch A is now unblocked (Phase 3); its hook lines are comment-marked
+   in the core.
