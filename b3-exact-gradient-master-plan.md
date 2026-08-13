@@ -421,6 +421,24 @@ plumbing. *(Needs a dedicated de-risk pass confirming the exact path is
 correct in combination with the exposure-scaling wrapper before shipping —
 not yet independently tested; see risk register.)*
 
+> **AMENDMENT 2026-08-13 (process §6 Class D — new information
+> invalidating this section's premise; found by BOTH refuters of the
+> D.3 plan, `b3-batchD3-plan.md` review record): the reachability claim
+> above is FALSE.** Shipped validator rule R9
+> (`svgd_config.py:805-820`, shipped 2026-05-15 `f6fcbce7`, test-pinned)
+> statically rejects exposure + joint-prob + no-epochs BEFORE model
+> construction, on cost grounds, directing users to `epoch_starts=[0.0]`
+> (the daisy route). The exposure arm of the leaf-2 call site is dead
+> code for `'joint_prob'` graphs under `Graph.svgd`; the atlas line this
+> section leaned on was a model-builder-level statement. §16 risk 4's
+> "de-risk the exposure-wrapper interaction" is therefore moot AS
+> SCOPED (the composition is unreachable). The only surviving variant
+> (`joint_stop_prob` + exposure) rides a probable R9 classifier hole —
+> §16b item 9. D.3's disposition is a USER DECISION (relax R9 /
+> re-scope to jsp / fold into Batch G's single-epoch daisy route, which
+> Batch H's internal-exposure + `exact_final_grad` machinery now makes
+> strictly better-shaped). See `b3-batchD3-plan.md`.
+
 **D.4 — `Graph.svgd()` leaf 5 plumbing (no rewards).** Already reachable
 today via the callee's own default (`exact_moment_grad=True`). Plumbing only
 adds the ability to explicitly force `exact_moment_grad=False` through
@@ -1244,6 +1262,20 @@ on any batch here):
    contrast the loud negative-rate escalation at `:1887-1896`). A
    robustness/observability gap worth a small logging fix on its own; the
    full loud-path design is costed in the Deferred-2 plan's E1.
+9. **NEW (2026-08-13, found by BOTH refuters of the D.3 plan): R9's
+   graph-kind classifier hole** — `_check_R9_exposure_with_vanilla_
+   joint_prob_unsupported` (`svgd_config.py:805-820`) tests only
+   `graph_kind == 'joint_prob'`, but a `joint_stop_prob_graph()` output
+   carries the base-graph indexer and enters the SAME svgd joint-index
+   branch — so exposure + jsp + no-epochs PASSES validation into a
+   configuration R9's cost rationale equally condemns, and R1
+   simultaneously forbids the `epoch_starts` remedy R9's message
+   prescribes. Exactly the classifier-hole class R29 had (fixed at
+   D.4's G4). No test composes jsp + exposure anywhere; intent
+   undeterminable from source. Class B candidate (silent acceptance of
+   a config the rule means to reject); fix is a two-token kind-set
+   change + one pinning test, but needs the D.3-disposition user
+   decision first (the fix direction depends on it).
 
 ---
 

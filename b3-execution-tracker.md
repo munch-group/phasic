@@ -62,7 +62,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 
 | id | what | status | gate | plan doc |
 |---|---|---|---|---|
-| D.3 | leaf-2b plumbing (joint-index + exposure) | **unblocked** (F merged `eaf86e82`; must carry the jit-raise findings + blast-radius statement per F merge review) | — | master plan §6, §15 Phase 1b |
+| D.3 | leaf-2b plumbing (joint-index + exposure) | **plan-review VERDICT: BROKEN — HALTED on a USER DECISION** (both refuters: shipped rule R9 statically rejects the target leaf before model construction; master §6's reachability premise was false — Class-D amendment filed; options = relax R9 / re-scope to jsp / fold into Batch G; §16b item 9 ledgered) | — | b3-batchD3-plan.md v1 + review record |
 | E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | **unblocked** (F merged; E probes the ACTUAL baked union per F merge review) | — | master plan §7 |
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |

@@ -175,3 +175,57 @@ family, nr_samples=3) + a distinct-valued exposure array. Checks:
    the documented Batch-F contract, NOT an R30 concern (R30 gates
    where the kwarg is structurally meaningless, not where the probe
    declines).
+
+## Adversarial plan-review record (2026-08-13) — VERDICT: BROKEN, plan HALTED pre-D0
+
+Both refuters independently: **BROKEN**. The core premise — leaf 2b
+"structurally reachable today" — is FALSE in shipped code:
+
+- **Rule R9** (`svgd_config.py:805-820`, shipped 2026-05-15 `f6fcbce7`,
+  test-pinned at `test_svgd_config.py:185-198`) statically rejects
+  exposure + joint-prob + no-epochs BEFORE model construction, with a
+  still-valid cost rationale (the exposure wrapper = O(n_obs) full
+  evaluations per gradient) and a message directing users to
+  `epoch_starts=[0.0]` (the daisy route). The `else None` arm of
+  `_bake_obs` at `__init__.py:6416` is DEAD CODE for joint_prob graphs
+  under `Graph.svgd`. Master plan §6 D.3 and §16 risk 4 rest on the
+  same false assumption (the atlas's "not structurally blocked" was a
+  model-builder-level statement, not an svgd-entry-point one) — dated
+  Class-D amendment filed in the master plan.
+- The ONLY configuration reaching `:6416` with exposure is a
+  `joint_stop_prob` graph, via an R9 classifier hole of exactly the
+  R29 bug class (R9 tests only `graph_kind == 'joint_prob'`;
+  jsp graphs carry the base-graph indexer and enter the same branch).
+  No test composes joint_stop_prob + exposure anywhere; intent
+  undeterminable — LEDGERED as §16b item 9.
+- D0 as designed builds the model DIRECTLY and would have returned GO
+  on an unshippable batch (process refuter MAJOR 2: no front-door
+  svgd smoke test).
+- Everything else verified sound by review (spy seam, env decline
+  mechanism post-H, wrapper composition mechanics — live-probed:
+  lax.map over a pure_callback custom_vjp under vmap(jit(grad)) works
+  and raises legibly; R29 False-rejection symmetry confirmed; G0
+  claims; naming). The mechanics survive; the PREMISE does not.
+
+**USER DECISION REQUIRED (options per both reviews):**
+(i) relax R9 for the exact-grad case — modifies shipped, test-pinned
+    validation whose cost rationale still holds (the exact path does
+    not remove the O(n_obs) wrapper structure);
+(ii) re-scope the leaf to joint_stop_prob + exposure — rides the
+    probable R9 classifier hole; needs the hole settled first;
+(iii) FOLD D.3 INTO BATCH G: R9's own documented fix
+    (`epoch_starts=[0.0]`) is now backed by Batch H — the daisy route
+    has INTERNAL exposure (one OpenMP-batched FFI call, no lax.map)
+    and `exact_final_grad` covers the WHOLE model when n_epochs==1
+    (Batch H test 10). D.3's user value (exact gradients for
+    exposure-bearing joint-prob SVGD) ships via G leaf 1 with no
+    validation change and a strictly better cost profile.
+
+Minor corrections recorded for whichever successor plan: front-door
+D0(v); joint_stop_prob cases in any R-rule design; ledger/
+effective_options tests (D.4 precedent); golden = single model-grad
+call; fixed_mask/scalar-exposure variants; R29-message staleness
+decision; derisk/* branch naming; G2 = test_svgd_config.py +
+inference/test_svgd_exact_moment_grad_kwarg.py +
+inference/test_svgd_exposure.py + inference/test_svgd_api_parity.py +
+test_svgd_assumptions.py (+ a proposed process-doc G2 row).
