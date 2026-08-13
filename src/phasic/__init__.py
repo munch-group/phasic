@@ -7793,12 +7793,14 @@ extern "C" {{
             FD once P is roughly 10-20+ on representative graphs (see
             ``b3-joint-index-plan.md``'s D3 benchmark) -- unlike this P=2
             (coalescent rate + mutation rate) model's typical usage.
-            Whether the default should flip now that the vmap double-cost
-            is fixed is a separate, deliberate decision (see the Batch F
-            merge review). Set ``exact_grad=True`` explicitly for richer
-            models (P roughly 10+) or when FD's documented mixed-scale
-            gradient defect (the reason this feature exists) matters more
-            than the P-scaled cost.
+            The default staying ``False`` is a DELIBERATE, user-decided
+            trade (2026-08-13, post-Batch-F): FD-favoured cost at small P
+            and no hard-stop raises by default, versus exact gradients on
+            request. Set ``exact_grad=True`` explicitly for richer models
+            (P roughly 10+) or when FD's documented mixed-scale gradient
+            defect (the reason this feature exists) matters more than the
+            P-scaled cost -- accepting that a committed model RAISES on a
+            per-theta decline instead of falling back.
 
         Returns
         -------

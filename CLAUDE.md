@@ -208,9 +208,12 @@ that same review, judged lower-severity / out of scope for it:
   diagnostic `RuntimeError` (the user-decided failure mode; legibility
   under `vmap(jit(grad))`/`jit(vmap(grad))` proven by
   `dr_batchF_jit_raise_derisk.py`). `exact_grad=False` remains
-  byte-identical. **The default is still `False` — whether to flip it now
-  that the vmap double-cost is gone is an OPEN user decision** (recorded
-  in `b3-batchF-plan.md`'s merge review). Also documented there: the
+  byte-identical. **The default stays `False` — USER-DECIDED 2026-08-13
+  (post-Batch-F): the FD-favoured cost at this model's typical P=2 plus
+  the hard-stop raise semantics of the committed path make opt-in the
+  right default; the trade-off is documented in the `exact_grad`
+  docstring** (decision recorded in `b3-batchF-plan.md`'s merge review,
+  item 1). Also documented there: the
   batched forward sojourn FFI silently NaN-fills out-of-range indices (a
   pre-existing gap); the backward callback's bounds check is the live
   defense under vmap, with its own test.

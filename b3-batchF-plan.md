@@ -176,10 +176,11 @@ the same pass as this plan's v2 commit.
   accuracy fixes.
 
 **Deviations / decisions queued:**
-1. **Default-flip (the dangling "D9"): OPEN USER DECISION, presented
-   post-merge** — with the vmap double-cost fixed, should
-   `exact_grad` default to True? Trade recorded in the docstring: exact
-   correctness + hard-stop declines vs FD-favoured cost at P=2.
+1. **Default-flip (the dangling "D9"): DECIDED 2026-08-13 — the default
+   STAYS `False`, with the trade-off documented in the docstring** (user
+   decision, taken together with the Batch-H gate-semantics decision).
+   Docstring updated in the same docs commit to state the decision and
+   the raise-on-decline consequence of opting in explicitly.
 2. §16b item 2 (sojourn MPFR-comment correction): DECLINED here (no C
    edits in this batch); remains ledgered for Batch E's docs pass.
 3. The batched forward FFI's silent NaN-fill on bad indices is a
