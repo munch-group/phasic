@@ -35,12 +35,13 @@
 **Read this first each session.** Live status for every unit of the B3
 exact-gradient program. Design: `b3-exact-gradient-master-plan.md` (signed
 off 2026-08-11, as amended). Process: `b3-execution-process.md`. Baseline:
-`b3-test-baseline.md` — **re-stamped 2026-08-13 (second) at `d2cca7ab`
-(Batch 0 merged): 1885 / 0 / 84 / 24, ledger empty.** Batches D Tier-1 and
-0 are MERGED and pushed. In progress: Batch F (plan v2, D6.1 review done).
-Master plan §16b has 8 items (7 = `pmf_from_cpp` vmap sibling; 8 = daisy
-FFI NaN swallow) — the snapshot table below is superseded by master plan
-§16b as the authoritative list.
+`b3-test-baseline.md` — **re-stamped 2026-08-13 (third) at `eaf86e82`
+(Batch F merged): 1888 / 0 / 84 / 24, ledger empty; next full run expected
+1889 (one test added post-G3).** Batches D Tier-1, 0, and F are MERGED.
+In progress: Batch H de-risk (plan v2 after two-refuter review; branch
+`derisk/batchH-final-epoch`). Master plan §16b has 8 items (7 =
+`pmf_from_cpp` vmap sibling; 8 = daisy FFI NaN swallow) — the snapshot
+table below mirrors master §16b, which stays the authoritative list.
 Status vocabulary: `not-started | de-risk | plan-review | implementing |
 gate | diff-review | merged | parked | blocked(<on>)`.
 
@@ -53,7 +54,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
 | 0 | Reverse-tape skeleton extraction | **merged** | branch kept (worktree deletable) | `b3-batch0-plan.md` v2 + merge review | M0-M6 byte-identity; validators 6/6; G2 (9 ledgered); G3 1885/0/84/24 | plan 2 refuters (S-W-C ×2) + diff 2 refuters (SOUND / S-W-C, folded M6) | `d2cca7ab` |
 | F | D6 `lax.cond`/`vmap` static-dispatch redesign | **merged** | branch kept (worktree deletable) | `b3-batchF-plan.md` v2 + merge review | F0 GO; 17/17; golden 0.0; G2 (9 ledgered); G3 1888/0/84/24 | plan 2 refuters (D6.1) + diff 2 refuters, all S-W-C folded | `eaf86e82` |
-| H | Daisy final-epoch exact gradient | plan-drafted (review queued behind Batch F G4) | derisk/batchH-final-epoch (planned) | b3-batchH-plan.md v1 | — | pending | — |
+| H | Daisy final-epoch exact gradient | **de-risk** (H0-H2; v3 + own review required before implementation) | derisk/batchH-final-epoch | b3-batchH-plan.md v2 | `b3-batchH-findings.md` (in progress) | plan 2 refuters (S-W-C ×2, folded into v2; 2 CRITICAL: r_v product-rule term, handoff-IPV machinery unbuilt) | — |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
 | CC-2 | Cheap check: Deferred-4 Phase 0 sweep (= D4 design-of-record §2) | not-started (~days; needs oracle) | `derisk/d4-mpfr-sweep` (planned) | `deferred-4-mpfr-conditioning-floor-plan.md` §2 | `b3-d4-sweep-findings.md` (future) | D4 plan §8 | — |
 
@@ -87,7 +88,8 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | 4 | Rate-blowup fwd/bwd inconsistency (moments path) | B | unscheduled |
 | 5 | `moments_from_graph`/`method_of_moments` exact grads | C | explicitly out of scope |
 | 6 | Composer silently linear-only (`use_log=false` unconditional) — silent wrong numeric answer for log-mode + `parallel_elimination` | **B** | own guard/doc micro-fix; pin candidate |
-| 7 | Daisy FFI swallows failures as NaN + `Success()` (unlogged on default sojourn handler) | **B** | small logging fix; full loud-path in Def-2 E1 |
+| 7 | `pmf_from_cpp` vmap sibling (2-D batch handling, same family as the D.1 fix) | C | unscheduled |
+| 8 | Daisy FFI swallows failures as NaN + `Success()` (unlogged on default sojourn handler; + batched sojourn NaN-fill on bad indices, F merge review dev. 3) | **B** | small logging fix; H0(i) treats NaN as confound; full loud-path in Def-2 E1 |
 
 ## Non-B3 residuals (from the 2026-08-10 status report, so they aren't lost)
 

@@ -1104,6 +1104,11 @@ with E since that is the earliest point at which it becomes valuable.
 6. **E/F sequencing is a genuine judgment call**, not fully resolved here —
    option (i) (F before E) is recommended but option (ii) remains viable if
    baked-mode correctness is wanted sooner than the D6 redesign.
+   **RESOLVED 2026-08-13: option (i) happened — Batch F merged first
+   (`eaf86e82`); E unblocked with the F merge review's probe-the-actual-
+   baked-union requirement.** (Note: the Batch H plan's v1 mis-cited this
+   risk as the E/H interface question; that question lives in §10's
+   Dependencies paragraph and the §15 conflict matrix — corrected in H v2.)
 7. **Deferred-1's scale question is unresolved** — whether any real model
    requires hierarchical mode for tractability (not just speed) would
    materially change its priority; a cheap usage check is recommended before
