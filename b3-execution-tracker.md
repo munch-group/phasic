@@ -51,7 +51,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.1 | `moments_from_graph` vmap-crash fix | **merged** | branch kept for now (worktree deletable) | `b3-batchD-tier1-plan.md` v2 + merge review | all gates green; G3 1885/0/84/24 | plan 2 refuters + diff 2 refuters (SOUND / SOUND-W-C) | `164e2758` |
 | D.2 | `ptd_moment0_grad_theta` validator guards | **merged** | same | same | validators 5/5 pre + 5/5 post + guards gate ALL PASS | same | `164e2758` |
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
-| 0 | Reverse-tape skeleton extraction | plan-review | `b3/batch0-skeleton` (planned) | `b3-batch0-plan.md` v1 | — | 2 refuters in flight (2026-08-13) | — |
+| 0 | Reverse-tape skeleton extraction | **merged** | branch kept (worktree deletable) | `b3-batch0-plan.md` v2 + merge review | M0-M6 byte-identity; validators 6/6; G2 (9 ledgered); G3 1885/0/84/24 | plan 2 refuters (S-W-C ×2) + diff 2 refuters (SOUND / S-W-C, folded M6) | `d2cca7ab` |
 | F | D6 `lax.cond`/`vmap` static-dispatch redesign | not-started (design pre-reviewed: `b3-joint-index-plan.md` D6) | — | `b3-joint-index-plan.md` D6 §§ | — | — | — |
 | H | Daisy final-epoch exact gradient | not-started | — | master plan §10 (needs own plan + de-risk) | — | — | — |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
@@ -63,9 +63,9 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 |---|---|---|---|---|
 | D.3 | leaf-2b plumbing (joint-index + exposure) | blocked(F) | Batch F | master plan §6, §15 Phase 1b |
 | E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | blocked(F) | Batch F | master plan §7 |
-| A | Rewards support in moments adjoint | blocked(0) | Batch 0 | master plan §3 |
-| B | Formula-mode exact gradient | blocked(0, then after A) | Batch 0 | master plan §4 |
-| C | Callback-mode exact gradient (Job A) | blocked(0, then after A) | Batch 0; exit-point design must honor §5's third-consumer note | master plan §5 |
+| A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
+| B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
+| C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
 | G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needs H) | blocked(A / H) | per leaf | master plan §9 |
 
 ## Deferred units (parked; activation gates in their plans)

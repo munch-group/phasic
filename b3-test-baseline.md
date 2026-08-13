@@ -1,6 +1,11 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-13 · master `164e2758` (Batch D Tier-1 merge) ·
+**Re-stamped 2026-08-13 (second) · master `d2cca7ab` (Batch 0 merge) ·
+verified 1885 / 0 / 84 / 24 via the batch0 worktree's chunked full-suite
+run on content identical to the merged tree — exact match to the previous
+stamp; ledger unchanged (empty).**
+
+*(Previous stamp:)* **2026-08-13 · master `164e2758` (Batch D Tier-1 merge) ·
 verified counts: 1885 passed / 0 failed / 84 skipped / 24 xfailed** —
 obtained from the batch worktree's chunked full-suite run on content
 identical to the merged tree (12 sub-runs, same command semantics; a single

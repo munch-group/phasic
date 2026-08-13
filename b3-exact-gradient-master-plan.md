@@ -312,6 +312,12 @@ seeding** (an input-side entry point; the shipped functions hard-code a
 one-hot seed at vertex 0). Validate the exit's shape against that
 requirement, or record explicitly why it is declined — do not let the exit
 be designed blind to it.
+**Batch-0 decision (2026-08-13, `d2cca7ab`):** the cotangent-seed entry was
+DECLINED for Batch 0 (different output semantics — E[T]-vector VJP vs K
+moments); the core's seeding block (target selection + factorial seed) is
+comment-marked as one section, and stage-1 seeding composes orthogonally
+with any future stage-2 exit — a future seed parameter touches only that
+section. Recorded per this note's requirement.
 
 **Primal side already works, no change needed:**
 `Graph.update_weights(theta, callback=fn)` (`__init__.py:1910-1991` →
@@ -1126,6 +1132,10 @@ with E since that is the earliest point at which it becomes valuable.
     committing (see §2) — and against Deferred-1's cotangent-seeded per-SCC
     VJP requirement (§5's third-consumer note;
     `deferred-1-hierarchical-scc-adjoint-plan.md` §4-P2; added 2026-08-11).
+    **RESOLVED 2026-08-13 (Batch 0, `d2cca7ab`):** enum-dispatched switch
+    chosen and validated (B: core-internal pre-outk stage; C: exit added
+    when C lands, options recorded in `b3-batch0-plan.md`; Deferred-1:
+    declined with the orthogonality record at §5).
 13. **Two hierarchical/SCC-specific risks, relevant only if Deferred 1 is
     ever un-deferred:** (a) whether a per-SCC MPFR condition number
     correctly reflects whole-graph conditioning is unverified; (b) a future

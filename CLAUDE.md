@@ -162,6 +162,14 @@ reviews but judged lower-severity / out of scope for those passes:
   ([[feedback_no_modify_existing]]), and refactoring shipped, gate-verified
   functions is exactly the kind of change that preference means asking
   about first. Worth doing before a 4th variant (`'formula'`) is attempted.
+  **RESOLVED 2026-08-13 (Batch 0, merge `d2cca7ab`, user-authorized via the
+  signed-off master plan):** the shared stage-0/1/2 core now exists as
+  `ptd_b3_moments_core` (enum-dispatched contraction; the three public
+  functions are thin wrappers owning ptape/off); per-conversion
+  byte-identity gates + full-suite ledger match verified. The linear
+  wrapper now also declines on `was_dph` graphs (previously
+  Python-routing-only safety; micro-gate
+  `experiments/dr_batch0_m4_wasdph_gate.py`).
 
 None of these are regressions from the default flip (the multivariate/
 moments_from_graph/method_of_moments gaps predate it and were never in
