@@ -229,3 +229,26 @@ decision; derisk/* branch naming; G2 = test_svgd_config.py +
 inference/test_svgd_exact_moment_grad_kwarg.py +
 inference/test_svgd_exposure.py + inference/test_svgd_api_parity.py +
 test_svgd_assumptions.py (+ a proposed process-doc G2 row).
+
+## DISPOSITION (USER DECISION, 2026-08-13) — FOLDED INTO BATCH G. D.3 CLOSED.
+
+Decision taken with the UI/compute trade-offs presented explicitly (the
+epoch route batches exposure by unique value in one OpenMP-parallel FFI
+call and gains fully-exact gradients via `exact_final_grad` at
+n_epochs==1; the R9-blocked vanilla route would stay a sequential
+per-observation lax.map even with exact gradients). Consequences,
+carried into `b3-batchG1-plan.md`:
+
+1. Batch G leaf 1 (public `Graph.svgd(exact_final_grad=...)` plumbing)
+   is the vehicle for D.3's user value — exposure users get exact
+   gradients through the canonical epoch route.
+2. The R9 joint_stop_prob classifier hole (§16b item 9) is fixed in G,
+   consistent with R9's intent (user-sanctioned via this decision).
+3. This plan's review-generated corrections transfer to G's plan:
+   front-door svgd smoke in any de-risk; jsp cases in rule tests;
+   ledger/effective_options tests (D.4 precedent); golden = single
+   model-gradient call cross-install; the R29-message staleness
+   decision ("no exact epoch-model gradient exists yet" becomes FALSE
+   when G ships — flagged shipped-text edit); G2 = the svgd config/
+   validation file list named in the review record; the proposed
+   process-doc G2 row amendment.
