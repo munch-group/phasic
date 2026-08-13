@@ -259,8 +259,18 @@ that same review, judged lower-severity / out of scope for it:
 
 ### Batch H (merged `ecd708fc`, 2026-08-13) — exact FINAL-epoch gradient for daisy-chain SVGD
 
-`Graph._daisy_chain_svgd_model(exact_final_grad=False)` (INTERNAL kwarg;
-public `Graph.svgd` plumbing is Batch G leaf 1): when True, the final
+`Graph._daisy_chain_svgd_model(exact_final_grad=False)` (public via
+`Graph.svgd(exact_final_grad=...)` since Batch G.1, merged `0c052cfe`
+2026-08-13 — rule R30 in `svgd_config.py` scopes the kwarg to the epoch
+leaf and rejects any explicit value elsewhere, incl. config-level
+`final_read='stopprob'` and non-linear-weight-mode pre-emption via a
+combined-form snapshot; the R9 exposure rule gained a kind-aware
+joint_stop_prob arm closing its classifier hole. Batch D.3 — svgd
+plumbing of the joint-index `exact_grad` to an exposure leaf — was
+CLOSED by user decision: shipped rule R9 makes that leaf unreachable by
+design, and the epoch route `svgd(obs, exposure=..., epoch_starts=
+[0.0], exact_final_grad=True)` delivers the same user value with
+batched exposure and fully-exact gradients): when True, the final
 epoch's theta slots get an EXACT gradient — the r_v product-rule term
 (r_v is theta-dependent) plus the C sojourn adjoint with the
 conditioning gate skipped, evaluated at the handoff extracted by pybind
