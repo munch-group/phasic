@@ -147,3 +147,42 @@ G5/F1; 4 (G2 gap) → folded; 5 (dangling D9) → G5 decision-point; 6-12
 (anchors, spy, byte-identity procedure, tracker staleness, G0 note,
 pinning, probe false-negative) → folded. Tracker hygiene items fixed in
 the same pass as this plan's v2 commit.
+
+## Merge review (G5) — 2026-08-13
+
+**All gates green; squash-merged to master.**
+
+- **F0 (go/no-go):** GO — the diagnostic marker survives legibly in
+  `XlaRuntimeError` under `vmap(jit(grad))` and `jit(vmap(grad))`
+  (`dr_batchF_jit_raise_derisk.py`; pmap variant declined — no
+  multi-device host, recorded here per the amendment's conditional).
+- **G1:** 17/17 file tests (13 pre-F, all accounted for in the fate table
+  — the earlier "+3 vs +4" confusion was a narrative slip in MY tally
+  message, not a table defect: 11 keep + 1 pre-verify + 1 rewritten = 13;
+  16 after F2, 17 after the G4 fold-ins). Golden `exact_grad=False`
+  bit-identity vs the pre-F master install: PASS, max-abs-diff 0.0.
+- **G2:** green — exactly the 9 ledgered sources-on failures.
+- **G3:** chunked, **1888 / 0 / 84 / 24** = ledger 1885 + 3 net new tests.
+- **G4:** wiring reviewer SOUND-WITH-CORRECTIONS (mechanism fully
+  verified: zero residual traced predicates; committed-path math
+  byte-identical minus the cond; all 5 amendments confirmed in source);
+  tests/process reviewer SOUND-WITH-CORRECTIONS. All folded (`05fcc5be`):
+  vmap-wrapped spy; `jit(vmap(grad))` in the raise test; the NEW
+  vmap out-of-range test — which settled the reviewers' composed finding
+  empirically (the batched forward FFI silently NaN-fills bad indices, a
+  PRE-EXISTING gap, so the backward bounds check is the live defense
+  under vmap and fires correctly); probe-success + `cd_mixed_scale`
+  direct-C preconditions as evidence artifacts; docstring/comment
+  accuracy fixes.
+
+**Deviations / decisions queued:**
+1. **Default-flip (the dangling "D9"): OPEN USER DECISION, presented
+   post-merge** — with the vmap double-cost fixed, should
+   `exact_grad` default to True? Trade recorded in the docstring: exact
+   correctness + hard-stop declines vs FD-favoured cost at P=2.
+2. §16b item 2 (sojourn MPFR-comment correction): DECLINED here (no C
+   edits in this batch); remains ledgered for Batch E's docs pass.
+3. The batched forward FFI's silent NaN-fill on bad indices is a
+   PRE-EXISTING robustness gap now documented by the new test —
+   ledger-noted (same family as §16b item 8).
+4. Unblocks: D.3 (Phase 1b) and Batch E (Phase 2).
