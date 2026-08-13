@@ -7767,33 +7767,38 @@ extern "C" {{
             ``theta_dim`` that overrides the graph's own ``param_length``
             -- each falls back to FD with an INFO-level log via
             ``logging.getLogger('phasic')`` stating why (set
-            ``PHASIC_LOG_LEVEL=INFO`` to see these). A per-call decline
-            (e.g. an ill-conditioned elimination tape) also falls back to
-            FD for that call only, silently in the sense that no exception
-            is raised, but logged the same way.
+            ``PHASIC_LOG_LEVEL=INFO`` to see these).
+
+            **Commit-or-decline semantics (Batch F):** at model
+            construction a one-time probe runs the exact gradient at the
+            reference point ``theta=ones`` over the union of the
+            all-terminal indices and vertex 0. If the probe FAILS, the whole model uses FD (logged; no
+            exact-path overhead ever). If it SUCCEEDS, the model COMMITS
+            to the exact path: the FD branch is never traced (so under
+            SVGD's ``vmap(jit(grad(...)))`` only the exact branch runs),
+            and a later per-theta decline (e.g. an ill-conditioned tape at
+            one particle's theta) RAISES a diagnostic ``RuntimeError``
+            instead of silently falling back -- a deliberate hard-stop
+            failure mode. A NaN/inf theta raises ``ValueError`` from
+            ``update_weights``; an out-of-range observed index raises
+            ``ValueError`` naming the index. If your model is
+            well-conditioned only away from ``theta=ones``, the probe may
+            decline spuriously (logged) -- a documented limitation of the
+            static reference point.
 
             Defaults to **False**, unlike every other B3 exact-gradient
             kwarg in this codebase (which default to ``True``). This
-            function differs from those in a way that matters here: it
-            uses FORWARD-mode (one pass per theta parameter P), not
-            reverse-mode (one pass total, independent of P), so its cost
-            scales with P and only overtakes FD once P is roughly 10-20+ on
-            representative graphs (see ``b3-joint-index-plan.md``'s D3
-            benchmark) -- unlike this P=2 (coalescent rate + mutation rate)
-            model's typical usage. Worse, under SVGD's actual
-            ``vmap(grad(loss))(particles)`` call pattern, the internal
-            ``jax.lax.cond`` used to skip finite differences when the exact
-            path succeeds cannot actually skip anything: JAX/XLA computes
-            BOTH branches of a ``cond`` whenever its predicate is batched,
-            which it always is here (found via adversarial review of the
-            implemented fix). So under vmap, ``exact_grad=True`` currently
-            costs FD **plus** the exact computation on every call, not FD
-            only when the exact path declines. For a P=2 model this is a
-            net regression, not just a smaller win, hence the default stays
-            False. Set ``exact_grad=True`` explicitly for richer models
-            (P roughly 10+) or when FD's documented mixed-scale gradient
-            defect (the reason this whole feature exists) matters more than
-            the added cost.
+            function uses FORWARD-mode (one pass per theta parameter P),
+            not reverse-mode, so its cost scales with P and only overtakes
+            FD once P is roughly 10-20+ on representative graphs (see
+            ``b3-joint-index-plan.md``'s D3 benchmark) -- unlike this P=2
+            (coalescent rate + mutation rate) model's typical usage.
+            Whether the default should flip now that the vmap double-cost
+            is fixed is a separate, deliberate decision (see the Batch F
+            merge review). Set ``exact_grad=True`` explicitly for richer
+            models (P roughly 10+) or when FD's documented mixed-scale
+            gradient defect (the reason this feature exists) matters more
+            than the P-scaled cost.
 
         Returns
         -------
@@ -7975,10 +7980,15 @@ extern "C" {{
             _jix_exact_enabled = True
 
         _exact_sojourn_jac_np = None
+        _jix_probed_ok = False  # Batch F: latched ONCE by the construction-
+                                # time probe below; model_bwd dispatches on a
+                                # plain Python bool (never a traced predicate,
+                                # so vmap/jit trace only the chosen branch).
         if _jix_exact_enabled:
             _jix_exact_graph = graph.clone()
             _jix_param_length = param_length_actual
             _jix_all_terminal_np = all_terminal_indices_np
+            _jix_n_vertices = int(graph.vertices_length())
 
             def _exact_sojourn_jac_np(theta_np, vertex_indices_np):
                 # Host callback: set the private clone's weights at theta and
@@ -7992,25 +8002,44 @@ extern "C" {{
                 # data, not from a construction-time constant -- so the
                 # union must be computed INSIDE the callback (on concrete
                 # values), not precomputed in Python before tracing.
-                # NaN sentinel (of the REQUIRED output shape) when the exact
-                # path is not applicable -> FD fallback (logged here, since
-                # this runs as a host callback, not traced Python).
+                # Batch F (committed-path semantics): once the construction-
+                # time probe has succeeded, there is NO per-call FD fallback
+                # -- a decline here RAISES with a diagnostic message (the
+                # user-decided failure mode; verified legible under
+                # vmap/jit by dr_batchF_jit_raise_derisk.py).
                 th = np.asarray(theta_np, dtype=np.float64)
                 vi = np.asarray(vertex_indices_np, dtype=np.int64).ravel()
-                obs_shape = (vi.shape[0], _jix_param_length)
-                all_shape = (_jix_all_terminal_np.shape[0], _jix_param_length)
+
+                # Accurate error for bad indices BEFORE blaming conditioning
+                # (D6.1 review: indices[r] >= n is an index-dependent C
+                # decline the probe cannot see).
+                if vi.size and (vi.min() < 0 or vi.max() >= _jix_n_vertices):
+                    raise ValueError(
+                        "pmf_from_graph_joint_index: observed vertex index "
+                        f"out of range (got min={int(vi.min())}, "
+                        f"max={int(vi.max())}; graph has {_jix_n_vertices} "
+                        "vertices) -- check the observed data / index "
+                        "mapping."
+                    )
 
                 _jix_exact_graph.update_weights(th.tolist())
                 union_idx = np.union1d(vi, _jix_all_terminal_np)
                 raw = _jix_exact_graph._sojourn_grad_theta_subset(union_idx.tolist())
                 if not raw:
-                    _jix_grad_logger.info(
+                    raise RuntimeError(
                         "pmf_from_graph_joint_index: exact sojourn gradient "
-                        "declined at theta=%s (was_dph, an ill-conditioned "
-                        "elimination tape, or an out-of-scope tape input) -- "
-                        "using finite differences for this call.", th.tolist()
+                        f"(exact_grad=True) declined at theta={th.tolist()}. "
+                        "The construction-time probe (theta=ones, over the "
+                        "all-terminal index union) succeeded, so the likely "
+                        "causes are: an ill-conditioned elimination tape at "
+                        "THIS theta (MPFR gate), a non-finite Jacobian row "
+                        "at one of the REQUESTED observed vertices, or an "
+                        "allocation failure. No automatic finite-difference "
+                        "fallback exists once the exact path is committed -- "
+                        "pass exact_grad=False, or investigate this theta/"
+                        "index set. (A NaN/inf theta raises a ValueError "
+                        "from update_weights before reaching this point.)"
                     )
-                    return np.full(obs_shape, np.nan), np.full(all_shape, np.nan)
 
                 J_union = np.asarray(raw, dtype=np.float64).reshape(
                     union_idx.shape[0], _jix_param_length,
@@ -8018,6 +8047,45 @@ extern "C" {{
                 obs_pos = np.searchsorted(union_idx, vi)
                 all_pos = np.searchsorted(union_idx, _jix_all_terminal_np)
                 return J_union[obs_pos], J_union[all_pos]
+
+            # Construction-time probe (Batch F, amendment 1): theta=ones over
+            # union(all_terminal, [0]) -- the construction-known part of
+            # EVERY future call's index union. This generalizes the
+            # topology-only decline reasons (out-of-scope tape input, size
+            # guard) to all future theta AND catches structurally non-finite
+            # Jacobian rows at the terminal vertices (trap/deficit-sink
+            # class), which a single-index probe would miss. A probe failure
+            # is treated exactly like a static exclusion: whole-model FD, no
+            # wiring overhead, never re-tried.
+            _probe_union = np.union1d(
+                np.asarray([0], dtype=np.int64), _jix_all_terminal_np)
+            _probe_theta = np.ones(_jix_param_length, dtype=np.float64)
+            _jix_exact_graph.update_weights(_probe_theta.tolist())
+            _probe_raw = _jix_exact_graph._sojourn_grad_theta_subset(
+                _probe_union.tolist())
+            if (_probe_raw
+                    and len(_probe_raw) == _probe_union.shape[0] * _jix_param_length):
+                _jix_probed_ok = True
+            elif not _probe_raw:
+                _jix_grad_logger.info(
+                    "pmf_from_graph_joint_index: exact sojourn gradient "
+                    "declined at the construction-time probe (theta=ones, "
+                    "all-terminal union) -- an out-of-scope/oversized tape, "
+                    "a structurally non-finite Jacobian row at a terminal "
+                    "vertex, or ill-conditioning even at this benign "
+                    "reference point -- using finite differences for the "
+                    "whole model. (theta=ones is the documented reference; "
+                    "if your model is only well-conditioned elsewhere, this "
+                    "is a known limitation of the static probe.)"
+                )
+            else:
+                _jix_grad_logger.info(
+                    "pmf_from_graph_joint_index: construction-time probe "
+                    "returned an unexpected length (%d, expected %d) -- "
+                    "using finite differences for the whole model.",
+                    len(_probe_raw),
+                    _probe_union.shape[0] * _jix_param_length,
+                )
 
         # Callback weight mode: the C++ JSON parser only knows 'linear'
         # and 'log'. For 'callback', apply the user's weight_callback
@@ -8273,22 +8341,24 @@ extern "C" {{
                     tb.append(grad_i)
                 return jnp.stack(tb)
 
-            if _exact_sojourn_jac_np is None:
+            if _exact_sojourn_jac_np is None or not _jix_probed_ok:
+                # Static exclusion OR construction-time probe failure: pure
+                # FD, no exact-path wiring traced at all.
                 theta_bar = _fd_theta_bar()
             else:
                 # Quotient rule: sojourn_probs[i] = obs_sojourn[i] / norm,
-                # norm = sum(all_sojourn). Always pay the CHEAP union-based
-                # callback + two small FFI sojourn calls to check
-                # applicability for this theta; only pay the EXPENSIVE
-                # 2*n_params FD loop (via lax.cond, not jnp.where) when the
-                # exact path actually declines -- jnp.where alone would
-                # compute BOTH branches unconditionally and erase exact's
-                # win outright. (lax.cond's skip only manifests for a single,
-                # non-vmapped call; under SVGD's vmap(grad(loss))(particles)
-                # a batched predicate lowers to a select over both branches,
-                # same cost as jnp.where -- a JAX/XLA limitation, not
-                # specific to this wiring, so lax.cond is never worse and
-                # sometimes better.)
+                # norm = sum(all_sojourn).
+                # Batch F: the dispatch above is a plain Python `if` on
+                # construction-time bools, NOT a traced `lax.cond` -- under
+                # SVGD's vmap(jit(grad(loss)))(particles) a batched cond
+                # predicate lowers to a select that computes BOTH branches
+                # (FD *plus* exact, every step; empirically confirmed in
+                # dr_lax_cond_vmap_derisk.py), whereas a trace-time Python
+                # `if` traces only the chosen branch. The price: once
+                # committed, a per-theta decline has no automatic FD
+                # fallback -- the host callback RAISES (user-decided;
+                # legibility under vmap/jit verified in
+                # dr_batchF_jit_raise_derisk.py).
                 # Normalize to 1-D, matching _compute_pure's own
                 # jnp.atleast_1d handling -- res[1] (vertex_indices) is
                 # whatever raw shape the caller passed to model(), and the
@@ -8311,7 +8381,6 @@ extern "C" {{
                     theta, _vi_norm,
                     vmap_method='sequential',
                 )
-                exact_ok = jnp.all(jnp.isfinite(J_obs)) & jnp.all(jnp.isfinite(J_all))
                 dnorm_exact = jnp.sum(J_all, axis=0)
                 d_probs_exact = (
                     J_obs * norm_exact - obs_sojourn_exact[:, None] * dnorm_exact[None, :]
@@ -8324,7 +8393,7 @@ extern "C" {{
                     )
                     exact_tbm = exact_tbm * _fixed_keep
 
-                theta_bar = jax.lax.cond(exact_ok, lambda: exact_tbm, _fd_theta_bar)
+                theta_bar = exact_tbm
 
             return theta_bar, None, None  # gradients for theta, vertex_indices, rewards
 

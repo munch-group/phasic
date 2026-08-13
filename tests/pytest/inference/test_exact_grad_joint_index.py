@@ -1,14 +1,15 @@
 """B3 joint-index exact gradient: Graph.pmf_from_graph_joint_index(...,
 exact_grad=True) -- the forward-mode theta-adjoint for the sojourn-vector
-gradient (Graph._sojourn_grad_theta_subset, src/c/phasic.c), wired into
-model_bwd via a host callback + jax.lax.cond. See b3-joint-index-plan.md
-for the full derivation, the D1 adversarial review findings, and the D3
-benchmark that shaped the default (exact is a correctness win always,
-a speed win once P is moderate-to-large; the joint-index model's own
-typical P=2 sits on the FD-favoured side of that crossover, but the
-default is still True to match every other B3 batch's precedent that
-correctness -- avoiding FD's mixed-scale defect -- outweighs a modest
-constant-factor cost).
+gradient (Graph._sojourn_grad_theta_subset, src/c/phasic.c). Since Batch F
+the wiring is COMMIT-OR-DECLINE: a construction-time probe (theta=ones over
+the all-terminal union) either fails (whole model uses FD, logged) or
+commits the model to the exact path via a plain Python `if` (the FD branch
+is never traced -- no per-call lax.cond, which under vmap computed BOTH
+branches); once committed, a per-theta decline RAISES a diagnostic
+RuntimeError instead of silently falling back. The default is False (D5
+decision: forward-mode cost scales with P; typical P=2 favors FD) -- the
+flip-back is a separate recorded decision. See b3-joint-index-plan.md D5/D6
+and b3-batchF-plan.md.
 
 The diagonal-multiplier-1 guard-asymmetry case flagged by the D1 review
 (finding 2) is deliberately NOT re-proven here with a real Graph fixture
@@ -258,6 +259,14 @@ def test_exact_grad_matches_native_cd_native_dph():
     """Native DPH (is_discrete=True, was_dph=False) IS in scope -- confirmed
     via the C-level decline gate (only graph->was_dph declines) and the
     D3 gate script. Exercised end-to-end here."""
+    # Batch F fate-table obligation: confirm via the direct C call that the
+    # exact path genuinely SUCCEEDS at this theta -- under commit-or-decline
+    # semantics a latent decline that FD-fallback used to mask would now
+    # raise, so this precondition is the evidence artifact the plan requires.
+    _g_pre = _four_param_branching()
+    _g_pre.update_weights([10.0, 1e-2, 0.5, 2.0])
+    assert len(_g_pre._sojourn_grad_theta_subset([0, 1, 2, 3, 4])) > 0, (
+        "exact path unexpectedly declines at the mixed-scale theta")
     build = lambda: _dph_native((1.0, 1.0, 1.0))
     g0 = build()
     all_term = _all_terminal_indices(g0)
@@ -390,26 +399,146 @@ def test_observed_indices_baked_mode_declines_and_logs():
     assert np.all(np.isfinite(grad))
 
 
-# --------------------------------------------------------------------------- MPFR decline -> FD fallback
-def test_exact_grad_falls_back_to_fd_at_extreme_condition():
-    """At an ill-conditioned theta the C path declines (empty Jacobian) and
-    model_bwd falls back to FD -- the end-to-end gradient must stay finite
-    AND the decline must be directly confirmed (checking finiteness alone
-    would also pass if the exact path had silently succeeded with a
-    coincidentally-finite wrong value). Confirmed two ways: the raw C
-    function returns empty at this theta, and the end-to-end INFO log
-    names the decline."""
+# --------------------------------------------------------------------------- committed decline -> RAISE (Batch F)
+def test_committed_decline_raises_at_extreme_condition():
+    """Batch F semantics: the probe (theta=ones) succeeds and the model
+    COMMITS; at an ill-conditioned theta the C path declines (confirmed
+    directly) and the committed backward RAISES a diagnostic RuntimeError --
+    under plain grad, vmap(grad), and the SVGD-real vmap(jit(grad))."""
     theta_np = [1.0, 1e-13]
     g_direct = _two_param_chain()
     g_direct.update_weights(theta_np)
-    assert len(g_direct._sojourn_grad_theta_subset([0, 1, 2])) == 0, (
-        "expected the C function to decline (empty) at this ill-conditioned theta")
+    if len(g_direct._sojourn_grad_theta_subset([0, 1, 2])) != 0:
+        pytest.skip("build lacks HAVE_MPFR: the conditioning gate is inert, "
+                    "no decline to exercise")
+    # Precondition (G4 review): the probe (theta=ones) must SUCCEED for this
+    # fixture, else the model falls back to whole-model FD and the raise
+    # assertions below would fail confusingly instead of skipping cleanly.
+    g_probe = _two_param_chain()
+    g_probe.update_weights([1.0, 1.0])
+    assert len(g_probe._sojourn_grad_theta_subset([0, 1, 2])) > 0, (
+        "probe unexpectedly declines at theta=ones on this build")
 
     model = Graph.pmf_from_graph_joint_index(_two_param_chain(), theta_dim=2, exact_grad=True)
     vidx = jnp.asarray([0, 1, 2], dtype=jnp.int32)
     theta = jnp.asarray(theta_np)
+    loss = lambda th: jnp.sum(model(th, vidx)[0])
+    for name, fn in [
+        ("grad", jax.grad(loss)),
+        ("vmap(grad)", lambda t: jax.vmap(jax.grad(loss))(t[None, :])),
+        ("vmap(jit(grad))", lambda t: jax.vmap(jax.jit(jax.grad(loss)))(t[None, :])),
+        ("jit(vmap(grad))", lambda t: jax.jit(jax.vmap(jax.grad(loss)))(t[None, :])),
+    ]:
+        with pytest.raises(BaseException) as exc_info:
+            np.asarray(fn(theta))
+        msg = str(exc_info.value) + str(getattr(exc_info.value, "__cause__", ""))
+        assert "declined at theta" in msg, (name, msg[:300])
+
+
+def test_probe_failure_falls_back_to_fd_whole_model(monkeypatch):
+    """Force the construction-time probe to fail (threshold ~ 0 makes the
+    conditioning gate decline even at theta=ones); the model must use FD
+    for its whole life: finite gradient, probe-failure INFO log, and NO
+    raise at any theta."""
+    g_probe = _two_param_chain()
+    g_probe.update_weights([1.0, 1.0])
+    monkeypatch.setenv("PHASIC_CONDITION_THRESHOLD", "0")
+    if len(g_probe._sojourn_grad_theta_subset([0, 1, 2])) != 0:
+        pytest.skip("build lacks HAVE_MPFR: cannot force a probe decline")
+
     with _capture_phasic_info_logs() as handler:
-        grad = np.asarray(jax.grad(lambda th: jnp.sum(model(th, vidx)[0]))(theta))
-    assert np.all(np.isfinite(grad))
+        model = Graph.pmf_from_graph_joint_index(
+            _two_param_chain(), theta_dim=2, exact_grad=True)
     messages = [r.getMessage() for r in handler.records]
-    assert any("declined at theta" in m and "finite differences" in m for m in messages)
+    assert any("construction-time probe" in m and "finite differences" in m
+               for m in messages), messages
+
+    monkeypatch.delenv("PHASIC_CONDITION_THRESHOLD")
+    vidx = jnp.asarray([0, 1, 2], dtype=jnp.int32)
+    grad = np.asarray(jax.grad(
+        lambda th: jnp.sum(model(th, vidx)[0]))(jnp.asarray([1.0, 2.0])))
+    assert np.all(np.isfinite(grad))
+
+
+def test_fd_branch_never_traced_when_committed():
+    """The committed model's backward must not trace the FD branch: count
+    Python-level calls to compute_sojourn_times_ffi during jaxpr tracing
+    (both the forward and the FD loop route through it; the FD loop adds
+    2*P calls per backward). A value check cannot distinguish 'skipped'
+    from 'computed and discarded' -- call counting can."""
+    import phasic.ffi_wrappers as fw
+    real = fw.compute_sojourn_times_ffi
+    counts = {"n": 0}
+
+    def counting(*a, **k):
+        counts["n"] += 1
+        return real(*a, **k)
+
+    fw.compute_sojourn_times_ffi = counting
+    try:
+        committed = Graph.pmf_from_graph_joint_index(
+            _two_param_chain(), theta_dim=2, exact_grad=True)
+        fd_model = Graph.pmf_from_graph_joint_index(
+            _two_param_chain(), theta_dim=2, exact_grad=False)
+    finally:
+        fw.compute_sojourn_times_ffi = real
+
+    vidx = jnp.asarray([0, 1, 2], dtype=jnp.int32)
+    theta = jnp.asarray([1.0, 2.0])
+
+    # Trace under vmap -- the batching regime SVGD actually uses and the
+    # regime the whole batch exists to fix (G4 review: counting without
+    # vmap leaves the central claim resting on a generic JAX property).
+    tbatch = theta[None, :]
+
+    counts["n"] = 0
+    jax.make_jaxpr(jax.vmap(jax.grad(
+        lambda th: jnp.sum(committed(th, vidx)[0]))))(tbatch)
+    committed_calls = counts["n"]
+
+    counts["n"] = 0
+    jax.make_jaxpr(jax.vmap(jax.grad(
+        lambda th: jnp.sum(fd_model(th, vidx)[0]))))(tbatch)
+    fd_calls = counts["n"]
+
+    # FD's backward traces 4 extra _compute_pure invocations (2*P, P=2),
+    # each making 2 sojourn-FFI calls -> true margin is +8 vs the committed
+    # backward's 2 direct FFI calls; assert the conservative +4.
+    assert fd_calls >= committed_calls + 4, (committed_calls, fd_calls)
+
+
+def test_out_of_range_index_raises_accurate_error():
+    """A bad observed index must raise the index error, not the
+    conditioning message (D6.1 review: indices[r] >= n is an
+    index-dependent decline the probe cannot see)."""
+    model = Graph.pmf_from_graph_joint_index(
+        _two_param_chain(), theta_dim=2, exact_grad=True)
+    vidx = jnp.asarray([0, 999], dtype=jnp.int32)
+    with pytest.raises(BaseException) as exc_info:
+        np.asarray(jax.grad(
+            lambda th: jnp.sum(model(th, vidx)[0]))(jnp.asarray([1.0, 2.0])))
+    msg = str(exc_info.value) + str(getattr(exc_info.value, "__cause__", ""))
+    # The non-batched FORWARD FFI fails first on a bad index (its own loud
+    # INTERNAL error), so under plain grad the backward check is shadowed;
+    # either loud surface is acceptable, and the conditioning message must
+    # never appear for this cause.
+    assert ("out of range" in msg or "sojourn_time_subset failed" in msg), msg[:300]
+    assert "declined at theta" not in msg, msg[:300]
+
+
+def test_out_of_range_index_under_vmap_is_loud():
+    """Under vmap the BATCHED forward FFI silently NaN-fills a positive
+    out-of-range index (pre-existing gap, no exception) -- so the backward
+    callback's bounds check is the LIVE defense there (G4 review finding).
+    The gradient call must fail loudly with an accurate message, never
+    return silently and never blame conditioning."""
+    model = Graph.pmf_from_graph_joint_index(
+        _two_param_chain(), theta_dim=2, exact_grad=True)
+    vidx = jnp.asarray([0, 999], dtype=jnp.int32)
+    tbatch = jnp.asarray([[1.0, 2.0]])
+    with pytest.raises(BaseException) as exc_info:
+        np.asarray(jax.vmap(jax.grad(
+            lambda th: jnp.sum(model(th, vidx)[0])))(tbatch))
+    msg = str(exc_info.value) + str(getattr(exc_info.value, "__cause__", ""))
+    assert ("out of range" in msg or "sojourn_time_subset failed" in msg), msg[:300]
+    assert "declined at theta" not in msg, msg[:300]
