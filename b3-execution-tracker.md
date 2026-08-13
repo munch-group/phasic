@@ -65,7 +65,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | id | what | status | gate | plan doc |
 |---|---|---|---|---|
 | D.3 | leaf-2b plumbing (joint-index + exposure) | **CLOSED — folded into Batch G (user decision 2026-08-13)** after a BROKEN plan-review verdict (shipped rule R9 statically rejects the target leaf; master §6 premise false, Class-D amendment filed). D.3's user value ships via G leaf 1 (epoch-route exact gradients); R9 jsp hole (§16b item 9) fixed in G; review corrections transferred to G's plan | — | b3-batchD3-plan.md v1 + review record + disposition |
-| E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | **unblocked** (F merged; E probes the ACTUAL baked union per F merge review) | — | master plan §7 |
+| E | Joint-index baked-mode scatter-add (+ svgd leaf-2 plumbing per §9's alongside-E gate) | **plan-review** (v1 `ad72047f` under two-refuter review; probes the ACTUAL baked union per the F merge review; E0 de-risk incl. gate-decline measurement before implementation) | b3/batchE-baked-exact (planned) | b3-batchE-plan.md v1 |
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
