@@ -224,9 +224,11 @@ that same review, judged lower-severity / out of scope for it:
   worried about, but the `O(commands)` conversion to offset form still
   happens fresh on every call (the Stage-A2 on-disk cache that would avoid
   this is off by default). A size guard (`L > 5e7` declines to FD) and
-  NULL-checked allocations were added as a safety net, but the real
-  per-call cost/memory profile on production-scale graphs (`n` up to
-  ~7×10^5) is unmeasured.
+  NULL-checked allocations were added as a safety net. *(Update
+  2026-08-13, Batch H merge `ecd708fc`: MEASURED and caching DECLINED
+  with evidence — the whole adjoint call containing the conversion is
+  1.0-1.3% of the FD backward it replaces, stable across a 37× size
+  range; master plan §16b item 3 closed.)*
 - **The `was_dph`/discrete/was_dph quotient-rule combination remains
   deferred** (native DPH, `is_discrete=True`/`was_dph=False`, IS
   supported — only `was_dph=True`, i.e. `Graph.discretize()`, is excluded),
@@ -238,11 +240,40 @@ that same review, judged lower-severity / out of scope for it:
   primal/gradient MPFR-representation mismatch that has no counterpart
   here — `ptd_expected_sojourn_time_subset` has no MPFR path at all) — the
   gate is a pure, build-dependent (inert without `HAVE_MPFR`) conservatism
-  knob here, not a correctness necessity. The comment in
-  `ptd_sojourn_grad_theta_subset` should eventually be corrected to not
-  claim a rationale that doesn't apply.
+  knob here, not a correctness necessity. *(Update 2026-08-13, Batch H
+  merge: the comment is CORRECTED in situ, and the conservatism claim is
+  now QUANTIFIED — the gate declines 100% of realistic coalescent-scale
+  calls (real handoffs span ~1e148, past any threshold below ~1e300)
+  while its lifted answers match an fp64 oracle to ~1e-13. Batch H's
+  `exact_final_grad` path uses the new additive
+  `ptd_sojourn_grad_theta_subset_nogate` / `skip_condition_gate=True` to
+  bypass it, user-decided; the default/joint-index path keeps the gate.)*
 - **No test fixture exercises a trap/deficit-sink vertex** (an infinite
   primal sojourn value), so the `0*inf=0`-per-summand tangent guard fix
   (itself already applied — see the plan) is untested end-to-end and its
   real decline rate on production coalescent joint-prob graphs (which do
-  have such vertices) is unmeasured.
+  have such vertices) is unmeasured. *(Narrowed 2026-08-13: Batch H's
+  micro-gate (c) probes a manually-built trap cycle — the adjoint
+  declines with the gate skipped — but the pytest suite still has no
+  trap fixture; gap remains open.)*
+
+### Batch H (merged `ecd708fc`, 2026-08-13) — exact FINAL-epoch gradient for daisy-chain SVGD
+
+`Graph._daisy_chain_svgd_model(exact_final_grad=False)` (INTERNAL kwarg;
+public `Graph.svgd` plumbing is Batch G leaf 1): when True, the final
+epoch's theta slots get an EXACT gradient — the r_v product-rule term
+(r_v is theta-dependent) plus the C sojourn adjoint with the
+conditioning gate skipped, evaluated at the handoff extracted by pybind
+replication of the fused FFI chain (validated to 2.2e-16) — while
+earlier epochs' slots keep the unchanged full-chain FD. Requires
+`final_read='sojourn'` + `weight_mode='linear'` (loud `ValueError`
+otherwise); a residual C decline RAISES (no FD fallback once opted in);
+`mass==0` handoff returns the linear-limit zero block (production's
+forward NaN-fills there, pre-existing). Exposure supported (per-unique
+blocks; the chain rule scales ONLY the `exposure_param_index` column by
+alpha_u). Measured: final-epoch gradient components 3.6e5-5.0e5× more
+accurate than FD at ~7.4% of the FD backward's cost (net speedup —
+removes 2·P FFI calls). Full record: `b3-batchH-plan.md` (v3.1 + merge
+review), `b3-batchH-findings.md`. Known gaps: no pytest trap fixture;
+no exposure+tied combination test; subnormal-mass handoffs decline→raise
+(by decision, micro-gate (d)).

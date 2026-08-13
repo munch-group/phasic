@@ -35,12 +35,12 @@
 **Read this first each session.** Live status for every unit of the B3
 exact-gradient program. Design: `b3-exact-gradient-master-plan.md` (signed
 off 2026-08-11, as amended). Process: `b3-execution-process.md`. Baseline:
-`b3-test-baseline.md` — **re-stamped 2026-08-13 (third) at `eaf86e82`
-(Batch F merged): 1888 / 0 / 84 / 24, ledger empty; next full run expected
-1889 (one test added post-G3).** Batches D Tier-1, 0, and F are MERGED.
-In progress: Batch H de-risk (plan v2 after two-refuter review; branch
-`derisk/batchH-final-epoch`). Master plan §16b has 8 items (7 =
-`pmf_from_cpp` vmap sibling; 8 = daisy FFI NaN swallow) — the snapshot
+`b3-test-baseline.md` — **re-stamped 2026-08-13 (fourth) at `ecd708fc`
+(Batch H merged): 1899 / 0 / 84 / 24, ledger empty; next full run expected
+1900 (one test added at the G4 fold, post-G3).** Batches D Tier-1, 0, F,
+and H are MERGED. Next up: Batch G leaf 1 (unblocked by H), D.3, E, A.
+Master plan §16b: items 2 and 3 CLOSED at the H merge (comment corrected
+in situ; conversion caching declined with evidence) — the snapshot
 table below mirrors master §16b, which stays the authoritative list.
 Status vocabulary: `not-started | de-risk | plan-review | implementing |
 gate | diff-review | merged | parked | blocked(<on>)`.
@@ -54,7 +54,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
 | 0 | Reverse-tape skeleton extraction | **merged** | branch kept (worktree deletable) | `b3-batch0-plan.md` v2 + merge review | M0-M6 byte-identity; validators 6/6; G2 (9 ledgered); G3 1885/0/84/24 | plan 2 refuters (S-W-C ×2) + diff 2 refuters (SOUND / S-W-C, folded M6) | `d2cca7ab` |
 | F | D6 `lax.cond`/`vmap` static-dispatch redesign | **merged** | branch kept (worktree deletable) | `b3-batchF-plan.md` v2 + merge review | F0 GO; 17/17; golden 0.0; G2 (9 ledgered); G3 1888/0/84/24 | plan 2 refuters (D6.1) + diff 2 refuters, all S-W-C folded | `eaf86e82` |
-| H | Daisy final-epoch exact gradient | **implementing** (de-risk GO; decisions taken; plan v3.1 CLEARED after its own 2-refuter review — branch `b3/batchH-final-epoch` cut from the de-risk branch, worktree `../phasic-batchH`) | derisk/batchH-final-epoch → b3/batchH-final-epoch | b3-batchH-plan.md v3.1 | `b3-batchH-findings.md` (+ dated appendix: decisions, v3 review fold) | de-risk plan 2 refuters (v1→v2) + v3 plan 2 refuters (S-W-C ×2, folded → v3.1; key: branch cut point, mass==0 forward NaN, exposure slot-specific chain rule, fixed∩final precedence) | — |
+| H | Daisy final-epoch exact gradient | **merged** (branches/worktree deletable) | derisk/batchH-final-epoch → b3/batchH-final-epoch (worktree `../phasic-batchH`) | b3-batchH-plan.md v3.1 + merge review | `b3-batchH-findings.md` — H0 oracle all-pass (composed grad 3.6e5× vs FD @ 7.4% cost); gate-decline finding; I1 micro-gates 6/6 + a2 bitwise; G1 11/11; G2 58/1; G3 1899/0/84/24 | de-risk plan 2 refuters (v1→v2) + v3 plan 2 refuters (→ v3.1) + G4 diff 2 refuters (S-W-C ×2, zero shipped-code defects, folded `43567b50`) | `ecd708fc` |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
 | CC-2 | Cheap check: Deferred-4 Phase 0 sweep (= D4 design-of-record §2) | not-started (~days; needs oracle) | `derisk/d4-mpfr-sweep` (planned) | `deferred-4-mpfr-conditioning-floor-plan.md` §2 | `b3-d4-sweep-findings.md` (future) | D4 plan §8 | — |
 
@@ -67,14 +67,14 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
-| G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needs H) | blocked(A / H) | per leaf | master plan §9 |
+| G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needed H) | **leaf 1 UNBLOCKED** (H merged `ecd708fc`: plumb `exact_final_grad` through `Graph.svgd` with R29-style validation); leaves 3/4 still blocked(A) | per leaf | master plan §9 |
 
 ## Deferred units (parked; activation gates in their plans)
 
 | id | what | status | un-parks when | design-of-record |
 |---|---|---|---|---|
 | Def-1 | Hierarchical/SCC two-level adjoint | parked | gate A (E0 evidence or user A2 fiat) + user authorization of de-risk | `deferred-1-hierarchical-scc-adjoint-plan.md` (v2, reviewed) |
-| Def-2 | Daisy intermediate-epoch exact gradient | parked | Batch H shipped + §1 value test + user authorization | `deferred-2-daisy-intermediate-epoch-plan.md` (v2, reviewed) |
+| Def-2 | Daisy intermediate-epoch exact gradient | parked | **"Batch H shipped" now TRUE (`ecd708fc`)** — remaining: §1 value test + user authorization | `deferred-2-daisy-intermediate-epoch-plan.md` (v2, reviewed) |
 | Def-3 | Exact PMF/PDF-term gradient | parked | gate A1 (user confirms wanted; E0 measurement) | `deferred-3-pdf-gradient-revival-plan.md` (v2, reviewed) |
 | Def-4 | MPFR conditioning floor (beyond Phase 0) | parked (Phase 0 = CC-2 above) | GAP outcome from Phase 0 + user approval | `deferred-4-mpfr-conditioning-floor-plan.md` (v2, reviewed) |
 
@@ -83,8 +83,8 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | # | item | class | vehicle |
 |---|---|---|---|
 | 1 | `distributed.ipynb`/`profile.py` overstate `parallel_elimination` benefit | C/doc | standalone micro-task |
-| 2 | Joint-index MPFR-comment correction | C/doc | bundle with E/F docs pass |
-| 3 | Offset-tape conversion uncached (E/H hot paths) | C | evaluate in Batch H design |
+| 2 | Joint-index MPFR-comment correction | C/doc | **CLOSED @ H merge `ecd708fc`** (comment corrected in situ in the rewritten core, with H0 evidence) |
+| 3 | Offset-tape conversion uncached (E/H hot paths) | C | **CLOSED @ H merge** (declined with H1(a) evidence: the adjoint call incl. conversion = 1.0-1.3% of the FD backward across 37× sizes) |
 | 4 | Rate-blowup fwd/bwd inconsistency (moments path) | B | unscheduled |
 | 5 | `moments_from_graph`/`method_of_moments` exact grads | C | explicitly out of scope |
 | 6 | Composer silently linear-only (`use_log=false` unconditional) — silent wrong numeric answer for log-mode + `parallel_elimination` | **B** | own guard/doc micro-fix; pin candidate |

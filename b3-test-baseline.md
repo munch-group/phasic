@@ -1,6 +1,13 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-13 (third) · master `eaf86e82` (Batch F merge) ·
+**Re-stamped 2026-08-13 (fourth) · master `ecd708fc` (Batch H merge) ·
+verified 1899 / 0 / 84 / 24 via the batchH worktree's chunked full-suite
+run (31 groups) on content identical to the merged tree — ledger 1889
+(third stamp's 1888 + its one post-G3 test) + 10 new Batch H tests. The
+G4 fold added one more test (n_epochs==1) AFTER the G3 run, so the next
+full run will show 1900. Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-13 (third) · master `eaf86e82` (Batch F merge) ·
 verified 1888 / 0 / 84 / 24 via the batchF worktree's chunked run on
 content identical to the merged tree — ledger 1885 + 3 net new tests
 (joint-index file 13 → 16 at F2, 17 after G4 fold-ins with one more added

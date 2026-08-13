@@ -993,7 +993,10 @@ Phase 1 (mutually independent — start anytime, no gate):
        gate: dr_moments_jac_gate.py + dr_dph_moments_jac_gate.py +
              dr_log_mode_moments_jac_gate.py byte-identical before/after
   F    D6 lax.cond/vmap redesign             [MERGED 2026-08-13, eaf86e82]
-  H    daisy-chain final-epoch exact gradient (own de-risk + review cycle)
+  H    daisy-chain final-epoch exact gradient [MERGED 2026-08-13, ecd708fc
+       -- full de-risk + 3 review cycles (plan v1→v2, v3→v3.1, G4 diff);
+       b3-batchH-plan.md + b3-batchH-findings.md; unblocks G leaf 1 and
+       satisfies Def-2's "Batch H shipped" gate]
   [cheap check] Deferred-1 co-occurrence check -- REVISED from the original
        "grep production configs / SVGD run logs" wording, which does not
        correspond to anything that exists in this repo (confirmed on
@@ -1064,7 +1067,7 @@ blank = confirmed no interaction by at least one feasibility document):
 | **0** | — | same 2 lines×3 fns | shared core, 4th case | shared core, 5th case | | | | |
 | **A** | | — | both consume shared core (no direct overlap) | both consume shared core | leaves 3/4 depend on A | | | |
 | **D** | | | | | — | leaf-2 plumbing depends on E | **D.3 must sequence after F (§6, §7) -- found on review, not in original matrix** | leaf-1 plumbing depends on H |
-| **E** | | | | | see D | — | **must sequence vs F (§7)** | shares underlying C fn w/ H -- overlap unresolved until H's design (new fn vs. extension) is chosen; re-verify before both are in flight (§10) |
+| **E** | | | | | see D | — | **must sequence vs F (§7)** | shares underlying C fn w/ H -- **RESOLVED @ H merge `ecd708fc`: H kept the C signature unchanged (wrapper) and added only a new additive symbol; E's planned consumer is unaffected (re-verified at H's G5)** |
 | **F** | | | | | see D | see E | — | |
 | **H** | | | | | see D | see E | | — |
 
@@ -1191,10 +1194,26 @@ on any batch here):
 2. **CLAUDE.md joint-index MPFR-comment correction** — the comment in
    `ptd_sojourn_grad_theta_subset` claims a rationale that doesn't transfer.
    Standalone one-liner; bundle with any Batch E/F-adjacent docs pass.
+   **CLOSED 2026-08-13 @ Batch H merge `ecd708fc`: the comment is corrected
+   in situ in the rewritten core (the function was being edited under the
+   gate-opt-out user decision, so Batch F's "no C edits" decline reason no
+   longer applied), citing the H0 evidence: this path's primal has no MPFR
+   fallback, and the gate declined 100% of realistic calls while its lifted
+   answers matched an fp64 oracle to ~1e-13. That evidence is ALSO a dated
+   INPUT to Deferred-4/CC-2 (threshold semantics): Def-4's scope currently
+   EXCLUDES the sojourn slice, so its owner must decide whether to widen —
+   flagged here, not silently absorbed. Post-opt-out, Def-4 pinning no
+   longer affects the daisy `exact_final_grad` path (it skips the gate);
+   it still governs the default sojourn/joint-index gate.**
 3. **Offset-tape-conversion caching** — `ptd_pcg_convert_to_offset` runs
    fresh per call (O(commands)); Batches E and H put the sojourn function on
    per-SVGD-step / per-epoch hot paths that inherit this cost silently.
-   Evaluate during Batch H's design.
+   Evaluate during Batch H's design. **CLOSED 2026-08-13 @ Batch H merge:
+   evaluated per the mandate (H1(a), `experiments/dr_batchH_cost.py`) and
+   DECLINED with evidence — the whole adjoint call containing the
+   conversion is 1.0-1.3% of the FD backward it replaces, stable across a
+   37× graph-size range (n=514 → 18,910); caching could recover at most
+   that. Re-open only if a future consumer's profile contradicts this.**
 4. **Rate-blowup fwd/bwd inconsistency** (CLAUDE.md flagged) — still
    unscheduled; the Deferred-3 plan adopts fwd/bwd consistency as a
    requirement for its own new path but does not fix the moments-path gap.
