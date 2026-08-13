@@ -1,6 +1,17 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-13 (fourth) · master `ecd708fc` (Batch H merge) ·
+**Re-stamped 2026-08-13 (fifth) · master `0c052cfe` (Batch G.1 merge) ·
+verified 1917 / 0 / 84 / 24 via the batchG1 worktree's chunked run (31
+groups, `-rf` now mandatory per the adopted process amendment) on
+content identical to the merged tree — ledger 1900 (fourth stamp's
+expectation) + 17 new G.1 tests at G3 time; the G4 fold added 2 more
+tests, so the next full run will show 1919. Two first-pass single-test
+transients (groups ac/ad) were unreproduced across two re-runs
+including a dedicated `-rf` naming pass (67/31/0) — closed as
+stochastic flakes, full record in `b3-batchG1-findings.md`.
+Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-13 (fourth) · master `ecd708fc` (Batch H merge) ·
 verified 1899 / 0 / 84 / 24 via the batchH worktree's chunked full-suite
 run (31 groups) on content identical to the merged tree — ledger 1889
 (third stamp's 1888 + its one post-G3 test) + 10 new Batch H tests. The

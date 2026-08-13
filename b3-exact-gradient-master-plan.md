@@ -1011,6 +1011,10 @@ Phase 1 (mutually independent — start anytime, no gate):
        gate: dr_moments_jac_gate.py + dr_dph_moments_jac_gate.py +
              dr_log_mode_moments_jac_gate.py byte-identical before/after
   F    D6 lax.cond/vmap redesign             [MERGED 2026-08-13, eaf86e82]
+  G.1  public svgd exact_final_grad plumbing [MERGED 2026-08-13, 0c052cfe
+       -- Batch G leaf 1 + the folded Batch D.3's user value + R30 + the
+       R9 jsp fix; b3-batchG1-plan.md v2 + merge review + findings.
+       Leaves 3/4 remain gated on Batch A]
   H    daisy-chain final-epoch exact gradient [MERGED 2026-08-13, ecd708fc
        -- full de-risk + 3 review cycles (plan v1→v2, v3→v3.1, G4 diff);
        b3-batchH-plan.md + b3-batchH-findings.md; unblocks G leaf 1 and
@@ -1275,7 +1279,13 @@ on any batch here):
    undeterminable from source. Class B candidate (silent acceptance of
    a config the rule means to reject); fix is a two-token kind-set
    change + one pinning test, but needs the D.3-disposition user
-   decision first (the fix direction depends on it).
+   decision first (the fix direction depends on it). **CLOSED 2026-08-13
+   @ Batch G.1 merge `0c052cfe`: kind-AWARE fix shipped — R9 gains a
+   jsp arm whose message does NOT prescribe the R1-forbidden
+   epoch_starts remedy (points at the source joint-prob graph);
+   joint_prob arm byte-identical (programmatically verified); pinned
+   tests both arms; R30's no-epochs branch got the same kind-aware
+   treatment so the trap class is closed in both rules.**
 
 ---
 

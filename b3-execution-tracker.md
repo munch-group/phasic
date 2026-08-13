@@ -35,10 +35,12 @@
 **Read this first each session.** Live status for every unit of the B3
 exact-gradient program. Design: `b3-exact-gradient-master-plan.md` (signed
 off 2026-08-11, as amended). Process: `b3-execution-process.md`. Baseline:
-`b3-test-baseline.md` — **re-stamped 2026-08-13 (fourth) at `ecd708fc`
-(Batch H merged): 1899 / 0 / 84 / 24, ledger empty; next full run expected
-1900 (one test added at the G4 fold, post-G3).** Batches D Tier-1, 0, F,
-and H are MERGED. Next up: Batch G leaf 1 (unblocked by H), D.3, E, A.
+`b3-test-baseline.md` — **re-stamped 2026-08-13 (fifth) at `0c052cfe`
+(Batch G.1 merged): 1917 / 0 / 84 / 24, ledger empty; next full run
+expected 1919 (two tests added at the G4 fold, post-G3).** Batches
+D Tier-1, 0, F, H, and G.1 are MERGED; D.3 closed-folded into G.1.
+Next up: Batch E (baked-mode exact), Batch A (rewards; unlocks B/C and
+G leaves 3/4).
 Master plan §16b: items 2 and 3 CLOSED at the H merge (comment corrected
 in situ; conversion caching declined with evidence) — the snapshot
 table below mirrors master §16b, which stays the authoritative list.
@@ -67,7 +69,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
-| G | SVGD plumbing Tier 3 (leaves 3/4 need A; leaf 1 needed H) | **leaf 1 IN PROGRESS as Batch G.1** (absorbs D.3's user value + obligations: public `exact_final_grad` plumbing, R30 validation, R9 jsp-hole fix, R29-message update); leaves 3/4 still blocked(A) | per leaf | master plan §9 + b3-batchG1-plan.md |
+| G | SVGD plumbing Tier 3 | **leaf 1 MERGED as Batch G.1 (`0c052cfe`)** — public `exact_final_grad` + R30 + R9 jsp fix (§16b item 9 closed) + R29 update; D.3's user value delivered (exposure + epoch_starts=[0.0] = fully-exact batched route); gates G0-G5 all green (G3 1917/0/84/24, flakes closed); branch/worktree deletable. Leaves 3/4 still blocked(A) | per leaf | master plan §9 + b3-batchG1-plan.md v2 + merge review + b3-batchG1-findings.md |
 
 ## Deferred units (parked; activation gates in their plans)
 
