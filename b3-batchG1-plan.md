@@ -99,7 +99,8 @@ the docstring carries this caveat rather than overselling "one call".
    fold time (not mid-batch) [process-review MAJOR 5]** — I3 test 10
    binds to the answer. Without the token the constructor still raises
    loudly via the helper's generic branch (downside is message
-   quality, not silence).
+   quality, not silence). **DECIDED 2026-08-13 (user, fold-time): YES
+   — add the token. Test 10 binds to the D.4-shape guard test.**
 6. **Out of scope, stated:** `Graph.epoch_model` (`__init__.py:
    5360-5475`) builds the same daisy model without the kwarg —
    FreeEpochModel/LRT users cannot opt in via G.1; deliberate
