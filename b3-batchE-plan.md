@@ -112,20 +112,23 @@ forward, gather included, as a black box).
      `epoch_starts` (message points at `exact_final_grad`), no
      exposure (unreachable anyway — R9 rejects exposure+no-epochs on
      both kinds; R31's presence-check is belt-and-braces and its
-     message defers to R9's). Rejected: epochs; moments/rewards
-     leaves. Weight-mode/was_dph pre-emption: NOT config-level for
-     this leaf (unlike R30's daisy checks, the joint-index builder's
-     own decline ladder is probe-and-log, not raise — an explicit
-     True on e.g. a formula-mode jpg would probe-fail → whole-model FD
-     + INFO log, which is the F contract, NOT silent inertness;
-     stated in the R31 docstring and the svgd docstring).
-     [REVIEW QUESTION: is probe-fail→FD+log acceptable for an
-     EXPLICIT svgd-level True, or should R31 pre-empt weight-mode
-     like R30 does? R30's precedent says pre-empt; the F contract
-     says log-and-FD is the model-level meaning of exact_grad=True.
-     The plan proposes: pre-empt `effective_weight_mode != 'linear'`
-     at R31 for symmetry with R30 (same fields already exist), leave
-     was_dph/theta_dim to the builder's logged declines.]
+     message defers to R9's). Rejected: epochs (→ exact_final_grad);
+     moments/rewards leaves. **Pre-emption, RESOLVED by both reviews
+     concordantly (the v1 REVIEW QUESTION is closed): R31 pre-empts
+     (a) `effective_weight_mode != 'linear'` (the R30 precedent; NOTE
+     the corrected mechanism narrative — a formula-mode jpg is
+     STATICALLY excluded by the builder's ladder before any probe
+     exists, and log mode hard-raises at construction independent of
+     exact_grad, so v1's "probe-fail→FD" story was wrong) and (b)
+     `was_dph` (the CRITICAL finding: DEFAULT jpgs are was_dph;
+     `from_svgd_call` captures `graph.get_was_dph()` into a new
+     config field; the message prescribes
+     `joint_prob_graph(..., discrete=False)`; native DPH — is_discrete
+     without was_dph — is NOT rejected, matching the C scope). The
+     residual builder-level logged declines (theta_dim-override;
+     structural probe failure) keep the F contract: explicit True →
+     FD + INFO log, DOCUMENTED in the R31/svgd docstrings and TESTED
+     (I3 item 8's explicit-True theta-dim-override cell).**
    - Ledger entry (`LEDGER_OPTION_ORDER`), `from_svgd_call` named
      param, `SvgdConfig` field.
    - `svgd.py` token (`_GRAPH_SVGD_ONLY_KWARGS` + `'exact_grad'`):
@@ -251,15 +254,22 @@ the gate). The design refuter PRE-RAN the core: GO expected.
 - **G3:** chunked (`-rf` per the adopted amendment) vs ledger @
   `0c052cfe` (expect 1919 + new).
 - **G4:** two diff refuters. **G5:** merge review (shipped-text
-  statement: the F-file test rewrite, R30 message, F docstring baked
-  sentence); ledger re-stamp; tracker; master §7/§9-leaf-2/§15 ticks;
-  CLAUDE.md (the joint-index "deferred" list loses baked mode);
-  memory; install rebuild.
+  statement: the F-file test rewrite, R30 message clause
+  `svgd_config.py:1213-1215`, F docstring baked sentence
+  `__init__.py:8093-8095`); ledger re-stamp; tracker (+ ready-to-push
+  note); master §7/§9-leaf-2/§15 ticks + **§16 risk item 5 tick**
+  (the "scatter-add must be numerically gated" clause — discharged by
+  E0(i)/I3-1) + **§16b PHASE-BOUNDARY review** (E completes Phase 2;
+  process §6); **process-map amendment** adding the two new suites to
+  their G2 rows (the G.1 precedent, `600c4b84`); CLAUDE.md
+  (`:235-236` — the deferral sentence couples baked with
+  formula/callback: the edit removes ONLY baked, preserving the
+  weight-mode deferrals); memory; install rebuild.
 
 ## Risks
 
-1. The R31 weight-mode pre-emption question (scope 2) — resolved by
-   this plan review, not mid-batch.
+1. The R31 pre-emption questions (scope 2) — RESOLVED by this plan
+   review (weight-mode AND was_dph pre-empted), not mid-batch.
 2. The E0(ii) gate-decline measurement is the one genuine unknown
    (the H finding's transfer surface); NO-GO path defined.
 3. The F-file single-test rewrite is the batch's only existing-test
