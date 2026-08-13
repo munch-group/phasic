@@ -1,6 +1,12 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-13 (second) · master `d2cca7ab` (Batch 0 merge) ·
+**Re-stamped 2026-08-13 (third) · master `eaf86e82` (Batch F merge) ·
+verified 1888 / 0 / 84 / 24 via the batchF worktree's chunked run on
+content identical to the merged tree — ledger 1885 + 3 net new tests
+(joint-index file 13 → 16 at F2, 17 after G4 fold-ins with one more added
+post-G3; next full run will show 1889). Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-13 (second) · master `d2cca7ab` (Batch 0 merge) ·
 verified 1885 / 0 / 84 / 24 via the batch0 worktree's chunked full-suite
 run on content identical to the merged tree — exact match to the previous
 stamp; ledger unchanged (empty).**

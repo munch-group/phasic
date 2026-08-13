@@ -199,16 +199,21 @@ original plan review). The wiring itself is correct and available as an
 explicit opt-in for richer (`P`≳10-20) models. Follow-ups flagged during
 that same review, judged lower-severity / out of scope for it:
 
-- **The `lax.cond`/`vmap` composition could be redesigned** to resolve
-  applicability via a construction-time probe (a Python bool, not a
-  JAX-traced predicate) instead of a per-call `cond`, which would restore
-  the full speed benefit under `vmap` for large-`P` models and let the
-  default become `True` again. Trade-off: a later theta that hits the MPFR
-  ill-conditioning gate would no longer get an automatic per-call FD
-  fallback under `vmap` (a rare-case robustness loss) — needs a decision on
-  that failure mode (raise vs. some other guarded behavior) before
-  attempting it. Not done this batch; flagged as the natural next step if
-  `exact_grad=True` is to become the default.
+- **The `lax.cond`/`vmap` composition redesign: DONE (Batch F, merged
+  `eaf86e82`, 2026-08-13).** The wiring now uses a construction-time probe
+  (`theta=ones` over `union(all_terminal, [0])`) latched into a plain
+  Python bool: committed models never trace the FD branch (verified by a
+  vmap-wrapped call-counting spy), probe failure = whole-model FD (logged,
+  cause-split), and a committed per-theta decline RAISES a multi-cause
+  diagnostic `RuntimeError` (the user-decided failure mode; legibility
+  under `vmap(jit(grad))`/`jit(vmap(grad))` proven by
+  `dr_batchF_jit_raise_derisk.py`). `exact_grad=False` remains
+  byte-identical. **The default is still `False` — whether to flip it now
+  that the vmap double-cost is gone is an OPEN user decision** (recorded
+  in `b3-batchF-plan.md`'s merge review). Also documented there: the
+  batched forward sojourn FFI silently NaN-fills out-of-range indices (a
+  pre-existing gap); the backward callback's bounds check is the live
+  defense under vmap, with its own test.
 - **The offset-tape conversion (`ptd_pcg_convert_to_offset`) is not
   itself cached.** `ptd_sojourn_grad_theta_subset` reuses the graph-level
   RAW parameterized tape cache (`ptd_precompute_reward_compute_graph`),

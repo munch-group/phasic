@@ -992,7 +992,7 @@ Phase 1 (mutually independent — start anytime, no gate):
        to delay *starting* it)
        gate: dr_moments_jac_gate.py + dr_dph_moments_jac_gate.py +
              dr_log_mode_moments_jac_gate.py byte-identical before/after
-  F    D6 lax.cond/vmap redesign
+  F    D6 lax.cond/vmap redesign             [MERGED 2026-08-13, eaf86e82]
   H    daisy-chain final-epoch exact gradient (own de-risk + review cycle)
   [cheap check] Deferred-1 co-occurrence check -- REVISED from the original
        "grep production configs / SVGD run logs" wording, which does not

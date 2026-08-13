@@ -52,7 +52,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | D.2 | `ptd_moment0_grad_theta` validator guards | **merged** | same | same | validators 5/5 pre + 5/5 post + guards gate ALL PASS | same | `164e2758` |
 | D.4 | `Graph.svgd(exact_moment_grad=)` leaf-5 plumbing | **merged** | same | same | golden bit-identity 0.0; R29 incl. joint_stop_prob | same (D.4 v1 BROKEN → v2 flip) | `164e2758` |
 | 0 | Reverse-tape skeleton extraction | **merged** | branch kept (worktree deletable) | `b3-batch0-plan.md` v2 + merge review | M0-M6 byte-identity; validators 6/6; G2 (9 ledgered); G3 1885/0/84/24 | plan 2 refuters (S-W-C ×2) + diff 2 refuters (SOUND / S-W-C, folded M6) | `d2cca7ab` |
-| F | D6 `lax.cond`/`vmap` static-dispatch redesign | plan-review (= the D6.1 review, first execution) | `b3/batchF-static-dispatch` (planned) | `b3-batchF-plan.md` + `b3-joint-index-plan.md` §D6 | D6.0 de-risk 3/3 (prior session) | 2 refuters in flight (2026-08-13) | — |
+| F | D6 `lax.cond`/`vmap` static-dispatch redesign | **merged** | branch kept (worktree deletable) | `b3-batchF-plan.md` v2 + merge review | F0 GO; 17/17; golden 0.0; G2 (9 ledgered); G3 1888/0/84/24 | plan 2 refuters (D6.1) + diff 2 refuters, all S-W-C folded | `eaf86e82` |
 | H | Daisy final-epoch exact gradient | plan-drafted (review queued behind Batch F G4) | derisk/batchH-final-epoch (planned) | b3-batchH-plan.md v1 | — | pending | — |
 | CC-1 | Cheap check: `parallel_elimination` co-occurrence grep | done-once (during master-plan review); re-run as tutorials are added | — | master plan §15 | — | — | — |
 | CC-2 | Cheap check: Deferred-4 Phase 0 sweep (= D4 design-of-record §2) | not-started (~days; needs oracle) | `derisk/d4-mpfr-sweep` (planned) | `deferred-4-mpfr-conditioning-floor-plan.md` §2 | `b3-d4-sweep-findings.md` (future) | D4 plan §8 | — |
@@ -61,8 +61,8 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 
 | id | what | status | gate | plan doc |
 |---|---|---|---|---|
-| D.3 | leaf-2b plumbing (joint-index + exposure) | blocked(F) | Batch F | master plan §6, §15 Phase 1b |
-| E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | blocked(F) | Batch F | master plan §7 |
+| D.3 | leaf-2b plumbing (joint-index + exposure) | **unblocked** (F merged `eaf86e82`; must carry the jit-raise findings + blast-radius statement per F merge review) | — | master plan §6, §15 Phase 1b |
+| E | Joint-index baked-mode scatter-add (+ leaf-2 plumbing) | **unblocked** (F merged; E probes the ACTUAL baked union per F merge review) | — | master plan §7 |
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |
