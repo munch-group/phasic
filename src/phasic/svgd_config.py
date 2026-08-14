@@ -1177,14 +1177,15 @@ def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
     #
     # DELIBERATE SCOPE (Batch A G4 disposition): R29 polices LEAF routing
     # only. Builder-level static declines that depend on graph properties
-    # -- the callback weight mode (formula is COVERED since Batch B,
-    # except discrete x formula and the lazy-decoupled formula class --
-    # C param_length != theta dimension -- which decline statically with
-    # logs), 'log' on a discrete/was_dph graph,
+    # -- a NON-JAX-NATIVE callback (callback mode is COVERED since
+    # Batch C for JAX-native callbacks; formula since Batch B; each
+    # mode's own static declines -- discrete x formula/callback, the
+    # lazy-decoupled formula class -- log truthfully), 'log' on a
+    # discrete/was_dph graph,
     # and rewards on an effectively-discrete model (the refuted
     # continuous->discrete correction) -- are accepted here and INFO-logged
     # by the model builder instead, matching the pre-existing
-    # callback precedent on leaf 5. Note the discrete+rewards case
+    # non-JAX-native-callback precedent on leaf 5. Note the discrete+rewards case
     # cannot be fully policed here anyway: Graph.svgd's call-time
     # ``discrete=`` override is not part of SvgdConfig (c.is_discrete is
     # graph-derived), so a config-layer arm would miss discrete=True on a

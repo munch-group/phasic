@@ -626,6 +626,38 @@ namespace phasic {
             return J;
         }
 
+        // Batch C (2026-08-14): pre-contraction binp exit for
+        // weight_mode='callback'. Returns (binp K*ni flat, per-input
+        // coefficient vectors, per-input frozen flags) in tape-input
+        // order from ONE tape build (single-call form -- two calls would
+        // make tape-build determinism load-bearing). Empty binp => not
+        // applicable (caller falls back to FD). Weights must be current
+        // (update_weights(theta, callback=fn) first). The coefficient
+        // vectors are copied HERE from the same (v,e) resolution the C
+        // layer produced, so Python needs no index mapping (input_specs
+        // order differs from serialize() order).
+        std::tuple<std::vector<double>, std::vector<std::vector<double>>, std::vector<uint8_t>>
+        moments_binp_exit(int nr_moments, std::vector<double> rewards = {}) {
+            std::vector<double> b;
+            std::vector<std::vector<double>> coeffs;
+            std::vector<uint8_t> frozen;
+            double *binp = NULL; uint32_t *vv = NULL; uint32_t *ee = NULL;
+            uint8_t *fz = NULL; size_t ni = 0;
+            int rc = ptd_moments_binp_exit(this->c_graph(), nr_moments,
+                        rewards.empty() ? NULL : rewards.data(), rewards.size(),
+                        &binp, &vv, &ee, &fz, &ni);
+            if (rc != 0) return std::make_tuple(b, coeffs, frozen);
+            b.assign(binp, binp + (size_t)nr_moments * ni);
+            frozen.assign(fz, fz + ni);
+            coeffs.resize(ni);
+            for (size_t k = 0; k < ni; ++k) {
+                struct ptd_edge *e = this->c_graph()->vertices[vv[k]]->edges[ee[k]];
+                coeffs[k].assign(e->coefficients, e->coefficients + e->coefficients_length);
+            }
+            free(binp); free(vv); free(ee); free(fz);
+            return std::make_tuple(std::move(b), std::move(coeffs), std::move(frozen));
+        }
+
         // B3 joint-index extension (production): exact FORWARD-mode Jacobian
         // d[sojourn(indices)]/dtheta for a continuous, weight_mode='linear'
         // parameterized graph (native DPH also supported; was_dph excluded).

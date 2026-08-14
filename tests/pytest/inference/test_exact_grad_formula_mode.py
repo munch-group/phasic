@@ -13,8 +13,8 @@ SCOPE (plan v2 SS-A/SS-B): continuous ALIGNED graphs only -- the model's
 theta dimension must equal the C graph's param_length (formula is the
 only weight mode where they legally decouple; the lazily-built decoupled
 class statically declines to FD with a log, tested here). Discrete x
-formula declines statically (tested); callback mode remains out of scope
-(Batch C).
+formula declines statically (tested); callback mode is covered since
+Batch C for JAX-native callbacks (test_exact_grad_callback_mode.py).
 
 Every value assertion is anchored to an INDEPENDENT oracle: the manual
 central-difference of the model's own forward, or the LINEAR exact path

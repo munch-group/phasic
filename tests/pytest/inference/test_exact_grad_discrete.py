@@ -243,13 +243,16 @@ def test_no_silent_fallback_logs_on_explicit_fd():
 
 
 def test_no_silent_fallback_logs_on_out_of_scope_weight_mode():
-    """A weight_mode outside {None,'linear','log'} must log why exact grad
+    """An out-of-scope exact-grad configuration must log why exact grad
     was skipped, even though exact_moment_grad defaults to True.
-    weight_mode='callback' is permanently out of scope (an arbitrary Python
-    function is not analytically differentiable in general) -- 'log' moved
-    IN scope in the log-weight-mode batch, so it can no longer serve as the
-    out-of-scope example here (see test_exact_grad_log_weight_mode.py for
-    log-mode coverage)."""
+    Batch C rework: callback MODE is no longer categorically out of scope
+    (JAX-native callbacks are covered since Batch C) -- but this fixture's
+    float() collapse makes it NON-JAX-NATIVE, which is the PERMANENT
+    boundary (an arbitrary Python function is not analytically
+    differentiable in general), so it still declines statically and the
+    decline message keeps the "weight_mode" + "finite differences" tokens
+    this test greps. ('log' moved IN scope in the log-weight-mode batch,
+    'formula' in Batch B -- see their own coverage files.)"""
     g = _erlang()
     g.weight_callback = lambda theta, coefficients: float(coefficients[0] * theta[0])
     with _capture_phasic_info_logs() as handler:

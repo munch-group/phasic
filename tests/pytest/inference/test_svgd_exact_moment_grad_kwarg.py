@@ -10,11 +10,12 @@ Batch A, 2026-08-14):
 - Explicit value on any other leaf (rewards 2-D, epoch_starts,
   joint-probability): SvgdConfigError (a ValueError) at validation time —
   never a silently inert kwarg. (Builder-level static declines that depend
-  on graph properties — the callback mode [formula is covered since
-  Batch B, bar its own static declines: discrete×formula and the
-  lazy-decoupled theta-dimension class], discrete+rewards — remain
-  accepted-but-INFO-logged; R29 polices leaf routing only, the Batch A G4
-  disposition.)
+  on graph properties — non-JAX-native callbacks [callback mode is
+  covered since Batch C for JAX-native callbacks; formula since Batch B,
+  bar its own static declines: discrete×formula/callback and the
+  lazy-decoupled FORMULA theta-dimension class], discrete+rewards —
+  remain accepted-but-INFO-logged; R29 polices leaf routing only, the
+  Batch A G4 disposition.)
 """
 from __future__ import annotations
 

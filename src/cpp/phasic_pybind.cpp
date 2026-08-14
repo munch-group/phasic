@@ -1943,6 +1943,14 @@ str
       "weight-formula tape), flat row-major (nr_moments*param_length); "
       "theta must match the values most recently passed to "
       "update_weights(theta); empty => not applicable (FD fallback).")
+    .def("_moments_binp_exit", &phasic::Graph::moments_binp_exit,
+      py::arg("nr_moments"), py::arg("rewards") = std::vector<double>(),
+      py::call_guard<py::gil_scoped_release>(),
+      "Batch C: pre-contraction per-tape-input moment adjoint for "
+      "weight_mode='callback' -- returns (binp K*ni flat, per-input "
+      "coefficient vectors, per-input frozen flags) in tape-input order; "
+      "weights must be current (update_weights(theta, callback=fn) "
+      "first); empty binp => not applicable (FD fallback).")
     .def("_sojourn_grad_theta_subset", &phasic::Graph::sojourn_grad_theta_subset,
       py::arg("indices"),
       py::arg("skip_condition_gate") = false,

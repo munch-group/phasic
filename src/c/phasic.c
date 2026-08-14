@@ -10793,7 +10793,7 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
  * this static core's signature when they land (Batch A: rewards; Batch B:
  * PTD_B3_FORMULA + internal pre-outk dw/dtheta stage; Batch C: its
  * pre-contraction exit) — nothing speculative is designed in. */
-enum ptd_b3_contract { PTD_B3_LINEAR, PTD_B3_LOG, PTD_B3_DPH, PTD_B3_FORMULA };
+enum ptd_b3_contract { PTD_B3_LINEAR, PTD_B3_LOG, PTD_B3_DPH, PTD_B3_FORMULA, PTD_B3_BINP_EXIT };
 
 struct ptd_b3_dph_ctx { const double *Sv; const double *SigmaCv; };
 
@@ -10974,6 +10974,7 @@ static int ptd_b3_moments_core(
         const double *rewards, size_t rewards_len,  /* NULL/0 = rewardless */
         enum ptd_b3_contract kind,
         const struct ptd_b3_dph_ctx *dph_ctx,    /* non-NULL iff DPH */
+        double *binp_exit,  /* non-NULL iff BINP_EXIT: K x ni row-major */
         double *J_out) {
     (void)theta_len;  /* wrapper-validated; kept in the signature for
                          future consumers (Batch A/B extend it) */
@@ -11238,6 +11239,23 @@ static int ptd_b3_moments_core(
                     if (e->coefficients_length == 0) break;
                     for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * fdw[k*P + j];
                     break;
+                case PTD_B3_BINP_EXIT:
+                    /* Batch C pre-contraction exit (the 5th consumer,
+                     * b3-batchC-plan.md v2 SS-C/SS-D): NO contraction and
+                     * NO skip guards -- copy EVERY tape input's adjoint;
+                     * the frozen-set skip (starting-vertex / cl==0, the
+                     * primal's frozen edges) and the theta contraction
+                     * live with the CONSUMER (Python matmuls binp against
+                     * jax.grad-of-callback rows; the wrapper exports a
+                     * C-side frozen flag per input). J_out stays zeroed
+                     * for this kind, so the final isfinite sweep passes
+                     * trivially -- the finiteness contract MOVES TO THE
+                     * CALLER (checked on J after a matmul MASKED to the
+                     * engaged columns, so a non-finite binp on a frozen
+                     * row is truly ignored -- G4-fold-corrected to match
+                     * the other kinds' skip-before-accumulate). */
+                    binp_exit[outk*ni + k] = binp[k];
+                    break;
                 default:
                     ok = 0;
                     break;
@@ -11279,7 +11297,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
     int rc = ptd_b3_moments_core(graph, off, nr_moments, NULL, 0,
                                  rewards, rewards_len,
-                                 PTD_B3_LINEAR, NULL, J_out);
+                                 PTD_B3_LINEAR, NULL, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
     return rc;
@@ -11336,7 +11354,7 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
                                  rewards, rewards_len,
-                                 PTD_B3_LOG, NULL, J_out);
+                                 PTD_B3_LOG, NULL, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
     return rc;
@@ -11386,10 +11404,84 @@ int ptd_moments_grad_theta_formula(struct ptd_graph *graph, int nr_moments,
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
                                  rewards, rewards_len,
-                                 PTD_B3_FORMULA, NULL, J_out);
+                                 PTD_B3_FORMULA, NULL, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
     return rc;
+}
+/* =============================================================================*/
+
+/* ===== Batch C pre-contraction exit: the per-tape-input moment adjoint
+ * BEFORE the theta contraction, for weight modes whose dw/dtheta lives
+ * outside C (weight_mode='callback': the Python caller contracts
+ * J = binp @ W with W rows from jax.grad of the user's callback --
+ * b3-batchC-plan.md v1+v2; the pre-C chain-rule validation matched the
+ * shipped linear path at 1.2e-10 before this code existed).
+ *
+ * OUT-PARAMS (all C-allocated on success, caller frees):
+ *   binp_out   nr_moments x ni row-major per-tape-input adjoints
+ *   v_out/e_out ni C-array indices identifying input k's edge
+ *   frozen_out ni flags: 1 = starting-vertex or coefficients_length==0
+ *              (the primal's never-recomputed set -- the consumer MUST
+ *              skip these rows; computed here because input_specs order
+ *              differs from serialize() order and sp.v is the C index)
+ *   ni_out     the number of tape inputs
+ * ni is only known after the tape build, hence C-side allocation (the
+ * caller cannot size these). No theta parameter: stages replay the
+ * CURRENT edge weights -- the caller must update_weights(theta,
+ * callback=fn) first (the same current-weight-state contract as the
+ * log/formula wrappers). Declines (-1, nothing allocated): not
+ * parameterized / param_length==0, nr_moments<1, was_dph (LOAD-BEARING:
+ * callback x discretize() silently computes renormalized weights --
+ * probe-confirmed, dr_batchC_d5_derisk.py; is_discrete has NO C field,
+ * the Python gate must exclude native DPH), tape-build failure, an
+ * out-of-scope tape input, allocation failure, or a core decline (MPFR
+ * gate, rewards_len mismatch). rewards are supported (the core's Batch-A
+ * hooks scale the chain that PRODUCES binp; no extra term -- verified at
+ * plan review). */
+int ptd_moments_binp_exit(struct ptd_graph *graph, int nr_moments,
+        const double *rewards, size_t rewards_len,
+        double **binp_out, uint32_t **v_out, uint32_t **e_out,
+        uint8_t **frozen_out, size_t *ni_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    if (graph->was_dph) return -1;
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+    size_t ni = off->n_inputs, K = (size_t)nr_moments, P = graph->param_length;
+    double *binp = (double*)calloc((K*ni)?(K*ni):1, sizeof(double));
+    uint32_t *vv = (uint32_t*)malloc((ni?ni:1)*sizeof(uint32_t));
+    uint32_t *ee = (uint32_t*)malloc((ni?ni:1)*sizeof(uint32_t));
+    uint8_t *fz = (uint8_t*)malloc((ni?ni:1)*sizeof(uint8_t));
+    double *Jdummy = (double*)calloc((K*P)?(K*P):1, sizeof(double));
+    int rc = -1;
+    if (!binp || !vv || !ee || !fz || !Jdummy) goto done;
+    for (size_t k=0;k<ni;++k) {
+        struct ptd_pcg_input_spec sp = off->input_specs[k];
+        if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                || sp.v >= graph->vertices_length
+                || sp.e >= graph->vertices[sp.v]->edges_length) goto done;
+        struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+        vv[k] = (uint32_t)sp.v; ee[k] = (uint32_t)sp.e;
+        fz[k] = (graph->vertices[sp.v] == graph->starting_vertex
+                  || e->coefficients_length == 0) ? 1 : 0;
+    }
+    rc = ptd_b3_moments_core(graph, off, nr_moments, NULL, 0,
+                             rewards, rewards_len,
+                             PTD_B3_BINP_EXIT, NULL, binp, Jdummy);
+done:
+    free(Jdummy);
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    if (rc != 0) { free(binp); free(vv); free(ee); free(fz); return -1; }
+    *binp_out = binp; *v_out = vv; *e_out = ee; *frozen_out = fz; *ni_out = ni;
+    return 0;
 }
 /* =============================================================================*/
 
@@ -11531,7 +11623,7 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
     struct ptd_b3_dph_ctx ctx = { Sv, SigmaCv };
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
                                  NULL, 0,
-                                 PTD_B3_DPH, &ctx, J_out);
+                                 PTD_B3_DPH, &ctx, NULL, J_out);
     /* POST-pass: the theta-independent continuous->discrete correction, then
      * a SECOND isfinite sweep (the correction itself can produce non-finite
      * output; the core's sweep ran before it). */

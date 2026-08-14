@@ -5738,8 +5738,9 @@ extern "C" {{
             - False: force finite-difference moment gradients.
             - True: request the exact (reverse-mode) path explicitly. Note
               that the model builder's documented declines still govern —
-              the callback weight mode declines STATICALLY at
-              construction (formula is covered since Batch B, except a
+              a NON-JAX-NATIVE callback declines STATICALLY at
+              construction (callback mode is covered since Batch C for
+              JAX-native callbacks; formula since Batch B, except a
               lazily-built decoupled formula graph — C param_length ≠
               theta dimension — which also declines statically),
               ``'log'``/``'formula'`` on a discrete/``was_dph`` graph
@@ -7294,12 +7295,20 @@ extern "C" {{
             {None, 'linear'} (continuous and discrete, including
             Graph.discretize()'d graphs), weight_mode='log' (continuous
             only -- a discrete/was_dph graph combined with 'log' is not
-            supported and always uses finite differences), and, since
+            supported and always uses finite differences), since
             Batch B, weight_mode='formula' (continuous only, and only
             when the graph's C-level param_length equals the model's
             theta dimension -- a lazily-built decoupled formula graph
             keeps finite differences; align with
-            graph.set_param_length(theta_dim) before adding edges).
+            graph.set_param_length(theta_dim) before adding edges), and,
+            since Batch C, weight_mode='callback' (continuous only, for
+            JAX-NATIVE callbacks: written with jax.numpy ops, no
+            float()/numpy conversions, no Python control flow on theta
+            or coefficients -- probed with the deployed
+            jax.jit(jax.grad(...)) transform at model construction;
+            non-JAX-native callbacks keep finite differences PERMANENTLY,
+            the honest boundary for the arbitrary-Python escape hatch;
+            decoupled theta dimensions are fully supported here).
             1-D ``rewards``
             are supported by the exact path (Batch A: the adjoint re-scales
             at every stage of the moment chain, matching the
@@ -7307,7 +7316,8 @@ extern "C" {{
             Whenever finite
             differences are used instead -- because exact_moment_grad=False
             was passed explicitly, the graph's weight_mode is out of scope
-            ('callback', or 'log'/'formula' on a discrete/was_dph graph,
+            (a non-JAX-native callback -- permanent, by design -- or
+            'log'/'formula'/'callback' on a discrete/was_dph graph,
             or 'formula' on a decoupled-theta graph),
             rewards are combined with a DISCRETE model (the
             continuous->discrete moment correction is invalid under reward
@@ -7446,6 +7456,37 @@ extern "C" {{
         # (probe-confirmed at plan review + D-B6).
         _formula_scope_ok = (_wm == 'formula' and not _effective_discrete
                              and param_length == int(graph.param_length()))
+        # Batch C: callback-mode scope. Continuous + JAX-NATIVE-UNDER-JIT
+        # only. The probe uses the DEPLOYED transform jax.jit(jax.grad(f))
+        # over ALL param edges' coefficient vectors (a plain-grad probe is
+        # systematically lenient: data-dependent Python branching on theta
+        # passes concrete tracers but raises TracerBoolConversionError
+        # under jit at every call -- plan v2 SS-B; jit tracing is
+        # value-independent, so construction success => success at every
+        # theta). NO theta-dimension predicate: update_weights(theta,
+        # callback=) accepts any theta length BY DESIGN
+        # (phasiccpp.cpp:1879-1884, the PSMC-style idiom), the binp exit
+        # is theta-blind, and W's rows take their length from theta
+        # itself -- decoupled graphs are SUPPORTED (v2 SS-A).
+        _cb_captured = None
+        _cb_grad_jit = None
+        _cb_probe_exc = None
+        _callback_scope_ok = False
+        if (_wm == 'callback' and not _effective_discrete
+                and bool(exact_moment_grad)):
+            _cb_captured = getattr(graph, 'weight_callback', None)
+            if _cb_captured is not None:
+                try:
+                    _cb_grad_jit = jax.jit(jax.grad(_cb_captured, argnums=0))
+                    _probe_t = jnp.ones(param_length, dtype=jnp.float64)
+                    for _pe_row in serialized.get('param_edges', []):
+                        _pe_c = jnp.asarray(np.asarray(_pe_row,
+                                                       dtype=np.float64)[2:])
+                        _cb_grad_jit(_probe_t, _pe_c)
+                    _callback_scope_ok = True
+                except Exception as _exc:
+                    _cb_probe_exc = _exc
+                    _cb_grad_jit = None
         if not bool(exact_moment_grad):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact_moment_grad=False -- using "
@@ -7479,12 +7520,42 @@ extern "C" {{
                 int(graph.param_length()), param_length
             )
             _exact_grad_enabled = False
-        elif not (_linear_scope_ok or _log_scope_ok or _formula_scope_ok):
+        elif _wm == 'callback' and _effective_discrete:
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact moment gradient for "
+                "weight_mode='callback' is continuous-only (discrete/"
+                "was_dph graphs are out of scope) -- using finite "
+                "differences for the moments gradient."
+            )
+            _exact_grad_enabled = False
+        elif _wm == 'callback' and not _callback_scope_ok:
+            # PERMANENT boundary (plan v2 SS-B / feasibility Q4 option 2):
+            # a non-JAX-native callback cannot be differentiated. The
+            # message keeps the "weight_mode" + "finite differences"
+            # tokens the pre-existing out-of-scope pin greps.
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact moment gradient not "
+                "available for weight_mode='callback' with a non-JAX-"
+                "native callback (the probe with jax.jit(jax.grad(...)) "
+                "failed: %s%s). Write the callback with jax.numpy ops, "
+                "no float()/numpy conversions and no Python control flow "
+                "on theta or coefficients (jnp.where/lax.cond are fine) "
+                "-- using finite differences for the moments gradient.",
+                type(_cb_probe_exc).__name__ if _cb_probe_exc is not None
+                else "no weight_callback set",
+                (": " + str(_cb_probe_exc)) if _cb_probe_exc is not None
+                else ""
+            )
+            _exact_grad_enabled = False
+        elif not (_linear_scope_ok or _log_scope_ok or _formula_scope_ok
+                  or _callback_scope_ok):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact moment gradient not "
                 "available for weight_mode=%r (only None/'linear'/'log'/"
-                "'formula' -- 'log' and 'formula' only for continuous "
-                "graphs -- is supported) -- using finite differences for "
+                "'formula'/'callback' -- 'log'/'formula'/'callback' only "
+                "for continuous graphs, 'callback' additionally requiring "
+                "a JAX-native callback -- is supported) -- using finite "
+                "differences for "
                 "the moments gradient.", _wm
             )
             _exact_grad_enabled = False
@@ -7496,6 +7567,7 @@ extern "C" {{
             _exact_K = int(nr_moments)
             _exact_is_log = _log_scope_ok
             _exact_is_formula = _formula_scope_ok
+            _exact_is_callback = _callback_scope_ok
 
             def _exact_moments_jac_np(theta_np, rewards_np):
                 # Host callback: set the private clone's weights at θ and read the
@@ -7534,27 +7606,83 @@ extern "C" {{
                     # (e.g. update_weights rejecting a non-finite formula
                     # weight at an extreme theta probe).
                     try:
-                        _exact_graph.update_weights(t, log=_exact_is_log)
-                        if _effective_discrete:
+                        if _exact_is_callback:
+                            # Batch C: the pre-contraction binp exit +
+                            # Python contraction J = binp @ W, with W rows
+                            # from the construction-jitted grad of the
+                            # BUILD-TIME-CAPTURED callback (v2 SS-D).
+                            # Frozen rows (starting-vertex / cl==0 -- the
+                            # primal's never-recomputed set, flagged
+                            # C-side) are excluded from W and contribute
+                            # 0; a non-finite binp on a FROZEN row is
+                            # truly ignored (the matmul is MASKED to the
+                            # engaged columns -- G4 fold), while any
+                            # non-finite on an engaged row provably
+                            # reaches J and declines below.
+                            _exact_graph.update_weights(
+                                t, callback=_cb_captured)
+                            _bres = _exact_graph._moments_binp_exit(
+                                _exact_K, rewards=_rw_list)
+                            _bflat = np.asarray(_bres[0], dtype=np.float64)
+                            if _bflat.size == 0:
+                                J = _bflat  # C decline -> size check below
+                            else:
+                                _ni = len(_bres[2])
+                                _binp = _bflat.reshape(_exact_K, _ni)
+                                # G4 fold (wiring LOW-1): contract over the
+                                # ENGAGED columns only -- an unmasked
+                                # binp @ W would turn a non-finite adjoint
+                                # on a frozen row into inf*0 = NaN and
+                                # falsely decline; masking realizes the
+                                # stated ignore-frozen semantics, matching
+                                # the C kinds' skip-before-accumulate.
+                                _eng = [
+                                    _k for _k in range(_ni)
+                                    if not _bres[2][_k]
+                                ]
+                                _W = np.zeros((len(_eng), param_length))
+                                _tj = jnp.asarray(t, dtype=jnp.float64)
+                                for _r, _k in enumerate(_eng):
+                                    _W[_r] = np.asarray(_cb_grad_jit(
+                                        _tj, jnp.asarray(
+                                            _bres[1][_k],
+                                            dtype=jnp.float64)))
+                                J = np.asarray(_binp[:, _eng] @ _W,
+                                               dtype=np.float64).reshape(-1)
+                                if not np.all(np.isfinite(J)):
+                                    _grad_logger.info(
+                                        "pmf_and_moments_from_graph: exact "
+                                        "moment gradient declined at "
+                                        "theta=%s (non-finite callback "
+                                        "gradient or adjoint on an engaged "
+                                        "edge) -- using finite differences "
+                                        "for this step.", t.tolist()
+                                    )
+                                    return np.full(_shape, np.nan)
+                        elif _effective_discrete:
                             # dph+rewards is statically declined BEFORE this
                             # callback is ever built with rewards (the c2d
                             # refutation); _rw_list is always [] here -- the C
                             # wrapper's rewards_len!=0 -> -1 is defense in depth.
+                            _exact_graph.update_weights(t, log=_exact_is_log)
                             J = np.asarray(
                                 _exact_graph._moments_grad_theta_dph(
                                     _exact_K, t.tolist(), rewards=_rw_list),
                                 dtype=np.float64)
                         elif _exact_is_formula:
+                            _exact_graph.update_weights(t, log=False)
                             J = np.asarray(
                                 _exact_graph._moments_grad_theta_formula(
                                     _exact_K, t.tolist(), rewards=_rw_list),
                                 dtype=np.float64)
                         elif _exact_is_log:
+                            _exact_graph.update_weights(t, log=True)
                             J = np.asarray(
                                 _exact_graph._moments_grad_theta_log(
                                     _exact_K, t.tolist(), rewards=_rw_list),
                                 dtype=np.float64)
                         else:
+                            _exact_graph.update_weights(t, log=False)
                             J = np.asarray(
                                 _exact_graph._moments_grad_theta(
                                     _exact_K, rewards=_rw_list),

@@ -526,6 +526,24 @@ int ptd_moments_grad_theta_formula(struct ptd_graph *graph, int nr_moments,
         const double *theta, size_t theta_len,
         const double *rewards, size_t rewards_len, double *J_out);
 
+/* Batch C (2026-08-14): the pre-contraction per-tape-input moment
+ * adjoint (binp), for weight modes whose dw/dtheta lives outside C
+ * (weight_mode='callback': the Python caller contracts J = binp @ W
+ * with W from jax.grad of the user's callback). All out-params are
+ * C-allocated on success (caller frees): binp nr_moments*ni; v/e ni
+ * C-array edge indices per input; frozen ni flags (starting-vertex or
+ * coefficients_length==0 -- the consumer MUST skip these rows); ni.
+ * No theta parameter: replays CURRENT edge weights (caller runs
+ * update_weights(theta, callback=fn) first). 0 = success, -1 = not
+ * applicable (nothing allocated): was_dph (load-bearing -- see
+ * dr_batchC_d5_derisk.py), MPFR conditioning, tape/alloc failure,
+ * rewards_len mismatch. is_discrete has no C field: the Python
+ * caller MUST gate native-DPH graphs (same note as log/formula). */
+int ptd_moments_binp_exit(struct ptd_graph *graph, int nr_moments,
+        const double *rewards, size_t rewards_len,
+        double **binp_out, uint32_t **v_out, uint32_t **e_out,
+        uint8_t **frozen_out, size_t *ni_out);
+
 /* B3 joint-index extension: exact FORWARD-mode Jacobian
  * d[sojourn(indices[0..k-1])]/dtheta for a continuous, weight_mode='linear'
  * parameterized graph (native DPH, is_discrete=True/was_dph=False, is also
