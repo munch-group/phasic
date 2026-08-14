@@ -157,3 +157,90 @@ file; + the enumerated rewrites in the fate-table file):
    'sequential' — whether expand_dims composes with the added arg is
    verified by a de-risk probe BEFORE I3 (a 10-line jaxpr check), not
    assumed.
+
+## Adversarial plan-review record (2026-08-14; v1 → v2, folded as this amendment)
+
+Both refuters SOUND-WITH-CORRECTIONS. **Binding v2 amendments:**
+
+1. **DPH arm: REFUTED, pre-committed NO-GO** [design MAJOR 1, by direct
+   numpy probe]: the c2d correction rests on U/P commutation, which
+   reward-scaling (UΔr) breaks — 2nd moments provably wrong
+   (r=[2,1,3]: chain+c2d 58.311 vs true 51.644; r=[0,2,1]: 13.289 vs
+   11.956; 1st moments always agree — the headline trap class).
+   SHIPPED CONTRACT: linear+log support rewards; `_dph` declines
+   `rewards_len != 0` (C wrapper -1 = defense in depth) AND the Python
+   layer adds a STATIC dph+rewards decline branch with a truthful INFO
+   log naming this refutation [process MAJOR 2: "may retain" → MUST;
+   the C-level-only decline would surface through `_one`'s misleading
+   conditioning message and pay the C attempt per call]. The dph gate
+   (`dr_batchA_dph_rewards_gate.py`) ships as a CONFIRMING artifact
+   (integer rewards only — the discrete transform throws on
+   fractional/negative [design MAJOR 2a]; decision anchored on
+   FD-of-the-PRIMAL, never a chain+c2d oracle that would mirror the
+   wrong formula [2b]; both was_dph and native-DPH sub-kinds [2c]).
+2. **Exact dispatch restricted to `rewards.ndim == 1`** [design MAJOR
+   3]: the 1-D leaf officially accepts 2-D rewards through
+   `_compute_pure`; the exact Jacobian shape/contraction and the
+   pybind vector cast are 1-D-only. 2-D keeps FD + the INFO log; the
+   multivariate wrapper slices per-feature 1-D and is where the free
+   side effect genuinely lives (verified).
+3. **The svgd blast radius is REAL and needs a fold-time USER
+   DECISION** [process CRITICAL 1 + design MINOR 5]: svgd's rewards
+   leaves build the model with the callee DEFAULT
+   `exact_moment_grad=True`; post-A every `Graph.svgd(rewards=...)`
+   run flips FD→exact silently, and R29 rejects ANY explicit value on
+   rewards leaves (opt-out locked until G.2). Options to the user:
+   bundle G.2's R29-relaxation + forwarding into A (closes the
+   asymmetry at merge) vs accept the window vs suppress until G.2.
+   Also: a front-door svgd+rewards smoke sampling the ACTUAL
+   particle-init distribution joins the gates (the E lesson); the
+   svgd docstring's "with rewards the exact path currently declines"
+   clause goes stale (G5 shipped-text list); cost framing corrected
+   [process MINOR 6]: the FD loop is LOAD-BEARING for the pmf gradient
+   (no exact pmf path — Deferred 3), so post-A rewards runs get exact
+   parity with rewardless leaf-5 runs, not a new double-cost.
+4. **Test cells added** [process MAJOR 3/4]: rewards=all-ones ≡
+   rewardless exact (bitwise-class sensitivity check on both hooks);
+   rewards=all-zeros (degenerate, exercises the isinf-skip lines);
+   contract statement: exact follows the primal's acceptance domain
+   (continuous: non-negative reals; discrete: non-negative integers —
+   enforced upstream); the vacuous same-install "rewards=None vs
+   omitted" cell REPLACED by the all-ones cell; tolerances
+   anchored-to-measured at authoring (the standing discipline);
+   multivariate engagement check gets an absolute pin.
+5. **MPFR parenthetical corrected** [design MINOR 4]: with rewards the
+   FORWARD runs on the reward-TRANSFORMED tape while the gate scans
+   the original tape — a new (edge-case) fwd/bwd surface at extreme
+   reward scales; one extreme-reward-scale case added to micro-gate
+   (b); realistic SVGD rewards (0/1/small ints) unaffected.
+6. **Fate table (pre-filled by both reviews)**: zero literal-string
+   pins; `inference/test_exact_grad_rewards.py::test_exact_grad_with_
+   rewards_logs_why_fd_is_used` flips BY DESIGN → rewritten (linear:
+   exact engages, no decline log; dph: the refutation decline log);
+   `...matches_fd_and_forward_central_diff` stays green but its
+   docstring/tolerances are reworked (post-A it compares genuinely
+   different paths; keep the central-diff oracle, loosen the FD leg);
+   `...without_rewards_unaffected` MUST stay green (live rewardless
+   guard); R29 pins unchanged (until the user's decision on 3);
+   seeded svgd+rewards accuracy tests may shift numerically — G3
+   watches, merge review records any.
+7. **G2 additions** [design MINOR 6, process MINOR 9]:
+   `inference/test_exact_grad_discrete.py`,
+   `inference/test_exact_grad_log_weight_mode.py` (wrapper-owning),
+   `inference/test_svgd_exact_moment_grad_kwarg.py` +
+   the new svgd smoke (behavior-reach); process-map rows at G5 for the
+   new/rewritten files.
+8. Anchors/nits: pybind span `:1915-1933`; the rewards_len decline
+   lives in the CORE (better than the wrapper-level theta convention —
+   stated as such); `:7988-7996`; G0 records the docs-only delta
+   (`95da8e35`).
+9. **Verified by review (recorded so implementation doesn't
+   re-litigate)**: hook placement is per-stage correct for all three
+   contraction kinds (hook 1 inside the K-loop; hook 2 the per-stage
+   VJP; `dm` inherits the scale via post-scale `st[]` snapshots; log
+   branch and stage-2 need nothing); expand_dims + unbatched second
+   arg WORKS (probed; the leaf's own forward already does 3-arg
+   expand_dims with the disambiguation pattern to reuse — 'sequential'
+   switch unnecessary and avoided); the three C functions' only
+   callers are the C++ wrappers; svgd rewards is a genuine model
+   argument (not a closure).
