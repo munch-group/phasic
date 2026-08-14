@@ -306,4 +306,5 @@ ready-to-push; G2 map-match statement; naming pattern; CLAUDE.md
 question: RESOLVED by both reviews concordantly (pre-empt weight-mode
 AND was_dph); no user escalation needed. Remaining fold-time user
 question: the svgd.py one-token guard (third approval of the same
-shape).
+shape). **DECIDED (user, fold-time): YES — add the token; the guard
+test ships.**
