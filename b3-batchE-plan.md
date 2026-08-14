@@ -308,3 +308,92 @@ AND was_dph); no user escalation needed. Remaining fold-time user
 question: the svgd.py one-token guard (third approval of the same
 shape). **DECIDED (user, fold-time): YES — add the token; the guard
 test ships.**
+
+## Dated amendment (2026-08-14) — the HALT, the user decision, and `exact_grad_decline`
+
+During G1, running REAL svgd fits fired the plan's E0(ii) STOP clause
+late: SVGD's log-scale particle init (sd=5.0) routinely creates theta
+ratios ≥1e8 where the conditioning gate declines — the committed-raise
+contract killed first fits, and the gate-lifted answers were measured
+34-144% OFF tight FD exactly there (the gate's genuine job; probe table
+in the findings doc). **USER DECISION (2026-08-14): host-side
+per-particle FD fallback + WARNING for the svgd entry.** Implemented as
+a new model kwarg `exact_grad_decline={'raise','fd'}` (default 'raise'
+preserves the F hard-stop contract at the model level; the svgd leaf
+forwards 'fd'). The fallback computes the declined call's Jacobian rows
+by relative-step central FD on the raw sojourn values on the private
+clone, then the exact quotient rule downstream — value-correctness
+verified by the G4 wiring refuter (1.8e-10 vs tight FD at a REAL gate
+decline) and pinned by a mixed-batch value test at the G4 fold.
+Process lesson recorded: de-risk sweeps for svgd-facing features must
+sample from the ACTUAL particle-init distribution, not hand-picked
+scales.
+
+## G4 review record (2026-08-14)
+
+Both diff refuters SOUND-WITH-CORRECTIONS; numerics comprehensively
+confirmed by independent probes (fallback values 1.1e-10-1.8e-10 vs
+tight FD both arms incl. a REAL decline; per-particle isolation exact:
+1 WARN, computable rows bitwise-stable; scatter-add under both
+jit/vmap orders 5e-11; R31 NOT inert — get_was_dph probed live on
+default and continuous jpgs; svgd-level exact_grad_decline pass-through
+impossible — TypeError). Folded: the CRITICAL stale svgd docstring
+(still promised the raise the decision replaced); exact_grad_decline
+documented (Parameters entry, exact_grad block, RuntimeError remedy
+mention); baked-probe sentence fixed; fallback comment de-garbled +
+step floor 1e-10; ndim>1 observed_indices rejected; I3-2's err_fd
+bound restored (1e-4, measured ~1e-6); delta==14 comment de-garbled;
+value-level mixed-batch fallback test + exact_grad_decline ValueError
+test + 2-D-rejection test + jsp kind-regression guard added; R31's
+rewards pointer message qualified. Recorded-not-fixed (merge review
+deviations): WARN volume unbounded per fit (measured 21 lines/5-iter
+forced-decline fit — follow-up candidate); F-file rewrite's oracle
+assert compares exact zeros (honest NOTE in-code; strong parity lives
+in the baked suite); ladder log-cell shipped as formula-cell (log
+hard-raises at construction); svgd-level theta-dim cell model-level
+only; the chunk-runner initially tail-1'd away -rf names (fixed
+mid-run; process amendment wording strengthened at G5).
+
+## Merge review (G5) — 2026-08-14
+
+**All gates green; squash-merged to master.**
+
+- **G0:** E0 GO (findings: backward vs shipped exact 1.4e-12; gate
+  computes at all moderate scales; traps outside baked index sets;
+  front-door dedup proven); ledger fifth stamp `0c052cfe`
+  (1917/0/84/24; 1919 expected on this tree); master delta docs-only.
+- **G1:** 45 at implementation → **49 after the G4 fold** (13-file
+  count: baked 16, svgd 16, F file 17 with ONE fate rewrite).
+- **G2:** **156 / 3 / 1** — zero flips across the 12-file surface.
+- **G3:** chunked (31 groups, `-rf`): **1947 / 0 / 84 / 24** = ledger
+  1919 + 28 new; skips/xfails ledger-identical. One ab-group
+  first-pass transient re-ran green twice; the runner initially
+  discarded `-rf` names (fixed mid-run; amendment strengthened below).
+- **G4:** two refuters SOUND-WITH-CORRECTIONS, zero live numeric
+  defects; probes confirmed fallback values (1.1-1.8e-10 incl. a REAL
+  gate decline), per-particle isolation, both jit/vmap orders, R31
+  non-inertness (get_was_dph live-probed). All corrections folded
+  (`818bc911`).
+
+**Shipped-text statement:** the F-file single-test fate rewrite; the
+R30 no-epochs clause; the F docstring baked sentence + probe-set
+sentence; the svgd exact_grad docstring failure-mode paragraph
+(REWRITTEN post-decision); NEW public model kwarg `exact_grad_decline`
+(+ docs + validation + RuntimeError remedy mention); R31 (new rule) +
+its rewards-pointer qualification; one user-approved svgd.py token.
+
+**Deviations recorded:** WARN volume unbounded per fit (follow-up
+candidate, not ledgered — derivable); F-file rewrite's oracle assert
+compares exact zeros (honest in-code NOTE; strong parity in the baked
+suite); ladder log-cell shipped as formula-cell (log hard-raises at
+construction — the plan's own corrected narrative); svgd-level
+theta-dim cell model-level only; E0(ii)'s sweep under-sampled the
+SVGD init distribution (process lesson recorded in the amendment).
+
+**Delivered:** the most common CONTINUOUS joint-prob SVGD case gets
+opt-in exact gradients (`svgd(obs, exact_grad=True)` on a
+`discrete=False` jpg — baked/dedup, probe-exact index sets); default
+(discrete) jpgs get a loud rebuild-with-discrete=False message; a
+declined particle falls back to host-side FD with a WARNING instead of
+killing the cloud (user decision); §16 risk item 5 discharged; Phase 2
+complete.

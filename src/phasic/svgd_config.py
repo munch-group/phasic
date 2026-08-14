@@ -125,7 +125,7 @@ LEDGER_OPTION_ORDER = (
     'discrete', 'joint_index', 'theta_dim',
     'n_particles', 'n_iterations', 'learning_rate', 'optimizer',
     'bandwidth', 'preconditioner', 'regularization', 'nr_moments',
-    'exact_moment_grad', 'exact_final_grad',
+    'exact_moment_grad', 'exact_final_grad', 'exact_grad',
     'positive_params', 'param_transform', 'prior',
     'fixed', 'tied', 'epoch_starts', 'exposure', 'exposure_param_index',
 )
@@ -296,6 +296,17 @@ class SvgdConfig:
     # every other model kind rejects it (R30) so the kwarg can never be
     # silently inert.
     exact_final_grad: Optional[bool] = None
+    # ``Graph.svgd(exact_grad=...)`` (Batch E). None = not forwarded (the
+    # joint-index builder's own default, False, governs). An explicit
+    # True/False is only honored on the joint-index leaf (joint-prob-kind
+    # graph, no epoch_starts, no exposure); every other model kind rejects
+    # it (R31) so the kwarg can never be silently inert.
+    exact_grad: Optional[bool] = None
+    # graph.was_dph snapshot for R31: the DEFAULT joint_prob_graph() is
+    # discrete (was_dph=True) and the exact sojourn path excludes was_dph,
+    # so an explicit exact_grad there must be rejected with a
+    # rebuild-with-discrete=False message, not silently FD'd.
+    graph_was_dph: bool = False
     # The svgd ``final_read`` kwarg, threaded as a NAMED parameter (not
     # **_unused) so R30's stopprob pre-emption has a real data path.
     # 'sojourn' is the shipped default; from_model_call leaves it there.
@@ -527,6 +538,7 @@ def from_svgd_call(
     joint_index: Any = None,
     exact_moment_grad: Optional[bool] = None,
     exact_final_grad: Optional[bool] = None,
+    exact_grad: Optional[bool] = None,
     final_read: str = 'sojourn',
     **_unused: Any,
 ) -> SvgdConfig:
@@ -608,6 +620,10 @@ def from_svgd_call(
         exact_final_grad=(
             None if exact_final_grad is None else bool(exact_final_grad)
         ),
+        exact_grad=(
+            None if exact_grad is None else bool(exact_grad)
+        ),
+        graph_was_dph=bool(getattr(graph, 'get_was_dph', lambda: False)()),
         final_read=str(final_read),
         effective_weight_mode=(
             'formula' if weight_formula is not None
@@ -1210,9 +1226,8 @@ def _check_R30_exact_final_grad_leaf_scope(c: SvgdConfig) -> None:
             "exact_final_grad requires epoch_starts (it selects the exact "
             "FINAL-epoch gradient of the epoch model; with "
             "epoch_starts=[0.0] it covers every parameter). For "
-            "joint-probability models without epochs, the exact machinery "
-            "is pmf_from_graph_joint_index's exact_grad kwarg (svgd "
-            "plumbing for that leaf is not available). Drop "
+            "joint-probability models without epochs, use the separate "
+            "svgd exact_grad kwarg (the joint-index leaf; Batch E). Drop "
             "exact_final_grad or add epoch_starts."
         )
     if c.final_read == 'stopprob':
@@ -1228,6 +1243,54 @@ def _check_R30_exact_final_grad_leaf_scope(c: SvgdConfig) -> None:
             "sojourn adjoint's contraction is linear-only); this call "
             f"resolves to weight_mode='{c.effective_weight_mode}'. Drop "
             "exact_final_grad."
+        )
+
+
+def _check_R31_exact_grad_leaf_scope(c: SvgdConfig) -> None:
+    # Batch E: an explicit exact_grad is only honored on the joint-index
+    # leaf -- a CONTINUOUS joint-prob-kind graph, no epoch_starts, no
+    # exposure. Everywhere else it would be inert or meaningless, so
+    # reject loudly (the R29/R30 discipline; any non-None value). Cells
+    # where an earlier rule already rejects (R1/R9/R28) never reach this
+    # rule -- deliberate shadowing, recorded in the E plan. Residual
+    # builder-level logged declines (theta_dim override; structural probe
+    # failure) keep the F contract: explicit True -> FD + INFO log.
+    if c.exact_grad is None:
+        return
+    if c.has_epoch_starts:
+        raise SvgdConfigError(
+            "exact_grad applies to the joint-index leaf (no epoch_starts); "
+            "the epoch model's exact gradient is the separate "
+            "exact_final_grad kwarg. Drop exact_grad."
+        )
+    if c.graph_kind not in ('joint_prob', 'joint_stop_prob'):
+        raise SvgdConfigError(
+            "exact_grad applies only to joint-probability models (the "
+            "joint-index leaf); this model kind uses the moments machinery, "
+            "whose own kwarg is exact_moment_grad (itself unavailable on "
+            "rewards-bearing models until the rewards adjoint ships). "
+            "Drop exact_grad."
+        )
+    if c.graph_was_dph:
+        raise SvgdConfigError(
+            "exact_grad requires a CONTINUOUS joint-prob graph, but this "
+            "graph is discrete (the joint_prob_graph() default). Rebuild "
+            "with graph.joint_prob_graph(..., discrete=False) to use "
+            "exact_grad, or drop exact_grad."
+        )
+    if c.effective_weight_mode != 'linear':
+        raise SvgdConfigError(
+            "exact_grad supports weight_mode='linear' only (the C sojourn "
+            "adjoint's contraction is linear-only); this call resolves to "
+            f"weight_mode='{c.effective_weight_mode}'. Drop exact_grad."
+        )
+    if c.has_exposure:
+        # Belt-and-braces: R9 rejects exposure+no-epochs on both joint
+        # kinds before this rule runs; kept for defense in depth.
+        raise SvgdConfigError(
+            "exact_grad with exposure is not supported (exposure on "
+            "joint-prob models routes via epoch_starts=[0.0] and "
+            "exact_final_grad). Drop exact_grad or exposure."
         )
 
 
@@ -1262,6 +1325,7 @@ _RULES = (
     _check_R28_joint_index_false_incompatible_with_joint_prob,
     _check_R29_exact_moment_grad_leaf_scope,
     _check_R30_exact_final_grad_leaf_scope,
+    _check_R31_exact_grad_leaf_scope,
 )
 
 

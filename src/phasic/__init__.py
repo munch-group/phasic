@@ -5579,6 +5579,7 @@ extern "C" {{
              quiet_assumptions: bool = False,
              exact_moment_grad: bool | None = None,
              exact_final_grad: bool | None = None,
+             exact_grad: bool | None = None,
              ) -> 'SVGD':
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5776,6 +5777,36 @@ extern "C" {{
             ``svgd(obs, exposure=..., exposure_param_index=...,
             epoch_starts=[0.0], exact_final_grad=True)`` gives batched
             exposure handling plus fully exact gradients.
+        exact_grad : bool or None, default=None
+            Batch E (public plumbing of the joint-index exact gradient
+            to the BAKED leaf). Only meaningful on a CONTINUOUS
+            joint-probability graph (``joint_prob_graph(...,
+            discrete=False)``) without ``epoch_starts`` or ``exposure``
+            — the default no-epochs joint-prob SVGD case, where
+            observations are baked and deduplicated. ``True`` computes
+            the parameter gradient EXACTLY (forward-mode; cost scales
+            with the parameter count — see
+            ``pmf_from_graph_joint_index``'s ``exact_grad`` docs for
+            the P~10-20 crossover vs FD). An explicit value anywhere
+            else raises ``SvgdConfigError`` (R31) — including on a
+            DEFAULT (discrete) joint-prob graph, where the message says
+            to rebuild with ``discrete=False``. Residual builder-level
+            declines (a ``theta_dim`` override; a structural probe
+            failure at construction) fall back to FD with an INFO log
+            — the model-level contract. ``None`` (default) = not
+            forwarded. **Failure mode (user-decided 2026-08-14): the
+            svgd path forwards ``exact_grad_decline='fd'`` — a particle
+            whose theta the conditioning check declines gets a HOST-side
+            finite-difference gradient for that particle only, with a
+            WARNING logged per event, and the fit proceeds; every other
+            particle stays exact. (SVGD's wide log-scale initialization
+            routinely visits extreme theta ratios where the check
+            declines; a hard raise would kill first fits, and lifting
+            the check returns unreliable numbers there.) The MODEL-level
+            kwarg default keeps the hard-raise contract
+            (``exact_grad_decline='raise'``).** For baked mode the
+            construction-time probe covers the exact index set of every
+            future call, so index-dependent surprises cannot occur.
         rewards : ArrayLike, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
@@ -6120,6 +6151,7 @@ extern "C" {{
             joint_index=joint_index,
             exact_moment_grad=exact_moment_grad,
             exact_final_grad=exact_final_grad,
+            exact_grad=exact_grad,
             final_read=final_read,
         ))
 
@@ -6450,6 +6482,15 @@ extern "C" {{
                         self, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
                         observed_indices=_bake_obs,
+                        **({} if exact_grad is None
+                           else {'exact_grad': exact_grad,
+                                 # Batch E user decision 2026-08-14: the
+                                 # svgd entry uses the per-particle
+                                 # host-side FD fallback on gate declines
+                                 # (WARN-logged) instead of the
+                                 # model-level raise -- SVGD's wide init
+                                 # makes raise-on-decline kill first fits.
+                                 'exact_grad_decline': 'fd'}),
                     )
             # Auto-detect if we need multivariate model (2D rewards)
             elif rewards is not None:
@@ -8041,7 +8082,8 @@ extern "C" {{
                                     fixed_mask: Any = None,
                                     exclude_vertices: list[int] | None = None,
                                     observed_indices: Any = None,
-                                    exact_grad: bool = False) -> Callable:
+                                    exact_grad: bool = False,
+                                    exact_grad_decline: str = 'raise') -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -8086,13 +8128,30 @@ extern "C" {{
             When ``observed_indices`` is ``None`` (default), the legacy path
             is used and ``vertex_indices`` is read from the model's runtime
             argument as before.
+        exact_grad_decline : {'raise', 'fd'}, default='raise'
+            What a COMMITTED exact model does when the C adjoint declines
+            at a runtime theta (e.g. the conditioning check at extreme
+            theta ratios). ``'raise'`` (default) = the hard-stop contract:
+            a diagnostic ``RuntimeError``. ``'fd'`` = compute THAT call's
+            Jacobian rows by host-side central finite differences on the
+            private clone (relative steps on the raw sojourn values, then
+            the exact quotient rule) and WARN-log the event — used by the
+            ``Graph.svgd`` plumbing (user decision 2026-08-14) so one
+            extreme particle cannot kill a whole SVGD cloud.
         exact_grad : bool, default=False
             Use the exact forward-mode theta-adjoint for the sojourn-vector
             gradient instead of finite differences (FD). Covers weight_mode
             'linear' (continuous and native DPH -- discrete=True/was_dph=
-            False graphs need no special-casing here); NOT yet supported
+            False graphs need no special-casing here), in BOTH the runtime
+            vertex_indices mode and the ``observed_indices`` BAKED/dedup
+            mode (Batch E: the baked probe covers the exact static index
+            union -- in baked mode the probe runs over
+            ``union(unique observed indices, all_terminal)``, not the
+            non-baked ``union(all_terminal, [0])`` -- so a committed
+            baked model can never hit an
+            index-dependent decline at call time); NOT yet supported
             for weight_mode in {'formula', 'callback'}, a ``was_dph`` graph
-            (``Graph.discretize()``), ``observed_indices`` baked mode, or a
+            (``Graph.discretize()``), or a
             ``theta_dim`` that overrides the graph's own ``param_length``
             -- each falls back to FD with an INFO-level log via
             ``logging.getLogger('phasic')`` stating why (set
@@ -8223,9 +8282,37 @@ extern "C" {{
         # per-observation pmf vector as before. Mirrors the same dedup
         # pattern used in _daisy_chain_svgd_model for the per-observation
         # exposure path.
+        if exact_grad_decline not in ('raise', 'fd'):
+            raise ValueError(
+                "exact_grad_decline must be 'raise' or 'fd', got "
+                f"{exact_grad_decline!r}."
+            )
         _baked = observed_indices is not None
         if _baked:
-            _obs_idx_np = np.asarray(observed_indices, dtype=np.int32).ravel()
+            _obs_idx_arr = np.asarray(observed_indices, dtype=np.int32)
+            if _obs_idx_arr.ndim > 1:
+                raise ValueError(
+                    "pmf_from_graph_joint_index: observed_indices must be "
+                    f"1-D vertex indices (got shape {_obs_idx_arr.shape}). "
+                    "Multi-column observation OUTCOME tuples are a "
+                    "Graph.svgd input format, not a model-level index "
+                    "array -- raveling them would produce garbage indices."
+                )
+            _obs_idx_np = _obs_idx_arr.ravel()
+            # Batch E: construction-time bounds validation. The sojourn FFI
+            # silently NaN-fills out-of-range indices, and the exact
+            # backward's per-call check does not run for baked mode (the
+            # index set is static) -- validate HERE, loudly, once.
+            _n_vertices_bv = int(graph.vertices_length())
+            if _obs_idx_np.size and (
+                    int(_obs_idx_np.min()) < 0
+                    or int(_obs_idx_np.max()) >= _n_vertices_bv):
+                raise ValueError(
+                    "pmf_from_graph_joint_index: observed_indices out of "
+                    f"range (got min={int(_obs_idx_np.min())}, "
+                    f"max={int(_obs_idx_np.max())}; graph has "
+                    f"{_n_vertices_bv} vertices)."
+                )
             _uniq_idx_np, _inverse_idx_np = np.unique(
                 _obs_idx_np, return_inverse=True,
             )
@@ -8282,13 +8369,6 @@ extern "C" {{
                 "yet supported for a was_dph graph (Graph.discretize()) -- "
                 "using finite differences. Native DPH (is_discrete=True, "
                 "was_dph=False) IS supported."
-            )
-            _jix_exact_enabled = False
-        elif _baked:
-            _jix_grad_logger.info(
-                "pmf_from_graph_joint_index: exact sojourn gradient not "
-                "yet supported with observed_indices baked mode -- using "
-                "finite differences."
             )
             _jix_exact_enabled = False
         elif int(graph.param_length()) != param_length_actual:
@@ -8354,8 +8434,61 @@ extern "C" {{
                     )
 
                 _jix_exact_graph.update_weights(th.tolist())
-                union_idx = np.union1d(vi, _jix_all_terminal_np)
+                if _baked:
+                    # Batch E hoist: the baked index set is static, so the
+                    # union and both position maps are construction-time
+                    # constants (see _baked_union_np below).
+                    union_idx = _baked_union_np
+                else:
+                    union_idx = np.union1d(vi, _jix_all_terminal_np)
                 raw = _jix_exact_graph._sojourn_grad_theta_subset(union_idx.tolist())
+                if not raw and exact_grad_decline == 'fd':
+                    # Batch E (user decision 2026-08-14): HOST-side
+                    # per-particle central-difference fallback. Chosen for
+                    # the svgd entry point because SVGD's wide particle
+                    # init routinely visits thetas the conditioning gate
+                    # declines -- under raise semantics ONE such particle
+                    # kills the whole cloud, and lifting the gate returns
+                    # silently unreliable numbers at extreme theta ratios
+                    # (measured 34-144% off tight FD at ratios >= 1e8).
+                    # The fallback = RELATIVE-step central FD on the raw
+                    # sojourn values + the exact quotient rule downstream
+                    # (better-conditioned than _fd_theta_bar's absolute-eps
+                    # FD of the normalized forward); each event is
+                    # WARN-logged. Unlike a
+                    # JAX-level fallback (impossible per-particle under
+                    # vmap -- the D6 record), the host callback runs
+                    # per-particle sequentially, so this is exact for
+                    # every computable particle and FD only at declined
+                    # ones.
+                    _jix_grad_logger.warning(
+                        "pmf_from_graph_joint_index: exact sojourn "
+                        "gradient declined at theta=%s -- using a "
+                        "host-side finite-difference fallback for THIS "
+                        "particle only (exact_grad_decline='fd').",
+                        th.tolist(),
+                    )
+                    J_union = np.empty(
+                        (union_idx.shape[0], _jix_param_length))
+                    for _k in range(_jix_param_length):
+                        _h = max(abs(float(th[_k])) * 1e-6, 1e-10)
+                        _tp = th.copy(); _tp[_k] += _h
+                        _tm = th.copy(); _tm[_k] -= _h
+                        _jix_exact_graph.update_weights(_tp.tolist())
+                        _sp = np.asarray(
+                            _jix_exact_graph.expected_sojourn_time(
+                                union_idx.tolist()))
+                        _jix_exact_graph.update_weights(_tm.tolist())
+                        _sm = np.asarray(
+                            _jix_exact_graph.expected_sojourn_time(
+                                union_idx.tolist()))
+                        J_union[:, _k] = (_sp - _sm) / (2.0 * _h)
+                    if _baked:
+                        return (J_union[_baked_obs_pos_np],
+                                J_union[_baked_all_pos_np])
+                    obs_pos = np.searchsorted(union_idx, vi)
+                    all_pos = np.searchsorted(union_idx, _jix_all_terminal_np)
+                    return J_union[obs_pos], J_union[all_pos]
                 if not raw:
                     raise RuntimeError(
                         "pmf_from_graph_joint_index: exact sojourn gradient "
@@ -8367,7 +8500,9 @@ extern "C" {{
                         "at one of the REQUESTED observed vertices, or an "
                         "allocation failure. No automatic finite-difference "
                         "fallback exists once the exact path is committed -- "
-                        "pass exact_grad=False, or investigate this theta/"
+                        "pass exact_grad=False, pass exact_grad_decline='fd' "
+                        "for a per-call host-side FD fallback, or "
+                        "investigate this theta/"
                         "index set. (A NaN/inf theta raises a ValueError "
                         "from update_weights before reaching this point.)"
                     )
@@ -8375,6 +8510,9 @@ extern "C" {{
                 J_union = np.asarray(raw, dtype=np.float64).reshape(
                     union_idx.shape[0], _jix_param_length,
                 )
+                if _baked:
+                    return (J_union[_baked_obs_pos_np],
+                            J_union[_baked_all_pos_np])
                 obs_pos = np.searchsorted(union_idx, vi)
                 all_pos = np.searchsorted(union_idx, _jix_all_terminal_np)
                 return J_union[obs_pos], J_union[all_pos]
@@ -8388,8 +8526,25 @@ extern "C" {{
             # class), which a single-index probe would miss. A probe failure
             # is treated exactly like a static exclusion: whole-model FD, no
             # wiring overhead, never re-tried.
-            _probe_union = np.union1d(
-                np.asarray([0], dtype=np.int64), _jix_all_terminal_np)
+            if _baked:
+                # Batch E: the baked probe is EXACT -- probe set == every
+                # future call's set (union of the static unique observed
+                # indices with all_terminal; no runtime index rows exist,
+                # so F's [0] residual member is subsumed). The hoisted
+                # position maps serve the per-call callback above.
+                _baked_union_np = np.union1d(_uniq_idx_np.astype(np.int64),
+                                             _jix_all_terminal_np)
+                _baked_obs_pos_np = np.searchsorted(
+                    _baked_union_np, _uniq_idx_np.astype(np.int64))
+                _baked_all_pos_np = np.searchsorted(
+                    _baked_union_np, _jix_all_terminal_np)
+                _probe_union = _baked_union_np
+            else:
+                _baked_union_np = None
+                _baked_obs_pos_np = None
+                _baked_all_pos_np = None
+                _probe_union = np.union1d(
+                    np.asarray([0], dtype=np.int64), _jix_all_terminal_np)
             _probe_theta = np.ones(_jix_param_length, dtype=np.float64)
             _jix_exact_graph.update_weights(_probe_theta.tolist())
             _probe_raw = _jix_exact_graph._sojourn_grad_theta_subset(
@@ -8698,7 +8853,18 @@ extern "C" {{
                 # SAME normalized shape or a non-1-D vertex_indices would
                 # raise inside the pure_callback (found via adversarial
                 # review of the implemented fix).
-                _vi_norm = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+                if _baked:
+                    # Batch E: the forward gathers uniq->obs, so the VJP
+                    # SCATTER-ADDS the cotangent obs->uniq, and the same
+                    # quotient rule then runs at unique granularity with
+                    # the STATIC index set (probe set == call set).
+                    _vi_norm = _uniq_idx_jnp
+                    g_contract = jnp.zeros(
+                        _uniq_idx_jnp.shape[0], dtype=g_visits.dtype,
+                    ).at[_inverse_idx_jnp].add(g_visits)
+                else:
+                    _vi_norm = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+                    g_contract = g_visits
                 all_sojourn_exact = compute_sojourn_times_ffi(
                     structure_dict, theta, all_terminal_indices)
                 norm_exact = jnp.sum(all_sojourn_exact)
@@ -8716,7 +8882,7 @@ extern "C" {{
                 d_probs_exact = (
                     J_obs * norm_exact - obs_sojourn_exact[:, None] * dnorm_exact[None, :]
                 ) / (norm_exact ** 2)
-                exact_tbm = d_probs_exact.T @ g_visits  # (n_params,)
+                exact_tbm = d_probs_exact.T @ g_contract  # (n_params,)
                 if fixed_indices_set:
                     _fixed_keep = jnp.array(
                         [0.0 if i in fixed_indices_set else 1.0 for i in range(n_params)],

@@ -382,21 +382,44 @@ def test_was_dph_declines_and_logs():
     assert np.all(np.isfinite(grad))
 
 
-def test_observed_indices_baked_mode_declines_and_logs():
-    """observed_indices baked/dedup mode is explicitly deferred (would need
-    a scatter-add of the upstream cotangent by the inverse-index map before
-    the quotient rule -- separate piece of work, see the plan)."""
+def test_observed_indices_baked_mode_commits():
+    """Batch E REWRITE of test_observed_indices_baked_mode_declines_and_logs
+    (the fate table's one break-by-design): baked/dedup mode now SUPPORTS
+    the exact gradient (scatter-add of the cotangent by the inverse-index
+    map + the quotient rule at unique granularity; probe over the exact
+    static baked union). Asserts the old decline log is GONE and the
+    exact path commits; PRESERVES the original's second half (finite
+    gradient; runtime vidx ignored in baked mode)."""
     with _capture_phasic_info_logs() as handler:
         model = Graph.pmf_from_graph_joint_index(
             _two_param_chain(), theta_dim=2, observed_indices=np.array([0, 1, 1, 2]),
             exact_grad=True)
     messages = [r.getMessage() for r in handler.records]
-    assert any("baked mode" in m and "finite differences" in m for m in messages)
+    assert not any("baked mode" in m and "finite differences" in m
+                   for m in messages), messages
 
     vidx = jnp.asarray([0, 1, 2], dtype=jnp.int32)  # ignored in baked mode
     theta = jnp.asarray([1.0, 2.0])
-    grad = np.asarray(jax.grad(lambda th: jnp.sum(model(th, vidx)[0]))(theta))
+    # weighted loss: the unweighted sum's gradient is exactly zero on this
+    # fixture (sum of normalized probs at these obs is theta-invariant),
+    # which would make the oracle comparison 0/0-degenerate.
+    w = jnp.asarray([0.5, 1.0, 1.5, 2.0])
+    grad = np.asarray(jax.grad(
+        lambda th: jnp.sum(w * model(th, vidx)[0]))(theta))
     assert np.all(np.isfinite(grad))
+    # exact engaged: matches the non-baked exact oracle at the same obs
+    nb = Graph.pmf_from_graph_joint_index(_two_param_chain(), theta_dim=2,
+                                          exact_grad=True)
+    obs = jnp.asarray([0, 1, 1, 2], dtype=jnp.int32)
+    g_nb = np.asarray(jax.grad(
+        lambda th: jnp.sum(w * nb(th, obs)[0]))(theta))
+    # NOTE: on this minimal chain fixture the normalized probs are
+    # theta-invariant (both gradients are exactly zero -- the ORIGINAL
+    # test only asserted finiteness for the same reason). Absolute
+    # agreement pins baked==non-baked exact here; the strong nonzero
+    # oracle parity lives in test_exact_grad_joint_index_baked.py on
+    # the coalescent fixture.
+    assert np.max(np.abs(grad - g_nb)) < 1e-12
 
 
 # --------------------------------------------------------------------------- committed decline -> RAISE (Batch F)
