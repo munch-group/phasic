@@ -240,3 +240,176 @@ expected, verified by grep at v2).
    cannot differ — verify in review).
 5. Multivariate/2-D rewards composition inherited from A/B unchanged
    (per-feature 1-D slices) — cell 12 gates it.
+
+## v2 amendment (2026-08-14, post two-refuter plan review — BINDING over v1 where they conflict)
+
+**Verdicts:** design/math refuter SOUND-WITH-CORRECTIONS; completeness/
+process refuter SOUND-WITH-CORRECTIONS. Convergent top finding, folded
+as the headline scope DECISION below. Probes referenced here were run
+by the refuters against the post-B install (jax 0.7.2).
+
+### A. HEADLINE DECISION — the ALIGNED-theta-dim restriction is DROPPED for callback mode (v1 §0.3(ii)/§1/§3 superseded)
+
+v1 transferred B's lazy-decoupled crash rationale. REFUTED by source
+and probe: `update_weights(theta, callback=)` deliberately does NOT
+length-check theta (`phasiccpp.cpp:1879-1884` names PSMC-style longer
+AND shorter theta as intended; len-4/len-1/len-0 all accepted by
+probe) — B's raise-inside-pure_callback class cannot occur. And the
+binp exit takes NO theta: P enters only through `jax.grad`'s rows
+(len(t)) and the final J shape. The exact path is therefore
+mathematically valid on decoupled graphs, and v1's predicate would
+have statically declined the DOCUMENTED PRIMARY callback idiom (a
+lazily-built aux-coefficients graph locks C param_length to the
+coefficient length > model theta_dim — probed). **v2: callback mode
+has NO theta-dimension predicate.** Scope = continuous + JAX-native
+(§B). De-risk D-C4 is REPURPOSED: verify the decoupled composition
+end-to-end (lazy aux-coeff class; canonical set_param_length class;
+plain aligned; theta LONGER than param_length) — engagement, not
+decline, is the expected outcome on all four. G1(b3)'s fixture may be
+lazily built (no set_param_length required); ADD a lazy-decoupled
+pytest cell asserting engagement (the anti-B cell).
+
+### B. JAX-nativeness probe = the DEPLOYED transform over ALL edges (design H2)
+
+v1's plain-grad-at-c0 probe is systematically lenient: data-dependent
+Python branching on theta PASSES plain grad (concrete tracers) but
+RAISES TracerBoolConversionError under the deployed
+`jax.jit(jax.grad(f))` at EVERY call → a committed model that NaN→FDs
+each step with a retrace attempt (~13 ms) per theta. MANDATED:
+construction probe = the jitted transform evaluated over all edges'
+actual coefficient vectors. Coefficient lengths are provably UNIFORM
+in-scope (serialize() raises on inconsistent lengths,
+`_graph_serialize.py:99-110`, and every model build serializes) → one
+trace + ~60 µs warm evals; jit tracing is value-independent, so with
+fixed shapes construction success ⇒ success at EVERY theta — the
+per-call raise class vanishes; try/except stays defense-in-depth.
+Scope wording everywhere: "JAX-native UNDER JIT" (no Python control
+flow on theta/coeffs; jnp.where/lax.cond fine). Probed failure modes
+to catch: TracerArrayConversionError (numpy callback),
+ConcretizationTypeError (float() inside), TracerBoolConversionError
+(branching). Non-finite gradients RETURN inf (no raise) → the J
+finiteness check is the right net (G1(e) fixture valid). D-C1 is
+thereby pre-resolved; its cells re-encode as gate/pytest fixtures.
+
+### C. C interface corrected (design H1, L8, L9)
+
+v1's caller-allocated `binp_out[K*ni]` is unimplementable (ni exists
+only after the wrapper builds off; the core also unconditionally
+writes/sweeps J_out). MANDATED single-call form:
+`int ptd_moments_binp_exit(graph, nr_moments, const double *rewards,
+size_t rewards_len, double **binp_out /* malloc'd K*ni */,
+uint32_t **v_out, uint32_t **e_out, uint8_t **frozen_out /* ni each */,
+size_t *ni_out)` — C allocates (NULL-checked), caller frees; the
+wrapper allocates the dummy K×param_length J_out internally; decline
+set matches siblings INCLUDING `param_length == 0` (L8). The pybind
+binding returns ONE tuple `(binp K×ni, v, e, frozen)` from ONE off
+build (L9: two-call designs would make tape-build determinism
+load-bearing; single call removes the dependency). The per-input
+`frozen` flag is computed C-SIDE as `starting_vertex ∨
+coefficients_length==0` (design M4: the frozen set is
+correctness-load-bearing — an unskipped aux-constant edge is the
+wrong-but-finite formula-class hazard, and Python cannot compute it
+reliably from serialize() indices since input_specs order ≠ serialize
+order and sp.v is the C array index).
+
+### D. Python contraction spec completed (design M4/L7/L10/L11)
+
+In `_one(t)`: rows with `frozen[k]` are EXCLUDED from W evaluation and
+contribute 0 (never evaluate the callback's grad on a constant edge's
+coeffs — the empty/irrelevant-coeffs row could raise or poison);
+W rows for engaged k = `_cb_grad_jit(t_jnp, coeffs_k)` where
+`_cb_grad_jit = jax.jit(jax.grad(_captured_callback, argnums=0))` is
+built ONCE at model construction from the BUILD-TIME-CAPTURED
+`graph.weight_callback` (L10: update_weights(callback=) is one-shot
+per call and must be passed the same captured callable — mirroring
+the forward's capture at model build); coeffs fetched once at
+construction via the (v,e) export → the graph's live edge
+coefficients (uniform lengths ⇒ a stacked matrix + optional vmap).
+Finiteness check on J AFTER the skip-aware matmul (L7 — matches the
+shipped C sweep semantics: a non-finite binp on a FROZEN row lawfully
+ignored; on an engaged row it provably reaches J).
+
+### E. Cost framing corrected (design M5)
+
+The exact moments term does NOT replace the FD loop: model_bwd's 2P
+forwards still run for the pmf FD term; only grad_moments is swapped
+(same economics as linear/log/formula). Justification = mixed-scale
+accuracy. D-C2 measures the ADD-ON (exit + W + matmul) at ni≈10/100,
+simplified per L11 (uniform lengths, one trace).
+
+### F. Pre-C math validation: DONE at plan review (design M6)
+
+The refuter's probe composed FD-binp (marker-perturbing
+update_weights(callback=) per edge) with jax.grad-W on a branchy
+K=3/P=2 aux-coeff graph: **1.2e-10 vs the shipped
+`_moments_grad_theta`** (linear-equivalent callback, primal parity
+exact) and **4.1e-10 vs theta-FD** (nonlinear exp/ratio). The
+chain-rule composition is validated BEFORE any C. Fold the probe as
+D-C3's pre-implementation arm; post-implementation D-C3 re-verifies
+with the real exit (binp@C == _moments_grad_theta on the
+linear-equivalent callback — expected ~bitwise).
+
+### G. Fate table + G2 corrected (completeness HIGH-2/M1/M2)
+
+- FATE BREAKS EXIST (v1's "none expected" withdrawn):
+  `test_exact_grad_discrete.py::test_no_silent_fallback_logs_on_out_of_scope_weight_mode`
+  uses a callback-mode graph as THE out-of-scope example with a
+  float()-collapsing fixture — post-C it must be REWORKED (docstring +
+  fixture stays non-JAX-native so the DECLINE still fires; pin the NEW
+  static-decline message text, which must contain "weight_mode" and
+  "finite differences" or the test reworked accordingly);
+  `test_exact_grad_formula_mode.py:16` module docstring ("callback
+  mode remains out of scope") → §7 shipped-text list.
+- G2 gains: `test_weight_formula_svgd.py`,
+  `test_weight_formula_residual.py`, `test_weight_formula_theta_dim.py`,
+  `test_gate_weight_formula_conformance.py` (the process map's B row
+  applies in full — the core is edited); and the REAL callback
+  inventory (there is no test_weight_callback*.py):
+  `test_callback_svgd_kwarg.py`, `test_beta_prior.py`,
+  `test_weight_mode_probe_and_guards.py`, `test_joint_index_callback.py`
+  (+ note: `inference/test_cpp_from_callback.py` is a
+  construction-callback, excluded deliberately).
+- The formula-vs-callback equivalence cells in
+  `test_weight_formula_svgd.py:110-167` use float() callbacks →
+  non-JAX-native → decline → FD: behavior-preserving (the B §H-style
+  expectation, stated; G3 watches).
+
+### H. Blast radius + conventions (completeness M3/M4/LOW)
+
+- mcmc: builds these models at default exact_moment_grad → post-C a
+  callback graph under mcmc runs the construction probe (INFO logs;
+  gradients inert — zero jax.grad in mcmc.py). NOTE mcmc auto-infers
+  theta_dim = param_length() WITHOUT _resolve_inference_theta_dim →
+  the probe's P there is the coefficient length; harmless (probe
+  correctness doesn't depend on P) — one findings line.
+- Declared UNTOUCHED: `_compute_callback_cdf_zero`/`_cdf_zero_fn`
+  (forward-only), `pmf_from_graph` (FD custom_vjp, Deferred-3),
+  `moments_from_graph`/`method_of_moments` (§16b item 5), the
+  joint-index callback path (own follow-up; its docstring/CLAUDE.md
+  line 259 stay TRUE and must NOT be edited).
+- svgd cell 11 precondition stated: callback mode under svgd requires
+  explicit theta_dim=/theta_init= (raises otherwise) — the front-door
+  cell passes theta_dim.
+- G1(a) goldens enumerated (7): lin/log/formula × {plain, rewards} +
+  dph_plain (no dph_rw — refuted-permanent).
+- Implementation order I1 (C exit + wrapper, micro-gated) → I2
+  (header/C++/pybind) → I3 (Python: probe, dispatch, contraction,
+  messages) → I4 (tests + shipped text), committing per item; G5 adds
+  main-checkout rebuild, tracker §16b snapshot refresh, worktree
+  disposition; G3 amendments' operative content: -rf + preserved
+  per-chunk outputs; groups enumerated from split output on disk +
+  union==collected + per-group output file before tallies.
+- Deferred-1 wording softened: the exit is the same pre-contraction
+  CLASS Deferred-1 §4-P2 needs (caller-seeded cotangents replace the
+  factorial seed — the seeding block stays the orthogonal
+  comment-marked section); shapes to be confirmed at Deferred-1's own
+  activation, not promised here.
+- Stale tracker duplicate C row: deleted (rides in this commit).
+
+### Remaining pre-implementation de-risks
+
+- **D-C4 (repurposed §A):** decoupled-composition end-to-end probes.
+- **D-C5:** discrete×callback exclusion evidence (silently computes
+  vs fails loudly — never analogy).
+- D-C1/D-C2/D-C3-pre: RESOLVED at plan review (refuter probes,
+  recorded above); re-encoded as gate/pytest cells.
