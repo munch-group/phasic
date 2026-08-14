@@ -244,3 +244,18 @@ Both refuters SOUND-WITH-CORRECTIONS. **Binding v2 amendments:**
    switch unnecessary and avoided); the three C functions' only
    callers are the C++ wrappers; svgd rewards is a genuine model
    argument (not a closure).
+
+## Fold-time user decision (2026-08-14): the svgd opt-out BUNDLES into A
+
+Amendment 3's options resolved: A additionally relaxes R29's rewards
+arm (explicit `exact_moment_grad` becomes honored on the 1-D-rewards
+svgd leaf: True = the new default made explicit, False = FD opt-out;
+the 2-D/multivariate leaf keeps its rejection until G.2 — its exact
+path engages via per-feature slices regardless, but the kwarg's
+forwarding semantics there are G.2's design question) and forwards
+`exact_moment_grad` at the 1-D-rewards svgd call site (the D.4
+pattern: None not forwarded). Tests mirror the D.4 suite's rewards
+cells (flip from rejection to honored) + a forwarding-discrimination
+probe + the front-door svgd+rewards smoke. R29's message and the svgd
+docstring rewards clause update accordingly (shipped-text list).
+Batch G.2 shrinks to the 2-D/multivariate leaf polish.
