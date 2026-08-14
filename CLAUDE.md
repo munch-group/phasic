@@ -232,9 +232,17 @@ that same review, judged lower-severity / out of scope for it:
 - **The `was_dph`/discrete/was_dph quotient-rule combination remains
   deferred** (native DPH, `is_discrete=True`/`was_dph=False`, IS
   supported — only `was_dph=True`, i.e. `Graph.discretize()`, is excluded),
-  as is `weight_mode` in `{'formula', 'callback'}` and `observed_indices`
-  baked/dedup mode (would need a scatter-add of the upstream cotangent by
-  the inverse-index map before the quotient rule).
+  as is `weight_mode` in `{'formula', 'callback'}`. *(Update 2026-08-14,
+  Batch E merge `c475a78c`: `observed_indices` BAKED/dedup mode is now
+  SUPPORTED — the backward scatter-adds the cotangent to unique
+  granularity and reuses the quotient rule at the static index set; the
+  probe covers the exact baked union, so probe set == call set. Public
+  `Graph.svgd(exact_grad=...)` reaches it on CONTINUOUS jpgs (rule R31
+  rejects the discrete default with a rebuild message). NEW model kwarg
+  `exact_grad_decline={'raise','fd'}`: the svgd entry forwards `'fd'` —
+  a conditioning-gate-declined particle gets a host-side FD gradient +
+  WARNING instead of killing the cloud (user decision 2026-08-14); the
+  model-level default keeps the hard-raise contract.)*
 - **The MPFR-conditioning decline's rationale doesn't actually transfer**
   from `ptd_moments_grad_theta`'s gate (which protects against a genuine
   primal/gradient MPFR-representation mismatch that has no counterpart
