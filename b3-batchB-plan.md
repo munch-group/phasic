@@ -257,3 +257,165 @@ expected (verify by grep at implementation).
    (ni × tape-length × P-ish) — no benchmark gate planned (the moments
    adjoint replaces a 2P-call FD loop; net win expected as with
    log/linear); flag only if G4 refuters find a pathological case.
+
+## v2 amendment (2026-08-14, post two-refuter plan review — BINDING over v1 where they conflict)
+
+**Verdicts:** completeness/process refuter BROKEN-salvageable; math/design
+refuter SOUND-WITH-CORRECTIONS. Convergent on the two load-bearing
+defects (both plan-level; no code existed). All findings folded below.
+
+### A. Theta-dimension contract (both refuters' top finding; probe-confirmed)
+
+Formula is the ONLY weight mode where the model's theta dimension legally
+decouples from the C graph's `param_length` (tape `n_theta` governs;
+"Fix B1" tests + `_graph_serialize.py:478-490`). The v1 plan assumed
+`param_length` everywhere; on a lazily-built decoupled graph the
+callback's `update_weights(t)` RAISES (probed) — inside `pure_callback`
+that is a hard `XlaRuntimeError`, not NaN→FD — and `Graph.svgd`
+auto-infers `theta_dim` from `n_theta`, so the front door reaches it.
+
+**DECISION (v2): scope = ALIGNED graphs only** (model param_length ==
+C `graph->param_length`, which includes the canonical
+`set_param_length(k)` decoupled pattern since there the two agree).
+The lazy-build mismatched class gets a STATIC Python decline (truthful
+INFO: exact moment gradient requires the graph's C param_length to
+equal the model's theta dimension for weight_mode='formula'; keep FD)
+checked at model construction (`serialized['param_length'] !=
+_exact_graph.param_length()`). Full decoupled support (kind-conditional
+J width = `n_theta` in the core + a wrapper-owned weight-eval loop
+bypassing update_weights' length check) is documented as a follow-up,
+NOT attempted here — correctness-first, minimal core surface. No
+regression: that class keeps today's FD. Defense-in-depth: the
+callback's dispatch is wrapped try/except → NaN-fill (→ the standard
+per-theta FD fallback, logged) so no residual raise class can escape
+pure_callback. New de-risk **D-B6** verifies all three routes (lazy →
+decline log + working FD fit incl. the svgd front door; canonical
+set_param_length → exact engages; aligned plain → exact engages).
+
+### B. C wrapper decline set (both refuters): `graph->is_discrete` DOES NOT EXIST
+
+`struct ptd_graph` has no `is_discrete` field (the log wrapper's own
+comment at `phasic.c:11078-11085` documents exactly this trap). C-side
+declines: `graph->weight_tape == NULL` (defense-in-depth — unreachable
+via the model builder, probed) + `graph->was_dph` (LOAD-BEARING:
+was_dph×formula silently computes renormalized weights — probed by the
+math refuter, which RESOLVES D-B2's was_dph arm) + `theta_len !=
+graph->param_length` + rewards_len (core). Native-DPH exclusion lives in
+Python's `_effective_discrete` static gate ONLY (the log precedent,
+`__init__.py:7414-7421`).
+
+### C. POW rule corrected (math refuter M1, probe table vs jax.jacobian)
+
+The v1 factored form `v·(b/a·da + ln(a)·db)` is REFUTED at a=0 (NaN
+where truth is finite: `t0**2` at 0 → 0, `t0**1` at 0 → 1; reachable —
+edge weight 0 is legal). MANDATED: the two-term adjoint distribution
+`adj_a += ā·b·pow(a, b−1)`; `adj_b += ā·v·ln(a)` — matched JAX at every
+probed domain edge incl. a<0 integer-b (the ln(a) NaN is pushed into
+the exponent subtree and DISCARDED at PUSH_COEFF/PUSH_CONST leaves in
+reverse mode; state explicitly the rule is per-operand adjoint
+distribution, never the literal factored scalar). D-B1 is thereby
+pre-confirmed at plan review; its cases become G1(b)/pytest cells
+(a=0 × b∈{0.5,1,2,3}; a<0 integer b; `(t0-3)**2` at t0=3;
+theta-in-exponent; theta-indep non-leaf exponent `t0**(2.0*c0)`).
+
+### D. Reverse-pass specification (math refuter M4 — v1's sketch cannot work as written)
+
+The flat `ops[]` stream CANNOT be decoded backward (PUSH operand ints
+are indistinguishable from opcodes). MANDATED scheme: **Wengert list** —
+forward decode maintaining a producer-id stack; per executed op record
+`(opcode, arg_ids[≤3], output value)`; reverse over the node array with
+an adjoint array and `+=` accumulation (fan-out safe); PUSH_THETA
+leaves accumulate `dw_out[idx]`, PUSH_COEFF/PUSH_CONST discard.
+Comparisons/booleans/NOT/SELECT-condition: **zero-propagate** (push/
+contribute zero adjoints), NEVER a structural subtree skip — mandated
+because unguarded tapes reach the C executor (`_set_weight_tape`,
+`from_serialized` — probed; the compile-time guard is Python-only) and
+zero-propagate is the a.e.-correct convention there (matches JAX).
+SELECT: chosen branch's adjoint passes, unchosen gets zero (an
+unchosen arm with infinite gradient yields 0·inf=NaN → decline→FD —
+IDENTICAL to jax.where's convention, probed; test fixtures use
+finite-gradient arms or assert the decline).
+
+### E. Correctness-load-bearing skip + fixture mandates (math refuter M3; D-B4 RESOLVED)
+
+D-B4 resolved FAVORABLY by both refuters independently (source + probe):
+under formula, `update_weights` recomputes exactly {non-start edges
+with coefficients_length>0} (`phasic.c:5653/:5662` precede the tape
+branch), so the planned skip set equals the primal's frozen set
+EXACTLY. But for formula the cl==0 skip is not hygiene, it is
+CORRECTNESS: the tape evaluates fine with `coeff=NULL` when the formula
+uses no `c<j>` (probed), so an unskipped aux-constant edge contributes
+a WRONG-BUT-FINITE term the isfinite sweep cannot catch (in
+linear/log/dph the same omission is loud or harmless). G1(b) and the
+pytest suite MUST include an `add_aux_vertex_constant` fixture
+(constructible on continuous graphs; `joint_stop_prob_graph()` creates
+them internally) — FD-of-primal discriminates (FD never moves the
+constant edge).
+
+### F. De-risk phase re-scoped (per [[feedback_derisk_and_reevaluate]])
+
+D-B1 (POW), D-B2 (was_dph arm), D-B4: RESOLVED at plan review by
+refuter probes (recorded above; re-encoded as gate/pytest cells, not
+re-run as separate experiments). Remaining BEFORE implementation:
+- **D-B5** (fixture corrected per math-refuter m4: `sqrt(t0 - c0)` at
+  t0→c0 — weight 0 is legal, gradient inf — isolates the
+  gradient-only decline; v1's `log(t0*c0)` fails in the PRIMAL).
+- **D-B6** (theta-dim contract routes, §A).
+- **D-B2 native-DPH arm** (is_discrete=True × formula primal semantics
+  — folds into D-B6's script; Python-gated per §B).
+
+### G. Gate ladder corrections (completeness refuter M3-M6)
+
+- **G0 added**: record branch base (`ae217b0e` + the plan commit
+  `ad08dd27`; delta above the 7th stamp `798ddcaa` is docs-only).
+- **G1(a) goldens**: FRESH dump on the pre-B main-checkout install at
+  branch base (never reuse `/private/tmp` goldens across batches),
+  covering linear/log/dph REWARDLESS **and REWARDS-BEARING** fixtures
+  (A's shipped surface runs through the very core B edits; A's own gate
+  checked rewards by tolerance, not bitwise) + re-run the three
+  standing jac-gates AND `dr_batchA_i1_gate.py check` (vs a fresh
+  pre-B dump of its golden) on the B build.
+- **G1(b) mixed-scale cell**: FD-independent oracle mandated (closed
+  form on a homogeneity-amenable fixture, or a dense-JAX oracle on a
+  small graph) — FD-of-primal is self-defeating exactly there
+  (completeness refuter M6); benign-scale cells keep FD-of-primal.
+- **G2 additions** (process-map moments-core row, mandatory since B
+  edits the core): `test_gate_moments_3way.py`,
+  `inference/test_jax_integration.py` (9 ledgered failures — compare
+  against the ledger, not green), `inference/test_exact_grad_discrete.py`,
+  `inference/test_exact_grad_rewards.py` + the A-G5 rewards map row.
+
+### H. Blast radius & shipped-text additions (completeness refuter M7/m9)
+
+- **Multivariate**: post-B, formula + 2-D rewards via the multivariate
+  wrapper auto-engages exact per feature (the A mechanism). New pytest
+  cell with an absolute value pin (A's precedent).
+- **`Graph.mcmc`** builds these models at default exact_moment_grad:
+  post-B its formula models construct the exact path. Inert (mcmc is
+  gradient-free — zero jax.grad in mcmc.py, refuter-verified); one
+  line in the findings doc, no code.
+- **B/C serialization**: B assumes NO concurrent editor of
+  `ptd_b3_moments_core`; Batch C does not start until B merges
+  (process §3.4 strictly-serial rule governs over master §15's "in
+  parallel"; noted for the tracker).
+- **Shipped-text additions**: `test_svgd_exact_moment_grad_kwarg.py:13`
+  module docstring ("formula/callback modes" static-decline list —
+  becomes callback-only); the per-theta decline INFO text
+  (`__init__.py:7490-7496`) gains the formula causes
+  (tape-gradient-non-finite; the theta-length class is statically
+  declined per §A so it never reaches per-theta). Expectation stated
+  for `test_weight_formula_svgd.py`'s formula-vs-callback equivalence
+  cells: unaffected because plain svgd's moments cotangent is zero —
+  verified at G2, ledgered if drift appears.
+
+### I. House-convention completions (completeness refuter m8/m10)
+
+`b3-batchB-findings.md` created at de-risk start; implementation order
+I1 (C: wf autodiff + core case + wrapper, micro-gated) → I2 (header/
+C++/pybind) → I3 (Python dispatch + logs) → I4 (tests + shipped text),
+committing per item; G5 includes the main-checkout install rebuild +
+8th ledger stamp + tracker §16b snapshot refresh (its table is stale
+at items 1-8, missing 9-10 — sweep at close-out). Corrected v1 cites:
+the snapshot idiom lives at `phasic.c:10826-10827`/`:10841-10844`
+(forward) and `:10920-10923` (reverse); the tape length field is
+`ops_length` (not `n_ops`).
