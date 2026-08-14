@@ -297,6 +297,23 @@ be an early step of implementation, strengthening the motivating case.
 
 ## 5. Batch C — `weight_mode='callback'` exact gradient (Job A only)
 
+> **MERGED 2026-08-14 (`35a17364`, squash of `b3/batchC-callback`; G4 fold
+> `88e5cc68`) — PHASE 3 COMPLETE with this merge.** Shipped per
+> `b3-batchC-plan.md` v1+v2: option (b) below (the pre-contraction binp
+> exit, `PTD_B3_BINP_EXIT`, the shared core's 5th consumer) + Python
+> matmul contraction against the construction-jitted jax.grad of the
+> callback. The v2 review REFUTED the v1 theta-dim restriction —
+> update_weights(callback=) skips the length check BY DESIGN
+> (phasiccpp.cpp:1879-1884), so decoupled graphs are SUPPORTED, not
+> declined. Non-JAX-native callbacks = the permanent FD boundary
+> (option 2 below, adopted); the analytic-derivative-callback opt-in
+> (option 1) is ledgered in §16b. The "not verified by execution" risk
+> below was discharged at plan review (jit(grad) probed end-to-end
+> through a custom_vjp mimic under all five transform compositions);
+> the coefficients_length risk is inert for callback (the exit exports
+> full per-input coefficient vectors; no fixed-P read). The joint-index
+> callback path remains its own follow-up (unchanged below).
+
 **Current state: the callback receives concrete numpy, never a JAX tracer,
 by construction — `_apply_weight_callback` (`__init__.py:735-807`) does
 `float(callback(theta, coeffs))`, a hard cast that destroys any JAX
@@ -1124,7 +1141,13 @@ Phase 3 (gate: Batch 0 specifically -- A first, then B/C in parallel):
        with C was resolved STRICTLY SERIAL per process s3.4 -- C is now
        unblocked and must build on this merged core (4 kinds).
        b3-batchB-plan.md v1+v2 + merge review; b3-batchB-findings.md]
-  C    callback-mode exact gradient, Job A only (own de-risk)
+  C    callback-mode exact gradient, Job A only [MERGED 2026-08-14,
+       35a17364 -- the binp exit as the 5th core consumer; decoupled
+       theta SUPPORTED (v1 restriction refuted at review); JAX-native-
+       under-jit probe; non-JAX-native = permanent FD boundary.
+       *** PHASE 3 COMPLETE: the moments adjoint is exact across ALL
+       FOUR weight modes (linear cont+disc, log, formula, callback). ***
+       b3-batchC-plan.md v1+v2 + merge review; b3-batchC-findings.md]
   --   tracked, not yet scheduled: pmf_from_graph_joint_index's OWN
        callback-mode exact gradient (a second, separate piece of work from
        C -- see §5) -- sequence after C if/when wanted, no urgency found.
@@ -1363,6 +1386,15 @@ on any batch here):
     loudly reject them. Natural vehicle: Batch G.2 (the 2-D/multivariate
     leaf pass) or a standalone micro-fix. Also recorded in
     `b3-batchA-findings.md`.
+11. **NEW (2026-08-14, Batch C close-out): the analytic-derivative-
+    callback opt-in** — for NON-JAX-native weight callbacks, feasibility
+    Q4 option 1 (user supplies `weight_callback_grad(theta, coeffs) ->
+    (P,)`) slots into the SAME binp-exit contraction Batch C shipped;
+    declined as a default (a wrong user derivative is silently wrong
+    with no self-check), available as an explicit opt-in if ever
+    requested. Also ledgered here: the joint-index callback exit
+    (master §5 records it) and the batched-vmap W optimization (D-C2's
+    recorded option, b3-batchC-findings.md).
 
 ---
 

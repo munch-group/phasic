@@ -413,3 +413,38 @@ linear-equivalent callback — expected ~bitwise).
   vs fails loudly — never analogy).
 - D-C1/D-C2/D-C3-pre: RESOLVED at plan review (refuter probes,
   recorded above); re-encoded as gate/pytest cells.
+
+## G4 + G5 merge review (2026-08-14, squash-merge `35a17364`, fold `88e5cc68`)
+
+**G4 verdicts:** wiring/math refuter SOUND-WITH-CORRECTIONS (no wrong
+gradient/crash/leak; own oracle on 8 attack classes incl. theta-longer-
+than-param_length engaging with unused components exactly 0; 13k-call
+memory loops +0.00 MB; the deployed-jit probe catches coefficient-
+branching; per-arm update_weights restructure verified arm-by-arm and
+by executing five mode suites). Tests/process refuter
+SOUND-WITH-CORRECTIONS (suite non-vacuous under both simulated
+regressions; G3 arithmetic independently recomputed). Fold `88e5cc68`:
+the engaged-column matmul mask (the one behavior correction —
+conservative-direction), non-finite-net + canonical-class cells,
+construction-inside-capture fixes, success-size spies, the multivariate
+hard pin, gate (d) non-parameterized decline, the D-C2 measurement
+(5.7/9.7 ms at ni 10/100), deviations register (8 items).
+
+**Phase 3 is COMPLETE with this merge**: the moments adjoint is exact
+across ALL FOUR weight modes (linear continuous+discrete, log, formula,
+callback-JAX-native), with 1-D rewards everywhere applicable and the
+refuted combinations (dph+rewards; discrete×log/formula/callback)
+statically declined with truthful logs.
+
+**Follow-ups ledgered at this close-out (master §16b):** the
+analytic-derivative-callback opt-in for non-JAX-native callbacks
+(feasibility Q4 option 1 — declined as default, available as future
+work); the joint-index callback exit (master §5 already records it);
+the batched-vmap W optimization (D-C2's recorded option).
+
+**Close-out executed:** measured 9th ledger stamp; tracker C row →
+merged + §16b snapshot refresh; master plan §5 banner + §15 PHASE 3
+COMPLETE; CLAUDE.md; process-map callback row; memory (description
+line updated — callback no longer FD-only); main-checkout rebuild.
+Worktrees `../phasic-batchB` + `../phasic-batchC` and their branches
+deletable by the user.

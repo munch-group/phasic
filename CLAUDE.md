@@ -94,7 +94,12 @@ for `weight_mode='log'`, added in the log-weight-mode batch,
 Wengert-list reverse-mode autodiff over the weight-formula tape; the
 lazily-built decoupled formula class, C `param_length` ≠ model theta
 dimension, statically declines to FD with a log, full decoupled support
-being a ledgered follow-up in `b3-batchB-plan.md` v2 §A) defaults to
+being a ledgered follow-up in `b3-batchB-plan.md` v2 §A; and continuous
++ JAX-NATIVE-under-jit only for `weight_mode='callback'`, added by
+Batch C `35a17364` 2026-08-14 — the pre-contraction binp exit + Python
+`binp @ jax.grad(callback)` contraction, decoupled theta dimensions
+FULLY supported there, non-JAX-native callbacks permanently FD — the
+honest boundary for the arbitrary-Python escape hatch) defaults to
 `True` as of commit `f89b5b2b`;
 FD is used (and logged at INFO) only when out of scope or explicitly
 requested. *(Update 2026-08-14, Batch A `798ddcaa`: 1-D `rewards` are now
@@ -156,8 +161,9 @@ reviews but judged lower-severity / out of scope for those passes:
   until G.2). One documented exception to "never silently inert": an
   effectively-discrete model + 1-D rewards + explicit value is accepted
   but permanently FD (the refuted discrete correction) — R29 polices
-  leaf routing only, matching the callback precedent on leaf 5 (formula
-  is COVERED since Batch B, bar its own static declines);
+  leaf routing only, matching the non-JAX-native-callback precedent on
+  leaf 5 (formula is COVERED since Batch B, callback since Batch C for
+  JAX-native callbacks, bar each mode's own static declines);
   the Batch A G4 disposition, reversible by an additive reject arm.)* `method_of_moments.py` hands its
   model to `scipy.optimize.least_squares` with no `jac=`, so scipy computes
   its own internal FD Jacobian, independent of `exact_moment_grad`, with no

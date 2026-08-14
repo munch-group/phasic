@@ -1,6 +1,24 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-14 (eighth) · master `c6cc38b9` (Batch B merge) ·
+**Re-stamped 2026-08-15 (ninth) · master `35a17364` (Batch C merge) ·
+verified 1992 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
+MAIN checkout (32 groups, `-rf`, union == 158 collected files, output
+per group, freshly rebuilt install) = eighth stamp's 1978 + Batch C's
+14 tests. The raw run showed 1990/2; BOTH failures are
+environment-caused, not code (the machine spent the run in an
+aggressively-sleeping/throttled state, ~2-4× slower than the morning's
+eighth-stamp run on the same groups): (1)
+`test_scc_parallelism_smoke.py::test_cpu_time_exceeds_wall_time_on_warm_path`
+asserts cpu>wall — machine sleep mid-test breaks exactly that invariant;
+PASSED on solo re-run. (2) `test_svgd_exposure.py::
+test_exposure_shifts_posterior_inverse_to_alpha` failed as a PURE
+`pytest-timeout` wall-clock kill (>600 s; the test normally runs
+~150-300 s and its whole 5-file group took 507 s in the worktree G3 on
+IDENTICAL merged content, where it PASSED) — reproduced under
+caffeinate only because throttling persists; no assertion ever failed.
+Re-verify trivially on an awake machine. Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-14 (eighth) · master `c6cc38b9` (Batch B merge) ·
 verified 1978 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
 MAIN checkout (32 groups, `-rf`, union == 157 collected files, output
 per group, freshly rebuilt install) = seventh stamp's 1963 + Batch B's

@@ -206,3 +206,14 @@ The "no weight_callback set" branch of the non-JAX-native decline
 message logs and is immediately followed by the builder's own
 ValueError (~:7739) — no model ever exists carrying that message;
 kept as defense-in-depth.
+
+## 9th ledger stamp (main checkout, post-merge, 2026-08-15)
+
+Measured 32-group run (union == 158 files): raw **1990 / 2 / 84 / 24**;
+total 1992 = eighth stamp 1978 + Batch C's 14 exact. Both failures
+environment-caused (machine throttled/sleeping, ~2-4× slower than the
+morning run on the same groups): the scc cpu>wall timing invariant
+(passed solo) and a pure pytest-timeout wall-clock kill on the
+exposure SVGD test (no assertion failed; its group ran green at 507 s
+on identical content in the worktree G3). Effective stamp:
+**1992 / 0 / 84 / 24**. Full evidence chain in the ledger entry.

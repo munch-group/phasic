@@ -38,20 +38,21 @@ off 2026-08-11, as amended). Process: `b3-execution-process.md`. Baseline:
 `b3-test-baseline.md` — **re-stamped 2026-08-14 (eighth) at `c6cc38b9`
 (Batch B merged): measured post-merge tallies in the ledger.**
 Batches D Tier-1, 0, F, H, G.1, E, A, and B are MERGED; D.3
-closed-folded into G.1. **Phases 1, 1b, and 2 are COMPLETE; Phase 3 is
-A+B done, C open.** Next up: Batch C (callback-mode exact gradient,
-Job A only — now unblocked, the strictly-serial core rule satisfied by
-B's merge; note the core's contraction switch now has FOUR kinds and
-the `(rewards, rewards_len)` pair threads through every wrapper);
-Batch G.2 (2-D/multivariate leaf kwarg semantics; optional vehicle for
-master §16b item 10); CC-2.
+closed-folded into G.1. **Phases 1, 1b, 2, AND 3 are COMPLETE** (the moments adjoint is
+exact across all four weight modes — linear cont+disc, log, formula,
+callback-JAX-native — with 1-D rewards everywhere applicable). Next
+up: Batch G.2 (2-D/multivariate leaf kwarg semantics; optional vehicle
+for master §16b item 10); CC-2; deferred units. The core's contraction
+switch has FIVE kinds (incl. the Batch-C binp exit).
 Master plan §16b (authoritative list, now items 1-10): items 2 and 3
 CLOSED at the H merge (comment corrected in situ; conversion caching
 declined with evidence); item 9 (R9 jsp classifier hole) CLOSED at the
 G.1 merge; item 10 ADDED at the A merge (pre-existing 2-D-rewards
 FORWARD shape defect on the 1-D leaf — vehicle: G.2 or standalone);
-items 1/4/5/6/7/8 open, statuses unchanged (re-reviewed at the Phase-2
-boundary). This note refreshed at B's close-out (2026-08-14).
+items 1/4/5/6/7/8 open, statuses unchanged; item 11 ADDED at C's
+close-out (analytic-derivative-callback opt-in + joint-index callback
+exit + batched-vmap W, all ledgered). This note refreshed at C's
+close-out (2026-08-14).
 Status vocabulary: `not-started | de-risk | plan-review | implementing |
 gate | diff-review | merged | parked | blocked(<on>)`.
 
@@ -74,7 +75,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 |---|---|---|---|---|
 | D.3 | leaf-2b plumbing (joint-index + exposure) | **CLOSED — folded into Batch G (user decision 2026-08-13)** after a BROKEN plan-review verdict (shipped rule R9 statically rejects the target leaf; master §6 premise false, Class-D amendment filed). D.3's user value ships via G leaf 1 (epoch-route exact gradients); R9 jsp hole (§16b item 9) fixed in G; review corrections transferred to G's plan | — | b3-batchD3-plan.md v1 + review record + disposition |
 | E | Joint-index baked-mode scatter-add + svgd leaf-2 `exact_grad` | **merged** (branches/worktree deletable) — E0 GO; mid-batch user decision 2026-08-14 (`exact_grad_decline='fd'` per-particle fallback for svgd); G1 49/49; G2 156/3/1; G3 1947/0/84/24; G4 2 refuters S-W-C folded | b3/batchE-baked-exact | b3-batchE-plan.md v2 + amendment + merge review; b3-batchE-findings.md | `c475a78c` |
-| C | Callback-mode exact gradient (Job A) | **plan-review** (v1 drafted from the feasibility doc + master §5 updated for the 4-kind core: PTD_B3_BINP_EXIT pre-contraction exit as 5th consumer, Python matmul contraction vs jax.grad-of-callback; JAX-native probe at construction, non-JAX-native = PERMANENT FD boundary; B's ALIGNED-theta-dim lesson transferred; two plan refuters launching) | b3/batchC-callback (planned) | b3-batchC-plan.md v1 |
+| C | Callback-mode exact gradient (Job A) | **MERGED 2026-08-14** (squash `35a17364`, fold `88e5cc68`; 9th stamp = measured post-merge run; **PHASE 3 COMPLETE** — all four weight modes exact) (plan v1+v2 two-refuter review — headline: the ALIGNED-theta-dim restriction REFUTED for callback, decoupled graphs SUPPORTED; deployed-transform jit(grad) probe; D-C5 was_dph evidence load-bearing; impl `ff0e9d91`+`e6d3b613`: binp exit 5th core consumer + Python matmul contraction; micro-gates ALL PASS incl. 7-golden byte-identity + exit==linear-exact BITWISE at mixed scale + LAZY-decoupled engagement; 12/12 new tests + discrete-file fate rework; G2 17-file map 200/31/3 zero fail) | b3/batchC-callback (worktree ../phasic-batchC) | b3-batchC-plan.md v1+v2; b3-batchC-findings.md |
 | B | Formula-mode exact gradient | **MERGED 2026-08-14** (squash `c6cc38b9`, G4 fold `d6bb0c99`; Wengert-list wf-tape autodiff + PTD_B3_FORMULA core kind, ALIGNED-scope static gates; micro-gates ALL PASS incl. rewards-bearing byte-identity goldens + formula==linear-exact BITWISE at mixed scale; G3 1975/0/84/24 = ledger+12 pre-fold, 15 tests post-fold; two G4 refuters SOUND / SOUND-WITH-CORRECTIONS — the wiring refuter's independent oracle 24/24 at ≤3.3e-15, zero memory drift; 8th ledger stamp = measured post-merge run; lazy-decoupled formula class stays FD-with-log, ledgered follow-up; **Batch C unblocked** — strictly-serial satisfied) | b3/batchB-formula (worktree deletable) | b3-batchB-plan.md v1+v2+merge review; b3-batchB-findings.md |
 | A | Rewards support in moments adjoint + bundled svgd opt-out | **MERGED 2026-08-14** (squash `798ddcaa`, impl `47cb980b` + G4-fold `1ee12b3f`; micro-gates ALL PASS incl. G4-fold log leg + dph sub-kind contract; pre-fold G3 1957/0/84/24 = ledger+6; two G4 refuters SOUND-WITH-CORRECTIONS, zero shipped-code defects, corrections folded; 7th ledger stamp = measured post-merge run; dph rewards REFUTED by computation, permanent static decline; svgd 1-D-rewards leaf forwards exact_moment_grad = G leaf 3 delivered, G.2 shrinks to 2-D/multivariate; B/C unblocked) | b3/batchA-rewards (worktree deletable) | b3-batchA-plan.md v2 + G4 + G5 merge review; b3-batchA-findings.md |
 | G | SVGD plumbing Tier 3 | **leaf 1 MERGED as Batch G.1 (`0c052cfe`)** — public `exact_final_grad` + R30 + R9 jsp fix (§16b item 9 closed) + R29 update; D.3's user value delivered (exposure + epoch_starts=[0.0] = fully-exact batched route); gates G0-G5 all green (G3 1917/0/84/24, flakes closed); branch/worktree deletable. Leaves 3/4 still blocked(A) | per leaf | master plan §9 + b3-batchG1-plan.md v2 + merge review + b3-batchG1-findings.md |
