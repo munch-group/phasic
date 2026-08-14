@@ -305,3 +305,55 @@ Post-fold state: micro-gates ALL PASS (incl. new b2/c legs), batch
 files 21/3, G2 map 99 passed / 1 xfailed, expected full-suite
 **1963 / 0 / 84 / 24** (pre-fold G3 1957 + 6 fold tests; fold src
 changes are comments/docstrings only).
+
+## G5 merge review (2026-08-14, squash-merge `798ddcaa` + fold `1ee12b3f`)
+
+**Merge mechanics:** master was exactly the branch base (`54d0c086`);
+squash staged only the branch's 12 files (no pyproject/pixi.lock churn;
+the user's unrelated working-tree modifications untouched). Main-checkout
+install rebuilt post-merge; the 7th ledger stamp is recorded in
+`b3-test-baseline.md` from a MEASURED post-merge full-suite run in the
+main checkout (chunked under the new §4 amendment: groups enumerated from
+split output, union + per-group-output checks passed).
+
+**Shipped-surface summary (what a future session needs):**
+- C: `ptd_b3_moments_core(..., const double *rewards, size_t rewards_len,
+  enum ptd_b3_contract kind, ...)` — validation `rewards_len ∈ {0, n}`;
+  hook 1 per-stage seed re-scale INSIDE the j=1..K loop; hook 2 the
+  adjoint-side elementwise VJP. Linear wrapper
+  `ptd_moments_grad_theta(graph, nr_moments, rewards, rewards_len, J_out)`;
+  log wrapper takes the pair after theta; dph wrapper REJECTS
+  rewards_len != 0 (first statement, before any allocation) — REFUTED
+  combination, permanent.
+- Python: 1-D rewards → exact via the 2nd pure_callback arg
+  (expand_dims; empty (0,) sentinel = rewardless); discrete+rewards and
+  2-D-on-1-D-leaf → static INFO declines; multivariate wrapper's
+  per-feature slices engage exact automatically.
+- svgd: 1-D-rewards leaf forwards exact_moment_grad (R29 1-D arm
+  relaxed; 2-D keeps rejection with the G.2 message).
+
+**Decision points surfaced to the user (standing bring-forward):**
+1. **R29 discrete+rewards inert-kwarg disposition (G4 wiring M3)** —
+   documented-not-rejected (leaf-routing scope, formula/callback
+   precedent, and the call-time `discrete=` override never reaches
+   SvgdConfig so a config arm would be incomplete). VETO = add an
+   additive reject arm (plus optionally plumb `discrete` into
+   `from_svgd_call`); purely additive strictness, no shipped-behavior
+   change required to reverse.
+2. **Batch G.2 scope confirmation** — shrunk to the 2-D/multivariate
+   leaf's kwarg forwarding semantics + (optional vehicle) the §16b
+   item-10 2-D forward shape defect.
+
+**Unblocked:** Batch B (formula) and Batch C (callback) — note the core
+contraction signature now carries `(rewards, rewards_len)`; a 4th/5th
+kind must thread it or decline rewards loudly. G.2 as above.
+
+**Close-out checklist executed:** ledger 7th stamp (measured); tracker
+row → merged; master plan §3 banner + §15 Phase-3/Phase-4 ticks with the
+B/C signature note + §16b item 10 (the pre-existing 2-D forward defect);
+CLAUDE.md B3-moments section + D-Tier-1 bullet updated (rewards support,
+R29 relaxation, the documented inert-kwarg exception); process map: new
+rewards rows + the bf-chunk enumeration amendment; memory
+(`project_b3_analytic_gradient.md`); worktree `../phasic-batchA` +
+branch `b3/batchA-rewards` left for the user to delete (established
+convention).

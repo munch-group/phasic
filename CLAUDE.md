@@ -91,7 +91,18 @@ The **builder-based** (`θ → Graph` *function*) likelihood API `Graph.pmf_from
 for `weight_mode='log'`, added in the log-weight-mode batch,
 `b3-log-weight-mode-plan.md`) defaults to `True` as of commit `f89b5b2b`;
 FD is used (and logged at INFO) only when out of scope or explicitly
-requested. Found via adversarial review of the default-flip (three
+requested. *(Update 2026-08-14, Batch A `798ddcaa`: 1-D `rewards` are now
+supported by the exact path — `ptd_b3_moments_core` re-scales at every
+stage of the moment chain (seed-only scaling is provably wrong for K≥2)
+with the matching adjoint-side VJP; linear + log wrappers take
+`(rewards, rewards_len)`. Two static declines are permanent and
+INFO-logged: DISCRETE+rewards — the continuous→discrete moment correction
+is REFUTED under reward weighting (needs U/P commutation, broken by
+reward scaling; 2nd moments provably wrong) — and 2-D rewards on the 1-D
+leaf (the multivariate wrapper's per-feature 1-D slices engage exact).
+A direct 2-D-rewards call on the 1-D leaf fails in the FORWARD with a
+shape-contract error — pre-existing, ledgered at Batch A's merge
+review.)* Found via adversarial review of the default-flip (three
 independent review passes tasked with refuting, not confirming); two real
 bugs surfaced there were fixed (rewards silently ignored by the exact
 Jacobian, commit `315ce9c8`; a gradient-norm-clip defect in `svgd_step` that
@@ -134,7 +145,13 @@ reviews but judged lower-severity / out of scope for those passes:
   FD-only. Same batch: `Graph.svgd(exact_moment_grad=...)` now exists —
   forwarded on the no-rewards moments leaf only; every other leaf rejects
   an explicit value via svgd_config rule R29, so it can never be silently
-  inert.)* `method_of_moments.py` hands its
+  inert. Update 2026-08-14, Batch A: the 1-D-rewards svgd leaf now ALSO
+  forwards it (R29's 1-D arm relaxed; 2-D/multivariate keeps rejection
+  until G.2). One documented exception to "never silently inert": an
+  effectively-discrete model + 1-D rewards + explicit value is accepted
+  but permanently FD (the refuted discrete correction) — R29 polices
+  leaf routing only, matching the formula/callback precedent on leaf 5;
+  the Batch A G4 disposition, reversible by an additive reject arm.)* `method_of_moments.py` hands its
   model to `scipy.optimize.least_squares` with no `jac=`, so scipy computes
   its own internal FD Jacobian, independent of `exact_moment_grad`, with no
   visibility either way.

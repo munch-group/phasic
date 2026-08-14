@@ -127,6 +127,19 @@ jac-gates staying value-identical.
 
 ## 3. Batch A — rewards support in the moments adjoint
 
+> **MERGED 2026-08-14 (`798ddcaa`, squash of `b3/batchA-rewards`).** Shipped
+> as planned with two deviations recorded in `b3-batchA-plan.md`'s dated
+> amendments: (1) dph/discrete rewards were REFUTED by direct computation
+> at plan review (not implemented-then-gated) — the c2d correction requires
+> U/P commutation, broken by reward scaling; permanent static decline with
+> an INFO log; (2) the svgd 1-D-rewards opt-out was BUNDLED in by user
+> decision (R29 1-D arm relaxed; Batch G leaf 3 delivered here, G.2
+> shrinks to the 2-D/multivariate leaf). Gates: rewardless byte-identity
+> BITWISE cross-install; rewards vs primal-FD 1e-11..2e-10 incl. extreme
+> scales; all-ones == rewardless bitwise; log-mode leg 1.4e-10; G3
+> 1957/0/84/24 = ledger+6; two G4 refuters SOUND-WITH-CORRECTIONS (no
+> shipped-code defect, corrections folded `1ee12b3f`).
+
 **Headline correction to the task's own starting hypothesis (verified
 empirically against the live package, not assumed):** the fix is **not**
 "seed `a_0` with `rewards`." `Graph.moments(power, rewards)`
@@ -1068,7 +1081,23 @@ Phase 2 (gate: Batch F):
        has no real payoff before E lands.
 
 Phase 3 (gate: Batch 0 specifically -- A first, then B/C in parallel):
-  A    rewards support (own new dr_*.py gate for _dph reward-weighted case)
+  A    rewards support [MERGED 2026-08-14, 798ddcaa -- 1-D rewards in the
+       exact moments adjoint (per-stage re-scale + adjoint VJP in
+       ptd_b3_moments_core; linear+log wrappers take (rewards,
+       rewards_len)); dph+rewards REFUTED by direct computation (c2d
+       correction needs U/P commutation, broken by reward scaling; 2nd
+       moments provably wrong) -- permanent static decline, NOT a feature
+       gap, so the planned "_dph reward-weighted case" gate became a
+       both-sub-kinds CONTRACT check in dr_batchA_i1_gate.py (c);
+       BUNDLED (user decision 2026-08-14): svgd 1-D-rewards leaf now
+       forwards exact_moment_grad, R29 1-D arm relaxed (leaf 3 of Batch G
+       delivered here; G.2 shrinks to the 2-D/multivariate leaf).
+       B/C note: the shared core's contraction signature now carries
+       (rewards, rewards_len) before the kind enum -- a 4th/5th variant
+       must thread it (or pass NULL, 0 explicitly and decline rewards
+       with a log, never silently).
+       Two G4 refuters SOUND-WITH-CORRECTIONS (no shipped-code defect);
+       b3-batchA-plan.md + b3-batchA-findings.md]
   B    formula-mode exact gradient (own new gate + POW de-risk)
   C    callback-mode exact gradient, Job A only (own de-risk)
   --   tracked, not yet scheduled: pmf_from_graph_joint_index's OWN
@@ -1079,6 +1108,9 @@ Phase 4 (gate: Batch A for leaves 3/4; gate: Batch H, already satisfied in
 Phase 1, for leaf 1 -- so leaf 1's G-work may start as soon as H completes,
 independent of Phase 3's timeline):
   G    SVGD plumbing leaves 3/4 (needs A) and leaf 1 (needs H)
+       [leaf 1 DELIVERED by G.1 (0c052cfe); leaf 3 (1-D rewards)
+       DELIVERED by A's bundle (798ddcaa); REMAINING = G.2, the
+       2-D/multivariate leaf's kwarg forwarding semantics only]
 
 Not scheduled in this plan (deferred, own future initiatives):
   Deferred 1  hierarchical/SCC two-level adjoint
@@ -1294,6 +1326,18 @@ on any batch here):
    joint_prob arm byte-identical (programmatically verified); pinned
    tests both arms; R30's no-epochs branch got the same kind-aware
    treatment so the trap class is closed in both rules.**
+10. **NEW (2026-08-14, found during Batch A, PRE-EXISTING — verified
+    failing identically on the pre-A install): direct 2-D rewards on the
+    1-D `pmf_and_moments_from_graph` leaf fail in the FORWARD** with a
+    shape-contract error (`Expected: (2, 4), Actual: (2, 2)` — the
+    pure_callback result spec doesn't account for the feature axis).
+    The production 2-D route (`pmf_and_moments_from_graph_multivariate`,
+    per-feature 1-D slices) works and — post-A — engages the exact
+    gradient per feature. Nothing user-facing routes 2-D rewards at the
+    1-D leaf directly; still, the forward should either support or
+    loudly reject them. Natural vehicle: Batch G.2 (the 2-D/multivariate
+    leaf pass) or a standalone micro-fix. Also recorded in
+    `b3-batchA-findings.md`.
 
 ---
 

@@ -1,6 +1,19 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-14 (sixth) · master `c475a78c` (Batch E merge) ·
+**Re-stamped 2026-08-14 (seventh) · master `798ddcaa` (Batch A merge) ·
+verified 1963 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
+MAIN checkout (32 groups, `-rf`, freshly rebuilt install) — the first
+stamp run under the A-G4 process amendment: groups enumerated from the
+split output on disk, union == the 156 collected files verified, an
+output file confirmed per group before tallies. Arithmetic check: sixth
+stamp's expectation 1951 + Batch A's 6 net new at G3 + the G4 fold's 6
+(rewards file 6 → 12) = 1963, exact match. Run was sleep-killed twice
+and resumed from preserved per-group outputs (no green group re-run).
+Incidental `jax._src.callback` ERROR log lines inside passing tests are
+expected (decline-raise legibility tests exercise those paths).
+Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-14 (sixth) · master `c475a78c` (Batch E merge) ·
 verified 1947 / 0 / 84 / 24 via the batchE worktree's chunked run (31
 groups, `-rf`) on content identical to the merged tree — ledger 1919
 (fifth stamp's expectation) + 28 new E tests at G3 time; the G4 fold

@@ -100,11 +100,13 @@ run green (not merely no-worse):
 | SCC / hierarchical | `test_scc_compose.py`, `test_hierar_elimination_env.py`, `test_scc_*` |
 | FFI handlers | `test_gate_ffi_vs_pybind.py`, `test_gate_trace_ffi_equivalence.py` |
 | SVGD-touching (any) | `test_svgd.py` (slow — run once at G3, not per-iteration) |
-| svgd config/validation (rules, kwargs, ledger) | `test_svgd_config.py`, `inference/test_svgd_exact_moment_grad_kwarg.py`, `inference/test_svgd_exact_final_grad_kwarg.py`, `inference/test_svgd_exact_grad_kwarg.py`, `inference/test_svgd_exposure.py`, `inference/test_svgd_api_parity.py`, `test_svgd_assumptions.py` *(row added 2026-08-13, G.1 G5 — the map predated the rule suites; proposed by the D.3/G.1 reviews)* |
+| svgd config/validation (rules, kwargs, ledger) | `test_svgd_config.py`, `inference/test_svgd_exact_moment_grad_kwarg.py`, `inference/test_svgd_exact_moment_grad_rewards.py`, `inference/test_svgd_exact_final_grad_kwarg.py`, `inference/test_svgd_exact_grad_kwarg.py`, `inference/test_svgd_exposure.py`, `inference/test_svgd_api_parity.py`, `test_svgd_assumptions.py` *(row added 2026-08-13, G.1 G5 — the map predated the rule suites; proposed by the D.3/G.1 reviews; rewards file added 2026-08-14, A G5)* |
+| Moments-adjoint rewards (Batch A surface) | `inference/test_exact_grad_rewards.py` (+ `experiments/dr_batchA_i1_gate.py check` when the C core/wrappers change) *(row added 2026-08-14, A G5)* |
 | Joint-index / sojourn (amended 2026-08-13; +E 2026-08-14) | + `inference/test_exact_grad_joint_index.py`, `inference/test_exact_grad_joint_index_baked.py` |
 | Gradient defect regression (always, cheap) | `test_fd_gradient_mixed_scale.py` |
 
 <!-- AMENDMENT 2026-08-13 (G.1 G5), STRENGTHENED 2026-08-14 (E G5): chunked G3 commands ALWAYS pass -rf, AND each chunk's full pytest output is preserved (file per chunk) until the merge review records the tallies -- summarizing/tailing a chunk's output before failure names are recorded voids the run. -->
+<!-- AMENDMENT 2026-08-14 (A G4, the bf-chunk incident): the chunk-group list is enumerated from the split output ON DISK at run time -- never assumed or hardcoded. Before tallies are recorded: (1) the union of the group files must equal the collected test-file list; (2) an output file must exist for every group. A missing group voids the run. (Batch A added a 156th test file; split -l 5 made 32 groups but only aa..be were initially run; caught by tally arithmetic, 1954 != ledger+6.) -->
 **G3 — full-suite differential vs. the baseline ledger.**
 `pixi run pytest tests/pytest/` compared against `b3-test-baseline.md`:
 **zero new failures, zero new errors**; any new XPASS or vanished XFAIL is
