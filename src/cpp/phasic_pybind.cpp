@@ -1934,6 +1934,15 @@ str
       "(nr_moments*param_length); theta must match the values most recently "
       "passed to update_weights(theta, log=True); empty => not applicable "
       "(FD fallback).")
+    .def("_moments_grad_theta_formula", &phasic::Graph::moments_grad_theta_formula,
+      py::arg("nr_moments"), py::arg("theta"),
+      py::arg("rewards") = std::vector<double>(),
+      py::call_guard<py::gil_scoped_release>(),
+      "Batch B: exact moment-vector Jacobian d[m]/dtheta for a continuous "
+      "weight_mode='formula' graph (reverse-mode autodiff over the "
+      "weight-formula tape), flat row-major (nr_moments*param_length); "
+      "theta must match the values most recently passed to "
+      "update_weights(theta); empty => not applicable (FD fallback).")
     .def("_sojourn_grad_theta_subset", &phasic::Graph::sojourn_grad_theta_subset,
       py::arg("indices"),
       py::arg("skip_condition_gate") = false,

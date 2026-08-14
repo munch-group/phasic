@@ -511,6 +511,21 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
 /* ^ Batch A: rewards/rewards_len appended, same contract as
  * ptd_moments_grad_theta. */
 
+/* Batch B (2026-08-14): exact moment-vector Jacobian for a CONTINUOUS
+ * weight_mode='formula' graph (reverse-mode autodiff over the
+ * weight-formula tape; see the implementation comment in phasic.c and
+ * b3-batchB-plan.md). Same contract as ptd_moments_grad_theta_log:
+ * J_out row-major nr_moments*param_length; theta must match the last
+ * update_weights(theta) call; 0 = success, -1 = not applicable (FD
+ * fallback: was_dph, no weight tape, theta_len != param_length, MPFR
+ * conditioning, structural tape failure, or a non-finite Jacobian --
+ * e.g. a formula gradient like d/dt sqrt(t-c) at the domain boundary).
+ * is_discrete has no C field: the Python caller MUST gate native-DPH
+ * graphs (same note as the log variant). */
+int ptd_moments_grad_theta_formula(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out);
+
 /* B3 joint-index extension: exact FORWARD-mode Jacobian
  * d[sojourn(indices[0..k-1])]/dtheta for a continuous, weight_mode='linear'
  * parameterized graph (native DPH, is_discrete=True/was_dph=False, is also

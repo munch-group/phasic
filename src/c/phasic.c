@@ -10793,9 +10793,178 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
  * this static core's signature when they land (Batch A: rewards; Batch B:
  * PTD_B3_FORMULA + internal pre-outk dw/dtheta stage; Batch C: its
  * pre-contraction exit) — nothing speculative is designed in. */
-enum ptd_b3_contract { PTD_B3_LINEAR, PTD_B3_LOG, PTD_B3_DPH };
+enum ptd_b3_contract { PTD_B3_LINEAR, PTD_B3_LOG, PTD_B3_DPH, PTD_B3_FORMULA };
 
 struct ptd_b3_dph_ctx { const double *Sv; const double *SigmaCv; };
+
+/* ===== Batch B: reverse-mode autodiff over the weight-formula tape.
+ * Wengert-list scheme (mandated at plan review, b3-batchB-plan.md v2
+ * SS-D -- the flat ops[] stream cannot be decoded backward: PUSH_*
+ * operand ints are indistinguishable from opcodes): the forward decode
+ * mirrors ptd_weight_tape_eval_arrays exactly (same pop order: b then a
+ * for 2-arg ops; b,a,cond for SELECT), recording one node per executed
+ * op (opcode, <=3 arg node ids, output value); the reverse pass walks
+ * the nodes backward distributing adjoints with += (fan-out safe).
+ * PUSH_THETA leaves accumulate into dw_out; PUSH_COEFF/PUSH_CONST
+ * leaves DISCARD their adjoint -- the discard is what quarantines POW's
+ * ln(a) NaN when a<0 under a theta-INDEPENDENT exponent subtree
+ * (probe-verified vs jax.jacobian at plan review). Comparisons/
+ * booleans/NOT and SELECT's condition ZERO-propagate (distribute
+ * nothing) -- never a structural subtree skip: unguarded tapes CAN
+ * reach this executor via _set_weight_tape/from_serialized, and
+ * zero-propagate is the a.e.-correct convention there. Zero adjoints
+ * are NOT skipped in the reverse loop: a 0 cotangent meeting an
+ * infinite local derivative must produce NaN (JAX's convention --
+ * decline -> FD), not silently drop.
+ * Returns 0 on success; nonzero on STRUCTURAL failure only (stack
+ * under/overflow, bad operand index, unknown opcode, unbalanced stack)
+ * -> the caller declines the whole call to FD. NUMERICAL non-finites
+ * in dw_out are NOT failures: they flow into J_out and the core's
+ * final isfinite sweep declines there (the D-B5 contract). */
+static int ptd_wf_grad_theta(
+        const struct ptd_weight_tape *tape,
+        const double *theta, size_t theta_len,
+        const double *coeff, size_t coeff_len,
+        double *dw_out /* theta_len entries, ZEROED by the caller */) {
+    size_t cap = tape->ops_length ? tape->ops_length : 1;
+    if (tape->stack_depth > PTD_WF_MAX_STACK) return 1;
+    int *n_op = (int*)malloc(cap*sizeof(int));
+    int *n_a0 = (int*)malloc(cap*sizeof(int));
+    int *n_a1 = (int*)malloc(cap*sizeof(int));
+    int *n_a2 = (int*)malloc(cap*sizeof(int));
+    int *n_leaf = (int*)malloc(cap*sizeof(int));
+    double *n_val = (double*)malloc(cap*sizeof(double));
+    double *nadj = (double*)malloc(cap*sizeof(double));
+    int stk[PTD_WF_MAX_STACK];
+    int rc = 1;
+    size_t nn = 0, sp = 0, i = 0;
+    if (!n_op || !n_a0 || !n_a1 || !n_a2 || !n_leaf || !n_val || !nadj) goto done;
+    while (i < tape->ops_length) {
+        int op = tape->ops[i++];
+        int a0 = -1, a1 = -1, a2 = -1, leaf = -1;
+        double v = 0.0;
+        switch (op) {
+            case PTD_WF_PUSH_THETA: {
+                if (i >= tape->ops_length) goto done;
+                int idx = tape->ops[i++];
+                if (idx < 0 || (size_t)idx >= theta_len) goto done;
+                leaf = idx; v = theta[idx];
+                break;
+            }
+            case PTD_WF_PUSH_COEFF: {
+                if (i >= tape->ops_length) goto done;
+                int idx = tape->ops[i++];
+                if (idx < 0 || (size_t)idx >= coeff_len) goto done;
+                v = coeff[idx];
+                break;
+            }
+            case PTD_WF_PUSH_CONST: {
+                if (i >= tape->ops_length) goto done;
+                int idx = tape->ops[i++];
+                if (idx < 0 || (size_t)idx >= tape->consts_length) goto done;
+                v = tape->consts[idx];
+                break;
+            }
+            case PTD_WF_NEG: case PTD_WF_EXP: case PTD_WF_LOG:
+            case PTD_WF_SQRT: case PTD_WF_LOGISTIC: case PTD_WF_NOT: {
+                if (sp < 1) goto done;
+                a0 = stk[--sp];
+                double a = n_val[a0];
+                v = (op==PTD_WF_NEG) ? -a
+                  : (op==PTD_WF_EXP) ? exp(a)
+                  : (op==PTD_WF_LOG) ? log(a)
+                  : (op==PTD_WF_SQRT) ? sqrt(a)
+                  : (op==PTD_WF_LOGISTIC) ? ptd_wf_logistic(a)
+                  : (a == 0.0 ? 1.0 : 0.0);
+                break;
+            }
+            case PTD_WF_SELECT: {
+                if (sp < 3) goto done;
+                a2 = stk[--sp];   /* false arm */
+                a1 = stk[--sp];   /* true arm */
+                a0 = stk[--sp];   /* condition */
+                v = (n_val[a0] != 0.0) ? n_val[a1] : n_val[a2];
+                break;
+            }
+            default: {
+                if (op < PTD_WF_ADD || op > PTD_WF_OR) goto done;
+                if (sp < 2) goto done;
+                a1 = stk[--sp];   /* b */
+                a0 = stk[--sp];   /* a */
+                double a = n_val[a0], b = n_val[a1];
+                switch (op) {
+                    case PTD_WF_ADD: v = a + b; break;
+                    case PTD_WF_SUB: v = a - b; break;
+                    case PTD_WF_MUL: v = a * b; break;
+                    case PTD_WF_DIV: v = a / b; break;
+                    case PTD_WF_POW: v = pow(a, b); break;
+                    case PTD_WF_EQ: v = (a == b) ? 1.0 : 0.0; break;
+                    case PTD_WF_NE: v = (a != b) ? 1.0 : 0.0; break;
+                    case PTD_WF_LT: v = (a < b) ? 1.0 : 0.0; break;
+                    case PTD_WF_GT: v = (a > b) ? 1.0 : 0.0; break;
+                    case PTD_WF_LE: v = (a <= b) ? 1.0 : 0.0; break;
+                    case PTD_WF_GE: v = (a >= b) ? 1.0 : 0.0; break;
+                    case PTD_WF_AND: v = (a != 0.0 && b != 0.0) ? 1.0 : 0.0; break;
+                    case PTD_WF_OR: v = (a != 0.0 || b != 0.0) ? 1.0 : 0.0; break;
+                    default: goto done;
+                }
+                break;
+            }
+        }
+        if (nn >= cap || sp >= PTD_WF_MAX_STACK) goto done;
+        n_op[nn] = op; n_a0[nn] = a0; n_a1[nn] = a1; n_a2[nn] = a2;
+        n_leaf[nn] = leaf; n_val[nn] = v;
+        stk[sp++] = (int)nn;
+        nn++;
+    }
+    if (sp != 1 || nn == 0) goto done;
+    {
+        for (size_t x = 0; x < nn; ++x) nadj[x] = 0.0;
+        nadj[nn-1] = 1.0;
+        for (long x = (long)nn - 1; x >= 0; --x) {
+            double A = nadj[x];
+            int a0 = n_a0[x], a1 = n_a1[x], a2 = n_a2[x];
+            switch (n_op[x]) {
+                case PTD_WF_PUSH_THETA: dw_out[n_leaf[x]] += A; break;
+                case PTD_WF_PUSH_COEFF: case PTD_WF_PUSH_CONST: break;
+                case PTD_WF_ADD: nadj[a0] += A; nadj[a1] += A; break;
+                case PTD_WF_SUB: nadj[a0] += A; nadj[a1] -= A; break;
+                case PTD_WF_MUL: nadj[a0] += A * n_val[a1];
+                                 nadj[a1] += A * n_val[a0]; break;
+                case PTD_WF_DIV: nadj[a0] += A / n_val[a1];
+                                 nadj[a1] -= A * n_val[x] / n_val[a1]; break;
+                case PTD_WF_POW:
+                    /* two-term adjoint distribution (plan v2 SS-C): the
+                     * factored v*(b/a*da + ln(a)*db) is REFUTED at a=0
+                     * (NaN where the true derivative is finite; edge
+                     * weight 0 is legal). Matches jax.jacobian at every
+                     * probed domain edge. */
+                    nadj[a0] += A * n_val[a1] * pow(n_val[a0], n_val[a1] - 1.0);
+                    nadj[a1] += A * n_val[x] * log(n_val[a0]);
+                    break;
+                case PTD_WF_NEG: nadj[a0] -= A; break;
+                case PTD_WF_EXP: nadj[a0] += A * n_val[x]; break;
+                case PTD_WF_LOG: nadj[a0] += A / n_val[a0]; break;
+                case PTD_WF_SQRT: nadj[a0] += A / (2.0 * n_val[x]); break;
+                case PTD_WF_LOGISTIC:
+                    nadj[a0] += A * n_val[x] * (1.0 - n_val[x]); break;
+                case PTD_WF_SELECT:
+                    /* condition (a0) zero-propagates; unchosen arm gets
+                     * the ZERO adjoint (which may lawfully become NaN
+                     * against an infinite local derivative downstream --
+                     * JAX's convention, decline -> FD). */
+                    if (n_val[a0] != 0.0) nadj[a1] += A; else nadj[a2] += A;
+                    break;
+                default: break;  /* comparisons/booleans/NOT: zero-propagate */
+            }
+        }
+        rc = 0;
+    }
+done:
+    free(n_op); free(n_a0); free(n_a1); free(n_a2);
+    free(n_leaf); free(n_val); free(nadj);
+    return rc;
+}
 
 static int ptd_b3_moments_core(
         struct ptd_graph *graph,
@@ -10873,6 +11042,52 @@ static int ptd_b3_moments_core(
             st[c]=out[nb[c]]; double m=nm[c];
             if (isinf(m) && out[nb[c]]==0.0) continue;
             if (m!=0.0) out[na[c]] += out[nb[c]]*m;
+        }
+    }
+    /* [Batch B pre-outk stage -- the Batch-0 pre-declared extension
+     * point] formula kind only: per-tape-input-edge dw_e/dtheta via
+     * reverse-mode over the weight-formula tape, computed ONCE (dw does
+     * not depend on outk). fdw stays NULL for the other kinds. Entries
+     * for edges the primal never recomputes (starting-vertex /
+     * coefficients_length==0 -- proven the EXACT frozen set at plan
+     * review, b3-batchB-plan.md v2 SS-E) remain identically 0. A
+     * STRUCTURAL tape failure declines the whole call -> FD; NUMERICAL
+     * non-finites are not failures here -- they flow into fdw and are
+     * caught by the final isfinite sweep over J_out. */
+    double *fdw = NULL;
+    if (kind == PTD_B3_FORMULA) {
+        if (graph->weight_tape == NULL || theta == NULL) {
+            free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+            free(seeds); free(snaptos);
+            return -1;
+        }
+        fdw = (double*)calloc((ni?ni:1)*P, sizeof(double));
+        if (fdw == NULL) {
+            free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+            free(seeds); free(snaptos);
+            return -1;
+        }
+        for (size_t k=0; k<ni; ++k) {
+            struct ptd_pcg_input_spec sp = off->input_specs[k];
+            if (sp.kind != PTD_PCG_PTR_EDGE || sp.byte != 0
+                    || sp.v >= graph->vertices_length
+                    || sp.e >= graph->vertices[sp.v]->edges_length) {
+                free(fdw);
+                free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+                free(seeds); free(snaptos);
+                return -1;
+            }
+            struct ptd_edge *e = graph->vertices[sp.v]->edges[sp.e];
+            if (graph->vertices[sp.v] == graph->starting_vertex) continue;
+            if (e->coefficients_length == 0) continue;
+            if (ptd_wf_grad_theta(graph->weight_tape, theta, P,
+                                  e->coefficients, e->coefficients_length,
+                                  &fdw[k*P]) != 0) {
+                free(fdw);
+                free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
+                free(seeds); free(snaptos);
+                return -1;
+            }
         }
     }
     /* per-output-moment reverse chain + stage-2 + edge->theta contraction */
@@ -11006,6 +11221,23 @@ static int ptd_b3_moments_core(
                         for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * e->coefficients[j];
                     }
                     break;
+                case PTD_B3_FORMULA:
+                    /* Contraction against the precomputed formula-tape
+                     * dw (pre-outk stage above). Skip set == the
+                     * primal's frozen set (starting-vertex + cl==0;
+                     * update_weights skips BOTH before its tape branch).
+                     * For formula this skip is CORRECTNESS-load-bearing,
+                     * not hygiene: the tape can evaluate fine with
+                     * coeff=NULL (a formula referencing no c<j>), so an
+                     * unskipped constant edge would contribute a
+                     * WRONG-but-FINITE term the isfinite sweep cannot
+                     * catch. fdw entries for skipped edges are zero by
+                     * construction; the explicit skip keeps the
+                     * invariant local, mirroring log/dph. */
+                    if (graph->vertices[sp.v] == graph->starting_vertex) break;
+                    if (e->coefficients_length == 0) break;
+                    for (size_t j=0;j<P;++j) J_out[outk*P + j] += binp[k] * fdw[k*P + j];
+                    break;
                 default:
                     ok = 0;
                     break;
@@ -11016,6 +11248,7 @@ static int ptd_b3_moments_core(
 
     free(mem); free(inv); free(s0); free(s1); free(na); free(nb); free(nm);
     free(seeds); free(snaptos); free(dm); free(bar_out); free(adj); free(bmem); free(binp);
+    free(fdw);
 #undef RV
 #undef RB
     return ok ? 0 : -1;
@@ -11104,6 +11337,56 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
                                  rewards, rewards_len,
                                  PTD_B3_LOG, NULL, J_out);
+    ptd_pcg_desc_off_destroy(off);
+    ptd_parameterized_reward_compute_graph_destroy(ptape);
+    return rc;
+}
+/* =============================================================================*/
+
+/* ===== Batch B formula-weight-mode extension: exact Jacobian
+ * d[m_0..m_{K-1}]/dtheta for a CONTINUOUS, weight_mode='formula'
+ * parameterized graph. Same shared core (ptd_b3_moments_core); the new
+ * math is (1) ptd_wf_grad_theta, a reverse-mode Wengert-list autodiff
+ * pass over the weight-formula tape giving per-edge dw_e/dtheta (run
+ * once per tape-input edge in the core's pre-outk stage), and (2) the
+ * contraction J += binp * dw. See b3-batchB-plan.md v1+v2 for the
+ * design record (POW two-term adjoint; zero-propagate through
+ * comparisons/booleans/select-condition; skip set == the primal's
+ * frozen edge set).
+ *
+ * Declines (-1, FD fallback): was_dph (formula+discretize() silently
+ * computes renormalized weights -- probe-confirmed LOAD-BEARING at plan
+ * review, v2 SS-B); weight_tape == NULL (defense-in-depth; unreachable
+ * via the model builder, which raises earlier); theta_len !=
+ * param_length (the ALIGNED-graphs scope, v2 SS-A: a lazily-built
+ * decoupled formula model resolves theta_dim < param_length and is
+ * statically declined in Python BEFORE this call -- update_weights
+ * itself raises on short theta, so a mismatched call cannot even reach
+ * here with consistent weights). NOTE is_discrete (native DPH) has NO
+ * C-level ptd_graph field (see the log wrapper's comment above) -- the
+ * Python gate MUST exclude native-DPH graphs before calling.
+ *
+ * theta/theta_len must match the values most recently passed to
+ * update_weights(theta). J_out row-major nr_moments*param_length. */
+int ptd_moments_grad_theta_formula(struct ptd_graph *graph, int nr_moments,
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out) {
+    if (!graph->parameterized || graph->param_length == 0) return -1;
+    if (nr_moments < 1) return -1;
+    if (graph->was_dph) return -1;
+    if (graph->weight_tape == NULL) return -1;
+    if (theta_len != graph->param_length) return -1;
+    struct ptd_desc_reward_compute_parameterized *ptape =
+        graph->use_dyn_ordering
+            ? ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph)
+            : ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+    if (ptape == NULL) return -1;
+    struct ptd_desc_reward_compute_parameterized_off *off =
+        ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
+    if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
+    int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
+                                 rewards, rewards_len,
+                                 PTD_B3_FORMULA, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
     return rc;

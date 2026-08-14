@@ -10,7 +10,9 @@ Batch A, 2026-08-14):
 - Explicit value on any other leaf (rewards 2-D, epoch_starts,
   joint-probability): SvgdConfigError (a ValueError) at validation time —
   never a silently inert kwarg. (Builder-level static declines that depend
-  on graph properties — formula/callback modes, discrete+rewards — remain
+  on graph properties — the callback mode [formula is covered since
+  Batch B, bar its own static declines: discrete×formula and the
+  lazy-decoupled theta-dimension class], discrete+rewards — remain
   accepted-but-INFO-logged; R29 polices leaf routing only, the Batch A G4
   disposition.)
 """

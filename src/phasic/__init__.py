@@ -5738,9 +5738,12 @@ extern "C" {{
             - False: force finite-difference moment gradients.
             - True: request the exact (reverse-mode) path explicitly. Note
               that the model builder's documented declines still govern —
-              formula/callback weight modes decline STATICALLY at
-              construction, ``'log'`` mode on a discrete/``was_dph`` graph
-              declines too, ``rewards`` on an effectively DISCRETE model
+              the callback weight mode declines STATICALLY at
+              construction (formula is covered since Batch B, except a
+              lazily-built decoupled formula graph — C param_length ≠
+              theta dimension — which also declines statically),
+              ``'log'``/``'formula'`` on a discrete/``was_dph`` graph
+              decline too, ``rewards`` on an effectively DISCRETE model
               decline permanently (the continuous→discrete moment
               correction is mathematically invalid under reward weighting
               — a refuted derivation, not a missing feature), and
@@ -7289,22 +7292,31 @@ extern "C" {{
             Use the exact reverse-mode theta-adjoint for the moments gradient
             instead of finite differences. Covers weight_mode in
             {None, 'linear'} (continuous and discrete, including
-            Graph.discretize()'d graphs) and weight_mode='log' (continuous
+            Graph.discretize()'d graphs), weight_mode='log' (continuous
             only -- a discrete/was_dph graph combined with 'log' is not
-            supported and always uses finite differences). 1-D ``rewards``
+            supported and always uses finite differences), and, since
+            Batch B, weight_mode='formula' (continuous only, and only
+            when the graph's C-level param_length equals the model's
+            theta dimension -- a lazily-built decoupled formula graph
+            keeps finite differences; align with
+            graph.set_param_length(theta_dim) before adding edges).
+            1-D ``rewards``
             are supported by the exact path (Batch A: the adjoint re-scales
             at every stage of the moment chain, matching the
-            reward-transformed forward). Whenever finite
+            reward-transformed forward; formula mode inherits this).
+            Whenever finite
             differences are used instead -- because exact_moment_grad=False
             was passed explicitly, the graph's weight_mode is out of scope
-            ('formula'/'callback', or 'log' on a discrete/was_dph graph),
+            ('callback', or 'log'/'formula' on a discrete/was_dph graph,
+            or 'formula' on a decoupled-theta graph),
             rewards are combined with a DISCRETE model (the
             continuous->discrete moment correction is invalid under reward
             weighting -- a refuted derivation, permanent), rewards are 2-D
             on this 1-D leaf (use pmf_and_moments_from_graph_multivariate,
             whose per-feature 1-D slices take the exact path), or
-            the exact computation declines at a given theta (e.g. an
-            ill-conditioned elimination tape) -- an INFO-level log message via
+            the exact computation declines at a given theta (an
+            ill-conditioned elimination tape, or a non-finite
+            formula-tape gradient at a domain boundary) -- an INFO-level log message via
             ``logging.getLogger('phasic')`` states why, so the choice of
             gradient method is never silent. Set ``PHASIC_LOG_LEVEL=INFO`` (or
             ``logging.getLogger('phasic').setLevel(logging.INFO)``) to see
@@ -7388,9 +7400,11 @@ extern "C" {{
         # B3 (default-on, additive): replace the finite-difference d(moments)/dθ
         # with the EXACT reverse-mode θ-adjoint Jacobian over the elimination
         # tape (fixes the mixed-scale FD defect for the WHOLE moment vector,
-        # not just the first moment). Scope: weight_mode='linear', monolithic;
-        # continuous OR discrete (both was_dph=True i.e. Graph.discretize(), and
-        # was_dph=False native DPH -- see ptd_moments_grad_theta_dph). model_bwd
+        # not just the first moment). Scope: weight_mode 'linear' (continuous
+        # OR discrete -- both was_dph=True i.e. Graph.discretize(), and
+        # was_dph=False native DPH, see ptd_moments_grad_theta_dph), 'log'
+        # (continuous only), and 'formula' (continuous, ALIGNED theta-dim
+        # only -- Batch B); monolithic. model_bwd
         # swaps the moments FD term for J^T·g_moments and falls back to FD if
         # the C path reports not-applicable for a given θ.
         #
@@ -7420,18 +7434,58 @@ extern "C" {{
         # b3-log-weight-mode-plan.md.
         _log_scope_ok = (_wm == 'log' and not _effective_discrete)
         _linear_scope_ok = (_wm in (None, 'linear'))
+        # Batch B: formula-mode scope. Continuous only, AND the model's
+        # resolved theta dimension must equal the C graph's param_length
+        # (the ALIGNED-graphs scope, b3-batchB-plan.md v2 SS-A): formula
+        # is the only weight mode where the two legally decouple (tape
+        # n_theta governs the model; a lazily-built graph locks C
+        # param_length to the coefficient length), and on such a graph
+        # the clone's update_weights(theta) RAISES -- inside
+        # jax.pure_callback that is a hard XlaRuntimeError, not a soft
+        # decline, so the mismatch must be gated STATICALLY here
+        # (probe-confirmed at plan review + D-B6).
+        _formula_scope_ok = (_wm == 'formula' and not _effective_discrete
+                             and param_length == int(graph.param_length()))
         if not bool(exact_moment_grad):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact_moment_grad=False -- using "
                 "finite differences for the moments gradient."
             )
             _exact_grad_enabled = False
-        elif not (_linear_scope_ok or _log_scope_ok):
+        elif _wm == 'formula' and _effective_discrete:
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact moment gradient for "
+                "weight_mode='formula' is continuous-only (discrete/"
+                "was_dph graphs are out of scope) -- using finite "
+                "differences for the moments gradient."
+            )
+            _exact_grad_enabled = False
+        elif _wm == 'formula' and param_length != int(graph.param_length()):
+            # G4 fold (wiring MINOR 1): direction-NEUTRAL message -- the
+            # mismatch has two sub-classes (model theta_dim < C
+            # param_length: the lazily-built decoupled graph; model
+            # theta_dim > C param_length: a tape referencing more thetas
+            # than the graph's parameter slots) and the original text
+            # mis-diagnosed the second as the first.
+            _grad_logger.info(
+                "pmf_and_moments_from_graph: exact moment gradient for "
+                "weight_mode='formula' requires the graph's C-level "
+                "param_length (%d) to equal the model's theta dimension "
+                "(%d). For a lazily-built decoupled graph (param_length "
+                "locked to the coefficient length), call "
+                "graph.set_param_length(theta_dim) BEFORE adding edges "
+                "to align them -- using finite differences for the "
+                "moments gradient.",
+                int(graph.param_length()), param_length
+            )
+            _exact_grad_enabled = False
+        elif not (_linear_scope_ok or _log_scope_ok or _formula_scope_ok):
             _grad_logger.info(
                 "pmf_and_moments_from_graph: exact moment gradient not "
-                "available for weight_mode=%r (only None/'linear'/'log' -- "
-                "'log' only for continuous graphs -- is supported) -- using "
-                "finite differences for the moments gradient.", _wm
+                "available for weight_mode=%r (only None/'linear'/'log'/"
+                "'formula' -- 'log' and 'formula' only for continuous "
+                "graphs -- is supported) -- using finite differences for "
+                "the moments gradient.", _wm
             )
             _exact_grad_enabled = False
         else:
@@ -7441,6 +7495,7 @@ extern "C" {{
             _exact_graph = graph.clone()
             _exact_K = int(nr_moments)
             _exact_is_log = _log_scope_ok
+            _exact_is_formula = _formula_scope_ok
 
             def _exact_moments_jac_np(theta_np, rewards_np):
                 # Host callback: set the private clone's weights at θ and read the
@@ -7465,33 +7520,62 @@ extern "C" {{
                     # function (linear dot-product weights instead of log
                     # product weights) -- found via adversarial review of
                     # this batch's plan BEFORE this wiring was written; see
-                    # b3-log-weight-mode-plan.md D1.1.
-                    _exact_graph.update_weights(t, log=_exact_is_log)
-                    if _effective_discrete:
-                        # dph+rewards is statically declined BEFORE this
-                        # callback is ever built with rewards (the c2d
-                        # refutation); _rw_list is always [] here -- the C
-                        # wrapper's rewards_len!=0 -> -1 is defense in depth.
-                        J = np.asarray(
-                            _exact_graph._moments_grad_theta_dph(
-                                _exact_K, t.tolist(), rewards=_rw_list),
-                            dtype=np.float64)
-                    elif _exact_is_log:
-                        J = np.asarray(
-                            _exact_graph._moments_grad_theta_log(
-                                _exact_K, t.tolist(), rewards=_rw_list),
-                            dtype=np.float64)
-                    else:
-                        J = np.asarray(
-                            _exact_graph._moments_grad_theta(
-                                _exact_K, rewards=_rw_list),
-                            dtype=np.float64)
+                    # b3-log-weight-mode-plan.md D1.1. (For formula mode,
+                    # plain update_weights(t) reaches the C tape branch --
+                    # probe-verified; log=False is correct there.)
+                    #
+                    # Batch B defense-in-depth (plan v2 SS-A): a raise
+                    # anywhere in here would escape jax.pure_callback as a
+                    # hard XlaRuntimeError -- convert to the standard
+                    # NaN -> FD per-theta fallback, logged. The known raise
+                    # classes are statically gated before this callback is
+                    # built (the lazy-decoupled formula class; discrete x
+                    # formula); this catch covers the residual surface
+                    # (e.g. update_weights rejecting a non-finite formula
+                    # weight at an extreme theta probe).
+                    try:
+                        _exact_graph.update_weights(t, log=_exact_is_log)
+                        if _effective_discrete:
+                            # dph+rewards is statically declined BEFORE this
+                            # callback is ever built with rewards (the c2d
+                            # refutation); _rw_list is always [] here -- the C
+                            # wrapper's rewards_len!=0 -> -1 is defense in depth.
+                            J = np.asarray(
+                                _exact_graph._moments_grad_theta_dph(
+                                    _exact_K, t.tolist(), rewards=_rw_list),
+                                dtype=np.float64)
+                        elif _exact_is_formula:
+                            J = np.asarray(
+                                _exact_graph._moments_grad_theta_formula(
+                                    _exact_K, t.tolist(), rewards=_rw_list),
+                                dtype=np.float64)
+                        elif _exact_is_log:
+                            J = np.asarray(
+                                _exact_graph._moments_grad_theta_log(
+                                    _exact_K, t.tolist(), rewards=_rw_list),
+                                dtype=np.float64)
+                        else:
+                            J = np.asarray(
+                                _exact_graph._moments_grad_theta(
+                                    _exact_K, rewards=_rw_list),
+                                dtype=np.float64)
+                    except Exception as _exc:
+                        _grad_logger.info(
+                            "pmf_and_moments_from_graph: exact moment gradient "
+                            "raised at theta=%s (%s: %s) -- using finite "
+                            "differences for this step.",
+                            t.tolist(), type(_exc).__name__, _exc
+                        )
+                        return np.full(_shape, np.nan)
                     if J.size != _exact_K * param_length:
                         _grad_logger.info(
                             "pmf_and_moments_from_graph: exact moment gradient "
                             "declined at theta=%s (ill-conditioned elimination "
-                            "tape, or -- for a was_dph graph -- a vertex mixing "
-                            "a constant and a parameterized out-edge) -- using "
+                            "tape; for a was_dph graph a vertex mixing "
+                            "a constant and a parameterized out-edge; for "
+                            "weight_mode='formula' a non-finite formula-tape "
+                            "gradient, e.g. d/dt sqrt(t-c) at its domain "
+                            "boundary) -- using "
                             "finite differences for this step.", t.tolist()
                         )
                     return (J.reshape(_shape) if J.size == _exact_K * param_length

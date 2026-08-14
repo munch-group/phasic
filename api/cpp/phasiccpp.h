@@ -607,6 +607,25 @@ namespace phasic {
             return J;
         }
 
+        // Batch B (2026-08-14): exact moment-vector Jacobian for a
+        // CONTINUOUS weight_mode='formula' graph (reverse-mode autodiff
+        // over the weight-formula tape). Same contract shape as the log
+        // variant; empty => not applicable (FD fallback). theta must
+        // match the last update_weights(theta) call. The Python caller
+        // MUST gate is_discrete (no C field).
+        std::vector<double> moments_grad_theta_formula(int nr_moments, std::vector<double> theta,
+                                                       std::vector<double> rewards = {}) {
+            size_t P = static_cast<size_t>(this->c_graph()->param_length);
+            if (P == 0 || nr_moments < 1 || theta.size() != P) return std::vector<double>();
+            std::vector<double> J(static_cast<size_t>(nr_moments) * P, 0.0);
+            int rc = ptd_moments_grad_theta_formula(this->c_graph(), nr_moments,
+                                                    theta.data(), theta.size(),
+                                                    rewards.empty() ? NULL : rewards.data(),
+                                                    rewards.size(), J.data());
+            if (rc != 0) return std::vector<double>();
+            return J;
+        }
+
         // B3 joint-index extension (production): exact FORWARD-mode Jacobian
         // d[sojourn(indices)]/dtheta for a continuous, weight_mode='linear'
         // parameterized graph (native DPH also supported; was_dph excluded).
