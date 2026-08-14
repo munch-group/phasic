@@ -102,6 +102,7 @@ run green (not merely no-worse):
 | SVGD-touching (any) | `test_svgd.py` (slow — run once at G3, not per-iteration) |
 | svgd config/validation (rules, kwargs, ledger) | `test_svgd_config.py`, `inference/test_svgd_exact_moment_grad_kwarg.py`, `inference/test_svgd_exact_moment_grad_rewards.py`, `inference/test_svgd_exact_final_grad_kwarg.py`, `inference/test_svgd_exact_grad_kwarg.py`, `inference/test_svgd_exposure.py`, `inference/test_svgd_api_parity.py`, `test_svgd_assumptions.py` *(row added 2026-08-13, G.1 G5 — the map predated the rule suites; proposed by the D.3/G.1 reviews; rewards file added 2026-08-14, A G5)* |
 | Moments-adjoint rewards (Batch A surface) | `inference/test_exact_grad_rewards.py` (+ `experiments/dr_batchA_i1_gate.py check` when the C core/wrappers change) *(row added 2026-08-14, A G5)* |
+| Moments-adjoint formula mode (Batch B surface) | `inference/test_exact_grad_formula_mode.py`, `test_weight_formula_*.py`, `test_gate_weight_formula_conformance.py` (+ `experiments/dr_batchB_i1_gate.py check` when the core/wrappers/wf-tape change) *(row added 2026-08-14, B G5)* |
 | Joint-index / sojourn (amended 2026-08-13; +E 2026-08-14) | + `inference/test_exact_grad_joint_index.py`, `inference/test_exact_grad_joint_index_baked.py` |
 | Gradient defect regression (always, cheap) | `test_fd_gradient_mixed_scale.py` |
 

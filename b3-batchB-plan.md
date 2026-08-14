@@ -419,3 +419,39 @@ at items 1-8, missing 9-10 — sweep at close-out). Corrected v1 cites:
 the snapshot idiom lives at `phasic.c:10826-10827`/`:10841-10844`
 (forward) and `:10920-10923` (reverse); the tape length field is
 `ops_length` (not `n_ops`).
+
+## G4 + G5 merge review (2026-08-14, squash-merge `c6cc38b9`, fold `d6bb0c99`)
+
+**G4 verdicts:** wiring/math refuter **SOUND** (zero CRITICAL/MAJOR —
+its independent from-first-principles oracle matched the shipped C on
+24/24 adversarial cases at ≤3.3e-15, incl. fan-out, nested select,
+depth-254, mixed scale; 8000-call memory loops on five paths: 0.00 MB
+RSS drift; cross-install byte-identity reproduced with its own
+fixtures; the whole C diff removes exactly one line, the enum).
+Tests/process refuter **SOUND-WITH-CORRECTIONS** (no shipped defect;
+six dropped/weakened mandates + a deviations register — all FOLDED,
+`d6bb0c99`: DIV/EXP/LOG cell, aux-constant-edge cell, POW domain-edge
+cells + gate (e2), multivariate hard pin [-11.508732477887918,
+-5.563485415672725], spy success-floor, direction-neutral decline
+message, comment/label sweeps, mcmc inertness note, dead-select-arm
+conservatism note). Full record: `b3-batchB-findings.md`.
+
+**Merge mechanics:** master `ac971d74` (docs-only above the branch base
+`ae217b0e`); squash staged exactly the 11 branch files; no
+pyproject/pixi.lock churn; user working-tree files untouched.
+
+**Shipped-surface summary:** see the squash commit message; the key
+follow-up hooks for Batch C — the core's contraction switch now has 4
+kinds; C's planned pre-contraction exit sits per-outk (no structural
+collision, but C MUST NOT start from a pre-B base: strictly-serial rule
+satisfied by this merge). The lazy-decoupled formula class
+(param_length ≠ theta_dim) remains FD-with-log — full decoupled support
+is a ledgered follow-up (v2 §A).
+
+**Close-out executed:** measured 8th ledger stamp (expected 1978 =
+1963 + 15); tracker B row → merged + stale duplicate row deleted +
+§16b snapshot refreshed; master plan §4 banner + §15 tick + C
+unblocked; CLAUDE.md B3-moments formula update + A-disposition
+precedent reword; process map row; memory; main-checkout rebuild.
+Worktree `../phasic-batchB` + branch deletable by the user once the
+stamp is recorded (established convention).

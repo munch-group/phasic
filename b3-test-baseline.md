@@ -1,6 +1,18 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-14 (seventh) · master `798ddcaa` (Batch A merge) ·
+**Re-stamped 2026-08-14 (eighth) · master `c6cc38b9` (Batch B merge) ·
+verified 1978 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
+MAIN checkout (32 groups, `-rf`, union == 157 collected files, output
+per group, freshly rebuilt install) = seventh stamp's 1963 + Batch B's
+15 tests. The raw run showed 1977/1: a single first-pass failure in
+`test_exact_grad_joint_index.py::test_default_path_uses_fd` (a Batch-F
+surface untouched by B — the failing assertion saw exact_grad=True fall
+back to FD, arrays bitwise-identical, i.e. the SAFE fallback, not a
+wrong number) UNREPRODUCED across three re-runs (test alone + its full
+5-file group twice, 61 passed each) — closed as a stochastic transient
+per the fifth stamp's precedent. Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-14 (seventh) · master `798ddcaa` (Batch A merge) ·
 verified 1963 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
 MAIN checkout (32 groups, `-rf`, freshly rebuilt install) — the first
 stamp run under the A-G4 process amendment: groups enumerated from the

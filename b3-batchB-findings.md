@@ -216,3 +216,14 @@ is the ledgered future optimization (feasibility §5).
    plan said "recorded exactly at G1 time", done at each stage).
    Expected post-fold full-suite arithmetic: 7th stamp 1963 + 15 =
    **1978**.
+
+## 8th ledger stamp (main checkout, post-merge, 2026-08-14)
+
+Measured 32-group run (union == 157 files): raw **1977 / 1 / 84 / 24**;
+the single failure (`test_exact_grad_joint_index.py::
+test_default_path_uses_fd`, a Batch-F surface B never touched; the
+assertion caught exact_grad=True producing the FD gradient — the safe
+whole-model-FD fallback, bitwise-identical arrays, not a wrong number)
+was UNREPRODUCED across three re-runs (alone + full group ×2, 61
+passed each) → closed as a stochastic transient per the G.1 precedent.
+Effective stamp: **1978 / 0 / 84 / 24** = 1963 + 15 exact.

@@ -203,6 +203,24 @@ Batch 0's shared skeleton from day one.
 
 ## 4. Batch B — `weight_mode='formula'` exact gradient
 
+> **MERGED 2026-08-14 (`c6cc38b9`, squash of `b3/batchB-formula`; G4 fold
+> `d6bb0c99`).** Shipped as planned in `b3-batchB-plan.md` v1+v2 (the v2
+> amendment is the binding record — its plan review found two
+> load-bearing corrections BEFORE any code: the theta-dimension
+> decoupling contract, resolved as ALIGNED-graphs scope with a static
+> decline for the lazy-decoupled class [full decoupled support =
+> ledgered follow-up], and the POW rule corrected to the two-term
+> adjoint [the factored form below is REFUTED at a=0 — kept here
+> unedited as the historical design note]). The Wengert-list reverse
+> pass with zero-propagate through comparisons superseded the
+> "stop early" option below (unguarded tapes CAN reach the C executor
+> via _set_weight_tape/from_serialized). Evidence: formula ==
+> linear-exact BITWISE at mixed scale; two G4 refuters SOUND /
+> SOUND-WITH-CORRECTIONS (independent oracle 24/24 at ≤3.3e-15; zero
+> memory drift); G3 1975/0/84/24 = ledger+12. was_dph exclusion
+> CONFIRMED load-bearing by direct repro (silently computes), per this
+> section's own demand below.
+
 **Confirmed architecture: two separate VMs, not one op set to extend.** The
 elimination tape (`P/PP/INV/OM/DIV/ZERO/NEW_ADD`, 7 types,
 `src/c/phasic.c:3638-3640`) only ever reads an edge's *current weight* as an
@@ -1098,7 +1116,14 @@ Phase 3 (gate: Batch 0 specifically -- A first, then B/C in parallel):
        with a log, never silently).
        Two G4 refuters SOUND-WITH-CORRECTIONS (no shipped-code defect);
        b3-batchA-plan.md + b3-batchA-findings.md]
-  B    formula-mode exact gradient (own new gate + POW de-risk)
+  B    formula-mode exact gradient [MERGED 2026-08-14, c6cc38b9 --
+       Wengert-list autodiff over the weight-formula tape as the 4th
+       core kind; ALIGNED-theta-dim scope (lazy-decoupled class = static
+       decline + ledgered follow-up); POW two-term adjoint; rewards
+       inherited via the core hooks (gated); the planned "in parallel"
+       with C was resolved STRICTLY SERIAL per process s3.4 -- C is now
+       unblocked and must build on this merged core (4 kinds).
+       b3-batchB-plan.md v1+v2 + merge review; b3-batchB-findings.md]
   C    callback-mode exact gradient, Job A only (own de-risk)
   --   tracked, not yet scheduled: pmf_from_graph_joint_index's OWN
        callback-mode exact gradient (a second, separate piece of work from
