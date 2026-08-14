@@ -35,12 +35,12 @@
 **Read this first each session.** Live status for every unit of the B3
 exact-gradient program. Design: `b3-exact-gradient-master-plan.md` (signed
 off 2026-08-11, as amended). Process: `b3-execution-process.md`. Baseline:
-`b3-test-baseline.md` — **re-stamped 2026-08-13 (fifth) at `0c052cfe`
-(Batch G.1 merged): 1917 / 0 / 84 / 24, ledger empty; next full run
-expected 1919 (two tests added at the G4 fold, post-G3).** Batches
-D Tier-1, 0, F, H, and G.1 are MERGED; D.3 closed-folded into G.1.
-Next up: Batch E (baked-mode exact), Batch A (rewards; unlocks B/C and
-G leaves 3/4).
+`b3-test-baseline.md` — **re-stamped 2026-08-14 (sixth) at `c475a78c`
+(Batch E merged): 1947 / 0 / 84 / 24, ledger empty; next full run
+expected 1951 (four tests added at the G4 fold, post-G3).** Batches
+D Tier-1, 0, F, H, G.1, and E are MERGED; D.3 closed-folded into G.1.
+**Phases 1, 1b, and 2 are COMPLETE.** Next up: Batch A (rewards
+adjoint; unlocks B, C, and G leaves 3/4), CC-2.
 Master plan §16b: items 2 and 3 CLOSED at the H merge (comment corrected
 in situ; conversion caching declined with evidence) — the snapshot
 table below mirrors master §16b, which stays the authoritative list.
@@ -65,7 +65,7 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 | id | what | status | gate | plan doc |
 |---|---|---|---|---|
 | D.3 | leaf-2b plumbing (joint-index + exposure) | **CLOSED — folded into Batch G (user decision 2026-08-13)** after a BROKEN plan-review verdict (shipped rule R9 statically rejects the target leaf; master §6 premise false, Class-D amendment filed). D.3's user value ships via G leaf 1 (epoch-route exact gradients); R9 jsp hole (§16b item 9) fixed in G; review corrections transferred to G's plan | — | b3-batchD3-plan.md v1 + review record + disposition |
-| E | Joint-index baked-mode scatter-add (+ svgd leaf-2 plumbing per §9's alongside-E gate) | **plan-review** (v1 `ad72047f` under two-refuter review; probes the ACTUAL baked union per the F merge review; E0 de-risk incl. gate-decline measurement before implementation) | b3/batchE-baked-exact (planned) | b3-batchE-plan.md v1 |
+| E | Joint-index baked-mode scatter-add + svgd leaf-2 `exact_grad` | **merged** (branches/worktree deletable) — E0 GO; mid-batch user decision 2026-08-14 (`exact_grad_decline='fd'` per-particle fallback for svgd); G1 49/49; G2 156/3/1; G3 1947/0/84/24; G4 2 refuters S-W-C folded | b3/batchE-baked-exact | b3-batchE-plan.md v2 + amendment + merge review; b3-batchE-findings.md | `c475a78c` |
 | A | Rewards support in moments adjoint | **unblocked** (Batch 0 merged `d2cca7ab`; hook lines comment-marked in the core) | — | master plan §3 |
 | B | Formula-mode exact gradient | blocked(A) — lands as PTD_B3_FORMULA core-internal stage | after A | master plan §4 |
 | C | Callback-mode exact gradient (Job A) | blocked(A) — exit options recorded in b3-batch0-plan.md | after A | master plan §5 |

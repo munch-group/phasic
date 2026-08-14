@@ -1,6 +1,16 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-13 (fifth) · master `0c052cfe` (Batch G.1 merge) ·
+**Re-stamped 2026-08-14 (sixth) · master `c475a78c` (Batch E merge) ·
+verified 1947 / 0 / 84 / 24 via the batchE worktree's chunked run (31
+groups, `-rf`) on content identical to the merged tree — ledger 1919
+(fifth stamp's expectation) + 28 new E tests at G3 time; the G4 fold
+added 4 more tests, so the next full run will show 1951. One ab-group
+first-pass transient re-ran green twice (record in
+`b3-batchE-findings.md`; the chunk runner's tail-1 initially discarded
+the `-rf` names — amendment strengthened in the process doc).
+Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-13 (fifth) · master `0c052cfe` (Batch G.1 merge) ·
 verified 1917 / 0 / 84 / 24 via the batchG1 worktree's chunked run (31
 groups, `-rf` now mandatory per the adopted process amendment) on
 content identical to the merged tree — ledger 1900 (fourth stamp's

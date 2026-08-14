@@ -1011,6 +1011,14 @@ Phase 1 (mutually independent — start anytime, no gate):
        gate: dr_moments_jac_gate.py + dr_dph_moments_jac_gate.py +
              dr_log_mode_moments_jac_gate.py byte-identical before/after
   F    D6 lax.cond/vmap redesign             [MERGED 2026-08-13, eaf86e82]
+  E    joint-index baked-mode exact gradient [MERGED 2026-08-14, c475a78c
+       -- + svgd leaf-2 exact_grad plumbing (s9's alongside-E gate) + the
+       exact_grad_decline='fd' per-particle fallback (user decision
+       2026-08-14, recorded in b3-batchE-plan.md's dated amendment);
+       s16 risk item 5 DISCHARGED (scatter-add numerically gated: parity
+       2.5e-16 vs the shipped exact path + oracle suite); Phase 2
+       complete -- s16b reviewed at the phase boundary: remaining items
+       1/4/5/6/7/8 statuses unchanged, none owed by Batch A]
   G.1  public svgd exact_final_grad plumbing [MERGED 2026-08-13, 0c052cfe
        -- Batch G leaf 1 + the folded Batch D.3's user value + R30 + the
        R9 jsp fix; b3-batchG1-plan.md v2 + merge review + findings.
