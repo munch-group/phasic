@@ -10802,6 +10802,7 @@ static int ptd_b3_moments_core(
         const struct ptd_desc_reward_compute_parameterized_off *off,
         int nr_moments,
         const double *theta, size_t theta_len,   /* NULL/0 for linear */
+        const double *rewards, size_t rewards_len,  /* NULL/0 = rewardless */
         enum ptd_b3_contract kind,
         const struct ptd_b3_dph_ctx *dph_ctx,    /* non-NULL iff DPH */
         double *J_out) {
@@ -10809,6 +10810,10 @@ static int ptd_b3_moments_core(
                          future consumers (Batch A/B extend it) */
     size_t P = graph->param_length, K = (size_t)nr_moments;
     size_t n = graph->vertices_length, ni = off->n_inputs, md = off->mem_doubles, L = off->length;
+    /* Batch A: rewards length validated HERE in the core (all consumers
+     * inherit it); empty means rewardless. */
+    if (rewards_len != 0 && rewards_len != n) return -1;
+    if (rewards_len == 0) rewards = NULL;
     /* [seeding block 1/2 -- Deferred-1 marker] `target` selects the tape
      * output vertex. A future per-SCC cotangent-seeded VJP (deferred-1 plan
      * section 4-P2, declined for Batch 0) would generalize ONLY this seeding
@@ -10855,8 +10860,15 @@ static int ptd_b3_moments_core(
     for (size_t v=0; v<n; ++v) seeds[v]=1.0;                 /* a_0 = ones */
     for (size_t j=1;j<=K;++j) {
         double *seed = seeds + (j-1)*n, *out = seeds + j*n, *st = snaptos + (j-1)*nc;
-        /* [Batch-A rewards hook 1/2: seed-scale line] */
-        for (size_t v=0; v<n; ++v) out[v]=seed[v];
+        /* [Batch-A rewards hook 1/2: seed-scale line -- APPLIED
+         * 2026-08-14] a_j = replay(rewards .* a_{j-1}): the rescale runs
+         * at EVERY stage (this line sits inside the j=1..K loop), never
+         * seed-only -- master s3's headline finding is that seed-only is
+         * silently wrong for nr_moments >= 2 (2.5 vs true 3.5 on the
+         * 4-vertex feasibility fixture). st[] snapshots record the
+         * POST-scale values, so multiplier cotangents inherit the reward
+         * scaling with no extra dm[] term (plan review, verified). */
+        for (size_t v=0; v<n; ++v) out[v]=seed[v]*(rewards?rewards[v]:1.0);
         for (size_t c=0;c<nc;++c) {
             st[c]=out[nb[c]]; double m=nm[c];
             if (isinf(m) && out[nb[c]]==0.0) continue;
@@ -10889,8 +10901,10 @@ static int ptd_b3_moments_core(
                 dm[c] += adj[na[c]] * st[c];
                 if (m!=0.0) adj[nb[c]] += adj[na[c]] * m;
             }
-            /* [Batch-A rewards hook 2/2: adjoint-scale line] */
-            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v];     /* seed-adjoint -> replay j-1 */
+            /* [Batch-A rewards hook 2/2: adjoint-scale line -- APPLIED
+             * 2026-08-14] the reverse-mode VJP of the input-side
+             * elementwise scale: bar a_{j-1} = rewards .* adj. */
+            for (size_t v=0; v<n; ++v) bar_out[v]=adj[v]*(rewards?rewards[v]:1.0);
             if (j==1) break;                                  /* size_t underflow guard */
         }
         /* stage-2: reverse the param tape ONCE on the accumulated dm[] */
@@ -11012,7 +11026,7 @@ static int ptd_b3_moments_core(
  * applicable (caller falls back to FD). Thin wrapper over
  * ptd_b3_moments_core. */
 int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
-        double *J_out) {
+        const double *rewards, size_t rewards_len, double *J_out) {
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (nr_moments < 1) return -1;
     /* Batch 0 M4 (deliberate, reviewed behavior addition): a was_dph graph's
@@ -11031,6 +11045,7 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
         ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
     int rc = ptd_b3_moments_core(graph, off, nr_moments, NULL, 0,
+                                 rewards, rewards_len,
                                  PTD_B3_LINEAR, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
@@ -11072,7 +11087,8 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
  * theta/theta_len must match the values the caller most recently passed to
  * update_weights(theta, log=True). J_out is row-major nr_moments*param_length. */
 int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
-        const double *theta, size_t theta_len, double *J_out) {
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out) {
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (nr_moments < 1) return -1;
     if (graph->was_dph) return -1;
@@ -11086,6 +11102,7 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
         ptd_pcg_convert_to_offset(ptape, graph, NULL, 0);
     if (off == NULL) { ptd_parameterized_reward_compute_graph_destroy(ptape); return -1; }
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
+                                 rewards, rewards_len,
                                  PTD_B3_LOG, NULL, J_out);
     ptd_pcg_desc_off_destroy(off);
     ptd_parameterized_reward_compute_graph_destroy(ptape);
@@ -11170,7 +11187,15 @@ static void ptd_dph_correct_discrete_moment_grad(double *J, size_t K, size_t P) 
  * graph produced by Graph.discretize() (its only constant edges are lone
  * aux back-edges, never mixed with a parameterized sibling). */
 int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
-        const double *theta, size_t theta_len, double *J_out) {
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out) {
+    /* Batch A: rewards REFUTED for the discrete path -- the c2d
+     * correction's derivation needs U to commute with P, which the
+     * reward-scaled chain (U.diag(r)) breaks; 2nd moments come out
+     * provably wrong (plan-review probe: 58.311 vs true 51.644).
+     * Decline loudly; the Python layer declines statically before
+     * reaching here (this is defense in depth). */
+    if (rewards_len != 0) { (void)rewards; return -1; }
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (nr_moments < 1) return -1;
     size_t P = graph->param_length, K = (size_t) nr_moments;
@@ -11222,6 +11247,7 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
     }
     struct ptd_b3_dph_ctx ctx = { Sv, SigmaCv };
     int rc = ptd_b3_moments_core(graph, off, nr_moments, theta, theta_len,
+                                 NULL, 0,
                                  PTD_B3_DPH, &ctx, J_out);
     /* POST-pass: the theta-independent continuous->discrete correction, then
      * a SECOND isfinite sweep (the correction itself can produce non-finite

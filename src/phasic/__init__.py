@@ -5728,9 +5728,10 @@ extern "C" {{
             - moment regularization and rewards are not supported (R3/R4)
         exact_moment_grad : bool or None, default=None
             Controls the exact moment-gradient path of the underlying
-            ``pmf_and_moments_from_graph`` model — only meaningful for a
-            standard (non-joint) graph WITHOUT rewards (the plain moments
-            model).
+            ``pmf_and_moments_from_graph`` model — meaningful for a
+            standard (non-joint) graph with no rewards or with 1-D
+            ``rewards`` (Batch A threaded rewards through the exact
+            moments adjoint).
 
             - None (default): not forwarded; the model builder's own default
               governs (exact moment gradients ON).
@@ -5739,13 +5740,18 @@ extern "C" {{
               that the model builder's documented declines still govern —
               formula/callback weight modes decline STATICALLY at
               construction, ``'log'`` mode on a discrete/``was_dph`` graph
-              declines too, and per-theta MPFR declines remain dynamic (all
-              INFO-logged); this kwarg cannot promise more than the builder
-              delivers.
+              declines too, ``rewards`` on an effectively DISCRETE model
+              decline permanently (the continuous→discrete moment
+              correction is mathematically invalid under reward weighting
+              — a refuted derivation, not a missing feature), and
+              per-theta MPFR declines remain dynamic (all INFO-logged);
+              this kwarg cannot promise more than the builder delivers.
 
             An explicit value on any other model kind raises
             ``SvgdConfigError`` (R29) rather than being silently ignored:
-            with ``rewards`` the exact path currently declines on every call;
+            with 2-D (multivariate) ``rewards`` the kwarg's forwarding
+            semantics are not defined yet (Batch G.2 — the per-feature
+            exact path engages by default there);
             with ``epoch_starts`` the exact epoch-model gradient is the
             separate ``exact_final_grad`` kwarg (below);
             joint-probability models use the separate forward-mode
@@ -6504,10 +6510,16 @@ extern "C" {{
                         fixed_mask=fixed_mask_for_model,
                     )
                 else:
-                    # Use standard model for 1D rewards
+                    # Use standard model for 1D rewards. Batch A (user
+                    # decision 2026-08-14): explicit exact_moment_grad is
+                    # honored on this leaf too (R29's 1-D-rewards arm was
+                    # relaxed in the same batch); None stays not-forwarded.
+                    _emg_kw_rw = ({} if exact_moment_grad is None
+                                  else {'exact_moment_grad': exact_moment_grad})
                     model = Graph.pmf_and_moments_from_graph(
                         self, nr_moments=nr_moments, discrete=discrete,
                         theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                        **_emg_kw_rw,
                     )
             else:
                 # No rewards - use standard model. exact_moment_grad=None is
@@ -7279,10 +7291,18 @@ extern "C" {{
             {None, 'linear'} (continuous and discrete, including
             Graph.discretize()'d graphs) and weight_mode='log' (continuous
             only -- a discrete/was_dph graph combined with 'log' is not
-            supported and always uses finite differences). Whenever finite
+            supported and always uses finite differences). 1-D ``rewards``
+            are supported by the exact path (Batch A: the adjoint re-scales
+            at every stage of the moment chain, matching the
+            reward-transformed forward). Whenever finite
             differences are used instead -- because exact_moment_grad=False
             was passed explicitly, the graph's weight_mode is out of scope
-            ('formula'/'callback', or 'log' on a discrete/was_dph graph), or
+            ('formula'/'callback', or 'log' on a discrete/was_dph graph),
+            rewards are combined with a DISCRETE model (the
+            continuous->discrete moment correction is invalid under reward
+            weighting -- a refuted derivation, permanent), rewards are 2-D
+            on this 1-D leaf (use pmf_and_moments_from_graph_multivariate,
+            whose per-feature 1-D slices take the exact path), or
             the exact computation declines at a given theta (e.g. an
             ill-conditioned elimination tape) -- an INFO-level log message via
             ``logging.getLogger('phasic')`` states why, so the choice of
@@ -7422,12 +7442,20 @@ extern "C" {{
             _exact_K = int(nr_moments)
             _exact_is_log = _log_scope_ok
 
-            def _exact_moments_jac_np(theta_np):
+            def _exact_moments_jac_np(theta_np, rewards_np):
                 # Host callback: set the private clone's weights at θ and read the
                 # exact moment-vector Jacobian d[m]/dθ (nr_moments × param_length)
                 # from C. NaNs when the exact path is not applicable → FD fallback
-                # (logged at INFO, see _one() below).
+                # (logged at INFO, see _one() below). Batch A: rewards is a
+                # genuine per-call array (size 0 = rewardless); under
+                # vmap_method='expand_dims' the unbatched rewards arrive
+                # with a leading length-1 axis -- collapse it (the same
+                # disambiguation the forward callback uses).
                 th = np.asarray(theta_np, dtype=np.float64)
+                rw = np.asarray(rewards_np, dtype=np.float64)
+                if rw.ndim > 1:
+                    rw = rw[0]
+                _rw_list = rw.tolist() if rw.size else []
                 _shape = (_exact_K, param_length)
 
                 def _one(t):
@@ -7440,16 +7468,24 @@ extern "C" {{
                     # b3-log-weight-mode-plan.md D1.1.
                     _exact_graph.update_weights(t, log=_exact_is_log)
                     if _effective_discrete:
+                        # dph+rewards is statically declined BEFORE this
+                        # callback is ever built with rewards (the c2d
+                        # refutation); _rw_list is always [] here -- the C
+                        # wrapper's rewards_len!=0 -> -1 is defense in depth.
                         J = np.asarray(
-                            _exact_graph._moments_grad_theta_dph(_exact_K, t.tolist()),
+                            _exact_graph._moments_grad_theta_dph(
+                                _exact_K, t.tolist(), rewards=_rw_list),
                             dtype=np.float64)
                     elif _exact_is_log:
                         J = np.asarray(
-                            _exact_graph._moments_grad_theta_log(_exact_K, t.tolist()),
+                            _exact_graph._moments_grad_theta_log(
+                                _exact_K, t.tolist(), rewards=_rw_list),
                             dtype=np.float64)
                     else:
-                        J = np.asarray(_exact_graph._moments_grad_theta(_exact_K),
-                                       dtype=np.float64)
+                        J = np.asarray(
+                            _exact_graph._moments_grad_theta(
+                                _exact_K, rewards=_rw_list),
+                            dtype=np.float64)
                     if J.size != _exact_K * param_length:
                         _grad_logger.info(
                             "pmf_and_moments_from_graph: exact moment gradient "
@@ -7973,31 +8009,58 @@ extern "C" {{
             # when disabled → pure FD. _exact_ok gates a fallback to FD if the C
             # path reported not-applicable (NaN) for this θ.
             #
-            # rewards are NOT supported by the exact path: _exact_graph (the
-            # private clone _exact_moments_jac_np operates on) is never
-            # reward-transformed, and neither ptd_moments_grad_theta nor
-            # ptd_moments_grad_theta_dph take a rewards argument at all -- so
-            # J is always the Jacobian of the STANDARD (reward=all-ones)
-            # moments, silently wrong whenever the forward actually returned
-            # reward-transformed moments (rewards is not None). rewards'
+            # rewards ARE threaded into the exact path since Batch A
+            # (2026-08-14): 1-D rewards flow to ptd_moments_grad_theta/_log
+            # via the second pure_callback argument below, and the C core
+            # re-scales at EVERY stage of the forward moment chain plus the
+            # matching adjoint-side VJP (seed-only scaling is provably wrong
+            # for K>=2 -- b3-batchA-plan.md). Two static exceptions keep FD:
+            # DISCRETE models (the continuous->discrete correction is
+            # REFUTED under reward weighting) and 2-D rewards on this 1-D
+            # leaf (the multivariate wrapper's per-feature 1-D slices use
+            # the exact path instead). rewards'
             # None-ness/size is static per traced call (a genuine Python
             # None or a concrete shape, never a runtime-varying value), so
             # this check is safe as plain Python control flow, no
             # pure_callback needed. No silent fallback: log why, same as the
             # weight_mode/decline cases above.
             _rewards_provided = rewards is not None and jnp.asarray(rewards).size > 0
+            _rewards_1d = (_rewards_provided
+                           and jnp.asarray(rewards).ndim == 1)
             _exact_tbm = None
-            if _exact_grad_enabled and _rewards_provided:
+            if (_exact_grad_enabled and _rewards_provided
+                    and _effective_discrete):
+                # Batch A: reward-weighted DISCRETE moment gradients are
+                # REFUTED (the c2d correction's derivation needs U to
+                # commute with P, broken by reward scaling; 2nd moments
+                # provably wrong -- plan review 2026-08-14). Static
+                # decline with a truthful log; FD stays correct.
                 _grad_logger.info(
-                    "pmf_and_moments_from_graph: exact moment gradient does "
-                    "not yet support rewards -- using finite differences for "
-                    "the moments gradient for this call."
+                    "pmf_and_moments_from_graph: exact moment gradient "
+                    "with rewards is not available for DISCRETE models "
+                    "(the continuous->discrete correction is invalid "
+                    "under reward weighting) -- using finite differences "
+                    "for the moments gradient."
+                )
+            elif (_exact_grad_enabled and _rewards_provided
+                    and not _rewards_1d):
+                # 2-D rewards flow through this 1-D leaf's forward but the
+                # exact Jacobian contraction is 1-D-only; the multivariate
+                # wrapper slices per-feature 1-D and gets exact there.
+                _grad_logger.info(
+                    "pmf_and_moments_from_graph: exact moment gradient "
+                    "supports 1-D rewards only (2-D rewards keep finite "
+                    "differences on this leaf; the multivariate wrapper's "
+                    "per-feature slices use the exact path)."
                 )
             elif _exact_grad_enabled:
+                _rw_arg = (jnp.asarray(rewards, dtype=jnp.float64)
+                           if _rewards_1d
+                           else jnp.zeros((0,), dtype=jnp.float64))
                 _exactJ = jax.pure_callback(
                     _exact_moments_jac_np,
                     jax.ShapeDtypeStruct((nr_moments, param_length), jnp.float64),
-                    theta, vmap_method='expand_dims')
+                    theta, _rw_arg, vmap_method='expand_dims')
                 _exact_ok = jnp.all(jnp.isfinite(_exactJ))
                 _exact_tbm = _exactJ.T @ g_moments  # (n_params,)
 

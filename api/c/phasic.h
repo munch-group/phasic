@@ -471,7 +471,11 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
  * parameterized graph. J_out must hold nr_moments*graph->param_length doubles
  * (row-major: row k = d(m_k)/dtheta). Returns 0 on success; -1 for FD fallback. */
 int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
-        double *J_out);
+        const double *rewards, size_t rewards_len, double *J_out);
+/* ^ Batch A (2026-08-14): rewards/rewards_len appended -- NULL/0 =
+ * rewardless (byte-identical to the pre-A behavior); rewards_len must
+ * be 0 or vertices_length (else -1). The reward-weighted chain rescales
+ * at EVERY stage (never seed-only). */
 
 /* B3 discrete/was_dph extension: exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta
  * for the DISCRETE raw moment vector of a discrete (is_discrete) parameterized
@@ -485,7 +489,12 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
  * on MPFR-conditioned tapes or unsupported topologies, e.g. a vertex mixing
  * constant and parameterized out-edges). See b3-batch3-mpfr-and-discrete-derisk.md. */
 int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
-        const double *theta, size_t theta_len, double *J_out);
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out);
+/* ^ Batch A: rewards_len MUST be 0 -- reward-weighted discrete moment
+ * gradients are REFUTED (the c2d correction is invalid under reward
+ * scaling; see b3-batchA-plan.md's review record); any nonzero
+ * rewards_len returns -1. */
 
 /* B3 log-weight-mode extension: exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta
  * for a CONTINUOUS, weight_mode='log' parameterized graph (w_e =
@@ -497,7 +506,10 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
  * discrete/was_dph -- that combination is not supported, see
  * b3-log-weight-mode-plan.md). */
 int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
-        const double *theta, size_t theta_len, double *J_out);
+        const double *theta, size_t theta_len,
+        const double *rewards, size_t rewards_len, double *J_out);
+/* ^ Batch A: rewards/rewards_len appended, same contract as
+ * ptd_moments_grad_theta. */
 
 /* B3 joint-index extension: exact FORWARD-mode Jacobian
  * d[sojourn(indices[0..k-1])]/dtheta for a continuous, weight_mode='linear'

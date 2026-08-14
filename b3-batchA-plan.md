@@ -259,3 +259,49 @@ cells (flip from rejection to honored) + a forwarding-discrimination
 probe + the front-door svgd+rewards smoke. R29's message and the svgd
 docstring rewards clause update accordingly (shipped-text list).
 Batch G.2 shrinks to the 2-D/multivariate leaf polish.
+
+## G4 adversarial diff review + fold (2026-08-14)
+
+Two independent refuters on the implemented diff (`47cb980b`), briefed
+to refute. Both verdicts: **SOUND-WITH-CORRECTIONS — no shipped-code
+defect.** Every attacked surface survived independent numeric probes
+run by the refuters themselves: C hook placement/VJP math, dm scale
+inheritance, rewards_len validation, CRLF byte-discipline, pybind
+positional-caller safety, the empty-array callback arg under
+vmap/jit/jit∘vmap (bitwise), cross-install byte-identity (golden
+regenerated independently), linear+log+multivariate numerics vs
+independent oracles, the R29 relaxation scope, the forwarding seam,
+and the ledgered 2-D-forward defect's pre-existence.
+
+**Folded corrections** (fold commit on `b3/batchA-rewards`; full
+detail + verbatim post-fold verification in `b3-batchA-findings.md`):
+the mandated svgd-docstring rewards clause (M1, both reviews) and the
+stale `model_bwd`/R29/module-docstring contract text (M2/m3); the
+vacuous front-door log assertion → live filter + spy engagement floor
+(M2-tests); the multivariate value pin [-31.0, -11.75] (M3-tests);
+all-ones → bitwise (m1); matches_fd tolerances → measured actuals
+(m2); the log-mode+rewards evidence gap closed at gate AND pytest
+level (M4/m5 — both refuters had probed it PASS); gate (c) rewritten
+to discriminate on both discrete sub-kinds (MINOR 4); the missing plan
+cells added (MINOR 6: log-mode, all-zeros, fixed_mask×rewards,
+vmap/jit composition, K=1..3 parametrize, svgd True leg); the
+plan-deviation register and full gate-ladder record added to the
+findings doc (m4/M5); tracker row updated (m5); the bf-chunk process
+amendment landed in `b3-execution-process.md` (§4).
+
+**R29 discrete+rewards disposition (wiring M3 — decided at fold,
+FLAGGED FOR USER VETO at merge review):** discrete model + 1-D rewards
++ explicit `exact_moment_grad` is accepted by R29 yet permanently
+inert (any value → FD; the refuted c2d correction). DOCUMENTED as
+deliberate rather than rejected: R29 polices leaf routing; builder-
+level graph-property static declines (formula/callback on leaf 5 — the
+pre-existing precedent — 'log'+was_dph, discrete+rewards) are
+accepted-but-INFO-logged. A config-layer reject arm would be
+incomplete anyway (`Graph.svgd`'s call-time `discrete=` override never
+reaches `SvgdConfig`). Adding the reject arm later is purely additive
+strictness and remains open.
+
+Post-fold state: micro-gates ALL PASS (incl. new b2/c legs), batch
+files 21/3, G2 map 99 passed / 1 xfailed, expected full-suite
+**1963 / 0 / 84 / 24** (pre-fold G3 1957 + 6 fold tests; fold src
+changes are comments/docstrings only).

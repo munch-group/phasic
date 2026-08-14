@@ -1,13 +1,18 @@
 """
 Batch D Tier-1 / D.4: `Graph.svgd(exact_moment_grad=...)`.
 
-Contract (master plan §6-D.4; rule R29 in svgd_config.py):
+Contract (master plan §6-D.4; rule R29 in svgd_config.py; relaxed by
+Batch A, 2026-08-14):
 - None (default): not forwarded — byte-identical behavior.
 - Explicit True/False: forwarded to pmf_and_moments_from_graph on the
-  no-rewards moments leaf (leaf 5) ONLY.
-- Explicit value on any other leaf (rewards 1-D/2-D, epoch_starts,
+  moments leaves — no-rewards (leaf 5) and, since Batch A, 1-D rewards
+  (the exact moments adjoint supports 1-D rewards now).
+- Explicit value on any other leaf (rewards 2-D, epoch_starts,
   joint-probability): SvgdConfigError (a ValueError) at validation time —
-  never a silently inert kwarg.
+  never a silently inert kwarg. (Builder-level static declines that depend
+  on graph properties — formula/callback modes, discrete+rewards — remain
+  accepted-but-INFO-logged; R29 polices leaf routing only, the Batch A G4
+  disposition.)
 """
 from __future__ import annotations
 
@@ -86,12 +91,30 @@ class TestR29Rejections:
     # earlier rule mentioning the leaf word alone cannot mask an untested
     # R29 (G4 diff-review finding 5).
 
-    def test_rewards_1d_rejected(self):
+    def test_rewards_1d_honored(self):
+        # Batch A FATE FLIP (user decision 2026-08-14, the bundled
+        # opt-out): explicit exact_moment_grad is now HONORED on the
+        # 1-D-rewards leaf -- False = FD opt-out, True = the (new)
+        # default made explicit. Both must run to completion (the True
+        # leg was G4-fold finding MINOR 8: previously only False ran).
         g = _param_graph()
-        with pytest.raises(SvgdConfigError,
-                           match="exact_moment_grad.*rewards"):
-            g.svgd(TIMES, rewards=np.ones(g.vertices_length()),
-                   exact_moment_grad=False)
+        fit = g.svgd(TIMES, rewards=np.ones(g.vertices_length()),
+                     exact_moment_grad=False, n_iterations=1,
+                     n_particles=4)
+        assert np.all(np.isfinite(np.asarray(fit.particles)))
+        opts = fit.effective_options(return_dict=True)
+        assert opts['exact_moment_grad']['status'] == 'user'
+        assert opts['exact_moment_grad']['value'] is False
+
+        g_true = _param_graph()
+        fit_true = g_true.svgd(TIMES,
+                               rewards=np.ones(g_true.vertices_length()),
+                               exact_moment_grad=True, n_iterations=1,
+                               n_particles=4)
+        assert np.all(np.isfinite(np.asarray(fit_true.particles)))
+        opts_true = fit_true.effective_options(return_dict=True)
+        assert opts_true['exact_moment_grad']['status'] == 'user'
+        assert opts_true['exact_moment_grad']['value'] is True
 
     def test_rewards_2d_rejected(self):
         g = _param_graph()

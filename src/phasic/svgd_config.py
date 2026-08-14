@@ -1167,11 +1167,25 @@ def _check_R28_joint_index_false_incompatible_with_joint_prob(c: SvgdConfig) -> 
 
 
 def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
-    # Batch D.4: an explicit exact_moment_grad is only honored on the
-    # no-rewards moments model (leaf 5). Everywhere else it would be inert
-    # (rewards: the exact path declines on every call until Batch A) or
-    # meaningless (joint-prob/daisy models do not use the moments adjoint),
-    # so reject loudly instead of silently ignoring it.
+    # Batch D.4: an explicit exact_moment_grad is honored on the moments
+    # leaves only -- the no-rewards model (leaf 5) and, since Batch A
+    # (2026-08-14), the 1-D-rewards model. Everywhere else it would be
+    # inert (2-D rewards: the kwarg's forwarding semantics are Batch G.2's
+    # open design question) or meaningless (joint-prob/daisy models do not
+    # use the moments adjoint), so reject loudly instead of silently
+    # ignoring it.
+    #
+    # DELIBERATE SCOPE (Batch A G4 disposition): R29 polices LEAF routing
+    # only. Builder-level static declines that depend on graph properties
+    # -- formula/callback weight modes, 'log' on a discrete/was_dph graph,
+    # and rewards on an effectively-discrete model (the refuted
+    # continuous->discrete correction) -- are accepted here and INFO-logged
+    # by the model builder instead, matching the pre-existing
+    # formula/callback precedent on leaf 5. Note the discrete+rewards case
+    # cannot be fully policed here anyway: Graph.svgd's call-time
+    # ``discrete=`` override is not part of SvgdConfig (c.is_discrete is
+    # graph-derived), so a config-layer arm would miss discrete=True on a
+    # continuous graph while the builder's INFO log catches every route.
     if c.exact_moment_grad is None:
         return
     if c.has_epoch_starts:
@@ -1193,11 +1207,16 @@ def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
             "sojourn adjoint (see pmf_from_graph_joint_index's exact_grad). "
             "Drop exact_moment_grad."
         )
-    if c.rewards_kind != 'none':
+    if c.rewards_kind == '2d':
+        # Batch A relaxed the 1-D arm (the exact moments adjoint supports
+        # 1-D rewards since 2026-08-14); the 2-D/multivariate leaf's kwarg
+        # forwarding semantics are Batch G.2's design question -- until
+        # then an explicit value there would be inert, so keep rejecting.
         raise SvgdConfigError(
-            "exact_moment_grad with rewards is not supported yet: the exact "
-            "moments adjoint declines on every rewards-bearing call, so the "
-            "kwarg would be inert. Drop exact_moment_grad or rewards."
+            "exact_moment_grad with 2-D (multivariate) rewards is not "
+            "plumbed yet: the per-feature exact path engages by default, "
+            "but the kwarg's forwarding semantics for this leaf are not "
+            "defined. Drop exact_moment_grad (1-D rewards DO support it)."
         )
 
 

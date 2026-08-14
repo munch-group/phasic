@@ -1913,11 +1913,13 @@ str
       "B3 Batch-2: (E[T], exact d(E[T])/dtheta); empty grad vector => not applicable (FD fallback).")
 #endif /* PHASIC_B3_VALIDATORS */
     .def("_moments_grad_theta", &phasic::Graph::moments_grad_theta, py::arg("nr_moments"),
+      py::arg("rewards") = std::vector<double>(),
       py::call_guard<py::gil_scoped_release>(),
       "B3 Batch-3: exact moment-vector Jacobian d[m]/dtheta, flat row-major "
       "(nr_moments*param_length); empty => not applicable (FD fallback).")
     .def("_moments_grad_theta_dph", &phasic::Graph::moments_grad_theta_dph,
       py::arg("nr_moments"), py::arg("theta"),
+      py::arg("rewards") = std::vector<double>(),
       py::call_guard<py::gil_scoped_release>(),
       "B3 discrete/was_dph: exact discrete moment-vector Jacobian "
       "d[discrete m]/dtheta, flat row-major (nr_moments*param_length); "
@@ -1925,6 +1927,7 @@ str
       "empty => not applicable (FD fallback).")
     .def("_moments_grad_theta_log", &phasic::Graph::moments_grad_theta_log,
       py::arg("nr_moments"), py::arg("theta"),
+      py::arg("rewards") = std::vector<double>(),
       py::call_guard<py::gil_scoped_release>(),
       "B3 log-weight-mode: exact moment-vector Jacobian d[m]/dtheta for a "
       "continuous weight_mode='log' graph, flat row-major "
