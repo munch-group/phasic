@@ -84,11 +84,17 @@ gate | diff-review | merged | parked | blocked(<on>)`.
 
 ## Deferred units (parked; activation gates in their plans)
 
-| id | what | status | un-parks when | design-of-record |
+**De-risk phases for Def-1/2/3 executed 2026-08-15** (consolidated
+branch `derisk/d1-scc-adjoint`, squash-merged to master `a5bb71e1`;
+serial + memory-capped after the 50GB incident). Findings:
+`b3-d{1,2,3}-derisk-findings.md`. Three-way user checkpoint decided
+2026-08-15 — statuses below.
+
+| id | what | status | next step | design-of-record |
 |---|---|---|---|---|
-| Def-1 | Hierarchical/SCC two-level adjoint | parked | gate A (E0 evidence or user A2 fiat) + user authorization of de-risk | `deferred-1-hierarchical-scc-adjoint-plan.md` (v2, reviewed) |
-| Def-2 | Daisy intermediate-epoch exact gradient | parked | **"Batch H shipped" now TRUE (`ecd708fc`)** — remaining: §1 value test + user authorization | `deferred-2-daisy-intermediate-epoch-plan.md` (v2, reviewed) |
-| Def-3 | Exact PMF/PDF-term gradient | parked | gate A1 (user confirms wanted; E0 measurement) | `deferred-3-pdf-gradient-revival-plan.md` (v2, reviewed) |
+| Def-1 | Hierarchical/SCC two-level adjoint | **ACTIVATED** (de-risk complete: E0 forcing model EXISTS, E1 GO, E2 landmine+guard, E3 inverted, E4 forced-serial) | write implementation plan at P3(a) E[T]-class scope → adversarial review → sign-off; **E2 guard approved as an independent micro-batch (in flight)** | `deferred-1-hierarchical-scc-adjoint-plan.md` + `b3-d1-derisk-findings.md` |
+| Def-2 | Daisy intermediate-epoch exact gradient | de-risk (user: GO) | remaining E2 cost model (large case) + E3 oracle/custom_vmap probe → build-vs-park returns to user | `deferred-2-daisy-intermediate-epoch-plan.md` + `b3-d2-derisk-findings.md` (A2: benign ~6e-8; mixed-scale shipped backward CRASHES) |
+| Def-3 | Exact PMF/PDF-term gradient | de-risk (user: GO; **route (ii) Poisson mixture selected, route (i) refuted**) | E0 value measurement on real fits + E5 dossier → build-vs-park returns to user | `deferred-3-pdf-gradient-revival-plan.md` + `b3-d3-derisk-findings.md` |
 | Def-4 | MPFR conditioning floor (beyond Phase 0) | parked (Phase 0 = CC-2 above) | GAP outcome from Phase 0 + user approval | `deferred-4-mpfr-conditioning-floor-plan.md` (v2, reviewed) |
 
 ## §16b ledger snapshot (details in master plan §16b; triage per process §6)
