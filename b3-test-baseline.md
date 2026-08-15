@@ -16,7 +16,11 @@ test_exposure_shifts_posterior_inverse_to_alpha` failed as a PURE
 ~150-300 s and its whole 5-file group took 507 s in the worktree G3 on
 IDENTICAL merged content, where it PASSED) — reproduced under
 caffeinate only because throttling persists; no assertion ever failed.
-Re-verify trivially on an awake machine. Known-failure ledger EMPTY.**
+Re-verify trivially on an awake machine. *(Dated note 2026-08-15,
+pre-G.2: RE-VERIFIED — the exposure test + the full scc-parallelism
+file ran 5 passed in 6:50 on the awake machine; the environment
+classification is confirmed by measurement, the stamp stands clean.)*
+Known-failure ledger EMPTY.**
 
 *(Previous stamp:)* **2026-08-14 (eighth) · master `c6cc38b9` (Batch B merge) ·
 verified 1978 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
