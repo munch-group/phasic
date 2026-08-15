@@ -1156,9 +1156,11 @@ Phase 4 (gate: Batch A for leaves 3/4; gate: Batch H, already satisfied in
 Phase 1, for leaf 1 -- so leaf 1's G-work may start as soon as H completes,
 independent of Phase 3's timeline):
   G    SVGD plumbing leaves 3/4 (needs A) and leaf 1 (needs H)
-       [leaf 1 DELIVERED by G.1 (0c052cfe); leaf 3 (1-D rewards)
-       DELIVERED by A's bundle (798ddcaa); REMAINING = G.2, the
-       2-D/multivariate leaf's kwarg forwarding semantics only]
+       [ALL LEAVES DELIVERED — leaf 1 by G.1 (0c052cfe)+H; leaf 2 by
+       E (c475a78c); 1-D rewards by A's bundle (798ddcaa); the
+       2-D/multivariate leaf by G.2 (f73d0650, 2026-08-15: full
+       symmetry + uniform rejection + R32). BATCH G CLOSED;
+       PHASE 4 COMPLETE — every planned batch of the program shipped.]
 
 Not scheduled in this plan (deferred, own future initiatives):
   Deferred 1  hierarchical/SCC two-level adjoint
@@ -1374,8 +1376,14 @@ on any batch here):
    joint_prob arm byte-identical (programmatically verified); pinned
    tests both arms; R30's no-epochs branch got the same kind-aware
    treatment so the trap class is closed in both rules.**
-10. **NEW (2026-08-14, found during Batch A, PRE-EXISTING — verified
-    failing identically on the pre-A install): direct 2-D rewards on the
+10. **CLOSED 2026-08-15 @ Batch G.2 merge `f73d0650` (uniform-rejection
+    user decision):** the 1-D model now rejects 2-D rewards LOUDLY on
+    all three compute paths — and the closure resolved MORE than this
+    item recorded: the FFI path's silent-garbage output (features
+    beyond the first dropped) is fixed by the same guard, and the
+    callback path's accidental working 2-D support was retired by
+    recorded decision (wrapper value-identical by probe). Original
+    item: **direct 2-D rewards on the
     1-D `pmf_and_moments_from_graph` leaf fail in the FORWARD** with a
     shape-contract error (`Expected: (2, 4), Actual: (2, 2)` — the
     pure_callback result spec doesn't account for the feature axis).

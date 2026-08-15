@@ -104,6 +104,7 @@ run green (not merely no-worse):
 | Moments-adjoint rewards (Batch A surface) | `inference/test_exact_grad_rewards.py` (+ `experiments/dr_batchA_i1_gate.py check` when the C core/wrappers change) *(row added 2026-08-14, A G5)* |
 | Moments-adjoint formula mode (Batch B surface) | `inference/test_exact_grad_formula_mode.py`, `test_weight_formula_*.py`, `test_gate_weight_formula_conformance.py` (+ `experiments/dr_batchB_i1_gate.py check` when the core/wrappers/wf-tape change) *(row added 2026-08-14, B G5)* |
 | Moments-adjoint callback mode (Batch C surface) | `inference/test_exact_grad_callback_mode.py`, `test_callback_svgd_kwarg.py`, `test_weight_mode_probe_and_guards.py` (+ `experiments/dr_batchC_i1_gate.py check` when the core/wrappers change) *(row added 2026-08-14, C G5)* |
+| Multivariate / 2-D rewards (Batch G.2 surface) | `inference/test_exact_grad_multivariate_kwarg.py`, `inference/test_multivariate.py`, `inference/test_multivariate_correctness.py`, `inference/test_multivariate_length1.py`, `inference/test_notebook_multivar_reproduction.py` *(row added 2026-08-15, G.2 G5)* |
 | Joint-index / sojourn (amended 2026-08-13; +E 2026-08-14) | + `inference/test_exact_grad_joint_index.py`, `inference/test_exact_grad_joint_index_baked.py` |
 | Gradient defect regression (always, cheap) | `test_fd_gradient_mixed_scale.py` |
 

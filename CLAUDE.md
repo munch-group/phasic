@@ -157,8 +157,8 @@ reviews but judged lower-severity / out of scope for those passes:
   forwarded on the no-rewards moments leaf only; every other leaf rejects
   an explicit value via svgd_config rule R29, so it can never be silently
   inert. Update 2026-08-14, Batch A: the 1-D-rewards svgd leaf now ALSO
-  forwards it (R29's 1-D arm relaxed; 2-D/multivariate keeps rejection
-  until G.2). One documented exception to "never silently inert": an
+  forwards it (R29's 1-D arm relaxed; the 2-D/multivariate leaf forwards
+  too since Batch G.2, `f73d0650`). One documented exception to "never silently inert": an
   effectively-discrete model + 1-D rewards + explicit value is accepted
   but permanently FD (the refuted discrete correction) — R29 polices
   leaf routing only, matching the non-JAX-native-callback precedent on

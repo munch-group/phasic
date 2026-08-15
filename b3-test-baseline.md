@@ -1,6 +1,17 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-15 (ninth) · master `35a17364` (Batch C merge) ·
+**Re-stamped 2026-08-15 (tenth) · master `f73d0650` (Batch G.2 merge —
+the LAST batch: Batch G and Phase 4 close; every planned batch is
+shipped) · verified 2001 / 0 / 84 / 24 via the in-place branch's
+chunked run (32 groups, `-rf`, union == 159 collected files, output per
+group) on content identical to the merged tree (the branch was worked
+in-place on this checkout; the post-G3 G4 fold is text-only — comments/
+docstrings, zero test-count change; the five affected files re-ran
+96 passed / 3 skipped post-fold) = ninth stamp's 1992 + G.2's 9 net new
+tests exactly. Both G4 refuters independently recomputed the union and
+tallies. Known-failure ledger EMPTY.**
+
+*(Previous stamp:)* **2026-08-15 (ninth) · master `35a17364` (Batch C merge) ·
 verified 1992 / 0 / 84 / 24 via a MEASURED post-merge chunked run in the
 MAIN checkout (32 groups, `-rf`, union == 158 collected files, output
 per group, freshly rebuilt install) = eighth stamp's 1978 + Batch C's
