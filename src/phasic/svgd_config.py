@@ -286,9 +286,10 @@ class SvgdConfig:
     # the only constraint is mutual exclusion with callback (rule R22).
     has_weight_formula: bool = False
     # ``Graph.svgd(exact_moment_grad=...)``. None = not forwarded (the model
-    # builder's own default governs). An explicit True/False is only honored
-    # on the no-rewards moments model ("leaf 5"); every other model kind
-    # rejects it (R29) so the kwarg can never be silently inert.
+    # builder's own default governs). An explicit True/False is honored on
+    # every moments leaf (no-rewards, 1-D rewards, 2-D/multivariate --
+    # Batches D.4/A/G.2); non-moments leaves reject it (R29) so the kwarg
+    # can never be silently inert.
     exact_moment_grad: Optional[bool] = None
     # ``Graph.svgd(exact_final_grad=...)`` (Batch G.1). None = not forwarded
     # (the daisy builder's own default, False, governs). An explicit
@@ -1167,13 +1168,15 @@ def _check_R28_joint_index_false_incompatible_with_joint_prob(c: SvgdConfig) -> 
 
 
 def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
-    # Batch D.4: an explicit exact_moment_grad is honored on the moments
-    # leaves only -- the no-rewards model (leaf 5) and, since Batch A
-    # (2026-08-14), the 1-D-rewards model. Everywhere else it would be
-    # inert (2-D rewards: the kwarg's forwarding semantics are Batch G.2's
-    # open design question) or meaningless (joint-prob/daisy models do not
-    # use the moments adjoint), so reject loudly instead of silently
-    # ignoring it.
+    # Batch D.4, completed by Batch G.2 (user decision 2026-08-15, full
+    # symmetry): an explicit exact_moment_grad is honored on ALL moments
+    # leaves -- no-rewards (leaf 5), 1-D rewards (Batch A), and
+    # 2-D/multivariate rewards (Batch G.2: the wrapper forwards it to its
+    # single internal per-feature model build). The remaining rejections
+    # are the leaves that do not use the moments adjoint at all
+    # (epoch_starts -> exact_final_grad; joint-prob kinds -> exact_grad),
+    # where an explicit value would be meaningless -- reject loudly
+    # instead of silently ignoring it.
     #
     # DELIBERATE SCOPE (Batch A G4 disposition): R29 polices LEAF routing
     # only. Builder-level static declines that depend on graph properties
@@ -1210,17 +1213,6 @@ def _check_R29_exact_moment_grad_leaf_scope(c: SvgdConfig) -> None:
             f"(graph kind '{c.graph_kind}'); their likelihood uses the "
             "sojourn adjoint (see pmf_from_graph_joint_index's exact_grad). "
             "Drop exact_moment_grad."
-        )
-    if c.rewards_kind == '2d':
-        # Batch A relaxed the 1-D arm (the exact moments adjoint supports
-        # 1-D rewards since 2026-08-14); the 2-D/multivariate leaf's kwarg
-        # forwarding semantics are Batch G.2's design question -- until
-        # then an explicit value there would be inert, so keep rejecting.
-        raise SvgdConfigError(
-            "exact_moment_grad with 2-D (multivariate) rewards is not "
-            "plumbed yet: the per-feature exact path engages by default, "
-            "but the kwarg's forwarding semantics for this leaf are not "
-            "defined. Drop exact_moment_grad (1-D rewards DO support it)."
         )
 
 
@@ -1290,8 +1282,8 @@ def _check_R31_exact_grad_leaf_scope(c: SvgdConfig) -> None:
         raise SvgdConfigError(
             "exact_grad applies only to joint-probability models (the "
             "joint-index leaf); this model kind uses the moments machinery, "
-            "whose own kwarg is exact_moment_grad (itself unavailable on "
-            "rewards-bearing models until the rewards adjoint ships). "
+            "whose own kwarg is exact_moment_grad (honored on all moments "
+            "leaves, including rewards-bearing ones). "
             "Drop exact_grad."
         )
     if c.graph_was_dph:
@@ -1314,6 +1306,29 @@ def _check_R31_exact_grad_leaf_scope(c: SvgdConfig) -> None:
             "exact_grad with exposure is not supported (exposure on "
             "joint-prob models routes via epoch_starts=[0.0] and "
             "exact_final_grad). Drop exact_grad or exposure."
+        )
+
+
+def _check_R32_2d_rewards_reject_dense_1d_observations(c: SvgdConfig) -> None:
+    # Batch G.2 (2026-08-15, predicate NARROWED at G1 -- the plan-review
+    # claim "only SparseObservations completes with 2-D rewards" was
+    # itself too broad: dense 2-D observations (n_times, n_features) are
+    # a WORKING, shipped-test-covered multivariate route, incl. with
+    # exposure). The genuinely dead construction is dense 1-D
+    # observations + 2-D rewards: it passes validation and then dies
+    # deep in _log_lik_from_pmf with a raw shape mismatch. Reject that
+    # one crisply up front with the actionable routes. Added alongside
+    # the retirement of R29's 2-D arm so the dead construction keeps a
+    # first-class error message.
+    if c.rewards_kind == '2d' and c.observation_kind == '1d_times':
+        raise SvgdConfigError(
+            "2-D (multivariate) rewards cannot pair with a 1-D dense "
+            "observation vector (there is no per-feature observation "
+            "identity). Convert to SparseObservations with "
+            "phasic.svgd.dense_to_sparse(...) (works everywhere); 2-D "
+            "dense observations of shape (n_times, n_features) are also "
+            "accepted via the SVGD class entry -- see "
+            "pmf_and_moments_from_graph_multivariate."
         )
 
 
@@ -1349,6 +1364,7 @@ _RULES = (
     _check_R29_exact_moment_grad_leaf_scope,
     _check_R30_exact_final_grad_leaf_scope,
     _check_R31_exact_grad_leaf_scope,
+    _check_R32_2d_rewards_reject_dense_1d_observations,
 )
 
 

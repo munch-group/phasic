@@ -5728,10 +5728,11 @@ extern "C" {{
             - moment regularization and rewards are not supported (R3/R4)
         exact_moment_grad : bool or None, default=None
             Controls the exact moment-gradient path of the underlying
-            ``pmf_and_moments_from_graph`` model — meaningful for a
-            standard (non-joint) graph with no rewards or with 1-D
-            ``rewards`` (Batch A threaded rewards through the exact
-            moments adjoint).
+            moments model — honored for every standard (non-joint) graph:
+            no rewards, 1-D ``rewards`` (Batch A), and 2-D/multivariate
+            ``rewards`` (Batch G.2 — forwarded to
+            ``pmf_and_moments_from_graph_multivariate``, whose single
+            internal per-feature model receives it).
 
             - None (default): not forwarded; the model builder's own default
               governs (exact moment gradients ON).
@@ -5751,11 +5752,8 @@ extern "C" {{
               per-theta MPFR declines remain dynamic (all INFO-logged);
               this kwarg cannot promise more than the builder delivers.
 
-            An explicit value on any other model kind raises
+            An explicit value on a NON-moments model kind raises
             ``SvgdConfigError`` (R29) rather than being silently ignored:
-            with 2-D (multivariate) ``rewards`` the kwarg's forwarding
-            semantics are not defined yet (Batch G.2 — the per-feature
-            exact path engages by default there);
             with ``epoch_starts`` the exact epoch-model gradient is the
             separate ``exact_final_grad`` kwarg (below);
             joint-probability models use the separate forward-mode
@@ -5821,8 +5819,10 @@ extern "C" {{
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
             - 1D array (n_vertices,): Single reward vector for univariate models
-            - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature
-              dimension. Requires use of pmf_and_moments_from_graph_multivariate() model.
+            - 2D array (n_features, n_vertices): Multivariate rewards - one reward vector (row) per
+              feature dimension (G.2 orientation fix: rows are FEATURES, matching the
+              validator and the wrapper's per-feature slicing).
+              Requires use of pmf_and_moments_from_graph_multivariate() model.
             For multivariate models, observed_data should also be 2D (n_times, n_features).
         fixed : list of (index, value) tuples or 1D array, optional
             Pin selected parameters at known constants so SVGD only
@@ -6507,11 +6507,20 @@ extern "C" {{
                 import jax.numpy as jnp
                 rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)  # Ensure float64 for C++ compatibility
                 if rewards_arr.ndim == 2:
-                    # Use multivariate model for 2D rewards
+                    # Use multivariate model for 2D rewards. Batch G.2
+                    # (user decision 2026-08-15): explicit
+                    # exact_moment_grad is honored on this leaf too
+                    # (R29's 2-D arm retired); None stays not-forwarded
+                    # -- the wrapper's own default (True) then governs,
+                    # which is behaviorally identical to the 1-D leaf's
+                    # builder default.
+                    _emg_kw_mv = ({} if exact_moment_grad is None
+                                  else {'exact_moment_grad': exact_moment_grad})
                     model = Graph.pmf_and_moments_from_graph_multivariate(
                         self, nr_moments=nr_moments, discrete=discrete,
                         use_ffi=False, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
+                        **_emg_kw_mv,
                     )
                 else:
                     # Use standard model for 1D rewards. Batch A (user
@@ -7321,9 +7330,7 @@ extern "C" {{
             or 'formula' on a decoupled-theta graph),
             rewards are combined with a DISCRETE model (the
             continuous->discrete moment correction is invalid under reward
-            weighting -- a refuted derivation, permanent), rewards are 2-D
-            on this 1-D leaf (use pmf_and_moments_from_graph_multivariate,
-            whose per-feature 1-D slices take the exact path), or
+            weighting -- a refuted derivation, permanent), or
             the exact computation declines at a given theta (an
             ill-conditioned elimination tape, or a non-finite
             formula-tape gradient at a domain boundary) -- an INFO-level log message via
@@ -7731,6 +7738,26 @@ extern "C" {{
             if rewards is None:
                 return
             shp = jnp.asarray(rewards).shape
+            # Batch G.2 (USER DECISION 2026-08-15, uniform on ALL three
+            # compute paths -- master s16b item 10): this 1-D model
+            # rejects 2-D rewards loudly. Before this guard, the default
+            # (pybind) path CRASHED with an obscure XLA shape error (a
+            # wrong-axis shape spec), the FFI path returned SILENT
+            # GARBAGE (features beyond the first dropped), and the
+            # callback path accidentally computed the correct
+            # multivariate sum (undocumented; retired by recorded
+            # decision -- the multivariate wrapper is probe-verified
+            # value-identical, so migration is lossless). Static-shape
+            # check: raises legibly at trace time under jit/grad/vmap.
+            if len(shp) >= 2:
+                raise ValueError(
+                    "rewards: this model accepts 1-D rewards only (one "
+                    "reward per vertex). For 2-D multivariate rewards "
+                    "(shape (n_features, n_vertices)) use "
+                    "Graph.pmf_and_moments_from_graph_multivariate, whose "
+                    "per-feature slices use the same exact-gradient "
+                    f"machinery. Got shape {tuple(int(s) for s in shp)}."
+                )
             if len(shp) == 0 or int(shp[-1]) != _n_vertices:
                 raise ValueError(
                     f"rewards: the last axis must be n_vertices={_n_vertices} "
@@ -8046,13 +8073,15 @@ extern "C" {{
 
                     # Handle vmap batch dimension for rewards
                     # vmap adds a batch dimension to the front, but rewards should stay constant
-                    # Original rewards: 1D (n_vertices,) or 2D (n_vertices, n_features)
+                    # Original rewards: 1D (n_vertices,); the 2-D multivariate case is
+                    # UNREACHABLE here since G.2 (the forward guard rejects it)
                     # After vmap: 2D (batch, n_vertices) or 3D (batch, n_vertices, n_features)
                     if rewards_np.ndim == 3:
                         # 3D: batched 2D rewards, take first (all identical)
                         rewards_np = rewards_np[0]
                     elif rewards_np.ndim == 2:
-                        # Could be: (batch, n_vertices) from 1D vmap, or (n_vertices, n_features) multivariate
+                        # (batch, n_vertices) from 1D vmap (the 2-D multivariate case is
+                        # unreachable since G.2 -- the forward guard rejects it)
                         # Check if theta is batched to determine if this is from vmap
                         if theta_np.ndim == 2:
                             # Batched case: take first reward vector
@@ -8256,9 +8285,12 @@ extern "C" {{
                 )
             elif (_exact_grad_enabled and _rewards_provided
                     and not _rewards_1d):
-                # 2-D rewards flow through this 1-D leaf's forward but the
-                # exact Jacobian contraction is 1-D-only; the multivariate
-                # wrapper slices per-feature 1-D and gets exact there.
+                # G.2: UNREACHABLE defense-in-depth -- the forward's
+                # _check_rewards_len now rejects 2-D rewards loudly before
+                # any call reaches this arm (uniform rejection, user
+                # decision 2026-08-15); kept in case a future entry point
+                # bypasses the guard. The multivariate wrapper's
+                # per-feature 1-D slices are the supported 2-D route.
                 _grad_logger.info(
                     "pmf_and_moments_from_graph: exact moment gradient "
                     "supports 1-D rewards only (2-D rewards keep finite "
@@ -9183,7 +9215,8 @@ extern "C" {{
     def pmf_and_moments_from_graph_multivariate(cls, graph: Graph, nr_moments: int = 2,
                                                 discrete: bool = False, use_ffi: bool = False,
                                                 theta_dim: int | None = None,
-                                                fixed_mask: Any = None) -> Callable:
+                                                fixed_mask: Any = None,
+                                                exact_moment_grad: bool = True) -> Callable:
         """
         Create a multivariate phase-type model that handles 2D observations and rewards.
 
@@ -9202,6 +9235,18 @@ extern "C" {{
             If True, uses Foreign Function Interface approach.
         theta_dim : int, optional
             Number of parameters for parameterized edges.
+        fixed_mask : array-like of bool, optional
+            Forwarded to the internal 1-D model so its FD VJP skips
+            fixed dimensions.
+        exact_moment_grad : bool, default=True
+            Forwarded to the wrapper's single internal
+            ``pmf_and_moments_from_graph`` build (Batch G.2, full
+            symmetry): every per-feature moments gradient uses the exact
+            reverse-mode adjoint by default; ``False`` forces finite
+            differences. The 1-D docstring's decline ladder governs
+            (weight-mode scope, static declines, per-theta declines --
+            all INFO-logged; construction-time declines log once, not
+            per feature).
 
         Returns
         -------
@@ -9215,7 +9260,7 @@ extern "C" {{
             - rewards: Reward vectors - can be:
               * None: Standard moments
               * 1D (n_vertices,): Single reward vector (backward compatible)
-              * 2D (n_vertices, n_features): Multivariate - one reward per feature
+              * 2D (n_features, n_vertices): one reward vector (row) per feature
             - pmf_values: PMF/PDF values - shape matches input:
               * 1D rewards → 1D output (n_times,)
               * 2D rewards → 2D output (n_times, n_features)
@@ -9271,10 +9316,16 @@ extern "C" {{
         import jax
         import jax.numpy as jnp
 
-        # Get the 1D model (forward fixed_mask so its FD VJP skips fixed dims)
+        # Get the 1D model (forward fixed_mask so its FD VJP skips fixed
+        # dims). Batch G.2 (USER DECISION 2026-08-15, full symmetry):
+        # exact_moment_grad forwards to the SINGLE internal build site --
+        # the per-feature loops reuse this closure, so one forwarded kwarg
+        # governs every feature; construction-time static declines
+        # therefore log ONCE, per-theta declines per feature.
         model_1d = cls.pmf_and_moments_from_graph(
             graph, nr_moments=nr_moments, discrete=discrete,
-            use_ffi=use_ffi, theta_dim=theta_dim, fixed_mask=fixed_mask
+            use_ffi=use_ffi, theta_dim=theta_dim, fixed_mask=fixed_mask,
+            exact_moment_grad=exact_moment_grad
         )
 
         def model_multivariate(theta, times, rewards=None):

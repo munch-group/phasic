@@ -235,13 +235,13 @@ def test_exact_grad_rewards_all_ones_matches_rewardless():
 def test_multivariate_per_feature_exact_engages():
     """The Batch-A free side effect (master s3): the multivariate wrapper
     slices 2-D rewards to 1-D per feature, so each feature's exact path
-    engages with no decline logs, and the gradient is finite. (A direct
-    2-D-rewards call on the 1-D leaf is NOT tested here: its FORWARD has
-    a pre-existing shape-contract defect independent of Batch A --
-    verified failing identically on the pre-A install; ledgered at
-    Batch A's merge review. The 2-D dispatch branch in the backward is
-    therefore covered at the code level by the 1-D restriction, and the
-    production 2-D route is this wrapper.)"""
+    engages with no decline logs, and the gradient is finite. (CLOSURE
+    NOTE, Batch G.2 2026-08-15: the direct 2-D-on-1-D route -- whose
+    FORWARD shape-contract defect was ledgered at Batch A's merge review
+    -- is now LOUDLY REJECTED by user decision (uniform rejection,
+    master s16b item 10 CLOSED); this wrapper is the one blessed 2-D
+    route, and its kwarg is covered by
+    test_exact_grad_multivariate_kwarg.py.)"""
     theta = jnp.asarray([1.0, 2.0])
     times2d = jnp.asarray([[1.0, 2.0], [1.5, 2.5]]).T  # (n_times, n_features)
     # wrapper slices rewards_arr[j, :] -> rows are FEATURES: (n_features, n_vertices)

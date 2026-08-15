@@ -7,7 +7,11 @@ Batch A, 2026-08-14):
 - Explicit True/False: forwarded to pmf_and_moments_from_graph on the
   moments leaves — no-rewards (leaf 5) and, since Batch A, 1-D rewards
   (the exact moments adjoint supports 1-D rewards now).
-- Explicit value on any other leaf (rewards 2-D, epoch_starts,
+- Since Batch G.2 (2026-08-15, full symmetry): 2-D/multivariate rewards
+  are honored too (forwarded to the multivariate wrapper; requires a
+  completing 2-D observation route -- new rule R32 rejects the dead
+  dense-1-D-observations construction crisply).
+- Explicit value on a NON-moments leaf (epoch_starts,
   joint-probability): SvgdConfigError (a ValueError) at validation time —
   never a silently inert kwarg. (Builder-level static declines that depend
   on graph properties — non-JAX-native callbacks [callback mode is
@@ -119,12 +123,38 @@ class TestR29Rejections:
         assert opts_true['exact_moment_grad']['status'] == 'user'
         assert opts_true['exact_moment_grad']['value'] is True
 
-    def test_rewards_2d_rejected(self):
+    def test_rewards_2d_honored_sparse(self):
+        # Batch G.2 FATE FLIP (user decision 2026-08-15, full symmetry):
+        # explicit exact_moment_grad is now HONORED on the 2-D/
+        # multivariate leaf. This cell uses the SparseObservations route
+        # (dense 2-D observations also complete -- via the SVGD class --
+        # per the G1 R32-narrowing record; the dead construction is
+        # dense 1-D observations, rejected crisply by NEW rule R32,
+        # tested below).
+        from phasic.svgd import dense_to_sparse
+        g = _param_graph()
+        n = g.vertices_length()
+        rw = np.ones((2, n)); rw[1, 1] = 2.0
+        obs = dense_to_sparse(np.asarray([[0.5, 1.0], [1.0, 1.5],
+                                          [1.5, 2.0]]))
+        fit = g.svgd(obs, rewards=rw, exact_moment_grad=False,
+                     n_iterations=1, n_particles=4)
+        assert np.all(np.isfinite(np.asarray(fit.particles)))
+        opts = fit.effective_options(return_dict=True)
+        assert opts['exact_moment_grad']['status'] == 'user'
+        assert opts['exact_moment_grad']['value'] is False
+
+    def test_rewards_2d_dense_rejected_by_r32(self):
+        # Batch G.2: the dense construction keeps a first-class error --
+        # NEW rule R32 rejects dense observations + 2-D rewards with the
+        # dense_to_sparse route (previously R29's arm caught the explicit-
+        # kwarg case and the kwarg-less case died deep in the likelihood).
         g = _param_graph()
         rw = np.ones((2, g.vertices_length()))
-        with pytest.raises(SvgdConfigError,
-                           match="exact_moment_grad.*rewards"):
+        with pytest.raises(SvgdConfigError, match="dense_to_sparse"):
             g.svgd(TIMES, rewards=rw, exact_moment_grad=True)
+        with pytest.raises(SvgdConfigError, match="dense_to_sparse"):
+            g.svgd(TIMES, rewards=rw)
 
     def test_joint_prob_rejected(self):
         jpg = _make_joint_graph(discrete=True)
