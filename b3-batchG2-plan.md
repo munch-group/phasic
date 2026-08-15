@@ -193,3 +193,99 @@ at G1). Both flipped files keep their counts (rework, not delete).
 4. mcmc's multivariate call site: inherits default-True — identical to
    today's behavior; confirm no mcmc kwarg plumbing is implied (none
    planned; mcmc has no exact_moment_grad kwarg — a findings line).
+
+## v2 amendment (2026-08-15, post two-refuter review — BINDING over v1)
+
+**Verdicts:** design/seams SOUND-WITH-CORRECTIONS; completeness/process
+SOUND-WITH-CORRECTIONS. Convergent top finding re-presented to the user.
+
+### A. USER DECISION 2 (2026-08-15): UNIFORM rejection of 2-D rewards on the 1-D model
+
+v1's premise "direct 2-D-on-1-D always crashes" was REFUTED by both
+refuters' probes: only the DEFAULT (pybind) path crashes (real text:
+`Incorrect output shape for return value #0: Expected: (4, 5), Actual:
+(4, 2)` — root cause: the shape spec reads `rewards.shape[1]` = n_vertices
+where the feature count belongs, `__init__.py:8026`); the FFI path
+returns SILENT GARBAGE (correct values flattened into row 0, remaining
+feature rows zero); the CALLBACK path (Batch C's shape contract uses
+`shape[0]`, the right axis) accidentally WORKS and is probe-verified
+VALUE-IDENTICAL to the multivariate wrapper. **Decision: reject
+uniformly on all three paths** — the shared `_check_rewards_len`
+(defined once, `__init__.py:7730`, closed over by all three
+`_compute_pure` variants — ONE edit site) raises the actionable
+ValueError (stating the CORRECT orientation `(n_features, n_vertices)`
+and naming `pmf_and_moments_from_graph_multivariate`). This fixes the
+crash AND the silent-garbage path, and knowingly retires the
+undocumented accidental callback capability — migration is lossless
+(value parity probed). Recorded as a deliberate break, not a side
+effect.
+
+### B. svgd cells run on SparseObservations; NEW additive rule R32
+
+The pinned dense-obs constructions can NEVER complete with 2-D rewards
+(dense 2-D obs raises "use dense_to_sparse()" at `__init__.py:6274`;
+dense 1-D obs + 2-D rewards dies deep in `_log_lik_from_pmf`,
+`svgd.py:6068`) — the ONLY completing route is SparseObservations
+(probed end-to-end; ledger row default/None). Therefore: (1) the
+honored-contract cells (fate flips + cell 4) use `dense_to_sparse`;
+(2) NEW additive rule **R32**: dense observations + 2-D rewards →
+crisp actionable SvgdConfigError naming `dense_to_sparse` (an
+error-experience improvement over today's deep shape errors for BOTH
+kwarg and kwarg-less routes; the retired R29 arm's crispness is thereby
+retained and improved for the dense construction).
+
+### C. Architecture corrections (both refuters)
+
+The wrapper has exactly ONE internal build site (`model_1d =
+pmf_and_moments_from_graph(...)` at `__init__.py:9275`, WRAPPER-call
+time; dense/sparse/1-D/None paths all reuse the closure; spy-probed:
+1 build call, 0 per model call). Forwarding = one kwarg on one call.
+Test cell 1 reworded: the single wrapper-build call receives the
+value (runtime per-feature discrimination stays in cell 2 via the
+`_moments_grad_theta` spy ≥ n_features successes). Construction-time
+static declines fire ONCE (not per feature); only backward per-theta
+declines are per-feature — §2.1's log claim corrected.
+
+### D. Shipped-text sweep additions (completeness M2 + design M5)
+
+Beyond v1 §2.5: `svgd_config.py:288-291` field comment ("only honored
+on the no-rewards moments model" — stale since A); **R31's live message
+`svgd_config.py:1292-1294`** ("exact_moment_grad ... unavailable on
+rewards-bearing models until the rewards adjoint ships" — stale since
+A, wrong post-G.2: REWORD); CLAUDE.md's B3-section sentence "A direct
+2-D-rewards call on the 1-D leaf fails in the FORWARD..." (now: loudly
+rejected by decision); the svgd docstring lead-in `:5730-5734` (2-D
+joins the honored list) AND the 2-D orientation error at `:5820-5824`
+("(n_vertices, n_features)" contradicts the validator/wrapper — fix to
+`(n_features, n_vertices)`); module docstrings of the three touched
+test files + the multivariate engagement test's docstring (the
+"pre-existing shape-contract defect" narrative gets its closure note).
+
+### E. Scope/process corrections
+
+- `method_of_moments.py:389` is the third wrapper consumer —
+  behavior-neutral (inherits default True; scipy does its own FD);
+  findings line alongside mcmc.
+- "Direct-commit flow" STRUCK (process §5.3): work in-place is
+  permitted (§3.3) but all commits land on `b3/batchG2-multivariate`,
+  then squash-merge from master.
+- G2 map += `test_multivariate.py`, `test_multivariate_length1.py`,
+  `test_notebook_multivar_reproduction.py`.
+- NEW cell: exposure × 2-D rewards × explicit kwarg (previously killed
+  by the retired arm; now accepted with R11's UserWarning — assert the
+  warn fires and the fit completes).
+- G0 wording: two docs-only commits above the ninth stamp
+  (`7e1e162c` incl. the ALREADY-RECORDED ledger re-verification note —
+  no second recording at G5).
+- G5 += tracker G-row staleness fix ("Leaves 3/4 still blocked(A)" —
+  stale since A delivered leaf 3).
+
+### F. De-risks re-scoped
+
+D-G2.2 is RESOLVED at review (all three paths probed and pinned:
+crash text, garbage shape, callback parity; trace-time raise legibility
+proven on the existing guard under jit/vmap compositions). D-G2.1
+(forwarded-False ⇒ zero exact calls, 2-feature spy probe) remains the
+one pre-implementation check. Rule-enumeration also resolved:
+`rewards_kind` consumers are exactly R3/R5/R11/R29; no rule depended on
+the retired arm.
