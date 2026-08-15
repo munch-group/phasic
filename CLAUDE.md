@@ -126,6 +126,18 @@ was_dph/is_discrete exclusion is load-bearing, not defensive) — see
 `b3-log-weight-mode-plan.md` D1. The following were flagged across these
 reviews but judged lower-severity / out of scope for those passes:
 
+- **Conditioning verdict (Deferred-4 Phase 0, CC-2, 2026-08-15,
+  `b3-d4-sweep-findings.md`):** the moments-family exact gradients are
+  verified NEVER silently wrong — a 64-point sweep against an
+  exact-rational oracle (calibrated 1e-16-class) found zero GAP points;
+  every decline is gate-driven, logged, and 3-4 decades EARLY on the
+  swept fixtures (lifted-gate accuracy 1e-16..7e-14); in the large-θ
+  regime FD is 30-100% wrong while the exact path stays correct with no
+  gate involvement. Deferred 4 is PARKED by user decision (2026-08-15);
+  the pin test is `inference/test_d4_conditioning_pin.py` (skips on
+  non-MPFR builds). This verdict covers the MOMENTS family only — the
+  sojourn family's gate evidence (Batch E: lifted answers 34-144% off
+  at extreme θ ratios) is a separate function class and stands.
 - **fwd/bwd inconsistency at rate-blowup.** When the primal hits the
   existing `_rate_blowup_penalty` (theta implies an uncomputable rate; the
   forward returns a fixed 0-moments penalty instead of the real PMF/moments),

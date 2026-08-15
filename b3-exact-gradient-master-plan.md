@@ -942,6 +942,19 @@ in this plan.
 
 ## 14. Deferred 4 — MPFR conditioning-floor full adjoint
 
+> **PARKED 2026-08-15 (user decision at the CC-2 / Phase-0 report;
+> `b3-d4-sweep-findings.md`, branch `derisk/d4-mpfr-sweep`).** The
+> broadened sweep came back CLEAN: 64 points, zero silently-wrong
+> Jacobians against an exact-rational oracle (calibrated 1e-16-class);
+> declines gate-driven, logged, and 3-4 decades early on the swept
+> fixtures. Phase 1 (new decline metric) and Phase 2 (full MPFR
+> adjoint) are unjustified by evidence; the regression pin
+> (`inference/test_d4_conditioning_pin.py`, non-MPFR-skipping) guards
+> the verdict. Revisit only on telemetry showing frequent declines
+> where FD's ~1e-7 fallback error is unacceptable. The sojourn family's
+> separate gate evidence (Batch E/H) is out of this unit's scope and
+> unaffected.
+
 > **Design-of-record (added 2026-08-11):**
 > `deferred-4-mpfr-conditioning-floor-plan.md` — the adversarially-reviewed
 > decision-tree plan. Its Phase 0 IS this plan's Phase-1 "[cheap check]"
