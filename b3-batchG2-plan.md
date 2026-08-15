@@ -289,3 +289,42 @@ proven on the existing guard under jit/vmap compositions). D-G2.1
 one pre-implementation check. Rule-enumeration also resolved:
 `rewards_kind` consumers are exactly R3/R5/R11/R29; no rule depended on
 the retired arm.
+
+## G4 + G5 merge review (2026-08-15, squash-merge `f73d0650`, close-out `f905d2b1`)
+
+**G4:** two refuters, both SOUND-WITH-CORRECTIONS, zero shipped-code
+defects. Wiring lane: own oracle (default/True rel 9.5e-11, bitwise
+default==True, False→0 exact calls under grad/vmap/jit∘vmap); svgd
+three states proven on the sparse route; the R32 matrix fires on
+exactly (1d_times, 2d) across 16 cells; uniform rejection 20/20 across
+three compute paths × four transforms; vacuousness sims each fail
+exactly the designed cells; the pre-G.2 baseline re-verified on an
+edited package copy (crash / silent garbage / callback value-parity —
+the lossless-migration claim execution-verified). Process lane: every
+gate record independently re-derived (G1 re-executed, G3 union+tally
+recomputed = 2001/0/84/24 = 1992+9 cell-verified); the R32 narrowing
+judged defect-avoidance restoring shipped behavior wrongly declared
+dead at plan review — adequately recorded, re-presented here. Fold:
+text-only (docstrings, closure notes, R32 rename + remedy order,
+narrowing-truth sweeps, findings corrections incl. the `714f878d`
+hash).
+
+**Deviations re-presented (register in `b3-batchG2-findings.md`):**
+1. R32 predicate narrowed at G1 (the sparse-only review claim refuted
+   by five shipped tests — the G2 gate doing its job); 2. the exposure
+   cell shipped as a rejection/working-route pin pair (the v2 §E
+   warn-and-complete cell was factually unbuildable); 3. commit
+   granularity (feat + fix + fold rather than per-item).
+
+**Close-out executed:** 10th ledger stamp (in-place-branch run on
+merged-identical content; text-only fold); tracker (G.2 merged, all G
+leaves delivered, ALL PHASES COMPLETE banner); master plan §9 closure
++ §16b item 10 CLOSED (broader than recorded: + FFI garbage fix +
+callback retirement); CLAUDE.md (gap bullet closed, crash→rejection,
+A-exception text); process-map multivariate row; memory. Branch
+`b3/batchG2-multivariate` deletable.
+
+**With this merge, Batch G and Phase 4 close: every planned batch of
+the B3 program (0, A, B, C, D.1/2/4, E, F, G.1, G.2, H; D.3
+closed-folded) is SHIPPED.** Remaining unscheduled work: CC-2, the
+four deferred units, and open §16b items 1/4/5/6/7/8/11.
