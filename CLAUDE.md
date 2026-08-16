@@ -47,10 +47,23 @@ recovers known parameter values, using the four models from the
 `docs/pages/tutorial/svgd-*` notebooks (coalescent, two-island,
 reward-transformed coalescent, joint-probability). Each runs at three
 sizes spanning three decades of vertex count (tens/hundreds/thousands).
-Two tiers: a fast likelihood-surface check (the true parameters must be
-a local maximum) at every model and size, and a slower end-to-end SVGD
-fit asserting the truth lies in the 95% HPD where that is affordable.
-Run the fast tier with `-m "not slow"` (~65s); the slow tier adds ~7.5min.
+Three tiers: a Kolmogorov-Smirnov check that `sample()` agrees with
+`cdf()` (everything else rests on it), a fast likelihood-surface check
+(the true parameters must be a local maximum) at every model and size,
+and a slower end-to-end SVGD fit asserting the truth lies in the 95%
+HPD where affordable. Run the fast tier with `-m "not slow"` (17 tests,
+~48s); the slow tier adds 3 tests, ~5.8min.
+
+**Seeding gotcha:** `Graph.sample()` does NOT use numpy — the pybind
+layer seeds the C sampler from Python's stdlib `random`
+(`phasic_pybind.cpp` `set_c_seed`). `np.random.seed` alone leaves
+sampling non-deterministic; seed BOTH or tests are flaky.
+
+`experiments/dr_inference_accuracy_table.py` regenerates
+`b3-inference-accuracy-table.md`: true vs inferred parameters with prior
+and posterior intervals, gated on three independent convergence checks
+(R-hat across seeds, trace stationarity, and an independent scipy MLE
+landing inside the posterior interval) rather than on `summary()`.
 
 `tests/pytest/test_likelihood_correctness.py` guards the likelihood
 itself against closed forms — see the accuracy floor below.

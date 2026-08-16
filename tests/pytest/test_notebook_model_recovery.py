@@ -47,7 +47,7 @@ vertices versus 26s for the coalescent at 102, despite identical per-pdf
 cost — it is cyclic, via migration), which is why its largest size carries
 the likelihood-surface check only.
 
-Measured totals: fast tier 14 tests in ~65s; slow tier 3 tests in ~7.5min.
+Measured totals: fast tier 17 tests in ~48s; slow tier 3 tests in ~5.8min.
 
 Fit budgets here (particles, iterations, observation counts) are reduced
 from production settings to fit the suite's timeout. That is a test-budget
