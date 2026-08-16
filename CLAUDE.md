@@ -30,6 +30,30 @@ child process plus a parent RSS watchdog. A subprocess timeout does NOT
 bound memory; a fast allocation outruns it (this is how a 50 GB
 run-away happened on 2026-08-15).
 
+## Likelihood accuracy floor (measured 2026-08-16)
+
+The default continuous PDF path is accurate to only about 2.5e-3
+relative. `granularity=0` (the default, hardcoded at
+`src/cpp/parameterized/graph_builder.cpp:890`) resolves to
+`2*max(512, max_exit_rate)` = 1024 for ordinary rates, and the
+uniformization error is FIRST ORDER in 1/granularity.
+
+That error is a systematic bias in the ESTIMATE, not just noise:
+maximising phasic's likelihood against the true likelihood on identical
+data displaces the estimate by the same 2.5e-3, and unlike sampling
+error it does not shrink with sample size — so it dominates the answer
+for large datasets. Guarded by
+`tests/pytest/test_likelihood_correctness.py`; full analysis in
+`b3-mixed-scale-defect-settled.md`.
+
+Practical consequence: for the default PDF path the accuracy limit is
+the FORWARD, not the gradient. Exact-gradient work cannot improve an
+estimate there while the forward is three digits accurate. The
+mixed-scale FD defect, by contrast, only dominates once a parameter
+approaches the absolute FD step of 1e-7 (measured 2.6e-2 relative
+gradient error at theta=[1,1e-8]; >10% only past a ~1e9 scale ratio) —
+the previously recorded "4-9% at theta=[1,1e-8]" was overstated.
+
 ## Build & environment
 
 The project is managed with **pixi** (conda-based). All commands run inside the pixi environment. The build stack is scikit-build-core + CMake + pybind11, compiling C and C++ into the `phasic_pybind` extension module. MPFR/GMP (high-precision arithmetic) are required on Linux/macOS; OpenMP and JAX/XLA-FFI headers are used when present.
