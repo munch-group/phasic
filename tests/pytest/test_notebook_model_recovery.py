@@ -57,6 +57,7 @@ iterations. Point estimates are deliberately not asserted tightly: they
 run 12-21% high on the coalescent at these budgets, which is a genuine
 property of the fit rather than something a test should freeze.
 """
+import os
 import random
 from functools import partial
 from itertools import combinations_with_replacement
@@ -156,6 +157,98 @@ def two_island_graph(nr_samples):
                 transitions.append([child, [0, state[i]]])
         return transitions
     return Graph(two_island)
+
+
+def island_split_populations(nr_per_pop):
+    """Island model fitting BOTH population sizes AND the migration rate:
+    theta = [1/(2N1), 1/(2N2), migration] -- three parameters at three
+    different scales.
+
+    Lineages start in BOTH populations. That detail is load-bearing: with
+    all lineages starting in pop1 (the svgd-multi-param arrangement) the
+    second population's size only matters once lineages migrate there, and
+    at a slow migration rate it is barely identified — measured, the
+    posterior for it then stays at its prior. Splitting the sample makes
+    all three parameters identifiable from absorption times alone
+    (measured log-likelihood penalties at a quarter of the true value:
+    -110 for 1/2N1, -254 for 1/2N2, -726 for migration).
+    """
+    n = nr_per_pop * 2
+    indexer = StateIndexer(descendants=[
+        Property('pop1', min_value=0, max_value=n),
+        Property('pop2', min_value=0, max_value=n),
+        Property('in_pop', min_value=1, max_value=2)])
+    initial = [0] * indexer.state_length
+    initial[indexer.descendants.props_to_index(
+        pop1=1, pop2=0, in_pop=1)] = nr_per_pop
+    initial[indexer.descendants.props_to_index(
+        pop1=0, pop2=1, in_pop=2)] = nr_per_pop
+
+    @with_ipv(initial)
+    def model(state):
+        transitions = []
+        if state[indexer.descendants.indices()].sum() <= 1:
+            return transitions
+        for i in range(indexer.descendants.state_length):
+            if state[i] == 0:
+                continue
+            pi = indexer.descendants.index_to_props(i)
+            for j in range(i, indexer.descendants.state_length):
+                if state[j] == 0:
+                    continue
+                pj = indexer.descendants.index_to_props(j)
+                if pj.in_pop != pi.in_pop:
+                    continue
+                same = int(i == j)
+                if same and state[i] < 2:
+                    continue
+                if not same and (state[i] < 1 or state[j] < 1):
+                    continue
+                child = state.copy()
+                child[i] -= 1
+                child[j] -= 1
+                d1 = pi.pop1 + pj.pop1
+                d2 = pi.pop2 + pj.pop2
+                if d1 <= n and d2 <= n:
+                    k = indexer.descendants.props_to_index(
+                        pop1=d1, pop2=d2, in_pop=pi.in_pop)
+                    child[k] += 1
+                    rate = state[i] * (state[j] - same) / (1 + same)
+                    # coalescence rate depends on WHICH population
+                    coef = [rate, 0, 0] if pi.in_pop == 1 else [0, rate, 0]
+                    transitions.append([child, coef])
+            if state[i] > 0:
+                other = 2 if pi.in_pop == 1 else 1
+                child = state.copy()
+                child[i] -= 1
+                k = indexer.descendants.props_to_index(
+                    pop1=pi.pop1, pop2=pi.pop2, in_pop=other)
+                child[k] += 1
+                transitions.append([child, [0, 0, float(state[i])]])
+        return transitions
+    return Graph(model)
+
+
+def two_locus_arg(nr_samples):
+    """Two-locus ARG fitting coalescence AND recombination.
+
+    Recombination is only weakly identified from absorption times — the
+    log-likelihood is flat to +-0.03 over a 25-fold range around 0.05, so
+    a recovery test at that scale is impossible in principle, not merely
+    hard. At 0.5 it IS identified (penalties -6.0 at a quarter and -62 at
+    four times the true value), which is why the mixed-scale test below
+    uses a 4x separation rather than a larger one. A wider separation
+    needs richer observations (multivariate rewards or joint
+    probabilities), which carry the recombination signal.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_d1e0", os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))),
+            "experiments", "dr_d1_e0_scale.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.build_two_locus(nr_samples)
 
 
 def coalescent_indexed(nr_samples):
@@ -261,6 +354,15 @@ def assert_informative(obs, min_distinct=3):
         f"observations are degenerate: only {distinct} distinct outcome(s) "
         f"in {len(obs)} draws, so the data carry no information about the "
         f"parameters and this test would pass on the prior alone")
+
+
+def prior_95(prior):
+    """95% interval of a (log-)Gaussian prior, in THETA space."""
+    mu = float(np.ravel(prior.mu)[0])
+    sd = float(np.ravel(prior.sigma)[0])
+    if isinstance(prior, LogGaussPrior):
+        return float(np.exp(mu - 1.96 * sd)), float(np.exp(mu + 1.96 * sd))
+    return mu - 1.96 * sd, mu + 1.96 * sd
 
 
 def assert_moves_toward_truth(svgd, true_theta, free=None, tol=0.25):
@@ -396,6 +498,77 @@ def test_posterior_interval_covers_truth_from_off_truth_prior():
                       learning_rate=SCHEDULE, n_iterations=150,
                       n_particles=60)
     assert_recovers(svgd, COAL_TRUE)
+
+
+# ============= MIXED-SCALE: several parameters at different scales =========
+# Two models fitting parameters that differ in scale, from priors that
+# exclude the truth. The headline result is a LIMITATION, pinned below:
+# when parameters differ both in scale AND in how strongly they influence
+# the likelihood, the dominant one converges while the weakly-identified
+# small-scale one stays at its prior.
+
+MIXED_ISLAND_TRUE = [1.0, 0.2, 0.05]        # 1/2N1, 1/2N2, migration (20x span)
+MIXED_ISLAND_PRIORS = [LogGaussPrior(ci=[0.05, 0.4]),
+                       LogGaussPrior(ci=[0.01, 0.08]),
+                       LogGaussPrior(ci=[0.002, 0.02])]
+MIXED_LOCUS_TRUE = [2.0, 0.5]               # coalescence, recombination (4x)
+MIXED_LOCUS_PRIORS = [LogGaussPrior(ci=[0.1, 0.8]),
+                      LogGaussPrior(ci=[0.02, 0.2])]
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(3600)
+def test_mixed_scale_island_moves_all_parameters_off_their_priors():
+    """Island model, three parameters spanning 20x, priors excluding all
+    three true values.
+
+    Asserts the weaker property that every parameter moves SUBSTANTIALLY
+    away from its prior toward the truth. Measured at this budget: 1/2N1
+    0.14 -> 0.68 (true 1.0), 1/2N2 0.028 -> 0.100 (true 0.2), migration
+    0.006 -> 0.092 (true 0.05). Two of the three 95% HPDs cover; point
+    estimates are 32-83% off, so precise recovery is NOT asserted.
+    """
+    graph = island_split_populations(2)
+    graph.update_weights(MIXED_ISLAND_TRUE)
+    seed_all(0)
+    data = graph.sample(600)
+    seed_all(1)
+    svgd = graph.svgd(data, prior=MIXED_ISLAND_PRIORS,
+                      learning_rate=SCHEDULE, n_iterations=60,
+                      n_particles=30)
+    mean = np.asarray(svgd.get_results()['theta_mean']).ravel()
+    for i in range(3):
+        plo, phi = prior_95(MIXED_ISLAND_PRIORS[i])
+        prior_mid = np.sqrt(plo * phi)
+        moved = abs(mean[i] - prior_mid) / max(abs(prior_mid), 1e-30)
+        assert moved > 0.5, (
+            f"parameter {i}: posterior mean {mean[i]:g} barely moved from "
+            f"the prior centre {prior_mid:g} (true {MIXED_ISLAND_TRUE[i]:g}) "
+            f"— the likelihood is not driving this parameter")
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(1800)
+@pytest.mark.xfail(strict=True, reason=(
+    "KNOWN LIMITATION — mixed-scale recovery. In the two-locus ARG the "
+    "DOMINANT parameter converges (coalescence 1.81 against a true 2.0) "
+    "while the weakly-identified small-scale one does NOT move off its "
+    "prior (recombination 0.070 against a true 0.5, from a prior centred "
+    "at 0.063). Recombination IS identified at this scale — the "
+    "log-likelihood penalty is -6.0 at a quarter and -62 at four times "
+    "the true value — but that is two orders of magnitude weaker than "
+    "coalescence's (-700 to -4500), and the weaker parameter is left "
+    "behind. Strict, so a fix or a regression both surface."))
+def test_mixed_scale_two_locus_recovers_both_parameters():
+    graph = two_locus_arg(4)
+    graph.update_weights(MIXED_LOCUS_TRUE)
+    seed_all(0)
+    data = graph.sample(600)
+    seed_all(1)
+    svgd = graph.svgd(data, prior=MIXED_LOCUS_PRIORS,
+                      learning_rate=SCHEDULE, n_iterations=60,
+                      n_particles=30)
+    assert_moves_toward_truth(svgd, MIXED_LOCUS_TRUE, tol=0.30)
 
 
 # ===== TIER 0: does the sampler agree with the density it is fitted against? =
