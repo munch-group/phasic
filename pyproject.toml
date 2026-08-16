@@ -101,6 +101,7 @@ python_functions = "test_*"
 # pytest-timeout (declared in deps).
 addopts = "--capture=tee-sys --timeout=600" # capture stdout/stderr AND print it
 markers = [
+    "slow: long-running tests (large-model inference fits). Deselect with -m \"not slow\".",
     "equivalence: Stage-2 bit-identity / equivalence gate pinning duplicate implementations before the Stage-3 refactor unifies them (see tests/pytest/test_gate_*.py).",
 ]
 
