@@ -13,6 +13,14 @@ both refuters). P3 DECIDED (P3(a), user checkpoint 2026-08-15).
 **Authorization to plan:** user checkpoint 2026-08-15 ("Activate" — the
 three-unit decision round), at the plan-of-record's default **P3(a)
 E[T]-class scope**.
+**SCALE CONTEXT (user, 2026-08-16 — supersedes this plan's original
+sizing):** typical models are **20k-60k vertices**; **200k-600k must
+work**. Measured consequence (`b3-scale-reality-findings.md`): the
+monolithic gradient does not complete a single call at 22,653 vertices
+within 15 minutes, i.e. it fails at the LOW END of typical. Gate A1 is
+therefore satisfied by the ORDINARY case, not by an extreme one, and
+this plan's gates are re-scoped in §3-I4 accordingly.
+
 **Design-of-record chain:** `deferred-1-hierarchical-scc-adjoint-plan.md`
 (v2, reviewed) → `b3-d1-derisk-findings.md` (E0-E4 all complete) → this
 plan. The verified math reference is
@@ -191,15 +199,29 @@ point D-2 below (re-scoped per review F1).
   measured 96.5s/3.7GB at n=8, ~50GB-class at n=10); n=9/10 measured
   ONLY under the HARDENED memory protocol below, NEVER a parallel
   agent.
+  **RE-SCOPED 2026-08-16 for the real targets** — three distinct gates,
+  not one: (i) CORRECTNESS parity vs monolithic at a size where
+  monolithic still completes (nr<=8, 8,407 vertices — the only place
+  the oracle exists at all); (ii) FEASIBILITY across the TYPICAL range
+  (nr=9/10, 22,653/59,522 vertices) where monolithic time-walls, so
+  the gate is "completes at all, with peak RSS recorded", against no
+  oracle; (iii) a measured EXTRAPOLATION toward 200k-600k — per-SCC
+  size distribution, retention footprint, and adjoint cost as functions
+  of n — sufficient to say whether the 10x target is reachable or to
+  report honestly that it is not.
   **[F-P1 — CRITICAL correction: the E0 harness's "protocol" is a
   TIME-BOX ONLY (subprocess timeout + post-hoc ru_maxrss readout; no
   rlimit, no watchdog anywhere in `dr_d1_e0_scale.py`) — a time-box
   does not stop a fast 50GB allocation, which is precisely how the
   incident outran human reaction. I4's scale cells therefore REQUIRE,
   specified in I4's micro-plan, all of:**
-  (a) child-side `resource.setrlimit(RLIMIT_DATA, cap)` (+RLIMIT_AS
-  for Linux portability; on Darwin RLIMIT_DATA is the one malloc
-  respects) at subprocess entry;
+  (a) child-side `resource.setrlimit(RLIMIT_DATA/RLIMIT_AS, cap)` on
+  a BEST-EFFORT basis — **MEASURED 2026-08-16: macOS on this machine
+  REJECTS lowering either limit** (`ValueError: current limit exceeds
+  maximum limit`, for both `(cap, cap)` and `(cap, INF)`, despite
+  `getrlimit` reporting INFINITY), so on this platform (a) is INERT
+  and (b) below is the only real defence — do not describe the pair as
+  belt-and-braces;
   (b) a parent-side RSS watchdog (psutil, ~1s poll) that SIGKILLs the
   child at a named threshold (12 GB default) and records the cell as
   a MEMORY-WALL DATA POINT — that is the measurement, not an error;
@@ -259,7 +281,22 @@ the math; I4 is where the E0 value is proven end-to-end.
   NOT decline, are the calibration floor). Decline fallback at scale:
   FD-of-the-HIERARCHICAL-composer (2P compose calls — computable where
   monolithic is not), logged.]
-- **D-3 retention memory budget:** retention holds every SCC's tape
+- **D-3 retention memory budget — UPGRADED 2026-08-16 to a design
+  choice, not just a measurement.** The v2 design retains every SCC's
+  tape simultaneously. At 200k-600k vertices the sum of per-SCC tapes
+  is plausibly the same order as the monolithic tape — the very thing
+  that blows up — so RETAIN-ALL may not scale even though the forward
+  does. The alternative is RECOMPUTE-ON-DEMAND: retain only the small
+  per-SCC inputs (synth structure + the `parent_result` snapshot +
+  binding table) and rebuild each SCC's tape as the reverse pass
+  reaches it, bounding memory by the LARGEST SINGLE SCC rather than
+  their sum, at ~2x compute. This is precisely the trade Deferred 2's
+  own cost model already resolved in favour of recompute
+  (`b3-d2-derisk-findings.md` E2: checkpointed-reverse beats storing).
+  [default: implement retention behind an interface that permits BOTH,
+  measure at I2 on the typical range, and choose on evidence; treat
+  retain-all as the fast path for small graphs, not the only path]
+  Original wording follows: retention holds every SCC's tape
   simultaneously (the adjoint needs them in reverse order). EXPECTED
   to be the same order as the monolithic tape in total, but [review
   F5] E0's record contains NO Σ L_scc-vs-L_mono measurement — this is

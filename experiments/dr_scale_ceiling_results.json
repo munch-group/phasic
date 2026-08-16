@@ -1,0 +1,64 @@
+[
+ {
+  "n": 6,
+  "op": "moments_grad",
+  "vertices": 1044,
+  "build_s": 0.29,
+  "op_s": 0.07,
+  "peak_rss_gb": 0.43,
+  "accepted": false,
+  "detail": "J.size=0",
+  "wall": null,
+  "observed_peak_gb": 0.42
+ },
+ {
+  "n": 8,
+  "op": "moments_grad",
+  "vertices": 8407,
+  "build_s": 3.48,
+  "op_s": 97.48,
+  "peak_rss_gb": 5.11,
+  "accepted": false,
+  "detail": "J.size=0",
+  "wall": null,
+  "observed_peak_gb": 5.0
+ },
+ {
+  "n": 9,
+  "op": "moments_grad",
+  "wall": "TIME-WALL",
+  "peak_rss_gb": 4.96,
+  "elapsed_s": 900.9
+ },
+ {
+  "n": 6,
+  "op": "sojourn_grad",
+  "vertices": 1044,
+  "build_s": 0.04,
+  "op_s": 0.07,
+  "peak_rss_gb": 0.42,
+  "accepted": true,
+  "detail": "len=8",
+  "wall": null,
+  "observed_peak_gb": 0.27
+ },
+ {
+  "n": 8,
+  "op": "sojourn_grad",
+  "vertices": 8407,
+  "build_s": 0.48,
+  "op_s": 93.98,
+  "peak_rss_gb": 5.88,
+  "accepted": false,
+  "detail": "len=0",
+  "wall": null,
+  "observed_peak_gb": 5.87
+ },
+ {
+  "n": 9,
+  "op": "sojourn_grad",
+  "wall": "TIME-WALL",
+  "peak_rss_gb": 5.32,
+  "elapsed_s": 901.2
+ }
+]

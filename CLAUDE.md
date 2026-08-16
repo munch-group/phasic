@@ -6,6 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `phasic` is a library for **phase-type distribution algorithms represented as graphs**. A phase-type distribution is the time to absorption of a continuous- or discrete-time Markov chain; here the chain's state space is a directed graph of vertices (states) and weighted edges (transition rates), and the library computes PMFs/PDFs/CDFs, moments, sojourn times, and does Bayesian parameter inference over these models. The main application domain is population genetics (coalescent / two-locus / recombination models), so states typically encode lineage properties (see `state_indexing.py` and `tree_toplogy_encoding.md`).
 
+## Scale targets (load-bearing — size every design decision against these)
+
+**Typical production models are 20,000-60,000 vertices, and the package
+must also handle models an order of magnitude larger (~200,000-600,000
+vertices).** This is the ordinary case, not an aspiration: real
+joint-probability graphs already reach n~7e5 (see
+`b3-joint-index-plan.md`). Treat any algorithm whose memory or time
+becomes impractical below ~60k vertices as OUT OF SCOPE for production
+use, and say so explicitly rather than benchmarking on toy graphs.
+
+Concretely, this is already violated by one shipped path: the
+monolithic exact-moments gradient (`exact_moment_grad`, reverse-mode
+over the whole elimination tape) measured 96.5 s / 3.7 GB at 8,407
+vertices, and at 59,522 vertices consumed ~50 GB RAM (plus a >=2.5 GB
+partial on-disk tape) — i.e. it fails across the typical range. The
+sojourn/joint-index family is forward-mode over few parameters and was
+designed for large graphs; the two families scale differently and must
+be measured separately. Full record: `b3-d1-derisk-findings.md` (E0).
+
+**Any scale measurement must be memory-capped** — `RLIMIT_DATA` in a
+child process plus a parent RSS watchdog. A subprocess timeout does NOT
+bound memory; a fast allocation outruns it (this is how a 50 GB
+run-away happened on 2026-08-15).
+
 ## Build & environment
 
 The project is managed with **pixi** (conda-based). All commands run inside the pixi environment. The build stack is scikit-build-core + CMake + pybind11, compiling C and C++ into the `phasic_pybind` extension module. MPFR/GMP (high-precision arithmetic) are required on Linux/macOS; OpenMP and JAX/XLA-FFI headers are used when present.
