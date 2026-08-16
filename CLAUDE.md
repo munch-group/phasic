@@ -30,6 +30,21 @@ child process plus a parent RSS watchdog. A subprocess timeout does NOT
 bound memory; a fast allocation outruns it (this is how a 50 GB
 run-away happened on 2026-08-15).
 
+## Inference-correctness tests (added 2026-08-16)
+
+`tests/pytest/test_notebook_model_recovery.py` guards that inference
+recovers known parameter values, using the four models from the
+`docs/pages/tutorial/svgd-*` notebooks (coalescent, two-island,
+reward-transformed coalescent, joint-probability). Each runs at three
+sizes spanning three decades of vertex count (tens/hundreds/thousands).
+Two tiers: a fast likelihood-surface check (the true parameters must be
+a local maximum) at every model and size, and a slower end-to-end SVGD
+fit asserting the truth lies in the 95% HPD where that is affordable.
+Run the fast tier with `-m "not slow"` (~65s); the slow tier adds ~7.5min.
+
+`tests/pytest/test_likelihood_correctness.py` guards the likelihood
+itself against closed forms — see the accuracy floor below.
+
 ## Likelihood accuracy floor (measured 2026-08-16)
 
 The default continuous PDF path is accurate to only about 2.5e-3

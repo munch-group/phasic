@@ -36,9 +36,12 @@ Be clear about what each proves:
 Where tier 2 is missing, tier 1 still covers that size; the omissions are
 named explicitly below rather than left as silent gaps. The two_island
 model is the expensive one: its per-theta model rebuild is far costlier
-than the coalescent's at matched size (measured 997s for a reduced fit at
-186 vertices, versus 26s for the coalescent at 102), which is why its
-larger sizes carry the likelihood-surface check only.
+than the coalescent's at matched size (about 228s for a reduced fit at 186
+vertices versus 26s for the coalescent at 102, despite identical per-pdf
+cost — it is cyclic, via migration), which is why its largest size carries
+the likelihood-surface check only.
+
+Measured totals: fast tier 14 tests in ~65s; slow tier 3 tests in ~7.5min.
 
 Fit budgets here (particles, iterations, observation counts) are reduced
 from production settings to fit the suite's timeout. That is a test-budget
@@ -319,7 +322,7 @@ def test_coalescent_svgd_recovers_rate_thousands():
 @pytest.mark.slow
 @pytest.mark.timeout(1800)
 def test_two_island_svgd_recovers_both_rates_tens():
-    """21 vertices, two free parameters. Measured ~74s.
+    """21 vertices, two free parameters, ~85s.
 
     Marked slow because two free parameters double the per-iteration
     probe count, and this model's per-theta rebuild is expensive.
@@ -334,9 +337,10 @@ def test_two_island_svgd_recovers_both_rates_tens():
 @pytest.mark.slow
 @pytest.mark.timeout(3600)
 def test_two_island_svgd_recovers_both_rates_hundreds():
-    """186 vertices. Measured ~997s at a reduced budget — the most
-    expensive fit in this file. The 1166-vertex size has no fit test at
-    all; it is covered by the likelihood-surface tier only.
+    """186 vertices, ~228s at this budget — the most expensive fit here.
+
+    The 1166-vertex size has no fit test at all; it is covered by the
+    likelihood-surface tier only.
     """
     graph = two_island_graph(8)
     graph.update_weights(ISLAND_TRUE)
