@@ -64,8 +64,13 @@ from itertools import combinations_with_replacement
 import numpy as np
 import pytest
 
-from phasic import (Graph, GaussPrior, LogGaussPrior, Property, StateIndexer,
-                    set_log_level, with_ipv)
+from phasic import (ExpStepSize, Graph, GaussPrior, LogGaussPrior, Property,
+                    StateIndexer, set_log_level, with_ipv)
+
+# Every fit uses an EXPLICIT step-size schedule, never the default.
+# Measured: the default gives HPD [4.8, 13.5] where this schedule gives
+# [6.7, 7.5] on the same coalescent fit.
+SCHEDULE = ExpStepSize(first_step=0.05, last_step=0.01, tau=30.0)
 
 set_log_level("ERROR")
 
@@ -258,6 +263,32 @@ def assert_informative(obs, min_distinct=3):
         f"parameters and this test would pass on the prior alone")
 
 
+def assert_moves_toward_truth(svgd, true_theta, free=None, tol=0.25):
+    """The recovery assertion under an OFF-TRUTH prior.
+
+    Asserts the posterior mean lands within `tol` (relative) of the true
+    value -- i.e. the likelihood pulled the particles away from a prior
+    that excluded the truth.
+
+    It deliberately does NOT assert 95% HPD coverage. Measured: with an
+    off-truth prior the coalescent posterior converges to
+    [6.44, 6.61] against a true 7.0 while an independent MLE of the same
+    data gives 6.99 -- the point estimate is right but the interval is
+    too narrow to contain the truth (posterior sd is ~0.67x the
+    likelihood's asymptotic sd). That under-dispersion is pinned
+    separately as a strict-xfail below, so it cannot be silently fixed
+    or silently worsened.
+    """
+    res = svgd.get_results()
+    mean = np.asarray(res['theta_mean']).ravel()
+    for i in (range(len(true_theta)) if free is None else free):
+        rel = abs(mean[i] - true_theta[i]) / max(abs(true_theta[i]), 1e-30)
+        assert rel < tol, (
+            f"parameter {i}: posterior mean {mean[i]:g} is {rel:.1%} from "
+            f"the true {true_theta[i]:g}; the prior excluded the truth, so "
+            f"the likelihood failed to move the particles to it")
+
+
 def sample_joint_observations(jpg, theta, n, rng):
     """svgd-joint-prob's sampler: draw joint outcomes from the model's own
     joint-probability table at the true parameters."""
@@ -268,6 +299,26 @@ def sample_joint_observations(jpg, theta, n, rng):
     picks = rng.choice(table.index.values, n, p=p)
     return table.loc[picks, table.columns[:-1]].to_numpy().tolist()
 
+
+# ---------------------------------------------------------------- priors
+# Every prior's 95% interval EXCLUDES the true value. With the default
+# `DataPrior` (fitted to the data by method-of-moments) the prior is
+# centred near the truth, so coverage is nearly automatic and proves
+# nothing about the likelihood. These priors sit an order of magnitude
+# below the truth, so the particles can only reach it if the likelihood
+# gradient carries them there.
+#
+# They are deliberately WIDE. A tight off-truth prior sets up a
+# prior-likelihood fight that SVGD resolves badly: measured, a
+# GaussPrior(ci=[0.02, 0.1]) on two_island drives the first parameter to
+# 0.0 and keeps it there for 400 iterations at any step size.
+OFF_TRUTH_COAL = GaussPrior(ci=[1, 3])                 # true 7
+OFF_TRUTH_ISLAND = LogGaussPrior(ci=[0.01, 0.2])       # true [0.7, 0.3]
+OFF_TRUTH_REWARD = GaussPrior(ci=[1, 4])               # true 10
+OFF_TRUTH_JOINT = LogGaussPrior(ci=[2e-5, 6e-5])       # true 1e-4
+# NB a more distant joint prior ([2e-6, 1e-5]) drives the parameter to
+# the boundary (~1e-9) at the 168-vertex size -- the same collapse the
+# tight two_island prior produces. Off-truth must not mean unreachable.
 
 COAL_TRUE = [7.0]
 ISLAND_TRUE = [0.7, 0.3]
@@ -328,6 +379,25 @@ def test_reward_transformed_likelihood_peaks_at_truth(nr_samples,
     assert_truth_is_local_max(graph, REWARD_TRUE, data, rewards=rewards)
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "KNOWN GAP: with an off-truth prior the posterior is UNDER-DISPERSED "
+    "and its 95% HPD does not contain the true value, even though the "
+    "point estimate is right. Measured on the 43-vertex coalescent: HPD "
+    "[6.44, 6.61] against a true 7.0, while an independent scipy MLE of "
+    "the same data gives 6.99 and the posterior sd is ~0.67x the "
+    "likelihood's asymptotic sd. So the estimate is accurate but the "
+    "credible interval under-covers. Strict, so closing the gap forces "
+    "this pin to be revisited."))
+def test_posterior_interval_covers_truth_from_off_truth_prior():
+    graph = coalescent_graph(10)
+    graph.update_weights(COAL_TRUE)
+    seed_all(0)
+    svgd = graph.svgd(graph.sample(500), prior=OFF_TRUTH_COAL,
+                      learning_rate=SCHEDULE, n_iterations=150,
+                      n_particles=60)
+    assert_recovers(svgd, COAL_TRUE)
+
+
 # ===== TIER 0: does the sampler agree with the density it is fitted against? =
 @pytest.mark.parametrize("tag,builder,true_theta", [
     ("coalescent", lambda: coalescent_graph(10), COAL_TRUE),
@@ -360,18 +430,20 @@ def test_coalescent_svgd_recovers_rate_tens():
     graph = coalescent_graph(10)
     graph.update_weights(COAL_TRUE)
     seed_all(0)
-    svgd = graph.svgd(graph.sample(500), prior=GaussPrior(ci=[3, 15]),
-                      n_iterations=60, n_particles=60)
-    assert_recovers(svgd, COAL_TRUE)
+    svgd = graph.svgd(graph.sample(500), prior=OFF_TRUTH_COAL,
+                      learning_rate=SCHEDULE, n_iterations=150,
+                      n_particles=60)
+    assert_moves_toward_truth(svgd, COAL_TRUE)
 
 
 def test_coalescent_svgd_recovers_rate_hundreds():
     graph = coalescent_graph(13)
     graph.update_weights(COAL_TRUE)
     seed_all(0)
-    svgd = graph.svgd(graph.sample(500), prior=GaussPrior(ci=[3, 15]),
-                      n_iterations=60, n_particles=60)
-    assert_recovers(svgd, COAL_TRUE)
+    svgd = graph.svgd(graph.sample(500), prior=OFF_TRUTH_COAL,
+                      learning_rate=SCHEDULE, n_iterations=150,
+                      n_particles=60)
+    assert_moves_toward_truth(svgd, COAL_TRUE)
 
 
 @pytest.mark.slow
@@ -381,9 +453,10 @@ def test_coalescent_svgd_recovers_rate_thousands():
     graph = coalescent_graph(22)
     graph.update_weights(COAL_TRUE)
     seed_all(0)
-    svgd = graph.svgd(graph.sample(300), prior=GaussPrior(ci=[3, 15]),
-                      n_iterations=20, n_particles=25)
-    assert_recovers(svgd, COAL_TRUE)
+    svgd = graph.svgd(graph.sample(300), prior=OFF_TRUTH_COAL,
+                      learning_rate=SCHEDULE, n_iterations=40,
+                      n_particles=25)
+    assert_moves_toward_truth(svgd, COAL_TRUE)
 
 
 @pytest.mark.slow
@@ -397,8 +470,10 @@ def test_two_island_svgd_recovers_both_rates_tens():
     graph = two_island_graph(4)
     graph.update_weights(ISLAND_TRUE)
     seed_all(0)
-    svgd = graph.svgd(graph.sample(500), n_iterations=40, n_particles=50)
-    assert_recovers(svgd, ISLAND_TRUE)
+    svgd = graph.svgd(graph.sample(500), prior=OFF_TRUTH_ISLAND,
+                      learning_rate=SCHEDULE, n_iterations=150,
+                      n_particles=50)
+    assert_moves_toward_truth(svgd, ISLAND_TRUE)
 
 
 @pytest.mark.slow
@@ -412,8 +487,10 @@ def test_two_island_svgd_recovers_both_rates_hundreds():
     graph = two_island_graph(8)
     graph.update_weights(ISLAND_TRUE)
     seed_all(0)
-    svgd = graph.svgd(graph.sample(300), n_iterations=20, n_particles=25)
-    assert_recovers(svgd, ISLAND_TRUE)
+    svgd = graph.svgd(graph.sample(300), prior=OFF_TRUTH_ISLAND,
+                      learning_rate=SCHEDULE, n_iterations=40,
+                      n_particles=25)
+    assert_moves_toward_truth(svgd, ISLAND_TRUE)
 
 
 def test_coalescent_with_rewards_svgd_recovers_rate():
@@ -424,14 +501,25 @@ def test_coalescent_with_rewards_svgd_recovers_rate():
     seed_all(17)
     data = graph.sample(500, rewards=rewards)
     svgd = graph.svgd(observed_data=data, rewards=rewards,
-                      prior=GaussPrior(ci=[5, 25]),
-                      n_iterations=60, n_particles=60)
-    assert_recovers(svgd, REWARD_TRUE)
+                      prior=OFF_TRUTH_REWARD, learning_rate=SCHEDULE,
+                      n_iterations=150, n_particles=60)
+    assert_moves_toward_truth(svgd, REWARD_TRUE)
 
 
-@pytest.mark.parametrize("nr_samples,reward_limit,expect_vertices",
-                         JOINT_SIZES[:2],
-                         ids=["tens-25v", "hundreds-168v"])
+@pytest.mark.parametrize("nr_samples,reward_limit,expect_vertices", [
+    pytest.param(*JOINT_SIZES[0], id="tens-25v"),
+    pytest.param(*JOINT_SIZES[1], id="hundreds-168v",
+                 marks=pytest.mark.xfail(strict=True, reason=(
+                     "KNOWN FAILURE: from an off-truth prior (95% interval "
+                     "[2e-5, 6e-5], excluding the true 1e-4) the 168-vertex "
+                     "joint-probability model does not reach the truth -- "
+                     "measured posterior mean 2.12e-5, i.e. 79% low, barely "
+                     "moved from the prior. The 25-vertex model recovers "
+                     "fine, so this is size-dependent. A more distant prior "
+                     "([2e-6, 1e-5]) collapses it to the boundary (~1e-9) "
+                     "instead. Strict, so it fails if this silently starts "
+                     "working or gets worse."))),
+])
 def test_joint_prob_svgd_recovers_coalescent_rate(nr_samples, reward_limit,
                                                   expect_vertices):
     """svgd-joint-prob: observations are joint mutation-count outcomes drawn
@@ -452,6 +540,6 @@ def test_joint_prob_svgd_recovers_coalescent_rate(nr_samples, reward_limit,
     assert_informative(obs)
     svgd = jpg.svgd(obs,
                     fixed=[(1, MUTATION_RATE)],
-                    prior=LogGaussPrior(ci=[1 / 50_000, 1 / 5_000]),
-                    n_iterations=60, n_particles=60)
-    assert_recovers(svgd, JOINT_TRUE, free=[0])
+                    prior=OFF_TRUTH_JOINT, learning_rate=SCHEDULE,
+                    n_iterations=150, n_particles=60)
+    assert_moves_toward_truth(svgd, JOINT_TRUE, free=[0])
