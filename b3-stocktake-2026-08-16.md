@@ -124,6 +124,28 @@ decline latch, and declined moments calls still pay a full tape build),
 Item 6 deserves promotion in light of the scale finding: it is a silent
 wrong answer on exactly the path large models must use.
 
+## 4b. Which quantity each likelihood actually uses (established 2026-08-16, see b3-likelihood-path-map.md)
+
+This was mapped from source after the question was wrongly put to the
+user. The result changes the priority ordering more than the scale
+finding does:
+
+- The DEFAULT svgd fit (continuous times, no rewards) has likelihood
+  = product of PDFs at observed times. Moments are computed on every
+  forward but enter the loss only when regularization > 0. The PDF's
+  gradient is finite differences, and **no PDF/PMF gradient exists
+  anywhere in the library** — not in FFI, pybind, or C.
+- The joint-prob and epoch fits use expected sojourn times and joint
+  stop probabilities; moments are structurally absent there.
+- mcmc is gradient-free; method_of_moments and probability_matching
+  hand residuals to scipy with no jac=, so scipy finite-differences.
+
+So the programme made exact the quantity (moments) that the common-case
+likelihood does not consume, and left FD on the quantity (PDF) it does.
+Deferred 3 — the PDF-term gradient, which this session had been
+treating as the most optional unit — is the only one that would make
+the default fit exact.
+
 ## 5. The alignment question, stated plainly
 
 The programme optimised for correctness-in-the-small with unusual rigor
