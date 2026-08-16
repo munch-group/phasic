@@ -82,6 +82,76 @@ coalescent-scale calls while its lifted answers match an fp64 oracle to
 above is the moments-family twin of that finding, on the same kind of
 model, with the same character (lifted answer good to ~1e-12/1e-13).
 
+## 2b. THE ROOT CAUSE: the monolithic elimination tape is QUADRATIC in vertices, and is already 6.8 GB at 8,407 vertices
+
+Measured directly (tape written to disk, `commands_length` read from the
+`ptd_pcg_disk_header`):
+
+| vertices | tape length L | on disk |
+|---|---|---|
+| 1,044 | 917,434 commands | 113.5 MB |
+| 8,407 | 55,159,015 commands | **6,820 MB** |
+
+Eight times the vertices gives sixty times the tape: L grows as roughly
+n^2.0. Extrapolated on that exponent:
+
+| vertices | L (commands) | tape size |
+|---|---|---|
+| 22,653 | ~4.0e8 | ~50 GB |
+| 50,000 (laptop target) | ~2.0e9 | **~240 GB** |
+| 500,000 (cluster target) | ~2.0e11 | **~24 TB** |
+
+This is the root cause behind every symptom above, and it is
+architectural, not a tuning problem:
+
+- The sojourn adjoint's `L > 5e7` size guard (`phasic.c:11790`, a
+  deliberate ~2 GB safety net) is therefore crossed at **8,407
+  vertices** — that is why the sojourn family declined there in the
+  ladder, and it means the joint-index exact gradient is unavailable
+  from roughly 8k vertices upward BY DESIGN.
+- The ~99 s exact-moments call at 8,407 vertices is simply the cost of
+  building a 55-million-command tape.
+- No amount of gate-tuning or caching makes a 240 GB tape fit on a
+  laptop. **Every exact-gradient path in the B3 programme is built on
+  this monolithic tape, so all of them are structurally capped around
+  10^4 vertices** — an order of magnitude below "typical" and three
+  below the cluster target.
+
+The only designed escape is decomposition: SCC-wise elimination
+replaces one quadratic tape with many small ones (bounded by the
+largest SCC, not the whole graph). That is exactly Deferred 1 — which
+therefore is not one option among several but the sole route to the
+stated requirement. It also reframes Deferred 1's retention question:
+retaining every per-SCC tape simultaneously re-creates the same total,
+so recompute-on-demand is likely mandatory rather than optional.
+
+## 2c. A second, independently fixable defect: the moments gradient rebuilds its tape on EVERY call
+
+Measured at 8,407 vertices, three successive calls on the same graph:
+100.66 s, 97.97 s, 99.04 s — no caching whatsoever. Compare the warm
+forward evaluation at 8.1 ms, so a finite-difference gradient (2P = 4
+forwards) costs 32.3 ms. **The exact path is 3,062x more expensive than
+the FD path it replaces.**
+
+Source confirms the mechanism and shows it is not inherent:
+`ptd_moments_grad_theta` (`phasic.c:11294-11312`) calls
+`ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph)`, which
+builds a private tape per call and destroys it on exit, whereas
+`ptd_b3_sojourn_grad_core` (`phasic.c:11744-11762`) calls
+`ptd_precompute_reward_compute_graph(graph)` and REUSES the graph-level
+cache `graph->parameterized_reward_compute_graph_off` when present.
+The joint-index plan records this as a deliberate fix ("reuses the
+graph-level RAW parameterized tape cache, fixing the catastrophic
+O(n^3)-rebuild-per-call risk"). The moments family never received the
+same treatment.
+
+Fitting-budget consequence, using the user's stated fit shape (200
+particles x 100 iterations = 20,000 particle-gradient evaluations):
+at 8,407 vertices the FD path costs about 11 minutes for a whole fit,
+while the exact path as shipped would cost about 550 hours. Even below
+the tape wall, the exact gradient is unusable in a real fit purely
+because of the rebuild.
+
 ## 3. Platform note (corrects the D1 plan's I4 protocol)
 
 The adversarial review of `b3-d1-implementation-plan.md` required
