@@ -98,23 +98,54 @@ costs ~1e-11 in value — with loud raise on violation (D2 side: the
 `<=1.0001` validation escalated InvalidArgument-style instead of the
 current NaN-row swallow, plan F1; D3 side: the p<0 stepper check).
 
-## Remaining de-risk work (scoped honestly; NOT done)
+## E0 — value measurement (COMPLETE 2026-08-16, post-checkpoint GO)
 
-- **E0 — value measurement on real SVGD fits** (how much of the total
-  gradient error is the FD PMF term, benign + mixed-scale; parks the
-  unit if immaterial). Requires real fits; deferred to the activation
-  decision.
-- **E5 — chain-rule re-derivation dossier** for route (ii) with
-  term-zeroing checks. This is the input to any implementation plan.
+`experiments/dr_d3_e0_value_measurement.py` — compact form: the SVGD
+log-likelihood gradient at benign/mixed anchors + 4 draws from the
+SVGD log-scale init (sd=2 — the production sd=5 band exceeds fp64
+representability; truncation noted), vs the A2-proven Richardson
+relative-step self-oracle, on hypo2 (P=2) and a Kingman coalescent
+n=5 (P=1), 4 observation times.
 
-## Activation-gate status
+- **Benign + init-draw regime:** FD PMF-term error 6e-10 .. 6.5e-8
+  across every point and both entry points — negligible for SVGD.
+- **Mixed scale (coal5, θ=1e-8):** the FD PMF gradient is
+  **3.35e+02 relative** through `pmf_and_moments_from_graph` (where
+  the moments term is exact, so this IS the total-gradient error) and
+  **1.00e+02** through `pmf_from_graph` — the absolute-eps probe
+  perturbs θ by 10× its own scale (and below zero), the pinned B3
+  defect class. hypo2's mixed point ([1, 1e-8], only one stage tiny)
+  stayed at 5.9e-8 — the blow-up needs the tiny scale to dominate the
+  chain, exactly the coalescent-rate shape.
 
-- A1 (user confirms PDF-term exact gradients are wanted): **OPEN — the
-  checkpoint question.**
-- A2 (de-risk complete + route chosen + E4 note): route chosen (ii),
-  E4 note above; E0/E5 outstanding ⇒ **PARTIAL**. If the user says GO,
-  E0+E5 are the next de-risk work; if PARK, this document plus the
-  committed experiment are the complete record.
+**E0 verdict: NOT immaterial** — after B3, the FD PMF term is the
+dominant (catastrophic) gradient error source at mixed scale, in the
+regime the B3 program exists for; at benign scales there is nothing to
+gain. The build case is mixed-scale robustness/accuracy, mirroring
+D2's A2 verdict shape.
+
+## E5 — chain-rule dossier (COMPLETE 2026-08-16)
+
+`b3-d3-e5-derivation-dossier.md` (predictions-first) +
+`experiments/dr_d3_e5_term_zeroing.py`: every term named (T0 init —
+zero in validated scope, an implementation-time obligation for
+parameterized start edges; T1 propagation; T2 harvest; T3 Poisson —
+zero by pinning); explicit forward-mode tangent recursion (the
+C-implementation prototype) == `jax.grad` of the intact mixture at
+~2e-14 on expo/erlang3/cyclic4; Z1/Z2 term-drops break parity by
+25%..1000% exactly where predicted; Z3 (index mis-alignment) already
+measured at 2.07e-2. The dossier is the input to any implementation
+plan.
+
+## Activation-gate status (updated 2026-08-16)
+
+- A1 (user confirms PDF-term exact gradients are wanted): the E0
+  evidence is now in hand — **the build-vs-park decision returns to
+  the user** with: build case = mixed-scale (the FD PMF term is
+  100-335× wrong there and is the whole remaining error after B3);
+  park case = benign-regime users gain nothing.
+- A2 (de-risk complete + route chosen + E4 note): **SATISFIED** —
+  route (ii), E4 note above, E0-E5 all complete.
 
 ## Re-evaluation checkpoint OUTCOME (user-decided 2026-08-15)
 

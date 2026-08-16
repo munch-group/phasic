@@ -1417,6 +1417,37 @@ on any batch here):
     (master §5 records it) and the batched-vmap W optimization (D-C2's
     recorded option, b3-batchC-findings.md).
 
+12. **NEW (2026-08-16, D1 implementation-plan review F-P8): the pybind
+    `scc_decomposition()`-on-temporary dangling footgun** — the SCC
+    decomposition object BORROWS its parent graph; decomposing a
+    temporary and composing on the dead parent returns plausible
+    garbage silently (found by D1's E1 de-risk,
+    `b3-d1-derisk-findings.md`). Candidate fix: pybind keep-alive
+    policy on `scc_decomposition()` (or a liveness check + loud
+    error). Owner: unscheduled; natural vehicle = Deferred-1's I2/I3
+    sub-batches (same file territory) or a standalone micro-batch.
+
+13. **NEW (2026-08-16, D1-E2 guard G4 review, refuter A m3): the
+    synthetic-graph decline has no LATCH.** A graph's synthetic-ness
+    cannot change with theta, yet the decline is re-evaluated on every
+    backward (measured: 3 C-WARNING + 4 Python-INFO emissions per
+    `jax.grad` through `pmf_and_moments_from_graph`), and for the
+    MOMENTS family each declined call additionally pays a full O(n^3)
+    tape build — `ptd_graph_ex_absorbation_time_comp_graph_parameterized`
+    builds fresh and destroys on exit, so the "graph-cached" assumption
+    is false there (the sojourn core is unaffected: its guard precedes
+    any build). Precedent for the fix: the joint-index construction-time
+    probe latch (`src/phasic/__init__.py:8856`), which decides once per
+    model. Misuse-path only, so not shipped in the micro-batch.
+    Owner: unscheduled; natural vehicle = Deferred-1's I1.
+
+14. **NEW (2026-08-16, same review): `Graph(synth).serialize()` →
+    `Graph.from_serialized` drops the `synthetic` marker.** The
+    distributed route is closed (`deserialize_scc_synth` re-applies
+    it), but the bare wrap-and-serialize route is not; closing it needs
+    a serialized field. No shipped caller does this. Accepted residual,
+    recorded so it is not rediscovered as a surprise.
+
 ---
 
 ## 17. What "done" looks like for this document
