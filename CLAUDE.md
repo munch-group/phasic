@@ -25,6 +25,16 @@ sojourn/joint-index family is forward-mode over few parameters and was
 designed for large graphs; the two families scale differently and must
 be measured separately. Full record: `b3-d1-derisk-findings.md` (E0).
 
+**Tape growth is MODEL-DEPENDENT — never quote a single exponent.**
+Measured elimination-tape length L against vertex count n:
+coalescent (sparse, acyclic) **L ~ n^1.20**; two_island (cyclic via
+migration) **L ~ n^1.86**; two-locus ARG (dense, cyclic) **L ~ n^2.0**.
+So a sparse acyclic model of 50,000 vertices needs only ~400 MB of tape
+and is feasible on the monolithic path, while a two-locus model of the
+same size needs ~240 GB and is not. The binding constraint is model
+STRUCTURE, not vertex count alone. Any scale claim must name the family
+it was measured on (`b3-scale-reality-findings.md` §2b).
+
 **Any scale measurement must be memory-capped** — `RLIMIT_DATA` in a
 child process plus a parent RSS watchdog. A subprocess timeout does NOT
 bound memory; a fast allocation outruns it (this is how a 50 GB

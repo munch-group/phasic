@@ -82,7 +82,44 @@ coalescent-scale calls while its lifted answers match an fp64 oracle to
 above is the moments-family twin of that finding, on the same kind of
 model, with the same character (lifted answer good to ~1e-12/1e-13).
 
-## 2b. THE ROOT CAUSE: the monolithic elimination tape is QUADRATIC in vertices, and is already 6.8 GB at 8,407 vertices
+## 2b. THE ROOT CAUSE: tape growth — MODEL-DEPENDENT, not universally quadratic
+
+**CORRECTION 2026-08-16 (user challenge; the original claim below was
+overgeneralised from ONE model family).** The exponent was measured on
+the two-locus ARG only — a dense, cyclic model — and stated as if it
+were a property of the tape. Measured across families, the exponent
+varies a lot and sparse graphs do scale far better, exactly as the user
+suspected:
+
+| family | structure | measured | L at largest measured |
+|---|---|---|---|
+| coalescent | sparse, ACYCLIC | **L ~ n^1.20** | n=1,959 → 61,841 cmds (7.7 MB) |
+| two_island | cyclic (migration) | **L ~ n^1.86** | n=1,166 → 1,696,889 cmds (210 MB) |
+| two-locus ARG | dense, cyclic | **L ~ n^2.0** | n=8,407 → 55,159,015 cmds (6.8 GB) |
+
+Exponents are stable within each family (successive local slopes vary
+by <0.03), so these are real scaling laws, not noise.
+
+Extrapolated to the stated targets:
+
+| family | 50,000 vertices (laptop) | 500,000 vertices (cluster) |
+|---|---|---|
+| coalescent (n^1.20) | ~3.2e6 cmds, **~400 MB — feasible** | ~5.0e7 cmds, ~6 GB — plausible |
+| two_island (n^1.86) | ~1.9e9 cmds, ~230 GB — infeasible | far worse |
+| two-locus (n^2.0) | ~2.0e9 cmds, ~240 GB — infeasible | ~24 TB |
+
+**Revised conclusion.** The monolithic tape is NOT a universal ceiling
+at ~10^4 vertices. For sparse acyclic models it may well reach the
+targets. It IS a hard ceiling for dense/cyclic models — including the
+two-locus ARG, which the user names as a typical use case, so the
+practical problem stands for that class. The blocker is model
+structure, not vertex count alone, and any scale claim must name the
+model family it was measured on.
+
+The original text follows, correct for the two-locus family it was
+measured on:
+
+### (original, two-locus ARG only)
 
 Measured directly (tape written to disk, `commands_length` read from the
 `ptd_pcg_disk_header`):
