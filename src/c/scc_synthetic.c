@@ -713,6 +713,10 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         free(uc_indices); free(io_indices); free(dc_indices);
         goto fail_oom;
     }
+    /* Mark as synthetic so the B3 exact-gradient cores decline (the
+     * placeholder-coefficient landmine; see the field's comment in
+     * api/c/phasic.h). */
+    synth->synthetic = true;
     /* Pre-lock param_length so coefficient validation in
      * ptd_graph_add_edge agrees with the parent. */
     if (parent->param_length > 0) {

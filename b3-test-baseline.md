@@ -1,6 +1,41 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-15 (tenth) · master `f73d0650` (Batch G.2 merge —
+**Re-stamped 2026-08-16 (ELEVENTH) · master `<MERGE_HASH>` (D1-E2
+synthetic-graph guard micro-batch) · verified 2012 / 0 / 84 / 24 via a
+MEASURED chunked run (32 groups, `-rf`, per-group output preserved,
+union == the 158 collected files verified, freshly rebuilt install
+carrying the guard). Zero FAILED lines anywhere; all 32 groups
+reported a summary. Known-failure ledger EMPTY.**
+
+**Arithmetic (stated explicitly because TWO deltas are folded in):**
+2001 (tenth stamp, `f73d0650`)
+ + 3 — `tests/pytest/inference/test_d4_conditioning_pin.py`, added by the
+   CC-2 / Deferred-4 merge `7371a369`, which shipped **without a
+   re-stamp** (G0 was therefore STALE at this batch's branch point: the
+   ledger named `f73d0650` while master had moved two commits. Recorded
+   as a process finding by this batch's G4 refuter B, MAJOR-3; the
+   correct pre-branch expectation on master was 2004, not 2001)
+ + 8 — `tests/pytest/test_synthetic_scc_guard.py` (5 at first G3, +3
+   added by the G4 fold: parent-marker-leak, the Python `Graph.clone()`
+   route, and the distributed serialize/deserialize round-trip)
+ = **2012**. Skips (84) and xfails (24) unchanged.
+
+**File-count note:** the union is **158 TEST-BEARING files**. The tenth
+stamp's "159" counted files differently; the current tree has 161
+`test_*.py` files, of which three collect zero tests
+(`test_svgd.py`, `test_mcmc.py`, `test_trace_recording.py` — verified)
+and so cannot appear in a collection-derived union. 158 + 3 = 161.
+
+**Interim measurement (superseded, kept for the audit trail):** the
+pre-G4-fold code measured 2009 / 0 / 84 / 24 on the same 158-file union
+(= 2001 + 3 + 5). The G4 fold added an additive pybind
+`_set_synthetic` setter, one line in `distributed_scc
+.deserialize_scc_synth`, three tests, and comment-only C changes; the
+directly affected surfaces were re-run green before the full re-run
+(guard 8/8, SCC/hierarchical row 407 + 3 xfailed, SLURM/distributed row
+81 + 2 xfailed).
+
+*(Previous stamp:)* **2026-08-15 (tenth) · master `f73d0650` (Batch G.2 merge —
 the LAST batch: Batch G and Phase 4 close; every planned batch is
 shipped) · verified 2001 / 0 / 84 / 24 via the in-place branch's
 chunked run (32 groups, `-rf`, union == 159 collected files, output per

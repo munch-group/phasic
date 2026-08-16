@@ -7710,7 +7710,7 @@ extern "C" {{
                             "a constant and a parameterized out-edge; for "
                             "weight_mode='formula' a non-finite formula-tape "
                             "gradient, e.g. d/dt sqrt(t-c) at its domain "
-                            "boundary) -- using "
+                            "boundary; or a synthetic SCC graph) -- using "
                             "finite differences for this step.", t.tolist()
                         )
                     return (J.reshape(_shape) if J.size == _exact_K * param_length
@@ -8865,7 +8865,8 @@ extern "C" {{
                     "declined at the construction-time probe (theta=ones, "
                     "all-terminal union) -- an out-of-scope/oversized tape, "
                     "a structurally non-finite Jacobian row at a terminal "
-                    "vertex, or ill-conditioning even at this benign "
+                    "vertex, a synthetic SCC graph, or ill-conditioning "
+                    "even at this benign "
                     "reference point -- using finite differences for the "
                     "whole model. (theta=ones is the documented reference; "
                     "if your model is only well-conditioned elsewhere, this "

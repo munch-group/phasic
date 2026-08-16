@@ -1386,6 +1386,28 @@ str
           True if this is a discrete phase-type distribution
       )delim")
 
+    .def("_set_synthetic",
+      [](phasic::Graph &g, bool value) {
+          g.c_graph()->synthetic = value;
+      }, py::arg("value"), R"delim(
+      Mark this graph as a synthetic SCC graph (D1-E2 guard).
+
+      Synthetic SCC graphs carry PLACEHOLDER coefficients on their
+      Type-A/phantom edges, so the B3 exact-gradient cores decline on
+      them (contracting placeholders as real dw/dtheta yields
+      plausible-but-wrong Jacobians). ptd_scc_build_synthetic_graph
+      sets the marker at creation and ptd_clone_graph propagates it,
+      but the marker is NOT serialized -- so a graph reconstructed
+      from a serialized synth (phasic.distributed_scc
+      .deserialize_scc_synth, the SLURM per-SCC worker path) must
+      re-apply it explicitly. That is this setter's only caller.
+
+      Parameters
+      ----------
+      value : bool
+          True if this graph is (a reconstruction of) a synthetic SCC graph
+      )delim")
+
     .def("get_was_dph",
       [](phasic::Graph &g) {
           return g.c_graph()->was_dph;

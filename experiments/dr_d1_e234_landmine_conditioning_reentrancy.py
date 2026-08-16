@@ -4,20 +4,25 @@ whole-graph conditioning), E4 (reentrancy survey record).
 Plan: deferred-1-hierarchical-scc-adjoint-plan.md §5. Branch-only; no
 src/ changes.
 
-E2 demonstrates HSCC §4(b): the shipped exact-gradient entry points
-cannot tell a synthetic SCC graph from a real parameterized graph --
-they return a full-size, plausible Jacobian whose contraction read the
-Type-A/phantom PLACEHOLDER coefficients as real dw/dtheta, and
+E2 demonstrated HSCC §4(b): BEFORE the guard shipped, the exact-gradient
+entry points could not tell a synthetic SCC graph from a real
+parameterized graph -- they returned a full-size, plausible Jacobian
+whose contraction read the Type-A/phantom PLACEHOLDER coefficients as
+real dw/dtheta (measured J=[-1.0, 0.0] on this fixture), and
 update_weights() itself silently overwrites the compose-injected
 phantom weights with linear placeholder values (corrupting the synth
-graph's hierarchical semantics). Guard DESIGN is the deliverable;
-implementation touches shipped code and needs user approval (routed
-per the plan to a micro-batch or a future approved core touch).
+graph's hierarchical semantics -- still true, and OUT of the guard's
+scope by design). The guard SHIPPED 2026-08-16 (user-approved,
+b3-d1-e2-guard-plan.md); E2's checks below now assert the DECLINE.
 
-E3 answers master-plan risk 13a: on a fixture engineered to be
+E3 answered master-plan risk 13a: on a fixture engineered to be
 ill-conditioned ACROSS SCC boundaries but benign within each, compare
 the per-SCC (synthetic-graph) gate condition with the whole-graph gate
 condition, both recovered by bisecting PHASIC_CONDITION_THRESHOLD.
+POST-GUARD the per-SCC arm is PRE-GUARD HISTORICAL (the guard declines
+every per-SCC call at any threshold, by design); reproduce its
+1e23/1e28 numbers at the pre-guard commits bfb737ce / 4229207b. The
+whole-graph arm still runs live.
 
 E4 is a static-read record (source citations) -- reproduced here as a
 docstring so the findings file can cite one artifact.
@@ -103,21 +108,31 @@ assert synth is not None, "no SCC with channels found"
 print(f"  synth graph: {synth.vertices_length()} vertices, "
       f"{meta.n_channels} channels (scc_index={meta.scc_index})")
 
-# (a) the shipped exact-gradient entry points ACCEPT the synth graph
+# (a) POST-GUARD (b3-d1-e2-guard-plan.md): the exact-gradient cores now
+# DECLINE the synth graph. PRE-GUARD HISTORICAL RECORD (2026-08-15, the
+# landmine this experiment originally demonstrated): _moments_grad_theta(1)
+# ACCEPTED it and returned the full-size plausible J=[-1.0, 0.0]
+# contracted from placeholder coefficients; _sojourn_grad_theta_subset
+# ([0]) likewise returned a size-2 finite row under BOTH
+# skip_condition_gate settings (recorded at the guard plan's R2 review).
 chans = meta.channels
 phantom_edges = [(c['d_j_synth_idx'], c.get('phantom_edge_idx'))
                  for c in chans] if isinstance(chans, list) else None
 try:
-    pre_w = None
     synth.update_weights(THETA)
     J = np.asarray(synth._moments_grad_theta(1))
-    accepted = J.size > 0 and np.all(np.isfinite(J))
+    declined = J.size == 0
 except Exception as exc:
-    accepted = False
+    declined = False
     print(f"  (unexpected: raised {type(exc).__name__})")
-check("E2(a) shipped exact-grad ACCEPTS a synthetic graph "
-      "(full-size plausible J -- the landmine)", accepted,
-      f"J={J.tolist() if accepted else None}")
+check("E2(a) exact moments grad DECLINES the synthetic graph "
+      "(guard live; pre-guard it returned J=[-1.0, 0.0])", declined)
+soj_declined = all(
+    len(synth._sojourn_grad_theta_subset([0], skip_condition_gate=s)) == 0
+    for s in (False, True))
+check("E2(a') exact sojourn grad DECLINES the synthetic graph "
+      "(both gate settings; pre-guard it returned a size-2 finite row)",
+      soj_declined)
 
 # (b) update_weights silently overwrites compose-injected semantics:
 # the phantom edge's TRUE weight under hierarchical semantics is
@@ -135,27 +150,29 @@ if par_res is not None and isinstance(chans, list) and len(chans):
     c0 = chans[0]
     tgt = int(c0['parent_vertex_idx'])
     true_phantom = 1.0 / par_res[tgt] if par_res[tgt] > 0 else 1e300
-    # (the synth graph is a raw pybind Graph -- no serialize(); the
-    # structural fact stands from the C source: update_weights
+    # (the structural fact stands from the C source: update_weights
     # re-derives EVERY parameterized edge as c.theta, including the
     # Type-A/phantom placeholders whose compose-time weights are
-    # injections, and the shipped J above contracted those placeholder
-    # coefficients as real dw/dtheta)
+    # injections, and the PRE-GUARD J contracted those placeholder
+    # coefficients as real dw/dtheta. NB a synth CAN be serialized --
+    # phasic.distributed_scc.serialize_scc_synth, the SLURM route --
+    # which is why deserialize_scc_synth re-applies the marker.)
     print(f"  E2(b) true phantom weight under hierarchical semantics = "
           f"1/parent_result[{tgt}] = {true_phantom:.6g} "
           f"(theta-dependent through the PARENT -- not any linear "
-          f"c.theta; the shipped J's placeholder-coefficient "
-          f"contraction cannot represent it).")
-print("""  E2 GUARD DESIGN (deliverable; implementation NEEDS user approval --
-  it modifies shipped code): add `bool synthetic` (or a magic marker) to
-  struct ptd_graph, set in ptd_scc_vertex_as_synthetic_graph
-  (scc_synthetic.c) at creation; ONE check inserted at the top of
-  ptd_b3_moments_core (covers linear/log/dph/formula/the binp exit in a
-  single site -- the Batch-0 shared-core landing the plan predicted)
-  plus ptd_sojourn_grad_theta_subset[_nogate]: decline -1 with a log
-  ("synthetic SCC graphs carry placeholder coefficients; exact
-  gradients of composed quantities need the two-level adjoint").
-  Pinned-test-to-be: this experiment's E2(a) flips to declined.""")
+          f"c.theta; the PRE-GUARD J's placeholder-coefficient "
+          f"contraction could not represent it -- which is why the "
+          f"guard declines rather than approximating).")
+print("""  E2 GUARD -- SHIPPED (user-approved 2026-08-15; plan
+  b3-d1-e2-guard-plan.md). `bool synthetic` on struct ptd_graph, set in
+  ptd_scc_build_synthetic_graph at creation, propagated by
+  ptd_clone_graph, and re-applied by
+  distributed_scc.deserialize_scc_synth across the SLURM boundary; ONE
+  decline check at the top of ptd_b3_moments_core (all five contraction
+  kinds) plus one in ptd_b3_sojourn_grad_core (both public wrappers),
+  each logging at WARNING. Pinned by
+  tests/pytest/test_synthetic_scc_guard.py; the two PASS lines above
+  ARE the post-guard behaviour.""")
 
 print("== E3: per-SCC vs whole-graph gate condition ==")
 
@@ -179,30 +196,26 @@ def bisect_cond(graph, theta):
     return 10.0 ** (0.5 * (lo + hi))
 
 
+# POST-GUARD SCOPING (b3-d1-e2-guard-plan.md, R2 finding 1; the
+# reproduction path is the PRE-GUARD commits bfb737ce / 4229207b --
+# G4 refuter B, MINOR-7): the
+# per-SCC arm of this measurement is PRE-GUARD HISTORICAL. It bisected
+# PHASIC_CONDITION_THRESHOLD against _moments_grad_theta on SYNTHETIC
+# graphs; post-guard every such call declines at ANY threshold, so the
+# bisection degenerates to inf and the printed science would silently
+# invert. The recorded pre-guard result stands
+# (b3-d1-derisk-findings.md E3): per-SCC gate condition exploded to
+# 1e23 (cross-SCC 1e12) / 1e28 (cross-SCC 1e14) through phantom-weight
+# scale mixing while the whole-graph condition stayed ~1e1 -- risk 13a
+# INVERTED (per-SCC gates OVER-decline). By design that measurement is
+# no longer reproducible on a guarded build. The whole-graph arm below
+# remains live.
 for ratio, tag in ((1.0, "benign"), (1e12, "cross-SCC 1e12"),
                    (1e14, "cross-SCC 1e14")):
     g = two_scc_graph(cross_ratio=ratio)
     whole = bisect_cond(g, THETA)
-    g2 = two_scc_graph(cross_ratio=ratio)
-    g2.update_weights(THETA)
-    scc2 = g2.scc_decomposition()
-    per_scc = []
-    for i in range(scc2.n_sccs()):
-        sg, m = scc2.scc_at(i).as_synthetic_graph()
-        try:
-            c = bisect_cond(sg, THETA)
-        except Exception:
-            c = None
-        per_scc.append(c)
-    per_scc_max = max((c for c in per_scc if c is not None), default=None)
-    print(f"  {tag}: whole-graph cond={whole:.3e}, "
-          f"max per-SCC cond={per_scc_max:.3e}"
-          if per_scc_max is not None else
-          f"  {tag}: whole={whole:.3e}, per-SCC unavailable")
-    if ratio >= 1e12 and per_scc_max is not None:
-        under = per_scc_max < whole / 1e3
-        print(f"    -> per-SCC gate under-detects cross-boundary "
-              f"conditioning: {under} (ratio {whole/per_scc_max:.1e})")
+    print(f"  {tag}: whole-graph cond={whole:.3e} "
+          f"(per-SCC arm: PRE-GUARD HISTORICAL, see comment above)")
 
 print()
 print("E2/E3/E4 COMPLETE" + ("" if not FAILS else f"; FAILURES: {FAILS}"))

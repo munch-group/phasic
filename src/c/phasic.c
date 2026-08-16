@@ -1141,6 +1141,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
     new_graph->edge_mode = graph->edge_mode;
     new_graph->was_dph = graph->was_dph;
     new_graph->dph_compute_invalidated = graph->dph_compute_invalidated;
+    new_graph->synthetic = graph->synthetic;
 
     // Create mapping from old vertices to new vertices
     struct ptd_vertex **vertex_map = (struct ptd_vertex **)calloc(
@@ -2983,6 +2984,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
     graph->dph_compute_invalidated = false;
+    graph->synthetic = false;
     graph->use_dyn_ordering = (getenv("PHASIC_DYN_ORDERING") != NULL);
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
@@ -10976,6 +10978,19 @@ static int ptd_b3_moments_core(
         const struct ptd_b3_dph_ctx *dph_ctx,    /* non-NULL iff DPH */
         double *binp_exit,  /* non-NULL iff BINP_EXIT: K x ni row-major */
         double *J_out) {
+    /* D1-E2 guard: synthetic SCC graphs carry placeholder coefficients
+     * (see the field's comment in api/c/phasic.h) -- contracting them
+     * as real dw/dtheta yields plausible-but-wrong Jacobians. One check
+     * here covers all five contraction kinds. WARNING (not INFO):
+     * always-misuse, and the FD fallback differentiates the same
+     * placeholder forward, so the numbers stay wrong either way. */
+    if (graph->synthetic) {
+        PTD_LOG_WARNING("synthetic SCC graph: placeholder coefficients "
+                        "cannot yield exact gradients of composed "
+                        "quantities (needs the two-level adjoint); "
+                        "declining");
+        return -1;
+    }
     (void)theta_len;  /* wrapper-validated; kept in the signature for
                          future consumers (Batch A/B extend it) */
     size_t P = graph->param_length, K = (size_t)nr_moments;
@@ -11712,6 +11727,16 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
 static int ptd_b3_sojourn_grad_core(struct ptd_graph *graph,
         const size_t *indices, size_t k, double *J_out,
         int skip_condition_gate) {
+    /* D1-E2 guard: decline on synthetic SCC graphs (placeholder
+     * coefficients; see ptd_b3_moments_core's guard comment). Covers
+     * both public wrappers, gate-skipping or not. */
+    if (graph->synthetic) {
+        PTD_LOG_WARNING("synthetic SCC graph: placeholder coefficients "
+                        "cannot yield exact gradients of composed "
+                        "quantities (needs the two-level adjoint); "
+                        "declining");
+        return -1;
+    }
     if (!graph->parameterized || graph->param_length == 0) return -1;
     if (graph->was_dph) return -1;
     size_t P = graph->param_length;

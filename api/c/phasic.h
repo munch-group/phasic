@@ -202,6 +202,17 @@ struct ptd_graph {
      * accidentally turned the wipe into a per-call O(n^3) rebuild. */
     bool dph_compute_invalidated;
 
+    /* True iff this graph ORIGINATES from ptd_scc_build_synthetic_graph
+     * (scc_synthetic.c). Synthetic SCC graphs carry PLACEHOLDER
+     * coefficients on Type-A/phantom edges (the true weights are
+     * compose-time injections, theta-dependent through the PARENT
+     * graph), so the B3 exact-gradient cores must decline on them --
+     * contracting the placeholders as real dw/dtheta yields
+     * plausible-but-wrong Jacobians (b3-d1-derisk-findings.md, E2).
+     * Propagated by ptd_clone_graph; NOT serialized (synthetic graphs
+     * have no legitimate serialize round-trip). */
+    bool synthetic;
+
     /* Elimination ordering strategy */
     bool use_dyn_ordering;  // If true, use dynamic minimum-degree ordering within SCCs
 
@@ -469,7 +480,9 @@ int ptd_moment0_grad_theta(struct ptd_graph *graph,
 /* B3 Batch-3 (production): exact Jacobian d[m_0..m_{nr_moments-1}]/dtheta for the
  * standard moment vector of a continuous / weight_mode=linear / monolithic
  * parameterized graph. J_out must hold nr_moments*graph->param_length doubles
- * (row-major: row k = d(m_k)/dtheta). Returns 0 on success; -1 for FD fallback. */
+ * (row-major: row k = d(m_k)/dtheta). Returns 0 on success; -1 for FD
+ * fallback (declines on synthetic SCC graphs, was_dph, MPFR-conditioned
+ * tapes). */
 int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
         const double *rewards, size_t rewards_len, double *J_out);
 /* ^ Batch A (2026-08-14): rewards/rewards_len appended -- NULL/0 =
@@ -486,8 +499,9 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
  * unused arithmetically when was_dph is False beyond the length check). J_out
  * must hold nr_moments*graph->param_length doubles (row-major: row k =
  * d(discrete m_k)/dtheta). Returns 0 on success; -1 for FD fallback (declines
- * on MPFR-conditioned tapes or unsupported topologies, e.g. a vertex mixing
- * constant and parameterized out-edges). See b3-batch3-mpfr-and-discrete-derisk.md. */
+ * on synthetic SCC graphs, MPFR-conditioned tapes, or unsupported
+ * topologies, e.g. a vertex mixing constant and parameterized out-edges).
+ * See b3-batch3-mpfr-and-discrete-derisk.md. */
 int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
         const double *theta, size_t theta_len,
         const double *rewards, size_t rewards_len, double *J_out);
@@ -502,9 +516,9 @@ int ptd_moments_grad_theta_dph(struct ptd_graph *graph, int nr_moments,
  * theta/theta_len must match the values the caller most recently passed to
  * update_weights(theta, log=True). J_out must hold
  * nr_moments*graph->param_length doubles (row-major). Returns 0 on success;
- * -1 for FD fallback (declines on MPFR-conditioned tapes, or if the graph is
- * discrete/was_dph -- that combination is not supported, see
- * b3-log-weight-mode-plan.md). */
+ * -1 for FD fallback (declines on synthetic SCC graphs, MPFR-conditioned
+ * tapes, or if the graph is discrete/was_dph -- that combination is not
+ * supported, see b3-log-weight-mode-plan.md). */
 int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
         const double *theta, size_t theta_len,
         const double *rewards, size_t rewards_len, double *J_out);
@@ -517,8 +531,9 @@ int ptd_moments_grad_theta_log(struct ptd_graph *graph, int nr_moments,
  * b3-batchB-plan.md). Same contract as ptd_moments_grad_theta_log:
  * J_out row-major nr_moments*param_length; theta must match the last
  * update_weights(theta) call; 0 = success, -1 = not applicable (FD
- * fallback: was_dph, no weight tape, theta_len != param_length, MPFR
- * conditioning, structural tape failure, or a non-finite Jacobian --
+ * fallback: synthetic SCC graph, was_dph, no weight tape, theta_len !=
+ * param_length, MPFR conditioning, structural tape failure, or a
+ * non-finite Jacobian --
  * e.g. a formula gradient like d/dt sqrt(t-c) at the domain boundary).
  * is_discrete has no C field: the Python caller MUST gate native-DPH
  * graphs (same note as the log variant). */
@@ -535,9 +550,9 @@ int ptd_moments_grad_theta_formula(struct ptd_graph *graph, int nr_moments,
  * coefficients_length==0 -- the consumer MUST skip these rows); ni.
  * No theta parameter: replays CURRENT edge weights (caller runs
  * update_weights(theta, callback=fn) first). 0 = success, -1 = not
- * applicable (nothing allocated): was_dph (load-bearing -- see
- * dr_batchC_d5_derisk.py), MPFR conditioning, tape/alloc failure,
- * rewards_len mismatch. is_discrete has no C field: the Python
+ * applicable (nothing allocated): synthetic SCC graph, was_dph
+ * (load-bearing -- see dr_batchC_d5_derisk.py), MPFR conditioning,
+ * tape/alloc failure, rewards_len mismatch. is_discrete has no C field: the Python
  * caller MUST gate native-DPH graphs (same note as log/formula). */
 int ptd_moments_binp_exit(struct ptd_graph *graph, int nr_moments,
         const double *rewards, size_t rewards_len,
@@ -554,8 +569,8 @@ int ptd_moments_binp_exit(struct ptd_graph *graph, int nr_moments,
  * rationale and b3-joint-index-plan.md for the de-risk evidence. J_out must
  * hold k*graph->param_length doubles (row-major: row r =
  * d(sojourn(indices[r]))/dtheta). Returns 0 on success; -1 for FD fallback
- * (declines on was_dph, MPFR-conditioned tapes, or out-of-scope tape
- * inputs). */
+ * (declines on synthetic SCC graphs, was_dph, MPFR-conditioned tapes, or
+ * out-of-scope tape inputs). */
 int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
         const size_t *indices, size_t k, double *J_out);
 
@@ -565,8 +580,8 @@ int ptd_sojourn_grad_theta_subset(struct ptd_graph *graph,
  * gate declining 100% of realistic coalescent-scale calls while the
  * gated answers matched an fp64 oracle to ~1e-13; this path's primal has
  * no MPFR fallback, so the gate is conservatism, not correctness. Every
- * other decline stays live (was_dph, size guard, allocation, tape-input
- * scope, the final per-row isfinite sweep). */
+ * other decline stays live (synthetic SCC graph, was_dph, size guard,
+ * allocation, tape-input scope, the final per-row isfinite sweep). */
 int ptd_sojourn_grad_theta_subset_nogate(struct ptd_graph *graph,
         const size_t *indices, size_t k, double *J_out);
 

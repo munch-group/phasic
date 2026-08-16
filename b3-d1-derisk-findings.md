@@ -37,8 +37,20 @@ shape). Retention must capture the tape built by the INNER
   placeholder coefficients. `update_weights` on the synth graph
   silently re-derives every parameterized edge as c·θ, overwriting
   compose-injected semantics.
-- **Guard design (deliverable; implementation MODIFIES SHIPPED CODE →
-  user approval required):** a `synthetic` marker on `ptd_graph` set
+*(Dated correction 2026-08-16: this section describes the guard as a
+DESIGN awaiting approval and specifies an INFO log. Both are
+superseded — the guard SHIPPED on 2026-08-16 (user-approved
+2026-08-15), logging at **WARNING** (deliberately upgraded: this
+decline is always-misuse and the FD fallback produces the same wrong
+numbers, so it must be visible at the default level), with the marker
+also re-applied across the distributed serialize/deserialize boundary
+(`distributed_scc.deserialize_scc_synth` — a shipped synth serializer
+the guard plan had wrongly assumed did not exist; found by G4 refuter
+A). Pinned by `tests/pytest/test_synthetic_scc_guard.py` (8 tests).
+Record: `b3-d1-e2-guard-plan.md`.)*
+
+- **Guard design (as originally drafted — see the dated correction
+  above for what actually shipped):** a `synthetic` marker on `ptd_graph` set
   at `as_synthetic_graph` creation; ONE decline check at the top of
   `ptd_b3_moments_core` (covers all five kinds in one site) + the two
   sojourn entries; INFO log naming the two-level-adjoint requirement.
@@ -56,7 +68,12 @@ per-SCC synthetic graph's gate condition explodes to **1e23/1e28**
 (the phantom weight 1/parent_result imports the parent's scale into
 the SCC's tape). **Master risk 13a asked whether a per-SCC gate
 UNDER-detects; the measured direction is the OPPOSITE — a per-SCC gate
-would OVER-decline through phantom-weight scale mixing.** A future
+would OVER-decline through phantom-weight scale mixing.**
+*(Post-guard annotation, 2026-08-15: this measurement PREDATES the
+E2 guard and is no longer reproducible on a guarded build — the
+per-SCC bisection called `_moments_grad_theta` on synthetic graphs,
+which now decline at any threshold by design. The experiment's per-SCC
+arm is scoped PRE-GUARD HISTORICAL; the numbers above are the record.)* A future
 two-level adjoint's decline design must therefore gate on the
 whole-graph statistic (or a phantom-excluded per-SCC statistic), not
 naive per-SCC condition numbers.

@@ -212,6 +212,25 @@ reviews but judged lower-severity / out of scope for those passes:
   wrapper now also declines on `was_dph` graphs (previously
   Python-routing-only safety; micro-gate
   `experiments/dr_batch0_m4_wasdph_gate.py`).
+  **SYNTHETIC-SCC DECLINE (2026-08-16, D1-E2 guard micro-batch):**
+  `ptd_b3_moments_core` now declines at its FIRST statement — with a
+  `PTD_LOG_WARNING`, visible at the default log level — whenever
+  `graph->synthetic` is set, i.e. on graphs originating from
+  `ptd_scc_build_synthetic_graph`. Those carry PLACEHOLDER
+  coefficients on their Type-A/phantom edges, and contracting them as
+  real `dw/dtheta` returned a full-size *plausible-but-wrong* Jacobian
+  (measured `[-1.0, 0.0]` on the de-risk fixture). The marker is set
+  at creation, propagated by `ptd_clone_graph` (load-bearing — the
+  Python exact path computes on a private `graph.clone()`), and
+  re-applied by `distributed_scc.deserialize_scc_synth` (the SLURM
+  per-SCC worker round-trip); it is NOT serialized, so a bare
+  `Graph(synth).serialize()` → `from_serialized` round-trip is a
+  documented residual. Honest limit: the FD fallback differentiates
+  the same placeholder forward, so the NUMBERS a Python caller gets
+  are ~unchanged (5.6e-10) — the guard's value is an honest C/pybind
+  surface plus protection for the future two-level adjoint. Tests:
+  `tests/pytest/test_synthetic_scc_guard.py`; record
+  `b3-d1-e2-guard-plan.md`.
 
 None of these are regressions from the default flip (the multivariate/
 moments_from_graph/method_of_moments gaps predate it and were never in
@@ -271,6 +290,11 @@ that same review, judged lower-severity / out of scope for it:
   with evidence — the whole adjoint call containing the conversion is
   1.0-1.3% of the FD backward it replaces, stable across a 37× size
   range; master plan §16b item 3 closed.)*
+- **Synthetic SCC graphs are DECLINED (2026-08-16, D1-E2 guard).**
+  `ptd_b3_sojourn_grad_core` declines at its first statement (WARNING,
+  default-visible) when `graph->synthetic` is set — covering BOTH
+  `ptd_sojourn_grad_theta_subset` and `..._nogate`, gate-skipping or
+  not. Same rationale/marker mechanics as the moments family above.
 - **The `was_dph`/discrete/was_dph quotient-rule combination remains
   deferred** (native DPH, `is_discrete=True`/`was_dph=False`, IS
   supported — only `was_dph=True`, i.e. `Graph.discretize()`, is excluded),

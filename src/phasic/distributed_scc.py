@@ -232,6 +232,16 @@ def deserialize_scc_synth(data: dict[str, Any]):
             coeffs = row[1:].tolist()
             start.add_edge(idx_to_vertex[to_idx], coeffs)
 
+    # D1-E2 guard: the `synthetic` marker is NOT serialized, so a
+    # reconstruction would otherwise be indistinguishable from a real
+    # parameterized graph and the exact-gradient cores would happily
+    # contract its PLACEHOLDER coefficients into a plausible-but-wrong
+    # Jacobian (found by the guard's G4 review, which round-tripped
+    # this very function and recovered the pre-guard landmine value).
+    # Re-apply it here so the decline follows the graph across the
+    # SLURM per-SCC worker boundary.
+    g._set_synthetic(True)
+
     return g
 
 
