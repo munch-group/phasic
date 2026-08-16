@@ -255,7 +255,7 @@ C public-API decline-cause enumerations, and an 8-test pin file.
 | G2 targeted (12 files) | 407 passed, 1 xfailed |
 | G2 SCC/hierarchical row (11 files, added after refuter B's MAJOR-4) | 407 passed, 3 xfailed |
 | G2 SLURM/distributed row (8 files, added after refuter A's M1 fix) | 81 passed, 2 xfailed |
-| G3 chunked full suite | see the 11th baseline stamp |
+| G3 chunked full suite | **2012 / 0 / 84 / 24**, 32 groups, zero failures (11th stamp) |
 | G4 | two adversarial diff refuters, both SOUND-WITH-CORRECTIONS, all findings folded (below) |
 
 ### G4 findings and dispositions

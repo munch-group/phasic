@@ -1,6 +1,6 @@
 # B3 test baseline ledger
 
-**Re-stamped 2026-08-16 (ELEVENTH) · master `<MERGE_HASH>` (D1-E2
+**Re-stamped 2026-08-16 (ELEVENTH) · master `dac5fe8c` (D1-E2
 synthetic-graph guard micro-batch) · verified 2012 / 0 / 84 / 24 via a
 MEASURED chunked run (32 groups, `-rf`, per-group output preserved,
 union == the 158 collected files verified, freshly rebuilt install
