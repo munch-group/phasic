@@ -1,5 +1,17 @@
 # B3 execution tracker — grand overview
 
+> **STOCK-TAKE 2026-08-16 — READ `b3-stocktake-2026-08-16.md` FIRST.**
+> The user stated the library's real scale targets for the first time
+> (20k-60k vertices TYPICAL; 200k-600k required) and a memory-capped
+> measurement showed the shipped exact-gradient programme does not
+> serve them: the moments gradient DECLINES via the conditioning gate
+> on real two-locus graphs at 1k vertices, and no gradient call of
+> either family completes within 15 minutes at 22.6k vertices. Every
+> batch below is correct and gate-verified at the sizes it was tested
+> at; none was ever tested at production size. Plans are re-opened
+> pending a Q&A on intended use — treat the per-unit statuses below as
+> accurate history, not as an agreed forward plan.
+
 ## Decoder (plain language — what the codes mean)
 
 - **B3** — the whole program: replace finite-difference (FD) gradients with

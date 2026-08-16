@@ -1345,7 +1345,9 @@ on any batch here):
 5. **`moments_from_graph` / `method_of_moments` exact gradients** —
    explicitly out of this plan's scope (see the amended Scope paragraph);
    only D.1's vmap-crash fix touches the former.
-6. **NEW (2026-08-11, found by the Deferred-1 plan's adversarial review):
+6. **[PROMOTED 2026-08-16 — this is a silent wrong answer on exactly
+   the code path large models must use; see
+   `b3-stocktake-2026-08-16.md` §4]** **NEW (2026-08-11, found by the Deferred-1 plan's adversarial review):
    the hierarchical composer silently recomputes ALL weights linear** —
    `ptd_graph_update_weights(..., use_log=false)` unconditionally at
    `scc_compose.c:187`/`:315`, and the formula `weight_tape` is never
