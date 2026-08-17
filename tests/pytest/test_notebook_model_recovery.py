@@ -482,14 +482,15 @@ def test_reward_transformed_likelihood_peaks_at_truth(nr_samples,
 
 
 @pytest.mark.xfail(strict=True, reason=(
-    "KNOWN GAP: with an off-truth prior the posterior is UNDER-DISPERSED "
-    "and its 95% HPD does not contain the true value, even though the "
-    "point estimate is right. Measured on the 43-vertex coalescent: HPD "
-    "[6.44, 6.61] against a true 7.0, while an independent scipy MLE of "
-    "the same data gives 6.99 and the posterior sd is ~0.67x the "
-    "likelihood's asymptotic sd. So the estimate is accurate but the "
-    "credible interval under-covers. Strict, so closing the gap forces "
-    "this pin to be revisited."))
+    "SETTLED DEFECT, not a budget limit (b3-budget-vs-defect-findings.md "
+    "section 1). With an off-truth prior the posterior is UNDER-DISPERSED "
+    "and its 95% HPD misses the true 7.0. More ITERATIONS make it WORSE: "
+    "at 60 particles the sd falls 0.2525 -> 0.0735 going from 150 to 600 "
+    "iterations, and at 200 particles 0.2439 -> 0.0366 -- the ensemble "
+    "keeps collapsing, tightening around a mean pinned at 6.51-6.57 while "
+    "an independent MLE gives 6.99 (~7% low bias no budget removes). Only "
+    "raising particles to 400 widens the interval enough to cover, and "
+    "then by being 1.6x wider rather than better centred."))
 def test_posterior_interval_covers_truth_from_off_truth_prior():
     graph = coalescent_graph(10)
     graph.update_weights(COAL_TRUE)
@@ -558,7 +559,11 @@ def test_mixed_scale_island_moves_all_parameters_off_their_priors():
     "log-likelihood penalty is -6.0 at a quarter and -62 at four times "
     "the true value — but that is two orders of magnitude weaker than "
     "coalescence's (-700 to -4500), and the weaker parameter is left "
-    "behind. Strict, so a fix or a regression both surface."))
+    "behind. SETTLED as a DEFECT, not a budget limit "
+    "(b3-budget-vs-defect-findings.md section 3): 6.7x the iterations and "
+    "2x the particles moves recombination from 86% off to 87% off while "
+    "its credible interval CONTRACTS FOURFOLD around the wrong value "
+    "(width 0.062 -> 0.0064). Confidence grows, accuracy does not."))
 def test_mixed_scale_two_locus_recovers_both_parameters():
     graph = two_locus_arg(4)
     graph.update_weights(MIXED_LOCUS_TRUE)
@@ -652,13 +657,14 @@ def test_two_island_svgd_recovers_both_rates_tens():
 @pytest.mark.slow
 @pytest.mark.timeout(3600)
 @pytest.mark.xfail(strict=True, reason=(
-    "KNOWN FAILURE at this budget: from the off-truth prior the "
-    "186-vertex two_island overshoots to a posterior mean of 1.29 against "
-    "a true 0.7 (84% high). The 21-vertex version recovers correctly, but "
-    "it runs 150 iterations while this one runs 40 -- the slow-tier "
-    "budget. So this may be travel-budget-limited rather than a genuine "
-    "failure to recover, and that distinction is NOT yet measured. "
-    "Strict, so it must be revisited rather than drifting."))
+    "SETTLED: genuinely BUDGET-LIMITED, not a defect "
+    "(b3-budget-vs-defect-findings.md section 4) -- the one pin of four "
+    "for which more compute helps. From the off-truth prior at the "
+    "suite's 40 iterations the parameters land 910% and 62% off; at 150 "
+    "iterations (what the PASSING 21-vertex case uses) that improves to "
+    "129% and 23%. It has still not converged at 150, so this case needs "
+    "a budget the suite cannot afford rather than exposing broken "
+    "inference. Kept xfail because the affordable budget genuinely fails."))
 def test_two_island_svgd_recovers_both_rates_hundreds():
     """186 vertices, ~228s at this budget — the most expensive fit here.
 
@@ -691,15 +697,19 @@ def test_coalescent_with_rewards_svgd_recovers_rate():
     pytest.param(*JOINT_SIZES[0], id="tens-25v"),
     pytest.param(*JOINT_SIZES[1], id="hundreds-168v",
                  marks=pytest.mark.xfail(strict=True, reason=(
-                     "KNOWN FAILURE: from an off-truth prior (95% interval "
-                     "[2e-5, 6e-5], excluding the true 1e-4) the 168-vertex "
-                     "joint-probability model does not reach the truth -- "
-                     "measured posterior mean 2.12e-5, i.e. 79% low, barely "
-                     "moved from the prior. The 25-vertex model recovers "
-                     "fine, so this is size-dependent. A more distant prior "
-                     "([2e-6, 1e-5]) collapses it to the boundary (~1e-9) "
-                     "instead. Strict, so it fails if this silently starts "
-                     "working or gets worse."))),
+                     "SETTLED DEFECT, not a budget limit "
+                     "(b3-budget-vs-defect-findings.md section 2). From an "
+                     "off-truth prior the 168-vertex joint-probability "
+                     "model does not reach the true 1e-4. Ten times the "
+                     "iterations and three times the particles improves it "
+                     "only from 73.5% low to at best 53.9% low, then "
+                     "plateaus and regresses. The HPD lower bound is "
+                     "1.00e-09 -- the parameter floor -- at EVERY budget, "
+                     "so particles sit stuck at the boundary throughout; "
+                     "its nominal coverage is meaningless because the "
+                     "interval spans five orders of magnitude. The "
+                     "25-vertex model recovers fine, so this is "
+                     "size-dependent."))),
 ])
 def test_joint_prob_svgd_recovers_coalescent_rate(nr_samples, reward_limit,
                                                   expect_vertices):
