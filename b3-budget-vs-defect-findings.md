@@ -6,8 +6,12 @@ merely the reduced iteration/particle budget the suite runs at. This
 document settles that by re-running each at substantially larger
 budgets with everything else held identical.
 
-**Verdict: all four are DEFECTS, not budget limits.** In three of them
-more budget makes the answer *worse*, not better.
+**Verdict: three of the four are DEFECTS; one is genuinely
+budget-limited.** In the three defects, more budget makes the answer
+*worse*, not better, because the mechanism is variance collapse rather
+than incomplete convergence. The exception is the 186-vertex two_island
+case, which improves markedly with budget and simply needs more compute
+than the suite can afford.
 
 Artifacts: `experiments/dr_budget_p1_dispersion.py`,
 `dr_budget_p2_joint.py`, `dr_budget_p3_island.py`,
@@ -87,19 +91,37 @@ identified at this scale (log-likelihood penalties of -6.0 at a quarter
 and -62 at four times the true value), but its influence is two orders
 of magnitude weaker than coalescence's, and it is left behind.
 
-## 4. two_island at 186 vertices — see below
+## 4. two_island at 186 vertices — GENUINELY BUDGET-LIMITED (the exception)
 
-(Larger budgets still running at the time of writing; the baseline
-40 it / 25 p reproduces a failure to recover, with the first parameter
-landing far from the truth and the run-to-run value unstable.)
+True [0.7, 0.3], off-truth prior.
+
+| budget | posterior mean | off |
+|---|---|---|
+| 40 it, 25 p (the suite's slow-tier budget) | [7.072, 0.115] | 910%, 62% |
+| 150 it, 50 p (what the PASSING 21-vertex case uses) | [1.605, 0.232] | 129%, 23% |
+| 400 it, 50 p | *(running)* | |
+
+This one behaves in the opposite way to the other three: more budget
+helps, and substantially. The first parameter improves from 910% off to
+129% off and the second from 62% to 23% purely by going from 40 to 150
+iterations. So the pin's original wording — "may be travel-budget-limited
+rather than a genuine failure to recover" — is CORRECT, and the suite's
+reduced slow-tier budget is what produces the failure.
+
+It has still not converged at 150 iterations (129% off on the first
+parameter), so the honest statement is that this case needs a budget the
+test suite cannot afford, not that inference is broken here. That is a
+different disposition from pins 1-3 and the xfail reason should say so.
 
 ## What this means
 
-The reduced budgets in the test suite are not what is causing these
-failures. Three of the four get worse with more compute, because the
-mechanism is variance collapse rather than incomplete convergence: SVGD
-keeps contracting the ensemble, so a longer run yields a narrower
+For three of the four, the reduced budgets in the test suite are not
+what is causing the failure — those get worse with more compute, because
+the mechanism is variance collapse rather than incomplete convergence:
+SVGD keeps contracting the ensemble, so a longer run yields a narrower
 interval around a point estimate that is not moving toward the truth.
+The 186-vertex two_island case is the one real budget limitation, and it
+should be re-labelled accordingly rather than left implying a defect.
 
 Practical reading for anyone fitting with this library: a tight
 posterior from a long SVGD run is not evidence of a well-determined
