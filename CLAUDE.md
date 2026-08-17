@@ -6,6 +6,96 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `phasic` is a library for **phase-type distribution algorithms represented as graphs**. A phase-type distribution is the time to absorption of a continuous- or discrete-time Markov chain; here the chain's state space is a directed graph of vertices (states) and weighted edges (transition rates), and the library computes PMFs/PDFs/CDFs, moments, sojourn times, and does Bayesian parameter inference over these models. The main application domain is population genetics (coalescent / two-locus / recombination models), so states typically encode lineage properties (see `state_indexing.py` and `tree_toplogy_encoding.md`).
 
+## RESUMING THE INFERENCE-CORRECTNESS SESSION (2026-08-17)
+
+**Session ID:** `65609893-f929-46fe-831e-9f067428cc07`
+**Resume with:** `claude --resume 65609893-f929-46fe-831e-9f067428cc07`
+(transcript: `~/.claude/projects/-Users-kmt-phasic/65609893-f929-46fe-831e-9f067428cc07.jsonl`)
+
+**Copy-paste prompt for the resumed session** (or for a fresh one — it is
+written to stand alone):
+
+> I have reviewed the models in `tests/pytest/test_notebook_model_recovery.py`
+> myself and checked them against your findings. Read
+> `b3-budget-vs-defect-findings.md`, `b3-mixed-scale-defect-settled.md`,
+> `b3-likelihood-path-map.md` and `b3-stocktake-2026-08-16.md` first, then
+> continue. Note that inference correctness is the requirement and must be
+> tracked by tests in the suite; typical models are 20k-60k vertices and
+> ~200k-600k must work; use manually-set step-size schedules in every
+> experiment; and priors in recovery tests must exclude the true value.
+
+### What to review, and the claim to check against each
+
+Models live in `tests/pytest/test_notebook_model_recovery.py`, all derived
+from the `docs/pages/tutorial/svgd-*` notebooks. **My findings depend on
+these being set up correctly — that is exactly what you wanted to verify.**
+
+| model (builder) | what it fits | my claim |
+|---|---|---|
+| `coalescent_graph` | one coalescence rate | recovers; but posterior is UNDER-DISPERSED — see pin 1 |
+| `two_island_graph` | coalescence + migration (same scale) | recovers at 21v; 186v is budget-limited |
+| `island_split_populations` | 1/2N1, 1/2N2, migration (20x span) | all three move off their priors; 2 of 3 intervals cover |
+| `two_locus_arg` | coalescence + recombination | coalescence recovers, recombination does NOT — see pin 4 |
+| `coalescent_indexed` + `joint_prob_graph` | coalescence, mutation fixed | 25v recovers; 168v does not — see pin 2 |
+
+Two model-design points worth checking first, because both were wrong in
+my first attempt and both changed the conclusions:
+
+1. `island_split_populations` starts lineages in **both** populations. With
+   all of them in pop1 (the notebook arrangement) the second population's
+   size is barely identified and its posterior just sits at the prior.
+2. Recombination is **not identified at 0.05** — the log-likelihood is flat
+   to ±0.03 over a 25-fold range, so a recovery test there is impossible in
+   principle. The test uses 0.5, where it IS identified (penalties -6.0 at
+   a quarter and -62 at four times the true value).
+
+Also check: `MUTATION_RATE = 1e-2`, not the notebook's 1e-4. At 1e-4 the
+joint distribution is degenerate (top outcome holds 99.97% of the mass,
+every sampled observation identical), and the recovery test passes on the
+prior alone. `assert_informative()` guards this.
+
+### The four pins and their settled verdicts
+
+Run `pixi run pytest tests/pytest/test_notebook_model_recovery.py -m "not slow"`
+(17 tests, ~2 min). Full evidence in `b3-budget-vs-defect-findings.md`.
+
+- **Under-dispersion — DEFECT.** More iterations shrink the posterior
+  (sd 0.2525 → 0.0735 at 60 particles, 150 → 600 iterations). Mean pinned
+  at 6.51-6.57 vs an independent MLE of 6.99.
+- **joint_prob 168v — DEFECT.** Plateaus ~54% low; HPD lower bound sits at
+  the 1e-9 parameter floor at every budget (particles stuck at boundary).
+- **mixed-scale two-locus — DEFECT.** 6.7x budget moves recombination 86% →
+  87% off while its interval contracts 4x around the wrong value.
+- **two_island 186v — BUDGET-LIMITED** (the exception). 910% → 129% off
+  going from 40 to 150 iterations; needs more than the suite can afford.
+
+### State
+
+- 22 commits unpushed on master (you push, I do not).
+- Working tree otherwise clean apart from your own `.gitignore`,
+  `.vscode/settings.json` and `docs/pages/tutorial/discrete.ipynb`.
+- Test ledger: 11th stamp 2012/0/84/24 at `dac5fe8c`, plus the correctness
+  tests added since (`test_likelihood_correctness.py` 9+2,
+  `test_notebook_model_recovery.py` 17 fast + 3 slow + 2 mixed-scale).
+- A 400-iteration confirmation run for the two_island budget pin may still
+  be finishing in `/tmp/budget/p3.out`; its trend is already unambiguous.
+
+### Open items, in the order I would take them
+
+1. **The three defects are unexplained mechanically.** Variance collapse is
+   the observed behaviour; the cause (kernel bandwidth, preconditioner,
+   step schedule interaction) has not been diagnosed.
+2. **Deferred 1/2/3 decisions remain open** — see `b3-stocktake-2026-08-16.md`
+   §5. D1 was activated and its plan (`b3-d1-implementation-plan.md` v3) is
+   drafted and adversarially reviewed but NOT signed off.
+3. **Two cheap, high-value fixes identified but not built:** a
+   moments-family conditioning-gate opt-out (the sojourn family already has
+   one), and caching the moments tape across calls (the sojourn family
+   already does; measured 3,062x cost difference).
+4. **Mixed-scale recovery with richer observations** (multivariate rewards /
+   joint probabilities) — these carry the recombination signal that
+   absorption times do not; not yet made to converge.
+
 ## Scale targets (load-bearing — size every design decision against these)
 
 **Typical production models are 20,000-60,000 vertices, and the package
