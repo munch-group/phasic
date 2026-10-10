@@ -92,7 +92,8 @@
 
 #########################################
 
-FROM mcr.microsoft.com/devcontainers/base:jammy
+# FROM mcr.microsoft.com/devcontainers/base:jammy
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 ARG PIXI_VERSION=v0.46.0
 
