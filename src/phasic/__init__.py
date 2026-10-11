@@ -696,6 +696,64 @@ def _require_parameterized(graph: 'Graph', entry_point: str) -> None:
         )
 
 
+def _require_linear_weight_mode(graph: 'Graph', operation: str) -> None:
+    """Raise unless ``graph`` uses the linear weight mode.
+
+    Layout-widening operations (discretize, add_epoch, joint_prob_graph)
+    add coefficient slots whose meaning is only defined for linear weights
+    (w = c . theta). Under a weight formula or callback the new slots are
+    never read (results silently wrong), and under log weights every edge
+    multiplies all slots, so a 0 pad zeroes every edge.
+    """
+    mode = getattr(graph, '_weight_mode', 'linear')
+    if mode != 'linear':
+        raise ValueError(
+            f"{operation} adds coefficient slots, which is only defined for "
+            f"weight_mode='linear', but this graph has weight_mode={mode!r}. "
+            f"Apply {operation} to the linear graph first and set the weight "
+            f"mode (or formula/callback) on the result."
+        )
+
+
+def _require_uniform_coefficient_length(graph: 'Graph', operation: str) -> None:
+    """Raise if a non-starting edge has a coefficient length other than 0 or
+    ``param_length()``. Widening appends slots after position
+    ``param_length()``, which would land on such an edge's extra data."""
+    param_length = graph.param_length()
+    start_index = graph.starting_vertex().index()
+    for vertex in graph.vertices():
+        if vertex.index() == start_index:
+            continue
+        for edge in vertex.edges():
+            n = edge.coefficients_length()
+            if n not in (0, param_length):
+                raise ValueError(
+                    f"{operation} needs every edge's coefficient vector to have "
+                    f"length param_length()={param_length} (or 0 for a constant "
+                    f"edge), but vertex {vertex.index()} has an edge with "
+                    f"{n} coefficients. The new slot would overwrite the extra "
+                    f"per-edge data."
+                )
+
+
+def _require_no_constant_edges(graph: 'Graph', operation: str, reason: str) -> None:
+    """Raise if a non-starting, non-aux vertex has a coefficient-less
+    (constant, ``add_edge_constant``) edge. ``reason`` says why
+    ``operation`` cannot carry such an edge."""
+    start_index = graph.starting_vertex().index()
+    for vertex in graph.vertices():
+        if vertex.index() == start_index or vertex.is_aux():
+            continue
+        for edge in vertex.edges():
+            if edge.coefficients_length() == 0:
+                raise ValueError(
+                    f"{operation} does not support coefficient-less constant "
+                    f"edges (add_edge_constant) on a parameterized graph, but "
+                    f"vertex {vertex.index()} has one: {reason}. Give the rate "
+                    f"as a coefficient list instead."
+                )
+
+
 def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
     """Copy the full Python-side weight configuration from ``src`` to a
     derived graph ``dst`` and re-install the compiled tape on ``dst``.
@@ -2821,8 +2879,38 @@ class Graph(_Graph):
             if rate <= 0:
                 raise ValueError(f"rate must be larger than 0, got {rate}")
             
-        # For parameterized graphs with scalar rate, widen layout to add a coeff slot
+        if self.parameterized():
+            _require_no_constant_edges(
+                self, 'discretize()',
+                "every transient vertex gains a theta-dependent aux edge, and "
+                "a discretized graph renormalises every edge per theta, so a "
+                "constant edge would drift between update_weights calls")
         if self.parameterized() and not callable(rate):
+            # The scalar-rate path adds a coefficient slot.
+            _require_linear_weight_mode(self, 'discretize()')
+            _require_uniform_coefficient_length(self, 'discretize()')
+
+        # Does any vertex still need an aux vertex? With skip_existing on an
+        # already discretized graph, none may, and then no slot is added.
+        def _needs_aux(vertex):
+            if vertex.index() == self.starting_vertex().index() or not vertex.edges():
+                return False
+            if not skip_existing:
+                return True
+            if vertex.state().sum() == 0:
+                return False
+            for edge in vertex.edges():
+                if (edge.to().state().sum() == 0 and edge.to().edges_length()
+                        and edge.to().edges()[0].to().index() == vertex.index()):
+                    return False
+            return True
+        _any_new_aux = any(_needs_aux(v) for v in self.vertices())
+
+        # For parameterized graphs with scalar rate, widen layout to add a coeff slot
+        if self.parameterized() and not callable(rate) and not _any_new_aux:
+            new_graph = self._rebuild_with_wider_layout()
+            _discretize_rate_slot = None
+        elif self.parameterized() and not callable(rate):
             new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
             _discretize_rate_slot = new_graph.param_length() - 1
         elif self.parameterized() and callable(rate):
@@ -2948,6 +3036,18 @@ class Graph(_Graph):
                 "augmented joint state space, which encodes a different model."
             )
 
+        # Checked after the joint-graph rejection above, which is more
+        # specific (a joint-probability graph is also discrete and linear).
+        _require_linear_weight_mode(self, 'add_epoch()')
+        if self.is_discrete or self.get_was_dph():
+            raise NotImplementedError(
+                "add_epoch() is not supported on a discrete graph (is_discrete or "
+                "discretize()'d): epoch transitions are computed from the "
+                "continuous stop probability and occupancy. Add epochs to the "
+                "continuous graph first, then discretize."
+            )
+        _require_uniform_coefficient_length(self, 'add_epoch()')
+
         if callback is None and self._callback is None:
             raise RuntimeError(
                 "No callback available. Either construct the graph with a callback "
@@ -2978,6 +3078,9 @@ class Graph(_Graph):
             extra_state_dims=extra_state,
             extra_coeff_slots=extra_coeff
         )
+        # add_epoch extends the graph with new-epoch vertices, so a carried
+        # per-vertex rewards vector would no longer match.
+        new_graph.__dict__.pop('rewards', None)
 
         # Track epoch metadata
         if is_first_epoch:
@@ -9533,13 +9636,28 @@ extern "C" {{
         cloned._last_theta = None
         return cloned
 
+    # Attributes a widened graph inherits from its source, beyond what
+    # clone() carries. Callers that set any of them afterwards (add_epoch,
+    # discretize) keep overriding them.
+    _WIDEN_CARRIED_ATTRS = (
+        '_base_callback', '_base_callback_kwargs',
+        '_indexer', '_base_indexer',
+        '_n_epochs', '_epoch_state_index', '_base_param_length',
+    )
+
     def _rebuild_with_wider_layout(self, extra_state_dims=0, extra_coeff_slots=0,
                                     state_fill=0, coeff_fill=0.0) -> 'Graph':
         """Rebuild graph with wider state vectors and/or coefficient arrays.
 
         Creates a new graph that is structurally identical to self but with
         additional state dimensions and/or coefficient slots appended to each
-        vertex state and edge coefficient array respectively.
+        vertex state and edge coefficient array respectively. Apart from the
+        added slots nothing changes: every vertex keeps its index (vertices
+        sharing a state, such as discretize()'s all-zero aux vertices, are
+        not merged), every edge keeps its position in its vertex's edge
+        list, coefficient-less constant edges stay constant (unpadded), and
+        the metadata listed in ``_WIDEN_CARRIED_ATTRS`` plus ``was_dph``,
+        per-vertex ``is_aux`` and ``rewards`` is carried over.
 
         Parameters
         ----------
@@ -9556,9 +9674,23 @@ extern "C" {{
         -------
         Graph
             A new graph with wider layout. Python metadata is copied from self.
+
+        Raises
+        ------
+        ValueError
+            If self is a synthetic SCC graph: its placeholder coefficients
+            must not be carried into an ordinary graph.
         """
+        if self._is_synthetic():
+            raise ValueError(
+                "Cannot widen the coefficient layout of a synthetic SCC graph: "
+                "its Type-A/phantom edges carry placeholder coefficients, and "
+                "the rebuilt graph would no longer be marked synthetic."
+            )
+
+        param_length = self.param_length()
         new_state_length = self.state_length() + extra_state_dims
-        new_param_length = self.param_length() + extra_coeff_slots
+        new_param_length = param_length + extra_coeff_slots
 
         new_graph = Graph(new_state_length)
 
@@ -9569,32 +9701,51 @@ extern "C" {{
         pad_state = np.full(extra_state_dims, state_fill, dtype=int) if extra_state_dims > 0 else np.array([], dtype=int)
         pad_coeff = [coeff_fill] * extra_coeff_slots
 
-        # Map: old vertex index -> new vertex object
-        vertex_map = {}
-
-        # Starting vertex maps to new starting vertex
-        vertex_map[self.starting_vertex().index()] = new_graph.starting_vertex()
-
-        # Create all non-starting vertices first
+        # Recreate every vertex in index order. A vertex is registered in the
+        # new graph's state lookup exactly when it is the one self's lookup
+        # returns for its state; other vertices with that state (duplicates)
+        # are created unregistered, so they are not merged.
+        start_index = self.starting_vertex().index()
+        vertex_map = {start_index: new_graph.starting_vertex()}
         for vertex in self.vertices():
             idx = vertex.index()
-            if idx == self.starting_vertex().index():
+            if idx == start_index:
                 continue
-            new_state = np.append(vertex.state(), pad_state).astype(int)
-            new_vertex = new_graph.find_or_create_vertex(new_state)
+            state = vertex.state()
+            new_state = np.append(state, pad_state).astype(int)
+            registered = (self.vertex_exists(state)
+                          and self.find_vertex(state).index() == idx)
+            if registered:
+                new_vertex = new_graph.find_or_create_vertex(new_state)
+            else:
+                new_vertex = new_graph.create_vertex(new_state)
+            if new_vertex.index() != idx:
+                raise RuntimeError(
+                    f"_rebuild_with_wider_layout: vertex {idx} was recreated at "
+                    f"index {new_vertex.index()}"
+                )
+            if vertex.is_aux():
+                new_vertex.set_aux(True)
             vertex_map[idx] = new_vertex
 
-        # Copy all edges with padded coefficients
+        # Copy every edge in its original position. edges() lists all edges;
+        # parameterized_edges() lists the coefficient-carrying ones in the
+        # same order, so walk both together.
+        parameterized = self.parameterized()
         for vertex in self.vertices():
-            old_idx = vertex.index()
-            new_vertex = vertex_map[old_idx]
-            if self.parameterized():
-                for edge in vertex.parameterized_edges():
-                    coeffs = list(edge.edge_state(self.param_length())) + pad_coeff
-                    new_vertex.add_edge(vertex_map[edge.to().index()], coeffs)
-            else:
-                for edge in vertex.edges():
-                    new_vertex.add_edge(vertex_map[edge.to().index()], edge.weight())
+            new_vertex = vertex_map[vertex.index()]
+            coef_edges = iter(vertex.parameterized_edges())
+            for edge in vertex.edges():
+                target = vertex_map[edge.to().index()]
+                if edge.coefficients_length() == 0:
+                    new_vertex.add_edge_constant(target, edge.weight())
+                    continue
+                coef_edge = next(coef_edges)
+                if parameterized:
+                    coeffs = list(coef_edge.edge_state(param_length)) + pad_coeff
+                    new_vertex.add_edge(target, coeffs)
+                else:
+                    new_vertex.add_edge(target, edge.weight())
 
         # Copy Python metadata
         new_graph._callback = self._callback
@@ -9606,6 +9757,20 @@ extern "C" {{
         # original coefficient indices remain valid.
         _propagate_weight_state(self, new_graph)
         new_graph.is_discrete = self.is_discrete
+        if self.get_was_dph():
+            new_graph.set_was_dph(True)
+        for attr in self._WIDEN_CARRIED_ATTRS:
+            if hasattr(self, attr):
+                setattr(new_graph, attr, getattr(self, attr))
+        if 'rewards' in self.__dict__ and self.rewards is not None:
+            rewards = np.asarray(self.rewards)
+            if len(rewards) != new_graph.vertices_length():
+                raise RuntimeError(
+                    f"_rebuild_with_wider_layout: rewards has length "
+                    f"{len(rewards)} but the graph has "
+                    f"{new_graph.vertices_length()} vertices"
+                )
+            new_graph.rewards = rewards.copy()
         new_graph._last_callback_vertices_length = new_graph.vertices_length()
 
         return new_graph
@@ -10012,6 +10177,20 @@ extern "C" {{
         callbacks.
         """
         _require_parameterized(self, 'joint_prob_graph')
+        _require_linear_weight_mode(self, 'joint_prob_graph()')
+        if self.get_was_dph() or any(v.is_aux() for v in self.vertices()):
+            raise ValueError(
+                "joint_prob_graph() is not supported on a discretized graph "
+                "(discretize() output or any graph with aux vertices): its "
+                "duplicate all-zero aux states make the base-state lookup "
+                "ambiguous. Build the joint graph from the continuous graph."
+            )
+        _require_no_constant_edges(
+            self, 'joint_prob_graph()',
+            "the graphs derived from it (joint_stop_prob_graph, "
+            "joint_sojourn_graph) copy only parameterized edges, and a "
+            "discrete joint graph renormalises every edge per theta, so a "
+            "constant edge would drift between update_weights calls")
 
         logger = get_logger(__name__)
 

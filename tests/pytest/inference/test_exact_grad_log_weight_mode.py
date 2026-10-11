@@ -266,10 +266,22 @@ def test_log_mode_discrete_combo_declines_and_logs():
     exact path (confirmed by direct repro during plan review that
     discretize()+log does not always fail elsewhere -- the exclusion is
     mandatory, not defensive), and must log why."""
-    # Base graph must already have 2 params (matching the discretize
-    # callback's 2-element rate vector) or serialize() rejects the
-    # inconsistent per-edge coefficient lengths.
-    gd = _two_param_dense().discretize(lambda state, **kw: [0.5, 0.5])
+    # Build the was_dph graph by hand, exactly as discretize() with a
+    # 2-element rate vector [0.5, 0.5] used to (aux vertex, normalise,
+    # is_discrete + was_dph). discretize()'s scalar rate widens the layout,
+    # and log mode cannot take the 0 pad that widening adds (every
+    # c_i * theta_i must be positive), so the graph is built directly.
+    # Every coefficient stays nonzero, as log mode requires.
+    gd = phasic.Graph(1)
+    s = gd.starting_vertex()
+    v2 = gd.find_or_create_vertex([2])
+    v1 = gd.find_or_create_vertex([1])
+    s.add_edge(v2, 1.0)
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+    v2.add_aux_vertex([0.5, 0.5]).set_aux(True)
+    gd.normalize()
+    gd.is_discrete = True
+    gd.set_was_dph(True)
     gd.weight_mode = 'log'
     assert gd.get_was_dph() is True
 

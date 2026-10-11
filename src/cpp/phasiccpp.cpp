@@ -1284,7 +1284,9 @@ phasic::Graph phasic::Graph::from_serialized(const SerializedGraph &data) {
 // to every vertex state (filled 0) and `extra_coeff_slots` appended to every edge
 // coefficient array (filled 0). Faithful port of Python _rebuild_with_wider_layout
 // (structural part only — the returned graph is fresh, and add_epoch sets the
-// epoch metadata on it).
+// epoch metadata on it). Lossless apart from the added slots: vertices keep
+// their indices (duplicate states are not merged), edges keep their order,
+// coefficient-less constant edges stay constant, and is_aux is carried.
 static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
                                          int extra_coeff_slots) {
     using phasic::Graph;
@@ -1308,25 +1310,39 @@ static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
     for (Vertex &v : overts) {
         size_t idx = v.c_vertex()->index;
         if (idx == start_idx) continue;
-        std::vector<int> ns = v.state();
+        std::vector<int> os = v.state();
+        std::vector<int> ns = os;
         ns.insert(ns.end(), pad_state.begin(), pad_state.end());
-        vmap.insert(std::make_pair(idx, ng.find_or_create_vertex(ns)));
+        // Register the vertex in the new state lookup only if it is the one
+        // g's lookup returns for its state; duplicates are created unregistered.
+        bool registered = g.vertex_exists(os) &&
+                          g.find_vertex(os).c_vertex()->index == idx;
+        Vertex nv = registered ? ng.find_or_create_vertex(ns) : ng.create_vertex(ns);
+        if (nv.c_vertex()->index != idx) {
+            throw std::runtime_error(
+                "add_epoch: widened graph recreated a vertex at a different index");
+        }
+        if (v.is_aux()) nv.set_aux(true);
+        vmap.insert(std::make_pair(idx, nv));
     }
 
-    bool param = g.parameterized();
+    // add_epoch refuses non-parameterized graphs, so every coefficient-
+    // carrying edge here is a real parameterized edge.
     for (Vertex &v : overts) {
         Vertex &nv = vmap.at(v.c_vertex()->index);
-        if (param) {
-            std::vector<phasic::ParameterizedEdge> pes = v.parameterized_edges();
-            for (phasic::ParameterizedEdge &e : pes) {
-                std::vector<double> coeffs = e.edge_state((size_t) old_pl);
+        struct ptd_vertex *cv = v.c_vertex();
+        for (size_t k = 0; k < cv->edges_length; ++k) {
+            struct ptd_edge *e = cv->edges[k];
+            Vertex &to = vmap.at(e->to->index);
+            if (e->coefficients_length == 0) {
+                nv.add_edge_constant(to, e->weight);
+            } else {
+                // Same coefficients ParameterizedEdge::edge_state(old_pl) returns.
+                size_t n = e->coefficients_length < (size_t) old_pl
+                               ? e->coefficients_length : (size_t) old_pl;
+                std::vector<double> coeffs(e->coefficients, e->coefficients + n);
                 coeffs.insert(coeffs.end(), pad_coeff.begin(), pad_coeff.end());
-                nv.add_edge_parameterized(vmap.at(e.to().c_vertex()->index), 0.0, coeffs);
-            }
-        } else {
-            std::vector<phasic::Edge> es = v.edges();
-            for (phasic::Edge &e : es) {
-                nv.add_edge(vmap.at(e.to().c_vertex()->index), e.weight());
+                nv.add_edge_parameterized(to, 0.0, coeffs);
             }
         }
     }
@@ -1339,6 +1355,18 @@ static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
 phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCallback &callback) {
     // Resolve the callback: an explicit argument wins, otherwise fall back to the
     // stored construction callback (set by from_callback), mirroring Python.
+    if (!this->parameterized()) {
+        throw std::invalid_argument(
+            "add_epoch needs a parameterized model, but this graph has no "
+            "parameterized edges (it must have parameterized edges to take "
+            "theta). Give rates as coefficient vectors to make them parameters.");
+    }
+    if (this->c_graph()->was_dph) {
+        throw std::invalid_argument(
+            "add_epoch is not supported on a discretize()'d graph: epoch "
+            "transitions are computed from the continuous stop probability "
+            "and occupancy. Add epochs to the continuous graph first.");
+    }
     const phasic::TransitionCallback &cb = callback ? callback : this->_callback;
     if (!cb) {
         throw std::runtime_error(

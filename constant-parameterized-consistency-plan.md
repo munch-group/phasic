@@ -647,3 +647,39 @@ folded in:
   epoch and joint graphs: 661 passed, 4 skipped, 2 xfailed, 0 failed. A
   broader 124-file run was stopped after 18 files (all passing) because
   it would take hours; the full suite is deferred to one run after Part 4.
+- **Process slip:** Parts 2 and 3a were committed before their diff review
+  (gate 4). A read-only review of Parts 2, 3a and 3 together followed:
+  Parts 2 and 3a APPROVED (no defects); Part 3 APPROVE-WITH-CHANGES.
+- **Part 3** (lossless widening). `_rebuild_with_wider_layout` rewritten as
+  §6 (vertex registration rule, edge order, coefficient-less edges copied
+  with `add_edge_constant`, explicit metadata list, synthetic graphs
+  refused). Refusals in `discretize`/`add_epoch`/`joint_prob_graph` for
+  non-linear weight modes and ragged coefficient vectors; `add_epoch`
+  refuses discrete graphs after the more specific joint-graph check; and
+  `joint_prob_graph` refuses discretized graphs. `discretize(skip_existing=True)`
+  adds no slot when no vertex needs an aux. `add_epoch` drops a carried
+  `rewards` (it adds vertices). C++ `add_epoch`: same lossless rules, plus
+  refusals of non-parameterized and `was_dph` graphs (its non-parameterized
+  branch could never succeed).
+- **Deviation from §6.8 (decided during review, reversible).** Measured in
+  source (`src/c/phasic.c:5796-5811`): a `was_dph` graph's `update_weights`
+  divides EVERY edge by the vertex total, including coefficient-less edges
+  it never recomputes, so a constant edge next to rate edges drifts between
+  calls. And `joint_stop_prob_graph`/`joint_sojourn_graph` copy only
+  parameterized edges. So instead of copying coefficient-less edges,
+  `discretize()` on a parameterized graph and `joint_prob_graph()` REFUSE a
+  non-aux vertex with one (clear `ValueError`). Previously such edges were
+  silently dropped. `add_epoch` (continuous, no renormalisation) still
+  carries them losslessly. Supporting them in discrete/joint graphs needs
+  an idempotent renormalisation in C plus JSP/sojourn changes: a possible
+  follow-up.
+- **Notebooks affected by Part 3** (for Kasper):
+  `docs/pages/popgen/coalescent-derived.ipynb` (cells 8 then 26) and
+  `docs/pages/popgen/old-moran-coalescent-derived.ipynb` (cells 19 then 37)
+  call `joint_prob_graph` on a `discretize()`d graph. Those cells have no
+  saved output; by source reading they already failed before (discretize
+  dropped `_indexer`, giving a TypeError). They now fail with the clear
+  "discretized graph" error.
+- Tests: 63 + 5 C++ in `test_constant_parameterized_consistency.py` and
+  `test_cpp_add_epoch_lossless.py`; the original 14 Part 3 tests fail
+  before. Focused run, 45 files: 950 passed, 5 skipped, 2 xfailed, 0 failed.
