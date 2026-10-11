@@ -185,6 +185,11 @@ these paths (B).
 
   These are candidates for a separate "constant graph passed to an
   inference path" guard.
+- `hierarchical_trace_cache.py:254` and `:334` call
+  `serialize(theta_dim=graph.param_length())` explicitly, which is 1 for a
+  constant graph, so such a work unit is rebuilt parameterized. Pre-existing
+  and probably unreachable (the trace path serves parameterized graphs);
+  unverified (diff review).
 - An existing inconsistency (A): `laplace_transform` of a parameterized
   graph stays `parameterized=True`, while `reward_transform` of one becomes
   False.
@@ -303,3 +308,24 @@ Corrections folded in:
   Part 2, with its standard message.
 
 This plan is now Part 1 of `constant-parameterized-consistency-plan.md`.
+
+## 13. Implementation record (2026-10-11)
+
+- Full suite, run file by file under a 6 GB / 25 min cap per file: 2025
+  passed, 2 failed, 84 skipped, 26 xfailed. Two files were cut off by the
+  caps and not counted: `test_notebook_model_recovery.py` (timeout at
+  1500 s; no failure before the cut) and `test_svgd_divergence_robustness.py`
+  (6.2 GB at its extreme-θ test, on a parameterized graph, which this
+  change does not touch).
+- The 2 failures were caused by this change and were not in §5:
+  `inference/test_rewards_support.py::test_rewards_none_backward_compat`
+  and `::test_vmap_with_rewards`. Their graph's only edge left the
+  starting vertex, so it was an initial-probability edge and the graph
+  was never parameterized (`parameterized()` False); it was silently
+  treated as a 1-parameter model, and the tests only checked shapes.
+  Fixed by adding a transient vertex so the rate edge is a real
+  parameterized edge.
+- Diff review (read-only): APPROVE-WITH-CHANGES; changes applied (T1
+  checks the cache hit directly, T6 writes a real stale-layout entry,
+  explicit `graph_cache=True`, `match=` on T4b, serialize docstring,
+  hierarchical-cache note in §6).

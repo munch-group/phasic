@@ -25,7 +25,9 @@ import textwrap
 from typing import Any, Callable
 
 # Version tag - increment to invalidate all cached graphs
-PHASIC_CALLBACK_VERSION = "1.0"
+# 1.1: serialize() no longer exports constant graphs as parameterized, so
+# entries written under 1.0 may reload a constant graph as parameterized.
+PHASIC_CALLBACK_VERSION = "1.1"
 
 
 def hash_callback(callback: Callable, **params: Any) -> str:

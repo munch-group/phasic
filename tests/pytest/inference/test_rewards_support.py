@@ -12,14 +12,17 @@ import jax.numpy as jnp
 
 def test_rewards_none_backward_compat():
     """Test that rewards=None preserves backward compatibility."""
-    # Build simple exponential graph: single state, rate=theta
+    # Build simple exponential graph: one transient state, rate=theta.
+    # (Edges out of the starting vertex are initial probabilities, not rates,
+    # so the rate edge must leave a transient vertex.)
     graph = Graph(1)
-    graph.set_param_length(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
+    v2 = graph.find_or_create_vertex([2])
+    v0.add_edge(v1, 1.0)
 
     # Parameterized edge: weight = theta[0]
-    v0.add_edge(v1, [1.0])
+    v1.add_edge(v2, [1.0])
 
     # Create model factory
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
@@ -91,19 +94,20 @@ def test_rewards_transformation():
 
 def test_vmap_with_rewards():
     """Test that rewards work with JAX vmap (batched theta)."""
-    # Simple exponential graph
+    # Simple exponential graph (rate edge leaves a transient vertex)
     graph = Graph(1)
-    graph.set_param_length(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
-    v0.add_edge(v1, [1.0])
+    v2 = graph.find_or_create_vertex([2])
+    v0.add_edge(v1, 1.0)
+    v1.add_edge(v2, [1.0])
 
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
 
     # Batch of theta values
     theta_batch = jnp.array([[1.0], [2.0], [3.0]])
     times = jnp.array([0.5, 1.0])
-    rewards = jnp.array([1.0, 1.0])  # one per vertex (== vertices_length())
+    rewards = jnp.array([1.0, 1.0, 1.0])  # one per vertex (== vertices_length())
 
     # vmap over theta batch
     vmapped_model = jax.vmap(lambda t: model(t, times, rewards))

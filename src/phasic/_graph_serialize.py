@@ -18,9 +18,10 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
     Parameters
     ----------
     theta_dim : int, optional
-        Number of parameters for parameterized edges. If not provided, will be
-        auto-detected by probing edge states. Providing this explicitly avoids
-        potential issues with auto-detection reading garbage memory.
+        Number of parameters for parameterized edges. Defaults to
+        ``param_length()`` for a parameterized graph and to 0 for a constant
+        graph (``parameterized()`` False), so a constant graph serializes
+        its edges as constant and reloads constant. An explicit value wins.
 
     Returns
     -------
@@ -60,9 +61,13 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
     # Get parameter length directly from graph (set by first add_edge() call)
     start = self.starting_vertex()
 
-    # Use provided theta_dim if given, otherwise get from graph
+    # Use provided theta_dim if given, otherwise get from graph. A
+    # constant graph (parameterized() False) still has param_length() >= 1,
+    # because the C layer stores each constant weight as a one-element
+    # coefficient array; exporting those as param_edges would make the
+    # reloaded graph parameterized. So constant graphs default to 0.
     if theta_dim is None:
-        theta_dim = self.param_length()
+        theta_dim = self.param_length() if self.parameterized() else 0
 
     # theta_dim is now always correct (no probing needed)
 

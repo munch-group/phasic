@@ -191,7 +191,7 @@ print("\n5. Testing serialization/deserialization...")
 # Test constant graph serialization
 serial_const = g_const.serialize()
 print(f"   Constant graph: param_length={serial_const['param_length']}, n_edges={len(serial_const['edges'])}")
-assert serial_const['param_length'] == 1, "Serialized constant graph should have param_length=1"
+assert serial_const['param_length'] == 0, "Serialized constant graph should have param_length=0"
 
 # Test parameterized graph serialization
 serial_multi = g_multi.serialize()

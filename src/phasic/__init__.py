@@ -3615,10 +3615,9 @@ class Graph(_Graph):
         serialized = graph.serialize(theta_dim=theta_dim)
         # graph.parameterized() is the source of truth: it reflects edge_mode
         # locking (PARAMETERIZED set by the first array-syntax add_edge).
-        # serialized['param_length'] is always >= 1 once any non-IPV edge has
-        # been added, even for constant graphs (the C layer stores constant
-        # weights as a single-element coefficient array), so it can't be used
-        # to detect the parameterized dispatch path.
+        # With the default theta_dim, serialize() gives param_length 0 for a
+        # constant graph, but an explicit theta_dim overrides that, so
+        # serialized['param_length'] is not used to pick the dispatch path.
         has_param_edges = bool(graph.parameterized())
 
         # Generate C++ build_model() code from the serialized graph
