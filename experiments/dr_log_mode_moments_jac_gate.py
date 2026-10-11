@@ -156,8 +156,20 @@ def main():
                           eps=1e-6, rtol=1e-3, atol=1e-4)
 
     print("\n=== was_dph decline (mandatory exclusion, see plan D1.2) ===")
-    g = two_param_dense()
-    gd = g.discretize(lambda state, **kw: [0.5, 0.5])
+    # Built by hand as discretize() with rate vector [0.5, 0.5] used to:
+    # discretize() now takes a scalar rate and widens the layout, and log
+    # mode cannot take the 0 pad (constant-parameterized-consistency-plan.md
+    # Part 4).
+    gd = Graph(1)
+    _s = gd.starting_vertex()
+    _v2 = gd.find_or_create_vertex([2])
+    _v1 = gd.find_or_create_vertex([1])
+    _s.add_edge(_v2, 1.0)
+    _v2.add_edge_parameterized(_v1, 0.0, [1.0, 1.0])
+    _v2.add_aux_vertex([0.5, 0.5]).set_aux(True)
+    gd.normalize()
+    gd.is_discrete = True
+    gd.set_was_dph(True)
     gd.weight_mode = 'log'
     gd.update_weights([1.0, 2.0], log=True)
     n_decline = len(gd._moments_grad_theta_log(2, [1.0, 2.0]))

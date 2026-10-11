@@ -298,7 +298,10 @@ diverges simultaneously, commit `839a6400`). A separate adversarial review
 of the log-weight-mode PLAN (before any C was written) caught two more
 would-be bugs pre-emptively (the private clone needed `update_weights(t,
 log=True)`; `discretize()`+`log` does not always fail elsewhere, so the
-was_dph/is_discrete exclusion is load-bearing, not defensive) — see
+was_dph/is_discrete exclusion is load-bearing, not defensive; since
+2026-10-12 `discretize()` widens parameterized graphs and refuses log mode,
+but a was_dph log graph can still be built by hand, so the exclusion
+stays) — see
 `b3-log-weight-mode-plan.md` D1. The following were flagged across these
 reviews but judged lower-severity / out of scope for those passes:
 

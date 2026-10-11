@@ -754,6 +754,33 @@ def _require_no_constant_edges(graph: 'Graph', operation: str, reason: str) -> N
                 )
 
 
+def _discretize_rate_value(rate: Callable, state: Any, kwargs: dict) -> float:
+    """Call a ``discretize()`` rate callback and validate its result: one
+    finite number >= 0 (Python or numpy scalar, or a 0-d array)."""
+    import numbers
+    value = rate(state, **kwargs)
+    if isinstance(value, numbers.Real) and not isinstance(value, (bool, np.bool_)):
+        arr = np.asarray(float(value))
+    else:
+        arr = np.asarray(value)
+    if arr.ndim != 0 or arr.dtype.kind not in 'iuf':
+        raise TypeError(
+            f"discretize(rate=callable): the callable must return ONE number, "
+            f"the discretization rate at the given state, but it returned "
+            f"{type(value).__name__} {value!r} at state {list(np.asarray(state))}. "
+            f"The coefficient layout is handled automatically: on a "
+            f"parameterized graph the number goes into a new slot appended "
+            f"to every coefficient vector."
+        )
+    v = float(arr)
+    if not np.isfinite(v) or v < 0:
+        raise ValueError(
+            f"discretize(rate=callable): the rate must be finite and >= 0, but "
+            f"the callable returned {v} at state {list(np.asarray(state))}."
+        )
+    return v
+
+
 def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
     """Copy the full Python-side weight configuration from ``src`` to a
     derived graph ``dst`` and re-install the compiled tape on ``dst``.
@@ -2861,32 +2888,61 @@ class Graph(_Graph):
         Parameters
         ----------
         rate : float or callable
-            Discretization rate. If callable, receives state array and **kwargs,
-            must return a scalar rate (for non-parameterized graphs) or a
-            coefficient vector (for parameterized graphs).
+            Discretization rate: a number > 0, or a callable that receives the
+            state array (and ``**kwargs``) and returns ONE finite number >= 0,
+            the rate at that state (0 is allowed, e.g. a mutation rate that
+            only applies to some states). The same contract holds for
+            constant and parameterized graphs; the caller never needs to know
+            the coefficient layout.
+
+            On a constant graph the rate is the aux edge's constant weight.
+            On a parameterized graph the coefficient layout is widened by one
+            slot, appended at the end (also on an epoch graph), and the rate
+            is the aux edge's coefficient in that slot, so the effective rate
+            at a state is ``rate(state) * theta[-1]``. On an epoch graph
+            (``add_epoch``) the slot is a single global one after the
+            interleaved epoch layout, not one per epoch, and a callable
+            receives the epoch-augmented state (its last entry is the epoch
+            index, so e.g. ``sum(state)`` would count it).
         skip_existing : bool, optional
-            If True, skip vertices that already have auxiliary vertices.
+            If True, skip vertices that already have auxiliary vertices. If
+            no vertex needs one, no slot is added.
 
         Returns
         -------
         Graph
             New discretized graph with ``.rewards`` attribute containing the
             reward vector (1 for auxiliary vertices, 0 otherwise).
+
+        Raises
+        ------
+        TypeError
+            If ``rate`` is neither a number nor a callable, or the callable
+            returns something other than one number.
+        ValueError
+            If a fixed rate is <= 0, a callable returns a negative or
+            non-finite value, or (parameterized graphs) the graph uses a
+            non-linear weight mode, has ragged coefficient vectors or has
+            coefficient-less constant edges on transient vertices.
         """
         if not callable(rate):
-            if not isinstance(rate, (int, float, np.integer, np.floating)):
+            if (isinstance(rate, (bool, np.bool_))
+                    or not isinstance(rate, (int, float, np.integer, np.floating))):
                 raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-            if rate <= 0:
-                raise ValueError(f"rate must be larger than 0, got {rate}")
-            
+            if not np.isfinite(rate) or rate <= 0:
+                raise ValueError(f"rate must be larger than 0 and finite, got {rate}")
+            if kwargs:
+                raise TypeError(
+                    f"discretize(): keyword arguments {sorted(kwargs)} are passed "
+                    f"to a callable rate, but rate is a fixed number.")
+
         if self.parameterized():
             _require_no_constant_edges(
                 self, 'discretize()',
                 "every transient vertex gains a theta-dependent aux edge, and "
                 "a discretized graph renormalises every edge per theta, so a "
                 "constant edge would drift between update_weights calls")
-        if self.parameterized() and not callable(rate):
-            # The scalar-rate path adds a coefficient slot.
+            # Discretizing a parameterized graph adds a coefficient slot.
             _require_linear_weight_mode(self, 'discretize()')
             _require_uniform_coefficient_length(self, 'discretize()')
 
@@ -2906,17 +2962,14 @@ class Graph(_Graph):
             return True
         _any_new_aux = any(_needs_aux(v) for v in self.vertices())
 
-        # For parameterized graphs with scalar rate, widen layout to add a coeff slot
-        if self.parameterized() and not callable(rate) and not _any_new_aux:
+        # Parameterized graphs: widen the layout by one slot for the rate
+        # (fixed or callable alike), unless no vertex needs an aux vertex.
+        if self.parameterized() and not _any_new_aux:
             new_graph = self._rebuild_with_wider_layout()
             _discretize_rate_slot = None
-        elif self.parameterized() and not callable(rate):
+        elif self.parameterized():
             new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
             _discretize_rate_slot = new_graph.param_length() - 1
-        elif self.parameterized() and callable(rate):
-            # Callable on parameterized graph: caller provides coefficient vector
-            new_graph = self.clone()
-            _discretize_rate_slot = None
         else:
             new_graph = self.clone()
             _discretize_rate_slot = None
@@ -2941,15 +2994,15 @@ class Graph(_Graph):
                 if has_aux or is_aux:
                     continue
 
-            _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
-            # For parameterized graphs, add_aux_vertex needs a coefficient vector
-            if new_graph.parameterized() and _discretize_rate_slot is not None:
+            if callable(rate):
+                _rate = _discretize_rate_value(rate, vertex.state(), kwargs)
+            else:
+                _rate = rate
+            if _discretize_rate_slot is not None:
+                # Parameterized: the rate is the coefficient in the new slot
                 rate_coeffs = [0.0] * new_graph.param_length()
                 rate_coeffs[_discretize_rate_slot] = _rate
                 aux_vertex = vertex.add_aux_vertex(rate_coeffs)
-            elif new_graph.parameterized():
-                # Callable returned a coefficient vector
-                aux_vertex = vertex.add_aux_vertex(_rate)
             else:
                 aux_vertex = vertex.add_aux_vertex(_rate)
             aux_vertex.set_aux(True)
@@ -7578,10 +7631,11 @@ extern "C" {{
         _effective_discrete = bool(discrete) or bool(serialized.get('is_discrete', False))
         # log-mode scope: continuous only. Confirmed by direct repro (not
         # assumed) that a was_dph graph combined with weight_mode='log' is
-        # NOT guaranteed to fail elsewhere (a callable-rate discretize() can
-        # pass log's positivity check), so `not _effective_discrete` here is
-        # load-bearing, not defensive redundancy -- see
-        # b3-log-weight-mode-plan.md.
+        # NOT guaranteed to fail elsewhere (when written, a callable-rate
+        # discretize() could pass log's positivity check; discretize() now
+        # refuses log mode, but a was_dph log graph can still be built by
+        # hand), so `not _effective_discrete` here is load-bearing, not
+        # defensive redundancy -- see b3-log-weight-mode-plan.md.
         _log_scope_ok = (_wm == 'log' and not _effective_discrete)
         _linear_scope_ok = (_wm in (None, 'linear'))
         # Batch B: formula-mode scope. Continuous only, AND the model's

@@ -11342,11 +11342,12 @@ int ptd_moments_grad_theta(struct ptd_graph *graph, int nr_moments,
  * incl. mixed/extreme-mixed scale) and against native central-difference
  * (experiments/dr_log_mode_moments_jac_gate.py).
  *
- * Declines (-1, FD fallback) for a was_dph graph: log+discretize() is NOT
- * guaranteed to fail at update_weights (confirmed by direct repro --
- * discretize() via a callable rate does not widen the coefficient layout
- * and can pass log's positivity check), so this exclusion is load-bearing,
- * not defensive redundancy. See b3-log-weight-mode-plan.md. NOTE:
+ * Declines (-1, FD fallback) for a was_dph graph. When this was written,
+ * discretize() via a callable rate did not widen the coefficient layout,
+ * so log+discretize() could pass log's positivity check (confirmed by
+ * direct repro). discretize() now widens parameterized graphs and refuses
+ * log mode, but a was_dph log graph can still be built by hand
+ * (set_was_dph), so this exclusion stays load-bearing. See b3-log-weight-mode-plan.md. NOTE:
  * is_discrete (native DPH, was_dph=False) has NO C-level ptd_graph field --
  * it is a Python-only attribute reaching C++ only via serialize()'s JSON for
  * the GraphBuilder/FFI forward path, never onto the raw C struct -- so it

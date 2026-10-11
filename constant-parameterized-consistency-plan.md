@@ -683,3 +683,31 @@ folded in:
 - Tests: 63 + 5 C++ in `test_constant_parameterized_consistency.py` and
   `test_cpp_add_epoch_lossless.py`; the original 14 Part 3 tests fail
   before. Focused run, 45 files: 950 passed, 5 skipped, 2 xfailed, 0 failed.
+- **Part 4** (scalar `discretize()` callback). `_discretize_rate_value`
+  validates each return: any real scalar (Python/numpy/0-d array,
+  `numbers.Real`), finite, >= 0; bool, complex, vectors and strings raise
+  `TypeError`; negative or non-finite raise `ValueError`. On a
+  parameterized graph a callable widens the layout exactly like a fixed
+  rate (the old clone-and-take-a-vector branch is gone). The fixed rate now
+  also refuses bool, NaN and inf; `kwargs` with a fixed rate raise
+  `TypeError` instead of being ignored. Docstring documents the epoch-graph
+  caveats (one global slot; the callable sees the epoch index). Vector-form
+  callers rewritten: `test_graph_discretize.py`,
+  `test_reward_transform_discrete_flag.py`, `test_exact_grad_joint_index.py`,
+  `experiments/dr_sojourn_grad_theta_gate.py`; the log-mode decline graph in
+  `test_exact_grad_log_weight_mode.py` and `experiments/dr_log_mode_moments_jac_gate.py`
+  is built by hand. Both experiment gates print ALL PASS. Stale comments in
+  `src/c/phasic.c`, `src/phasic/__init__.py` and CLAUDE.md updated. C++
+  `add_epoch` now also refuses ragged coefficient vectors. Diff review
+  (read-only, before commit this time): APPROVE-WITH-CHANGES, changes
+  applied. 28 of the selected Part 4 tests fail before; 298 tests across
+  the affected files pass after.
+- **Pending on Kasper's side:** `docs/pages/tutorial/parametrization.ipynb`
+  cell 23 still uses the reserved-slot vector callback and now raises
+  `TypeError` (Kasper is doing the notebook edits).
+- **Recorded, not fixed (other per-state rate APIs):** `_discretize_inplace`
+  (legacy equivalence copy) keeps the old vector semantics and no
+  validation; C++ `Graph::discretize(rate_fn)` does not validate (NaN
+  passes the C `< 0` check) and its scalar overload requires a rate in
+  (0, 1) while Python requires > 0; `joint_prob_graph`'s `mutation_rate`
+  has no finite/>= 0 check; `reward_rates_callback` is broken (§11).

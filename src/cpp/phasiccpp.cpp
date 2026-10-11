@@ -1301,6 +1301,21 @@ static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
     std::vector<int> pad_state(extra_state_dims, 0);
     std::vector<double> pad_coeff(extra_coeff_slots, 0.0);
 
+    // Refuse ragged coefficient vectors (as the Python add_epoch does): the
+    // new slots would land on an edge's extra per-edge data.
+    for (Vertex &v : g.vertices()) {
+        if (v.c_vertex()->index == g.starting_vertex().c_vertex()->index) continue;
+        struct ptd_vertex *cv = v.c_vertex();
+        for (size_t k = 0; k < cv->edges_length; ++k) {
+            size_t n = cv->edges[k]->coefficients_length;
+            if (n != 0 && n != (size_t) old_pl) {
+                throw std::invalid_argument(
+                    "add_epoch needs every edge's coefficient vector to have "
+                    "length param_length (or 0 for a constant edge)");
+            }
+        }
+    }
+
     std::map<size_t, Vertex> vmap;  // old C vertex index -> new Vertex
     Vertex old_start = g.starting_vertex();
     size_t start_idx = old_start.c_vertex()->index;
@@ -1353,8 +1368,6 @@ static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
 // Graph.add_epoch() (no-StateIndexer path). callback is required because the C++
 // Graph does not store its construction callback.
 phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCallback &callback) {
-    // Resolve the callback: an explicit argument wins, otherwise fall back to the
-    // stored construction callback (set by from_callback), mirroring Python.
     if (!this->parameterized()) {
         throw std::invalid_argument(
             "add_epoch needs a parameterized model, but this graph has no "
@@ -1367,6 +1380,8 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
             "transitions are computed from the continuous stop probability "
             "and occupancy. Add epochs to the continuous graph first.");
     }
+    // Resolve the callback: an explicit argument wins, otherwise fall back to the
+    // stored construction callback (set by from_callback), mirroring Python.
     const phasic::TransitionCallback &cb = callback ? callback : this->_callback;
     if (!cb) {
         throw std::runtime_error(

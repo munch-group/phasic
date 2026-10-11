@@ -188,7 +188,7 @@ def test_discretize_refuses_constant_edge_on_parameterized_graph():
     with pytest.raises(ValueError, match="coefficient-less constant"):
         g.discretize(0.1)
     with pytest.raises(ValueError, match="coefficient-less constant"):
-        g.discretize(lambda state: [0.1])
+        g.discretize(lambda state: 0.1)
 
 
 def test_add_epoch_keeps_constant_edge_in_place():
@@ -352,3 +352,121 @@ def test_joint_prob_graph_refuses_constant_base_edge():
     src.add_edge_constant(dst, 0.25)
     with pytest.raises(ValueError, match="coefficient-less constant"):
         g.joint_prob_graph(indexer, reward_limit=1, mutation_rate=1.0)
+
+
+# =========================================================== Part 4
+# discretize(rate=callable): the callable returns ONE number for any graph;
+# on a parameterized graph it goes into the widened slot, exactly as a
+# fixed rate does.
+
+def _hand_discretized(graph, rate_of_state):
+    """Independent oracle: E[number of aux visits] for a CONSTANT graph,
+    via the closed form of the discretized chain (aux rate r(s) at each
+    transient s): E[N] = sum over transient s of r(s) * E[time in s]."""
+    sojourn = np.asarray(graph.expected_sojourn_time())
+    total = 0.0
+    for v in graph.vertices():
+        if v.index() == graph.starting_vertex().index() or not v.edges():
+            continue
+        total += rate_of_state(v.state()) * sojourn[v.index()]
+    return total
+
+
+def test_scalar_callback_on_parameterized_graph_equals_fixed_rate():
+    d_fixed = param_graph().discretize(0.1)
+    d_cb = param_graph().discretize(lambda state: 0.1)
+    assert d_cb.param_length() == d_fixed.param_length() == 2
+    for d in (d_fixed, d_cb):
+        d.update_weights([1.0, 1.0])
+    np.testing.assert_allclose(d_cb.expectation_discrete(d_cb.rewards),
+                               d_fixed.expectation_discrete(d_fixed.rewards),
+                               rtol=1e-14)
+
+
+@pytest.mark.parametrize("mu", [0.3, 1.0])
+def test_state_dependent_callback_matches_constant_twin(mu):
+    """nr_lineages * mu (the discrete.ipynb cell 17 callback): the
+    parameterized graph at theta = [1, 1] equals the constant graph, and
+    both match the closed-form oracle."""
+    def mutation(state):
+        return sum(state) * mu
+    dp = param_graph().discretize(mutation)
+    dc = constant_graph().discretize(mutation)
+    dp.update_weights([1.0, 1.0])
+    ep = dp.expectation_discrete(dp.rewards)
+    ec = dc.expectation_discrete(dc.rewards)
+    np.testing.assert_allclose(ep, ec, rtol=1e-12)
+    oracle = _hand_discretized(constant_graph(), lambda s: sum(s) * mu)
+    np.testing.assert_allclose(ec, oracle, rtol=1e-12)
+
+
+def test_theta_last_scales_the_callback_rate():
+    """Effective rate = rate(state) * theta[-1]: callback mu at theta[-1]=2
+    equals callback 2*mu at theta[-1]=1."""
+    a = param_graph().discretize(lambda s: 0.3 * sum(s))
+    b = param_graph().discretize(lambda s: 0.6 * sum(s))
+    a.update_weights([1.0, 2.0])
+    b.update_weights([1.0, 1.0])
+    np.testing.assert_allclose(a.expectation_discrete(a.rewards),
+                               b.expectation_discrete(b.rewards), rtol=1e-12)
+
+
+@pytest.mark.parametrize("make", [param_graph, constant_graph])
+def test_callback_zero_rate_for_some_states(make):
+    """Singleton-only mutation 0.3 * s[0]: 0 at states without singletons.
+    Reviewer-measured value E = 0.6 for this 4-sample coalescent."""
+    d = make().discretize(lambda s: 0.3 * s[0])
+    if d.parameterized():
+        d.update_weights([1.0, 1.0])
+    np.testing.assert_allclose(d.expectation_discrete(d.rewards), 0.6, rtol=1e-10)
+
+
+@pytest.mark.parametrize("ret", [np.float64(0.2), np.array(0.2), np.int64(1), 1,
+                                 __import__('fractions').Fraction(1, 5)])
+def test_callback_numpy_scalars_accepted(ret):
+    """Any real scalar works and gives the same graph as the fixed rate."""
+    d = param_graph().discretize(lambda s: ret)
+    ref = param_graph().discretize(float(ret))
+    assert d.param_length() == ref.param_length() == 2
+    d.update_weights([1.0, 1.0])
+    ref.update_weights([1.0, 1.0])
+    np.testing.assert_allclose(d.expectation_discrete(d.rewards),
+                               ref.expectation_discrete(ref.rewards), rtol=1e-14)
+
+
+@pytest.mark.parametrize("rate,exc", [
+    (True, TypeError), (float('nan'), ValueError), (float('inf'), ValueError),
+    (0.0, ValueError), (-1.0, ValueError)])
+def test_fixed_rate_validation(rate, exc):
+    with pytest.raises(exc, match="rate must be"):
+        param_graph().discretize(rate)
+
+
+def test_fixed_rate_with_kwargs_raises():
+    with pytest.raises(TypeError, match="keyword arguments"):
+        param_graph().discretize(0.1, mu=0.3)
+
+
+def test_callback_receives_kwargs():
+    d = param_graph().discretize(lambda s, mu: mu * sum(s), mu=0.3)
+    ref = param_graph().discretize(lambda s: 0.3 * sum(s))
+    d.update_weights([1.0, 1.0])
+    ref.update_weights([1.0, 1.0])
+    np.testing.assert_allclose(d.expectation_discrete(d.rewards),
+                               ref.expectation_discrete(ref.rewards), rtol=1e-14)
+
+
+@pytest.mark.parametrize("make", [param_graph, constant_graph])
+@pytest.mark.parametrize("ret,exc", [
+    ([0.1, 0.2], TypeError), (np.array([0.1]), TypeError), ("0.1", TypeError),
+    (True, TypeError), (-0.1, ValueError), (float('nan'), ValueError),
+    (float('inf'), ValueError)])
+def test_callback_bad_returns_raise(make, ret, exc):
+    with pytest.raises(exc, match="discretize"):
+        make().discretize(lambda s: ret)
+
+
+def test_callback_on_constant_graph_unchanged():
+    d = constant_graph().discretize(lambda s: 0.1)
+    assert not d.parameterized()
+    assert d.param_length() == constant_graph().param_length()

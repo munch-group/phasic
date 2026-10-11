@@ -37,7 +37,7 @@ class TestDiscretize:
 
         def mutation_rate(state):
             nr_lineages = sum(state)
-            return [0, nr_lineages]
+            return nr_lineages
         
         disc_graph = graph.discretize(mutation_rate)
         assert disc_graph.vertices_length() == graph.vertices_length() + graph.vertices_length() - 2
@@ -48,7 +48,7 @@ class TestDiscretize:
 
         def mutation_rate(state):
             nr_lineages = sum(state)
-            return [0, nr_lineages]
+            return nr_lineages
 
         disc_graph = graph.discretize(mutation_rate)
         disc_graph_again = graph.discretize(mutation_rate, skip_existing=True)

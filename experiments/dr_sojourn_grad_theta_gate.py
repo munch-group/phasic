@@ -161,8 +161,8 @@ def main():
 
     print("\n=== was_dph decline (mandatory exclusion, see plan scope section) ===")
     g = two_param_chain()
-    gd = g.discretize(lambda state, **kw: [0.5, 0.5])
-    gd.update_weights([1.0, 2.0])
+    gd = g.discretize(lambda state, **kw: 0.5)  # widens: 2 params + rate slot
+    gd.update_weights([1.0, 2.0, 1.0])
     n_decline = len(gd._sojourn_grad_theta_subset([0, 1, 2]))
     print(f"  discretize() (was_dph=True): exact J size={n_decline} (expect 0 -> FD fallback)")
     ok_all &= (n_decline == 0)

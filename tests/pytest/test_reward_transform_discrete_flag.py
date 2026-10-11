@@ -32,7 +32,7 @@ def coalescent(state):
 
 
 def _mutation_rate(state):
-    return [0, sum(state)]
+    return sum(state)
 
 
 def test_reward_transform_preserves_discrete_flag():

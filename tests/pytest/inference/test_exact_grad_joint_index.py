@@ -368,16 +368,17 @@ def test_was_dph_declines_and_logs():
     """A was_dph graph (Graph.discretize()) must NOT use the exact path
     (only graph->was_dph declines at the C level; native DPH is supported),
     and must log why at model-construction time."""
-    gd = _two_param_chain().discretize(lambda state, **kw: [0.5, 0.5])
+    gd = _two_param_chain().discretize(lambda state, **kw: 0.5)
     assert gd.get_was_dph() is True
+    assert gd.param_length() == 3  # 2 base params + the discretization slot
 
     with _capture_phasic_info_logs() as handler:
-        model = Graph.pmf_from_graph_joint_index(gd, theta_dim=2, exact_grad=True)
+        model = Graph.pmf_from_graph_joint_index(gd, theta_dim=3, exact_grad=True)
     messages = [r.getMessage() for r in handler.records]
     assert any("was_dph" in m and "finite differences" in m for m in messages)
 
     vidx = jnp.asarray([0, 1, 2], dtype=jnp.int32)
-    theta = jnp.asarray([1.0, 2.0])
+    theta = jnp.asarray([1.0, 2.0, 1.0])
     grad = np.asarray(jax.grad(lambda th: jnp.sum(model(th, vidx)[0]))(theta))
     assert np.all(np.isfinite(grad))
 
