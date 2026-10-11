@@ -392,18 +392,12 @@ static int add_edge_raw(
         edge->should_free_coefficients = false;
     }
 
-    /* Append to from->edges[]. */
-    struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-            from->edges,
-            (from->edges_length + 1) * sizeof(struct ptd_edge *));
-    if (new_edges == NULL) {
+    /* Append to from->edges[] (power-of-two capacity, see phasic.h). */
+    if (ptd_vertex_append_edge(from, edge) != 0) {
         if (edge->coefficients) free(edge->coefficients);
         free(edge);
         return -1;
     }
-    from->edges = new_edges;
-    from->edges[from->edges_length] = edge;
-    from->edges_length++;
     return 0;
 }
 

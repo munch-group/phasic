@@ -1261,11 +1261,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
         }
 
         // Add edge to starting vertex's edge list
-        struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-            new_start->edges,
-            (new_start->edges_length + 1) * sizeof(struct ptd_edge *)
-        );
-        if (new_edges == NULL) {
+        if (ptd_vertex_append_edge(new_start, new_edge) != 0) {
             if (new_edge->should_free_coefficients) free(new_edge->coefficients);
             free(new_edge);
             free(vertex_map);
@@ -1273,9 +1269,6 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to resize edges array");
             return res;
         }
-        new_start->edges = new_edges;
-        new_start->edges[new_start->edges_length] = new_edge;
-        new_start->edges_length++;
     }
 
     // Clone all edges (skip starting vertex - already cloned above)
@@ -1330,20 +1323,13 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
                 new_edge->coefficients = NULL;
                 new_edge->should_free_coefficients = false;
 
-                struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-                    new_v->edges,
-                    (new_v->edges_length + 1) * sizeof(struct ptd_edge *)
-                );
-                if (new_edges == NULL) {
+                if (ptd_vertex_append_edge(new_v, new_edge) != 0) {
                     free(new_edge);
                     free(vertex_map);
                     ptd_graph_destroy(new_graph);
                     snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to resize edges array at vertex %zu", i);
                     return res;
                 }
-                new_v->edges = new_edges;
-                new_v->edges[new_v->edges_length] = new_edge;
-                new_v->edges_length++;
                 continue;
             }
 
@@ -2951,6 +2937,25 @@ int ptd_directed_graph_add_edge(struct ptd_directed_vertex *vertex, struct ptd_d
 
     vertex->edges[vertex->edges_length] = edge;
     vertex->edges_length++;
+
+    return 0;
+}
+
+int ptd_vertex_append_edge(struct ptd_vertex *vertex, struct ptd_edge *edge) {
+    size_t n = vertex->edges_length;
+
+    if ((n & (n - 1)) == 0) {  /* 0 or a power of two: same rule as above */
+        size_t new_capacity = n == 0 ? 1 : n * 2;
+        struct ptd_edge **grown = (struct ptd_edge **) realloc(
+                vertex->edges, new_capacity * sizeof(struct ptd_edge *));
+        if (grown == NULL) {
+            return -1;
+        }
+        vertex->edges = grown;
+    }
+
+    vertex->edges[n] = edge;
+    vertex->edges_length = n + 1;
 
     return 0;
 }

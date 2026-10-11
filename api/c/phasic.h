@@ -309,6 +309,15 @@ double ptd_vertex_rate(struct ptd_vertex *vertex);
 
 void ptd_vertex_destroy(struct ptd_vertex *vertex);
 
+/* Append an already-built edge to vertex->edges, keeping the edge array's
+ * power-of-two capacity invariant that ptd_directed_graph_add_edge relies
+ * on (it grows the array only when edges_length is 0 or a power of two).
+ * Every code path that appends to vertex->edges outside
+ * ptd_graph_add_edge must use this: an exact-size realloc breaks the
+ * invariant and a later ptd_graph_add_edge writes past the array end.
+ * Returns 0, or -1 if allocation fails (the vertex is left unchanged). */
+int ptd_vertex_append_edge(struct ptd_vertex *vertex, struct ptd_edge *edge);
+
 struct ptd_edge *ptd_graph_add_edge(
         struct ptd_vertex *from,
         struct ptd_vertex *to,

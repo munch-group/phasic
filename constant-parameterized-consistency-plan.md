@@ -631,3 +631,19 @@ folded in:
   failure, `test_reward_validation.py::test_svgd_runs_silently_on_partial_coverage_with_introspection`,
   is an unseeded SVGD accuracy test (θ 11.59 vs 10 ± 1.5); it passed in the
   Part 1 full run and on 3 of 3 re-runs, so it is pre-existing flakiness.
+- **Part 3a** (edge-array capacity): new `ptd_vertex_append_edge`
+  (`src/c/phasic.c`, declared in `api/c/phasic.h`) appends with the same
+  power-of-two growth rule as `ptd_directed_graph_add_edge` and leaves the
+  vertex unchanged on allocation failure. All seven exact-size appenders
+  now use it; a grep confirms only these two functions append to
+  `vertex->edges`. Additive pybind getter `_is_synthetic`. Measured before
+  the fix: `test_edge_array_capacity.py` crashed Python with a segmentation
+  fault at 4 rate edges + `add_edge_constant` + 1 rate edge on one vertex,
+  without any guard allocator. After: 40/40 pass, also under the macOS
+  guard allocator (16-byte alignment, so only overruns at even pointer
+  counts are detectable; byte-exact sizing stops Python from starting).
+  Focused run of 24 files covering clone, discretize, aux vertices,
+  serialization, FFI/GraphBuilder, SCC and synthetic graphs, daisy chain,
+  epoch and joint graphs: 661 passed, 4 skipped, 2 xfailed, 0 failed. A
+  broader 124-file run was stopped after 18 files (all passing) because
+  it would take hours; the full suite is deferred to one run after Part 4.

@@ -1564,17 +1564,10 @@ phasic::Vertex phasic::Vertex::add_aux_vertex(double rate) {
     edge1->should_free_coefficients = false;
 
     // Add edge to aux vertex's edge list
-    struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-        aux.vertex->edges,
-        (aux.vertex->edges_length + 1) * sizeof(struct ptd_edge *)
-    );
-    if (new_edges == NULL) {
+    if (ptd_vertex_append_edge(aux.vertex, edge1) != 0) {
         free(edge1);
         throw std::runtime_error("Failed to allocate edge array");
     }
-    aux.vertex->edges = new_edges;
-    aux.vertex->edges[aux.vertex->edges_length] = edge1;
-    aux.vertex->edges_length++;
 
     // Edge 2: FROM this vertex TO aux with given rate (constant)
     // Use normal add_edge for proper validation
@@ -1608,17 +1601,10 @@ phasic::Vertex phasic::Vertex::add_aux_vertex(std::vector<double> rate_coeffs) {
     edge1->should_free_coefficients = false;
 
     // Add edge to aux vertex's edge list
-    struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-        aux.vertex->edges,
-        (aux.vertex->edges_length + 1) * sizeof(struct ptd_edge *)
-    );
-    if (new_edges == NULL) {
+    if (ptd_vertex_append_edge(aux.vertex, edge1) != 0) {
         free(edge1);
         throw std::runtime_error("Failed to allocate edge array");
     }
-    aux.vertex->edges = new_edges;
-    aux.vertex->edges[aux.vertex->edges_length] = edge1;
-    aux.vertex->edges_length++;
 
     // Edge 2: FROM this vertex TO aux with given rate (parameterized)
     // Use normal add_edge_parameterized for proper validation
@@ -1671,17 +1657,10 @@ phasic::Vertex phasic::Vertex::add_aux_vertex_constant(double weight) {
             edge->coefficients = NULL;
             edge->should_free_coefficients = false;
 
-            struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
-                from_v->edges,
-                (from_v->edges_length + 1) * sizeof(struct ptd_edge *)
-            );
-            if (new_edges == NULL) {
+            if (ptd_vertex_append_edge(from_v, edge) != 0) {
                 free(edge);
                 throw std::runtime_error("Failed to allocate edge array");
             }
-            from_v->edges = new_edges;
-            from_v->edges[from_v->edges_length] = edge;
-            from_v->edges_length++;
         };
 
     // Edge 1: aux -> this vertex (constant weight, coefficient-less).
@@ -1715,17 +1694,10 @@ void phasic::Vertex::add_edge_constant(Vertex &to, double weight) {
     edge->should_free_coefficients = false;
 
     struct ptd_vertex *from_v = this->vertex;
-    struct ptd_edge **new_edges = (struct ptd_edge **) realloc(
-        from_v->edges,
-        (from_v->edges_length + 1) * sizeof(struct ptd_edge *)
-    );
-    if (new_edges == NULL) {
+    if (ptd_vertex_append_edge(from_v, edge) != 0) {
         free(edge);
         throw std::runtime_error("add_edge_constant: failed to grow edge array");
     }
-    from_v->edges = new_edges;
-    from_v->edges[from_v->edges_length] = edge;
-    from_v->edges_length++;
 
     graph.notify_change();
 }

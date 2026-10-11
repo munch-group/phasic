@@ -1408,6 +1408,21 @@ str
           True if this graph is (a reconstruction of) a synthetic SCC graph
       )delim")
 
+    .def("_is_synthetic",
+      [](phasic::Graph &g) -> bool {
+          return g.c_graph()->synthetic;
+      }, R"delim(
+      True if this graph is marked as a synthetic SCC graph (D1-E2 guard).
+
+      Read-only counterpart of ``_set_synthetic``. Used by Python code that
+      rebuilds a graph (e.g. layout widening) to refuse synthetic graphs
+      instead of silently dropping the marker.
+
+      Returns
+      -------
+      bool
+      )delim")
+
     .def("get_was_dph",
       [](phasic::Graph &g) {
           return g.c_graph()->was_dph;

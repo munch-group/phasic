@@ -323,19 +323,12 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
         new_edge->should_free_coefficients = false;
 
         struct ptd_vertex *src = from_v->c_vertex();
-        struct ptd_edge **new_edges_arr = (struct ptd_edge **)realloc(
-            src->edges,
-            (src->edges_length + 1) * sizeof(struct ptd_edge *)
-        );
-        if (new_edges_arr == NULL) {
+        if (ptd_vertex_append_edge(src, new_edge) != 0) {
             free(new_edge);
             throw std::runtime_error(
                 "GraphBuilder: failed to grow constant-edge array"
             );
         }
-        src->edges = new_edges_arr;
-        src->edges[src->edges_length] = new_edge;
-        src->edges_length++;
     }
 
     // Starting-vertex (IPV) edges are always treated as constants by
