@@ -148,6 +148,8 @@ def path_exit_rates_by_param(graph, path: dict) -> tuple[np.ndarray, np.ndarray]
     sojourn_times : np.ndarray, shape ``(n_steps,)``
         Sojourn time at each corresponding vertex.
     """
+    from . import _require_parameterized
+    _require_parameterized(graph, 'path_exit_rates_by_param')
     indices = path['vertex_indices']
     times = path['entry_times']
     vertices = graph.vertices()
@@ -303,6 +305,9 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
         JIT-compatible and ``correction(theta) -> float`` is
         the stochastic BFFG term.
     """
+    from . import _require_parameterized
+    _require_parameterized(jg_disc, 'bffg_log_prob')
+    _require_parameterized(jg_continuous, 'bffg_log_prob')
     from .ffi_wrappers import compute_sojourn_times_ffi
 
     theta_proposal = np.asarray(theta_proposal)

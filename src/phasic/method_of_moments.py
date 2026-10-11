@@ -287,6 +287,8 @@ def method_of_moments(
         Dataclass with ``theta``, ``std``, ``prior``, ``success``,
         ``weighted``, etc.
     """
+    from . import _require_parameterized
+    _require_parameterized(graph, 'method_of_moments')
     import jax.numpy as jnp
     from scipy.optimize import least_squares
 

@@ -675,6 +675,27 @@ def _propagate_weight_formula(src: 'Graph', dst: 'Graph') -> None:
                              int(tape['n_coeff']))
 
 
+def _require_parameterized(graph: 'Graph', entry_point: str) -> None:
+    """Raise if ``graph`` is not parameterized, for entry points that take θ.
+
+    A constant model (scalar rates, or a derived graph with baked-in
+    weights) must never be silently treated as a model of θ. The test is
+    ``parameterized()``, never ``param_length()``: a constant graph has
+    ``param_length() == 1`` because the C layer stores each constant
+    weight as a one-element coefficient array.
+    """
+    if not graph.parameterized():
+        raise ValueError(
+            f"{entry_point} needs a parameterized model, but this graph has "
+            f"no parameterized edges (it must have parameterized edges to "
+            f"take theta). This happens when rates are given as scalars, "
+            f"such as add_edge(v, 3.0) or a callback returning floats, and "
+            f"for derived graphs whose weights are baked in, such as "
+            f"reward_transform() output. Give rates as coefficient lists, "
+            f"such as [3.0], to make them parameters."
+        )
+
+
 def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
     """Copy the full Python-side weight configuration from ``src`` to a
     derived graph ``dst`` and re-install the compiled tape on ``dst``.
@@ -2904,6 +2925,7 @@ class Graph(_Graph):
         Graph
             New graph with epoch transitions wired up.
         """
+        _require_parameterized(self, 'add_epoch')
         # Reject the joint -> epoch composition order. add_epoch wires epoch
         # transitions from stop_probability/accumulated_occupancy and extends
         # the next epoch via a per-state callback — machinery defined for the
@@ -3346,6 +3368,8 @@ class Graph(_Graph):
         ``Graph.svgd(..., rewards=...)`` to fit it with a
         zero-inflated likelihood automatically.
         """
+        if theta is not None:
+            _require_parameterized(self, 'reward_visit_probability')
         rewards_arr = np.asarray(rewards, dtype=np.float64)
         n_v = self.vertices_length()
         if rewards_arr.shape != (n_v,):
@@ -5423,6 +5447,7 @@ extern "C" {{
         >>> import phasic.model_selection as ms
         >>> ms.likelihood_ratio_test(full, nested)   # same-model fast path
         """
+        _require_parameterized(self, 'epoch_model')
         _ensure_jax_active()
         if not self._joint_prob_base_graph_indexer:
             raise ValueError(
@@ -6101,6 +6126,7 @@ extern "C" {{
         - For better results, ensure observed_data has sufficient information about the parameters
         - Learning rate and number of iterations may need tuning for different problems
         """
+        _require_parameterized(self, 'svgd')
         # Activate JAX on demand (deferred from import time).
         try:
             _ensure_jax_active()
@@ -6724,6 +6750,7 @@ extern "C" {{
         >>> mcmc.summary()
         >>> print(mcmc.get_results()['theta_mean'])
         """
+        _require_parameterized(self, 'mcmc')
         try:
             _ensure_jax_active()
         except Exception as _e:
@@ -6898,6 +6925,7 @@ extern "C" {{
         >>> print(mom.theta)            # parameter estimate
         >>> svgd = g.svgd(data, prior=mom.prior)  # use as SVGD prior
         """
+        _require_parameterized(self, 'method_of_moments')
         from .method_of_moments import method_of_moments as _mom
 
         if discrete is None:
@@ -6980,6 +7008,7 @@ extern "C" {{
         >>> result = jg.probability_matching(obs, fixed=[(1, 0.5)])
         >>> svgd = jg.svgd(obs, prior=result.prior, fixed=[(1, 0.5)])
         """
+        _require_parameterized(self, 'probability_matching')
         from .probability_matching import probability_matching as _prob_match
 
         if self._joint_prob_base_graph_indexer is None:
@@ -7076,6 +7105,7 @@ extern "C" {{
         - For variance, compute: Var[T] = E[T^2] - E[T]^2
         - For standard deviation: std[T] = sqrt(Var[T])
         """
+        _require_parameterized(graph, 'moments_from_graph')
         # Activate JAX on demand if we're going to use it.
         if not use_ffi:
             try:
@@ -7385,6 +7415,7 @@ extern "C" {{
           FFI check "Wrong buffer dtype: expected F64 but got F32". If you hit
           this, restart the kernel and import phasic first (or recreate the arrays).
         """
+        _require_parameterized(graph, 'pmf_and_moments_from_graph')
         # Activate JAX on demand if we're going to use it.
         if not use_ffi:
             try:
@@ -8521,6 +8552,7 @@ extern "C" {{
           10-100x wall-clock win for SVGD on joint-prob graphs with many
           repeated observations. See ``Graph.svgd`` joint_index path.
         """
+        _require_parameterized(graph, 'pmf_from_graph_joint_index')
         # Check if JAX is available
         try:
             _ensure_jax_active()
@@ -9305,6 +9337,7 @@ extern "C" {{
         - Log-likelihood is computed as sum over all observation elements
         - Backward compatible: 1D rewards behave exactly as pmf_and_moments_from_graph()
         """
+        _require_parameterized(graph, 'pmf_and_moments_from_graph_multivariate')
         # Check if JAX is available
         try:
             _ensure_jax_active()
@@ -9978,6 +10011,7 @@ extern "C" {{
         :meth:`_joint_prob_graph`, so behaviour is unchanged for custom
         callbacks.
         """
+        _require_parameterized(self, 'joint_prob_graph')
 
         logger = get_logger(__name__)
 
@@ -10671,6 +10705,7 @@ extern "C" {{
             ``_joint_prob_base_graph_indexer``) or has no parameterised
             edges (``param_length() == 0``).
         """
+        _require_parameterized(self, 'joint_stop_prob_graph')
         if not getattr(self, '_joint_prob_base_graph_indexer', None):
             raise ValueError(
                 "joint_stop_prob_graph requires a graph produced by "
@@ -10856,6 +10891,7 @@ extern "C" {{
         ValueError
             If ``self`` is not a joint-prob graph or has no parameterised edges.
         """
+        _require_parameterized(self, 'joint_sojourn_graph')
         if not getattr(self, '_joint_prob_base_graph_indexer', None):
             raise ValueError(
                 "joint_sojourn_graph requires a graph produced by joint_prob_graph()."
@@ -11111,6 +11147,7 @@ extern "C" {{
             Joint-probs at the t-states, in the order of
             ``self._t_vertex_indices``.
         """
+        _require_parameterized(self, 'daisy_chain_joint_probs')
         if not getattr(self, '_joint_stop_prob_graph', False):
             raise ValueError(
                 "daisy_chain_joint_probs requires a graph produced by "

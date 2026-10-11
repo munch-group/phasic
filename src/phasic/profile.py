@@ -131,7 +131,7 @@ def _scc_structure(graph) -> dict[str, Any]:
 def _max_rate(graph, theta) -> float:
     """Max out-rate over vertices at reference theta (drives auto-granularity)."""
     pl = graph.param_length()
-    if pl > 0:
+    if graph.parameterized():
         th = np.ones(pl) if theta is None else np.asarray(theta, dtype=float)
         if th.shape != (pl,):
             raise ValueError(
@@ -200,6 +200,9 @@ def profile_graph(graph, theta=None, probe_dyn: bool | str = "auto") -> GraphPro
     -------
     GraphProfile
     """
+    if theta is not None:
+        from . import _require_parameterized
+        _require_parameterized(graph, 'profile_graph')
     cpu = os.cpu_count() or 1
     st = _scc_structure(graph)
     mr = _max_rate(graph, theta)

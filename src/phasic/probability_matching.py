@@ -183,6 +183,8 @@ def probability_matching(
     ProbMatchResult
         Dataclass with ``theta``, ``std``, ``prior``, etc.
     """
+    from . import _require_parameterized
+    _require_parameterized(graph, 'probability_matching')
     import jax.numpy as jnp
     from scipy.optimize import least_squares
 

@@ -613,3 +613,21 @@ folded in:
 - Confirmed: no internal chain passes a constant graph to a guarded site;
   the `reward_rates_callback` breakage; nothing relies on today's lossy
   widening (§4, §11).
+
+## 13. Implementation record
+
+- **Part 1** (commit `553dc412`): see `graph-cache-constant-roundtrip-plan.md` §13.
+- **Part 2** (shared guard): `_require_parameterized` in `src/phasic/__init__.py`,
+  called first in 15 Graph entry points and 5 module-level functions
+  (`method_of_moments`, `probability_matching`, `profile_graph` when θ is
+  given, `bffg.path_exit_rates_by_param`, `bffg.bffg_log_prob`).
+  `profile._max_rate` now tests `parameterized()`: measured before the fix,
+  `profile()` on a constant graph raised "Cannot call update_weights() on
+  constant graph" even with no θ. The old later checks
+  (`param_length() == 0`, serialized `param_length == 0`) are left in place.
+  Tests: `tests/pytest/test_constant_parameterized_consistency.py`, 46 tests;
+  24 fail before, all pass after. The 82 existing test files that call any
+  guarded entry point: 937 passed, 71 skipped, 3 xfailed, 1 failed. The
+  failure, `test_reward_validation.py::test_svgd_runs_silently_on_partial_coverage_with_introspection`,
+  is an unseeded SVGD accuracy test (θ 11.59 vs 10 ± 1.5); it passed in the
+  Part 1 full run and on 3 of 3 re-runs, so it is pre-existing flakiness.
