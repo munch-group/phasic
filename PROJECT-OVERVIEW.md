@@ -1,7 +1,8 @@
 # phasic — project overview
 
 Written 2026-10-10 as the single entry point to the ~70 plan, findings and
-review files in the repository root. Everything here is a summary of those
+review files in the repository root; updated 2026-10-12 with the October
+model-building consistency work (§1d) and the Stage-3 status correction. Everything here is a summary of those
 files (named in each entry) plus git history; nothing new was measured to
 write it. When a file and this overview disagree, the file is the record —
 and this overview should be corrected.
@@ -13,9 +14,11 @@ gate, rule) is written together with a few words saying what it is.
 
 ## 1. Where the project stands (October 2026)
 
-No code work since 17 August 2026. Master is pushed. Uncommitted: re-run
-outputs in six tutorial notebooks, and your new test-design notebook
-`tests/pytest/notebook_model_recovery.ipynb`.
+Master is pushed and unchanged since 17 August 2026. New work since
+10 October is on branch **`fix/constant-parameterized-consistency`**
+(not pushed, not merged; see §1d). Uncommitted in the working
+tree: your re-run tutorial notebook outputs and edits, and your
+test-design notebook `tests/pytest/notebook_model_recovery.ipynb`.
 
 ### 1a. The question the project is currently about: does inference recover the truth?
 
@@ -119,6 +122,64 @@ shipped and passed review. A stock-take on 16 August
    - A random tie-break in the epoch model is untested.
    - The old cache format needs hardening.
 
+10. **Finish the model-building consistency branch** (§1d): one full-suite
+    run on the branch (needs your go-ahead), then your merge and push.
+11. **Notebook edits for you** (§1d): five notebooks use patterns the branch
+    now refuses or changes.
+12. **One `discretize()`, owned by C++** (`discretize-cpp-ssot-plan.md`, v2,
+    reviewed, all nine decisions made): the next piece of the Stage-3
+    refactor (§1e). Starts after item 10.
+
+### 1d. Model-building consistency (10–12 October)
+
+Started from your question why a coalescent built with float rates came
+back parameterized. Plan `constant-parameterized-consistency-plan.md`
+(record in its §13), with Part 1 detailed in
+`graph-cache-constant-roundtrip-plan.md`. Branch
+`fix/constant-parameterized-consistency`, one commit per part:
+
+| Part | What it does | Commit |
+|---|---|---|
+| Plans | the two plans + this overview | `50f42033` |
+| 1 — cache round trip | constant graphs no longer come back parameterized from `serialize()`/the graph cache (they were silently θ-scaled); cache version 1.0 → 1.1, old cache deleted | `553dc412` |
+| 2 — one guard | every entry point that takes θ (svgd, mcmc, method_of_moments, joint_* builders, add_epoch, …) refuses a constant model with one message | `e7b7679a` |
+| 3a — edge arrays | memory-safety fix: four rate edges + `add_edge_constant` + one more edge on a vertex crashed Python | `54533414` |
+| 3 — lossless widening | layout widening no longer drops edges, merges aux vertices, truncates coefficients or drops metadata; refuses where undefined (non-linear weight modes, ragged coefficients, constant edges in discretized/joint graphs, epochs on discrete graphs) | `2181b9ff` |
+| 4 — discretize callback | `discretize(rate=callable)` returns one number for any graph; on a parameterized graph it goes into a new θ slot | `f67e175d` |
+
+Every part passed its own new tests and the existing tests touching it; an
+adversarial diff review ran for each (for Parts 2 and 3a only after
+committing — recorded). Not yet done: one full-suite run on the finished
+branch.
+
+**Notebooks to edit (yours):** `parametrization.ipynb` cell 23 (now
+raises: drop the reserved `[rate, 0]` slot, callback returns
+`nr_lineages`); `joint-probability.ipynb` cell 3 and
+`time-inhomogeneous.ipynb` cell 32 (rates as lists); `popgen/coalescent-derived.ipynb`
+cells 8→26 and `popgen/old-moran-coalescent-derived.ipynb` cells 19→37
+(`joint_prob_graph` on a discretized graph; never run, already broken
+before the branch).
+
+**Left open (recorded in the plan's §13):** constant edges in discrete and
+joint graphs are refused rather than supported (needs a C change);
+`joint_prob_graph(reward_rates_callback=...)` has been broken since
+21 May 2026 (calls a commented-out method); per-state rate APIs not yet on
+the new rules (legacy `_discretize_inplace`, C++ `discretize`,
+`joint_prob_graph`'s `mutation_rate`); `expectation()` on a discretized
+graph counts all steps, the mutation count needs `graph.rewards` passed
+explicitly.
+
+### 1e. The Stage-3 refactor is only partly done
+
+The July refactor plan (`stage3-refactor-plan.md`) is the larger plan in
+force: one implementation per capability, with the C++ API as the single
+source of truth (its decision Q4) and Python delegating. Executed so far:
+WS-A (safety-net test gates), WS-B (dead-code removal) and part of WS-C
+(splitting the `Graph` class), merged at `9de5d61a`. Not started: WS-D
+(thinning the pybind layer), WS-E (the C++ single-source promotions), WS-F
+(splitting the C core), WS-G (doctrine document and CI guards). Item 12
+above is WS-E's step 11 (discretize), proposed as its first promotion.
+
 ---
 
 ## 2. How the work unfolded (timeline)
@@ -126,7 +187,7 @@ shipped and passed review. A stock-take on 16 August
 | When | Work stream | What it was | Status |
 |---|---|---|---|
 | early Jul | Hardening fixes (H1–H10, C1–C3) | Ten bug fixes and three cache-security fixes (untrusted pickles, tar members) | Done |
-| 5–9 Jul | Refactor, Stages 1–3 | Remove dead code; build a test safety net; split the 12k-line `Graph` class into modules | Done (merged `9de5d61a`) |
+| 5–9 Jul | Refactor, Stages 1–3 | Remove dead code; build a test safety net; split the 12k-line `Graph` class into modules | Stages 1–2 done; Stage 3 partly (WS-A, WS-B, part of WS-C; merged `9de5d61a`); WS-D–G not started (§1e) |
 | 15–19 Jul | Differential audit | Compare post-refactor behaviour with the pre-refactor commit `3082ebc6`; log every divergence | Done; findings F-001… in `audit-differential-findings.md` |
 | 17 Jul | Category-A fixes (A1–A3) | The three audit bugs reachable by users | Done |
 | 27–30 Jul | SVGD robustness + likelihood-ratio tests | Stop runaway particles from crashing a fit; make nested LRTs work for tied-vs-free epoch models; public `Graph.epoch_model` | Done |
@@ -136,6 +197,8 @@ shipped and passed review. A stock-take on 16 August
 | 15–16 Aug | Deferred 1–4 exploration | Experiments for the four big postponed items | Done; decisions pending |
 | 16 Aug | Stock-take + scale check | Discovery that B3 doesn't reach production size or the default likelihood | See 1b |
 | 16–17 Aug | Inference correctness | Recovery tests on the tutorial models; budget-vs-defect verdicts | See 1a |
+| 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | On branch, full suite pending (§1d) |
+| 12 Oct | discretize → C++ plan | One C++ `discretize()` + widening and layout standards | Plan v2, decisions made (§1c item 12) |
 
 ---
 
@@ -171,7 +234,11 @@ Several schemes reuse the same letters. **Collisions are marked ⚠.**
 | **DR-A, DR-D** | Early "de-risk" experiments: DR-A an analytic gradient oracle, DR-D a scale-aware FD step (dead end) | `b3-experiment-findings.md` |
 | **F-001…** ⚠ | Audit findings. ⚠ Also "F1–F7" (audit phase-1 findings), "F-P1…" (reviewer findings inside plans) | `audit-differential-findings.md` |
 | **N1–N12, G1–G2, P2-x** | Defects found during the July audit (N), its headline findings (G), its early claims (P2) | `tmp.md` |
-| **WS-A, WS-C** | Workstreams of the Stage-3 refactor (A: safety net, C: splitting the Graph class) | `stage3-refactor-plan.md` |
+| **WS-A … WS-G** | Workstreams of the Stage-3 refactor: A safety-net test gates, B dead-code removal, C splitting Python god-objects (the Graph class, svgd.py), D thinning the pybind layer, E C++ single-source promotions, F splitting the C core, G doctrine document + CI guards | `stage3-refactor-plan.md` §7 |
+| **Stage-3 steps 0–20** | The refactor's ordered commit sequence; step 11 = discretize to C++ | `stage3-refactor-plan.md` §8 |
+| **Q1–Q13, Q-CODEGEN** | Decisions recorded in the refactor plan; Q4 = "C++ API is a product, its ports become the single source of truth"; Q13 = freeze the public C symbols | `stage3-refactor-plan.md` §9 |
+| **Part 1, 2, 3a, 3, 4** | The model-building consistency work: cache round trip / one guard for constant models / edge-array memory fix / lossless widening / one-number discretize callback | `constant-parameterized-consistency-plan.md` |
+| **P1–P4, O1–O8** | Widening standard: P = what the shared widening primitive guarantees; O = what each operation (discretize, add_epoch, joint_prob_graph) must check, change and record | `discretize-cpp-ssot-plan.md` §3 |
 | **Fix A / C / D** | Fixes for the nested likelihood-ratio test on epoch models | `svgd-lrt-fix-a-plan.md` |
 | **Pins 1–4** | The four expected-failure recovery tests in 1a | `b3-budget-vs-defect-findings.md` |
 | **Ledger stamps** (e.g. "11th stamp 2012/0/84/24") | Recorded full-suite results: passed / failed / skipped / expected-fail | `b3-test-baseline.md` |
@@ -234,9 +301,17 @@ meanings in the decoder. History.
 | `deferred-3-pdf-gradient-revival-plan.md`, `b3-d3-derisk-findings.md`, `b3-d3-e5-derivation-dossier.md` | PDF gradient: plan, results, derivation | Current |
 | `deferred-4-mpfr-conditioning-floor-plan.md`, `b3-d4-sweep-findings.md` | High-precision gradients (parked) | History |
 
+### Model-building consistency and the C++ discretize (October)
+| File | What it is | |
+|---|---|---|
+| `constant-parameterized-consistency-plan.md` | Parts 1–4: constant vs parameterized models, lossless widening, discretize callback; §13 is the implementation record | Current |
+| `graph-cache-constant-roundtrip-plan.md` | Part 1 in detail: constant graphs coming back parameterized from the graph cache | Current |
+| `discretize-cpp-ssot-plan.md` | One `discretize()` owned by C++, with the widening and layout standards; v2, decisions made | Current |
+| `stage3-refactor-plan.md` | The larger refactoring plan still in force (doctrine, workstreams, commit sequence, decisions) | Current |
+
 ### Refactor and audit (July)
-`stage2-coverage-safety-net-handoff.md`, `stage3-refactor-plan.md`,
-`stage3-execution-handoff.md`, `deferred-notebook-triage.md`,
+`stage2-coverage-safety-net-handoff.md`,
+`stage3-execution-handoff.md` (what of Stage 3 was executed), `deferred-notebook-triage.md`,
 `audit-situation-map.md` (also the map of all compute paths — still useful),
 `audit-differential-findings.md`, `category-A-fix-plans.md`. History.
 
