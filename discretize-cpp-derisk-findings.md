@@ -102,8 +102,10 @@ so it does not inherit the problem. Recommended as a separate small fix
   `normalize()` adds a vertex after `rewards` is computed. Candidate for a
   refusal ("discretize() expects a continuous graph").
 - **A rate callback receives a writable `int32` numpy array** (the vertex
-  state). Pinned as frozen API; a callback that mutates it would corrupt
-  nothing today only because the array is a copy (`Vertex.state`).
+  state). Pinned as frozen API. Mutating it is harmless: `Vertex.state`
+  returns a fresh copy (read from source, `phasic_pybind.cpp:4377-4383`:
+  a new `std::vector` wrapped in a numpy array). A C++ discretize must keep
+  passing a copy.
 
 ## Phase 1 performance gate (2026-10-13)
 
