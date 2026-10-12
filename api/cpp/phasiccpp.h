@@ -1138,6 +1138,16 @@ namespace phasic {
         // chains. Defined out-of-line in phasiccpp.cpp.
         Graph add_epoch(double time, const TransitionCallback &callback = TransitionCallback());
 
+        // Shared layout-widening primitive: a copy of this graph with
+        // extra_state_dims zero entries appended to every vertex state and
+        // extra_coeff_slots zero slots appended to every coefficient-carrying
+        // edge. Keeps vertex indices, duplicate states, edge order, constant
+        // edges, is_aux, was_dph, callback and epoch metadata; resets
+        // parameterized weights to theta = 1 and drops the weight formula (see
+        // phasiccpp.cpp). Refuses synthetic SCC graphs; no other checks (they
+        // belong to the calling operation). Defined out-of-line in phasiccpp.cpp.
+        Graph widen_layout(size_t extra_state_dims, size_t extra_coeff_slots);
+
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
         //             this->c_graph(),

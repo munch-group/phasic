@@ -1408,6 +1408,24 @@ str
           True if this graph is (a reconstruction of) a synthetic SCC graph
       )delim")
 
+    .def("_widen_layout", &phasic::Graph::widen_layout,
+      py::arg("extra_state_dims") = 0, py::arg("extra_coeff_slots") = 0, R"delim(
+      Internal: copy of this graph with a wider state and/or coefficient layout.
+
+      Appends ``extra_state_dims`` zero entries to every vertex state and
+      ``extra_coeff_slots`` zero slots to every coefficient-carrying edge.
+      Keeps vertex indices, duplicate states (never merged), edge order,
+      coefficient-less constant edges, ``is_aux`` and ``was_dph``; resets
+      parameterized edge weights to their value at theta = 1 and drops the
+      weight formula. Refuses synthetic SCC graphs (ValueError). Use
+      ``Graph._rebuild_with_wider_layout``, which also carries the Python
+      attributes; the operations (discretize, add_epoch) do the checks.
+
+      Returns
+      -------
+      Graph
+      )delim")
+
     .def("_is_synthetic",
       [](phasic::Graph &g) -> bool {
           return g.c_graph()->synthetic;

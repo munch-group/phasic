@@ -1280,87 +1280,113 @@ phasic::Graph phasic::Graph::from_serialized(const SerializedGraph &data) {
     return graph;
 }
 
-// Structural helper for add_epoch: rebuild `g` with `extra_state_dims` appended
-// to every vertex state (filled 0) and `extra_coeff_slots` appended to every edge
-// coefficient array (filled 0). Faithful port of Python _rebuild_with_wider_layout
-// (structural part only — the returned graph is fresh, and add_epoch sets the
-// epoch metadata on it). Lossless apart from the added slots: vertices keep
-// their indices (duplicate states are not merged), edges keep their order,
-// coefficient-less constant edges stay constant, and is_aux is carried.
-static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
-                                         int extra_coeff_slots) {
-    using phasic::Graph;
-    using phasic::Vertex;
-    int new_state_length = (int) g.state_length() + extra_state_dims;
-    int old_pl = (int) g.c_graph()->param_length;
-    int new_param_length = old_pl + extra_coeff_slots;
-
-    Graph ng(new_state_length);
-    if (new_param_length > 0) ng.set_param_length(new_param_length);
-
-    std::vector<int> pad_state(extra_state_dims, 0);
-    std::vector<double> pad_coeff(extra_coeff_slots, 0.0);
-
-    // Refuse ragged coefficient vectors (as the Python add_epoch does): the
-    // new slots would land on an edge's extra per-edge data.
-    for (Vertex &v : g.vertices()) {
-        if (v.c_vertex()->index == g.starting_vertex().c_vertex()->index) continue;
-        struct ptd_vertex *cv = v.c_vertex();
-        for (size_t k = 0; k < cv->edges_length; ++k) {
-            size_t n = cv->edges[k]->coefficients_length;
-            if (n != 0 && n != (size_t) old_pl) {
+// Operation-level guard used by add_epoch (and, later, the other
+// layout-widening operations): every non-starting edge must carry 0
+// (constant) or param_length coefficients, otherwise the appended slots
+// would land on an edge's extra per-edge data. The widening primitive
+// itself does not check this (discretize-cpp-ssot-plan.md, primitive
+// contract P4).
+static void require_uniform_coefficient_length(phasic::Graph &g, const char *operation) {
+    struct ptd_graph *cg = g.c_graph();
+    size_t pl = cg->param_length;
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v == cg->starting_vertex) continue;
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            size_t n = v->edges[k]->coefficients_length;
+            if (n != 0 && n != pl) {
                 throw std::invalid_argument(
-                    "add_epoch needs every edge's coefficient vector to have "
-                    "length param_length (or 0 for a constant edge)");
+                    std::string(operation) + " needs every edge's coefficient vector "
+                    "to have length param_length (or 0 for a constant edge)");
             }
         }
     }
+}
 
-    std::map<size_t, Vertex> vmap;  // old C vertex index -> new Vertex
-    Vertex old_start = g.starting_vertex();
-    size_t start_idx = old_start.c_vertex()->index;
-    vmap.insert(std::make_pair(start_idx, ng.starting_vertex()));
+// Shared layout-widening primitive (discretize-cpp-ssot-plan.md section 3a).
+// Returns a new graph equal to this one except that `extra_state_dims` zero
+// entries are appended to every vertex state and `extra_coeff_slots` zero
+// slots to every coefficient-carrying edge. Kept: vertex indices (a vertex
+// sharing its state with an earlier one is created unregistered, never
+// merged), each vertex's edge order, coefficient-less constant edges
+// (unpadded), is_aux, was_dph, the stored callback and the epoch metadata.
+// NOT kept, as before this primitive existed: a parameterized edge's current
+// weight (reset to its value at theta = 1, the sum of its coefficients), the
+// C weight-formula tape and its source (callers re-install weight state),
+// and coefficients beyond param_length (truncated; operations refuse such
+// graphs). Edge targets are resolved by vertex->index (O(V+E)). Refuses only
+// synthetic SCC graphs; policy checks belong to the calling operation.
+phasic::Graph phasic::Graph::widen_layout(size_t extra_state_dims, size_t extra_coeff_slots) {
+    struct ptd_graph *cg = this->c_graph();
+    if (cg->synthetic) {
+        throw std::invalid_argument(
+            "Cannot widen the coefficient layout of a synthetic SCC graph: "
+            "its Type-A/phantom edges carry placeholder coefficients, and "
+            "the rebuilt graph would no longer be marked synthetic.");
+    }
+    size_t old_sl = cg->state_length;
+    size_t old_pl = cg->param_length;
+    size_t new_pl = old_pl + extra_coeff_slots;
+    bool param = this->parameterized();
 
-    std::vector<Vertex> overts = g.vertices();
-    for (Vertex &v : overts) {
-        size_t idx = v.c_vertex()->index;
-        if (idx == start_idx) continue;
-        std::vector<int> os = v.state();
-        std::vector<int> ns = os;
-        ns.insert(ns.end(), pad_state.begin(), pad_state.end());
-        // Register the vertex in the new state lookup only if it is the one
-        // g's lookup returns for its state; duplicates are created unregistered.
-        bool registered = g.vertex_exists(os) &&
-                          g.find_vertex(os).c_vertex()->index == idx;
-        Vertex nv = registered ? ng.find_or_create_vertex(ns) : ng.create_vertex(ns);
-        if (nv.c_vertex()->index != idx) {
+    Graph ng(old_sl + extra_state_dims);
+    if (new_pl > 0) ng.set_param_length(new_pl);
+
+    std::vector<Vertex> nv;
+    nv.reserve(cg->vertices_length);
+    struct ptd_avl_tree *avl = this->c_avl_tree();
+    std::vector<int> ns(old_sl + extra_state_dims, 0);
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v->index != i) {
+            throw std::runtime_error("widen_layout: vertex index does not match its position");
+        }
+        if (v == cg->starting_vertex) {
+            nv.push_back(ng.starting_vertex());
+            continue;
+        }
+        for (size_t k = 0; k < old_sl; ++k) ns[k] = v->state[k];
+        struct ptd_avl_node *node = ptd_avl_tree_find(avl, v->state);
+        bool registered = node != NULL && node->entry == (void *) v;
+        Vertex w = registered ? ng.find_or_create_vertex(ns) : ng.create_vertex(ns);
+        if (w.c_vertex()->index != i) {
             throw std::runtime_error(
-                "add_epoch: widened graph recreated a vertex at a different index");
+                "widen_layout: widened graph recreated a vertex at a different index");
         }
-        if (v.is_aux()) nv.set_aux(true);
-        vmap.insert(std::make_pair(idx, nv));
+        if (v->is_aux) w.set_aux(true);
+        nv.push_back(w);
     }
 
-    // add_epoch refuses non-parameterized graphs, so every coefficient-
-    // carrying edge here is a real parameterized edge.
-    for (Vertex &v : overts) {
-        Vertex &nv = vmap.at(v.c_vertex()->index);
-        struct ptd_vertex *cv = v.c_vertex();
-        for (size_t k = 0; k < cv->edges_length; ++k) {
-            struct ptd_edge *e = cv->edges[k];
-            Vertex &to = vmap.at(e->to->index);
+    std::vector<double> coeffs;
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        Vertex &from = nv[i];
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            struct ptd_edge *e = v->edges[k];
+            Vertex &to = nv[e->to->index];
             if (e->coefficients_length == 0) {
-                nv.add_edge_constant(to, e->weight);
+                from.add_edge_constant(to, e->weight);
+            } else if (param) {
+                // The coefficients ParameterizedEdge::edge_state(old_pl) returns,
+                // then the pad.
+                size_t n = e->coefficients_length < old_pl ? e->coefficients_length : old_pl;
+                coeffs.assign(e->coefficients, e->coefficients + n);
+                coeffs.insert(coeffs.end(), extra_coeff_slots, 0.0);
+                from.add_edge_parameterized(to, 0.0, coeffs);
             } else {
-                // Same coefficients ParameterizedEdge::edge_state(old_pl) returns.
-                size_t n = e->coefficients_length < (size_t) old_pl
-                               ? e->coefficients_length : (size_t) old_pl;
-                std::vector<double> coeffs(e->coefficients, e->coefficients + n);
-                coeffs.insert(coeffs.end(), pad_coeff.begin(), pad_coeff.end());
-                nv.add_edge_parameterized(to, 0.0, coeffs);
+                from.add_edge(to, e->weight);
             }
         }
     }
+
+    if (cg->was_dph) {
+        ng.c_graph()->was_dph = true;
+        ng.c_graph()->dph_compute_invalidated = true;
+    }
+    ng._callback = this->_callback;
+    ng._epoch_state_index = this->_epoch_state_index;
+    ng._n_epochs = this->_n_epochs;
+    ng._base_param_length = this->_base_param_length;
     return ng;
 }
 
@@ -1380,6 +1406,13 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
             "transitions are computed from the continuous stop probability "
             "and occupancy. Add epochs to the continuous graph first.");
     }
+    if (this->c_graph()->weight_tape != NULL) {
+        throw std::invalid_argument(
+            "add_epoch() adds coefficient slots, which is only defined for "
+            "weight_mode='linear', but this graph has a weight formula. Apply "
+            "add_epoch() to the linear graph first and set the formula on the "
+            "result.");
+    }
     // Resolve the callback: an explicit argument wins, otherwise fall back to the
     // stored construction callback (set by from_callback), mirroring Python.
     const phasic::TransitionCallback &cb = callback ? callback : this->_callback;
@@ -1396,7 +1429,8 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
                                 : (int) this->c_graph()->param_length;
     int extra_coeff = is_first ? (base_param_length + 2) : (base_param_length + 1);
 
-    Graph ng = epoch_rebuild_wider(*this, extra_state, extra_coeff);
+    require_uniform_coefficient_length(*this, "add_epoch");
+    Graph ng = this->widen_layout((size_t) extra_state, (size_t) extra_coeff);
 
     if (is_first) {
         ng._epoch_state_index = (int) this->state_length();

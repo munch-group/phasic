@@ -9699,8 +9699,7 @@ extern "C" {{
         '_n_epochs', '_epoch_state_index', '_base_param_length',
     )
 
-    def _rebuild_with_wider_layout(self, extra_state_dims=0, extra_coeff_slots=0,
-                                    state_fill=0, coeff_fill=0.0) -> 'Graph':
+    def _rebuild_with_wider_layout(self, extra_state_dims=0, extra_coeff_slots=0) -> 'Graph':
         """Rebuild graph with wider state vectors and/or coefficient arrays.
 
         Creates a new graph that is structurally identical to self but with
@@ -9711,7 +9710,11 @@ extern "C" {{
         not merged), every edge keeps its position in its vertex's edge
         list, coefficient-less constant edges stay constant (unpadded), and
         the metadata listed in ``_WIDEN_CARRIED_ATTRS`` plus ``was_dph``,
-        per-vertex ``is_aux`` and ``rewards`` is carried over.
+        per-vertex ``is_aux``, the weight state and ``rewards`` is carried
+        over. Parameterized edge weights are reset to their value at
+        theta = 1 (call ``update_weights`` again), and coefficients beyond
+        ``param_length()`` are truncated; the operations that widen refuse
+        such graphs first.
 
         Parameters
         ----------
@@ -9719,10 +9722,6 @@ extern "C" {{
             Number of extra dimensions to append to each vertex state vector.
         extra_coeff_slots : int
             Number of extra slots to append to each edge coefficient array.
-        state_fill : int
-            Fill value for the new state dimensions (default 0).
-        coeff_fill : float
-            Fill value for the new coefficient slots (default 0.0).
 
         Returns
         -------
@@ -9735,71 +9734,10 @@ extern "C" {{
             If self is a synthetic SCC graph: its placeholder coefficients
             must not be carried into an ordinary graph.
         """
-        if self._is_synthetic():
-            raise ValueError(
-                "Cannot widen the coefficient layout of a synthetic SCC graph: "
-                "its Type-A/phantom edges carry placeholder coefficients, and "
-                "the rebuilt graph would no longer be marked synthetic."
-            )
-
-        param_length = self.param_length()
-        new_state_length = self.state_length() + extra_state_dims
-        new_param_length = param_length + extra_coeff_slots
-
-        new_graph = Graph(new_state_length)
-
-        # Set param_length BEFORE adding any edges
-        if new_param_length > 0:
-            new_graph.set_param_length(new_param_length)
-
-        pad_state = np.full(extra_state_dims, state_fill, dtype=int) if extra_state_dims > 0 else np.array([], dtype=int)
-        pad_coeff = [coeff_fill] * extra_coeff_slots
-
-        # Recreate every vertex in index order. A vertex is registered in the
-        # new graph's state lookup exactly when it is the one self's lookup
-        # returns for its state; other vertices with that state (duplicates)
-        # are created unregistered, so they are not merged.
-        start_index = self.starting_vertex().index()
-        vertex_map = {start_index: new_graph.starting_vertex()}
-        for vertex in self.vertices():
-            idx = vertex.index()
-            if idx == start_index:
-                continue
-            state = vertex.state()
-            new_state = np.append(state, pad_state).astype(int)
-            registered = (self.vertex_exists(state)
-                          and self.find_vertex(state).index() == idx)
-            if registered:
-                new_vertex = new_graph.find_or_create_vertex(new_state)
-            else:
-                new_vertex = new_graph.create_vertex(new_state)
-            if new_vertex.index() != idx:
-                raise RuntimeError(
-                    f"_rebuild_with_wider_layout: vertex {idx} was recreated at "
-                    f"index {new_vertex.index()}"
-                )
-            if vertex.is_aux():
-                new_vertex.set_aux(True)
-            vertex_map[idx] = new_vertex
-
-        # Copy every edge in its original position. edges() lists all edges;
-        # parameterized_edges() lists the coefficient-carrying ones in the
-        # same order, so walk both together.
-        parameterized = self.parameterized()
-        for vertex in self.vertices():
-            new_vertex = vertex_map[vertex.index()]
-            coef_edges = iter(vertex.parameterized_edges())
-            for edge in vertex.edges():
-                target = vertex_map[edge.to().index()]
-                if edge.coefficients_length() == 0:
-                    new_vertex.add_edge_constant(target, edge.weight())
-                    continue
-                coef_edge = next(coef_edges)
-                if parameterized:
-                    coeffs = list(coef_edge.edge_state(param_length)) + pad_coeff
-                    new_vertex.add_edge(target, coeffs)
-                else:
-                    new_vertex.add_edge(target, edge.weight())
+        # The structural copy (vertices, edges, is_aux, was_dph; synthetic
+        # graphs refused) is the C++ primitive phasic::Graph::widen_layout;
+        # only Python-side attributes are copied here.
+        new_graph = Graph(super()._widen_layout(extra_state_dims, extra_coeff_slots))
 
         # Copy Python metadata
         new_graph._callback = self._callback
@@ -9811,8 +9749,6 @@ extern "C" {{
         # original coefficient indices remain valid.
         _propagate_weight_state(self, new_graph)
         new_graph.is_discrete = self.is_discrete
-        if self.get_was_dph():
-            new_graph.set_was_dph(True)
         for attr in self._WIDEN_CARRIED_ATTRS:
             if hasattr(self, attr):
                 setattr(new_graph, attr, getattr(self, attr))

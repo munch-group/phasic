@@ -95,7 +95,34 @@ phasic::Graph constant_epoch(int nr_samples, double time) {
     return g.add_epoch(time);
 }
 
+// add_epoch refusals (operation-level guards; the widening primitive does
+// not check these). Each builds the base graph, breaks one precondition and
+// calls add_epoch.
+phasic::Graph ragged_epoch(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    std::vector<phasic::Vertex> vs = g.vertices();
+    vs[1].add_edge_parameterized(vs.back(), 0.0, std::vector<double>{1.0, 2.0});
+    // no update_weights: it already refuses the overlong vector; add_epoch
+    // must refuse it before using any weights.
+    return g.add_epoch(1.0);
+}
+
+phasic::Graph was_dph_epoch(int nr_samples) {
+    phasic::Graph g = base_graph(nr_samples, false);
+    g.c_graph()->was_dph = true;
+    return g.add_epoch(1.0);
+}
+
+phasic::Graph formula_epoch(int nr_samples) {
+    phasic::Graph g = base_graph(nr_samples, false);
+    g.weight_formula("t0*c0");
+    return g.add_epoch(1.0);
+}
+
 PYBIND11_MODULE(_cpp_add_epoch_fixture, m) {
+    m.def("ragged_epoch", &ragged_epoch);
+    m.def("was_dph_epoch", &was_dph_epoch);
+    m.def("formula_epoch", &formula_epoch);
     m.def("base_graph", &base_graph);
     m.def("epoch_graph", &epoch_graph);
     m.def("base_with_aux", &base_with_aux);

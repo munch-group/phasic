@@ -83,3 +83,16 @@ def test_cpp_add_epoch_keeps_duplicate_zero_states_and_is_aux(cpp):
 def test_cpp_add_epoch_refuses_constant_graph(cpp):
     with pytest.raises(ValueError, match="needs a parameterized model"):
         cpp.constant_epoch(N, 1.0)
+
+
+@pytest.mark.parametrize("builder,phrase", [
+    ("ragged_epoch", "add_epoch needs every edge's coefficient vector to have length param_length"),
+    ("was_dph_epoch", "add_epoch is not supported on a discretize()'d graph"),
+    ("formula_epoch", "add_epoch() adds coefficient slots, which is only defined for weight_mode='linear'"),
+])
+def test_cpp_add_epoch_refusals(cpp, builder, phrase):
+    """The checks moved from the old widening helper to add_epoch itself
+    (discretize-cpp-ssot-plan.md, primitive contract P4); messages kept."""
+    with pytest.raises(ValueError) as exc:
+        getattr(cpp, builder)(N)
+    assert phrase in str(exc.value)

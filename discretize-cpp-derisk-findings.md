@@ -91,3 +91,24 @@ so it does not inherit the problem. Recommended as a separate small fix
   the coalescent n=40 and two-island n=22 fixtures, and roughly linear
   from n=40 to n=50 (memory-capped).
 - No change from (b) or (c).
+
+## Found while pinning (phase 0, 2026-10-13)
+
+- **`discretize()` of a native discrete graph is broken** (existing
+  behaviour, pinned as-is in the phase-0 records): the returned `rewards`
+  vector is one entry shorter than the graph (5 vertices, 4 rewards), so
+  `expectation_discrete(rewards)` raises, and the distribution changes
+  (pdf(2) goes from 0.21 to 0). Likely cause (not verified): the discrete
+  `normalize()` adds a vertex after `rewards` is computed. Candidate for a
+  refusal ("discretize() expects a continuous graph").
+- **A rate callback receives a writable `int32` numpy array** (the vertex
+  state). Pinned as frozen API; a callback that mutates it would corrupt
+  nothing today only because the array is a copy (`Vertex.state`).
+
+## Phase 1 performance gate (2026-10-13)
+
+`experiments/dr_widen_layout_perf_gate.py`, memory-capped: C++ widening vs
+the Python helper on the same graphs: coalescent n=40 0.13 s vs 1.82 s
+(14×); two-island n=22 0.31 s vs 10.8 s (35×); coalescent n=50 0.96 s vs
+13.3 s (14×). Cost per vertex+edge 0.28-0.53 µs, ratio n=50 / n=40 1.08
+(linear). ALL PASS.
