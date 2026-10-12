@@ -19,9 +19,12 @@ with open(pins.RECORDS) as _f:
 
 
 def _same(a, b):
-    """Exact equality, treating NaN == NaN."""
-    if isinstance(a, float) and isinstance(b, float):
-        return a == b or (math.isnan(a) and math.isnan(b))
+    """Bit-exact equality: same JSON types (bool, int and float distinct) and
+    identical float bits (so -0.0 != 0.0, NaN == NaN)."""
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, float):
+        return a.hex() == b.hex()
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(_same(x, y) for x, y in zip(a, b))
     if isinstance(a, dict) and isinstance(b, dict):
@@ -38,7 +41,10 @@ def test_case_matches_record(name):
     build, call, theta = pins.CASES[name]
     got = _json(pins.snapshot(call(build()), theta))
     want = REC["cases"][name]
+    allowed = pins.EXPECTED_CHANGES.get(name, ())
     for key in want:
+        if key in allowed:
+            continue
         assert _same(got[key], want[key]), f"{name}: field {key!r} differs"
     assert got.keys() == want.keys()
 
@@ -70,3 +76,14 @@ def test_error_matches_record(name):
 def test_roundtrip_matches_record(name, builder):
     got = _json(pins.serialize_roundtrip(builder().discretize(0.1)))
     assert _same(got, REC["roundtrip"][name])
+
+
+def test_epoch_output_matches_record():
+    got = _json(pins.snapshot_graph(pins.epoch_graph()))
+    assert _same(got, REC["epoch_output"])
+
+
+def test_callback_argument_matches_record():
+    """What a rate callback receives (type, dtype, ndim, writeable) is part
+    of the frozen API: callbacks use state.sum(), slicing, etc."""
+    assert pins.callback_arg_record() == REC["callback_arg"]
