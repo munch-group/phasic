@@ -1754,8 +1754,10 @@ namespace phasic {
                 return *this;
             }
 
-            (*this).rf_graph = (struct rf_graph *) malloc(sizeof(*this->rf_graph));
-
+            // Release this graph's reference to its current graph. (Before
+            // 2026-10-13 a stray malloc here replaced rf_graph with an
+            // uninitialised block first, so every copy-assignment read a
+            // garbage reference count and crashed.)
             *this->rf_graph->references -= 1;
 
             if (*this->rf_graph->references == 0) {
