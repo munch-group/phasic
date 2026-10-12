@@ -119,7 +119,30 @@ phasic::Graph formula_epoch(int nr_samples) {
     return g.add_epoch(1.0);
 }
 
+// theta layout names after the C++ copy paths not reachable from Python.
+static py::list layout_names(phasic::Graph &g) {
+    py::list out;
+    for (const phasic::ParameterSlot &p : g.theta_layout()) out.append(p.name + ":" + p.kind);
+    return out;
+}
+
+py::tuple layout_after_copies(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    g.set_parameter_name(0, "coalescent");
+    phasic::Graph *p = g.clone_p();
+    py::list via_clone_p = layout_names(*p);
+    delete p;
+    phasic::Graph assigned = coalescent_param(nr_samples);
+    assigned = g;                     // copy-assign
+    phasic::Graph moved = coalescent_param(nr_samples);
+    moved = g.clone();                // rvalue: falls back to copy-assign
+    phasic::Graph widened = g.widen_layout(0, 1);
+    return py::make_tuple(layout_names(g), via_clone_p, layout_names(assigned),
+                          layout_names(moved), layout_names(widened));
+}
+
 PYBIND11_MODULE(_cpp_add_epoch_fixture, m) {
+    m.def("layout_after_copies", &layout_after_copies);
     m.def("ragged_epoch", &ragged_epoch);
     m.def("was_dph_epoch", &was_dph_epoch);
     m.def("formula_epoch", &formula_epoch);
@@ -143,6 +166,12 @@ cfg["include_dirs"] += [
 # phasic_pybind extension. See docs/pages/tutorial/cpp_state_spaces.cpp for the
 # rationale behind this linkage recipe.
 cfg["sources"] += [os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp")]
+# Rebuild whenever the installed C++ API changes (cppimport's checksum
+# otherwise covers only this file, so a stale .so could test old code).
+cfg["dependencies"] = [
+    os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp"),
+    os.path.join(phasic_dir, "include", "cpp", "phasiccpp.h"),
+]
 cfg["extra_compile_args"] += ["-std=c++17"]
 if sys.platform == "darwin":
     cfg["extra_link_args"] += [

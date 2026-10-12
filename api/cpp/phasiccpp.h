@@ -34,6 +34,8 @@
 #include <iterator>
 #include <functional>
 #include <utility>
+#include <map>
+#include <string>
 
 #include "../c/phasic.h"
 #include "scc_graph.h"
@@ -159,6 +161,25 @@ namespace phasic {
     // complete Graph type); forward-declared here so Graph can name it.
     struct DiscretizeResult;
 
+    // One slot of a graph's parameter vector theta, as reported by
+    // Graph::theta_layout() (discretize-cpp-ssot-plan.md section 4c).
+    struct ParameterSlot {
+        size_t index;
+        std::string name;
+        std::string kind;   // "base", "discretization", "mutation", ...
+        int epoch;          // epoch number for epoch slots, else -1
+    };
+
+    // A block of slots appended at the end of theta by a layout-widening
+    // operation. Internal annotation: theta_layout() builds the slots.
+    struct ThetaBlock {
+        std::string name;
+        std::string kind;
+        size_t offset;      // index of the block's first slot in theta
+        size_t count;
+        int epoch;
+    };
+
     // Array representation of a graph produced by Graph::serialize() and consumed
     // by Graph::from_serialized(), mirroring the fields of Python's
     // serialize()/from_serialized() dict. Row-indexed by an enumeration position
@@ -255,6 +276,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = o._callback;
+            this->_theta_blocks = o._theta_blocks;
+            this->_theta_names = o._theta_names;
         }
 
         // Move constructor - transfers ownership without sharing references
@@ -271,6 +294,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = std::move(o._callback);
+            this->_theta_blocks = std::move(o._theta_blocks);
+            this->_theta_names = std::move(o._theta_names);
         }
 
         Graph(size_t state_length) {
@@ -1148,6 +1173,26 @@ namespace phasic {
         // belong to the calling operation). Defined out-of-line in phasiccpp.cpp.
         Graph widen_layout(size_t extra_state_dims, size_t extra_coeff_slots);
 
+        // The meaning of every slot of theta (the vector update_weights takes):
+        // index, name, kind and epoch. Empty for a non-parameterized graph.
+        // Slots not covered by a recorded block are "base" slots named
+        // theta0, theta1, ... With plain = true every slot is reported as a
+        // plain base slot (used for weight_mode='log'); user names are kept.
+        // Throws std::invalid_argument for a weight-formula graph (theta is
+        // then defined by the formula) and std::runtime_error if a recorded
+        // block no longer fits param_length(). Defined in phasiccpp.cpp.
+        std::vector<ParameterSlot> theta_layout(bool plain = false);
+
+        // Give slot `index` of theta a name (reported by theta_layout()).
+        void set_parameter_name(size_t index, const std::string &name);
+
+        // Record that the last `count` slots of theta were just appended by a
+        // layout-widening operation (internal; used by discretize). The block
+        // starts at param_length() - count. A name already used by an earlier
+        // block gets a suffix (_2, _3, ...).
+        void append_theta_block(const std::string &name, const std::string &kind,
+                                size_t count, int epoch = -1);
+
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
         //             this->c_graph(),
@@ -1474,7 +1519,10 @@ namespace phasic {
                 PTD_THROW_AND_CLEAR();
             }
 
-            return Graph(r.graph, r.avl_tree);
+            Graph g(r.graph, r.avl_tree);
+            g._theta_blocks = this->_theta_blocks;
+            g._theta_names = this->_theta_names;
+            return g;
         }
 
 
@@ -1485,7 +1533,10 @@ namespace phasic {
                 PTD_THROW_AND_CLEAR();
             }
 
-            return new Graph(r.graph, r.avl_tree);
+            Graph *g = new Graph(r.graph, r.avl_tree);
+            g->_theta_blocks = this->_theta_blocks;
+            g->_theta_names = this->_theta_names;
+            return g;
         }
 
         double pdf(double time, int64_t granularity = 0) {
@@ -1790,6 +1841,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = o._callback;
+            this->_theta_blocks = o._theta_blocks;
+            this->_theta_names = o._theta_names;
 
             return *this;
         }
@@ -1828,6 +1881,10 @@ namespace phasic {
         // manually or via Graph(size_t)); lets extend()/add_epoch() default to it,
         // mirroring Python's stored self._callback.
         TransitionCallback _callback;
+        // theta layout annotations (discretize-cpp-ssot-plan.md section 4c):
+        // blocks appended by layout-widening operations, and user slot names.
+        std::vector<ThetaBlock> _theta_blocks;
+        std::map<size_t, std::string> _theta_names;
 
         friend class VertexLinkedList;
 

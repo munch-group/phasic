@@ -1408,6 +1408,34 @@ str
           True if this graph is (a reconstruction of) a synthetic SCC graph
       )delim")
 
+    .def("_theta_layout",
+      [](phasic::Graph &g, bool plain) {
+          py::list out;
+          for (const phasic::ParameterSlot &p : g.theta_layout(plain)) {
+              py::dict d;
+              d["index"] = p.index;
+              d["name"] = p.name;
+              d["kind"] = p.kind;
+              d["epoch"] = p.epoch < 0 ? py::object(py::none()) : py::object(py::int_(p.epoch));
+              out.append(d);
+          }
+          return out;
+      }, py::arg("plain") = false, R"delim(
+      Internal: the theta layout as a list of dicts (index, name, kind,
+      epoch). Use the ``Graph.theta_layout`` property.
+      )delim")
+
+    .def("_set_parameter_name", &phasic::Graph::set_parameter_name,
+      py::arg("index"), py::arg("name"), R"delim(
+      Internal: name slot ``index`` of theta. Use ``Graph.set_parameter_name``.
+      )delim")
+
+    .def("_append_theta_block", &phasic::Graph::append_theta_block,
+      py::arg("name"), py::arg("kind"), py::arg("count"), py::arg("epoch") = -1, R"delim(
+      Internal: record ``count`` slots appended at the end of theta by a
+      layout-widening operation.
+      )delim")
+
     .def("_widen_layout", &phasic::Graph::widen_layout,
       py::arg("extra_state_dims") = 0, py::arg("extra_coeff_slots") = 0, R"delim(
       Internal: copy of this graph with a wider state and/or coefficient layout.

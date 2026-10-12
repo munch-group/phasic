@@ -2970,6 +2970,7 @@ class Graph(_Graph):
         elif self.parameterized():
             new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
             _discretize_rate_slot = new_graph.param_length() - 1
+            new_graph._append_theta_block('discretization', 'discretization', 1)
         else:
             new_graph = self.clone()
             _discretize_rate_slot = None
@@ -9645,6 +9646,45 @@ extern "C" {{
         """
         from .profile import profile_graph
         return profile_graph(self, theta=theta, probe_dyn=probe_dyn)
+
+    @property
+    def theta_layout(self) -> list[dict]:
+        """The meaning of every slot of theta, the vector ``update_weights``
+        takes: a list of ``{'index', 'name', 'kind', 'epoch'}``, one per slot.
+
+        Kinds: ``'base'`` (from the model), ``'discretization'`` (added by
+        ``discretize()``), and in later versions the epoch and mutation kinds.
+        Slots not recorded otherwise are ``'base'`` slots named ``theta0..``.
+        Name slots with :meth:`set_parameter_name`. Empty for a constant
+        (non-parameterized) graph. The layout is not saved by ``serialize()``:
+        a reloaded graph reports the default layout.
+
+        Defined for ``weight_mode='linear'`` only: under a weight formula or
+        weight callback theta is resolved at inference time, so this raises
+        ``ValueError``; under ``'log'`` every slot is reported as ``'base'``.
+        """
+        mode = getattr(self, '_weight_mode', 'linear')
+        if mode in ('formula', 'callback'):
+            raise ValueError(
+                f"theta_layout is undefined for weight_mode={mode!r}: the "
+                f"formula/callback decides how theta maps to the coefficient "
+                f"slots, and theta's length is resolved at inference time.")
+        # log: every edge multiplies all slots, so recorded blocks have no
+        # separate meaning; report plain base slots (user names kept).
+        return super()._theta_layout(mode == 'log')
+
+    def set_parameter_name(self, index: int, name: str) -> None:
+        """Name slot ``index`` of theta (reported by :attr:`theta_layout`).
+
+        Raises ``ValueError`` on a constant graph and ``IndexError`` when
+        ``index`` is negative or ``>= param_length()``. Names belong to this
+        graph object: a ``Graph(g)`` wrap, ``clone()`` or ``copy()`` takes a
+        copy of the names at that moment.
+        """
+        index = int(index)
+        if index < 0:
+            raise IndexError(f"set_parameter_name: index {index} is negative")
+        super()._set_parameter_name(index, str(name))
 
     def copy(self) -> Self:
         """

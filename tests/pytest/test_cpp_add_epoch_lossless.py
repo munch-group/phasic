@@ -96,3 +96,12 @@ def test_cpp_add_epoch_refusals(cpp, builder, phrase):
     with pytest.raises(ValueError) as exc:
         getattr(cpp, builder)(N)
     assert phrase in str(exc.value)
+
+
+def test_cpp_copy_paths_keep_the_theta_layout(cpp):
+    """clone_p, copy-assign and rvalue assignment (not reachable from Python)
+    carry the theta-layout names; widening keeps them and adds a base slot."""
+    original, via_clone_p, assigned, moved, widened = cpp.layout_after_copies(N)
+    assert original == ["coalescent:base"]
+    assert via_clone_p == assigned == moved == original
+    assert widened == ["coalescent:base", "theta1:base"]

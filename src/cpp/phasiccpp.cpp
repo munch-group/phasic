@@ -1384,10 +1384,101 @@ phasic::Graph phasic::Graph::widen_layout(size_t extra_state_dims, size_t extra_
         ng.c_graph()->dph_compute_invalidated = true;
     }
     ng._callback = this->_callback;
+    ng._theta_blocks = this->_theta_blocks;
+    ng._theta_names = this->_theta_names;
     ng._epoch_state_index = this->_epoch_state_index;
     ng._n_epochs = this->_n_epochs;
     ng._base_param_length = this->_base_param_length;
     return ng;
+}
+
+std::vector<phasic::ParameterSlot> phasic::Graph::theta_layout(bool plain) {
+    std::vector<ParameterSlot> slots;
+    if (!this->parameterized()) return slots;
+    if (this->c_graph()->weight_tape != NULL) {
+        throw std::invalid_argument(
+            "theta_layout is undefined for weight_mode='formula': the formula "
+            "decides how theta maps to the coefficient slots, and theta's "
+            "length is resolved at inference time.");
+    }
+    size_t pl = this->c_graph()->param_length;
+    for (size_t i = 0; i < pl; ++i) {
+        slots.push_back(ParameterSlot{i, "theta" + std::to_string(i), "base", -1});
+    }
+    if (!plain) {
+        std::vector<bool> taken(pl, false);
+        for (const ThetaBlock &b : this->_theta_blocks) {
+            if (b.offset + b.count > pl) {
+                throw std::runtime_error(
+                    "theta_layout: a recorded parameter block ('" + b.name +
+                    "') no longer fits param_length() " + std::to_string(pl) +
+                    "; the layout annotation is stale");
+            }
+            for (size_t j = 0; j < b.count; ++j) {
+                size_t k = b.offset + j;
+                if (taken[k]) {
+                    throw std::runtime_error(
+                        "theta_layout: recorded parameter blocks overlap at slot " +
+                        std::to_string(k));
+                }
+                taken[k] = true;
+                slots[k].name = b.count == 1 ? b.name : b.name + std::to_string(j);
+                slots[k].kind = b.kind;
+                slots[k].epoch = b.epoch;
+            }
+        }
+    }
+    for (const auto &kv : this->_theta_names) {
+        if (kv.first < slots.size()) slots[kv.first].name = kv.second;
+    }
+    return slots;
+}
+
+void phasic::Graph::set_parameter_name(size_t index, const std::string &name) {
+    if (!this->parameterized()) {
+        throw std::invalid_argument(
+            "set_parameter_name: this graph has no parameterized edges, so it "
+            "has no parameters to name");
+    }
+    size_t pl = this->c_graph()->param_length;
+    if (index >= pl) {
+        throw std::out_of_range(
+            "set_parameter_name: index " + std::to_string(index) +
+            " is out of range for param_length() " + std::to_string(pl));
+    }
+    this->_theta_names[index] = name;
+}
+
+void phasic::Graph::append_theta_block(const std::string &name, const std::string &kind,
+                                       size_t count, int epoch) {
+    if (!this->parameterized()) {
+        throw std::invalid_argument("append_theta_block: the graph is not parameterized");
+    }
+    size_t pl = this->c_graph()->param_length;
+    if (count == 0 || count > pl) {
+        throw std::invalid_argument(
+            "append_theta_block: count must be between 1 and param_length() " +
+            std::to_string(pl));
+    }
+    size_t offset = pl - count;
+    for (const ThetaBlock &b : this->_theta_blocks) {
+        if (offset < b.offset + b.count) {
+            throw std::invalid_argument(
+                "append_theta_block: the new block would overlap the recorded "
+                "block '" + b.name + "'; append it right after widening");
+        }
+    }
+    std::string unique = name;
+    int suffix = 1;
+    bool clash = true;
+    while (clash) {
+        clash = false;
+        for (const ThetaBlock &b : this->_theta_blocks) {
+            if (b.name == unique) { clash = true; break; }
+        }
+        if (clash) unique = name + "_" + std::to_string(++suffix);
+    }
+    this->_theta_blocks.push_back(ThetaBlock{unique, kind, offset, count, epoch});
 }
 
 // Python-API-name parity: add an epoch boundary. Faithful port of Python
