@@ -93,8 +93,8 @@ def epoch_graph():
 
 
 def _inplace_build():
-    """The graph used by test_modeling_compose.py's _discretize_inplace
-    equivalence tests."""
+    """The graph of the former _discretize_inplace equivalence tests (their
+    frozen outputs are the "inplace" records)."""
     g = Graph(1)
     start = g.starting_vertex()
     v1 = g.find_or_create_vertex([1])
@@ -169,9 +169,12 @@ CASES = {
     "indexed_constant": (lambda: coal_indexed(as_list=False), lambda g: g.discretize(0.1), None),
 }
 
+# The legacy in-place discretize (Graph._discretize_inplace, deleted with
+# decision 5 of discretize-cpp-ssot-plan.md) was kept only for these two
+# equivalence cases; its recorded outputs now pin discretize() itself.
 INPLACE_CASES = {
-    "inplace_fixed": (_inplace_build, lambda g: g._discretize_inplace(0.1)),
-    "inplace_callable": (_inplace_build, lambda g: g._discretize_inplace(lambda s: 0.2)),
+    "inplace_fixed": (_inplace_build, 0.1),
+    "inplace_callable": (_inplace_build, lambda s: 0.2),
 }
 
 
@@ -247,7 +250,15 @@ def _with_mode(g, mode):
 # Fields that an INTENDED behaviour change may alter, per case. Filled in by
 # the phase that makes the change (decision 8 carries attributes on the
 # constant path), so that change is a targeted edit, not a regeneration.
-EXPECTED_CHANGES = {}
+EXPECTED_CHANGES = {
+    # decision 8 (phase 4): constant-graph discretize now carries the same
+    # Python attributes as the parameterized path (callback, indexer).
+    "constant_callback": ("has_callback",),
+    "constant_callback_zeros": ("has_callback",),
+    "constant_fixed": ("has_callback",),
+    "constant_skip_existing": ("has_callback",),
+    "indexed_constant": ("has_callback", "indexer_state_length"),
+}
 
 
 # ----------------------------------------------------------------- snapshot
@@ -290,6 +301,7 @@ def snapshot(d, theta=None):
         "indexer_state_length": (None if getattr(d, '_indexer', None) is None
                                  else int(d._indexer.state_length)),
         "has_callback": getattr(d, '_callback', None) is not None,
+        "last_callback_vertices_length": getattr(d, '_last_callback_vertices_length', None),
         "attrs": {a: (getattr(d, a) if hasattr(d, a) else None) for a in _ATTRS},
     }
     if theta is not None:
@@ -346,13 +358,11 @@ def build_records():
     recs = {"cases": {}, "inplace": {}, "errors": {}, "roundtrip": {}}
     for name, (build, call, theta) in CASES.items():
         recs["cases"][name] = snapshot(call(build()), theta)
-    for name, (build, call) in INPLACE_CASES.items():
-        g = build()
-        rewards = call(g)
-        recs["inplace"][name] = {"rewards": [int(x) for x in rewards],
-                                 "states": [[int(x) for x in v.state()] for v in g.vertices()],
-                                 "edges": [_edges(v) for v in g.vertices()],
-                                 "expected_aux_visits": float(g.expectation_discrete(rewards))}
+    # The "inplace" records came from the deleted legacy method
+    # Graph._discretize_inplace (decision 5): they are frozen and copied over,
+    # never regenerated.
+    with open(RECORDS) as f:
+        recs["inplace"] = json.load(f)["inplace"]
     for name, (call, phrase) in ERRORS.items():
         recs["errors"][name] = error_record(call, phrase)
     recs["roundtrip"]["param_fixed"] = serialize_roundtrip(coal_param().discretize(0.1))

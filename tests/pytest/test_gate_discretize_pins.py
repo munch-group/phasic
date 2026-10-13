@@ -51,9 +51,9 @@ def test_case_matches_record(name):
 
 @pytest.mark.parametrize("name", sorted(pins.INPLACE_CASES))
 def test_inplace_matches_record(name):
-    build, call = pins.INPLACE_CASES[name]
-    g = build()
-    rewards = call(g)
+    build, rate = pins.INPLACE_CASES[name]
+    g = build().discretize(rate)
+    rewards = g.rewards
     got = _json({"rewards": [int(x) for x in rewards],
                  "states": [[int(x) for x in v.state()] for v in g.vertices()],
                  "edges": [pins._edges(v) for v in g.vertices()],
@@ -87,3 +87,14 @@ def test_callback_argument_matches_record():
     """What a rate callback receives (type, dtype, ndim, writeable) is part
     of the frozen API: callbacks use state.sum(), slicing, etc."""
     assert pins.callback_arg_record() == REC["callback_arg"]
+
+
+@pytest.mark.parametrize("name", sorted(pins.EXPECTED_CHANGES))
+def test_intended_changes_have_their_new_values(name):
+    """Decision 8: a discretized constant graph keeps its callback (and its
+    indexer), like a discretized parameterized graph."""
+    build, call, theta = pins.CASES[name]
+    got = pins.snapshot(call(build()), theta)
+    assert got["has_callback"] is True
+    if "indexer_state_length" in pins.EXPECTED_CHANGES[name]:
+        assert got["indexer_state_length"] == REC["cases"]["indexed_param"]["indexer_state_length"]

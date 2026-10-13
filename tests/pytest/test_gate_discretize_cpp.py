@@ -18,7 +18,8 @@ from phasic import Graph
 import _discretize_pins as pins
 from test_gate_discretize_pins import REC, _json, _same
 
-PYTHON_SIDE = {"is_discrete", "indexer_state_length", "has_callback", "attrs"}
+PYTHON_SIDE = {"is_discrete", "indexer_state_length", "has_callback", "attrs",
+               "last_callback_vertices_length"}
 
 
 def _shim(self, rate, skip_existing=False, **kwargs):

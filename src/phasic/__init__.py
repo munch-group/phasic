@@ -754,31 +754,29 @@ def _require_no_constant_edges(graph: 'Graph', operation: str, reason: str) -> N
                 )
 
 
-def _discretize_rate_value(rate: Callable, state: Any, kwargs: dict) -> float:
-    """Call a ``discretize()`` rate callback and validate its result: one
-    finite number >= 0 (Python or numpy scalar, or a 0-d array)."""
+def _discretize_rate_to_float(rate: Callable, state: Any, kwargs: dict) -> float:
+    """Call a ``discretize()`` rate callback and convert its result to a
+    float. Marshalling only: the callback gets the state as a writable int32
+    numpy array (as ``Vertex.state()`` returns it), and any real scalar
+    (Python or numpy number, 0-d array, ``numbers.Real``) is accepted;
+    anything else raises ``TypeError``. The value check (finite, >= 0) is in
+    C++ (``phasic::Graph::discretize``)."""
     import numbers
-    value = rate(state, **kwargs)
+    s = np.asarray(state, dtype=np.int32)
+    value = rate(s, **kwargs)
     if isinstance(value, numbers.Real) and not isinstance(value, (bool, np.bool_)):
-        arr = np.asarray(float(value))
-    else:
-        arr = np.asarray(value)
+        return float(value)
+    arr = np.asarray(value)
     if arr.ndim != 0 or arr.dtype.kind not in 'iuf':
         raise TypeError(
             f"discretize(rate=callable): the callable must return ONE number, "
             f"the discretization rate at the given state, but it returned "
-            f"{type(value).__name__} {value!r} at state {list(np.asarray(state))}. "
+            f"{type(value).__name__} {value!r} at state {[int(x) for x in s]}. "
             f"The coefficient layout is handled automatically: on a "
             f"parameterized graph the number goes into a new slot appended "
             f"to every coefficient vector."
         )
-    v = float(arr)
-    if not np.isfinite(v) or v < 0:
-        raise ValueError(
-            f"discretize(rate=callable): the rate must be finite and >= 0, but "
-            f"the callable returned {v} at state {list(np.asarray(state))}."
-        )
-    return v
+    return float(arr)
 
 
 def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
@@ -788,8 +786,8 @@ def _propagate_weight_state(src: 'Graph', dst: 'Graph') -> None:
     Unlike :func:`_propagate_weight_formula` (formula-only, for the
     joint-graph constructors), this copies *every* mode — linear, log,
     callback, and formula — so graphs derived via ``clone()``/``copy()``,
-    ``from_serialized()``, ``_rebuild_with_wider_layout()`` (add_epoch /
-    discretize) and ``laplace_transform()`` do not silently revert to
+    ``from_serialized()``, ``_rebuild_with_wider_layout()`` (add_epoch) and
+    ``discretize()`` and ``laplace_transform()`` do not silently revert to
     ``'linear'`` or end up in ``'formula'`` mode with no tape. The C-level
     clone does not copy the weight tape, so a formula graph must have the
     tape re-installed on the derived live graph here.
@@ -2790,94 +2788,6 @@ class Graph(_Graph):
         else:
             return super().normalize(*args, **kwargs)
 
-    @_invalidates_trace
-    def _discretize_inplace(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> NDArray[np.int64]:
-        """COMPOSABLE_MIGRATION: original in-place discretize, kept for equivalence testing."""
-        # COMPOSABLE_MIGRATION: original implementation
-        # if not callable(rate):
-        #     if not isinstance(rate, (int, float, np.integer, np.floating)):
-        #         raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-        #     if rate <= 0 or rate >= 1:
-        #         raise ValueError(f"rate must be in (0, 1), got {rate}")
-        #
-        # vlength = self.vertices_length()
-        # aux_indices = []
-        #
-        # for vertex in self.vertices():
-        #     if vertex.index() == self.starting_vertex().index() or not vertex.edges():
-        #         continue
-        #
-        #     if skip_existing:
-        #         has_aux, is_aux = False, False
-        #         for edge in vertex.edges():
-        #             if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
-        #                 has_aux = True
-        #                 aux_indices.append(edge.to().index())
-        #                 vlength -= 1
-        #                 break
-        #         if vertex.state().sum() == 0:
-        #             is_aux = True
-        #         if has_aux or is_aux:
-        #             continue
-        #
-        #     _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
-        #     aux_vertex = vertex.add_aux_vertex(_rate)
-        #     aux_vertex.set_aux(True)
-        #     aux_indices.append(aux_vertex.index())
-        #
-        # rewards = np.zeros(vlength+len(aux_indices), dtype=int)
-        # for index in aux_indices:
-        #     rewards[index] = 1
-        #
-        # weight_scaling = self.normalize()
-        #
-        # self.is_discrete = True
-        # self.set_was_dph(True)
-        #
-        # return rewards
-
-        # Functional copy of original for equivalence testing
-        if not callable(rate):
-            if not isinstance(rate, (int, float, np.integer, np.floating)):
-                raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-            if rate <= 0:
-                raise ValueError(f"rate must be larger than 0, got {rate}")
-
-        vlength = self.vertices_length()
-        aux_indices = []
-
-        for vertex in self.vertices():
-            if vertex.index() == self.starting_vertex().index() or not vertex.edges():
-                continue
-
-            if skip_existing:
-                has_aux, is_aux = False, False
-                for edge in vertex.edges():
-                    if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
-                        has_aux = True
-                        aux_indices.append(edge.to().index())
-                        vlength -= 1
-                        break
-                if vertex.state().sum() == 0:
-                    is_aux = True
-                if has_aux or is_aux:
-                    continue
-
-            _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
-            aux_vertex = vertex.add_aux_vertex(_rate)
-            aux_vertex.set_aux(True)
-            aux_indices.append(aux_vertex.index())
-
-        rewards = np.zeros(vlength+len(aux_indices), dtype=int)
-        for index in aux_indices:
-            rewards[index] = 1
-
-        self.normalize()
-        self.is_discrete = True
-        self.set_was_dph(True)
-
-        return rewards
-
     def discretize(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> 'Graph':
         """
         Create a discretized copy of this graph.
@@ -2907,6 +2817,8 @@ class Graph(_Graph):
         skip_existing : bool, optional
             If True, skip vertices that already have auxiliary vertices. If
             no vertex needs one, no slot is added.
+        **kwargs
+            Passed to a callable ``rate``; not allowed with a fixed rate.
 
         Returns
         -------
@@ -2917,108 +2829,74 @@ class Graph(_Graph):
         Raises
         ------
         TypeError
-            If ``rate`` is neither a number nor a callable, or the callable
-            returns something other than one number.
+            If ``rate`` is neither a number nor a callable (``bool`` counts as
+            neither), if the callable returns something other than one real
+            number, or if keyword arguments are given with a fixed rate.
         ValueError
-            If a fixed rate is <= 0, a callable returns a negative or
-            non-finite value, or (parameterized graphs) the graph uses a
-            non-linear weight mode, has ragged coefficient vectors or has
-            coefficient-less constant edges on transient vertices.
+            If a fixed rate is not finite or not larger than 0; if the
+            callable returns a negative or non-finite value; on a
+            parameterized graph that uses a non-linear weight mode, has
+            coefficient vectors of length other than 0 or ``param_length()``,
+            has coefficient-less constant edges on transient vertices, or is
+            a synthetic SCC graph.
+        RuntimeError
+            If a parameterized input carries a ``rewards`` vector whose length
+            differs from its vertex count.
+        Exceptions raised by the callable propagate unchanged.
+
+        Notes
+        -----
+        The callable receives a fresh, writable ``int32`` numpy array (the
+        state), plus ``**kwargs``. The work is done by the C++
+        ``phasic::Graph::discretize``; the new slot is recorded in
+        :attr:`theta_layout` as ``'discretization'``.
         """
+        # Thin wrapper: the work (checks, widening, aux vertices, rewards,
+        # normalisation, was_dph, the theta-layout block) is the C++
+        # phasic::Graph::discretize. Python only marshals arguments, passes the
+        # Python-only state (is_discrete, weight mode; decision 3 of
+        # discretize-cpp-ssot-plan.md) and carries the Python attributes.
         if not callable(rate):
             if (isinstance(rate, (bool, np.bool_))
                     or not isinstance(rate, (int, float, np.integer, np.floating))):
                 raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
-            if not np.isfinite(rate) or rate <= 0:
-                raise ValueError(f"rate must be larger than 0 and finite, got {rate}")
+            super()._discretize_check_rate(float(rate))
             if kwargs:
                 raise TypeError(
                     f"discretize(): keyword arguments {sorted(kwargs)} are passed "
                     f"to a callable rate, but rate is a fixed number.")
-
-        if self.parameterized():
-            _require_no_constant_edges(
-                self, 'discretize()',
-                "every transient vertex gains a theta-dependent aux edge, and "
-                "a discretized graph renormalises every edge per theta, so a "
-                "constant edge would drift between update_weights calls")
-            # Discretizing a parameterized graph adds a coefficient slot.
-            _require_linear_weight_mode(self, 'discretize()')
-            _require_uniform_coefficient_length(self, 'discretize()')
-
-        # Does any vertex still need an aux vertex? With skip_existing on an
-        # already discretized graph, none may, and then no slot is added.
-        def _needs_aux(vertex):
-            if vertex.index() == self.starting_vertex().index() or not vertex.edges():
-                return False
-            if not skip_existing:
-                return True
-            if vertex.state().sum() == 0:
-                return False
-            for edge in vertex.edges():
-                if (edge.to().state().sum() == 0 and edge.to().edges_length()
-                        and edge.to().edges()[0].to().index() == vertex.index()):
-                    return False
-            return True
-        _any_new_aux = any(_needs_aux(v) for v in self.vertices())
-
-        # Parameterized graphs: widen the layout by one slot for the rate
-        # (fixed or callable alike), unless no vertex needs an aux vertex.
-        if self.parameterized() and not _any_new_aux:
-            new_graph = self._rebuild_with_wider_layout()
-            _discretize_rate_slot = None
-        elif self.parameterized():
-            new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
-            _discretize_rate_slot = new_graph.param_length() - 1
-            new_graph._append_theta_block('discretization', 'discretization', 1)
+            cpp_rate = float(rate)
         else:
-            new_graph = self.clone()
-            _discretize_rate_slot = None
+            def cpp_rate(state):
+                return _discretize_rate_to_float(rate, state, kwargs)
 
-        vlength = new_graph.vertices_length()
-        aux_indices = []
+        # Kept from the widening path the parameterized case used to take:
+        # a stale rewards vector on the input is an error, not ignored.
+        if self.parameterized() and 'rewards' in self.__dict__ and self.rewards is not None:
+            if len(np.asarray(self.rewards)) != self.vertices_length():
+                raise RuntimeError(
+                    f"_rebuild_with_wider_layout: rewards has length "
+                    f"{len(np.asarray(self.rewards))} but the graph has "
+                    f"{self.vertices_length()} vertices")
 
-        for vertex in new_graph.vertices():
-            if vertex.index() == new_graph.starting_vertex().index() or not vertex.edges():
-                continue
-
-            if skip_existing:
-                has_aux, is_aux = False, False
-                for edge in vertex.edges():
-                    if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
-                        has_aux = True
-                        aux_indices.append(edge.to().index())
-                        vlength -= 1
-                        break
-                if vertex.state().sum() == 0:
-                    is_aux = True
-                if has_aux or is_aux:
-                    continue
-
-            if callable(rate):
-                _rate = _discretize_rate_value(rate, vertex.state(), kwargs)
-            else:
-                _rate = rate
-            if _discretize_rate_slot is not None:
-                # Parameterized: the rate is the coefficient in the new slot
-                rate_coeffs = [0.0] * new_graph.param_length()
-                rate_coeffs[_discretize_rate_slot] = _rate
-                aux_vertex = vertex.add_aux_vertex(rate_coeffs)
-            else:
-                aux_vertex = vertex.add_aux_vertex(_rate)
-            aux_vertex.set_aux(True)
-            aux_indices.append(aux_vertex.index())
-
-        rewards = np.zeros(vlength + len(aux_indices), dtype=int)
-        for index in aux_indices:
-            rewards[index] = 1
-
-        new_graph.normalize()
-
+        graph, rewards = super()._discretize(
+            cpp_rate, skip_existing, bool(self.is_discrete),
+            getattr(self, '_weight_mode', 'linear'))
+        new_graph = Graph(graph)
+        # Python attributes, the same on the constant and the parameterized
+        # path (decision 8).
+        new_graph._callback = self._callback
+        new_graph._callback_kwargs = self._callback_kwargs.copy() if self._callback_kwargs else {}
+        new_graph._cache_trace = self._cache_trace
+        _propagate_weight_state(self, new_graph)
+        for attr in self._WIDEN_CARRIED_ATTRS:
+            if hasattr(self, attr):
+                setattr(new_graph, attr, getattr(self, attr))
+        # extend() resumes from here: the vertices before the aux vertices,
+        # as before (both former paths set it before adding aux vertices).
+        new_graph._last_callback_vertices_length = self.vertices_length()
         new_graph.is_discrete = True
-        new_graph.set_was_dph(True)
-
-        new_graph.rewards = rewards
+        new_graph.rewards = np.array(rewards, dtype=int)
         return new_graph
 
     def add_epoch(self, time: float, callback: Callable | None = None, **kwargs: Any) -> 'Graph':
@@ -9731,8 +9609,8 @@ extern "C" {{
         return cloned
 
     # Attributes a widened graph inherits from its source, beyond what
-    # clone() carries. Callers that set any of them afterwards (add_epoch,
-    # discretize) keep overriding them.
+    # clone() carries. add_epoch sets some of them afterwards; discretize
+    # carries the same set on both of its paths (decision 8).
     _WIDEN_CARRIED_ATTRS = (
         '_base_callback', '_base_callback_kwargs',
         '_indexer', '_base_indexer',

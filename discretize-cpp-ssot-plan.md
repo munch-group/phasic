@@ -180,13 +180,15 @@ implementing §3a only. Replaces `epoch_rebuild_wider`. Python
 its length check, `_last_callback_vertices_length`, `_callback_kwargs`).
 Rewiring `add_epoch` (Python and C++) onto it is decision 7.
 
-5b. **Weight mode: hybrid** (decision 3). C++ refuses formula mode by
-checking `weight_tape != NULL`. The log/callback refusal stays a one-line
-Python check before the call: this is the one recorded exception to O7. No
-new C++ `weight_mode` field now; the field is defined together with
-Stage-3 step 10 (weight-formula promotion), which owns C++ weight state.
-The same applies to `is_discrete`: C++ checks `was_dph`; Python checks
-`is_discrete` for native DPH graphs until step 10 defines the field.
+5b. **Weight mode: hybrid** (decision 3). C++ detects formula mode itself
+(`weight_tape != NULL`). Log and callback mode are Python-side state, so
+the wrapper passes the mode in as an argument (`weight_mode`) and C++
+raises the refusal at its original position in the check order (as built:
+an argument rather than a separate Python check, so the check stays in
+one place). Likewise `is_discrete` is passed in (`input_is_discrete`, which
+selects the DPH normalisation). No new C++ `weight_mode`/`is_discrete`
+fields; those are defined together with Stage-3 step 10 (weight-formula
+promotion), which owns C++ weight state.
 
 5c. **C++ discretize at parity.** Fixed rate: finite and > 0 (Python's
 rule). Callback: `std::function<double(const std::vector<int>&)>`, value
@@ -233,6 +235,26 @@ the Python widening loop, `epoch_rebuild_wider` (if decision 7), and
 outputs in the phase-0 gate).
 
 ## 6. Frozen-API changes this plan makes (for sign-off)
+
+**As built (phases 1-4), in addition to the list below:**
+- `discretize(0)` / `discretize(-1)` (integer rates) now say "got 0.0" /
+  "got -1.0" (the value is formatted after conversion to float), and a
+  `np.float32` rate prints its float64 value.
+- The callback `TypeError` prints the state as `[3, 0]` instead of
+  `[np.int32(3), ...]`.
+- Private bindings added: `_widen_layout`, `_discretize` (two overloads),
+  `_discretize_check_rate`, `_theta_layout`, `_set_parameter_name`,
+  `_append_theta_block`.
+- C++ API: `discretize(rate | fn, skip_existing, input_is_discrete,
+  weight_mode)`; refusals are `std::invalid_argument` (the fixed-rate check
+  threw `std::runtime_error` before, and required rate < 1); new
+  `discretize_check_rate`, `copy_construction_state_from`, `widen_layout`,
+  `theta_layout`, `set_parameter_name`, `append_theta_block`. C++
+  copy-assignment fixed (it crashed).
+- Kept unchanged on purpose: the `extend()` resume point
+  (`_last_callback_vertices_length`, pinned) and the rewards-length check on
+  a parameterized input.
+
 
 Python: new read-only properties `graph.indexer` and `graph.theta_layout`;
 new `graph.set_parameter_name()`; `_discretize_inplace` deleted; `is_aux`
@@ -406,3 +428,32 @@ phase 1 also changes `add_epoch` (→ decision 7, gates); missing de-risk
 the dead formula branch in `joint_prob_graph` (→ §8); `rate_name` collides
 with `**kwargs` (→ decision 9); frozen-API change list (→ §6); wrapper
 location (→ 5d); bare labels qualified.
+
+## 12. Implementation record (2026-10-13)
+
+Worktree `/Users/kmt/phasic-discretize`, branch `refactor/discretize-cpp-ssot`
+(from `derisk/discretize-cpp`), own pixi environment; every run memory-capped
+and sequential. Each phase: new tests failing before / passing after,
+read-only adversarial diff review (APPROVE-WITH-CHANGES each time, changes
+applied), the related test files (52 files, 0 failures at each phase).
+
+- Phase -1 (`2de18c39`): `discretize-cpp-derisk-findings.md`. Python
+  widening was 70-95% of discretize time; existing C++ discretize
+  bit-identical to Python on constant graphs; C `ptd_clone_graph` is
+  O(V*E) (110 s at 204k vertices; not fixed, decision pending).
+- Phase 0 (`fa67c9e5`, strengthened `14a8ce13`): pinned records of
+  Python discretize, generated with the master build as reference.
+- Phase 1 (`c309719c`): `phasic::Graph::widen_layout`, 14-35x faster,
+  linear (`experiments/dr_widen_layout_perf_gate.py`).
+- C++ copy-assignment crash fixed (`3ada4c08`).
+- Phase 2 (`54dcf36e`): `theta_layout`, `set_parameter_name`.
+- Phase 3 (`fcd70289`): C++ discretize at parity; every pinned case and
+  error reproduced through C++.
+- Phase 4: Python `discretize` delegates; Python loops,
+  `_discretize_inplace` and the old C++ widening helper deleted. discretize
+  at 204k vertices: 17.7 s -> 0.8 s (fixed rate), 18.3 s -> 1.7 s
+  (callback). Intended changes pinned: decision 8 (constant path keeps
+  callback and indexer).
+- Existing behaviour found and pinned, not changed: discretize of a native
+  DPH gives a rewards vector one short; a second discretize with
+  skip_existing leaves weights un-normalised until update_weights.
