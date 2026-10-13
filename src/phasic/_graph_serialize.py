@@ -236,6 +236,10 @@ def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         # read it via get_was_dph() -- there is no Python 'was_dph' attribute --
         # which is also safe on a raw pybind base graph (SLURM path).
         'was_dph': bool(self.get_was_dph()),
+        # Per-vertex aux flag (discretize()'s auxiliary vertices), in the
+        # same order as 'states'. Additive key: data without it (older caches)
+        # reloads with no aux flags, as before.
+        'is_aux': np.array([bool(v.is_aux()) for v in vertices_list], dtype=bool),
     }
     # Carry the compiled weight tape ONLY in formula mode, so the FFI
     # GraphBuilder that rebuilds this graph evaluates the formula in C.
@@ -704,6 +708,23 @@ def from_serialized(cls, data: dict[str, Any]) -> Graph:
     graph.is_discrete = bool(data.get('is_discrete', False))
     if bool(data.get('was_dph', data.get('is_discrete', False))):
         graph.set_was_dph(True)
+
+    # Restore the per-vertex aux flags (absent in older serializations).
+    is_aux = data.get('is_aux', None)
+    if is_aux is not None:
+        arr = np.asarray(is_aux)
+        if arr.ndim != 1 or not (arr.dtype == bool or (arr.dtype.kind in 'iu'
+                                 and np.isin(arr, (0, 1)).all())):
+            raise ValueError(
+                "from_serialized: 'is_aux' must be a 1-D array of booleans (or "
+                f"0/1), got dtype {arr.dtype} with shape {arr.shape}")
+        is_aux = arr.astype(bool)
+        if len(is_aux) != n_vertices:
+            raise ValueError(
+                f"from_serialized: 'is_aux' has {len(is_aux)} entries but "
+                f"there are {n_vertices} vertices")
+        for idx in np.flatnonzero(is_aux):
+            idx_to_vertex[int(idx)].set_aux(True)
 
     # Restore the Python-side weight configuration. serialize() persists
     # weight_mode always and the compiled tape in formula mode; without

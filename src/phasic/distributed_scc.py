@@ -122,6 +122,9 @@ def serialize_scc_synth(scc_vertex) -> dict[str, Any]:
     }
 
 
+# Note: the per-vertex 'is_aux' key that serialize() writes is not restored
+# here; synthetic SCC graphs never compute on it (residual, like
+# constant_edges; discretize-cpp-ssot-plan.md phase 5 review).
 def deserialize_scc_synth(data: dict[str, Any]):
     """Reconstruct a synthetic SCC graph from a work-unit dict.
 

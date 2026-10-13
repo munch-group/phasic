@@ -74,8 +74,19 @@ def test_error_matches_record(name):
 @pytest.mark.parametrize("name,builder", [("param_fixed", pins.coal_param),
                                           ("constant_fixed", pins.coal_constant)])
 def test_roundtrip_matches_record(name, builder):
-    got = _json(pins.serialize_roundtrip(builder().discretize(0.1)))
-    assert _same(got, REC["roundtrip"][name])
+    d = builder().discretize(0.1)
+    got = _json(pins.serialize_roundtrip(d))
+    want = REC["roundtrip"][name]
+    # Intended change (phase 5): is_aux now survives the round trip; it was
+    # all False before. Everything else is compared exactly.
+    for key in want:
+        if key in pins.ROUNDTRIP_EXPECTED_CHANGES.get(name, ()):
+            continue
+        assert _same(got[key], want[key]), f"{name}: field {key!r} differs"
+    assert got.keys() == want.keys()
+    # the new value: the flags of the recorded discretize output itself
+    assert got["is_aux"] == REC["cases"][name]["is_aux"]
+    assert any(got["is_aux"]) and not any(want["is_aux"])
 
 
 def test_epoch_output_matches_record():

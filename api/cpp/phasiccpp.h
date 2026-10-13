@@ -182,7 +182,9 @@ namespace phasic {
 
     // Array representation of a graph produced by Graph::serialize() and consumed
     // by Graph::from_serialized(), mirroring the fields of Python's
-    // serialize()/from_serialized() dict. Row-indexed by an enumeration position
+    // serialize()/from_serialized() dict -- except the per-vertex 'is_aux' key
+    // (added to Python 2026-10), not carried here yet; serialize unification
+    // (Stage-3 step 9) owns that. Row-indexed by an enumeration position
     // (0..n_vertices-1); edge rows reference those positions. Regular (constant-
     // valued but coefficient-carrying) and coefficient-less (constant_edges)
     // edges are kept separate, as in Python. Python-runtime metadata

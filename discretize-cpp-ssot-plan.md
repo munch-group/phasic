@@ -309,9 +309,14 @@ go-ahead. Every run memory-capped and sequential.
 4. **Python delegates** (5d, 5f). Gates: phase-0 gate unchanged; all
    discretize-related test files; the two experiment gates
    (`dr_log_mode_moments_jac_gate.py`, `dr_sojourn_grad_theta_gate.py`).
-5. **`is_aux` in serialize** (decision 1b): additive key, then
-   `skip_existing` may switch to `is_aux`. Gate: round trip and cache hit
-   keep `is_aux`; phase-0 gate unchanged.
+5. **`is_aux` in serialize** (decision 1b): additive key; `skip_existing`
+   keeps its state-sum rule (switching would change pinned behaviour).
+   Gate: round trip and the graph-cache JSON path keep `is_aux`; the
+   phase-0 round-trip pin records the intended change (flags now kept).
+   Behaviour change, pinned: a reloaded parameterized discretized graph can
+   be re-discretized with `skip_existing` (its aux back-edges are now
+   recognised as aux, not refused as constant edges); data without the key
+   (older caches) behaves as before.
 
 ## 8. Later work this plan prepares (defined, not built)
 
@@ -457,3 +462,6 @@ applied), the related test files (52 files, 0 failures at each phase).
 - Existing behaviour found and pinned, not changed: discretize of a native
   DPH gives a rewards vector one short; a second discretize with
   skip_existing leaves weights un-normalised until update_weights.
+- Phase 5: `is_aux` serialized (additive key, strict parsing); not yet in
+  the C++ `SerializedGraph` port or the SLURM `deserialize_scc_synth` path
+  (documented residuals).

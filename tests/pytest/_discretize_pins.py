@@ -209,6 +209,14 @@ def _constant_edge():
     return g
 
 
+# Phase 5: serialize() now carries is_aux, so the round trip keeps the flags
+# (recorded as all False before).
+ROUNDTRIP_EXPECTED_CHANGES = {
+    "param_fixed": ("is_aux",),
+    "constant_fixed": ("is_aux",),
+}
+
+
 # error table (discretize-cpp-ssot-plan.md §5e): name -> (call, phrase).
 # Each phrase is unique to its case, so a check that fires for a different
 # reason (or in a different order) does not pass.
