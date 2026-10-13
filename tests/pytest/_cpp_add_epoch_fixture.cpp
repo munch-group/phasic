@@ -5,6 +5,7 @@
 // the installed phasic C++ API, the same way _cpp_from_callback_fixture.cpp
 // does. NOT collected by pytest; the test module compiles it via cppimport.
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <phasiccpp.h>
 
 #include <vector>
@@ -141,7 +142,31 @@ py::tuple layout_after_copies(int nr_samples) {
                           layout_names(moved), layout_names(widened));
 }
 
+// C++-only discretize of a parameterized graph (phase 3): fixed rate and a
+// per-state callback written in C++.
+py::tuple cpp_discretize_param(int nr_samples, double rate) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::DiscretizeResult r = g.discretize(rate);
+    return py::make_tuple(r.graph, r.rewards);
+}
+
+py::tuple cpp_discretize_param_callback(int nr_samples, double mu) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::DiscretizeResult r = g.discretize(
+        [mu](const std::vector<int> &s) { double t = 0; for (int x : s) t += x; return mu * t; });
+    return py::make_tuple(r.graph, r.rewards);
+}
+
+phasic::Graph discretize_then_epoch(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::Graph d = g.discretize(0.1).graph;
+    return d.add_epoch(1.0);
+}
+
 PYBIND11_MODULE(_cpp_add_epoch_fixture, m) {
+    m.def("discretize_then_epoch", &discretize_then_epoch);
+    m.def("cpp_discretize_param", &cpp_discretize_param);
+    m.def("cpp_discretize_param_callback", &cpp_discretize_param_callback);
     m.def("layout_after_copies", &layout_after_copies);
     m.def("ragged_epoch", &ragged_epoch);
     m.def("was_dph_epoch", &was_dph_epoch);

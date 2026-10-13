@@ -105,3 +105,36 @@ def test_cpp_copy_paths_keep_the_theta_layout(cpp):
     assert original == ["coalescent:base"]
     assert via_clone_p == assigned == moved == original
     assert widened == ["coalescent:base", "theta1:base"]
+
+
+def _structure(g):
+    def coeffs(v):
+        it = iter(v.parameterized_edges())
+        return [(e.to().index(), e.weight(), e.coefficients_length(),
+                 tuple(next(it).edge_state(e.coefficients_length())) if e.coefficients_length() else ())
+                for e in v.edges()]
+    return ([list(v.state()) for v in g.vertices()], [coeffs(v) for v in g.vertices()])
+
+
+@pytest.mark.parametrize("which", ["fixed", "callback"])
+def test_cpp_discretize_parameterized_graph(cpp, which):
+    """C++ API users get the same discretize as Python, including on a
+    parameterized graph (refused before phase 3), with was_dph set and the
+    discretization slot recorded."""
+    if which == "fixed":
+        g, rewards = cpp.cpp_discretize_param(N, 0.1)
+        ref = Graph(cpp.base_graph(N, False)).discretize(0.1)
+    else:
+        g, rewards = cpp.cpp_discretize_param_callback(N, 0.3)
+        ref = Graph(cpp.base_graph(N, False)).discretize(lambda s: 0.3 * s.sum())
+    g = Graph(g)
+    assert g.param_length() == 2 and g.get_was_dph()
+    assert [(s['index'], s['kind']) for s in g.theta_layout] == [(0, 'base'), (1, 'discretization')]
+    assert list(rewards) == list(ref.rewards)
+    assert _structure(g) == _structure(ref)
+
+
+def test_cpp_add_epoch_refuses_cpp_discretized_graph(cpp):
+    """A graph discretized by C++ carries was_dph, so C++ add_epoch refuses it."""
+    with pytest.raises(ValueError, match="not supported on a discretize\\(\\)'d graph"):
+        cpp.discretize_then_epoch(N)

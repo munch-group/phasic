@@ -1108,14 +1108,37 @@ namespace phasic {
         // normalized, producing a discrete phase-type distribution. Python name
         // for Graph.discretize(); the returned DiscretizeResult carries the new
         // graph and its reward vector (1 for aux vertices) — Python attaches the
-        // rewards as an attribute, which C++ cannot. `rate` must be in (0, 1)
-        // (scalar overload) or a callback state->rate. Parameterized graphs are
-        // not supported (the Python path widens the coefficient layout, which has
-        // no C++ equivalent) and raise. Defined out-of-line in phasiccpp.cpp.
-        DiscretizeResult discretize(double rate, bool skip_existing = false);
+        // rewards as an attribute, which C++ cannot. `rate` is a finite number
+        // > 0 (scalar overload) or a callback state -> one finite number >= 0.
+        // A parameterized graph gains one theta slot, appended and recorded in
+        // theta_layout() as 'discretization'; the effective rate is
+        // rate * theta[-1]. Refuses parameterized graphs with a weight formula,
+        // ragged coefficient vectors or constant edges on transient vertices.
+        // All refusals throw std::invalid_argument (before 2026-10 the fixed-rate
+        // check threw std::runtime_error, and the rate had to be < 1).
+        // input_is_discrete: normalize the result as a DPH. The C++ graph does
+        // not record whether it is discrete, so pass true when the input is
+        // already discrete -- in particular when re-discretizing a
+        // discretize()d graph with skip_existing (Python passes its is_discrete
+        // attribute); with the default false the result is normalized as a
+        // continuous chain. weight_mode: the caller's weight mode ('linear',
+        // 'log', 'callback'); C++ detects 'formula' itself (the weight tape).
+        // The single implementation behind Python's Graph.discretize.
+        DiscretizeResult discretize(double rate, bool skip_existing = false,
+                                    bool input_is_discrete = false,
+                                    const std::string &weight_mode = "linear");
         DiscretizeResult discretize(
             std::function<double(const std::vector<int>&)> rate_fn,
-            bool skip_existing = false);
+            bool skip_existing = false, bool input_is_discrete = false,
+            const std::string &weight_mode = "linear");
+
+        // The fixed-rate check of discretize (finite and > 0); throws
+        // std::invalid_argument. Exposed so a wrapper can check the rate first.
+        static void discretize_check_rate(double rate);
+
+        // Copy the construction callback and epoch metadata from `o` (what
+        // widen_layout carries; used by discretize's constant path).
+        void copy_construction_state_from(const Graph &o);
 
         // Analyse this (parameterized) graph and recommend build/eval settings
         // with reasons — parallel_elimination (from the SCC structure) and the

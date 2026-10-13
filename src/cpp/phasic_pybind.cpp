@@ -1408,6 +1408,36 @@ str
           True if this graph is (a reconstruction of) a synthetic SCC graph
       )delim")
 
+    .def("_discretize",
+      [](phasic::Graph &g, std::function<double(const std::vector<int>&)> rate_fn,
+         bool skip_existing, bool input_is_discrete, const std::string &weight_mode) {
+          phasic::DiscretizeResult r = g.discretize(rate_fn, skip_existing,
+                                                    input_is_discrete, weight_mode);
+          return py::make_tuple(r.graph, r.rewards);
+      }, py::arg("rate"), py::arg("skip_existing") = false,
+         py::arg("input_is_discrete") = false, py::arg("weight_mode") = "linear", R"delim(
+      Internal: C++ discretize with a per-state rate callback (receives the
+      state as a list of ints, returns one float). Returns (graph, rewards).
+      Use ``Graph.discretize``.
+      )delim")
+
+    .def("_discretize",
+      [](phasic::Graph &g, double rate, bool skip_existing, bool input_is_discrete,
+         const std::string &weight_mode) {
+          phasic::DiscretizeResult r = g.discretize(rate, skip_existing,
+                                                    input_is_discrete, weight_mode);
+          return py::make_tuple(r.graph, r.rewards);
+      }, py::arg("rate"), py::arg("skip_existing") = false,
+         py::arg("input_is_discrete") = false, py::arg("weight_mode") = "linear", R"delim(
+      Internal: C++ discretize with a fixed rate. Returns (graph, rewards).
+      Use ``Graph.discretize``.
+      )delim")
+
+    .def_static("_discretize_check_rate", &phasic::Graph::discretize_check_rate,
+      py::arg("rate"), R"delim(
+      Internal: discretize's fixed-rate check (finite and > 0); ValueError.
+      )delim")
+
     .def("_theta_layout",
       [](phasic::Graph &g, bool plain) {
           py::list out;

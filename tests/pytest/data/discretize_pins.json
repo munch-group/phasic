@@ -6303,6 +6303,14 @@
    "phrase_in_message": true,
    "type": "TypeError"
   },
+  "log_graph_constant_edge": {
+   "phrase_in_message": true,
+   "type": "ValueError"
+  },
+  "log_graph_zero_rate": {
+   "phrase_in_message": true,
+   "type": "ValueError"
+  },
   "mode_callback": {
    "phrase_in_message": true,
    "type": "ValueError"
@@ -6332,6 +6340,10 @@
    "type": "ValueError"
   },
   "rate_negative": {
+   "phrase_in_message": true,
+   "type": "ValueError"
+  },
+  "rate_negative_with_kwargs": {
    "phrase_in_message": true,
    "type": "ValueError"
   },

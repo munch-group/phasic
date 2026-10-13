@@ -27,6 +27,10 @@
 #include <stack>
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <string>
 #include <vector>
 #include <thread>       // std::thread::hardware_concurrency (Graph::profile)
 #include <algorithm>    // std::max / std::min (Graph::profile)
@@ -434,81 +438,254 @@ void phasic::Graph::extend(size_t vertex_index) {
     this->extend(this->_callback, vertex_index);
 }
 
-// Python-API-name parity: discretize (callback-rate core). Faithful port of the
-// Python discretize() non-parameterized path: clone, add an auxiliary vertex per
-// transient state, normalize, and return the reward vector marking aux vertices.
-// The `verts` snapshot is taken before the loop so newly-added aux vertices are
-// not themselves processed (matching Python's `for v in new_graph.vertices()`).
-phasic::DiscretizeResult phasic::Graph::discretize(
-    std::function<double(const std::vector<int>&)> rate_fn, bool skip_existing) {
-    if (this->parameterized()) {
-        throw std::runtime_error(
-            "discretize: parameterized graphs are not supported in the C++ API. "
-            "The Python parameterized path widens the per-edge coefficient layout "
-            "(_rebuild_with_wider_layout), which has no C++ equivalent. Build a "
-            "discrete graph directly, or discretize in Python.");
+// Format a double the way Python's repr() does (shortest round-trip digits;
+// fixed notation for exponents in [-4, 16), else d.ddde+XX), so error
+// messages read exactly as they did when discretize() was Python.
+static std::string py_float_repr(double v) {
+    if (std::isnan(v)) return "nan";
+    if (std::isinf(v)) return v > 0 ? "inf" : "-inf";
+    if (v == 0.0) return std::signbit(v) ? "-0.0" : "0.0";
+    char buf[64];
+    int digits = 1;
+    for (; digits <= 17; ++digits) {
+        snprintf(buf, sizeof(buf), "%.*e", digits - 1, v);
+        if (strtod(buf, NULL) == v) break;
+    }
+    // buf = [-]d.ddde[+-]XX with `digits` significant digits
+    std::string sci(buf);
+    size_t epos = sci.find('e');
+    int exponent = atoi(sci.c_str() + epos + 1);
+    std::string mant = sci.substr(0, epos);
+    bool neg = mant[0] == '-';
+    if (neg) mant = mant.substr(1);
+    std::string ds;
+    for (char c : mant) if (c != '.') ds += c;
+    while (ds.size() > 1 && ds.back() == '0') ds.pop_back();
+    std::string out;
+    if (exponent >= -4 && exponent < 16) {
+        if (exponent < 0) {
+            out = "0." + std::string(-exponent - 1, '0') + ds;
+        } else if ((int) ds.size() <= exponent + 1) {
+            out = ds + std::string(exponent + 1 - ds.size(), '0') + ".0";
+        } else {
+            out = ds.substr(0, exponent + 1) + "." + ds.substr(exponent + 1);
+        }
+    } else {
+        out = ds.substr(0, 1);
+        if (ds.size() > 1) out += "." + ds.substr(1);
+        char e[16];
+        snprintf(e, sizeof(e), "e%c%02d", exponent < 0 ? '-' : '+', std::abs(exponent));
+        out += e;
+    }
+    return neg ? "-" + out : out;
+}
+
+static std::string state_repr(const std::vector<int> &state) {
+    std::string out = "[";
+    for (size_t i = 0; i < state.size(); ++i) {
+        if (i) out += ", ";
+        out += std::to_string(state[i]);
+    }
+    return out + "]";
+}
+
+// The fixed-rate check of discretize(): finite and > 0. Public so the Python
+// wrapper can run it first (before its own kwargs check), keeping the error
+// precedence Python always had.
+void phasic::Graph::discretize_check_rate(double rate) {
+    if (!(std::isfinite(rate) && rate > 0.0)) {
+        throw std::invalid_argument(
+            "rate must be larger than 0 and finite, got " + py_float_repr(rate));
+    }
+}
+
+// Shared implementation of both discretize() overloads (discretize-cpp-ssot-plan.md
+// section 5c): a fixed rate (rate_fn empty) or a per-state rate callback.
+static phasic::DiscretizeResult discretize_impl(
+        phasic::Graph &self, double fixed_rate,
+        const std::function<double(const std::vector<int>&)> &rate_fn, bool skip_existing,
+        bool input_is_discrete, const std::string &weight_mode) {
+    using phasic::Graph;
+    using phasic::Vertex;
+    bool callable = (bool) rate_fn;
+    if (!callable) phasic::Graph::discretize_check_rate(fixed_rate);
+    struct ptd_graph *cg = self.c_graph();
+    bool param = self.parameterized();
+    if (param) {
+        // Operation contract O4, O2 (formula; log/callback are checked by the
+        // Python wrapper), O3 -- same order and messages as the Python checks.
+        for (size_t i = 0; i < cg->vertices_length; ++i) {
+            struct ptd_vertex *v = cg->vertices[i];
+            if (v == cg->starting_vertex || v->is_aux) continue;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                if (v->edges[k]->coefficients_length == 0) {
+                    throw std::invalid_argument(
+                        "discretize() does not support coefficient-less constant "
+                        "edges (add_edge_constant) on a parameterized graph, but "
+                        "vertex " + std::to_string(v->index) + " has one: every "
+                        "transient vertex gains a theta-dependent aux edge, and a "
+                        "discretized graph renormalises every edge per theta, so a "
+                        "constant edge would drift between update_weights calls. "
+                        "Give the rate as a coefficient list instead.");
+                }
+            }
+        }
+        // The weight mode: formula is visible in C (the tape); log and callback
+        // are Python-side state passed in by the caller (decision 3, hybrid).
+        std::string mode = cg->weight_tape != NULL ? std::string("formula") : weight_mode;
+        if (mode != "linear") {
+            throw std::invalid_argument(
+                "discretize() adds coefficient slots, which is only defined for "
+                "weight_mode='linear', but this graph has weight_mode='" + mode + "'. "
+                "Apply discretize() to the linear graph first and set the weight "
+                "mode (or formula/callback) on the result.");
+        }
+        size_t pl = cg->param_length;
+        for (size_t i = 0; i < cg->vertices_length; ++i) {
+            struct ptd_vertex *v = cg->vertices[i];
+            if (v == cg->starting_vertex) continue;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                size_t n = v->edges[k]->coefficients_length;
+                if (n != 0 && n != pl) {
+                    throw std::invalid_argument(
+                        "discretize() needs every edge's coefficient vector to have "
+                        "length param_length()=" + std::to_string(pl) + " (or 0 for a "
+                        "constant edge), but vertex " + std::to_string(v->index) +
+                        " has an edge with " + std::to_string(n) + " coefficients. The "
+                        "new slot would overwrite the extra per-edge data.");
+                }
+            }
+        }
     }
 
-    Graph new_graph = this->clone();
-    std::vector<Vertex> verts = new_graph.vertices();  // snapshot before adding aux
-    size_t start_index = new_graph.starting_vertex().c_vertex()->index;
-    size_t vlength = new_graph.vertices_length();
-    std::vector<size_t> aux_indices;
-
-    for (Vertex &vertex : verts) {
-        if (vertex.c_vertex()->index == start_index || vertex.edges_length() == 0) {
-            continue;
+    // Does any vertex still need an aux vertex? (skip_existing on an already
+    // discretized graph may find none; then no slot is added.)
+    auto has_aux_back_edge = [](struct ptd_vertex *v) {
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            struct ptd_vertex *to = v->edges[k]->to;
+            int sum = 0;
+            for (size_t j = 0; j < to->graph->state_length; ++j) sum += to->state[j];
+            if (sum == 0 && to->edges_length > 0 && to->edges[0]->to == v) return true;
         }
+        return false;
+    };
+    auto state_sum = [](struct ptd_vertex *v) {
+        int sum = 0;
+        for (size_t j = 0; j < v->graph->state_length; ++j) sum += v->state[j];
+        return sum;
+    };
+    bool any_new_aux = false;
+    for (size_t i = 0; i < cg->vertices_length && !any_new_aux; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v == cg->starting_vertex || v->edges_length == 0) continue;
+        if (!skip_existing) { any_new_aux = true; break; }
+        if (state_sum(v) == 0 || has_aux_back_edge(v)) continue;
+        any_new_aux = true;
+    }
 
+    Graph new_graph = param ? self.widen_layout(0, any_new_aux ? 1 : 0) : self.clone();
+    if (!param) {
+        // decision 8: carry the same members as the widening path does.
+        new_graph.copy_construction_state_from(self);
+    }
+    int slot = -1;
+    if (param && any_new_aux) {
+        slot = (int) new_graph.c_graph()->param_length - 1;
+        new_graph.append_theta_block("discretization", "discretization", 1);
+    }
+
+    struct ptd_graph *ng = new_graph.c_graph();
+    size_t n_original = ng->vertices_length;   // snapshot: aux vertices are not processed
+    size_t vlength = n_original;
+    std::vector<size_t> aux_indices;
+    std::vector<int> state(ng->state_length);
+    for (size_t i = 0; i < n_original; ++i) {
+        struct ptd_vertex *v = ng->vertices[i];
+        if (v == ng->starting_vertex || v->edges_length == 0) continue;
         if (skip_existing) {
-            bool has_aux = false, is_aux = false;
-            std::vector<Edge> ve = vertex.edges();
-            for (Edge &edge : ve) {
-                Vertex to = edge.to();
-                std::vector<int> tst = to.state();
-                int s = 0;
-                for (int x : tst) s += x;
-                if (s == 0 && to.edges_length() > 0 &&
-                    to.edges()[0].to().c_vertex()->index == vertex.c_vertex()->index) {
+            bool has_aux = false;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                struct ptd_vertex *to = v->edges[k]->to;
+                int sum = 0;
+                for (size_t j = 0; j < ng->state_length; ++j) sum += to->state[j];
+                if (sum == 0 && to->edges_length > 0 && to->edges[0]->to == v) {
                     has_aux = true;
-                    aux_indices.push_back(to.c_vertex()->index);
+                    aux_indices.push_back(to->index);
                     vlength -= 1;
                     break;
                 }
             }
-            std::vector<int> vst = vertex.state();
-            int vs = 0;
-            for (int x : vst) vs += x;
-            if (vs == 0) is_aux = true;
-            if (has_aux || is_aux) continue;
+            if (has_aux || state_sum(v) == 0) continue;
         }
-
-        double _rate = rate_fn(vertex.state());
-        Vertex aux = vertex.add_aux_vertex(_rate);
+        double rate = fixed_rate;
+        if (callable) {
+            for (size_t j = 0; j < ng->state_length; ++j) state[j] = v->state[j];
+            rate = rate_fn(state);
+            if (!(std::isfinite(rate) && rate >= 0.0)) {
+                throw std::invalid_argument(
+                    "discretize(rate=callable): the rate must be finite and >= 0, but "
+                    "the callable returned " + py_float_repr(rate) + " at state " +
+                    state_repr(state) + ".");
+            }
+        }
+        Vertex vertex(new_graph, v);
+        Vertex aux = (slot >= 0)
+            ? vertex.add_aux_vertex([&]() {
+                  std::vector<double> c(ng->param_length, 0.0);
+                  c[(size_t) slot] = rate;
+                  return c; }())
+            : vertex.add_aux_vertex(rate);
         aux.set_aux(true);
         aux_indices.push_back(aux.c_vertex()->index);
     }
 
     std::vector<int> rewards(vlength + aux_indices.size(), 0);
-    for (size_t idx : aux_indices) {
-        rewards[idx] = 1;
+    for (size_t idx : aux_indices) rewards[idx] = 1;
+
+    // A graph that is already discrete (a discretize()d graph, or a native DPH
+    // flagged by the Python is_discrete attribute) is normalized as a DPH,
+    // exactly as Python Graph.normalize() dispatches.
+    if (input_is_discrete) {
+        new_graph.dph_normalize();
+    } else {
+        new_graph.normalize();
     }
-
-    new_graph.normalize();
-
-    return DiscretizeResult{ std::move(new_graph), std::move(rewards) };
+    if (!ng->was_dph) {
+        ng->dph_compute_invalidated = true;
+        ng->was_dph = true;
+    }
+    return phasic::DiscretizeResult{ std::move(new_graph), std::move(rewards) };
 }
 
-// Python-API-name parity: discretize (scalar-rate overload). Validates the rate
-// lies in (0, 1) then delegates to the callback core.
-phasic::DiscretizeResult phasic::Graph::discretize(double rate, bool skip_existing) {
-    if (rate <= 0.0 || rate >= 1.0) {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "discretize: rate must be in (0, 1), got %g", rate);
-        throw std::runtime_error(msg);
+// Python-API-name parity: discretize. Adds one auxiliary vertex per transient
+// state and normalizes, giving a discrete phase-type distribution; returns the
+// new graph and its reward vector (1 on aux vertices). Same behaviour as Python
+// Graph.discretize (which delegates here): a constant graph stays constant; a
+// parameterized graph gains one theta slot (appended, recorded in theta_layout
+// as 'discretization') whose coefficient on each aux edge is the rate, so the
+// effective rate is rate * theta[-1]. Fixed rate: finite and > 0. Callback:
+// one finite number >= 0 per state.
+phasic::DiscretizeResult phasic::Graph::discretize(
+    std::function<double(const std::vector<int>&)> rate_fn, bool skip_existing,
+    bool input_is_discrete, const std::string &weight_mode) {
+    if (!rate_fn) {
+        throw std::invalid_argument("discretize: the rate callback is empty");
     }
-    return this->discretize(
-        [rate](const std::vector<int>&) { return rate; }, skip_existing);
+    return discretize_impl(*this, 0.0, rate_fn, skip_existing, input_is_discrete, weight_mode);
+}
+
+phasic::DiscretizeResult phasic::Graph::discretize(double rate, bool skip_existing,
+                                                   bool input_is_discrete,
+                                                   const std::string &weight_mode) {
+    return discretize_impl(*this, rate, std::function<double(const std::vector<int>&)>(),
+                           skip_existing, input_is_discrete, weight_mode);
+}
+
+void phasic::Graph::copy_construction_state_from(const Graph &o) {
+    this->_callback = o._callback;
+    this->_epoch_state_index = o._epoch_state_index;
+    this->_n_epochs = o._n_epochs;
+    this->_base_param_length = o._base_param_length;
 }
 
 // Python-API-name parity: structural + eval-path graph profile. Faithful port of

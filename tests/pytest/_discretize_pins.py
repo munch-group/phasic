@@ -233,7 +233,16 @@ ERRORS = {
     "add_epoch_on_discrete": (lambda: coal_param().discretize(0.1).add_epoch(1.0), "add_epoch() is not supported on a discrete graph"),
     "add_epoch_on_constant": (lambda: coal_constant().add_epoch(1.0), "add_epoch needs a parameterized model"),
     "add_epoch_formula": (lambda: _bad_param_graph_with('formula').add_epoch(1.0), "add_epoch() adds coefficient slots"),
+    # two causes at once: pins which check fires first (frozen precedence)
+    "rate_negative_with_kwargs": (lambda: coal_param().discretize(-1.0, mu=1.0), "larger than 0 and finite, got -1.0"),
+    "log_graph_zero_rate": (lambda: _bad_param_graph_with('log').discretize(0.0), "larger than 0 and finite, got 0.0"),
+    "log_graph_constant_edge": (lambda: _with_mode(_constant_edge(), 'log').discretize(0.1), "discretize() does not support coefficient-less constant"),
 }
+
+
+def _with_mode(g, mode):
+    g.weight_mode = mode
+    return g
 
 # Fields that an INTENDED behaviour change may alter, per case. Filled in by
 # the phase that makes the change (decision 8 carries attributes on the
