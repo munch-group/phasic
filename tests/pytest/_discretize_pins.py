@@ -266,6 +266,18 @@ EXPECTED_CHANGES = {
     "constant_fixed": ("has_callback",),
     "constant_skip_existing": ("has_callback",),
     "indexed_constant": ("has_callback", "indexer_state_length"),
+    # discretize oddity fix (2026-10-13): re-discretizing a discretize()
+    # result with skip_existing normalises per vertex, so the stored weights
+    # equal the input's instead of raw rates (weights after update_weights
+    # and the distribution were already right and stay pinned).
+    "param_skip_existing": ("edges",),
+}
+
+# Cases whose pinned behaviour is now an intended refusal: name -> (type, phrase).
+EXPECTED_ERRORS = {
+    # discretize oddity fix (2026-10-13): a native discrete graph gave a
+    # rewards vector one short and a changed distribution; now refused.
+    "native_dph_input": ("ValueError", "native discrete (DPH) graph"),
 }
 
 
@@ -365,7 +377,14 @@ def callback_arg_record():
 def build_records():
     recs = {"cases": {}, "inplace": {}, "errors": {}, "roundtrip": {}}
     for name, (build, call, theta) in CASES.items():
-        recs["cases"][name] = snapshot(call(build()), theta)
+        try:
+            recs["cases"][name] = snapshot(call(build()), theta)
+        except Exception:
+            if name not in EXPECTED_ERRORS:
+                raise
+            # now an intended refusal: keep the frozen record of the old output
+            with open(RECORDS) as f:
+                recs["cases"][name] = json.load(f)["cases"][name]
     # The "inplace" records came from the deleted legacy method
     # Graph._discretize_inplace (decision 5): they are frozen and copied over,
     # never regenerated.

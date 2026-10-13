@@ -1116,14 +1116,16 @@ namespace phasic {
         // theta_layout() as 'discretization'; the effective rate is
         // rate * theta[-1]. Refuses parameterized graphs with a weight formula,
         // ragged coefficient vectors or constant edges on transient vertices.
-        // All refusals throw std::invalid_argument (before 2026-10 the fixed-rate
+        // Also refuses a native discrete (DPH) graph: input_is_discrete true
+        // while the graph was not made by discretize() (was_dph false). All
+        // refusals throw std::invalid_argument (before 2026-10 the fixed-rate
         // check threw std::runtime_error, and the rate had to be < 1).
-        // input_is_discrete: normalize the result as a DPH. The C++ graph does
-        // not record whether it is discrete, so pass true when the input is
-        // already discrete -- in particular when re-discretizing a
-        // discretize()d graph with skip_existing (Python passes its is_discrete
-        // attribute); with the default false the result is normalized as a
-        // continuous chain. weight_mode: the caller's weight mode ('linear',
+        // input_is_discrete: whether the input is a discrete graph. The C++
+        // graph does not record this (C knows only was_dph), so the caller
+        // says so; Python passes its is_discrete attribute. It only gates the
+        // native-DPH refusal: with the default false a native DPH is NOT
+        // detected and is treated as a continuous chain. The result is always
+        // normalized per vertex. weight_mode: the caller's weight mode ('linear',
         // 'log', 'callback'); C++ detects 'formula' itself (the weight tape).
         // The single implementation behind Python's Graph.discretize.
         DiscretizeResult discretize(double rate, bool skip_existing = false,

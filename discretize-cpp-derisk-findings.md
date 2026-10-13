@@ -114,3 +114,30 @@ the Python helper on the same graphs: coalescent n=40 0.13 s vs 1.82 s
 (14×); two-island n=22 0.31 s vs 10.8 s (35×); coalescent n=50 0.96 s vs
 13.3 s (14×). Cost per vertex+edge 0.28-0.53 µs, ratio n=50 / n=40 1.08
 (linear). ALL PASS.
+
+## clone() fixed (2026-10-13)
+
+`ptd_clone_graph` now resolves edge targets via `vertex->index`, checked
+against the array (pointer comparison, so a stale index can only fail the
+check), with the old scan as fallback. `experiments/dr_clone_perf_gate.py`:
+37k vertices 2.99 s -> 0.08 s, 204k 109.9 s -> 0.55 s, 0.17 µs per
+vertex+edge at both sizes (linear). `tests/pytest/test_clone_structure.py`:
+exact structural copy on eight graph kinds. Benefits every clone():
+`Graph.clone()`/`copy()`, `reward_transform()` (clones first),
+`laplace_transform()`, the exact-gradient private clones.
+
+## Recorded by the review of the clone and discretize fixes (not fixed)
+
+- **Same quadratic pattern in the PDF gradient:** `compute_pmf_with_gradient`
+  (`src/c/phasic.c` ~13328-13336, behind `ptd_graph_pdf_with_gradient`)
+  scans `graph->vertices` for every edge in every time step: O(steps·E·V).
+  The same index fix applies. `ptd_backward_probabilities` scans once per
+  vertex (minor).
+- **`ptd_normalize_graph` divides by a zero row sum** (NaN weights on a row
+  whose edges are all zero). `update_weights` guards `total > 0`;
+  `normalize` does not. Reachable through discretize as before.
+- **`joint_stop_prob_graph` copies `is_discrete` but not `was_dph`**
+  (`__init__.py` ~10847, 10933), so discretizing such a graph would now be
+  refused as a native DPH. No caller found.
+- **C++ callers must pass `input_is_discrete`** for the native-DPH refusal;
+  with the default it is not detected (C has no `is_discrete`).

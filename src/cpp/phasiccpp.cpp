@@ -510,6 +510,17 @@ static phasic::DiscretizeResult discretize_impl(
     bool callable = (bool) rate_fn;
     if (!callable) phasic::Graph::discretize_check_rate(fixed_rate);
     struct ptd_graph *cg = self.c_graph();
+    // A native discrete graph (discrete, but not made by discretize()) holds
+    // probabilities, not rates: adding aux vertices and renormalising would
+    // change its distribution (and the rewards vector came out one short).
+    // A discretize() result (was_dph) may be discretized again, e.g. with
+    // skip_existing.
+    if (input_is_discrete && !cg->was_dph) {
+        throw std::invalid_argument(
+            "discretize() needs a continuous graph (or a discretize() result), "
+            "but this graph is a native discrete (DPH) graph: its edge weights "
+            "are already probabilities. Discretize the continuous graph instead.");
+    }
     bool param = self.parameterized();
     if (param) {
         // Operation contract O4, O2 (formula; log/callback are checked by the
@@ -642,14 +653,11 @@ static phasic::DiscretizeResult discretize_impl(
     std::vector<int> rewards(vlength + aux_indices.size(), 0);
     for (size_t idx : aux_indices) rewards[idx] = 1;
 
-    // A graph that is already discrete (a discretize()d graph, or a native DPH
-    // flagged by the Python is_discrete attribute) is normalized as a DPH,
-    // exactly as Python Graph.normalize() dispatches.
-    if (input_is_discrete) {
-        new_graph.dph_normalize();
-    } else {
-        new_graph.normalize();
-    }
+    // Per-vertex normalisation, as on a first discretize(), also when a
+    // discretize() result is discretized again (skip_existing): the DPH
+    // normalisation used there before left raw rates (e.g. 6.0, 0.1) on the
+    // widened edges until the next update_weights().
+    new_graph.normalize();
     if (!ng->was_dph) {
         ng->dph_compute_invalidated = true;
         ng->was_dph = true;

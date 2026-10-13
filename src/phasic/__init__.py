@@ -2833,8 +2833,10 @@ class Graph(_Graph):
             neither), if the callable returns something other than one real
             number, or if keyword arguments are given with a fixed rate.
         ValueError
-            If a fixed rate is not finite or not larger than 0; if the
-            callable returns a negative or non-finite value; on a
+            If the graph is a native discrete graph (``is_discrete`` but not
+            made by ``discretize()``); if a fixed rate is not finite or not
+            larger than 0; if the callable returns a negative or non-finite
+            value; on a
             parameterized graph that uses a non-linear weight mode, has
             coefficient vectors of length other than 0 or ``param_length()``,
             has coefficient-less constant edges on transient vertices, or is

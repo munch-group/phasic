@@ -39,6 +39,11 @@ def _json(x):
 @pytest.mark.parametrize("name", sorted(pins.CASES))
 def test_case_matches_record(name):
     build, call, theta = pins.CASES[name]
+    if name in pins.EXPECTED_ERRORS:
+        etype, phrase = pins.EXPECTED_ERRORS[name]
+        assert pins.error_record(lambda: call(build()), phrase) == \
+            {"type": etype, "phrase_in_message": True}
+        return
     got = _json(pins.snapshot(call(build()), theta))
     want = REC["cases"][name]
     allowed = pins.EXPECTED_CHANGES.get(name, ())
@@ -106,6 +111,30 @@ def test_intended_changes_have_their_new_values(name):
     indexer), like a discretized parameterized graph."""
     build, call, theta = pins.CASES[name]
     got = pins.snapshot(call(build()), theta)
+    if "edges" in pins.EXPECTED_CHANGES[name]:
+        # re-discretizing a discretize() result: stored weights equal the
+        # first discretize's (per-vertex normalised)
+        assert _same(_json(got["edges"]), REC["cases"]["param_fixed"]["edges"])
+        return
     assert got["has_callback"] is True
     if "indexer_state_length" in pins.EXPECTED_CHANGES[name]:
         assert got["indexer_state_length"] == REC["cases"]["indexed_param"]["indexer_state_length"]
+
+
+@pytest.mark.parametrize("builder", [pins.coal_param, pins.coal_constant])
+def test_skip_existing_on_discretize_result_returns_the_same_graph(builder):
+    """Re-discretizing a discretize() result with skip_existing adds nothing
+    and leaves every stored weight as it was (per-vertex normalisation)."""
+    d = builder().discretize(0.1)
+    d2 = d.discretize(0.1, skip_existing=True)
+    edges = lambda g: [pins._edges(v) for v in g.vertices()]
+    assert edges(d2) == edges(d)
+    assert list(d2.rewards) == list(d.rewards)
+
+
+def test_native_dph_input_is_refused_but_discretize_result_is_not():
+    with pytest.raises(ValueError, match="native discrete \\(DPH\\) graph"):
+        pins.native_dph().discretize(0.1)
+    d = pins.coal_param().discretize(0.1)
+    assert d.is_discrete and d.get_was_dph()
+    d.discretize(0.1, skip_existing=True)          # allowed

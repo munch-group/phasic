@@ -63,10 +63,15 @@ def via_cpp(monkeypatch):
 @pytest.mark.parametrize("name", sorted(pins.CASES))
 def test_case_through_cpp(via_cpp, name):
     build, call, theta = pins.CASES[name]
+    if name in pins.EXPECTED_ERRORS:
+        etype, phrase = pins.EXPECTED_ERRORS[name]
+        assert pins.error_record(lambda: call(build()), phrase) == \
+            {"type": etype, "phrase_in_message": True}
+        return
     got = _json(pins.snapshot(call(build()), theta))
     want = REC["cases"][name]
     for key in want:
-        if key in PYTHON_SIDE:
+        if key in PYTHON_SIDE or key in pins.EXPECTED_CHANGES.get(name, ()):
             continue
         assert _same(got[key], want[key]), f"{name}: field {key!r} differs"
 
@@ -86,6 +91,8 @@ def test_theta_layout_through_cpp_matches_python(name, monkeypatch):
     """C++ records the same 'discretization' block (or none) as the current
     Python discretize, incl. skip_existing with nothing new and epoch graphs."""
     build, call, _ = pins.CASES[name]
+    if name in pins.EXPECTED_ERRORS:
+        pytest.skip("refused input (see EXPECTED_ERRORS)")
     want = call(build()).theta_layout
     monkeypatch.setattr(Graph, "discretize", _shim)
     assert call(build()).theta_layout == want
