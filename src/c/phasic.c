@@ -1117,6 +1117,23 @@ bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_
  * Deep clone a graph with all vertices, edges, and coefficient arrays
  * Supports unified edge interface (all edges have coefficient arrays)
  */
+/* Position of `to` in graph->vertices: O(1) via vertex->index, checked
+ * against the array; falls back to a scan only if the index does not match
+ * its position (C reorders indices temporarily during elimination). The scan
+ * per edge made ptd_clone_graph O(V*E): 110 s at 204k vertices. */
+static size_t clone_target_index(const struct ptd_graph *graph, const struct ptd_vertex *to) {
+    size_t k = to->index;
+    if (k < graph->vertices_length && graph->vertices[k] == to) {
+        return k;
+    }
+    for (k = 0; k < graph->vertices_length; k++) {
+        if (graph->vertices[k] == to) {
+            return k;
+        }
+    }
+    return (size_t)-1;
+}
+
 struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree) {
     struct ptd_clone_res res;
     res.graph = NULL;
@@ -1211,13 +1228,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
         struct ptd_edge *old_edge = old_start->edges[i];
 
         // Find target vertex index in old graph
-        size_t target_idx = (size_t)-1;
-        for (size_t j = 0; j < graph->vertices_length; j++) {
-            if (graph->vertices[j] == old_edge->to) {
-                target_idx = j;
-                break;
-            }
-        }
+        size_t target_idx = clone_target_index(graph, old_edge->to);
 
         if (target_idx == (size_t)-1) {
             free(vertex_map);
@@ -1285,13 +1296,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             struct ptd_edge *old_edge = old_v->edges[j];
 
             // Find target vertex index
-            size_t target_idx = (size_t)-1;
-            for (size_t k = 0; k < graph->vertices_length; k++) {
-                if (graph->vertices[k] == old_edge->to) {
-                    target_idx = k;
-                    break;
-                }
-            }
+            size_t target_idx = clone_target_index(graph, old_edge->to);
 
             if (target_idx == (size_t)-1) {
                 free(vertex_map);
