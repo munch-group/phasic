@@ -1119,9 +1119,10 @@ bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_
  */
 /* Position of `to` in graph->vertices: O(1) via vertex->index, checked
  * against the array; falls back to a scan only if the index does not match
- * its position (C reorders indices temporarily during elimination). The scan
- * per edge made ptd_clone_graph O(V*E): 110 s at 204k vertices. */
-static size_t clone_target_index(const struct ptd_graph *graph, const struct ptd_vertex *to) {
+ * its position (C reorders indices temporarily during elimination). A scan
+ * per edge made ptd_clone_graph O(V*E) (110 s at 204k vertices) and the PDF
+ * gradient O(steps*E*V). Returns (size_t)-1 if `to` is not in the graph. */
+static size_t vertex_position(const struct ptd_graph *graph, const struct ptd_vertex *to) {
     size_t k = to->index;
     if (k < graph->vertices_length && graph->vertices[k] == to) {
         return k;
@@ -1228,7 +1229,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
         struct ptd_edge *old_edge = old_start->edges[i];
 
         // Find target vertex index in old graph
-        size_t target_idx = clone_target_index(graph, old_edge->to);
+        size_t target_idx = vertex_position(graph, old_edge->to);
 
         if (target_idx == (size_t)-1) {
             free(vertex_map);
@@ -1296,7 +1297,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             struct ptd_edge *old_edge = old_v->edges[j];
 
             // Find target vertex index
-            size_t target_idx = clone_target_index(graph, old_edge->to);
+            size_t target_idx = vertex_position(graph, old_edge->to);
 
             if (target_idx == (size_t)-1) {
                 free(vertex_map);
@@ -2677,11 +2678,16 @@ double *ptd_normalize_graph(struct ptd_graph *graph) {
         }
 
         if (rate == 0) {
+            // Zero total weight (no edges, or only zero-weight edges): leave
+            // the edges as they are; dividing would turn 0 into 0/0 = NaN.
+            // (update_weights' was_dph renormalisation skips totals <= 0;
+            // here only an exact zero is skipped -- a negative total is an
+            // invalid graph and is divided as before.)
             res[i] = 1.0;
-        } else {
-            res[i] = 1.0 / rate;
+            continue;
         }
 
+        res[i] = 1.0 / rate;
         for (size_t j = 0; j < vertex->edges_length; ++j) {
             vertex->edges[j]->weight /= rate;
         }
@@ -13325,13 +13331,12 @@ static int compute_pmf_with_gradient(
             for (size_t e = 0; e < vertex->edges_length; e++) {
                 struct ptd_edge *edge = vertex->edges[e];
 
-                // Find target vertex index
-                size_t to_idx = 0;
-                for (size_t i = 0; i < graph->vertices_length; i++) {
-                    if (graph->vertices[i] == edge->to) {
-                        to_idx = i;
-                        break;
-                    }
+                // Find target vertex index (0 if not found, as before). Note:
+                // this function still reads starting_vertex->index and treats
+                // position 0 as the start unchecked (pre-existing).
+                size_t to_idx = vertex_position(graph, edge->to);
+                if (to_idx == (size_t)-1) {
+                    to_idx = 0;
                 }
 
                 // Compute edge weight and its gradient

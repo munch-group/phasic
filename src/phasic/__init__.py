@@ -10791,8 +10791,9 @@ extern "C" {{
         ------
         ValueError
             If ``self`` is not a joint-prob graph (no
-            ``_joint_prob_base_graph_indexer``) or has no parameterised
-            edges (``param_length() == 0``).
+            ``_joint_prob_base_graph_indexer``), is a discrete joint-prob
+            graph (build it with ``discrete=False``), or has no
+            parameterised edges (``param_length() == 0``).
         """
         _require_parameterized(self, 'joint_stop_prob_graph')
         if not getattr(self, '_joint_prob_base_graph_indexer', None):
@@ -10800,6 +10801,17 @@ extern "C" {{
                 "joint_stop_prob_graph requires a graph produced by "
                 "joint_prob_graph()."
             )
+        # Every consumer of a joint-stop graph (daisy chain, epoch_context,
+        # the t_eval probe) needs a continuous joint graph. A discrete source
+        # (joint_prob_graph(discrete=True), the default) would give a graph
+        # flagged is_discrete but not was_dph, which discretize() now refuses
+        # as a native DPH, and carrying was_dph instead would renormalise its
+        # constant trapping edges per theta. Refuse it here, like the callers.
+        if getattr(self, 'is_discrete', False):
+            raise ValueError(
+                "joint_stop_prob_graph requires a continuous joint-probability "
+                "graph. Build it with graph.joint_prob_graph(indexer, ..., "
+                "discrete=False).")
         if self.param_length() == 0:
             raise ValueError(
                 "joint_stop_prob_graph requires a parameterised graph; "
@@ -10932,7 +10944,7 @@ extern "C" {{
         # edge order. update_ipv expects a vector of this length, in this
         # order.
         new._ipv_target_indices = ipv_target_indices
-        new.is_discrete = self.is_discrete
+        new.is_discrete = False   # the source is continuous (checked above)
         new._cache_trace = getattr(self, '_cache_trace', False)
         # Forward the indexer like joint_prob_graph does.
         if hasattr(self, '_indexer'):
@@ -10978,13 +10990,23 @@ extern "C" {{
         Raises
         ------
         ValueError
-            If ``self`` is not a joint-prob graph or has no parameterised edges.
+            If ``self`` is not a joint-prob graph, is a discrete joint-prob
+            graph (``joint_prob_graph(..., discrete=True)``), or has no
+            parameterised edges.
         """
         _require_parameterized(self, 'joint_sojourn_graph')
         if not getattr(self, '_joint_prob_base_graph_indexer', None):
             raise ValueError(
                 "joint_sojourn_graph requires a graph produced by joint_prob_graph()."
             )
+        # A discrete joint graph holds per-step probabilities; reading them as
+        # rates would give a wrong sojourn graph without any error. Its
+        # consumers (the daisy chain's final read) need a continuous source.
+        if getattr(self, 'is_discrete', False):
+            raise ValueError(
+                "joint_sojourn_graph requires a continuous joint-probability "
+                "graph. Build it with graph.joint_prob_graph(indexer, ..., "
+                "discrete=False).")
         if self.param_length() == 0:
             raise ValueError(
                 "joint_sojourn_graph requires a parameterised graph; "

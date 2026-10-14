@@ -141,3 +141,17 @@ exact structural copy on eight graph kinds. Benefits every clone():
   refused as a native DPH. No caller found.
 - **C++ callers must pass `input_is_discrete`** for the native-DPH refusal;
   with the default it is not detected (C has no `is_discrete`).
+
+## Fixed 2026-10-14 (review notes)
+
+- PDF gradient edge lookup by index (bit-identical; 0.63 s -> 0.019 s at
+  5.6k vertices); `normalize` skips zero-total vertices;
+  `joint_stop_prob_graph` and `joint_sojourn_graph` refuse a discrete joint
+  graph (the latter would silently read per-step probabilities as rates).
+- **Open, found by the review: `ptd_graph_pdf_with_gradient` is likely
+  wrong for one-coefficient edges.** Its wrapper computes the
+  uniformisation rate with `coefficients_length >= n_params` (θ·c), while
+  `compute_pmf_with_gradient` treats `coefficients_length > 1` as
+  parameterised (constant c). With one parameter, the rate includes θ but
+  the transitions do not. The function has no caller in the repository.
+  It also still trusts `starting_vertex->index` and position 0 unchecked.

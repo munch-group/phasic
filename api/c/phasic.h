@@ -1543,6 +1543,7 @@ int ptd_dph_probability_distribution_step(
  *
  * @note Complexity: O(k·m·p) where k=max_jumps, m=edges, p=n_params
  *       This is p× slower than forward-only, but still graph-based.
+ *       (Before 2026-10-14 an edge-target scan made it O(k·m·V).)
  */
 int ptd_graph_pdf_with_gradient(
     struct ptd_graph *graph,
