@@ -43,7 +43,7 @@ docs/mathref/
   13_scc_trace_stitching.md           # SCC-based trace decomposition and stitching
   14_distribution_computation.md      # PDF/PMF forward algorithm (Alg 4), CDF
   15_moment_computation.md            # All-order moments, joint/cross moments (MPH)
-  16_pdf_gradients.md                 # Uniformization-based PDF gradients
+  16_pdf_gradients.md                 # Uniformization-based PDF gradients (removed 2026-10-14 with the unused C function ptd_graph_pdf_with_gradient)
   17_sampling.md                      # Unconditioned/conditioned sampling, reward decomposition
   18_svgd.md                          # Stein Variational Gradient Descent
   19_mcmc.md                          # Metropolis-Hastings with adaptive proposals
