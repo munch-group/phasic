@@ -14,11 +14,14 @@ gate, rule) is written together with a few words saying what it is.
 
 ## 1. Where the project stands (October 2026)
 
-Master is pushed and unchanged since 17 August 2026. New work since
-10 October is on branch **`fix/constant-parameterized-consistency`**
-(not pushed, not merged; see §1d). Uncommitted in the working
-tree: your re-run tutorial notebook outputs and edits, and your
-test-design notebook `tests/pytest/notebook_model_recovery.ipynb`.
+Master carries the October model-building consistency work (merged
+2026-10-13, §1d). Work since then is on branch **`refactor/discretize-cpp-ssot`**
+in the git worktree `/Users/kmt/phasic-discretize`: one C++-owned
+`discretize()`, a shared C++ widening primitive, `theta_layout`, `is_aux` in
+serialize, a linear `clone()`, and several fixes; full suite clean
+(2347 passed, 0 failed). Status, uncommitted last step and merge commands:
+`discretize-cpp-ssot-plan.md` §13; measurements and findings:
+`discretize-cpp-derisk-findings.md`.
 
 ### 1a. The question the project is currently about: does inference recover the truth?
 
@@ -126,9 +129,11 @@ shipped and passed review. A stock-take on 16 August
     run on the branch (needs your go-ahead), then your merge and push.
 11. **Notebook edits for you** (§1d): five notebooks use patterns the branch
     now refuses or changes.
-12. **One `discretize()`, owned by C++** (`discretize-cpp-ssot-plan.md`, v2,
-    reviewed, all nine decisions made): the next piece of the Stage-3
-    refactor (§1e). Starts after item 10.
+12. **One `discretize()`, owned by C++** (`discretize-cpp-ssot-plan.md`):
+    implemented on branch `refactor/discretize-cpp-ssot` (worktree
+    `/Users/kmt/phasic-discretize`), all phases done; awaiting the final
+    commit (removal of the unused `ptd_graph_pdf_with_gradient`) and merge.
+    Status in the plan's §13.
 
 ### 1d. Model-building consistency (10–12 October)
 
@@ -164,8 +169,9 @@ before the branch).
 joint graphs are refused rather than supported (needs a C change);
 `joint_prob_graph(reward_rates_callback=...)` has been broken since
 21 May 2026 (calls a commented-out method); per-state rate APIs not yet on
-the new rules (legacy `_discretize_inplace`, C++ `discretize`,
-`joint_prob_graph`'s `mutation_rate`); `expectation()` on a discretized
+the new rules (`joint_prob_graph`'s `mutation_rate`; the legacy
+`_discretize_inplace` and the C++ `discretize` are resolved on the
+discretize branch); `expectation()` on a discretized
 graph counts all steps, the mutation count needs `graph.rewards` passed
 explicitly.
 
