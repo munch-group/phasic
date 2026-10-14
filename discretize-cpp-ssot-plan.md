@@ -471,7 +471,7 @@ applied), the related test files (52 files, 0 failures at each phase).
 **Where the work is.** Branch `refactor/discretize-cpp-ssot` in the git
 worktree `/Users/kmt/phasic-discretize` (own pixi env; created by Claude,
 allowed by Kasper). Not merged, not pushed. All five plan phases plus the
-follow-up fixes are committed (13 commits on top of master `a39afc17`, see
+follow-up fixes are committed (15 commits on top of master `a39afc17`, see
 `git log master..HEAD`).
 
 **Follow-up fixes after the plan (Kasper's requests):**
@@ -479,14 +479,14 @@ follow-up fixes are committed (13 commits on top of master `a39afc17`, see
 - `644132a0` discretize refuses native DPH input; skip_existing keeps weights.
 - `33cd4fa5` PDF-gradient lookup by index, NaN-free `normalize`, joint_stop /
   joint_sojourn refuse discrete sources.
-- **Uncommitted at hand-off:** removal of the unused C function
-  `ptd_graph_pdf_with_gradient` (+ `compute_pmf_with_gradient`, `alloc_2d`,
-  `free_2d`, dead `kahan_init`, header declaration, its test pins and
-  fixture) and its stale docs (mathref chapter 16 deleted; references in
-  chapters 03, 14, 25, mathref index and _quarto.yml; generated
-  docs/cpp_api/c_distributions.qmd; note in mathref PRODUCTION_PLAN.md).
-  Read-only review APPROVE-WITH-CHANGES, changes applied. NOT yet built or
-  tested: the installed worktree build is still `33cd4fa5`.
+- `9ae753c4` removal of the unused C function `ptd_graph_pdf_with_gradient`
+  (+ `compute_pmf_with_gradient`, `alloc_2d`, `free_2d`, dead `kahan_init`,
+  header declaration, its test pins and fixture) and its stale docs (mathref
+  chapter 16 deleted; references in chapters 03, 14, 25, mathref index and
+  _quarto.yml; docs/cpp_api/c_distributions.qmd; note in mathref
+  PRODUCTION_PLAN.md). The two file deletions landed one commit early, in
+  `43495114`. Related files after the removal: 65 files, 1300 passed,
+  0 failed.
   Origin of the function (git history): added 2025-10-17 (`3d1080c2`) with a
   wrapper `ptd_graph_pdf_parameterized`, used by the generated C++ of the
   Channel-3 path `trace_to_log_likelihood(use_cpp=True)` (also exported to
@@ -497,22 +497,16 @@ follow-up fixes are committed (13 commits on top of master `a39afc17`, see
 cap): 2347 passed, 0 failed, 84 skipped, 26 xfailed. As on master, two files
 exceed the caps and are run separately: `test_notebook_model_recovery.py`
 (~26 min) and `test_svgd_divergence_robustness.py::test_grad_at_diverged_theta_is_finite_not_nan`
-(7.5 GB). At hand-off that separate run was in progress (logs in
-`/Users/kmt/phasic/.git/claude-scratch/suite_branch_followup/`).
+(7.5 GB). Separate run on `33cd4fa5`: recovery 19 passed, 4 xfailed; divergence
+file 8 passed (peak 6.2 GB).
 
 **Next steps, in order:**
-1. Check the separate run's logs (recovery, div_rest, div_grad) all pass.
-2. In the worktree: `pixi run --manifest-path /Users/kmt/phasic-discretize/pyproject.toml install-dev`
-   (memory-capped), then run the related files
-   (`/Users/kmt/phasic/.git/claude-scratch/phase1_targets.txt` via
-   `run_list_wt.sh`) and `tests/pytest/test_c_core_fixes.py`; commit the
-   removal with explicit paths (never `git add -A`).
-3. Kasper merges: in `/Users/kmt/phasic`: `git switch master`,
+1. Kasper merges: in `/Users/kmt/phasic`: `git switch master`,
    `git merge --ff-only refactor/discretize-cpp-ssot`, `git push origin
    master`; then `git worktree remove ../phasic-discretize` and, in the
    main checkout, `pixi run install-dev` (the main env still has master's
    build).
-4. Update PROJECT-OVERVIEW.md on master at merge (the branch copy already
+2. Update PROJECT-OVERVIEW.md on master at merge (the branch copy already
    carries the status, §1).
 
 **Recorded, not done:** model θ layout for SVGD epoch routes; C++
