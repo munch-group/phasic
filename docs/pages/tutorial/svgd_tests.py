@@ -151,7 +151,7 @@ def assert_in_hdr(svgd, true_theta, hdr_prob=0.95):
 
 
 
-def assert_converged(svgd, window=10, tail=10, rtol=0.05):
+def assert_mean_std_converged(svgd, window=10, tail=10, rtol=0.05):
     h = np.asarray(svgd.get_results()['history'])[:-2, :, :]
     n_part, n_iter, n_param = h.shape
     for i in range(n_param):
@@ -168,6 +168,18 @@ def assert_converged(svgd, window=10, tail=10, rtol=0.05):
                 f"too much from the mean of {name} over all {tail} windows: {max_rel_diff} for  < {rtol}. "
                 f"Suggests particle {name} has not converged."
             )
+
+def assert_map_in_hdr(svgd):
+    map_est = svgd.map_estimate_from_particles()[0]
+    for p in [0.95, 2/3, 1/3]: # to trigger the largest one first 
+        particles = svgd.estimate_hdr(p)[0]
+        for i in range(particles.shape[1]):
+            if svgd.fixed_mask and svgd.fixed_mask[i]:
+                continue            
+            print(p, i, map_est[i], min(particles[:, i]), max(particles[:, i]))
+            assert map_est[i] > particles[:, i].min(), f"MAP for parameter with index {i} is below {p*100:.2f}% HDR"
+            assert map_est[i] < particles[:, i].max(), f"MAP for parameter with index {i} is above {p*100:.2f}% HDR"
+
 
 def assert_smooth_trajectories(svgd, tol=50):
     """
@@ -223,7 +235,8 @@ def test_svgd_data(data):
 
 
 def test_svgd_fit(svgd, true_theta):
-    assert_converged(svgd)      
+    assert_mean_std_converged(svgd)      
+    assert_map_in_hdr(svgd)
     assert_smooth_trajectories(svgd)
     assert_monotone_convergence(svgd, true_theta)
     assert_map_recovers(svgd, true_theta)
