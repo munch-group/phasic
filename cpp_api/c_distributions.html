@@ -190,8 +190,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#cpp.c_distributions.ptd_dph_probability_distribution_context_create" id="toc-cpp.c_distributions.ptd_dph_probability_distribution_context_create" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_dph_probability_distribution_context_create">ptd_dph_probability_distribution_context_create</a></li>
   <li><a href="#cpp.c_distributions.ptd_dph_probability_distribution_context_destroy" id="toc-cpp.c_distributions.ptd_dph_probability_distribution_context_destroy" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_dph_probability_distribution_context_destroy">ptd_dph_probability_distribution_context_destroy</a></li>
   <li><a href="#cpp.c_distributions.ptd_dph_probability_distribution_step" id="toc-cpp.c_distributions.ptd_dph_probability_distribution_step" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_dph_probability_distribution_step">ptd_dph_probability_distribution_step</a></li>
-  <li><a href="#cpp.c_distributions.ptd_graph_pdf_with_gradient" id="toc-cpp.c_distributions.ptd_graph_pdf_with_gradient" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_graph_pdf_with_gradient">ptd_graph_pdf_with_gradient</a></li>
-  <li><a href="#cpp.c_distributions.ptd_graph_pdf_parameterized" id="toc-cpp.c_distributions.ptd_graph_pdf_parameterized" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_graph_pdf_parameterized">ptd_graph_pdf_parameterized</a></li>
   <li><a href="#cpp.c_distributions.ptd_graph_laplace_transform" id="toc-cpp.c_distributions.ptd_graph_laplace_transform" class="nav-link" data-scroll-target="#cpp.c_distributions.ptd_graph_laplace_transform">ptd_graph_laplace_transform</a></li>
   </ul></li>
   </ul></li>
@@ -258,14 +256,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td></td>
 </tr>
 <tr class="odd">
-<td><a href="#cpp.c_distributions.ptd_graph_pdf_with_gradient">ptd_graph_pdf_with_gradient</a></td>
-<td>Compute PDF and gradient w.r.t.</td>
-</tr>
-<tr class="even">
-<td><a href="#cpp.c_distributions.ptd_graph_pdf_parameterized">ptd_graph_pdf_parameterized</a></td>
-<td>Compute PDF for parameterized graph using current parameters.</td>
-</tr>
-<tr class="odd">
 <td><a href="#cpp.c_distributions.ptd_graph_laplace_transform">ptd_graph_laplace_transform</a></td>
 <td>Creates a Laplace-transformed graph.</td>
 </tr>
@@ -311,48 +301,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="cpp.c_distributions.ptd_dph_probability_distribution_step">ptd_dph_probability_distribution_step</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> ptd_dph_probability_distribution_step<span class="op">(</span><span class="kw">struct</span> ptd_dph_probability_distribution_context <span class="op">*</span>context<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="cpp.c_distributions.ptd_graph_pdf_with_gradient" class="level3">
-<h3 class="anchored" data-anchor-id="cpp.c_distributions.ptd_graph_pdf_with_gradient">ptd_graph_pdf_with_gradient</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> ptd_graph_pdf_with_gradient<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>graph<span class="op">,</span> <span class="dt">double</span> time<span class="op">,</span> <span class="dt">size_t</span> granularity<span class="op">,</span> <span class="dt">const</span> <span class="dt">double</span> <span class="op">*</span>params<span class="op">,</span> <span class="dt">size_t</span> n_params<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>pdf_value<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>pdf_gradient<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Compute PDF and gradient w.r.t.</p>
-<p>parameters using forward algorithm</p>
-<p>This extends the standard forward algorithm (Algorithm 4) to track probability gradients through the DP recursion. Gradients are computed via chain rule through graph traversal - no matrix operations.</p>
-<p><strong>Parameters:</strong></p>
-<ul>
-<li><code>graph</code> — Parameterized graph with symbolic edge expressions</li>
-<li><code>time</code> — Time point to evaluate PDF at</li>
-<li><code>granularity</code> — Discretization granularity (0 = auto-select)</li>
-<li><code>params</code> — Parameter vector θ</li>
-<li><code>n_params</code> — Length of params array</li>
-<li><code>pdf_value</code> — Output: PDF(time|θ)</li>
-<li><code>pdf_gradient</code> — Output: ∇PDF(time|θ), shape (n_params,) Must be pre-allocated with size n_params</li>
-</ul>
-<p><strong>Returns:</strong> 0 on success, non-zero on error</p>
-<p><strong>Note:</strong> This uses the same graph-based approach as pdf(), just with gradient tracking. No matrix exponentiation.</p>
-<p><strong>Note:</strong> For multiple time points, call this function in a loop. Each call is independent.</p>
-<p><strong>Note:</strong> Complexity: O(k·m·p) where k=max_jumps, m=edges, p=n_params This is p× slower than forward-only, but still graph-based.</p>
-</section>
-<section id="cpp.c_distributions.ptd_graph_pdf_parameterized" class="level3">
-<h3 class="anchored" data-anchor-id="cpp.c_distributions.ptd_graph_pdf_parameterized">ptd_graph_pdf_parameterized</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> ptd_graph_pdf_parameterized<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>graph<span class="op">,</span> <span class="dt">double</span> time<span class="op">,</span> <span class="dt">size_t</span> granularity<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>pdf_value<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>pdf_gradient<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Compute PDF for parameterized graph using current parameters.</p>
-<p>This function uses the parameters set via ptd_graph_update_weight_parameterized() to compute the PDF value and optionally its gradient. It provides a convenient interface that doesn’t require passing parameters explicitly.</p>
-<p><strong>Parameters:</strong></p>
-<ul>
-<li><code>graph</code> — Parameterized graph with current_params set via update_weight_parameterized</li>
-<li><code>time</code> — Time at which to evaluate PDF</li>
-<li><code>granularity</code> — Uniformization granularity (0 = auto-select)</li>
-<li><code>pdf_value</code> — Output: PDF value at specified time</li>
-<li><code>pdf_gradient</code> — Output: gradient array (size = param_length), or NULL if gradients not needed</li>
-</ul>
-<p><strong>Returns:</strong> 0 on success, -1 on error</p>
-<p><strong>Note:</strong> Call ptd_graph_update_weight_parameterized() first to set parameters</p>
-<p><strong>Note:</strong> If pdf_gradient is NULL, only PDF is computed (faster)</p>
-<p><strong>Note:</strong> If pdf_gradient is non-NULL, both PDF and gradient are computed using ptd_graph_pdf_with_gradient() for machine-precision accuracy</p>
-</section>
 <section id="cpp.c_distributions.ptd_graph_laplace_transform" class="level3">
 <h3 class="anchored" data-anchor-id="cpp.c_distributions.ptd_graph_laplace_transform">ptd_graph_laplace_transform</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_clone_res ptd_graph_laplace_transform<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>graph<span class="op">,</span> <span class="kw">struct</span> ptd_avl_tree <span class="op">*</span>avl_tree<span class="op">,</span> <span class="dt">double</span> theta<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ptd_clone_res ptd_graph_laplace_transform<span class="op">(</span><span class="kw">struct</span> ptd_graph <span class="op">*</span>graph<span class="op">,</span> <span class="kw">struct</span> ptd_avl_tree <span class="op">*</span>avl_tree<span class="op">,</span> <span class="dt">double</span> theta<span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Creates a Laplace-transformed graph.</p>
 <p>Returns a new graph where each transient state has an additional edge to the absorbing state with weight theta (or theta added to existing absorbing edge weight). This transformation allows computing the Laplace transform L(theta) = E[exp(-theta * T)] via expectation() on the result.</p>
 <p><strong>Parameters:</strong></p>

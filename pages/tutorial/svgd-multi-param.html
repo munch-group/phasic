@@ -209,7 +209,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/introduction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">The Coalescent</span></a>
+ <span class="menu-text">Introduction</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -445,44 +445,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'WARNING'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
-<div class="cell-output cell-output-display">
-
         <style>
         .cell-output-ipywidget-background {
             background-color: transparent !important;
@@ -524,11 +486,14 @@ table {
             color: 'white' !important;
             padding-bottom: 0px !important;    
         }
+        table {
+            font-variant-numeric: tabular-nums; 
+        }                     
         </style>                          
         
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>&lt;phasic.logging_config.set_log_level at 0x17e9163c0&gt;</code></pre>
+<pre><code>&lt;phasic.logging_config.set_log_level at 0x17ffe6660&gt;</code></pre>
 </div>
 </div>
 <div id="92592fc4" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:52:58.474333Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:52:58.474117Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:52:58.747107Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:52:58.746569Z&quot;}}" data-execution_count="2">
@@ -800,8 +765,8 @@ table {
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             0.707      0.6692     0.1006     0.3752       0.7131      
-1          No             0.259      0.2308     0.08404    1.048e-06    0.2694      
+0          No             0.6932     0.6395     0.1247     0.3453       0.7171      
+1          No             0.3434     0.293      0.1325     1.149e-06    0.345       
 
 Particles: 40, Iterations: 1000</code></pre>
 </div>
@@ -846,7 +811,7 @@ Particles: 40, Iterations: 1000</code></pre>
 </div>
 </div>
 </div>
-<div id="206b13a2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:57:44.036702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:57:44.036381Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:57:48.179289Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:57:48.176523Z&quot;}}" data-execution_count="13">
+<div id="206b13a2" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:57:44.036702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:57:44.036381Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:57:48.179289Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:57:48.176523Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_pairwise(true_theta<span class="op">=</span>true_theta)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>

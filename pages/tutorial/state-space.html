@@ -238,7 +238,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/introduction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">The Coalescent</span></a>
+ <span class="menu-text">Introduction</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -436,7 +436,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#building-the-state-space-in-c" id="toc-building-the-state-space-in-c" class="nav-link" data-scroll-target="#building-the-state-space-in-c">Building the state space in C</a>
   <ul class="collapse">
-  <li><a href="#callback-based-construction-in-cthe-c-api-mirrors-the-python-callback-interface-directly-with-graphfrom_callback-so-you-get-the-same-convenience-as-graphcallback-ipv...-without-writing-the-breadth-first-exploration-loop-by-hand.-the-transition-callback-returns-a-stdvectorphasictransition-each-transition-is-a-target-state-a-weight-and-optional-coefficients-non-empty-for-parameterised-edges-and-graphfrom_callback-explores-the-state-space-for-youcppphasicgraph-coalescentint-nr_samples-stdvectorint-initial_statenr_samples-0-initial_state0-nr_samples-nr_samples-0-0-...-stdvectorstdpairstdvectorint-double-ipv-initial_state-1.0-auto-callback-const-stdvectorint-state---stdvectorphasictransition-stdvectorphasictransition-transitions-int-size-int-state.size-for-int-i-0-i-size-i-for-int-j-i-j-size-j-int-same-i-j-1-0-if-same-statei-2-continue-if-same-statei-1-statej-1-continue-stdvectorint-next-state-state.copy-nexti---1-nextj---1-nexti-j-1-1-double-rate-double-statei-statej---same-1-same-transitions.emplace_backnext-rate-constant-edge-return-transitions-return-phasicgraphfrom_callbacknr_samples-ipv-callbackthe-complete-module-with-the-same-cppimport-headerfooter-as-above-is-in-cpp_callback_construction.cpp.-for-a-standalone-program-compiled-directly-with-clang-no-python-see-..examplescppcoalescent_from_callback.cpp." id="toc-callback-based-construction-in-cthe-c-api-mirrors-the-python-callback-interface-directly-with-graphfrom_callback-so-you-get-the-same-convenience-as-graphcallback-ipv...-without-writing-the-breadth-first-exploration-loop-by-hand.-the-transition-callback-returns-a-stdvectorphasictransition-each-transition-is-a-target-state-a-weight-and-optional-coefficients-non-empty-for-parameterised-edges-and-graphfrom_callback-explores-the-state-space-for-youcppphasicgraph-coalescentint-nr_samples-stdvectorint-initial_statenr_samples-0-initial_state0-nr_samples-nr_samples-0-0-...-stdvectorstdpairstdvectorint-double-ipv-initial_state-1.0-auto-callback-const-stdvectorint-state---stdvectorphasictransition-stdvectorphasictransition-transitions-int-size-int-state.size-for-int-i-0-i-size-i-for-int-j-i-j-size-j-int-same-i-j-1-0-if-same-statei-2-continue-if-same-statei-1-statej-1-continue-stdvectorint-next-state-state.copy-nexti---1-nextj---1-nexti-j-1-1-double-rate-double-statei-statej---same-1-same-transitions.emplace_backnext-rate-constant-edge-return-transitions-return-phasicgraphfrom_callbacknr_samples-ipv-callbackthe-complete-module-with-the-same-cppimport-headerfooter-as-above-is-in-cpp_callback_construction.cpp.-for-a-standalone-program-compiled-directly-with-clang-no-python-see-..examplescppcoalescent_from_callback.cpp." class="nav-link" data-scroll-target="#callback-based-construction-in-cthe-c-api-mirrors-the-python-callback-interface-directly-with-graphfrom_callback-so-you-get-the-same-convenience-as-graphcallback-ipv...-without-writing-the-breadth-first-exploration-loop-by-hand.-the-transition-callback-returns-a-stdvectorphasictransition-each-transition-is-a-target-state-a-weight-and-optional-coefficients-non-empty-for-parameterised-edges-and-graphfrom_callback-explores-the-state-space-for-youcppphasicgraph-coalescentint-nr_samples-stdvectorint-initial_statenr_samples-0-initial_state0-nr_samples-nr_samples-0-0-...-stdvectorstdpairstdvectorint-double-ipv-initial_state-1.0-auto-callback-const-stdvectorint-state---stdvectorphasictransition-stdvectorphasictransition-transitions-int-size-int-state.size-for-int-i-0-i-size-i-for-int-j-i-j-size-j-int-same-i-j-1-0-if-same-statei-2-continue-if-same-statei-1-statej-1-continue-stdvectorint-next-state-state.copy-nexti---1-nextj---1-nexti-j-1-1-double-rate-double-statei-statej---same-1-same-transitions.emplace_backnext-rate-constant-edge-return-transitions-return-phasicgraphfrom_callbacknr_samples-ipv-callbackthe-complete-module-with-the-same-cppimport-headerfooter-as-above-is-in-cpp_callback_construction.cpp.-for-a-standalone-program-compiled-directly-with-clang-no-python-see-..examplescppcoalescent_from_callback.cpp.">Callback-based construction in C++The C++ API mirrors the Python callback interface directly with <code>Graph::from_callback</code>, so you get the same convenience as <code>Graph(callback, ipv=...)</code> without writing the breadth-first exploration loop by hand. The transition callback returns a <code>std::vector&lt;phasic::Transition&gt;</code> — each <code>Transition</code> is a target <code>state</code>, a <code>weight</code>, and optional <code>coefficients</code> (non-empty for parameterised edges) — and <code>Graph::from_callback</code> explores the state space for you:<code>cppphasic::Graph coalescent(int nr_samples) {  std::vector&lt;int&gt; initial_state(nr_samples, 0);  initial_state[0] = nr_samples;                                   // [nr_samples, 0, 0, ...]  std::vector&lt;std::pair&lt;std::vector&lt;int&gt;, double&gt;&gt; ipv = {{initial_state, 1.0}};  auto callback =      [](const std::vector&lt;int&gt; &amp;state) -&gt; std::vector&lt;phasic::Transition&gt; {    std::vector&lt;phasic::Transition&gt; transitions;    int size = (int) state.size();    for (int i = 0; i &lt; size; ++i)      for (int j = i; j &lt; size; ++j) {        int same = (i == j) ? 1 : 0;        if (same &amp;&amp; state[i] &lt; 2) continue;        if (!same &amp;&amp; (state[i] &lt; 1 || state[j] &lt; 1)) continue;        std::vector&lt;int&gt; next = state;                             // state.copy()        next[i] -= 1; next[j] -= 1; next[i + j + 1] += 1;        double rate = (double) state[i] * (state[j] - same) / (1 + same);        transitions.emplace_back(next, rate);                      // constant edge      }    return transitions;  };  return phasic::Graph::from_callback(nr_samples, ipv, callback);}</code>The complete module (with the same <code>// cppimport</code> header/footer as above) is in cpp_callback_construction.cpp. For a standalone program compiled directly with <code>clang++</code> (no Python), see ../examples/cpp/coalescent_from_callback.cpp.</a></li>
+  <li><a href="#callback-based-construction-in-c" id="toc-callback-based-construction-in-c" class="nav-link" data-scroll-target="#callback-based-construction-in-c">Callback-based construction in C++</a></li>
   <li><a href="#speed-comparison" id="toc-speed-comparison" class="nav-link" data-scroll-target="#speed-comparison">Speed comparison</a></li>
   </ul></li>
   </ul>
@@ -464,103 +464,14 @@ window.Quarto = {
 </header>
 
 
-<div id="49cf477f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:43.201937Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:43.201849Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.245184Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.244654Z&quot;}}" data-execution_count="1">
+<div id="49cf477f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:43.201937Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:43.201849Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.245184Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.244654Z&quot;}}" data-execution_count="71">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>set_vscode_theme()</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
-<div class="cell-output cell-output-display">
-
-        <style>
-        .cell-output-ipywidget-background {
-            background-color: transparent !important;
-        }
-       .jp-OutputArea-output {
-           background-color: transparent;
-        }  
-        /*
-        :root {
-            --jp-widgets-color: var(--vscode-editor-foreground);
-            --jp-widgets-font-size: var(--vscode-editor-font-size);
-        }  
-        */
-        /* tqdm styling: */
-        .widget-label,
-        .widget-html,
-        .widget-button,
-        .widget-dropdown,
-        .widget-text,
-        .widget-textarea {
-            font-size: 10px !important;      /* Font size */
-        }
-        div.widget-html-content > progress { /* Outer container */
-            height: 10px !important;
-        
-        }
-        div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-            height: 5px !important;
-        }
-        div.progress { /* Jupyter Notebook (classic) */
-            height: 5px !important;
-            min-height: 5px !important;
-            margin-top: 12px !important;    
-        }
-        div.progress-bar { /* inner bar */
-            height: 5px !important;
-            min-height: 5px !important;
-            line-height: 5px !important;
-            color: 'white' !important;
-            padding-bottom: 0px !important;    
-        }
-        </style>                          
-        
-</div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> vscodenb</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Manual construction using the python low level API:</p>
-<div id="ff144a03" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.246786Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.246598Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.250738Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.250241Z&quot;}}" data-execution_count="2">
+<div id="ff144a03" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.246786Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.246598Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.250738Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.250241Z&quot;}}" data-execution_count="72">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(nr_samples):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># we represent the state as a vector of integers, the numbers of lineages </span></span>
@@ -635,7 +546,7 @@ table {
 <span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> graph</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Or just:</p>
-<div id="9a859c3b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.251955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.251868Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.255075Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.254689Z&quot;}}" data-execution_count="3">
+<div id="9a859c3b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.251955Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.251868Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.255075Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.254689Z&quot;}}" data-execution_count="73">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(nr_samples):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    state_vector_length <span class="op">=</span> nr_samples</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    graph <span class="op">=</span> Graph(state_vector_length)</span>
@@ -664,17 +575,17 @@ table {
 <span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        index <span class="op">+=</span> <span class="dv">1</span></span>
 <span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> graph</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="6638e82d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.256310Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.256222Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.258662Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.258235Z&quot;}}" data-execution_count="4">
+<div id="6638e82d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.256310Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.256222Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.258662Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.258235Z&quot;}}" data-execution_count="74">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> coalescent(<span class="dv">4</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
+<div class="cell-output cell-output-display" data-execution_count="74">
 <pre><code>6</code></pre>
 </div>
 </div>
 <p>You can access state vectors as a two-dimensional array:</p>
-<div id="02ed973f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.259897Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.259809Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.262558Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.262115Z&quot;}}" data-execution_count="5">
+<div id="02ed973f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.259897Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.259809Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.262558Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.262115Z&quot;}}" data-execution_count="75">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>graph.states()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="75">
 <pre><code>array([[0, 0, 0, 0],
        [4, 0, 0, 0],
        [2, 1, 0, 0],
@@ -684,9 +595,9 @@ table {
 </div>
 </div>
 <p>and you can plot the graph for visual inspection. See the next tutorial on <a href="../../pages/tutorial/visualize.html">visualizing graphs</a> for more details.</p>
-<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.263770Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.263683Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.406319Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.405787Z&quot;}}" data-execution_count="6">
+<div id="cell-fig-coalescent-graph" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.263770Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.263683Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.406319Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.405787Z&quot;}}" data-execution_count="76">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
+<div class="cell-output cell-output-display" data-execution_count="76">
 <div id="fig-coalescent-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-graph-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -705,17 +616,17 @@ Figure&nbsp;1: State space graph.
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span>Vertex and Edge APIs
+<span class="screen-reader-only">Tip</span>Graph, Vertex, and Edge Python API
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Vertices and Edges each have additional methods for advanced construction and manipulation of graphs not needed for normal use. To learn more, see the <a href="../../api/index.html">API documentation</a>.</p>
+<p>Vertices and Edges each have additional methods for advanced construction and manipulation of graphs not needed for normal use. To learn more, see the documentation of the <a href="../../api/index.html">Python API</a>.</p>
 </div>
 </div>
 <section id="easy-graph-build-with-callback-function" class="level2">
 <h2 class="anchored" data-anchor-id="easy-graph-build-with-callback-function">Easy graph build with callback function</h2>
 <p>You can skip the boilerplate code by passing a callback function and initial state probabilities to <code>Graph</code>. The callback function must accept a list/array of integers specifying a state and it must return a list of lists, each list with two elements: a state (list of integers) and a rate (float). It will often look something like this:</p>
-<div id="5c5d3849" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.408159Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.408041Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.410253Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.409841Z&quot;}}" data-execution_count="7">
+<div id="5c5d3849" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.408159Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.408041Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.410253Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.409841Z&quot;}}" data-execution_count="48">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mygraph(state):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> state:</span>
@@ -725,7 +636,7 @@ Figure&nbsp;1: State space graph.
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To create a callback function, just think of rules of your model and ask yourself: “Given some state, what are the allowed transitions to other states and with what rates to these transitions occur?”. If the current state is “two singletons and one doubleton” (<code>[2, 1, 0, 0]</code>), the process can jump to “one singleton and one tripleton” (<code>[1, 0, 1, 0]</code>) with rate 2 and to “two doubletons” (<code>[0, 2, 0, 0]</code>) with rate 1. Here is a callback function building a graph for the coalescent in the say way as in our first example:</p>
-<div id="fig-coalescent-callback" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.411538Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.411437Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.414238Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.413748Z&quot;}}" data-execution_count="8">
+<div id="fig-coalescent-callback" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="49" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.411538Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.411437Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.414238Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.413748Z&quot;}}">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-callback-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
@@ -750,18 +661,18 @@ Figure&nbsp;2
 </figure>
 </div>
 <p>Along with the callback function, you must pass the <code>ipv</code>, a list of lists, each with a state and its initial probability. All additional keyword arguments are passed to <code>Graph</code> are passed on to your callback function.</p>
-<div id="fd9c61e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.415610Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.415509Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.417726Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.417270Z&quot;}}" data-execution_count="9">
+<div id="fd9c61e1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.415610Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.415509Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.417726Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.417270Z&quot;}}" data-execution_count="50">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> [([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>), <span class="dv">1</span>)]</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>ipv)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If the ipv only has a single state <code>Graph</code> also accepts just the single state without the rate of 1:</p>
-<div id="cell-fig-coalescent-callback-simpleipv" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.419263Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.419149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.560127Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.559410Z&quot;}}" data-execution_count="12">
+<div id="cell-fig-coalescent-callback-simpleipv" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.419263Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.419149Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.560127Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.559410Z&quot;}}" data-execution_count="51">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ipv <span class="op">=</span> [nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>ipv)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="12">
+<div class="cell-output cell-output-display" data-execution_count="51">
 <div id="fig-coalescent-callback-simpleipv" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-callback-simpleipv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -775,7 +686,7 @@ Figure&nbsp;3: Using simple list for initial state.
 </div>
 </div>
 <p>Your callback is wrapped in decorator that makes your function return the ipv if an empty state vector is passed, does various type checks, and formats your return value. To expose this for testing, debugging, or convenience, you can decorate your callback yourself (in which case phasic will know and not do it again):</p>
-<div id="cell-fig-coalescent-callback-decorated" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.561836Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.561716Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.701965Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.701368Z&quot;}}" data-execution_count="11">
+<div id="cell-fig-coalescent-callback-decorated" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.561836Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.561716Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.701965Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.701368Z&quot;}}" data-execution_count="52">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> with_ipv</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
@@ -797,7 +708,7 @@ Figure&nbsp;3: Using simple list for initial state.
 <span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="11">
+<div class="cell-output cell-output-display" data-execution_count="52">
 <div id="fig-coalescent-callback-decorated" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-callback-decorated-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -814,7 +725,7 @@ Figure&nbsp;4: Using decorated callback.
 <section id="matrix-interface" class="level2">
 <h2 class="anchored" data-anchor-id="matrix-interface">Matrix interface</h2>
 <p>To allow imbedding in a matrix based workflow, a matrix-based representation of the phase-type distribution can be extracted from the graph. Note that the indices in the matrix representation do not correspond to vertex indices in the graph.</p>
-<div id="d41784bb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.703653Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.703529Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.706633Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.706276Z&quot;}}" data-execution_count="12">
+<div id="d41784bb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.703653Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.703529Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.706633Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.706276Z&quot;}}" data-execution_count="53">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>mats <span class="op">=</span> graph.as_matrices()</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Initial probability vector:"</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(mats.ipv)</span>
@@ -842,10 +753,10 @@ Indicies:
 </div>
 </div>
 <p>Although computationally inefficient, the graph can also be constructed from an initial probability vector and a subintensity matrix:</p>
-<div id="cell-fig-coalescent-from-matrices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.708122Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.708040Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.839864Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.839153Z&quot;}}" data-execution_count="13">
+<div id="cell-fig-coalescent-from-matrices" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.708122Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.708040Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.839864Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.839153Z&quot;}}" data-execution_count="54">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph.from_matrices(mats.ipv, mats.sim, mats.states)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="13">
+<div class="cell-output cell-output-display" data-execution_count="54">
 <div id="fig-coalescent-from-matrices" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-from-matrices-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -859,10 +770,10 @@ Figure&nbsp;5: Generated from matrices and state vectors.
 </div>
 </div>
 <p>If the state argument is not provided, matrix indices are used as matrix states:</p>
-<div id="cell-fig-coalescent-from-matrices-default" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.841609Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.841484Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.975119Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.974432Z&quot;}}" data-execution_count="14">
+<div id="cell-fig-coalescent-from-matrices-default" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.841609Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.841484Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.975119Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.974432Z&quot;}}" data-execution_count="55">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph.from_matrices(mats.ipv, mats.sim)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="14">
+<div class="cell-output cell-output-display" data-execution_count="55">
 <div id="fig-coalescent-from-matrices-default" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-from-matrices-default-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -880,7 +791,7 @@ Figure&nbsp;6: Generated from only matrices.
 <h2 class="anchored" data-anchor-id="graph-caching">Graph caching</h2>
 <p>When building graphs using callback functions, the graph cache (<code>~/.phasic_cache/graphs/</code>) allows fast reconstruction of graphs that take a long time to build. This especially true for models (like the coalescent) where each visited vertex requires nested for loops over the state vector.</p>
 <p>The cache key is a SHA-256 hash of callback function’s AST (so whitespace/comment changes are ignored) and all other parameters passed to it including the IPV. So any change to the callback code or parameters will invalidate the cache.</p>
-<div id="736b25c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.976960Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.976843Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.983526Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.982952Z&quot;}}" data-execution_count="15">
+<div id="736b25c0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.976960Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.976843Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.983526Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.982952Z&quot;}}" data-execution_count="56">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv, GraphCache,</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    print_graph_cache_info, get_graph_cache_stats</span>
@@ -934,11 +845,14 @@ Figure&nbsp;6: Generated from only matrices.
             color: 'white' !important;
             padding-bottom: 0px !important;    
         }
+        table {
+            font-variant-numeric: tabular-nums; 
+        }                     
         </style>                          
         
 </div>
 </div>
-<div id="f6b8017c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.988896Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.988784Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.991952Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.991521Z&quot;}}" data-execution_count="17">
+<div id="f6b8017c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.988896Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.988784Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:45.991952Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:45.991521Z&quot;}}" data-execution_count="58">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state, N<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
@@ -959,35 +873,35 @@ Figure&nbsp;6: Generated from only matrices.
 <span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>), <span class="dv">1</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>With <span class="math inline">\(|V|\)</span> vertices and a state vector length of <span class="math inline">\(s\)</span>, building this graph is <span class="math inline">\(O(|V| s^2)\)</span>.</p>
-<div id="a2a4420a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.993181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.993095Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:57.955971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:57.955430Z&quot;}}" data-execution_count="18">
+<div id="a2a4420a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:45.993181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:45.993095Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:57.955971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:57.955430Z&quot;}}" data-execution_count="59">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>, graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 12.6 s, sys: 457 ms, total: 13 s
-Wall time: 21.7 s</code></pre>
+<pre><code>CPU times: user 9.93 s, sys: 537 ms, total: 10.5 s
+Wall time: 10.6 s</code></pre>
 </div>
 </div>
 <p>Reconstructing it from cache is only <span class="math inline">\(O(|V|)\)</span>.</p>
-<div id="0487925b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:57.957729Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:57.957623Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:59.878971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:59.878530Z&quot;}}" data-execution_count="19">
+<div id="0487925b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:57.957729Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:57.957623Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:17:59.878971Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:17:59.878530Z&quot;}}" data-execution_count="60">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>, graph_cache<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.83 s, sys: 133 ms, total: 1.96 s
-Wall time: 1.98 s</code></pre>
+<pre><code>CPU times: user 1.87 s, sys: 98.1 ms, total: 1.97 s
+Wall time: 2.04 s</code></pre>
 </div>
 </div>
 <p>If <code>graph_cache=True</code> is not passed, the graph is built from scratch:</p>
-<div id="9e600e37" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:59.880448Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:59.880351Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.729552Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.728837Z&quot;}}" data-execution_count="20">
+<div id="9e600e37" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:17:59.880448Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:17:59.880351Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.729552Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.728837Z&quot;}}" data-execution_count="61">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>time</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial, N<span class="op">=</span><span class="dv">10000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.86 s, sys: 104 ms, total: 1.97 s
-Wall time: 2.09 s</code></pre>
+<pre><code>CPU times: user 1.82 s, sys: 79 ms, total: 1.9 s
+Wall time: 1.95 s</code></pre>
 </div>
 </div>
 <section id="cache-inspection" class="level3">
 <h3 class="anchored" data-anchor-id="cache-inspection">Cache Inspection</h3>
-<div id="dd302d6c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:07.731629Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:07.731486Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.734126Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.733750Z&quot;}}" data-execution_count="21">
+<div id="dd302d6c" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:07.731629Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:07.731486Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.734126Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.733750Z&quot;}}" data-execution_count="62">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>print_graph_cache_info()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Cache directory: /Users/kmt/.phasic_cache/graphs
@@ -995,11 +909,11 @@ Cached graphs: 1
 Total size: 50.93 MB</code></pre>
 </div>
 </div>
-<div id="c8ad2ded" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:07.735345Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:07.735250Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.737553Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.737177Z&quot;}}" data-execution_count="22">
+<div id="c8ad2ded" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-06T07:18:07.735345Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-06T07:18:07.735250Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-06T07:18:07.737553Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-06T07:18:07.737177Z&quot;}}" data-execution_count="63">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>get_graph_cache_stats()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="22">
+<div class="cell-output cell-output-display" data-execution_count="63">
 <pre><code>{'num_graphs': 1,
- 'total_size_mb': 50.92815589904785,
+ 'total_size_mb': 50.92820167541504,
  'cache_dir': '/Users/kmt/.phasic_cache/graphs'}</code></pre>
 </div>
 </div>
@@ -1007,7 +921,7 @@ Total size: 50.93 MB</code></pre>
 <section id="custom-class-serialization" class="level3">
 <h3 class="anchored" data-anchor-id="custom-class-serialization">Custom Class Serialization</h3>
 <p><code>StateIndexer</code> supports serialization, but if you want to pass own objects as parameters to the constructor callback, make sure it implements <code>to_dict()</code> and <code>from_dict()</code> and that its <code>__repr__</code> is deterministic like in the example below:</p>
-<div id="2133d7c2" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="23">
+<div id="2133d7c2" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="64">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MyModel:</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, param1, param2):</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.param1 <span class="op">=</span> param1</span>
@@ -1039,7 +953,21 @@ Total size: 50.93 MB</code></pre>
 </section>
 <section id="building-the-state-space-in-c" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-state-space-in-c">Building the state space in C</h2>
-<p>Some models very large models can be take a long time to construct. To speed this up you implement the model construction using the C or C++ API and import it as a python module. This requires the <code>cppimport</code> available as conda and pypi package. Here is a function building the coalescent using the C++ API:</p>
+<p>Some models very large models can be take a long time to construct. To speed this up you implement the model construction using the C or C++ API and import it as a python module. This requires the <code>cppimport</code> available as conda and pypi package.</p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Graph, Vertex, and Edge C/C++ API
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Vertices and Edges each have additional methods for advanced construction and manipulation of graphs not needed for normal use. To learn more, see the documentation of the <a href="../../cpp_api/index.html">C/C++ API</a>.</p>
+</div>
+</div>
+<p>Here is a function building the coalescent using the C++ API:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode cpp code-with-copy"><code class="sourceCode cpp"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>phasic<span class="op">::</span>Graph build<span class="op">(</span><span class="dt">int</span> nr_samples<span class="op">)</span> <span class="op">{</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  phasic<span class="op">::</span>Graph graph<span class="op">(</span>nr_samples<span class="op">);</span></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> initial_state<span class="op">(</span>graph<span class="op">.</span>state_length<span class="op">(),</span> <span class="dv">0</span><span class="op">);</span></span>
@@ -1161,51 +1089,117 @@ Total size: 50.93 MB</code></pre>
 <span id="cb32-87"><a href="#cb32-87" aria-hidden="true" tabindex="-1"></a><span class="co">setup_pybind11(cfg)</span></span>
 <span id="cb32-88"><a href="#cb32-88" aria-hidden="true" tabindex="-1"></a><span class="co">%&gt;</span></span>
 <span id="cb32-89"><a href="#cb32-89" aria-hidden="true" tabindex="-1"></a><span class="co">*/</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>You can see the complete code in <a href="cpp_state_spaces.cpp">cpp_state_spaces.cpp</a>.::: { .callout-note }The compiled module resolves phasic’s <code>ptd_*</code> C symbols (and the thread-local <code>ptd_err</code>) from the already-loaded <code>phasic_pybind</code> extension. CPython imports extensions with <code>RTLD_LOCAL</code>, so on Linux those symbols are <strong>not</strong> in the global dynamic-linker scope by default and the import would fail with <code>undefined symbol: ptd_err</code>. The cell below first re-opens <code>phasic_pybind</code> with <code>RTLD_GLOBAL</code> to promote its symbols; do the same in your own code before importing a <code>cppimport</code> module built this way.:::</p>
-<div id="d3d1ac8e" class="cell" data-tags="[&quot;skip-execution&quot;]">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The cpp_state_spaces module is linked against phasiccpp.cpp and references# phasic's C API — including the thread-local `ptd_err`, which the dynamic# linker must resolve eagerly at load. CPython imports extensions with# RTLD_LOCAL, so those symbols are NOT in the global scope by default and the# import fails with "undefined symbol: ptd_err". Re-open phasic_pybind with# RTLD_GLOBAL first to promote its symbols into the global namespace.import os, glob, ctypes, phasicif hasattr(os, "RTLD_GLOBAL"):    _pb = glob.glob(os.path.join(os.path.dirname(phasic.__file__), "phasic_pybind*.so"))    if _pb:        ctypes.CDLL(_pb[0], mode=os.RTLD_NOW | os.RTLD_GLOBAL)import cppimport.import_hookimport cpp_state_spaces # import your extensiongraph = Graph(cpp_state_spaces.coalescent(4)) # wrap the returned pybind11 object in Graphgraph.plot()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>You can see the complete code in <a href="cpp_state_spaces.cpp">cpp_state_spaces.cpp</a>.</p>
+<p>The compiled module resolves phasic’s <code>ptd_*</code> C symbols (and the thread-local <code>ptd_err</code>) from the already-loaded <code>phasic_pybind</code> extension. CPython imports extensions with <code>RTLD_LOCAL</code>, so on Linux those symbols are not in the global dynamic-linker scope by default and the import would fail with <code>undefined symbol: ptd_err</code>. The cell below shows the preamble you need to include to first re-open <code>phasic_pybind</code> with <code>RTLD_GLOBAL</code> to promote its symbols. Then you can import your state space module like any other module. Note also that you need to wrap the C++ graph in a Python <code>Graph</code> object:</p>
+<div id="d3d1ac8e" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="65">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Preamble ############################################################################</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os, glob, ctypes, phasic</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">hasattr</span>(os, <span class="st">"RTLD_GLOBAL"</span>):</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    _pb <span class="op">=</span> glob.glob(os.path.join(os.path.dirname(phasic.<span class="va">__file__</span>), <span class="st">"phasic_pybind*.so"</span>))</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> _pb:</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>        ctypes.CDLL(_pb[<span class="dv">0</span>], mode<span class="op">=</span>os.RTLD_NOW <span class="op">|</span> os.RTLD_GLOBAL)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cppimport.import_hook</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="co">########################################################################################</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cpp_state_spaces <span class="co"># import your extension</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_state_spaces.coalescent(<span class="dv">4</span>)) <span class="co"># wrap the returned pybind11 object in Graph</span></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>graph.plot()</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="65">
+<pre><code>1.4999999999999996</code></pre>
 </div>
-<section id="callback-based-construction-in-cthe-c-api-mirrors-the-python-callback-interface-directly-with-graphfrom_callback-so-you-get-the-same-convenience-as-graphcallback-ipv...-without-writing-the-breadth-first-exploration-loop-by-hand.-the-transition-callback-returns-a-stdvectorphasictransition-each-transition-is-a-target-state-a-weight-and-optional-coefficients-non-empty-for-parameterised-edges-and-graphfrom_callback-explores-the-state-space-for-youcppphasicgraph-coalescentint-nr_samples-stdvectorint-initial_statenr_samples-0-initial_state0-nr_samples-nr_samples-0-0-...-stdvectorstdpairstdvectorint-double-ipv-initial_state-1.0-auto-callback-const-stdvectorint-state---stdvectorphasictransition-stdvectorphasictransition-transitions-int-size-int-state.size-for-int-i-0-i-size-i-for-int-j-i-j-size-j-int-same-i-j-1-0-if-same-statei-2-continue-if-same-statei-1-statej-1-continue-stdvectorint-next-state-state.copy-nexti---1-nextj---1-nexti-j-1-1-double-rate-double-statei-statej---same-1-same-transitions.emplace_backnext-rate-constant-edge-return-transitions-return-phasicgraphfrom_callbacknr_samples-ipv-callbackthe-complete-module-with-the-same-cppimport-headerfooter-as-above-is-in-cpp_callback_construction.cpp.-for-a-standalone-program-compiled-directly-with-clang-no-python-see-..examplescppcoalescent_from_callback.cpp." class="level3">
-<h3 class="anchored" data-anchor-id="callback-based-construction-in-cthe-c-api-mirrors-the-python-callback-interface-directly-with-graphfrom_callback-so-you-get-the-same-convenience-as-graphcallback-ipv...-without-writing-the-breadth-first-exploration-loop-by-hand.-the-transition-callback-returns-a-stdvectorphasictransition-each-transition-is-a-target-state-a-weight-and-optional-coefficients-non-empty-for-parameterised-edges-and-graphfrom_callback-explores-the-state-space-for-youcppphasicgraph-coalescentint-nr_samples-stdvectorint-initial_statenr_samples-0-initial_state0-nr_samples-nr_samples-0-0-...-stdvectorstdpairstdvectorint-double-ipv-initial_state-1.0-auto-callback-const-stdvectorint-state---stdvectorphasictransition-stdvectorphasictransition-transitions-int-size-int-state.size-for-int-i-0-i-size-i-for-int-j-i-j-size-j-int-same-i-j-1-0-if-same-statei-2-continue-if-same-statei-1-statej-1-continue-stdvectorint-next-state-state.copy-nexti---1-nextj---1-nexti-j-1-1-double-rate-double-statei-statej---same-1-same-transitions.emplace_backnext-rate-constant-edge-return-transitions-return-phasicgraphfrom_callbacknr_samples-ipv-callbackthe-complete-module-with-the-same-cppimport-headerfooter-as-above-is-in-cpp_callback_construction.cpp.-for-a-standalone-program-compiled-directly-with-clang-no-python-see-..examplescppcoalescent_from_callback.cpp.">Callback-based construction in C++The C++ API mirrors the Python callback interface directly with <code>Graph::from_callback</code>, so you get the same convenience as <code>Graph(callback, ipv=...)</code> without writing the breadth-first exploration loop by hand. The transition callback returns a <code>std::vector&lt;phasic::Transition&gt;</code> — each <code>Transition</code> is a target <code>state</code>, a <code>weight</code>, and optional <code>coefficients</code> (non-empty for parameterised edges) — and <code>Graph::from_callback</code> explores the state space for you:<code>cppphasic::Graph coalescent(int nr_samples) {  std::vector&lt;int&gt; initial_state(nr_samples, 0);  initial_state[0] = nr_samples;                                   // [nr_samples, 0, 0, ...]  std::vector&lt;std::pair&lt;std::vector&lt;int&gt;, double&gt;&gt; ipv = {{initial_state, 1.0}};  auto callback =      [](const std::vector&lt;int&gt; &amp;state) -&gt; std::vector&lt;phasic::Transition&gt; {    std::vector&lt;phasic::Transition&gt; transitions;    int size = (int) state.size();    for (int i = 0; i &lt; size; ++i)      for (int j = i; j &lt; size; ++j) {        int same = (i == j) ? 1 : 0;        if (same &amp;&amp; state[i] &lt; 2) continue;        if (!same &amp;&amp; (state[i] &lt; 1 || state[j] &lt; 1)) continue;        std::vector&lt;int&gt; next = state;                             // state.copy()        next[i] -= 1; next[j] -= 1; next[i + j + 1] += 1;        double rate = (double) state[i] * (state[j] - same) / (1 + same);        transitions.emplace_back(next, rate);                      // constant edge      }    return transitions;  };  return phasic::Graph::from_callback(nr_samples, ipv, callback);}</code>The complete module (with the same <code>// cppimport</code> header/footer as above) is in <a href="cpp_callback_construction.cpp">cpp_callback_construction.cpp</a>. For a standalone program compiled directly with <code>clang++</code> (no Python), see <a href="../examples/cpp/coalescent_from_callback.cpp">../examples/cpp/coalescent_from_callback.cpp</a>.</h3>
-<div id="d5cb4f9d" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Same RTLD_GLOBAL promotion as the cpp_state_spaces cell above — it makes# phasic's C symbols visible to this freshly compiled module (idempotent).import os, glob, ctypes, phasicif hasattr(os, "RTLD_GLOBAL"):    _pb = glob.glob(os.path.join(os.path.dirname(phasic.__file__), "phasic_pybind*.so"))    if _pb:        ctypes.CDLL(_pb[0], mode=os.RTLD_NOW | os.RTLD_GLOBAL)import cppimport.import_hookimport cpp_callback_construction # import your extensiongraph = Graph(cpp_callback_construction.coalescent(4)) # wrap the returned pybind11 object in Graphgraph.expectation()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="callback-based-construction-in-c" class="level3">
+<h3 class="anchored" data-anchor-id="callback-based-construction-in-c">Callback-based construction in C++</h3>
+<p>The C++ API mirrors the Python callback interface directly with <code>Graph::from_callback</code>, so you get the same convenience as <code>Graph(callback, ipv=...)</code> without writing the breadth-first exploration loop by hand. The transition callback returns a <code>std::vector&lt;phasic::Transition&gt;</code> — each <code>Transition</code> is a target <code>state</code>, a <code>weight</code>, and optional <code>coefficients</code> (non-empty for parameterised edges) — and <code>Graph::from_callback</code> explores the state space for you:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode cpp code-with-copy"><code class="sourceCode cpp"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>phasic<span class="op">::</span>Graph coalescent<span class="op">(</span><span class="dt">int</span> nr_samples<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> initial_state<span class="op">(</span>nr_samples<span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  initial_state<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> nr_samples<span class="op">;</span>                                   <span class="co">// [nr_samples, 0, 0, ...]</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="bu">std::</span>pair<span class="op">&lt;</span><span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;,</span> <span class="dt">double</span><span class="op">&gt;&gt;</span> ipv <span class="op">=</span> <span class="op">{{</span>initial_state<span class="op">,</span> <span class="fl">1.0</span><span class="op">}};</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">auto</span> callback <span class="op">=</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>      <span class="op">[](</span><span class="at">const</span> <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> <span class="op">&amp;</span>state<span class="op">)</span> <span class="op">-&gt;</span> <span class="bu">std::</span>vector<span class="op">&lt;</span>phasic<span class="op">::</span>Transition<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">std::</span>vector<span class="op">&lt;</span>phasic<span class="op">::</span>Transition<span class="op">&gt;</span> transitions<span class="op">;</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> size <span class="op">=</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> state<span class="op">.</span>size<span class="op">();</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> size<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> j <span class="op">=</span> i<span class="op">;</span> j <span class="op">&lt;</span> size<span class="op">;</span> <span class="op">++</span>j<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> same <span class="op">=</span> <span class="op">(</span>i <span class="op">==</span> j<span class="op">)</span> <span class="op">?</span> <span class="dv">1</span> <span class="op">:</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>same <span class="op">&amp;&amp;</span> state<span class="op">[</span>i<span class="op">]</span> <span class="op">&lt;</span> <span class="dv">2</span><span class="op">)</span> <span class="cf">continue</span><span class="op">;</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>same <span class="op">&amp;&amp;</span> <span class="op">(</span>state<span class="op">[</span>i<span class="op">]</span> <span class="op">&lt;</span> <span class="dv">1</span> <span class="op">||</span> state<span class="op">[</span>j<span class="op">]</span> <span class="op">&lt;</span> <span class="dv">1</span><span class="op">))</span> <span class="cf">continue</span><span class="op">;</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">std::</span>vector<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span> next <span class="op">=</span> state<span class="op">;</span>                             <span class="co">// state.copy()</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>        next<span class="op">[</span>i<span class="op">]</span> <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> next<span class="op">[</span>j<span class="op">]</span> <span class="op">-=</span> <span class="dv">1</span><span class="op">;</span> next<span class="op">[</span>i <span class="op">+</span> j <span class="op">+</span> <span class="dv">1</span><span class="op">]</span> <span class="op">+=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> rate <span class="op">=</span> <span class="op">(</span><span class="dt">double</span><span class="op">)</span> state<span class="op">[</span>i<span class="op">]</span> <span class="op">*</span> <span class="op">(</span>state<span class="op">[</span>j<span class="op">]</span> <span class="op">-</span> same<span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="dv">1</span> <span class="op">+</span> same<span class="op">);</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>        transitions<span class="op">.</span>emplace_back<span class="op">(</span>next<span class="op">,</span> rate<span class="op">);</span>                      <span class="co">// constant edge</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions<span class="op">;</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>  <span class="op">};</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> phasic<span class="op">::</span>Graph<span class="op">::</span>from_callback<span class="op">(</span>nr_samples<span class="op">,</span> ipv<span class="op">,</span> callback<span class="op">);</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The complete module (with the same <code>// cppimport</code> header/footer as above) is in <a href="cpp_callback_construction.cpp">cpp_callback_construction.cpp</a>. For a standalone program compiled directly with <code>clang++</code> (no Python), see <a href="../examples/cpp/coalescent_from_callback.cpp">../examples/cpp/coalescent_from_callback.cpp</a>.</p>
+<div id="d5cb4f9d" class="cell" data-execution_count="66">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Preamble ############################################################################</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os, glob, ctypes, phasic</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">hasattr</span>(os, <span class="st">"RTLD_GLOBAL"</span>):</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    _pb <span class="op">=</span> glob.glob(os.path.join(os.path.dirname(phasic.<span class="va">__file__</span>), <span class="st">"phasic_pybind*.so"</span>))</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> _pb:</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        ctypes.CDLL(_pb[<span class="dv">0</span>], mode<span class="op">=</span>os.RTLD_NOW <span class="op">|</span> os.RTLD_GLOBAL)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cppimport.import_hook</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="co">########################################################################################</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cppimport.import_hook</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cpp_callback_construction <span class="co"># import your extension</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_callback_construction.coalescent(<span class="dv">4</span>)) <span class="co"># wrap the returned pybind11 object in Graph</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="66">
+<pre><code>1.5</code></pre>
+</div>
 </div>
 </section>
 <section id="speed-comparison" class="level3">
 <h3 class="anchored" data-anchor-id="speed-comparison">Speed comparison</h3>
-<p>The CPP version usually builds at least ten times faster:</p>
-<div id="82f4bcf3" class="cell" data-execution_count="25">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">40</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>), <span class="dv">1</span>)]</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)))</span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The CPP version usually builds at about ten times faster:</p>
+<div id="82f4bcf3" class="cell" data-execution_count="67">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">40</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>), <span class="dv">1</span>)]</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent(state):</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>            transitions.append((new, state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)))</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="5f4ed74d" class="cell" data-execution_count="26">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="5f4ed74d" class="cell" data-execution_count="68">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent, ipv<span class="op">=</span>initial)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>1.55 s ± 16.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+<pre><code>1.55 s ± 29.4 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
-<div id="e9cb0287" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="27">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_state_spaces.coalescent(nr_samples))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="e9cb0287" class="cell" data-tags="[&quot;skip-execution&quot;]" data-execution_count="69">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_state_spaces.coalescent(nr_samples))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>858 ms ± 11.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+<pre><code>568 ms ± 25.5 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+</div>
+</div>
+<div id="60f82156" class="cell" data-execution_count="70">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>timeit</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(cpp_callback_construction.coalescent(nr_samples))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>255 ms ± 3.43 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
 
@@ -1616,8 +1610,8 @@ Total size: 50.93 MB</code></pre>
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../pages/tutorial/introduction.html" class="pagination-link" aria-label="The Coalescent">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">The Coalescent</span>
+      <a href="../../pages/tutorial/introduction.html" class="pagination-link" aria-label="Introduction">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Introduction</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
