@@ -97,8 +97,8 @@ def _running_in_notebook() -> bool:
 
 if _running_in_notebook():
     try:
-        from vscodenb import pqdm as tqdm
-        from vscodenb import prange as trange
+        from ._progress import pqdm as tqdm
+        from ._progress import prange as trange
     except ImportError:
         from tqdm import trange, tqdm
         trange = partial(trange, leave=False)
@@ -483,6 +483,76 @@ def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float
     upper = float(sorted_samples[best + n_included - 1])
 
     return lower, upper
+
+
+def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
+                     n_grid: int = 2048) -> tuple[float, float]:
+    """Highest-density region of a Gaussian KDE of the samples.
+
+    Unlike the sample HPD of :func:`_compute_hpd`, which with few samples
+    reduces to dropping whole extreme samples and so jumps when the
+    extreme sample on one side overtakes the other, the KDE region moves
+    continuously with the samples. The density threshold ``c`` is chosen so
+    the KDE mass where density >= ``c`` is ``alpha``; the returned bounds are
+    the outermost points where the density crosses ``c``, located by linear
+    interpolation between grid points, then clipped to the sample range:
+    the KDE's tails spill past the samples (e.g. below zero for a positive
+    parameter), and the data say nothing about the region beyond them.
+    For a multimodal KDE the region is several intervals and this returns
+    their hull, overstating its width.
+
+    Parameters
+    ----------
+    samples : np.ndarray
+        1D array of posterior samples.
+    alpha : float, default=0.95
+        Credible level (fraction of KDE mass to include).
+    n_grid : int, default=2048
+        Number of grid points the KDE is evaluated on.
+
+    Returns
+    -------
+    lower : float
+        Lower bound of the HDR.
+    upper : float
+        Upper bound of the HDR.
+    """
+    x = np.asarray(samples, dtype=float).ravel()
+    n = len(x)
+    sd = x.std(ddof=1) if n > 1 else 0.0
+    if n < 2 or not sd > 0:
+        return float(x.min()), float(x.max())
+
+    # Scott's rule: sd-based, so it stays continuous (and non-zero) when most
+    # samples coincide, unlike IQR-based rules
+    h = sd * n ** (-1 / 5)
+    grid = np.linspace(x.min() - 4 * h, x.max() + 4 * h, n_grid)
+    dens = np.exp(-0.5 * ((grid[:, None] - x[None, :]) / h) ** 2).sum(axis=1)
+
+    # Threshold c: interpolate within the descending-density cumulative mass
+    order = np.argsort(-dens)
+    d_sorted = dens[order]
+    cum = np.cumsum(d_sorted)
+    cum /= cum[-1]
+    k = int(np.searchsorted(cum, alpha))
+    if k == 0:
+        c = d_sorted[0]
+    else:
+        frac = (alpha - cum[k - 1]) / (cum[k] - cum[k - 1])
+        c = d_sorted[k - 1] + frac * (d_sorted[k] - d_sorted[k - 1])
+
+    inside = np.nonzero(dens >= c)[0]
+    i, j = inside[0], inside[-1]
+
+    def _crossing(a, b):
+        # point between grid[a] (outside) and grid[b] (inside) where dens == c
+        if dens[b] == dens[a]:
+            return grid[b]
+        return grid[a] + (c - dens[a]) / (dens[b] - dens[a]) * (grid[b] - grid[a])
+
+    lower = _crossing(i - 1, i) if i > 0 else grid[i]
+    upper = _crossing(j + 1, j) if j < n_grid - 1 else grid[j]
+    return float(max(lower, x.min())), float(min(upper, x.max()))
 
 
 def _hex_grid(x_min: float, x_max: float, y_min: float, y_max: float, size: float, flat_topped: bool = False) -> jnp.ndarray:
@@ -4024,7 +4094,9 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
               compiled_grad: callable | None = None,
               parallel_mode: str = 'vmap', n_devices: int | None = None,
               fixed_mask: jnp.ndarray | None = None, fixed_values: jnp.ndarray | None = None,
-              optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None) -> jnp.ndarray:
+              optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
+              return_log_prob: bool = False,
+              compiled_value_and_grad: callable | None = None) -> jnp.ndarray | tuple[jnp.ndarray, jnp.ndarray]:
     """
     Perform single SVGD update step
 
@@ -4055,12 +4127,30 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
     optimizer : Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer
         If provided, uses optimizer for adaptive per-parameter learning rates.
         When used, the `step_size` parameter is ignored.
+    return_log_prob : bool, default=False
+        If True, compute the gradient with ``value_and_grad`` and also return
+        ``log_prob_fn`` at the INPUT particles (the value the gradient is
+        taken of, so it costs no extra evaluation). The update is the same
+        as with ``return_log_prob=False``. Cannot be combined with
+        ``compiled_grad``; pass ``compiled_value_and_grad`` instead.
+    compiled_value_and_grad : callable, optional
+        Precompiled ``value_and_grad(log_prob_fn)`` (full theta), used when
+        ``return_log_prob=True``. Requires ``return_log_prob=True``.
 
     Returns
     -------
     array (n_particles, theta_dim)
-        Updated particles
+        Updated particles (when ``return_log_prob=False``)
+    tuple of (array (n_particles, theta_dim), array (n_particles,))
+        Updated particles and the log probability of each input particle
+        (when ``return_log_prob=True``)
     """
+    if return_log_prob and compiled_grad is not None:
+        raise ValueError("svgd_step: return_log_prob=True takes compiled_value_and_grad, "
+                         "not compiled_grad")
+    if compiled_value_and_grad is not None and not return_log_prob:
+        raise ValueError("svgd_step: compiled_value_and_grad requires return_log_prob=True")
+
     n_particles = particles.shape[0]
 
     # Handle fixed parameters via parameter projection
@@ -4101,6 +4191,19 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         else:
             compiled_grad_to_use = None
 
+        if compiled_value_and_grad is not None:
+            def compiled_value_and_grad_reduced(theta_learnable):
+                if fixed_values is not None:
+                    theta_full = jnp.array(fixed_values)  # Create fresh copy
+                else:
+                    theta_full = jnp.ones(len(fixed_mask))
+                theta_full = theta_full.at[learnable_indices].set(theta_learnable)
+                value, grad_full = compiled_value_and_grad(theta_full)
+                return value, grad_full[learnable_indices]
+            value_and_grad_to_use = compiled_value_and_grad_reduced
+        else:
+            value_and_grad_to_use = None
+
         # Use reduced space for gradient computation
         particles_for_grad = particles_learnable
         log_prob_for_grad = log_prob_fn_reduced
@@ -4109,6 +4212,10 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         particles_for_grad = particles
         log_prob_for_grad = log_prob_fn
         compiled_grad_to_use = compiled_grad
+        value_and_grad_to_use = compiled_value_and_grad
+
+    if return_log_prob and value_and_grad_to_use is None:
+        value_and_grad_to_use = jax.value_and_grad(log_prob_for_grad)
 
     # Use provided parallelization strategy
     actual_parallel_mode = parallel_mode
@@ -4133,21 +4240,31 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         # Use explicit mesh context for pmap
         # pmap over devices, vmap over particles within each device
         with mesh:
-            if compiled_grad_to_use is not None:
+            if return_log_prob:
+                log_p_sharded, grad_log_p_sharded = pmap(vmap(value_and_grad_to_use), axis_name="batch")(particles_sharded)
+            elif compiled_grad_to_use is not None:
                 grad_log_p_sharded = pmap(vmap(compiled_grad_to_use), axis_name="batch")(particles_sharded)
             else:
                 grad_log_p_sharded = pmap(vmap(grad(log_prob_for_grad)), axis_name="batch")(particles_sharded)
 
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
+        if return_log_prob:
+            log_p = log_p_sharded.reshape(n_particles)
     elif actual_parallel_mode == 'vmap':
         # Single device vectorization - use vmap only
-        if compiled_grad_to_use is not None:
+        if return_log_prob:
+            log_p, grad_log_p = vmap(value_and_grad_to_use)(particles_for_grad)
+        elif compiled_grad_to_use is not None:
             grad_log_p = vmap(compiled_grad_to_use)(particles_for_grad)
         else:
             grad_log_p = vmap(grad(log_prob_for_grad))(particles_for_grad)
     elif actual_parallel_mode == 'none':
         # No parallelization - sequential computation (useful for debugging)
-        if compiled_grad_to_use is not None:
+        if return_log_prob:
+            values_and_grads = [value_and_grad_to_use(p) for p in particles_for_grad]
+            log_p = jnp.array([v for v, _ in values_and_grads])
+            grad_log_p = jnp.array([g for _, g in values_and_grads])
+        elif compiled_grad_to_use is not None:
             grad_log_p = jnp.array([compiled_grad_to_use(p) for p in particles_for_grad])
         else:
             grad_fn = grad(log_prob_for_grad)
@@ -4209,11 +4326,13 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         else:
             particles_new = jnp.ones_like(particles)  # Default: fixed dims = 1.0
         particles_new = particles_new.at[:, learnable_indices].set(particles_learnable_new)
-
-        return particles_new
     else:
         # Standard SVGD update (no fixed parameters)
-        return particles + update
+        particles_new = particles + update
+
+    if return_log_prob:
+        return particles_new, log_p
+    return particles_new
 
 
 def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int,
@@ -4227,7 +4346,9 @@ def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int
              lr_scale: float = 1.0,
              fixed_mask: jnp.ndarray | None = None,
              fixed_values: jnp.ndarray | None = None,
-             optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None
+             optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
+             record_log_prob: bool = False,
+             compiled_value_and_grad: Callable | None = None
              ) -> dict:
     """
     Run Stein Variational Gradient Descent
@@ -4262,6 +4383,16 @@ def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int
     optimizer : Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer
         If provided, uses optimizer for adaptive per-parameter learning rates.
         When used, the `learning_rate` parameter is ignored.
+    record_log_prob : bool, default=False
+        If True, also record ``log_prob_fn`` of every particle in every
+        history snapshot, taken from the value the gradient is computed of
+        (``value_and_grad``), plus one evaluation of the final snapshot.
+        Requires ``return_history=True`` and a static ``log_prob_fn`` (no
+        ``regularization_schedule``); cannot be combined with
+        ``compiled_grad`` -- pass ``compiled_value_and_grad`` instead.
+    compiled_value_and_grad : callable, optional
+        Precompiled ``value_and_grad(log_prob_fn)``, used when
+        ``record_log_prob=True``.
 
     Returns
     -------
@@ -4269,12 +4400,26 @@ def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int
         Results dictionary containing:
         - 'particles': Final particles (n_particles, theta_dim)
         - 'history': Particle history if return_history=True
+        - 'history_log_prob': (n_snapshots, n_particles) log_prob_fn of each
+          history particle, if record_log_prob=True
         - 'theta_mean': Posterior mean
         - 'theta_std': Posterior standard deviation
     """
+    if record_log_prob:
+        if not return_history:
+            raise ValueError("run_svgd: record_log_prob=True requires return_history=True")
+        if regularization_schedule is not None or log_prob_fn is None:
+            raise ValueError("run_svgd: record_log_prob=True requires a static log_prob_fn "
+                             "(no regularization_schedule)")
+        if compiled_grad is not None:
+            raise ValueError("run_svgd: record_log_prob=True takes compiled_value_and_grad, "
+                             "not compiled_grad")
+    elif compiled_value_and_grad is not None:
+        raise ValueError("run_svgd: compiled_value_and_grad requires record_log_prob=True")
 
     # Initialize
     particles = theta_init
+    history_log_prob = [] if record_log_prob else None
 
     history = [particles] if return_history else None
     history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
@@ -4384,23 +4529,32 @@ def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int
             compiled_grad_to_use = compiled_grad
 
         # Perform SVGD update
-        particles = svgd_step(particles, log_prob_fn, kernel, current_step_size,
-                             compiled_grad=compiled_grad_to_use,
-                             parallel_mode=parallel_mode,
-                             n_devices=n_devices,
-                             fixed_mask=fixed_mask,
-                             fixed_values=fixed_values,
-                             optimizer=optimizer)
+        if record_log_prob:
+            # log_p is log_prob_fn at the particles BEFORE this step, i.e.
+            # at history snapshot `step`
+            particles, log_p = svgd_step(particles, log_prob_fn, kernel, current_step_size,
+                                         parallel_mode=parallel_mode,
+                                         n_devices=n_devices,
+                                         fixed_mask=fixed_mask,
+                                         fixed_values=fixed_values,
+                                         optimizer=optimizer,
+                                         return_log_prob=True,
+                                         compiled_value_and_grad=compiled_value_and_grad)
+            history_log_prob.append(log_p)
+        else:
+            particles = svgd_step(particles, log_prob_fn, kernel, current_step_size,
+                                 compiled_grad=compiled_grad_to_use,
+                                 parallel_mode=parallel_mode,
+                                 n_devices=n_devices,
+                                 fixed_mask=fixed_mask,
+                                 fixed_values=fixed_values,
+                                 optimizer=optimizer)
 
-        # Store history
+        # Store history: snapshot k holds the particles after k steps
+        # (snapshot 0 is the initial particles), so the last one is final
         if return_history: # and (step % max(1, n_steps // 20) == 0):
             history.append(particles)
-            history_iterations.append(step)
-
-    # Final history
-    if return_history:
-        history.append(particles)
-        history_iterations.append(n_steps)
+            history_iterations.append(step + 1)
 
     # Compute summary statistics
     theta_mean = jnp.mean(particles, axis=0)
@@ -4415,6 +4569,16 @@ def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int
     if return_history:
         results['history'] = history
         results['history_iterations'] = history_iterations
+
+    if record_log_prob:
+        # The final snapshot is never the input of a step: evaluate it once,
+        # honouring parallel_mode ('none' marks models that cannot be vmapped)
+        if parallel_mode == 'none':
+            final_log_p = jnp.array([log_prob_fn(p) for p in particles])
+        else:
+            final_log_p = vmap(log_prob_fn)(particles)
+        history_log_prob.append(final_log_p)
+        results['history_log_prob'] = np.asarray(jnp.stack(history_log_prob))
 
     # Note: Final summary is printed by SVGD.fit() with transformed values
 
@@ -5872,6 +6036,7 @@ class SVGD:
         self.theta_std = None
         self.history = None
         self.history_iterations = None
+        self.history_log_prob = None
         self.is_fitted = False
 
         # Compiled model and gradient (set by _precompile_model if jit_enabled=True)
@@ -6431,7 +6596,8 @@ class SVGD:
             rewards=self.rewards 
         )
 
-    def _precompile_unified(self, nr_moments: int, sample_moments: jnp.ndarray | None, regularization: float, rewards: jnp.ndarray | None = None) -> Callable:
+    def _precompile_unified(self, nr_moments: int, sample_moments: jnp.ndarray | None, regularization: float, rewards: jnp.ndarray | None = None,
+                            value_and_grad: bool = False) -> Callable:
         """
         Precompile gradient for unified log_prob with given regularization settings.
 
@@ -6450,11 +6616,16 @@ class SVGD:
             Optional reward vector/matrix for multivariate phase-type distributions.
             - 1D array (n_vertices,): Single reward vector
             - 2D array (n_features, n_vertices): Reward matrix where rewards[j, :] is feature j's vector
+        value_and_grad : bool, default=False
+            If True, compile ``jax.value_and_grad`` of the log probability
+            instead of ``jax.grad`` (cached under separate keys), so the fit
+            can record each particle's log probability at no extra cost.
 
         Returns
         -------
         compiled_grad : callable
-            JIT-compiled gradient function
+            JIT-compiled gradient function, or value-and-gradient function
+            if ``value_and_grad=True``
         """
         # Generate cache key including regularization params and rewards
         # Convert rewards to hashable tuple (JAX arrays aren't hashable)
@@ -6470,6 +6641,9 @@ class SVGD:
             obs_shape = self.observed_data.shape
         memory_cache_key = (id(self.model), self.theta_dim, obs_shape,
                            nr_moments, regularization, rewards_tuple)
+        if value_and_grad:
+            memory_cache_key = memory_cache_key + ('value_and_grad',)
+            cache_hash = cache_hash + '_vg'
 
         # Check memory cache first
         if memory_cache_key in SVGD._compiled_cache:
@@ -6517,7 +6691,7 @@ class SVGD:
 
         # JIT compile gradient
         start = time()
-        grad_fn = jax.grad(log_prob_fn)
+        grad_fn = jax.value_and_grad(log_prob_fn) if value_and_grad else jax.grad(log_prob_fn)
         compiled_grad = jax.jit(grad_fn)
         # Trigger compilation. Using zeros as the dummy theta is unsafe
         # when the model has per-dim transforms (e.g. BetaPrior →
@@ -6807,8 +6981,28 @@ class SVGD:
             )
         else:
             # Static regularization - use current precompiled approach
-            # Precompile gradient with caching (if JIT enabled)
-            if self.jit_enabled:
+            # Without regularization the objective IS the log posterior, so
+            # with history kept, compile value_and_grad instead of grad and
+            # record every history particle's log posterior for free (read
+            # by plot_ci's MAP line). With regularization the objective
+            # differs from the posterior, so nothing is recorded.
+            record_log_prob = return_history and not use_regularization
+            compiled_value_and_grad = None
+            if record_log_prob:
+                compiled_grad = None
+                if self.jit_enabled:
+                    compiled_value_and_grad = self._precompile_unified(
+                        self.nr_moments, self.sample_moments, self.regularization, rewards,
+                        value_and_grad=True)
+                else:
+                    compiled_value_and_grad = jax.value_and_grad(partial(
+                        self._log_prob_unified,
+                        nr_moments=self.nr_moments,
+                        sample_moments=self.sample_moments,
+                        regularization=self.regularization,
+                        rewards=rewards
+                    ))  # Not JIT compiled
+            elif self.jit_enabled:
                 compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization, rewards)
             else:
                 # Create log_prob function using partial (no JIT)
@@ -6860,7 +7054,9 @@ class SVGD:
                 lr_scale=self.lr_scale,
                 fixed_mask=self.fixed_mask,
                 fixed_values=self.fixed_values,
-                optimizer=self.optimizer
+                optimizer=self.optimizer,
+                record_log_prob=record_log_prob,
+                compiled_value_and_grad=compiled_value_and_grad
             )
 
         # Re-tie tied slave parameters before export (F-010).
@@ -6896,6 +7092,9 @@ class SVGD:
         if return_history:
             self.history = np.array(results['history'])
             self.history_iterations = results['history_iterations']
+        # Log posterior of every history particle, recorded by the fit when
+        # it is free (see above); otherwise plot_ci computes it on demand
+        self.history_log_prob = results.get('history_log_prob')
 
         self.is_fitted = True
 
@@ -7492,12 +7691,40 @@ class SVGD:
             plt.show()
 
 
+    def _history_map_indices(self) -> jnp.ndarray:
+        """
+        Index of the highest-log-posterior particle at every history snapshot.
+
+        Log posterior of every history particle: recorded by the fit when it
+        was free (no moment regularization), else computed here once and kept
+        in ``history_log_prob``. Same log posterior as
+        :meth:`map_estimate_from_particles`, on ``self.history`` (the space
+        the model is defined in: unconstrained when a transform is active).
+        The argmax particle index is the same in either space, so it indexes
+        either history representation directly.
+        """
+        if self.history_log_prob is None:
+            log_prob_fn = partial(self._log_prob_unified, rewards=self.rewards)
+            if self.parallel_mode == 'none':
+                # models that cannot be vmapped
+                self.history_log_prob = np.array(
+                    [[float(log_prob_fn(p)) for p in jnp.asarray(h)] for h in self.history])
+            else:
+                batch_log_prob = jax.jit(vmap(log_prob_fn))
+                self.history_log_prob = np.asarray(
+                    jnp.stack([batch_log_prob(jnp.asarray(h)) for h in self.history]))
+        log_probs = jnp.asarray(self.history_log_prob)
+        # argmax returns a NaN's index; a NaN particle cannot be the MAP
+        log_probs = jnp.where(jnp.isnan(log_probs), -jnp.inf, log_probs)
+        return jnp.argmax(log_probs, axis=1)
+
     def plot_trace(self, param_names: list[str] | None = None,
                    figsize: tuple[float, float] | None = None,
                    skip: int = 0, max_particles: int | None = None,
                    save_path: str | None = None, unconstrained: bool = False,
                    hide_fixed: bool = True,
-                   return_fig: bool = False):
+                   return_fig: bool = False,
+                   estimate: str = 'map'):
         """
         Plot trace plots showing particle evolution over iterations.
 
@@ -7521,6 +7748,156 @@ class SVGD:
             Only relevant when using parameter transformations.
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.
+        return_fig : bool, default=True
+            If True, return (fig, axes). If False, call plt.show() instead.
+        estimate : str, default='map'
+            Point estimate drawn as the dashed line over the particle traces.
+
+            - ``'map'``: at each iteration, the particle with the highest log
+              posterior, as in :meth:`plot_ci`; the last point equals
+              :meth:`map_estimate_from_particles`. The line can step when a
+              different particle becomes the best.
+            - ``'mean'``: the mean over particles.
+
+        Returns
+        -------
+        tuple[matplotlib.figure.Figure, numpy.ndarray]
+            Matplotlib figure and axes array (only if return_fig=True).
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        if self.history is None:
+            raise RuntimeError("History not available. Call fit(return_history=True) first")
+
+        if estimate not in ('map', 'mean'):
+            raise ValueError(f"estimate must be 'map' or 'mean', got '{estimate}'")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        n_params = self.theta_dim
+        param_indices = list(range(n_params))
+
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+            n_params = len(param_indices)
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
+                raise ValueError(
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            history = results.get('history', self.history)
+            space_label = ""
+        else:
+            history = results.get('history_unconstrained', self.history)
+            space_label = " (unconstrained)"
+
+        cols = int(n_params > 1) + 1
+        rows = n_params // 2 + n_params % 2
+
+        # Determine subplot layout
+        if n_params > 1:
+            figsize = figsize or (min(14, 3.5 * cols), min(12, 2.7 * rows))
+
+        fig, axes = plt.subplots(rows, cols, figsize=figsize, squeeze=False)
+        axes = axes.flatten()
+
+        # Convert history to array: (n_snapshots, n_particles, theta_dim)
+        history_array = jnp.stack(history)
+        n_snapshots = len(history)
+
+        if estimate == 'map':
+            best = self._history_map_indices()  # (n_snapshots,)
+            line_over_time = history_array[jnp.arange(n_snapshots), best, :]
+            line_label = "MAP"
+        else:
+            line_over_time = jnp.mean(history_array, axis=1)  # (n_snapshots, theta_dim)
+            line_label = "Mean"
+
+        # for i in range(n_params):
+            # ax = axes[i]
+        for i, ax in zip_longest(param_indices, axes, fillvalue=None):
+
+            if i is None and ax is not None:
+                ax.axis('off')
+                continue
+
+            # Plot each particle's trajectory
+            max_plotted = self.n_particles if max_particles is None else max_particles
+            for p in range(max_plotted):  # Plot first 10 particles
+                y = history_array[:, p, i]
+                x = np.arange(y.size)
+                ax.plot(x[skip:], y[skip:], alpha=1, linewidth=0.5)
+
+            # Plot point-estimate trajectory
+            y = line_over_time[:, i]
+            x = np.arange(y.size)
+
+            ax.plot(x[skip:], y[skip:],
+                    color=black_or_white,
+                    linestyle='dashed', label=f'{line_label} = {float(y[-1]):.3g}')
+
+            # Labels
+            param_name = param_names[i] if param_names else rf"$\theta_{i}$"
+            ax.set_xlabel('SVGD Iteration')
+            ax.set_ylabel(param_name + space_label)
+            ax.set_title(f'Trace: {param_name}')
+            ax.legend()
+            # ax.grid(alpha=0.3)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        if return_fig:
+            return fig, axes
+        else:
+            plt.show()
+
+
+    def plot_trace_accel(self, param_names: list[str] | None = None,
+                   figsize: tuple[float, float] | None = None,
+                   skip: int = 0, max_particles: int | None = None,
+                   save_path: str | None = None, unconstrained: bool = False,
+                   hide_fixed: bool = True, log_scale: bool = False,
+                   return_fig: bool = False):
+        """
+        Plot trace plots showing acceleration of parameter estimates for each particle. 
+        Measured as the relative difference between pairs of running differences.
+
+        Requires fit() to have been called with return_history=True.
+
+        Parameters
+        ----------
+        param_names : list of str, optional
+            Names for each parameter dimension
+        figsize : tuple, optional
+            Figure size (width, height)
+        skip : int, optional
+            Number of initial iterations to skip. Defaults to 0.
+        max_particles : int, optional
+            Max number of particles to plot. Defaults to all particles.
+        save_path : str, optional
+            Path to save the plot
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
+            Only relevant when using parameter transformations.
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.
+        log_scale : bool, default=False
+            If True, Use log scale for y axis.
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
 
@@ -7586,29 +7963,19 @@ class SVGD:
                 ax.axis('off')
                 continue
 
-            # Plot each particle's trajectory
-            max_plotted = self.n_particles if max_particles is None else max_particles
-            for p in range(max_plotted):  # Plot first 10 particles
-                y = history_array[:, p, i]
-                x = np.arange(y.size)
-                ax.plot(x[skip:], y[skip:], alpha=1, linewidth=0.5)
-
-            # Plot mean trajectory
-            mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
-            y = mean_trajectory
-            x = np.arange(y.size)
-
-            ax.plot(x[skip:], y[skip:], 
-                    color=black_or_white, 
-                    linestyle='dashed', label=f'Mean = {theta_mean[i]:.3g}')
-
-            # Labels
+        for i, ax in zip(param_indices, axes):
+            x = np.arange(skip, len(history))
+            h = history[skip:, :, i]
+            diffs = np.diff(h, n=1, axis=0)[:-1, :]
+            rel_diff_of_diffs = np.absolute(np.diff(diffs, n=1, axis=0) / diffs[:-1, :])
+            if log_scale:
+                ax.semilogy(rel_diff_of_diffs)
+            else:
+                ax.plot(rel_diff_of_diffs)
             param_name = param_names[i] if param_names else rf"$\theta_{i}$"
             ax.set_xlabel('SVGD Iteration')
             ax.set_ylabel(param_name + space_label)
-            ax.set_title(f'Trace: {param_name}')
-            ax.legend()
-            # ax.grid(alpha=0.3)
+            ax.set_title(f'Relative estimate accel.: {param_name}')
 
         plt.tight_layout()
 
@@ -7743,13 +8110,15 @@ class SVGD:
                 ci: float = 0.95, alpha: float = 0.2,
                 target: jnp.ndarray | list | None = None,
                 median: bool = False, return_fig: bool = False,
-                ci_method: str = 'hpd',
-                hide_fixed: bool = True):
+                ci_method: str = 'kde',
+                hide_fixed: bool = True,
+                estimate: str = 'map'):
         """
-        Plot mean parameter trajectory with credible interval ribbon.
+        Plot the parameter estimate trajectory with credible interval ribbon.
 
-        Shows the posterior mean over iterations with a shaded region representing
-        the specified credible interval (default 95%).
+        Shows the MAP estimate (or the posterior mean, see ``estimate``) over
+        iterations with a shaded region representing the specified credible
+        interval (default 95%).
 
         Parameters
         ----------
@@ -7774,17 +8143,36 @@ class SVGD:
             If True, plot the median trajectory as a dashed line
         return_fig : bool, default=True
             If True, return (fig, ax). If False, call plt.show() instead.
-        ci_method : str, default='hpd'
+        ci_method : str, default='kde'
             Method for credible intervals.
 
+            - ``'kde'``: Highest-density region of a Gaussian KDE (Scott's
+              bandwidth) of the particles at each iteration. Moves
+              continuously with the particles. For a multimodal cloud the
+              ribbon is the hull of the region's intervals.
             - ``'hpd'``: Highest Posterior Density interval — the shortest
               interval containing ``ci`` fraction of posterior samples at each
               iteration. Computed by sorting the particles and sliding a
               window of ``ceil(n * ci)`` samples to find the narrowest span.
+              With few particles this jumps whenever the most extreme
+              particle on one side overtakes the other (at 20 particles and
+              ``ci=0.95`` it simply drops one particle).
             - ``'percentile'``: Equal-tailed percentile interval using
               symmetric quantiles.
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.              
+        estimate : str, default='map'
+            Point estimate plotted as the line.
+
+            - ``'map'``: at each iteration, the particle with the highest log
+              posterior -- the per-iteration counterpart of
+              :meth:`map_estimate_from_particles`, so the last point equals it.
+              The fit records these log posteriors at no extra cost when it
+              keeps history and has no moment regularization; otherwise
+              the first call evaluates them (one log-posterior evaluation
+              per particle per iteration) and keeps them for later calls.
+              The line can step when a different particle becomes the best.
+            - ``'mean'``: the mean over particles.
 
         Returns
         -------
@@ -7797,8 +8185,11 @@ class SVGD:
         if self.history is None:
             raise RuntimeError("History not available. Call fit(return_history=True) first")
 
-        if ci_method not in ('hpd', 'percentile'):
-            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
+        if ci_method not in ('kde', 'hpd', 'percentile'):
+            raise ValueError(f"ci_method must be 'kde', 'hpd' or 'percentile', got '{ci_method}'")
+
+        if estimate not in ('map', 'mean'):
+            raise ValueError(f"estimate must be 'map' or 'mean', got '{estimate}'")
 
         try:
             import matplotlib.pyplot as plt
@@ -7829,10 +8220,16 @@ class SVGD:
             param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
             n_params = len(param_indices)
 
-        mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
-
         n_iters = history_array.shape[0]
         n_params = history_array.shape[2]
+
+        if estimate == 'map':
+            best = self._history_map_indices()  # (n_iterations,)
+            line_over_time = history_array[jnp.arange(n_iters), best, :]
+            line_label = "MAP"
+        else:
+            line_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
+            line_label = "Posterior Mean"
 
         if ci_method == 'hpd':
             # Compute HPD interval per iteration and dimension
@@ -7844,6 +8241,15 @@ class SVGD:
                         np.asarray(history_array[t, :, d]), alpha=ci
                     )
             ci_label = "HPD"
+        elif ci_method == 'kde':
+            lower_ci = np.empty((n_iters, n_params))
+            upper_ci = np.empty((n_iters, n_params))
+            for t in range(n_iters):
+                for d in range(n_params):
+                    lower_ci[t, d], upper_ci[t, d] = _compute_kde_hdr(
+                        np.asarray(history_array[t, :, d]), alpha=ci
+                    )
+            ci_label = "HDR"
         else:
             lower_pct = (1 - ci) / 2 * 100
             upper_pct = (1 + ci) / 2 * 100
@@ -7873,12 +8279,12 @@ class SVGD:
             param_name = rf"$\theta_{i}$"
             color = colors[i % len(colors)]
             x = iterations[skip:]
-            y_mean = mean_over_time[skip:, i]
+            y_line = line_over_time[skip:, i]
             y_lower = lower_ci[skip:, i]
             y_upper = upper_ci[skip:, i]
 
-            # Plot mean line
-            ax.plot(x, y_mean, label=param_name, color=color)
+            # Plot point-estimate line
+            ax.plot(x, y_line, label=param_name, color=color)
 
             # Plot CI ribbon
             ax.fill_between(x, y_lower, y_upper, alpha=alpha, color=color)
@@ -7896,7 +8302,7 @@ class SVGD:
                 ax.axhline(val, color=color, linestyle='--', alpha=0.7)
 
         ax.set_xlabel('SVGD Iteration')
-        ax.set_ylabel(f'Posterior Mean ± {int(ci*100)}% {ci_label}' + space_label)
+        ax.set_ylabel(f'{line_label} ± {int(ci*100)}% {ci_label}' + space_label)
         ax.set_title(f'Parameter Convergence with {int(ci*100)}% {ci_label}')
         ax.legend()
         ax.grid(alpha=0.3)
@@ -8279,7 +8685,12 @@ class SVGD:
             param_indices = [i for i in range(n_dims) if not self.fixed_mask[i]]   
             n_dims = len(param_indices)
 
-        if idx is None:
+        if idx is not None:
+            if len(idx) != 2:
+                raise ValueError("The idx argument must be a list of exactly indices")
+        else:
+            if len(param_indices) >= 2:
+                raise ValueError("Less than two parameters to plot")            
             idx = param_indices[:2]
 
         log_prob_fn = partial(

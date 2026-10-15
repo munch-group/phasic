@@ -44,8 +44,8 @@ from .config import get_config
 logger = get_logger(__name__)
 
 try:
-    from vscodenb import pqdm as tqdm
-    from vscodenb import prange as trange
+    from ._progress import pqdm as tqdm
+    from ._progress import prange as trange
 except ImportError:
     from tqdm import trange, tqdm
     from functools import partial
