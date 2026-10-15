@@ -27,6 +27,10 @@
 #include <stack>
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <string>
 #include <vector>
 #include <thread>       // std::thread::hardware_concurrency (Graph::profile)
 #include <algorithm>    // std::max / std::min (Graph::profile)
@@ -434,81 +438,262 @@ void phasic::Graph::extend(size_t vertex_index) {
     this->extend(this->_callback, vertex_index);
 }
 
-// Python-API-name parity: discretize (callback-rate core). Faithful port of the
-// Python discretize() non-parameterized path: clone, add an auxiliary vertex per
-// transient state, normalize, and return the reward vector marking aux vertices.
-// The `verts` snapshot is taken before the loop so newly-added aux vertices are
-// not themselves processed (matching Python's `for v in new_graph.vertices()`).
-phasic::DiscretizeResult phasic::Graph::discretize(
-    std::function<double(const std::vector<int>&)> rate_fn, bool skip_existing) {
-    if (this->parameterized()) {
-        throw std::runtime_error(
-            "discretize: parameterized graphs are not supported in the C++ API. "
-            "The Python parameterized path widens the per-edge coefficient layout "
-            "(_rebuild_with_wider_layout), which has no C++ equivalent. Build a "
-            "discrete graph directly, or discretize in Python.");
+// Format a double the way Python's repr() does (shortest round-trip digits;
+// fixed notation for exponents in [-4, 16), else d.ddde+XX), so error
+// messages read exactly as they did when discretize() was Python.
+static std::string py_float_repr(double v) {
+    if (std::isnan(v)) return "nan";
+    if (std::isinf(v)) return v > 0 ? "inf" : "-inf";
+    if (v == 0.0) return std::signbit(v) ? "-0.0" : "0.0";
+    char buf[64];
+    int digits = 1;
+    for (; digits <= 17; ++digits) {
+        snprintf(buf, sizeof(buf), "%.*e", digits - 1, v);
+        if (strtod(buf, NULL) == v) break;
+    }
+    // buf = [-]d.ddde[+-]XX with `digits` significant digits
+    std::string sci(buf);
+    size_t epos = sci.find('e');
+    int exponent = atoi(sci.c_str() + epos + 1);
+    std::string mant = sci.substr(0, epos);
+    bool neg = mant[0] == '-';
+    if (neg) mant = mant.substr(1);
+    std::string ds;
+    for (char c : mant) if (c != '.') ds += c;
+    while (ds.size() > 1 && ds.back() == '0') ds.pop_back();
+    std::string out;
+    if (exponent >= -4 && exponent < 16) {
+        if (exponent < 0) {
+            out = "0." + std::string(-exponent - 1, '0') + ds;
+        } else if ((int) ds.size() <= exponent + 1) {
+            out = ds + std::string(exponent + 1 - ds.size(), '0') + ".0";
+        } else {
+            out = ds.substr(0, exponent + 1) + "." + ds.substr(exponent + 1);
+        }
+    } else {
+        out = ds.substr(0, 1);
+        if (ds.size() > 1) out += "." + ds.substr(1);
+        char e[16];
+        snprintf(e, sizeof(e), "e%c%02d", exponent < 0 ? '-' : '+', std::abs(exponent));
+        out += e;
+    }
+    return neg ? "-" + out : out;
+}
+
+static std::string state_repr(const std::vector<int> &state) {
+    std::string out = "[";
+    for (size_t i = 0; i < state.size(); ++i) {
+        if (i) out += ", ";
+        out += std::to_string(state[i]);
+    }
+    return out + "]";
+}
+
+// The fixed-rate check of discretize(): finite and > 0. Public so the Python
+// wrapper can run it first (before its own kwargs check), keeping the error
+// precedence Python always had.
+void phasic::Graph::discretize_check_rate(double rate) {
+    if (!(std::isfinite(rate) && rate > 0.0)) {
+        throw std::invalid_argument(
+            "rate must be larger than 0 and finite, got " + py_float_repr(rate));
+    }
+}
+
+// Shared implementation of both discretize() overloads (discretize-cpp-ssot-plan.md
+// section 5c): a fixed rate (rate_fn empty) or a per-state rate callback.
+static phasic::DiscretizeResult discretize_impl(
+        phasic::Graph &self, double fixed_rate,
+        const std::function<double(const std::vector<int>&)> &rate_fn, bool skip_existing,
+        bool input_is_discrete, const std::string &weight_mode) {
+    using phasic::Graph;
+    using phasic::Vertex;
+    bool callable = (bool) rate_fn;
+    if (!callable) phasic::Graph::discretize_check_rate(fixed_rate);
+    struct ptd_graph *cg = self.c_graph();
+    // A native discrete graph (discrete, but not made by discretize()) holds
+    // probabilities, not rates: adding aux vertices and renormalising would
+    // change its distribution (and the rewards vector came out one short).
+    // A discretize() result (was_dph) may be discretized again, e.g. with
+    // skip_existing.
+    if (input_is_discrete && !cg->was_dph) {
+        throw std::invalid_argument(
+            "discretize() needs a continuous graph (or a discretize() result), "
+            "but this graph is a native discrete (DPH) graph: its edge weights "
+            "are already probabilities. Discretize the continuous graph instead.");
+    }
+    bool param = self.parameterized();
+    if (param) {
+        // Operation contract O4, O2 (formula; log/callback are checked by the
+        // Python wrapper), O3 -- same order and messages as the Python checks.
+        for (size_t i = 0; i < cg->vertices_length; ++i) {
+            struct ptd_vertex *v = cg->vertices[i];
+            if (v == cg->starting_vertex || v->is_aux) continue;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                if (v->edges[k]->coefficients_length == 0) {
+                    throw std::invalid_argument(
+                        "discretize() does not support coefficient-less constant "
+                        "edges (add_edge_constant) on a parameterized graph, but "
+                        "vertex " + std::to_string(v->index) + " has one: every "
+                        "transient vertex gains a theta-dependent aux edge, and a "
+                        "discretized graph renormalises every edge per theta, so a "
+                        "constant edge would drift between update_weights calls. "
+                        "Give the rate as a coefficient list instead.");
+                }
+            }
+        }
+        // The weight mode: formula is visible in C (the tape); log and callback
+        // are Python-side state passed in by the caller (decision 3, hybrid).
+        std::string mode = cg->weight_tape != NULL ? std::string("formula") : weight_mode;
+        if (mode != "linear") {
+            throw std::invalid_argument(
+                "discretize() adds coefficient slots, which is only defined for "
+                "weight_mode='linear', but this graph has weight_mode='" + mode + "'. "
+                "Apply discretize() to the linear graph first and set the weight "
+                "mode (or formula/callback) on the result.");
+        }
+        size_t pl = cg->param_length;
+        for (size_t i = 0; i < cg->vertices_length; ++i) {
+            struct ptd_vertex *v = cg->vertices[i];
+            if (v == cg->starting_vertex) continue;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                size_t n = v->edges[k]->coefficients_length;
+                if (n != 0 && n != pl) {
+                    throw std::invalid_argument(
+                        "discretize() needs every edge's coefficient vector to have "
+                        "length param_length()=" + std::to_string(pl) + " (or 0 for a "
+                        "constant edge), but vertex " + std::to_string(v->index) +
+                        " has an edge with " + std::to_string(n) + " coefficients. The "
+                        "new slot would overwrite the extra per-edge data.");
+                }
+            }
+        }
     }
 
-    Graph new_graph = this->clone();
-    std::vector<Vertex> verts = new_graph.vertices();  // snapshot before adding aux
-    size_t start_index = new_graph.starting_vertex().c_vertex()->index;
-    size_t vlength = new_graph.vertices_length();
-    std::vector<size_t> aux_indices;
-
-    for (Vertex &vertex : verts) {
-        if (vertex.c_vertex()->index == start_index || vertex.edges_length() == 0) {
-            continue;
+    // Does any vertex still need an aux vertex? (skip_existing on an already
+    // discretized graph may find none; then no slot is added.)
+    auto has_aux_back_edge = [](struct ptd_vertex *v) {
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            struct ptd_vertex *to = v->edges[k]->to;
+            int sum = 0;
+            for (size_t j = 0; j < to->graph->state_length; ++j) sum += to->state[j];
+            if (sum == 0 && to->edges_length > 0 && to->edges[0]->to == v) return true;
         }
+        return false;
+    };
+    auto state_sum = [](struct ptd_vertex *v) {
+        int sum = 0;
+        for (size_t j = 0; j < v->graph->state_length; ++j) sum += v->state[j];
+        return sum;
+    };
+    bool any_new_aux = false;
+    for (size_t i = 0; i < cg->vertices_length && !any_new_aux; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v == cg->starting_vertex || v->edges_length == 0) continue;
+        if (!skip_existing) { any_new_aux = true; break; }
+        if (state_sum(v) == 0 || has_aux_back_edge(v)) continue;
+        any_new_aux = true;
+    }
 
+    Graph new_graph = param ? self.widen_layout(0, any_new_aux ? 1 : 0) : self.clone();
+    if (!param) {
+        // decision 8: carry the same members as the widening path does.
+        new_graph.copy_construction_state_from(self);
+    }
+    int slot = -1;
+    if (param && any_new_aux) {
+        slot = (int) new_graph.c_graph()->param_length - 1;
+        new_graph.append_theta_block("discretization", "discretization", 1);
+    }
+
+    struct ptd_graph *ng = new_graph.c_graph();
+    size_t n_original = ng->vertices_length;   // snapshot: aux vertices are not processed
+    size_t vlength = n_original;
+    std::vector<size_t> aux_indices;
+    std::vector<int> state(ng->state_length);
+    for (size_t i = 0; i < n_original; ++i) {
+        struct ptd_vertex *v = ng->vertices[i];
+        if (v == ng->starting_vertex || v->edges_length == 0) continue;
         if (skip_existing) {
-            bool has_aux = false, is_aux = false;
-            std::vector<Edge> ve = vertex.edges();
-            for (Edge &edge : ve) {
-                Vertex to = edge.to();
-                std::vector<int> tst = to.state();
-                int s = 0;
-                for (int x : tst) s += x;
-                if (s == 0 && to.edges_length() > 0 &&
-                    to.edges()[0].to().c_vertex()->index == vertex.c_vertex()->index) {
+            bool has_aux = false;
+            for (size_t k = 0; k < v->edges_length; ++k) {
+                struct ptd_vertex *to = v->edges[k]->to;
+                int sum = 0;
+                for (size_t j = 0; j < ng->state_length; ++j) sum += to->state[j];
+                if (sum == 0 && to->edges_length > 0 && to->edges[0]->to == v) {
                     has_aux = true;
-                    aux_indices.push_back(to.c_vertex()->index);
+                    aux_indices.push_back(to->index);
                     vlength -= 1;
                     break;
                 }
             }
-            std::vector<int> vst = vertex.state();
-            int vs = 0;
-            for (int x : vst) vs += x;
-            if (vs == 0) is_aux = true;
-            if (has_aux || is_aux) continue;
+            if (has_aux || state_sum(v) == 0) continue;
         }
-
-        double _rate = rate_fn(vertex.state());
-        Vertex aux = vertex.add_aux_vertex(_rate);
+        double rate = fixed_rate;
+        if (callable) {
+            for (size_t j = 0; j < ng->state_length; ++j) state[j] = v->state[j];
+            rate = rate_fn(state);
+            if (!(std::isfinite(rate) && rate >= 0.0)) {
+                throw std::invalid_argument(
+                    "discretize(rate=callable): the rate must be finite and >= 0, but "
+                    "the callable returned " + py_float_repr(rate) + " at state " +
+                    state_repr(state) + ".");
+            }
+        }
+        Vertex vertex(new_graph, v);
+        Vertex aux = (slot >= 0)
+            ? vertex.add_aux_vertex([&]() {
+                  std::vector<double> c(ng->param_length, 0.0);
+                  c[(size_t) slot] = rate;
+                  return c; }())
+            : vertex.add_aux_vertex(rate);
         aux.set_aux(true);
         aux_indices.push_back(aux.c_vertex()->index);
     }
 
     std::vector<int> rewards(vlength + aux_indices.size(), 0);
-    for (size_t idx : aux_indices) {
-        rewards[idx] = 1;
-    }
+    for (size_t idx : aux_indices) rewards[idx] = 1;
 
+    // Per-vertex normalisation, as on a first discretize(), also when a
+    // discretize() result is discretized again (skip_existing): the DPH
+    // normalisation used there before left raw rates (e.g. 6.0, 0.1) on the
+    // widened edges until the next update_weights().
     new_graph.normalize();
-
-    return DiscretizeResult{ std::move(new_graph), std::move(rewards) };
+    if (!ng->was_dph) {
+        ng->dph_compute_invalidated = true;
+        ng->was_dph = true;
+    }
+    return phasic::DiscretizeResult{ std::move(new_graph), std::move(rewards) };
 }
 
-// Python-API-name parity: discretize (scalar-rate overload). Validates the rate
-// lies in (0, 1) then delegates to the callback core.
-phasic::DiscretizeResult phasic::Graph::discretize(double rate, bool skip_existing) {
-    if (rate <= 0.0 || rate >= 1.0) {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "discretize: rate must be in (0, 1), got %g", rate);
-        throw std::runtime_error(msg);
+// Python-API-name parity: discretize. Adds one auxiliary vertex per transient
+// state and normalizes, giving a discrete phase-type distribution; returns the
+// new graph and its reward vector (1 on aux vertices). Same behaviour as Python
+// Graph.discretize (which delegates here): a constant graph stays constant; a
+// parameterized graph gains one theta slot (appended, recorded in theta_layout
+// as 'discretization') whose coefficient on each aux edge is the rate, so the
+// effective rate is rate * theta[-1]. Fixed rate: finite and > 0. Callback:
+// one finite number >= 0 per state.
+phasic::DiscretizeResult phasic::Graph::discretize(
+    std::function<double(const std::vector<int>&)> rate_fn, bool skip_existing,
+    bool input_is_discrete, const std::string &weight_mode) {
+    if (!rate_fn) {
+        throw std::invalid_argument("discretize: the rate callback is empty");
     }
-    return this->discretize(
-        [rate](const std::vector<int>&) { return rate; }, skip_existing);
+    return discretize_impl(*this, 0.0, rate_fn, skip_existing, input_is_discrete, weight_mode);
+}
+
+phasic::DiscretizeResult phasic::Graph::discretize(double rate, bool skip_existing,
+                                                   bool input_is_discrete,
+                                                   const std::string &weight_mode) {
+    return discretize_impl(*this, rate, std::function<double(const std::vector<int>&)>(),
+                           skip_existing, input_is_discrete, weight_mode);
+}
+
+void phasic::Graph::copy_construction_state_from(const Graph &o) {
+    this->_callback = o._callback;
+    this->_epoch_state_index = o._epoch_state_index;
+    this->_n_epochs = o._n_epochs;
+    this->_base_param_length = o._base_param_length;
 }
 
 // Python-API-name parity: structural + eval-path graph profile. Faithful port of
@@ -1280,88 +1465,205 @@ phasic::Graph phasic::Graph::from_serialized(const SerializedGraph &data) {
     return graph;
 }
 
-// Structural helper for add_epoch: rebuild `g` with `extra_state_dims` appended
-// to every vertex state (filled 0) and `extra_coeff_slots` appended to every edge
-// coefficient array (filled 0). Faithful port of Python _rebuild_with_wider_layout
-// (structural part only — the returned graph is fresh, and add_epoch sets the
-// epoch metadata on it). Lossless apart from the added slots: vertices keep
-// their indices (duplicate states are not merged), edges keep their order,
-// coefficient-less constant edges stay constant, and is_aux is carried.
-static phasic::Graph epoch_rebuild_wider(phasic::Graph &g, int extra_state_dims,
-                                         int extra_coeff_slots) {
-    using phasic::Graph;
-    using phasic::Vertex;
-    int new_state_length = (int) g.state_length() + extra_state_dims;
-    int old_pl = (int) g.c_graph()->param_length;
-    int new_param_length = old_pl + extra_coeff_slots;
-
-    Graph ng(new_state_length);
-    if (new_param_length > 0) ng.set_param_length(new_param_length);
-
-    std::vector<int> pad_state(extra_state_dims, 0);
-    std::vector<double> pad_coeff(extra_coeff_slots, 0.0);
-
-    // Refuse ragged coefficient vectors (as the Python add_epoch does): the
-    // new slots would land on an edge's extra per-edge data.
-    for (Vertex &v : g.vertices()) {
-        if (v.c_vertex()->index == g.starting_vertex().c_vertex()->index) continue;
-        struct ptd_vertex *cv = v.c_vertex();
-        for (size_t k = 0; k < cv->edges_length; ++k) {
-            size_t n = cv->edges[k]->coefficients_length;
-            if (n != 0 && n != (size_t) old_pl) {
+// Operation-level guard used by add_epoch (and, later, the other
+// layout-widening operations): every non-starting edge must carry 0
+// (constant) or param_length coefficients, otherwise the appended slots
+// would land on an edge's extra per-edge data. The widening primitive
+// itself does not check this (discretize-cpp-ssot-plan.md, primitive
+// contract P4).
+static void require_uniform_coefficient_length(phasic::Graph &g, const char *operation) {
+    struct ptd_graph *cg = g.c_graph();
+    size_t pl = cg->param_length;
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v == cg->starting_vertex) continue;
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            size_t n = v->edges[k]->coefficients_length;
+            if (n != 0 && n != pl) {
                 throw std::invalid_argument(
-                    "add_epoch needs every edge's coefficient vector to have "
-                    "length param_length (or 0 for a constant edge)");
+                    std::string(operation) + " needs every edge's coefficient vector "
+                    "to have length param_length (or 0 for a constant edge)");
             }
         }
     }
+}
 
-    std::map<size_t, Vertex> vmap;  // old C vertex index -> new Vertex
-    Vertex old_start = g.starting_vertex();
-    size_t start_idx = old_start.c_vertex()->index;
-    vmap.insert(std::make_pair(start_idx, ng.starting_vertex()));
+// Shared layout-widening primitive (discretize-cpp-ssot-plan.md section 3a).
+// Returns a new graph equal to this one except that `extra_state_dims` zero
+// entries are appended to every vertex state and `extra_coeff_slots` zero
+// slots to every coefficient-carrying edge. Kept: vertex indices (a vertex
+// sharing its state with an earlier one is created unregistered, never
+// merged), each vertex's edge order, coefficient-less constant edges
+// (unpadded), is_aux, was_dph, the stored callback and the epoch metadata.
+// NOT kept, as before this primitive existed: a parameterized edge's current
+// weight (reset to its value at theta = 1, the sum of its coefficients), the
+// C weight-formula tape and its source (callers re-install weight state),
+// and coefficients beyond param_length (truncated; operations refuse such
+// graphs). Edge targets are resolved by vertex->index (O(V+E)). Refuses only
+// synthetic SCC graphs; policy checks belong to the calling operation.
+phasic::Graph phasic::Graph::widen_layout(size_t extra_state_dims, size_t extra_coeff_slots) {
+    struct ptd_graph *cg = this->c_graph();
+    if (cg->synthetic) {
+        throw std::invalid_argument(
+            "Cannot widen the coefficient layout of a synthetic SCC graph: "
+            "its Type-A/phantom edges carry placeholder coefficients, and "
+            "the rebuilt graph would no longer be marked synthetic.");
+    }
+    size_t old_sl = cg->state_length;
+    size_t old_pl = cg->param_length;
+    size_t new_pl = old_pl + extra_coeff_slots;
+    bool param = this->parameterized();
 
-    std::vector<Vertex> overts = g.vertices();
-    for (Vertex &v : overts) {
-        size_t idx = v.c_vertex()->index;
-        if (idx == start_idx) continue;
-        std::vector<int> os = v.state();
-        std::vector<int> ns = os;
-        ns.insert(ns.end(), pad_state.begin(), pad_state.end());
-        // Register the vertex in the new state lookup only if it is the one
-        // g's lookup returns for its state; duplicates are created unregistered.
-        bool registered = g.vertex_exists(os) &&
-                          g.find_vertex(os).c_vertex()->index == idx;
-        Vertex nv = registered ? ng.find_or_create_vertex(ns) : ng.create_vertex(ns);
-        if (nv.c_vertex()->index != idx) {
+    Graph ng(old_sl + extra_state_dims);
+    if (new_pl > 0) ng.set_param_length(new_pl);
+
+    std::vector<Vertex> nv;
+    nv.reserve(cg->vertices_length);
+    struct ptd_avl_tree *avl = this->c_avl_tree();
+    std::vector<int> ns(old_sl + extra_state_dims, 0);
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        if (v->index != i) {
+            throw std::runtime_error("widen_layout: vertex index does not match its position");
+        }
+        if (v == cg->starting_vertex) {
+            nv.push_back(ng.starting_vertex());
+            continue;
+        }
+        for (size_t k = 0; k < old_sl; ++k) ns[k] = v->state[k];
+        struct ptd_avl_node *node = ptd_avl_tree_find(avl, v->state);
+        bool registered = node != NULL && node->entry == (void *) v;
+        Vertex w = registered ? ng.find_or_create_vertex(ns) : ng.create_vertex(ns);
+        if (w.c_vertex()->index != i) {
             throw std::runtime_error(
-                "add_epoch: widened graph recreated a vertex at a different index");
+                "widen_layout: widened graph recreated a vertex at a different index");
         }
-        if (v.is_aux()) nv.set_aux(true);
-        vmap.insert(std::make_pair(idx, nv));
+        if (v->is_aux) w.set_aux(true);
+        nv.push_back(w);
     }
 
-    // add_epoch refuses non-parameterized graphs, so every coefficient-
-    // carrying edge here is a real parameterized edge.
-    for (Vertex &v : overts) {
-        Vertex &nv = vmap.at(v.c_vertex()->index);
-        struct ptd_vertex *cv = v.c_vertex();
-        for (size_t k = 0; k < cv->edges_length; ++k) {
-            struct ptd_edge *e = cv->edges[k];
-            Vertex &to = vmap.at(e->to->index);
+    std::vector<double> coeffs;
+    for (size_t i = 0; i < cg->vertices_length; ++i) {
+        struct ptd_vertex *v = cg->vertices[i];
+        Vertex &from = nv[i];
+        for (size_t k = 0; k < v->edges_length; ++k) {
+            struct ptd_edge *e = v->edges[k];
+            Vertex &to = nv[e->to->index];
             if (e->coefficients_length == 0) {
-                nv.add_edge_constant(to, e->weight);
+                from.add_edge_constant(to, e->weight);
+            } else if (param) {
+                // The coefficients ParameterizedEdge::edge_state(old_pl) returns,
+                // then the pad.
+                size_t n = e->coefficients_length < old_pl ? e->coefficients_length : old_pl;
+                coeffs.assign(e->coefficients, e->coefficients + n);
+                coeffs.insert(coeffs.end(), extra_coeff_slots, 0.0);
+                from.add_edge_parameterized(to, 0.0, coeffs);
             } else {
-                // Same coefficients ParameterizedEdge::edge_state(old_pl) returns.
-                size_t n = e->coefficients_length < (size_t) old_pl
-                               ? e->coefficients_length : (size_t) old_pl;
-                std::vector<double> coeffs(e->coefficients, e->coefficients + n);
-                coeffs.insert(coeffs.end(), pad_coeff.begin(), pad_coeff.end());
-                nv.add_edge_parameterized(to, 0.0, coeffs);
+                from.add_edge(to, e->weight);
             }
         }
     }
+
+    if (cg->was_dph) {
+        ng.c_graph()->was_dph = true;
+        ng.c_graph()->dph_compute_invalidated = true;
+    }
+    ng._callback = this->_callback;
+    ng._theta_blocks = this->_theta_blocks;
+    ng._theta_names = this->_theta_names;
+    ng._epoch_state_index = this->_epoch_state_index;
+    ng._n_epochs = this->_n_epochs;
+    ng._base_param_length = this->_base_param_length;
     return ng;
+}
+
+std::vector<phasic::ParameterSlot> phasic::Graph::theta_layout(bool plain) {
+    std::vector<ParameterSlot> slots;
+    if (!this->parameterized()) return slots;
+    if (this->c_graph()->weight_tape != NULL) {
+        throw std::invalid_argument(
+            "theta_layout is undefined for weight_mode='formula': the formula "
+            "decides how theta maps to the coefficient slots, and theta's "
+            "length is resolved at inference time.");
+    }
+    size_t pl = this->c_graph()->param_length;
+    for (size_t i = 0; i < pl; ++i) {
+        slots.push_back(ParameterSlot{i, "theta" + std::to_string(i), "base", -1});
+    }
+    if (!plain) {
+        std::vector<bool> taken(pl, false);
+        for (const ThetaBlock &b : this->_theta_blocks) {
+            if (b.offset + b.count > pl) {
+                throw std::runtime_error(
+                    "theta_layout: a recorded parameter block ('" + b.name +
+                    "') no longer fits param_length() " + std::to_string(pl) +
+                    "; the layout annotation is stale");
+            }
+            for (size_t j = 0; j < b.count; ++j) {
+                size_t k = b.offset + j;
+                if (taken[k]) {
+                    throw std::runtime_error(
+                        "theta_layout: recorded parameter blocks overlap at slot " +
+                        std::to_string(k));
+                }
+                taken[k] = true;
+                slots[k].name = b.count == 1 ? b.name : b.name + std::to_string(j);
+                slots[k].kind = b.kind;
+                slots[k].epoch = b.epoch;
+            }
+        }
+    }
+    for (const auto &kv : this->_theta_names) {
+        if (kv.first < slots.size()) slots[kv.first].name = kv.second;
+    }
+    return slots;
+}
+
+void phasic::Graph::set_parameter_name(size_t index, const std::string &name) {
+    if (!this->parameterized()) {
+        throw std::invalid_argument(
+            "set_parameter_name: this graph has no parameterized edges, so it "
+            "has no parameters to name");
+    }
+    size_t pl = this->c_graph()->param_length;
+    if (index >= pl) {
+        throw std::out_of_range(
+            "set_parameter_name: index " + std::to_string(index) +
+            " is out of range for param_length() " + std::to_string(pl));
+    }
+    this->_theta_names[index] = name;
+}
+
+void phasic::Graph::append_theta_block(const std::string &name, const std::string &kind,
+                                       size_t count, int epoch) {
+    if (!this->parameterized()) {
+        throw std::invalid_argument("append_theta_block: the graph is not parameterized");
+    }
+    size_t pl = this->c_graph()->param_length;
+    if (count == 0 || count > pl) {
+        throw std::invalid_argument(
+            "append_theta_block: count must be between 1 and param_length() " +
+            std::to_string(pl));
+    }
+    size_t offset = pl - count;
+    for (const ThetaBlock &b : this->_theta_blocks) {
+        if (offset < b.offset + b.count) {
+            throw std::invalid_argument(
+                "append_theta_block: the new block would overlap the recorded "
+                "block '" + b.name + "'; append it right after widening");
+        }
+    }
+    std::string unique = name;
+    int suffix = 1;
+    bool clash = true;
+    while (clash) {
+        clash = false;
+        for (const ThetaBlock &b : this->_theta_blocks) {
+            if (b.name == unique) { clash = true; break; }
+        }
+        if (clash) unique = name + "_" + std::to_string(++suffix);
+    }
+    this->_theta_blocks.push_back(ThetaBlock{unique, kind, offset, count, epoch});
 }
 
 // Python-API-name parity: add an epoch boundary. Faithful port of Python
@@ -1380,6 +1682,13 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
             "transitions are computed from the continuous stop probability "
             "and occupancy. Add epochs to the continuous graph first.");
     }
+    if (this->c_graph()->weight_tape != NULL) {
+        throw std::invalid_argument(
+            "add_epoch() adds coefficient slots, which is only defined for "
+            "weight_mode='linear', but this graph has a weight formula. Apply "
+            "add_epoch() to the linear graph first and set the formula on the "
+            "result.");
+    }
     // Resolve the callback: an explicit argument wins, otherwise fall back to the
     // stored construction callback (set by from_callback), mirroring Python.
     const phasic::TransitionCallback &cb = callback ? callback : this->_callback;
@@ -1396,7 +1705,8 @@ phasic::Graph phasic::Graph::add_epoch(double time, const phasic::TransitionCall
                                 : (int) this->c_graph()->param_length;
     int extra_coeff = is_first ? (base_param_length + 2) : (base_param_length + 1);
 
-    Graph ng = epoch_rebuild_wider(*this, extra_state, extra_coeff);
+    require_uniform_coefficient_length(*this, "add_epoch");
+    Graph ng = this->widen_layout((size_t) extra_state, (size_t) extra_coeff);
 
     if (is_first) {
         ng._epoch_state_index = (int) this->state_length();

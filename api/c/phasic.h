@@ -1517,44 +1517,6 @@ int ptd_dph_probability_distribution_step(
         struct ptd_dph_probability_distribution_context *context
 );
 
-/**
- * Compute PDF and gradient w.r.t. parameters using forward algorithm
- *
- * This extends the standard forward algorithm (Algorithm 4) to track
- * probability gradients through the DP recursion. Gradients are computed
- * via chain rule through graph traversal - no matrix operations.
- *
- * @param graph Parameterized graph with symbolic edge expressions
- * @param time Time point to evaluate PDF at
- * @param granularity Discretization granularity (0 = auto-select)
- * @param params Parameter vector θ
- * @param n_params Length of params array
- * @param pdf_value Output: PDF(time|θ)
- * @param pdf_gradient Output: ∇PDF(time|θ), shape (n_params,)
- *        Must be pre-allocated with size n_params
- *
- * @return 0 on success, non-zero on error
- *
- * @note This uses the same graph-based approach as pdf(), just with
- *       gradient tracking. No matrix exponentiation.
- *
- * @note For multiple time points, call this function in a loop.
- *       Each call is independent.
- *
- * @note Complexity: O(k·m·p) where k=max_jumps, m=edges, p=n_params
- *       This is p× slower than forward-only, but still graph-based.
- */
-int ptd_graph_pdf_with_gradient(
-    struct ptd_graph *graph,
-    double time,
-    size_t granularity,
-    const double *params,
-    size_t n_params,
-    double *pdf_value,
-    double *pdf_gradient
-);
-
-
 #ifndef PTD_INTEGRATE_EXCEPTIONS
 #define DIE_ERROR(error_code, error, ...) do {     \
 char error_formatted[1024];                        \

@@ -34,6 +34,8 @@
 #include <iterator>
 #include <functional>
 #include <utility>
+#include <map>
+#include <string>
 
 #include "../c/phasic.h"
 #include "scc_graph.h"
@@ -159,9 +161,30 @@ namespace phasic {
     // complete Graph type); forward-declared here so Graph can name it.
     struct DiscretizeResult;
 
+    // One slot of a graph's parameter vector theta, as reported by
+    // Graph::theta_layout() (discretize-cpp-ssot-plan.md section 4c).
+    struct ParameterSlot {
+        size_t index;
+        std::string name;
+        std::string kind;   // "base", "discretization", "mutation", ...
+        int epoch;          // epoch number for epoch slots, else -1
+    };
+
+    // A block of slots appended at the end of theta by a layout-widening
+    // operation. Internal annotation: theta_layout() builds the slots.
+    struct ThetaBlock {
+        std::string name;
+        std::string kind;
+        size_t offset;      // index of the block's first slot in theta
+        size_t count;
+        int epoch;
+    };
+
     // Array representation of a graph produced by Graph::serialize() and consumed
     // by Graph::from_serialized(), mirroring the fields of Python's
-    // serialize()/from_serialized() dict. Row-indexed by an enumeration position
+    // serialize()/from_serialized() dict -- except the per-vertex 'is_aux' key
+    // (added to Python 2026-10), not carried here yet; serialize unification
+    // (Stage-3 step 9) owns that. Row-indexed by an enumeration position
     // (0..n_vertices-1); edge rows reference those positions. Regular (constant-
     // valued but coefficient-carrying) and coefficient-less (constant_edges)
     // edges are kept separate, as in Python. Python-runtime metadata
@@ -255,6 +278,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = o._callback;
+            this->_theta_blocks = o._theta_blocks;
+            this->_theta_names = o._theta_names;
         }
 
         // Move constructor - transfers ownership without sharing references
@@ -271,6 +296,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = std::move(o._callback);
+            this->_theta_blocks = std::move(o._theta_blocks);
+            this->_theta_names = std::move(o._theta_names);
         }
 
         Graph(size_t state_length) {
@@ -1083,14 +1110,39 @@ namespace phasic {
         // normalized, producing a discrete phase-type distribution. Python name
         // for Graph.discretize(); the returned DiscretizeResult carries the new
         // graph and its reward vector (1 for aux vertices) — Python attaches the
-        // rewards as an attribute, which C++ cannot. `rate` must be in (0, 1)
-        // (scalar overload) or a callback state->rate. Parameterized graphs are
-        // not supported (the Python path widens the coefficient layout, which has
-        // no C++ equivalent) and raise. Defined out-of-line in phasiccpp.cpp.
-        DiscretizeResult discretize(double rate, bool skip_existing = false);
+        // rewards as an attribute, which C++ cannot. `rate` is a finite number
+        // > 0 (scalar overload) or a callback state -> one finite number >= 0.
+        // A parameterized graph gains one theta slot, appended and recorded in
+        // theta_layout() as 'discretization'; the effective rate is
+        // rate * theta[-1]. Refuses parameterized graphs with a weight formula,
+        // ragged coefficient vectors or constant edges on transient vertices.
+        // Also refuses a native discrete (DPH) graph: input_is_discrete true
+        // while the graph was not made by discretize() (was_dph false). All
+        // refusals throw std::invalid_argument (before 2026-10 the fixed-rate
+        // check threw std::runtime_error, and the rate had to be < 1).
+        // input_is_discrete: whether the input is a discrete graph. The C++
+        // graph does not record this (C knows only was_dph), so the caller
+        // says so; Python passes its is_discrete attribute. It only gates the
+        // native-DPH refusal: with the default false a native DPH is NOT
+        // detected and is treated as a continuous chain. The result is always
+        // normalized per vertex. weight_mode: the caller's weight mode ('linear',
+        // 'log', 'callback'); C++ detects 'formula' itself (the weight tape).
+        // The single implementation behind Python's Graph.discretize.
+        DiscretizeResult discretize(double rate, bool skip_existing = false,
+                                    bool input_is_discrete = false,
+                                    const std::string &weight_mode = "linear");
         DiscretizeResult discretize(
             std::function<double(const std::vector<int>&)> rate_fn,
-            bool skip_existing = false);
+            bool skip_existing = false, bool input_is_discrete = false,
+            const std::string &weight_mode = "linear");
+
+        // The fixed-rate check of discretize (finite and > 0); throws
+        // std::invalid_argument. Exposed so a wrapper can check the rate first.
+        static void discretize_check_rate(double rate);
+
+        // Copy the construction callback and epoch metadata from `o` (what
+        // widen_layout carries; used by discretize's constant path).
+        void copy_construction_state_from(const Graph &o);
 
         // Analyse this (parameterized) graph and recommend build/eval settings
         // with reasons — parallel_elimination (from the SCC structure) and the
@@ -1137,6 +1189,36 @@ namespace phasic {
         // Epoch metadata is carried on the returned graph so a further add_epoch
         // chains. Defined out-of-line in phasiccpp.cpp.
         Graph add_epoch(double time, const TransitionCallback &callback = TransitionCallback());
+
+        // Shared layout-widening primitive: a copy of this graph with
+        // extra_state_dims zero entries appended to every vertex state and
+        // extra_coeff_slots zero slots appended to every coefficient-carrying
+        // edge. Keeps vertex indices, duplicate states, edge order, constant
+        // edges, is_aux, was_dph, callback and epoch metadata; resets
+        // parameterized weights to theta = 1 and drops the weight formula (see
+        // phasiccpp.cpp). Refuses synthetic SCC graphs; no other checks (they
+        // belong to the calling operation). Defined out-of-line in phasiccpp.cpp.
+        Graph widen_layout(size_t extra_state_dims, size_t extra_coeff_slots);
+
+        // The meaning of every slot of theta (the vector update_weights takes):
+        // index, name, kind and epoch. Empty for a non-parameterized graph.
+        // Slots not covered by a recorded block are "base" slots named
+        // theta0, theta1, ... With plain = true every slot is reported as a
+        // plain base slot (used for weight_mode='log'); user names are kept.
+        // Throws std::invalid_argument for a weight-formula graph (theta is
+        // then defined by the formula) and std::runtime_error if a recorded
+        // block no longer fits param_length(). Defined in phasiccpp.cpp.
+        std::vector<ParameterSlot> theta_layout(bool plain = false);
+
+        // Give slot `index` of theta a name (reported by theta_layout()).
+        void set_parameter_name(size_t index, const std::string &name);
+
+        // Record that the last `count` slots of theta were just appended by a
+        // layout-widening operation (internal; used by discretize). The block
+        // starts at param_length() - count. A name already used by an earlier
+        // block gets a suffix (_2, _3, ...).
+        void append_theta_block(const std::string &name, const std::string &kind,
+                                size_t count, int epoch = -1);
 
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
         //     double *ptr = ptd_expected_residence_time(
@@ -1464,7 +1546,10 @@ namespace phasic {
                 PTD_THROW_AND_CLEAR();
             }
 
-            return Graph(r.graph, r.avl_tree);
+            Graph g(r.graph, r.avl_tree);
+            g._theta_blocks = this->_theta_blocks;
+            g._theta_names = this->_theta_names;
+            return g;
         }
 
 
@@ -1475,7 +1560,10 @@ namespace phasic {
                 PTD_THROW_AND_CLEAR();
             }
 
-            return new Graph(r.graph, r.avl_tree);
+            Graph *g = new Graph(r.graph, r.avl_tree);
+            g->_theta_blocks = this->_theta_blocks;
+            g->_theta_names = this->_theta_names;
+            return g;
         }
 
         double pdf(double time, int64_t granularity = 0) {
@@ -1744,8 +1832,10 @@ namespace phasic {
                 return *this;
             }
 
-            (*this).rf_graph = (struct rf_graph *) malloc(sizeof(*this->rf_graph));
-
+            // Release this graph's reference to its current graph. (Before
+            // 2026-10-13 a stray malloc here replaced rf_graph with an
+            // uninitialised block first, so every copy-assignment read a
+            // garbage reference count and crashed.)
             *this->rf_graph->references -= 1;
 
             if (*this->rf_graph->references == 0) {
@@ -1778,6 +1868,8 @@ namespace phasic {
             this->_n_epochs = o._n_epochs;
             this->_base_param_length = o._base_param_length;
             this->_callback = o._callback;
+            this->_theta_blocks = o._theta_blocks;
+            this->_theta_names = o._theta_names;
 
             return *this;
         }
@@ -1816,6 +1908,10 @@ namespace phasic {
         // manually or via Graph(size_t)); lets extend()/add_epoch() default to it,
         // mirroring Python's stored self._callback.
         TransitionCallback _callback;
+        // theta layout annotations (discretize-cpp-ssot-plan.md section 4c):
+        // blocks appended by layout-widening operations, and user slot names.
+        std::vector<ThetaBlock> _theta_blocks;
+        std::map<size_t, std::string> _theta_names;
 
         friend class VertexLinkedList;
 

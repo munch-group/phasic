@@ -185,14 +185,6 @@ struct kahan_sum {
 };
 
 /**
- * Initialize Kahan summation
- */
-static inline void kahan_init(struct kahan_sum *k) {
-    k->sum = 0.0;
-    k->compensation = 0.0;
-}
-
-/**
  * Add value to Kahan sum with compensation
  *
  * Algorithm:
@@ -1117,6 +1109,24 @@ bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_
  * Deep clone a graph with all vertices, edges, and coefficient arrays
  * Supports unified edge interface (all edges have coefficient arrays)
  */
+/* Position of `to` in graph->vertices: O(1) via vertex->index, checked
+ * against the array; falls back to a scan only if the index does not match
+ * its position (C reorders indices temporarily during elimination). A scan
+ * per edge made ptd_clone_graph O(V*E) (110 s at 204k vertices) and the PDF
+ * gradient O(steps*E*V). Returns (size_t)-1 if `to` is not in the graph. */
+static size_t vertex_position(const struct ptd_graph *graph, const struct ptd_vertex *to) {
+    size_t k = to->index;
+    if (k < graph->vertices_length && graph->vertices[k] == to) {
+        return k;
+    }
+    for (k = 0; k < graph->vertices_length; k++) {
+        if (graph->vertices[k] == to) {
+            return k;
+        }
+    }
+    return (size_t)-1;
+}
+
 struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree) {
     struct ptd_clone_res res;
     res.graph = NULL;
@@ -1211,13 +1221,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
         struct ptd_edge *old_edge = old_start->edges[i];
 
         // Find target vertex index in old graph
-        size_t target_idx = (size_t)-1;
-        for (size_t j = 0; j < graph->vertices_length; j++) {
-            if (graph->vertices[j] == old_edge->to) {
-                target_idx = j;
-                break;
-            }
-        }
+        size_t target_idx = vertex_position(graph, old_edge->to);
 
         if (target_idx == (size_t)-1) {
             free(vertex_map);
@@ -1285,13 +1289,7 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             struct ptd_edge *old_edge = old_v->edges[j];
 
             // Find target vertex index
-            size_t target_idx = (size_t)-1;
-            for (size_t k = 0; k < graph->vertices_length; k++) {
-                if (graph->vertices[k] == old_edge->to) {
-                    target_idx = k;
-                    break;
-                }
-            }
+            size_t target_idx = vertex_position(graph, old_edge->to);
 
             if (target_idx == (size_t)-1) {
                 free(vertex_map);
@@ -2672,11 +2670,16 @@ double *ptd_normalize_graph(struct ptd_graph *graph) {
         }
 
         if (rate == 0) {
+            // Zero total weight (no edges, or only zero-weight edges): leave
+            // the edges as they are; dividing would turn 0 into 0/0 = NaN.
+            // (update_weights' was_dph renormalisation skips totals <= 0;
+            // here only an exact zero is skipped -- a negative total is an
+            // invalid graph and is divided as before.)
             res[i] = 1.0;
-        } else {
-            res[i] = 1.0 / rate;
+            continue;
         }
 
+        res[i] = 1.0 / rate;
         for (size_t j = 0; j < vertex->edges_length; ++j) {
             vertex->edges[j]->weight /= rate;
         }
@@ -13148,451 +13151,6 @@ int ptd_probability_distribution_step(
     context->cdf = dph_context->cdf;
     context->pdf = dph_context->pmf * context->granularity;
 
-    return 0;
-}
-
-/**
- * Helper: Allocate 2D array for gradient computation
- */
-static double **alloc_2d(size_t rows, size_t cols) {
-    double **arr = (double **)malloc(rows * sizeof(double*));
-    if (arr == NULL) return NULL;
-
-    for (size_t i = 0; i < rows; i++) {
-        arr[i] = (double *)calloc(cols, sizeof(double));
-        if (arr[i] == NULL) {
-            for (size_t j = 0; j < i; j++) free(arr[j]);
-            free(arr);
-            return NULL;
-        }
-    }
-    return arr;
-}
-
-/**
- * Helper: Free 2D array
- */
-static void free_2d(double **arr, size_t rows) {
-    if (arr == NULL) return;
-    for (size_t i = 0; i < rows; i++) {
-        free(arr[i]);
-    }
-    free(arr);
-}
-
-/**
- * Compute PMF with gradient tracking using uniformization
- *
- * Returns PMF(time) and ∇PMF(time) with respect to parameters
- * PMF = Σ_k Poisson(k; λt) * P(absorption at step k)
- *
- * @param graph Parameterized phase-type graph
- * @param time Time point to evaluate
- * @param lambda Uniformization rate (max exit rate)
- * @param granularity Discretization steps per unit time
- * @param params Parameter vector (theta)
- * @param n_params Number of parameters
- * @param pmf_value Output: PMF value
- * @param pmf_gradient Output: PMF gradient (n_params,)
- * @return 0 on success, -1 on error
- */
-static int compute_pmf_with_gradient(
-    struct ptd_graph *graph,
-    double time,
-    double lambda,
-    const double *lambda_grad,  // Gradient of uniformization rate: ∂λ/∂θ
-    size_t granularity,
-    const double *params,
-    size_t n_params,
-    double *pmf_value,
-    double *pmf_gradient
-) {
-    if (graph == NULL || params == NULL || lambda_grad == NULL ||
-        pmf_value == NULL || pmf_gradient == NULL) {
-        return -1;
-    }
-
-    // Estimate max_jumps to capture Poisson tail (improved from fixed +100 buffer)
-    // Use 6-sigma rule: cover 99.9999% of Poisson mass
-    double lambda_t = lambda * time;
-    double sigma = sqrt(lambda_t);
-    size_t max_jumps = (size_t)(lambda_t + 6.0 * sigma + 100);
-
-    PTD_LOG_DEBUG("PMF gradient computation: lambda=%.2f, time=%.2f, lambda*t=%.2f, max_jumps=%zu",
-                 lambda, time, lambda_t, max_jumps);
-
-    // Initialize probability and gradient arrays
-    double *prob = (double *)calloc(graph->vertices_length, sizeof(double));
-    double **prob_grad = alloc_2d(graph->vertices_length, n_params);
-
-    if (prob == NULL || prob_grad == NULL) {
-        free(prob);
-        free_2d(prob_grad, graph->vertices_length);
-        return -1;
-    }
-
-    // Starting vertex has probability 1, gradient 0
-    // CRITICAL: Use graph->starting_vertex->index, NOT hardcoded 0!
-    size_t starting_idx = graph->starting_vertex->index;
-    prob[starting_idx] = 1.0;
-
-    // Initialize output accumulators with Kahan summation for numerical stability
-    struct kahan_sum pmf_kahan;
-    kahan_init(&pmf_kahan);
-    *pmf_value = 0.0;
-
-    struct kahan_sum *grad_kahan = (struct kahan_sum *)malloc(n_params * sizeof(struct kahan_sum));
-    if (grad_kahan == NULL) {
-        free(prob);
-        free_2d(prob_grad, graph->vertices_length);
-        return -1;
-    }
-    for (size_t i = 0; i < n_params; i++) {
-        kahan_init(&grad_kahan[i]);
-        pmf_gradient[i] = 0.0;
-    }
-
-    // Precompute Poisson probabilities
-    double *poisson_cache = (double *)malloc(max_jumps * sizeof(double));
-    if (poisson_cache == NULL) {
-        free(prob);
-        free_2d(prob_grad, graph->vertices_length);
-        return -1;
-    }
-
-    // lambda_t already defined at function scope (line 6635)
-    for (size_t k = 0; k < max_jumps; k++) {
-        poisson_cache[k] = exp(-lambda_t + k * log(lambda_t) - lgamma(k + 1));
-    }
-
-    // DP iteration over discrete time steps
-    for (size_t k = 0; k < max_jumps; k++) {
-        double *next_prob = (double *)calloc(graph->vertices_length, sizeof(double));
-        double **next_prob_grad = alloc_2d(graph->vertices_length, n_params);
-
-        if (next_prob == NULL || next_prob_grad == NULL) {
-            free(next_prob);
-            free_2d(next_prob_grad, graph->vertices_length);
-            free(prob);
-            free_2d(prob_grad, graph->vertices_length);
-            free(poisson_cache);
-            return -1;
-        }
-
-        // Forward step through each vertex
-        for (size_t v = 0; v < graph->vertices_length; v++) {
-            struct ptd_vertex *vertex = graph->vertices[v];
-
-            // Compute exit rate and its gradient
-            double exit_rate = 0.0;
-            double *exit_rate_grad = (double *)calloc(n_params, sizeof(double));
-            if (exit_rate_grad == NULL) {
-                free(next_prob);
-                free_2d(next_prob_grad, graph->vertices_length);
-                free(prob);
-                free_2d(prob_grad, graph->vertices_length);
-                free(poisson_cache);
-                return -1;
-            }
-
-            // Sum all outgoing edge weights for exit rate
-            for (size_t e = 0; e < vertex->edges_length; e++) {
-                struct ptd_edge *edge = vertex->edges[e];
-
-                // Current API: ALL edges have coefficients array
-                // Parameterized edges: coefficients_length > 1
-                // Constant edges: coefficients_length == 1
-                double weight = 0.0;
-                if (edge->coefficients_length > 1) {
-                    // Parameterized edge: weight = Σ coefficients[i] * params[i]
-                    for (size_t i = 0; i < n_params && i < edge->coefficients_length; i++) {
-                        weight += edge->coefficients[i] * params[i];
-                        exit_rate_grad[i] += edge->coefficients[i];
-                    }
-                } else {
-                    // Constant edge: weight = coefficients[0]
-                    weight = edge->coefficients[0];
-                }
-                exit_rate += weight;
-            }
-
-            // Process outgoing edges for probability transitions
-            for (size_t e = 0; e < vertex->edges_length; e++) {
-                struct ptd_edge *edge = vertex->edges[e];
-
-                // Find target vertex index
-                size_t to_idx = 0;
-                for (size_t i = 0; i < graph->vertices_length; i++) {
-                    if (graph->vertices[i] == edge->to) {
-                        to_idx = i;
-                        break;
-                    }
-                }
-
-                // Compute edge weight and its gradient
-                double weight = 0.0;
-                double *weight_grad = (double *)calloc(n_params, sizeof(double));
-                if (weight_grad == NULL) {
-                    free(exit_rate_grad);
-                    free(next_prob);
-                    free_2d(next_prob_grad, graph->vertices_length);
-                    free(prob);
-                    free_2d(prob_grad, graph->vertices_length);
-                    free(poisson_cache);
-                    return -1;
-                }
-
-                if (edge->coefficients_length > 1) {
-                    // Parameterized edge
-                    for (size_t i = 0; i < n_params && i < edge->coefficients_length; i++) {
-                        weight += edge->coefficients[i] * params[i];
-                        weight_grad[i] = edge->coefficients[i];
-                    }
-                } else {
-                    // Constant edge
-                    weight = edge->coefficients[0];
-                }
-
-                // Update next probability using chain rule
-                next_prob[to_idx] += prob[v] * weight / lambda;
-
-                for (size_t i = 0; i < n_params; i++) {
-                    next_prob_grad[to_idx][i] +=
-                        prob_grad[v][i] * weight / lambda +
-                        prob[v] * weight_grad[i] / lambda;
-                }
-
-                free(weight_grad);
-            }
-
-            // Self-loop probability (staying in same state)
-            double self_prob = (lambda - exit_rate) / lambda;
-            next_prob[v] += prob[v] * self_prob;
-
-            for (size_t i = 0; i < n_params; i++) {
-                next_prob_grad[v][i] +=
-                    prob_grad[v][i] * self_prob +
-                    prob[v] * (-exit_rate_grad[i]) / lambda;
-            }
-
-            free(exit_rate_grad);
-        }
-
-        // Swap buffers
-        free(prob);
-        free_2d(prob_grad, graph->vertices_length);
-        prob = next_prob;
-        prob_grad = next_prob_grad;
-
-        // Accumulate PMF contributions from absorbing states with Kahan summation
-        for (size_t i = 0; i < graph->vertices_length; i++) {
-            struct ptd_vertex *v = graph->vertices[i];
-            if (v->edges_length == 0 && i > 0) {
-                double poisson_k = poisson_cache[k];
-
-                // Kahan summation for PMF value
-                kahan_add(&pmf_kahan, poisson_k * prob[i]);
-                *pmf_value = kahan_result(&pmf_kahan);
-
-                // Gradient has TWO terms (chain rule through Poisson):
-                // Term 1: ∂Poisson/∂P · ∂P/∂θ = Poisson(k) · ∂P_k/∂θ
-                // Term 2: ∂Poisson/∂λ · ∂λ/∂θ · P = Poisson(k) · (k-λt)/λ · ∂λ/∂θ · P_k
-                // (lambda_t already defined at function scope)
-                double poisson_grad_factor = poisson_k * ((double)k - lambda_t) / lambda;
-
-                for (size_t p = 0; p < n_params; p++) {
-                    // Term 1: Poisson weight times probability gradient
-                    kahan_add(&grad_kahan[p], poisson_k * prob_grad[i][p]);
-
-                    // Term 2: Poisson gradient times probability
-                    kahan_add(&grad_kahan[p], poisson_grad_factor * lambda_grad[p] * prob[i]);
-
-                    pmf_gradient[p] = kahan_result(&grad_kahan[p]);
-                }
-
-                // CRITICAL: Zero out absorbed probability (prevent cumulation)
-                prob[i] = 0;
-                for (size_t p = 0; p < n_params; p++) {
-                    prob_grad[i][p] = 0;
-                }
-            }
-        }
-
-        // Early termination when Poisson probability becomes negligible
-        if (k > 10 && poisson_cache[k] < 1e-15) {
-            PTD_LOG_DEBUG("Early termination at k=%zu (Poisson weight < 1e-15)", k);
-            break;
-        }
-
-        // Convergence check: warn if last iteration has significant mass
-        if (k == max_jumps - 1 && poisson_cache[k] > 1e-10) {
-            PTD_LOG_WARNING("Poisson tail may be truncated: P(k=%zu) = %.2e (consider increasing granularity)",
-                           k, poisson_cache[k]);
-        }
-    }
-
-    free(prob);
-    free_2d(prob_grad, graph->vertices_length);
-    free(poisson_cache);
-    free(grad_kahan);
-
-    return 0;
-}
-
-/**
- * Forward algorithm with gradient tracking
- * Uses uniformization to compute PDF = PMF * lambda
- *
- * @param graph Parameterized phase-type graph
- * @param time Time point to evaluate
- * @param granularity Discretization steps (0 = auto)
- * @param params Parameter vector (theta)
- * @param n_params Number of parameters
- * @param pdf_value Output: PDF value
- * @param pdf_gradient Output: PDF gradient (n_params,)
- * @return 0 on success, -1 on error
- */
-int ptd_graph_pdf_with_gradient(
-    struct ptd_graph *graph,
-    double time,
-    size_t granularity,
-    const double *params,
-    size_t n_params,
-    double *pdf_value,
-    double *pdf_gradient
-) {
-    if (graph == NULL || params == NULL || pdf_value == NULL || pdf_gradient == NULL) {
-        return -1;
-    }
-
-    // 1. Compute uniformization rate (max exit rate across all vertices)
-    // Also track which vertex achieves max rate for gradient computation
-    double lambda = 0.0;
-    size_t max_vertex_idx = 0;
-
-    for (size_t i = 0; i < graph->vertices_length; i++) {
-        struct ptd_vertex *v = graph->vertices[i];
-        double exit_rate = 0.0;
-
-        for (size_t j = 0; j < v->edges_length; j++) {
-            struct ptd_edge *e = v->edges[j];
-
-            // Compute weight from coefficients and parameters
-            // In gradient mode, treat all edges as potentially parameterized
-            double weight = 0.0;
-            if (e->coefficients_length >= n_params && n_params > 0) {
-                // Parameterized edge: weight = Σ_k coeff[k] * param[k]
-                for (size_t k = 0; k < n_params; k++) {
-                    weight += e->coefficients[k] * params[k];
-                }
-            } else if (e->coefficients_length == 1) {
-                // Constant edge or degenerate case
-                weight = e->coefficients[0];
-            } else {
-                // Mismatch: not enough coefficients for parameters
-                // Treat as zero weight (edge will be ignored)
-                weight = 0.0;
-            }
-            exit_rate += weight;
-        }
-
-        if (exit_rate > lambda) {
-            lambda = exit_rate;
-            max_vertex_idx = i;  // Track which vertex has max rate
-        }
-    }
-
-    // Compute ∂λ/∂θ: gradient of uniformization rate
-    // λ is determined by the vertex with maximum exit rate
-    // ∂λ/∂θ_k = sum of coefficients[k] for all edges from max_vertex
-    double *lambda_grad = (double *)calloc(n_params, sizeof(double));
-    if (lambda_grad == NULL) {
-        return -1;
-    }
-
-    struct ptd_vertex *max_v = graph->vertices[max_vertex_idx];
-    for (size_t j = 0; j < max_v->edges_length; j++) {
-        struct ptd_edge *e = max_v->edges[j];
-        if (e->coefficients_length >= n_params && n_params > 0) {
-            // Parameterized edge: accumulate coefficients for ∂λ/∂θ
-            for (size_t k = 0; k < n_params; k++) {
-                lambda_grad[k] += e->coefficients[k];
-            }
-        }
-        // Constant edges (coefficients_length < n_params) contribute 0 to gradient
-    }
-
-    if (lambda <= 0.0) {
-        *pdf_value = 0.0;
-        for (size_t i = 0; i < n_params; i++) {
-            pdf_gradient[i] = 0.0;
-        }
-        free(lambda_grad);
-        return 0;
-    }
-
-    // 2. Determine granularity (auto-select if not specified)
-    // Higher minimum granularity (1000) improves numerical stability
-    // Discretization error scales as O(1/granularity²)
-    if (granularity == 0) {
-        // Same overflow hazard as ptd_probability_distribution_context_create:
-        // (size_t)(lambda * 2.0) is undefined once lambda*2 leaves the size_t
-        // range, silently yielding a garbage granularity. Reject an outsized rate
-        // with a clear message instead (a diverged model / unscaled units).
-        double desired_granularity = lambda * 2.0;
-        if (!(desired_granularity <= 9.0e18)) {
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Maximum outgoing rate (%.3e) is too large to compute a phase-type "
-                    "PDF gradient: the auto-selected granularity (~2x the max rate) would "
-                    "overflow. This usually means the model diverged or the rate/time "
-                    "units need rescaling.\n",
-                    lambda
-            );
-            free(lambda_grad);
-            return -1;
-        }
-        granularity = (size_t)(desired_granularity);
-        if (granularity < 1000) {
-            PTD_LOG_DEBUG("Auto-selected granularity (%zu) increased to minimum (1000) for gradient computation", granularity);
-            granularity = 1000;
-        } else {
-            PTD_LOG_DEBUG("Auto-selected granularity for gradient: %zu (lambda=%.2f)", granularity, lambda);
-        }
-    }
-
-    // 3. Compute PMF and its gradient
-    double pmf;
-    double *pmf_grad = (double *)malloc(n_params * sizeof(double));
-    if (pmf_grad == NULL) {
-        free(lambda_grad);
-        return -1;
-    }
-
-    int status = compute_pmf_with_gradient(graph, time, lambda, lambda_grad, granularity,
-                                          params, n_params, &pmf, pmf_grad);
-
-    if (status != 0) {
-        free(pmf_grad);
-        free(lambda_grad);
-        return -1;
-    }
-
-    // 4. Convert PMF to PDF with gradient
-    //    PDF(t; θ) = PMF(t; θ) · λ(θ)
-    //
-    // NOTE: Empirically determined that the lambda gradient term should be SUBTRACTED.
-    // Mathematical analysis suggests this is because pmf_grad already accounts for
-    // λ dependence through the Poisson gradient term, creating a double-counting issue
-    // if we naively apply the product rule. The minus sign gives correct results.
-    *pdf_value = pmf * lambda;
-    for (size_t i = 0; i < n_params; i++) {
-        pdf_gradient[i] = pmf_grad[i] * lambda - pmf * lambda_grad[i];
-    }
-
-    free(pmf_grad);
-    free(lambda_grad);
     return 0;
 }
 

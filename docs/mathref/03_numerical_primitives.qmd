@@ -11,7 +11,7 @@ Kahan summation is used in sojourn time computation and PMF gradient computation
 **Prerequisites:** [01], [02]
 
 **Source files:**
-- `src/c/phasic.c` (functions: `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient`, `ptd_graph_update_weights`)
+- `src/c/phasic.c` (functions: `ptd_expected_sojourn_time_subset`, `ptd_graph_update_weights`)
 
 ## Definitions {.unnumbered}
 
@@ -248,11 +248,9 @@ Log-Space Weight Evaluation
 
 ## Numerical Considerations {.unnumbered}
 
-**Kahan summation scope.** Kahan summation is used in two specific contexts in phasic:
+**Kahan summation scope.** Kahan summation is used in one specific context in phasic:
 
-1. **Sojourn time computation** (`ptd_expected_sojourn_time_subset`): The expected sojourn time is a sum over many vertex contributions, where individual terms can span several orders of magnitude. Kahan summation ensures the small contributions are not lost.
-
-2. **PMF gradient computation** (`compute_pmf_with_gradient`): The gradient of the forward algorithm involves long summation chains over time steps. Without compensation, the accumulated error would corrupt the gradient and cause optimization algorithms (SVGD, HMC) to receive incorrect search directions.
+- **Sojourn time computation** (`ptd_expected_sojourn_time_subset`): The expected sojourn time is a sum over many vertex contributions, where individual terms can span several orders of magnitude. Kahan summation ensures the small contributions are not lost.
 
 **Kahan summation is *not* used** in the standard forward algorithm for PDF/PMF computation. Instead, the forward algorithm uses `long double` (80-bit extended precision on x86, 128-bit on some platforms) for its intermediate accumulators. This provides $\varepsilon \approx 10^{-19}$ rather than $\varepsilon \approx 10^{-16}$, which is sufficient for the forward algorithm's summation chains without the overhead of Kahan's compensation logic.
 
@@ -266,7 +264,7 @@ Log-Space Weight Evaluation
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| @alg-03-kahan-summation | `src/c/phasic.c` | Kahan struct and macros | Used in `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient` |
+| @alg-03-kahan-summation | `src/c/phasic.c` | Kahan struct and macros | Used in `ptd_expected_sojourn_time_subset` |
 | @alg-03-log-space-weight | `src/c/phasic.c` | `ptd_graph_update_weights` (with `use_log=true`) | Log-space branch of weight update |
 
 **Deviations from pseudocode:**

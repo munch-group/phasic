@@ -180,13 +180,15 @@ implementing §3a only. Replaces `epoch_rebuild_wider`. Python
 its length check, `_last_callback_vertices_length`, `_callback_kwargs`).
 Rewiring `add_epoch` (Python and C++) onto it is decision 7.
 
-5b. **Weight mode: hybrid** (decision 3). C++ refuses formula mode by
-checking `weight_tape != NULL`. The log/callback refusal stays a one-line
-Python check before the call: this is the one recorded exception to O7. No
-new C++ `weight_mode` field now; the field is defined together with
-Stage-3 step 10 (weight-formula promotion), which owns C++ weight state.
-The same applies to `is_discrete`: C++ checks `was_dph`; Python checks
-`is_discrete` for native DPH graphs until step 10 defines the field.
+5b. **Weight mode: hybrid** (decision 3). C++ detects formula mode itself
+(`weight_tape != NULL`). Log and callback mode are Python-side state, so
+the wrapper passes the mode in as an argument (`weight_mode`) and C++
+raises the refusal at its original position in the check order (as built:
+an argument rather than a separate Python check, so the check stays in
+one place). Likewise `is_discrete` is passed in (`input_is_discrete`, which
+selects the DPH normalisation). No new C++ `weight_mode`/`is_discrete`
+fields; those are defined together with Stage-3 step 10 (weight-formula
+promotion), which owns C++ weight state.
 
 5c. **C++ discretize at parity.** Fixed rate: finite and > 0 (Python's
 rule). Callback: `std::function<double(const std::vector<int>&)>`, value
@@ -233,6 +235,26 @@ the Python widening loop, `epoch_rebuild_wider` (if decision 7), and
 outputs in the phase-0 gate).
 
 ## 6. Frozen-API changes this plan makes (for sign-off)
+
+**As built (phases 1-4), in addition to the list below:**
+- `discretize(0)` / `discretize(-1)` (integer rates) now say "got 0.0" /
+  "got -1.0" (the value is formatted after conversion to float), and a
+  `np.float32` rate prints its float64 value.
+- The callback `TypeError` prints the state as `[3, 0]` instead of
+  `[np.int32(3), ...]`.
+- Private bindings added: `_widen_layout`, `_discretize` (two overloads),
+  `_discretize_check_rate`, `_theta_layout`, `_set_parameter_name`,
+  `_append_theta_block`.
+- C++ API: `discretize(rate | fn, skip_existing, input_is_discrete,
+  weight_mode)`; refusals are `std::invalid_argument` (the fixed-rate check
+  threw `std::runtime_error` before, and required rate < 1); new
+  `discretize_check_rate`, `copy_construction_state_from`, `widen_layout`,
+  `theta_layout`, `set_parameter_name`, `append_theta_block`. C++
+  copy-assignment fixed (it crashed).
+- Kept unchanged on purpose: the `extend()` resume point
+  (`_last_callback_vertices_length`, pinned) and the rewards-length check on
+  a parameterized input.
+
 
 Python: new read-only properties `graph.indexer` and `graph.theta_layout`;
 new `graph.set_parameter_name()`; `_discretize_inplace` deleted; `is_aux`
@@ -287,9 +309,14 @@ go-ahead. Every run memory-capped and sequential.
 4. **Python delegates** (5d, 5f). Gates: phase-0 gate unchanged; all
    discretize-related test files; the two experiment gates
    (`dr_log_mode_moments_jac_gate.py`, `dr_sojourn_grad_theta_gate.py`).
-5. **`is_aux` in serialize** (decision 1b): additive key, then
-   `skip_existing` may switch to `is_aux`. Gate: round trip and cache hit
-   keep `is_aux`; phase-0 gate unchanged.
+5. **`is_aux` in serialize** (decision 1b): additive key; `skip_existing`
+   keeps its state-sum rule (switching would change pinned behaviour).
+   Gate: round trip and the graph-cache JSON path keep `is_aux`; the
+   phase-0 round-trip pin records the intended change (flags now kept).
+   Behaviour change, pinned: a reloaded parameterized discretized graph can
+   be re-discretized with `skip_existing` (its aux back-edges are now
+   recognised as aux, not refused as constant edges); data without the key
+   (older caches) behaves as before.
 
 ## 8. Later work this plan prepares (defined, not built)
 
@@ -406,3 +433,84 @@ phase 1 also changes `add_epoch` (→ decision 7, gates); missing de-risk
 the dead formula branch in `joint_prob_graph` (→ §8); `rate_name` collides
 with `**kwargs` (→ decision 9); frozen-API change list (→ §6); wrapper
 location (→ 5d); bare labels qualified.
+
+## 12. Implementation record (2026-10-13)
+
+Worktree `/Users/kmt/phasic-discretize`, branch `refactor/discretize-cpp-ssot`
+(from `derisk/discretize-cpp`), own pixi environment; every run memory-capped
+and sequential. Each phase: new tests failing before / passing after,
+read-only adversarial diff review (APPROVE-WITH-CHANGES each time, changes
+applied), the related test files (52 files, 0 failures at each phase).
+
+- Phase -1 (`2de18c39`): `discretize-cpp-derisk-findings.md`. Python
+  widening was 70-95% of discretize time; existing C++ discretize
+  bit-identical to Python on constant graphs; C `ptd_clone_graph` is
+  O(V*E) (110 s at 204k vertices; not fixed, decision pending).
+- Phase 0 (`fa67c9e5`, strengthened `14a8ce13`): pinned records of
+  Python discretize, generated with the master build as reference.
+- Phase 1 (`c309719c`): `phasic::Graph::widen_layout`, 14-35x faster,
+  linear (`experiments/dr_widen_layout_perf_gate.py`).
+- C++ copy-assignment crash fixed (`3ada4c08`).
+- Phase 2 (`54dcf36e`): `theta_layout`, `set_parameter_name`.
+- Phase 3 (`fcd70289`): C++ discretize at parity; every pinned case and
+  error reproduced through C++.
+- Phase 4: Python `discretize` delegates; Python loops,
+  `_discretize_inplace` and the old C++ widening helper deleted. discretize
+  at 204k vertices: 17.7 s -> 0.8 s (fixed rate), 18.3 s -> 1.7 s
+  (callback). Intended changes pinned: decision 8 (constant path keeps
+  callback and indexer).
+- Existing behaviour found and pinned, not changed: discretize of a native
+  DPH gives a rewards vector one short; a second discretize with
+  skip_existing leaves weights un-normalised until update_weights.
+- Phase 5: `is_aux` serialized (additive key, strict parsing); not yet in
+  the C++ `SerializedGraph` port or the SLURM `deserialize_scc_synth` path
+  (documented residuals).
+
+## 13. Status and hand-off (2026-10-14)
+
+**Where the work is.** Branch `refactor/discretize-cpp-ssot` in the git
+worktree `/Users/kmt/phasic-discretize` (own pixi env; created by Claude,
+allowed by Kasper). Not merged, not pushed. All five plan phases plus the
+follow-up fixes are committed (15 commits on top of master `a39afc17`, see
+`git log master..HEAD`).
+
+**Follow-up fixes after the plan (Kasper's requests):**
+- `bbb016bc` C `ptd_clone_graph` linear (110 s -> 0.55 s at 204k vertices).
+- `644132a0` discretize refuses native DPH input; skip_existing keeps weights.
+- `33cd4fa5` PDF-gradient lookup by index, NaN-free `normalize`, joint_stop /
+  joint_sojourn refuse discrete sources.
+- `9ae753c4` removal of the unused C function `ptd_graph_pdf_with_gradient`
+  (+ `compute_pmf_with_gradient`, `alloc_2d`, `free_2d`, dead `kahan_init`,
+  header declaration, its test pins and fixture) and its stale docs (mathref
+  chapter 16 deleted; references in chapters 03, 14, 25, mathref index and
+  _quarto.yml; docs/cpp_api/c_distributions.qmd; note in mathref
+  PRODUCTION_PLAN.md). The two file deletions landed one commit early, in
+  `43495114`. Related files after the removal: 65 files, 1300 passed,
+  0 failed.
+  Origin of the function (git history): added 2025-10-17 (`3d1080c2`) with a
+  wrapper `ptd_graph_pdf_parameterized`, used by the generated C++ of the
+  Channel-3 path `trace_to_log_likelihood(use_cpp=True)` (also exported to
+  R); wrapper commented out 2025-11 (`a7134bc9`), path removed 2026-07-05
+  (`4ee95276`), leaving this function with no callers.
+
+**Test state.** Full suite on `33cd4fa5` (174 files, one at a time, 6 GB
+cap): 2347 passed, 0 failed, 84 skipped, 26 xfailed. As on master, two files
+exceed the caps and are run separately: `test_notebook_model_recovery.py`
+(~26 min) and `test_svgd_divergence_robustness.py::test_grad_at_diverged_theta_is_finite_not_nan`
+(7.5 GB). Separate run on `33cd4fa5`: recovery 19 passed, 4 xfailed; divergence
+file 8 passed (peak 6.2 GB).
+
+**Next steps, in order:**
+1. Kasper merges: in `/Users/kmt/phasic`: `git switch master`,
+   `git merge --ff-only refactor/discretize-cpp-ssot`, `git push origin
+   master`; then `git worktree remove ../phasic-discretize` and, in the
+   main checkout, `pixi run install-dev` (the main env still has master's
+   build).
+2. Update PROJECT-OVERVIEW.md on master at merge (the branch copy already
+   carries the status, §1).
+
+**Recorded, not done:** model θ layout for SVGD epoch routes; C++
+StateIndexer and C++ `joint_prob_graph` (§8); `is_aux` in the C++
+SerializedGraph and the SLURM deserialize path; constant edges in discrete
+graphs; `joint_prob_graph(reward_rates_callback=...)` broken since 2026-05;
+Stage-3 records to update (§9).

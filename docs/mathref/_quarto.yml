@@ -48,7 +48,6 @@ book:
       chapters:
         - 14_distribution_computation.qmd
         - 15_moment_computation.qmd
-        - 16_pdf_gradients.qmd
     - part: "Sampling"
       chapters:
         - 17_sampling.qmd

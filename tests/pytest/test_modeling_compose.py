@@ -472,65 +472,11 @@ class TestCachingComposedGraphs:
 class TestEquivalenceOldVsNew:
     """Verify new implementations produce identical graphs to old implementations."""
 
-    def test_discretize_equivalence(self):
-        """New discretize produces same graph structure and rewards as old in-place version."""
-        def _build():
-            g = Graph(1)
-            start = g.starting_vertex()
-            v1 = g.find_or_create_vertex([1])
-            v2 = g.find_or_create_vertex([2])
-            start.add_edge(v1, 2.0)
-            v1.add_edge(v2, 2.0)
-            return g
-
-        # Old approach: in-place
-        g_old = _build()
-        rewards_old = g_old._discretize_inplace(0.1)
-
-        # New approach: returns new graph
-        g_orig = _build()
-        g_new = g_orig.discretize(0.1)
-
-        # Same vertices count
-        assert g_new.vertices_length() == g_old.vertices_length()
-        # Same rewards
-        assert np.array_equal(g_new.rewards, rewards_old)
-        # Same is_discrete flag
-        assert g_new.is_discrete == g_old.is_discrete
-        # Same edge structure
-        for i in range(g_old.vertices_length()):
-            v_old = g_old.vertex_at(i)
-            v_new = g_new.vertex_at(i)
-            assert v_old.edges_length() == v_new.edges_length()
-            old_weights = sorted([e.weight() for e in v_old.edges()])
-            new_weights = sorted([e.weight() for e in v_new.edges()])
-            assert old_weights == approx(new_weights, rel=1e-10)
-        # Same moments
-        assert g_new.expectation_discrete(g_new.rewards) == approx(
-            g_old.expectation_discrete(rewards_old), rel=1e-10)
-
-    def test_discretize_equivalence_callable(self):
-        """New discretize with callable rate matches old in-place version."""
-        def _build():
-            g = Graph(1)
-            start = g.starting_vertex()
-            v1 = g.find_or_create_vertex([1])
-            v2 = g.find_or_create_vertex([2])
-            start.add_edge(v1, 2.0)
-            v1.add_edge(v2, 2.0)
-            return g
-
-        def rate_fn(state):
-            return 0.2
-
-        g_old = _build()
-        rewards_old = g_old._discretize_inplace(rate_fn)
-
-        g_orig = _build()
-        g_new = g_orig.discretize(rate_fn)
-
-        assert g_new.vertices_length() == g_old.vertices_length()
-        assert np.array_equal(g_new.rewards, rewards_old)
+    # test_discretize_equivalence / _callable compared discretize() with the
+    # legacy in-place Graph._discretize_inplace, which was deleted (decision 5
+    # of discretize-cpp-ssot-plan.md); their outputs are pinned in
+    # tests/pytest/data/discretize_pins.json ("inplace" records) and checked
+    # against discretize() by test_gate_discretize_pins.py.
 
     def test_laplace_equivalence(self):
         """New laplace_transform with metadata matches old output structurally."""

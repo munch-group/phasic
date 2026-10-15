@@ -5,6 +5,7 @@
 // the installed phasic C++ API, the same way _cpp_from_callback_fixture.cpp
 // does. NOT collected by pytest; the test module compiles it via cppimport.
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <phasiccpp.h>
 
 #include <vector>
@@ -95,7 +96,81 @@ phasic::Graph constant_epoch(int nr_samples, double time) {
     return g.add_epoch(time);
 }
 
+// add_epoch refusals (operation-level guards; the widening primitive does
+// not check these). Each builds the base graph, breaks one precondition and
+// calls add_epoch.
+phasic::Graph ragged_epoch(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    std::vector<phasic::Vertex> vs = g.vertices();
+    vs[1].add_edge_parameterized(vs.back(), 0.0, std::vector<double>{1.0, 2.0});
+    // no update_weights: it already refuses the overlong vector; add_epoch
+    // must refuse it before using any weights.
+    return g.add_epoch(1.0);
+}
+
+phasic::Graph was_dph_epoch(int nr_samples) {
+    phasic::Graph g = base_graph(nr_samples, false);
+    g.c_graph()->was_dph = true;
+    return g.add_epoch(1.0);
+}
+
+phasic::Graph formula_epoch(int nr_samples) {
+    phasic::Graph g = base_graph(nr_samples, false);
+    g.weight_formula("t0*c0");
+    return g.add_epoch(1.0);
+}
+
+// theta layout names after the C++ copy paths not reachable from Python.
+static py::list layout_names(phasic::Graph &g) {
+    py::list out;
+    for (const phasic::ParameterSlot &p : g.theta_layout()) out.append(p.name + ":" + p.kind);
+    return out;
+}
+
+py::tuple layout_after_copies(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    g.set_parameter_name(0, "coalescent");
+    phasic::Graph *p = g.clone_p();
+    py::list via_clone_p = layout_names(*p);
+    delete p;
+    phasic::Graph assigned = coalescent_param(nr_samples);
+    assigned = g;                     // copy-assign
+    phasic::Graph moved = coalescent_param(nr_samples);
+    moved = g.clone();                // rvalue: falls back to copy-assign
+    phasic::Graph widened = g.widen_layout(0, 1);
+    return py::make_tuple(layout_names(g), via_clone_p, layout_names(assigned),
+                          layout_names(moved), layout_names(widened));
+}
+
+// C++-only discretize of a parameterized graph (phase 3): fixed rate and a
+// per-state callback written in C++.
+py::tuple cpp_discretize_param(int nr_samples, double rate) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::DiscretizeResult r = g.discretize(rate);
+    return py::make_tuple(r.graph, r.rewards);
+}
+
+py::tuple cpp_discretize_param_callback(int nr_samples, double mu) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::DiscretizeResult r = g.discretize(
+        [mu](const std::vector<int> &s) { double t = 0; for (int x : s) t += x; return mu * t; });
+    return py::make_tuple(r.graph, r.rewards);
+}
+
+phasic::Graph discretize_then_epoch(int nr_samples) {
+    phasic::Graph g = coalescent_param(nr_samples);
+    phasic::Graph d = g.discretize(0.1).graph;
+    return d.add_epoch(1.0);
+}
+
 PYBIND11_MODULE(_cpp_add_epoch_fixture, m) {
+    m.def("discretize_then_epoch", &discretize_then_epoch);
+    m.def("cpp_discretize_param", &cpp_discretize_param);
+    m.def("cpp_discretize_param_callback", &cpp_discretize_param_callback);
+    m.def("layout_after_copies", &layout_after_copies);
+    m.def("ragged_epoch", &ragged_epoch);
+    m.def("was_dph_epoch", &was_dph_epoch);
+    m.def("formula_epoch", &formula_epoch);
     m.def("base_graph", &base_graph);
     m.def("epoch_graph", &epoch_graph);
     m.def("base_with_aux", &base_with_aux);
@@ -116,6 +191,12 @@ cfg["include_dirs"] += [
 # phasic_pybind extension. See docs/pages/tutorial/cpp_state_spaces.cpp for the
 # rationale behind this linkage recipe.
 cfg["sources"] += [os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp")]
+# Rebuild whenever the installed C++ API changes (cppimport's checksum
+# otherwise covers only this file, so a stale .so could test old code).
+cfg["dependencies"] = [
+    os.path.join(phasic_dir, "include", "cpp", "phasiccpp.cpp"),
+    os.path.join(phasic_dir, "include", "cpp", "phasiccpp.h"),
+]
 cfg["extra_compile_args"] += ["-std=c++17"]
 if sys.platform == "darwin":
     cfg["extra_link_args"] += [
