@@ -2,7 +2,8 @@
 
 Written 2026-10-10 as the single entry point to the ~70 plan, findings and
 review files in the repository root; updated 2026-10-12 with the October
-model-building consistency work (§1d) and the Stage-3 status correction. Everything here is a summary of those
+model-building consistency work (§1d) and the Stage-3 status correction;
+updated 2026-10-15 after the C++ `discretize()` merge (§1f). Everything here is a summary of those
 files (named in each entry) plus git history; nothing new was measured to
 write it. When a file and this overview disagree, the file is the record —
 and this overview should be corrected.
@@ -14,14 +15,15 @@ gate, rule) is written together with a few words saying what it is.
 
 ## 1. Where the project stands (October 2026)
 
-Master carries the October model-building consistency work (merged
-2026-10-13, §1d). Work since then is on branch **`refactor/discretize-cpp-ssot`**
-in the git worktree `/Users/kmt/phasic-discretize`: one C++-owned
-`discretize()`, a shared C++ widening primitive, `theta_layout`, `is_aux` in
-serialize, a linear `clone()`, and several fixes; full suite clean
-(2347 passed, 0 failed). Status, uncommitted last step and merge commands:
-`discretize-cpp-ssot-plan.md` §13; measurements and findings:
-`discretize-cpp-derisk-findings.md`.
+Master carries both October work streams, merged and pushed: the
+model-building consistency work (§1d, merged 2026-10-13) and the C++-owned
+`discretize()` (§1f, merged 2026-10-15 at `61b1ab93`). No branch is in
+flight. Last full-suite result (on the discretize branch, which contains
+the consistency work): 2347 passed, 0 failed, 84 skipped, 26 expected
+failures, plus the two files run separately because they exceed the
+memory and time caps, both passing. The full suite has not been run on
+the merged master, which adds your progress-bar and plot commits
+(`aed8cc1c`, `9b82a427`); they touch no file the branch changed.
 
 ### 1a. The question the project is currently about: does inference recover the truth?
 
@@ -125,15 +127,16 @@ shipped and passed review. A stock-take on 16 August
    - A random tie-break in the epoch model is untested.
    - The old cache format needs hardening.
 
-10. **Finish the model-building consistency branch** (§1d): one full-suite
-    run on the branch (needs your go-ahead), then your merge and push.
-11. **Notebook edits for you** (§1d): five notebooks use patterns the branch
-    now refuses or changes.
-12. **One `discretize()`, owned by C++** (`discretize-cpp-ssot-plan.md`):
-    implemented on branch `refactor/discretize-cpp-ssot` (worktree
-    `/Users/kmt/phasic-discretize`), all phases done; awaiting the final
-    commit (removal of the unused `ptd_graph_pdf_with_gradient`) and merge.
-    Status in the plan's §13.
+10. **Notebook edits for you** (§1d): five notebooks used patterns master
+    now refuses or changes. As of 2026-10-15, `parametrization.ipynb` and
+    `joint-probability.ipynb` look edited; `time-inhomogeneous.ipynb`
+    (coalescent cell, rates still plain numbers) and the two `popgen/`
+    notebooks (`joint_prob_graph` on a discretized graph) look unchanged.
+    None of them re-run.
+11. **Follow-ups recorded by the discretize work** (§1f): the θ layout of
+    SVGD multi-epoch models, a C++ `StateIndexer` and `joint_prob_graph`,
+    `is_aux` in the C++ serialized graph and the SLURM per-component path,
+    constant edges in discrete graphs, and a stale Stage-3 plan record.
 
 ### 1d. Model-building consistency (10–12 October)
 
@@ -141,7 +144,8 @@ Started from your question why a coalescent built with float rates came
 back parameterized. Plan `constant-parameterized-consistency-plan.md`
 (record in its §13), with Part 1 detailed in
 `graph-cache-constant-roundtrip-plan.md`. Branch
-`fix/constant-parameterized-consistency`, one commit per part:
+`fix/constant-parameterized-consistency`, merged to master 2026-10-13, one
+commit per part:
 
 | Part | What it does | Commit |
 |---|---|---|
@@ -154,8 +158,8 @@ back parameterized. Plan `constant-parameterized-consistency-plan.md`
 
 Every part passed its own new tests and the existing tests touching it; an
 adversarial diff review ran for each (for Parts 2 and 3a only after
-committing — recorded). Not yet done: one full-suite run on the finished
-branch.
+committing — recorded). The full-suite run was done on the discretize
+branch built on top of it (§1f): 0 failures.
 
 **Notebooks to edit (yours):** `parametrization.ipynb` cell 23 (now
 raises: drop the reserved `[rate, 0]` slot, callback returns
@@ -170,8 +174,8 @@ joint graphs are refused rather than supported (needs a C change);
 `joint_prob_graph(reward_rates_callback=...)` has been broken since
 21 May 2026 (calls a commented-out method); per-state rate APIs not yet on
 the new rules (`joint_prob_graph`'s `mutation_rate`; the legacy
-`_discretize_inplace` and the C++ `discretize` are resolved on the
-discretize branch); `expectation()` on a discretized
+`_discretize_inplace` and the C++ `discretize` are resolved, §1f);
+`expectation()` on a discretized
 graph counts all steps, the mutation count needs `graph.rewards` passed
 explicitly.
 
@@ -183,8 +187,34 @@ source of truth (its decision Q4) and Python delegating. Executed so far:
 WS-A (safety-net test gates), WS-B (dead-code removal) and part of WS-C
 (splitting the `Graph` class), merged at `9de5d61a`. Not started: WS-D
 (thinning the pybind layer), WS-E (the C++ single-source promotions), WS-F
-(splitting the C core), WS-G (doctrine document and CI guards). Item 12
-above is WS-E's step 11 (discretize), proposed as its first promotion.
+(splitting the C core), WS-G (doctrine document and CI guards), except
+that WS-E's step 11 (discretize to C++) is done (§1f), its first
+promotion.
+
+### 1f. One `discretize()`, owned by C++ (13–15 October)
+
+Plan `discretize-cpp-ssot-plan.md` (v2; its §13 is the implementation
+record), exploratory measurements in `discretize-cpp-derisk-findings.md`.
+Branch `refactor/discretize-cpp-ssot`, merged to master 2026-10-15
+(`61b1ab93`, pushed).
+
+| Step | What it does | Commit |
+|---|---|---|
+| Exploration | Where `discretize()` spent its time (the Python widening loop, 70–95%); found `clone()` quadratic | `2de18c39` |
+| Phase 0 — pins | Records of today's `discretize()` behaviour, compared bit for bit by `test_gate_discretize_pins.py` | `fa67c9e5`, `14a8ce13` |
+| Phase 1 — widening | One C++ widening primitive (`widen_layout`) replaces the Python helper; 14–35× faster | `c309719c` (+ crash fix `3ada4c08`) |
+| Phase 2 — θ layout | `Graph.theta_layout` / `set_parameter_name`: which θ slot is which, carried through copies and widening | `54dcf36e` |
+| Phase 3 — C++ discretize | The C++ `discretize` reproduces the Python one exactly | `fcd70289` |
+| Phase 4 — thin wrapper | Python `discretize()` calls C++; the legacy `_discretize_inplace` deleted; a discretized constant graph keeps its callback and indexer | `560167a5` |
+| Phase 5 — serialize | `is_aux` (which vertices are discretization steps) survives `serialize()` | `dad3c5e5` |
+| `clone()` linear | C `ptd_clone_graph` no longer scans all vertices per edge: 110 s → 0.55 s at 204k vertices | `bbb016bc` |
+| Refusals | `discretize()` refuses a native discrete graph (it returned a wrong one); `skip_existing` keeps weights | `644132a0` |
+| C fixes | `normalize()` no longer produces NaN on all-zero rows; `joint_stop_prob_graph` / `joint_sojourn_graph` refuse discrete sources | `33cd4fa5` |
+| Removal | The unused C function `ptd_graph_pdf_with_gradient` and math-reference chapter 16 | `9ae753c4` |
+
+Result at 204k vertices (coalescent): `discretize()` 17.7 s → 0.8 s with a
+fixed rate, 18.3 s → 1.7 s with a rate callback. Follow-ups are item 11 in
+§1c; full list in the plan's §13.
 
 ---
 
@@ -203,8 +233,8 @@ above is WS-E's step 11 (discretize), proposed as its first promotion.
 | 15–16 Aug | Deferred 1–4 exploration | Experiments for the four big postponed items | Done; decisions pending |
 | 16 Aug | Stock-take + scale check | Discovery that B3 doesn't reach production size or the default likelihood | See 1b |
 | 16–17 Aug | Inference correctness | Recovery tests on the tutorial models; budget-vs-defect verdicts | See 1a |
-| 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | On branch, full suite pending (§1d) |
-| 12 Oct | discretize → C++ plan | One C++ `discretize()` + widening and layout standards | Plan v2, decisions made (§1c item 12) |
+| 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | Merged 13 Oct (§1d) |
+| 12–15 Oct | discretize → C++ | One C++ `discretize()` + widening and layout standards; linear `clone()`; C fixes | Merged 15 Oct (§1f) |
 
 ---
 
@@ -312,7 +342,9 @@ meanings in the decoder. History.
 |---|---|---|
 | `constant-parameterized-consistency-plan.md` | Parts 1–4: constant vs parameterized models, lossless widening, discretize callback; §13 is the implementation record | Current |
 | `graph-cache-constant-roundtrip-plan.md` | Part 1 in detail: constant graphs coming back parameterized from the graph cache | Current |
-| `discretize-cpp-ssot-plan.md` | One `discretize()` owned by C++, with the widening and layout standards; v2, decisions made | Current |
+| `discretize-cpp-ssot-plan.md` | One `discretize()` owned by C++, with the widening and layout standards; implemented and merged, §13 is the record and lists the follow-ups | Current |
+| `discretize-cpp-derisk-findings.md` | Measurements behind that plan (where the time went, quadratic `clone()`, C bugs found on the way) | History |
+| `test-suite-timings-2026-10-12.md` | Time per test file and the slowest tests | Reference |
 | `stage3-refactor-plan.md` | The larger refactoring plan still in force (doctrine, workstreams, commit sequence, decisions) | Current |
 
 ### Refactor and audit (July)
