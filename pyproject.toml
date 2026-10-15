@@ -169,6 +169,7 @@ slim = ">=5.2,<6"
 pyslim = ">=1.1.1,<2"
 cppimport = ">=26.4.17,<27"
 doxygen = ">=1.13.2,<2"
+sympy = ">=1.14.0,<2"
 
 # [tool.pixi.pypi-dependencies]
 
