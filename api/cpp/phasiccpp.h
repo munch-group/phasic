@@ -1836,26 +1836,38 @@ namespace phasic {
             // 2026-10-13 a stray malloc here replaced rf_graph with an
             // uninitialised block first, so every copy-assignment read a
             // garbage reference count and crashed.)
+            // Released exactly as in the destructor (all four contexts; graph
+            // and tree only when owned).
             *this->rf_graph->references -= 1;
 
             if (*this->rf_graph->references == 0) {
-                ptd_avl_tree_destroy(this->rf_graph->tree);
-                ptd_graph_destroy(this->rf_graph->graph);
-                free(this->rf_graph->references);
-                ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
                 ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context);
-                this->rf_graph->dph_context = NULL;
+                ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
+                ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context_markov);
+                ptd_probability_distribution_context_destroy(this->rf_graph->ph_context_markov);
+                if (!this->rf_graph->borrowed) {
+                    ptd_avl_tree_destroy(this->rf_graph->tree);
+                    ptd_graph_destroy(this->rf_graph->graph);
+                }
+                free(this->rf_graph->references);
             }
 
             free(this->rf_graph);
 
-            //this->rf_graph = o.rf_graph;
+            // Every field copied, as in the copy constructor: malloc does not
+            // zero, and the destructor frees the markov contexts (2026-10-15:
+            // they were left uninitialised here).
             this->rf_graph = (struct rf_graph *) malloc(sizeof(*this->rf_graph));
             this->rf_graph->references = o.rf_graph->references;
             this->rf_graph->graph = o.rf_graph->graph;
             this->rf_graph->tree = o.rf_graph->tree;
-            this->rf_graph->ph_context = o.rf_graph->ph_context;
             this->rf_graph->dph_context = o.rf_graph->dph_context;
+            this->rf_graph->ph_context = o.rf_graph->ph_context;
+            this->rf_graph->dph_context_markov = o.rf_graph->dph_context_markov;
+            this->rf_graph->ph_context_markov = o.rf_graph->ph_context_markov;
+            this->rf_graph->granularity = o.rf_graph->granularity;
+            this->rf_graph->granularity_markov = o.rf_graph->granularity_markov;
+            this->rf_graph->borrowed = o.rf_graph->borrowed;
             *(this->rf_graph->references) += 1;
 
             // Propagate the C++-side members (see the copy constructor).
