@@ -4719,6 +4719,7 @@ struct ptd_vertex *ptd_vertex_create_state(struct ptd_graph *graph, int *state) 
     struct ptd_vertex *vertex = (struct ptd_vertex *) malloc(sizeof(*vertex));
     vertex->graph = graph;
     vertex->edges_length = 0;
+    vertex->is_aux = false;  // malloc does not zero; add_aux_vertex sets it
 
     // ALWAYS copy the state to avoid shared ownership issues
     // This prevents bugs where Python passes a pointer it doesn't own
