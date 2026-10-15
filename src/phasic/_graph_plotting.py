@@ -8,7 +8,7 @@ keeps quartodoc documenting them on the Graph page (include_inherited=false).
 from __future__ import annotations
 
 from typing import Any, Callable, Sequence, Tuple
-
+import graphviz
 
 def plot(
     graph: Any, 
@@ -116,6 +116,7 @@ def plot(
     import matplotlib.colors
     from itertools import cycle
     from functools import partial
+    import numpy as np
 
     from typing import Any, TypeVar
     from collections.abc import Callable, Generator
