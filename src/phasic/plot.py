@@ -28,18 +28,6 @@ def _require_matplotlib():
         )
 
 
-def _compute_hpd(samples, alpha=0.95):
-    """Compute Highest Posterior Density interval."""
-    samples = np.sort(samples)
-    n = len(samples)
-    interval_size = int(np.ceil(n * alpha))
-    if interval_size >= n:
-        return float(samples[0]), float(samples[-1])
-    widths = samples[interval_size:] - samples[:n - interval_size]
-    best = int(np.argmin(widths))
-    return float(samples[best]), float(samples[best + interval_size])
-
-
 def plot_posterior(results: dict,
                    true_theta: list | np.ndarray | None = None,
                    param_names: list[str] | None = None,
@@ -69,7 +57,8 @@ def plot_posterior(results: dict,
     save_path : str, optional
         Path to save figure.
     ci_method : str, default='hpd'
-        ``'hpd'`` or ``'percentile'``.
+        ``'hpd'`` or ``'equal_tailed'`` (``'percentile'`` is a deprecated
+        alias); the interval is computed separately for each parameter.
     ci_level : float, default=0.95
         Credible interval level.
     return_fig : bool, default=False
@@ -81,6 +70,13 @@ def plot_posterior(results: dict,
         (fig, axes) if return_fig=True.
     """
     _require_matplotlib()
+    # The one shared HPD helper, imported here so importing this module does
+    # not load jax. This module's former copy spanned one sample too many,
+    # so MCMC's plotted band disagreed with its own get_results().
+    from .svgd import _compute_hpd, _renamed_ci_method
+    ci_method = _renamed_ci_method('plot_posterior', ci_method)
+    if ci_method not in ('hpd', 'equal_tailed'):
+        raise ValueError(f"ci_method must be 'hpd' or 'equal_tailed', got '{ci_method}'")
 
     particles = np.asarray(results['particles'])
     theta_mean = np.asarray(results['theta_mean'])
@@ -109,7 +105,7 @@ def plot_posterior(results: dict,
 
         # Credible interval
         if ci_method == 'hpd':
-            ci_lo, ci_hi = _compute_hpd(samples_i, alpha=ci_level)
+            ci_lo, ci_hi = _compute_hpd(samples_i, level=ci_level)
         else:
             lo_pct = (1 - ci_level) / 2 * 100
             hi_pct = (1 + ci_level) / 2 * 100

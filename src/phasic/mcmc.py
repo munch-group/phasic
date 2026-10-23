@@ -826,7 +826,9 @@ class MCMC:
             - 'particles': All samples concatenated, shape (n_chains * n_samples, theta_dim)
             - 'theta_mean': Posterior mean
             - 'theta_std': Posterior standard deviation
-            - 'hpd_lower', 'hpd_upper': HPD intervals per dimension
+            - 'hpd_lower', 'hpd_upper': Per-parameter 95% HPD intervals; other
+              levels via :meth:`hpd_intervals`
+            - 'hpd_level': The level of those intervals (0.95)
             - 'chains': Per-chain samples, shape (n_chains, n_samples, theta_dim)
             - 'acceptance_rate': Per-chain acceptance rates
             - 'rhat': Gelman-Rubin R-hat per dimension (if n_chains >= 2)
@@ -864,6 +866,7 @@ class MCMC:
             'theta_std': jnp.array(theta_std),
             'hpd_lower': hpd_lower,
             'hpd_upper': hpd_upper,
+            'hpd_level': 0.95,
             'chains': chains,
             'acceptance_rate': self.acceptance_rate,
             'ess': self.ess(),
@@ -879,6 +882,47 @@ class MCMC:
             )
 
         return results
+
+    def hpd_intervals(self, level: float = 0.95,
+                      unconstrained: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """Per-parameter HPD intervals at any level.
+
+        Each interval is the shortest one containing ``level`` of that
+        parameter's pooled samples, computed separately for each parameter
+        (marginal), so together they are not a joint region. Uses the same
+        samples and algorithm as :meth:`get_results`, so
+        ``hpd_intervals(0.95)`` equals its ``'hpd_lower'`` / ``'hpd_upper'``
+        exactly.
+
+        Parameters
+        ----------
+        level : float, default=0.95
+            Credible level (fraction of samples inside), in (0, 1].
+        unconstrained : bool, default=False
+            If False, intervals of constrained (model-space) values.
+            If True, of unconstrained (sampling-space) values.
+
+        Returns
+        -------
+        lower, upper : np.ndarray
+            Interval bounds, each of shape ``(theta_dim,)``.
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call run() before accessing results")
+        if not 0 < level <= 1:
+            raise ValueError(f"level must be in (0, 1], got {level}")
+        if unconstrained:
+            if self.param_transform is None:
+                raise ValueError(
+                    "unconstrained=True has no effect when no parameter "
+                    "transformation is used."
+                )
+            samples = np.asarray(self._chains_phi).reshape(-1, self.theta_dim)
+        else:
+            samples = np.asarray(self.get_results()['particles'])
+        bounds = np.array([_compute_hpd(samples[:, i], level=level)
+                           for i in range(samples.shape[1])])
+        return bounds[:, 0], bounds[:, 1]
 
     def rhat(self) -> np.ndarray:
         """Gelman-Rubin split R-hat convergence diagnostic.
@@ -967,7 +1011,9 @@ class MCMC:
         results = self.get_results()
         print(f"\nMCMC Summary ({self.n_chains} chains, {self.n_samples} samples/chain)")
         print("-" * 70)
-        print(f"{'Param':<8} {'Mean':>10} {'Std':>10} {'HPD 2.5%':>10} {'HPD 97.5%':>10} {'R-hat':>8} {'ESS':>8}")
+        # per-parameter HPD bounds, not the 2.5%/97.5% quantiles
+        pct = int(results['hpd_level'] * 100)
+        print(f"{'Param':<8} {'Mean':>10} {'Std':>10} {f'HPD {pct}% lo':>10} {f'HPD {pct}% hi':>10} {'R-hat':>8} {'ESS':>8}")
         print("-" * 70)
 
         rhat = results.get('rhat', np.full(self.theta_dim, np.nan))

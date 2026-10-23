@@ -427,26 +427,73 @@ def _inverse_sigmoid(theta: jnp.ndarray) -> jnp.ndarray:
     theta_clipped = jnp.clip(theta, 1e-9, 1.0 - 1e-9)
     return jnp.log(theta_clipped) - jnp.log1p(-theta_clipped)
 
-def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float]:
+
+# Naming rule (hpd-hdr-naming-plan.md): "hpd" is an interval computed
+# separately for each parameter, "hdr" a region joint over two or more
+# parameters, and the enclosed probability mass is always "level" (or
+# "ci_level" next to "ci_method"). "alpha" only ever means transparency.
+_DEPRECATION_REMOVAL = "It will be removed no earlier than phasic 0.34.0."
+
+_CI_METHOD_RENAMES = {'kde': 'kde_hpd', 'percentile': 'equal_tailed'}
+
+
+def _warn_deprecated(old: str, new: str, stacklevel: int = 3) -> None:
+    # stacklevel=3 points at the caller of the function that calls this
+    warnings.warn(f"{old} is deprecated; use {new} instead. {_DEPRECATION_REMOVAL}",
+                  DeprecationWarning, stacklevel=stacklevel)
+
+
+def _renamed_kwarg(func: str, old: str, old_val, new: str, new_val, new_default):
+    """Resolve a renamed keyword argument.
+
+    Returns ``new_val`` unless the deprecated ``old`` keyword was passed
+    (``old_val is not None``), in which case it warns and returns
+    ``old_val``. Passing both (a ``new_val`` other than its default)
+    raises ``TypeError`` rather than guessing which one was meant.
+    """
+    if old_val is None:
+        return new_val
+    if new_val != new_default:
+        raise TypeError(f"{func}() got both '{old}' (deprecated) and '{new}'; "
+                        f"pass only '{new}'")
+    _warn_deprecated(f"{func}({old}=...)", f"{new}=...", stacklevel=4)
+    return old_val
+
+
+def _renamed_ci_method(func: str, ci_method: str) -> str:
+    """Map a deprecated ``ci_method`` value to its new name, with a warning."""
+    if ci_method in _CI_METHOD_RENAMES:
+        new = _CI_METHOD_RENAMES[ci_method]
+        _warn_deprecated(f"{func}(ci_method='{ci_method}')", f"ci_method='{new}'",
+                         stacklevel=4)
+        return new
+    return ci_method
+
+
+def _compute_hpd(samples: np.ndarray, level: float = 0.95,
+                 alpha: float | None = None) -> tuple[float, float]:
     """Compute the Highest Posterior Density (HPD) interval.
 
-    Finds the shortest contiguous interval containing at least `alpha` fraction
+    Finds the shortest contiguous interval containing at least `level` fraction
     of the samples. For unimodal posteriors, this naturally centers on the mode.
 
     The algorithm sorts the samples and slides a window of size
-    ``ceil(n * alpha)`` across them, selecting the window whose endpoints
+    ``ceil(n * level)`` across them, selecting the window whose endpoints
     have the smallest difference.  This guarantees the minimum-width interval
-    that contains at least the requested fraction of mass.  Unlike equal-tailed
-    percentile intervals, the HPD interval is invariant to monotone
-    reparametrisation and, for skewed posteriors, is shorter and better
-    centred on the high-density region.
+    that contains at least the requested fraction of mass.  Compared with the
+    equal-tailed interval, the HPD interval is shorter and better centred on
+    the high-density region for skewed posteriors.  Unlike the equal-tailed
+    interval, it is NOT invariant to monotone reparametrisation: the HPD of
+    log(theta) mapped back through exp is generally not the HPD of theta.
 
     Parameters
     ----------
     samples : np.ndarray
         1D array of posterior samples.
-    alpha : float, default=0.95
+    level : float, default=0.95
         Credible level (fraction of mass to include).
+    alpha : float, optional
+        Deprecated name for ``level``.
 
     Returns
     -------
@@ -455,6 +502,7 @@ def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float
     upper : float
         Upper bound of the HPD interval.
     """
+    level = _renamed_kwarg('_compute_hpd', 'alpha', alpha, 'level', level, 0.95)
     samples = np.asarray(samples).ravel()
     n = len(samples)
 
@@ -470,8 +518,8 @@ def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float
     sorted_samples = np.sort(samples)
 
     # Number of samples that must be inside the interval
-    n_included = int(np.ceil(n * alpha))
-    # Clamp to n so alpha=1.0 works
+    n_included = int(np.ceil(n * level))
+    # Clamp to n so level=1.0 works
     n_included = min(n_included, n)
 
     # All contiguous windows of size n_included
@@ -485,15 +533,15 @@ def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float
     return lower, upper
 
 
-def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
+def _compute_kde_hpd(samples: np.ndarray, level: float = 0.95,
                      n_grid: int = 2048) -> tuple[float, float]:
-    """Highest-density region of a Gaussian KDE of the samples.
+    """Highest-density interval of a Gaussian KDE of one parameter's samples.
 
     Unlike the sample HPD of :func:`_compute_hpd`, which with few samples
     reduces to dropping whole extreme samples and so jumps when the
     extreme sample on one side overtakes the other, the KDE region moves
     continuously with the samples. The density threshold ``c`` is chosen so
-    the KDE mass where density >= ``c`` is ``alpha``; the returned bounds are
+    the KDE mass where density >= ``c`` is ``level``; the returned bounds are
     the outermost points where the density crosses ``c``, located by linear
     interpolation between grid points, then clipped to the sample range:
     the KDE's tails spill past the samples (e.g. below zero for a positive
@@ -505,7 +553,7 @@ def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
     ----------
     samples : np.ndarray
         1D array of posterior samples.
-    alpha : float, default=0.95
+    level : float, default=0.95
         Credible level (fraction of KDE mass to include).
     n_grid : int, default=2048
         Number of grid points the KDE is evaluated on.
@@ -513,9 +561,9 @@ def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
     Returns
     -------
     lower : float
-        Lower bound of the HDR.
+        Lower bound of the interval.
     upper : float
-        Upper bound of the HDR.
+        Upper bound of the interval.
     """
     x = np.asarray(samples, dtype=float).ravel()
     n = len(x)
@@ -534,11 +582,11 @@ def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
     d_sorted = dens[order]
     cum = np.cumsum(d_sorted)
     cum /= cum[-1]
-    k = int(np.searchsorted(cum, alpha))
+    k = int(np.searchsorted(cum, level))
     if k == 0:
         c = d_sorted[0]
     else:
-        frac = (alpha - cum[k - 1]) / (cum[k] - cum[k - 1])
+        frac = (level - cum[k - 1]) / (cum[k] - cum[k - 1])
         c = d_sorted[k - 1] + frac * (d_sorted[k] - d_sorted[k - 1])
 
     inside = np.nonzero(dens >= c)[0]
@@ -553,6 +601,13 @@ def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
     lower = _crossing(i - 1, i) if i > 0 else grid[i]
     upper = _crossing(j + 1, j) if j < n_grid - 1 else grid[j]
     return float(max(lower, x.min())), float(min(upper, x.max()))
+
+
+def _compute_kde_hdr(samples: np.ndarray, alpha: float = 0.95,
+                     n_grid: int = 2048) -> tuple[float, float]:
+    """Deprecated alias of :func:`_compute_kde_hpd` (``alpha`` is its ``level``)."""
+    _warn_deprecated("_compute_kde_hdr()", "_compute_kde_hpd()")
+    return _compute_kde_hpd(samples, level=alpha, n_grid=n_grid)
 
 
 def _hex_grid(x_min: float, x_max: float, y_min: float, y_max: float, size: float, flat_topped: bool = False) -> jnp.ndarray:
@@ -7119,6 +7174,9 @@ class SVGD:
             - 'particles': Final posterior samples (in constrained space if using transformation)
             - 'theta_mean': Posterior mean (in constrained space if using transformation)
             - 'theta_std': Posterior standard deviation (in constrained space if using transformation)
+            - 'hpd_lower', 'hpd_upper': Per-parameter 95% HPD intervals (constrained
+              space); other levels via :meth:`hpd_intervals`
+            - 'hpd_level': The level of those intervals (0.95)
             - 'history': Particle evolution (if available, in constrained space if using transformation)
             - 'particles_unconstrained': Particles in unconstrained space (only if using transformation)
         """
@@ -7163,6 +7221,7 @@ class SVGD:
                 'theta_std': theta_std,
                 'hpd_lower': hpd_lower,
                 'hpd_upper': hpd_upper,
+                'hpd_level': 0.95,
                 'particles_unconstrained': self.particles,  # Also return unconstrained
             }
 
@@ -7189,12 +7248,56 @@ class SVGD:
                 'theta_std': self.theta_std,
                 'hpd_lower': hpd_lower,
                 'hpd_upper': hpd_upper,
+                'hpd_level': 0.95,
             }
 
             if self.history is not None:
                 results['history'] = self.history
 
         return results
+
+    def hpd_intervals(self, level: float = 0.95,
+                      unconstrained: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Per-parameter HPD intervals at any level.
+
+        Each interval is the shortest one containing ``level`` of that
+        parameter's particles, computed separately for each parameter
+        (marginal), so together they are not a joint region; for that see
+        :meth:`joint_hdr_particles`. Uses the same particles and algorithm
+        as :meth:`get_results`, so ``hpd_intervals(0.95)`` equals its
+        ``'hpd_lower'`` / ``'hpd_upper'`` exactly.
+
+        Parameters
+        ----------
+        level : float, default=0.95
+            Credible level (fraction of particles inside), in (0, 1].
+        unconstrained : bool, default=False
+            If False, intervals of constrained (model-space) values.
+            If True, of unconstrained (optimization-space) values.
+
+        Returns
+        -------
+        lower, upper : np.ndarray
+            Interval bounds, each of shape ``(theta_dim,)``.
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before accessing results")
+        if not 0 < level <= 1:
+            raise ValueError(f"level must be in (0, 1], got {level}")
+        if unconstrained:
+            if self.param_transform is None:
+                raise ValueError(
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            particles = np.asarray(self.particles)
+        else:
+            particles = np.asarray(self.get_results()['particles'])
+        bounds = np.array([_compute_hpd(particles[:, i], level=level)
+                           for i in range(particles.shape[1])])
+        return bounds[:, 0], bounds[:, 1]
 
     def map_estimate_from_particles(self, unconstrained: bool = False) -> tuple[list, float]:
         """
@@ -7568,16 +7671,16 @@ class SVGD:
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
         ci_method : str, default='hpd'
-            Method for credible intervals shown as a shaded region on each
-            histogram.
+            Method for the per-parameter credible interval shown as a shaded
+            region on each histogram.
 
             - ``'hpd'``: Highest Posterior Density interval — the shortest
               interval containing ``ci_level`` fraction of posterior samples.
               Computed by sorting the particles and sliding a window of
               ``ceil(n * ci_level)`` samples to find the narrowest span.
               Better centred on the mode for skewed posteriors.
-            - ``'percentile'``: Equal-tailed percentile interval using
-              symmetric quantiles.
+            - ``'equal_tailed'``: Equal-tailed interval using symmetric
+              quantiles. (``'percentile'`` is a deprecated alias.)
 
         ci_level : float, default=0.95
             Credible level for the shaded interval (e.g. 0.95 for 95%).
@@ -7590,8 +7693,9 @@ class SVGD:
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
-        if ci_method not in ('hpd', 'percentile'):
-            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
+        ci_method = _renamed_ci_method('plot_posterior', ci_method)
+        if ci_method not in ('hpd', 'equal_tailed'):
+            raise ValueError(f"ci_method must be 'hpd' or 'equal_tailed', got '{ci_method}'")
 
         try:
             import matplotlib.pyplot as plt
@@ -7645,7 +7749,7 @@ class SVGD:
             # Credible interval shading
             samples_i = np.asarray(particles[:, i])
             if ci_method == 'hpd':
-                ci_lo, ci_hi = _compute_hpd(samples_i, alpha=ci_level)
+                ci_lo, ci_hi = _compute_hpd(samples_i, level=ci_level)
             else:
                 lo_pct = (1 - ci_level) / 2 * 100
                 hi_pct = (1 + ci_level) / 2 * 100
@@ -8107,12 +8211,13 @@ class SVGD:
                 save_path: str | None = None, skip: int = 0,
                 unconstrained: bool = False,
                 true_theta: jnp.ndarray | list | None = None,
-                ci: float = 0.95, alpha: float = 0.2,
+                ci_level: float = 0.95, alpha: float = 0.2,
                 target: jnp.ndarray | list | None = None,
                 median: bool = False, return_fig: bool = False,
-                ci_method: str = 'kde',
+                ci_method: str = 'kde_hpd',
                 hide_fixed: bool = True,
-                estimate: str = 'map'):
+                estimate: str = 'map',
+                ci: float | None = None):
         """
         Plot the parameter estimate trajectory with credible interval ribbon.
 
@@ -8133,7 +8238,7 @@ class SVGD:
             If True, show unconstrained (optimization-space) values.
         true_theta : np.ndarray, optional
             True parameter values to overlay as horizontal lines
-        ci : float, default=0.95
+        ci_level : float, default=0.95
             Credible interval level (e.g., 0.95 for 95% CI)
         alpha : float, default=0.2
             Transparency of the CI ribbon
@@ -8143,22 +8248,28 @@ class SVGD:
             If True, plot the median trajectory as a dashed line
         return_fig : bool, default=True
             If True, return (fig, ax). If False, call plt.show() instead.
-        ci_method : str, default='kde'
-            Method for credible intervals.
+        ci_method : str, default='kde_hpd'
+            Method for the per-parameter credible intervals.
 
-            - ``'kde'``: Highest-density region of a Gaussian KDE (Scott's
-              bandwidth) of the particles at each iteration. Moves
+            - ``'kde_hpd'``: Highest-density interval of a Gaussian KDE
+              (Scott's bandwidth) of the particles at each iteration. Moves
               continuously with the particles. For a multimodal cloud the
               ribbon is the hull of the region's intervals.
             - ``'hpd'``: Highest Posterior Density interval — the shortest
-              interval containing ``ci`` fraction of posterior samples at each
-              iteration. Computed by sorting the particles and sliding a
-              window of ``ceil(n * ci)`` samples to find the narrowest span.
-              With few particles this jumps whenever the most extreme
-              particle on one side overtakes the other (at 20 particles and
-              ``ci=0.95`` it simply drops one particle).
-            - ``'percentile'``: Equal-tailed percentile interval using
-              symmetric quantiles.
+              interval containing ``ci_level`` fraction of posterior samples
+              at each iteration. Computed by sorting the particles and
+              sliding a window of ``ceil(n * ci_level)`` samples to find the
+              narrowest span. With few particles this jumps whenever the most
+              extreme particle on one side overtakes the other (at 20
+              particles and ``ci_level=0.95`` it simply drops one particle).
+            - ``'equal_tailed'``: Equal-tailed interval using symmetric
+              quantiles.
+
+            ``'kde'`` and ``'percentile'`` are deprecated aliases of
+            ``'kde_hpd'`` and ``'equal_tailed'``. Note the default differs
+            from :meth:`summary` and :meth:`plot_posterior` (``'hpd'``), so
+            the ribbon at the last iteration is not the interval those
+            report; pass ``ci_method='hpd'`` to match them.
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.              
         estimate : str, default='map'
@@ -8173,6 +8284,8 @@ class SVGD:
               per particle per iteration) and keeps them for later calls.
               The line can step when a different particle becomes the best.
             - ``'mean'``: the mean over particles.
+        ci : float, optional
+            Deprecated name for ``ci_level``.
 
         Returns
         -------
@@ -8185,8 +8298,10 @@ class SVGD:
         if self.history is None:
             raise RuntimeError("History not available. Call fit(return_history=True) first")
 
-        if ci_method not in ('kde', 'hpd', 'percentile'):
-            raise ValueError(f"ci_method must be 'kde', 'hpd' or 'percentile', got '{ci_method}'")
+        ci_level = _renamed_kwarg('plot_ci', 'ci', ci, 'ci_level', ci_level, 0.95)
+        ci_method = _renamed_ci_method('plot_ci', ci_method)
+        if ci_method not in ('kde_hpd', 'hpd', 'equal_tailed'):
+            raise ValueError(f"ci_method must be 'kde_hpd', 'hpd' or 'equal_tailed', got '{ci_method}'")
 
         if estimate not in ('map', 'mean'):
             raise ValueError(f"estimate must be 'map' or 'mean', got '{estimate}'")
@@ -8238,21 +8353,21 @@ class SVGD:
             for t in range(n_iters):
                 for d in range(n_params):
                     lower_ci[t, d], upper_ci[t, d] = _compute_hpd(
-                        np.asarray(history_array[t, :, d]), alpha=ci
+                        np.asarray(history_array[t, :, d]), level=ci_level
                     )
             ci_label = "HPD"
-        elif ci_method == 'kde':
+        elif ci_method == 'kde_hpd':
             lower_ci = np.empty((n_iters, n_params))
             upper_ci = np.empty((n_iters, n_params))
             for t in range(n_iters):
                 for d in range(n_params):
-                    lower_ci[t, d], upper_ci[t, d] = _compute_kde_hdr(
-                        np.asarray(history_array[t, :, d]), alpha=ci
+                    lower_ci[t, d], upper_ci[t, d] = _compute_kde_hpd(
+                        np.asarray(history_array[t, :, d]), level=ci_level
                     )
-            ci_label = "HDR"
+            ci_label = "KDE HPD"
         else:
-            lower_pct = (1 - ci) / 2 * 100
-            upper_pct = (1 + ci) / 2 * 100
+            lower_pct = (1 - ci_level) / 2 * 100
+            upper_pct = (1 + ci_level) / 2 * 100
             lower_ci = jnp.percentile(history_array, lower_pct, axis=1)
             upper_ci = jnp.percentile(history_array, upper_pct, axis=1)
             ci_label = "CI"
@@ -8303,7 +8418,7 @@ class SVGD:
 
         ax.set_xlabel('SVGD Iteration')
         ax.set_ylabel('Parameter value')
-        ax.set_title(f'{line_label} and {int(ci*100)}% {ci_label}' + space_label)# f'Parameter Convergence with {int(ci*100)}% {ci_label}')
+        ax.set_title(f'{line_label} and {int(ci_level*100)}% {ci_label}' + space_label)# f'Parameter Convergence with {int(ci_level*100)}% {ci_label}')
         ax.legend()
         ax.grid(alpha=0.3)
 
@@ -8483,23 +8598,55 @@ class SVGD:
         plt.tight_layout()
 
 
-    def estimate_hdr(self, alpha: float = 0.95) -> tuple[jnp.ndarray, jnp.ndarray]:
+    def joint_hdr_particles(self, level: float = 0.95,
+                            unconstrained: bool = False) -> tuple[jnp.ndarray, jnp.ndarray]:
         """
-        Estimate the Highest Density Region (HDR) from particles.
+        Particles inside the joint highest density region (HDR).
+
+        Ranks the particles by their log posterior over ALL parameters
+        jointly and keeps the top ``level`` fraction. The region is joint:
+        a kept particle can be extreme in one parameter if it scores well
+        overall, so per-parameter min/max of the result is a bounding box
+        of the region, not a set of per-parameter intervals (for those see
+        :meth:`hpd_intervals`).
 
         Parameters
         ----------
-        alpha : float, default=0.95
-            Coverage probability (e.g., 0.95 for 95% HDR).
+        level : float, default=0.95
+            Fraction of particles to keep, in (0, 1].
+        unconstrained : bool, default=False
+            If False, return constrained (model-space) particle values.
+            If True, return unconstrained (optimization-space) values. The
+            ranking is the same either way: it uses the log posterior of the
+            unconstrained parameters.
 
         Returns
         -------
         hdr_particles : array
-            Particles that are within the HDR.
+            Particles inside the HDR, shape ``(n_kept, theta_dim)``.
         threshold : float
-            The log probability threshold that defines the HDR.
+            The log-posterior value of the lowest-ranked kept particle.
         """
+        if not 0 < level <= 1:
+            raise ValueError(f"level must be in (0, 1], got {level}")
+        if unconstrained and self.param_transform is None:
+            raise ValueError(
+                "unconstrained=True has no effect when no parameter transformation is used. "
+                "Either set unconstrained=False, or use positive_params=True / param_transform "
+                "to enable parameter transformation."
+            )
 
+        # keep at least one particle: with n_hdr == 0 the index -1 would keep all
+        hdr_mask, threshold = self._joint_hdr_mask(level, keep_at_least_one=True)
+        if unconstrained or self.param_transform is None:
+            hdr_particles = self.particles[hdr_mask]
+        else:
+            hdr_particles = self.get_results()['particles'][hdr_mask]
+
+        return hdr_particles, threshold
+
+    def _joint_hdr_mask(self, level: float, keep_at_least_one: bool):
+        """Mask of particles whose joint log posterior is in the top ``level``."""
         log_prob_fn = partial(
             self._log_prob_unified,
             nr_moments=self.nr_moments,
@@ -8519,14 +8666,27 @@ class SVGD:
         sorted_log_probs = log_probs[sorted_indices]
         
         # Find the log probability threshold for the HDR
-        n_hdr = int(n_particles * alpha)
+        n_hdr = int(n_particles * level)
+        if keep_at_least_one:
+            n_hdr = max(n_hdr, 1)
         threshold = sorted_log_probs[n_hdr-1]
-        
-        # Get particles in the HDR
-        hdr_mask = log_probs >= threshold
-        hdr_particles = self.particles[hdr_mask]
-        
-        return hdr_particles, threshold
+
+        return log_probs >= threshold, threshold
+
+    def estimate_hdr(self, alpha: float = 0.95) -> tuple[jnp.ndarray, jnp.ndarray]:
+        """
+        Deprecated: use :meth:`joint_hdr_particles`.
+
+        Same as ``joint_hdr_particles(level=alpha, unconstrained=True)``, i.e.
+        the returned particles are in unconstrained space when a parameter
+        transformation is used, whereas :meth:`joint_hdr_particles` returns
+        constrained values by default. Unlike it, ``alpha`` is not validated
+        and an ``alpha`` below ``1/n_particles`` keeps every particle, as
+        before the rename.
+        """
+        _warn_deprecated("estimate_hdr()", "joint_hdr_particles()")
+        hdr_mask, threshold = self._joint_hdr_mask(alpha, keep_at_least_one=False)
+        return self.particles[hdr_mask], threshold
 
 
     def plot_hdr(self, alphas: list[float] = [0.95, 0.5], idx: list[int] | None = None,
@@ -8537,16 +8697,45 @@ class SVGD:
                     ylim: tuple[float, float] | None = None,
                     palette: str = 'viridis', pad: int = 2,
                     unconstrained: bool = False, return_fig: bool = False,
-                    hide_fixed: bool = True,                    
+                    hide_fixed: bool = True,
                     show_hpd: bool = False, hpd_alpha: float = 0.95):
-        """Plot 2D highest-density region with optional marginal HPD bands.
+        """Deprecated: use :meth:`plot_pairwise_hdr`.
+
+        Arguments are those of :meth:`plot_pairwise_hdr`, except that
+        ``alphas``, ``show_hpd`` and ``hpd_alpha`` are its ``levels``,
+        ``show_marginal_hpd`` and ``marginal_hpd_level``.
+        """
+        _warn_deprecated("plot_hdr()", "plot_pairwise_hdr()")
+        return self.plot_pairwise_hdr(
+            levels=alphas, idx=idx, figsize=figsize, hexgrid=hexgrid,
+            trim=trim, n=n, margin=margin, center_map=center_map,
+            xlim=xlim, ylim=ylim, palette=palette, pad=pad,
+            unconstrained=unconstrained, return_fig=return_fig,
+            hide_fixed=hide_fixed, show_marginal_hpd=show_hpd,
+            marginal_hpd_level=hpd_alpha)
+
+    def plot_pairwise_hdr(self, levels: tuple[float, ...] = (0.95, 0.5),
+                          idx: list[int] | None = None,
+                          figsize: tuple[float, float] = (5, 4), hexgrid: bool = True,
+                          trim: bool = True, n: int = 15, margin: float = 0.1,
+                          center_map: bool = True,
+                          xlim: tuple[float, float] | None = None,
+                          ylim: tuple[float, float] | None = None,
+                          palette: str = 'viridis', pad: int = 2,
+                          unconstrained: bool = False, return_fig: bool = False,
+                          hide_fixed: bool = True,
+                          show_marginal_hpd: bool = False,
+                          marginal_hpd_level: float = 0.95):
+        """Plot the joint highest-density region of two parameters.
 
         Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours
-        for two selected parameter dimensions.
+        for two selected parameter dimensions. The region is joint over the
+        two plotted parameters (the others are marginalised out); optional
+        bands show each parameter's separate (marginal) HPD interval.
 
         Parameters
         ----------
-        alphas : list of float, default=[0.95, 0.5]
+        levels : sequence of float, default=(0.95, 0.5)
             HDR contour levels (fraction of mass enclosed).
         idx : list of int, default=None
             Indices of the two parameter dimensions to plot.
@@ -8573,16 +8762,17 @@ class SVGD:
             Show unconstrained (optimization-space) values.
         return_fig : bool, default=False
             If True, return the axes object instead of calling plt.show().
-        show_hpd : bool, default=False
+        show_marginal_hpd : bool, default=False
             If True, overlay marginal HPD intervals as translucent
             vertical and horizontal bands.  The HPD interval is the
-            shortest contiguous interval containing ``hpd_alpha`` fraction
-            of the marginal particle samples (computed by sorting the
-            samples and sliding a window of ``ceil(n * hpd_alpha)``
-            elements to find the narrowest span).
-        hpd_alpha : float, default=0.95
+            shortest contiguous interval containing ``marginal_hpd_level``
+            fraction of the marginal particle samples (computed by sorting
+            the samples and sliding a window of
+            ``ceil(n * marginal_hpd_level)`` elements to find the narrowest
+            span).
+        marginal_hpd_level : float, default=0.95
             Credible level for the marginal HPD bands (only used when
-            ``show_hpd=True``).
+            ``show_marginal_hpd=True``).
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.            
         """
@@ -8805,25 +8995,11 @@ class SVGD:
                     color='black' if hexgrid else black_or_white, 
                     s=70, marker='+', alpha=1, label='MAP estimate')
 
-        # logL contours        
-        from scipy.interpolate import griddata
+        # grid for the KDE contours
         x_min_p, x_max_p, y_min_p, y_max_p = padded_bounds
         xi = np.linspace(x_min_p, x_max_p, 150)
         yi = np.linspace(y_min_p, y_max_p, 150)
         Xi, Yi = np.meshgrid(xi, yi)
-        # Zi = griddata(points, np.array(z_flat), (Xi, Yi), method='cubic')
-        # levels = []
-        # label_map = {}
-        # for alpha in sorted(alphas, reverse=True):
-        #     _, threshold = self.estimate_hdr(alpha)
-        #     level = threshold.item()
-        #     levels.append(level)
-        #     label_map[level] = f'{alpha:.0%}'
-        # cont = ax.contour(Xi, Yi, Zi, levels=levels,
-        #                     colors='black' if hexgrid else black_or_white,
-        #                     alpha=0.7)
-        # ax.clabel(cont, inline=True , fmt=label_map, fontsize=9)
-
 
         # HDR contours based on particle density (KDE)
         particles_2d = np.column_stack([particles[:, idx[0]], particles[:, idx[1]]])
@@ -8837,13 +9013,13 @@ class SVGD:
         kde_at_particles = kde(particles_2d.T)
         kde_levels = []
         kde_label_map = {}
-        for alpha in sorted(alphas, reverse=True):
-            # Find density threshold that contains alpha fraction of particles
+        for level in sorted(levels, reverse=True):
+            # Find density threshold that contains level fraction of particles
             sorted_densities = np.sort(kde_at_particles)[::-1]
-            n_hdr = int(len(kde_at_particles) * alpha)
+            n_hdr = int(len(kde_at_particles) * level)
             threshold = sorted_densities[min(n_hdr - 1, len(sorted_densities) - 1)]
             kde_levels.append(threshold)
-            kde_label_map[threshold] = f'{alpha:.0%}'
+            kde_label_map[threshold] = f'{level:.0%}'
 
         linestyles = ['solid', 'dashed'] + ['dotted']*10
         kde_cont = ax.contour(Xi, Yi, Zi_kde, levels=kde_levels,
@@ -8853,13 +9029,13 @@ class SVGD:
         ax.clabel(kde_cont, inline=True, fmt=kde_label_map, fontsize=9)
 
         # Marginal HPD intervals as shaded bands
-        if show_hpd:
-            pct = int(hpd_alpha * 100)
+        if show_marginal_hpd:
+            pct = int(marginal_hpd_level * 100)
             x_lo, x_hi = _compute_hpd(
-                np.asarray(particles_display[:, idx[0]]), alpha=hpd_alpha
+                np.asarray(particles_display[:, idx[0]]), level=marginal_hpd_level
             )
             y_lo, y_hi = _compute_hpd(
-                np.asarray(particles_display[:, idx[1]]), alpha=hpd_alpha
+                np.asarray(particles_display[:, idx[1]]), level=marginal_hpd_level
             )
             band_color = 'white' if hexgrid else 'steelblue'
             ax.axvspan(x_lo, x_hi, alpha=0.15, color=band_color,
@@ -10173,8 +10349,12 @@ class SVGD:
               samples. Computed by sorting the particles and sliding a window
               of ``ceil(n * ci_level)`` samples to find the narrowest span.
               Better centred on the mode for skewed posteriors.
-            - ``'percentile'``: Equal-tailed percentile interval using the
+            - ``'equal_tailed'``: Equal-tailed interval using the
               ``(1 - ci_level)/2`` and ``(1 + ci_level)/2`` quantiles.
+              (``'percentile'`` is a deprecated alias.)
+
+            Either way the interval is computed separately for each
+            parameter.
 
         ci_level : float, default=0.95
             Credible level (e.g. 0.95 for 95% intervals).
@@ -10182,8 +10362,9 @@ class SVGD:
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before getting summary")
 
-        if ci_method not in ('hpd', 'percentile'):
-            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
+        ci_method = _renamed_ci_method('summary', ci_method)
+        if ci_method not in ('hpd', 'equal_tailed'):
+            raise ValueError(f"ci_method must be 'hpd' or 'equal_tailed', got '{ci_method}'")
 
         # Get transformed results if using parameter transformation
         results = self.get_results()
@@ -10250,7 +10431,7 @@ class SVGD:
             else:
                 if ci_method == 'hpd':
                     ci_lower, ci_upper = _compute_hpd(
-                        np.asarray(particles[:, i]), alpha=ci_level
+                        np.asarray(particles[:, i]), level=ci_level
                     )
                 else:
                     lo_pct = (1 - ci_level) / 2 * 100
