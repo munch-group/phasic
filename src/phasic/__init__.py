@@ -2505,6 +2505,25 @@ class Graph(_Graph):
         else:
             return super().distribution_context(*args, **kwargs)
 
+    def log_likelihood(self, theta: ArrayLike, data: ArrayLike) -> float:
+        """
+        Log-likelihood of `data` under model at `theta`
+
+        Parameters
+        ----------
+        theta : 
+            Model parameters (passed to `update_weights()`).
+        data : 
+            Observations. (ss produced by `sample()`.
+
+        Returns
+        -------
+        :
+            Log likelihood of `data` under model at `theta`.
+        """        
+        p = np.array([self.pdf(float(t)) for t in data])
+        return float(np.sum(np.log(np.clip(p, a_min=1e-300))))
+
     def sample(
         self,
         n: int,
@@ -6376,7 +6395,7 @@ extern "C" {{
                 from .svgd import DataPrior
                 try:
                     prior = DataPrior(
-                        self, observed_data, sd=5.0, fixed=fixed,
+                        self, observed_data, sd=5.0, fixed=fixed, rewards=rewards,
                         theta_dim=theta_dim, discrete=discrete, verbose=verbose,
                     )
                     _ledger.set_inferred('prior', 'DataPrior(sd=5)',
