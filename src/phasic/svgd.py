@@ -2156,7 +2156,7 @@ class Adamelia(Adam):
 
         if self.verbose:
             effective_lr = base_lr * self.lr_multiplier
-            logger.info(f"Adamelia Oscillation detected. "
+            logger.info(f"Iteration {self.t}: Adamelia Oscillation detected. "
                         f"LR reduced to {effective_lr:.2e} "
                         f"(reduction #{self.lr_reductions})")
 
@@ -8302,8 +8302,8 @@ class SVGD:
                 ax.axhline(val, color=color, linestyle='--', alpha=0.7)
 
         ax.set_xlabel('SVGD Iteration')
-        ax.set_ylabel(f'{line_label} ± {int(ci*100)}% {ci_label}' + space_label)
-        ax.set_title(f'Parameter Convergence with {int(ci*100)}% {ci_label}')
+        ax.set_ylabel('Parameter value')
+        ax.set_title(f'{line_label} and {int(ci*100)}% {ci_label}' + space_label)# f'Parameter Convergence with {int(ci*100)}% {ci_label}')
         ax.legend()
         ax.grid(alpha=0.3)
 
@@ -8532,6 +8532,7 @@ class SVGD:
     def plot_hdr(self, alphas: list[float] = [0.95, 0.5], idx: list[int] | None = None,
                     figsize: tuple[float, float] = (5, 4), hexgrid: bool = True,
                     trim: bool = True, n: int = 15, margin: float = 0.1,
+                    center_map: bool = True,
                     xlim: tuple[float, float] | None = None,
                     ylim: tuple[float, float] | None = None,
                     palette: str = 'viridis', pad: int = 2,
@@ -8560,6 +8561,8 @@ class SVGD:
             Approximate number of hexagons along the shorter axis.
         margin : float, default=0.1
             Fractional margin around particle range.
+        center_map : bool, default=True
+            Center MAP in plot.
         xlim, ylim : tuple, optional
             Manual axis limits.
         palette : str, default='viridis'
@@ -8689,7 +8692,7 @@ class SVGD:
             if len(idx) != 2:
                 raise ValueError("The idx argument must be a list of exactly indices")
         else:
-            if len(param_indices) >= 2:
+            if len(param_indices) < 2:
                 raise ValueError("Less than two parameters to plot")            
             idx = param_indices[:2]
 
@@ -8738,26 +8741,27 @@ class SVGD:
         canvas_aspect = figsize[0] / figsize[1]
         aspect = data_aspect / canvas_aspect
 
-        # generate sparse hex grid with padding and evaluate log probability
-        # at hex midpoints to find approximate log likelihood mode
-        points, size, padded_bounds = hex_grid(x_min, x_max, y_min, y_max, n=5, aspect=aspect, pad=pad)
-        # Build grid params in display space
-        grid_params = jnp.tile(theta_mean_display, (len(points), 1))
-        grid_params = grid_params.at[:, idx[0]].set(points[:, 0])
-        grid_params = grid_params.at[:, idx[1]].set(points[:, 1])
-        # Inverse transform for log_prob evaluation (log_prob_fn expects unconstrained)
-        grid_params_unconstrained = inv_transform(grid_params)
-        z_flat = vmap(log_prob_fn)(grid_params_unconstrained)
+        if center_map:
+            # generate sparse hex grid with padding and evaluate log probability
+            # at hex midpoints to find approximate log likelihood mode
+            points, size, padded_bounds = hex_grid(x_min, x_max, y_min, y_max, n=5, aspect=aspect, pad=pad)
+            # Build grid params in display space
+            grid_params = jnp.tile(theta_mean_display, (len(points), 1))
+            grid_params = grid_params.at[:, idx[0]].set(points[:, 0])
+            grid_params = grid_params.at[:, idx[1]].set(points[:, 1])
+            # Inverse transform for log_prob evaluation (log_prob_fn expects unconstrained)
+            grid_params_unconstrained = inv_transform(grid_params)
+            z_flat = vmap(log_prob_fn)(grid_params_unconstrained)
 
-        # adjust limits to center likelihood mode
-        max_idx = jnp.argmax(z_flat)
-        mode_x, mode_y = points[max_idx]
-        xlim = (min(xlim[0], mode_x - (xlim[1] - mode_x)/2),
-                 max(xlim[1], mode_x + (mode_x - xlim[0])/2))
-        ylim = (min(ylim[0], mode_y - (ylim[1] - mode_y)/2),
-                 max(ylim[1], mode_y + (mode_y - ylim[0])/2))
-        x_min, x_max = xlim
-        y_min, y_max = ylim
+            # adjust limits to center likelihood mode
+            max_idx = jnp.argmax(z_flat)
+            mode_x, mode_y = points[max_idx]
+            xlim = (min(xlim[0], mode_x - (xlim[1] - mode_x)/2),
+                    max(xlim[1], mode_x + (mode_x - xlim[0])/2))
+            ylim = (min(ylim[0], mode_y - (ylim[1] - mode_y)/2),
+                    max(ylim[1], mode_y + (mode_y - ylim[0])/2))
+            x_min, x_max = xlim
+            y_min, y_max = ylim
 
         # repeat with full grid
         points, size, padded_bounds = hex_grid(x_min, x_max, y_min, y_max, n=n, aspect=aspect, pad=pad)
