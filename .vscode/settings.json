@@ -123,6 +123,10 @@
         {
             "filePath": "docs/slides",
             "group": "Default"
+        },
+        {
+            "filePath": "docs/_quarto-default.yml",
+            "group": "Default"
         }
     ],
     "yaml.schemas": {

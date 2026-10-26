@@ -2522,7 +2522,7 @@ class Graph(_Graph):
             Log likelihood of `data` under model at `theta`.
         """        
         p = np.array([self.pdf(float(t)) for t in data])
-        return float(np.sum(np.log(np.clip(p, a_min=1e-300))))
+        return float(np.sum(np.log(np.clip(p, a_min=1e-300, a_max=None))))
 
     def sample(
         self,

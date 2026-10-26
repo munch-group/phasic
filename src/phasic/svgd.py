@@ -7827,6 +7827,7 @@ class SVGD:
                    skip: int = 0, max_particles: int | None = None,
                    save_path: str | None = None, unconstrained: bool = False,
                    hide_fixed: bool = True,
+                   true_theta: list | None = None,
                    return_fig: bool = False,
                    estimate: str = 'map'):
         """
@@ -7852,6 +7853,8 @@ class SVGD:
             Only relevant when using parameter transformations.
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.
+        true_theta : list, optional
+            List of true theta values.
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
         estimate : str, default='map'
@@ -7948,6 +7951,12 @@ class SVGD:
             ax.plot(x[skip:], y[skip:],
                     color=black_or_white,
                     linestyle='dashed', label=f'{line_label} = {float(y[-1]):.3g}')
+
+            if true_theta is not None:
+                ax.plot(x[skip:], [true_theta[i]]*len(x[skip:]),
+                    color=black_or_white,
+                    linestyle='dotted', label=f'{line_label} = {float(y[-1]):.3g}')
+
 
             # Labels
             param_name = param_names[i] if param_names else rf"$\theta_{i}$"
@@ -8412,9 +8421,9 @@ class SVGD:
         # Add true theta lines if provided
         if true_theta is not None:
             true_theta = jnp.atleast_1d(jnp.asarray(true_theta))
-            for i, val in enumerate(true_theta):
+            for i in param_indices:
                 color = colors[i % len(colors)]
-                ax.axhline(val, color=color, linestyle='--', alpha=0.7)
+                ax.axhline(true_theta[i], color=color, linestyle='--', alpha=0.7)
 
         ax.set_xlabel('SVGD Iteration')
         ax.set_ylabel('Parameter value')

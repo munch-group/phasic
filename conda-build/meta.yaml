@@ -70,7 +70,6 @@ outputs:
       dependencies:   # Keep this block with only these two packages
         - anaconda-client
         - conda-build
-        - conda-verify
         # - conda-package-handling
       test:
         imports:
