@@ -10014,41 +10014,24 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
                              && !ptd_scc_compose_in_progress);
     if (use_hierarchical && graph->parameterized && rewards == NULL
         && graph->param_length > 0) {
-        /* Default-theta unlock: construction initialises edge weights at
-         * theta=1 (sum of coefficients * 1.0, see ptd_graph_add_edge) and
-         * leaves current_params NULL until the first update_weights(). When no
-         * theta has been set explicitly the live weights correspond to
-         * theta=ones, so compose at ones; ptd_compose_scc_prcs re-derives
-         * weights from coefficients * theta, reproducing the monolithic
-         * default-weight result exactly. If theta was set, use it unchanged. */
-        const double *compose_theta = graph->current_params;
-        double *ones = NULL;
-        if (compose_theta == NULL) {
-            ones = (double *) malloc(graph->param_length * sizeof(double));
-            if (ones != NULL) {
-                for (size_t i = 0; i < graph->param_length; i++) {
-                    ones[i] = 1.0;
-                }
-                compose_theta = ones;
+        /* Compose at the graph's LIVE edge weights, exactly what the
+         * monolithic eliminator below reads. Re-deriving them as c·theta
+         * (ptd_compose_scc_prcs) is only valid for linear weights: it
+         * silently replaced log/callback/formula weights with linear
+         * ones and leaked a stale ptd_err from the synth re-weighting.
+         * Live weights also cover the never-updated graph (construction
+         * weights == theta=ones) without special-casing it. */
+        struct ptd_scc_graph *scc_graph =
+                ptd_find_strongly_connected_components(graph);
+        if (scc_graph != NULL) {
+            double *result = ptd_compose_scc_prcs_live(graph, scc_graph);
+            ptd_scc_graph_destroy(scc_graph);
+            if (result != NULL) {
+                return result;
             }
         }
-        if (compose_theta != NULL) {
-            struct ptd_scc_graph *scc_graph =
-                    ptd_find_strongly_connected_components(graph);
-            if (scc_graph != NULL) {
-                double *result = ptd_compose_scc_prcs(
-                        graph, scc_graph,
-                        compose_theta, graph->param_length);
-                ptd_scc_graph_destroy(scc_graph);
-                if (result != NULL) {
-                    free(ones);
-                    return result;
-                }
-            }
-            /* SCC or compose failed: clear error, fall through to monolithic. */
-            ptd_err[0] = '\0';
-        }
-        free(ones);
+        /* SCC or compose failed: clear error, fall through to monolithic. */
+        ptd_err[0] = '\0';
     }
 
     if (ptd_precompute_reward_compute_graph(graph)) {

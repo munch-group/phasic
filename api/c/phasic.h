@@ -1381,6 +1381,21 @@ double *ptd_compose_scc_prcs(
         const double *theta,
         size_t theta_len);
 
+/* As ptd_compose_scc_prcs, but composes at the parent's LIVE edge
+ * weights instead of re-deriving them as the linear sum c·theta.
+ * Neither the parent nor any synthetic SCC graph is re-weighted, so
+ * the result equals the monolithic ptd_expected_waiting_time for
+ * every weight mode (linear, log, callback, formula). Used by
+ * ptd_expected_waiting_time's parallel_elimination route.
+ *
+ * @return Newly allocated result vector of length
+ *         ``parent->vertices_length`` (caller frees), or NULL
+ *         on error (sets ptd_err).
+ */
+double *ptd_compose_scc_prcs_live(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph);
+
 /* SLURM-WP-4: synth-only cache-or-compute.
  *
  * Operates on an already-built synthetic SCC graph (from

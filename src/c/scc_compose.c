@@ -141,6 +141,7 @@ static int ptd_compose_scc_one(
         size_t i,
         const double *theta,
         size_t theta_len,
+        bool live_weights,
         double *parent_result,
         char *err_msg,
         size_t err_msg_size)
@@ -174,8 +175,15 @@ static int ptd_compose_scc_one(
         goto out;
     }
 
-    /* Step 1: update synth's edge weights from theta. */
-    {
+    /* Step 1: update synth's edge weights from theta. Skipped in
+     * live-weights mode: the synth's internal (Type B) edges were
+     * copied from the parent's live edge weights at build time, which
+     * is the only correct source when those weights did not come from
+     * a linear update (weight_mode log/callback/formula — the synth
+     * carries no weight tape and the C graph does not know log or
+     * callback mode, so a linear re-derivation would overwrite them).
+     * Type C and phantom edges are overwritten in Step 2 either way. */
+    if (!live_weights) {
         double *theta_copy = (double *)malloc(theta_len * sizeof(double));
         if (theta_copy == NULL) {
             snprintf(err_msg, err_msg_size,
@@ -186,6 +194,17 @@ static int ptd_compose_scc_one(
         memcpy(theta_copy, theta, theta_len * sizeof(double));
         ptd_graph_update_weights(synth, theta_copy, theta_len, false);
         free(theta_copy);
+        /* ptd_err is thread-local and never cleared by update_weights:
+         * an ignored failure here would surface in an unrelated later
+         * call on this thread. */
+        if (ptd_err[0] != '\0') {
+            snprintf(err_msg, err_msg_size,
+                     "ptd_compose_scc_one: update_weights failed on SCC %zu: %s",
+                     i, (const char *)ptd_err);
+            ptd_err[0] = '\0';
+            rc = -1;
+            goto out;
+        }
     }
 
     /* Step 2: override per-channel Type C and phantom edge weights. */
@@ -274,12 +293,14 @@ static double *ptd_compose_scc_prcs_inner(
         struct ptd_graph *parent,
         const struct ptd_scc_graph *scc_graph,
         const double *theta,
-        size_t theta_len)
+        size_t theta_len,
+        bool live_weights)
 {
     /* Set re-entrancy guard so inner ptd_expected_waiting_time
      * calls on synthetic graphs don't recurse into composition. */
     ptd_scc_compose_in_progress++;
-    if (theta == NULL || theta_len != parent->param_length) {
+    if (!live_weights
+            && (theta == NULL || theta_len != parent->param_length)) {
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_compose_scc_prcs: theta length %zu != param_length %zu",
                  theta_len, parent->param_length);
@@ -300,8 +321,9 @@ static double *ptd_compose_scc_prcs_inner(
 
     /* Update parent's edge weights from theta so we can read them
      * for Type C bindings. The caller may have already done this;
-     * doing it again is idempotent and safe. */
-    {
+     * doing it again is idempotent and safe — for linear weights only,
+     * which is why live-weights mode reads the parent as it stands. */
+    if (!live_weights) {
         /* update_weights mutates a copy of theta internally. */
         double *theta_copy = (double *)malloc(theta_len * sizeof(double));
         if (theta_copy == NULL) {
@@ -521,7 +543,7 @@ static double *ptd_compose_scc_prcs_inner(
             size_t i = level_indices[l_start + li];
             char *err_msg = err_msgs + li * sizeof_ptd_err;
             iter_status[li] = ptd_compose_scc_one(
-                    parent, scc_graph, i, theta, theta_len,
+                    parent, scc_graph, i, theta, theta_len, live_weights,
                     parent_result, err_msg, sizeof_ptd_err);
         }
 
@@ -569,7 +591,29 @@ double *ptd_compose_scc_prcs(
     atomic_add_u64(&g_compose_calls, 1);
 
     double *result = ptd_compose_scc_prcs_inner(
-            parent, scc_graph, theta, theta_len);
+            parent, scc_graph, theta, theta_len, false);
+
+    uint64_t elapsed = monotonic_ns() - start_ns;
+    atomic_add_u64(&g_total_compose_ns, elapsed);
+
+    return result;
+}
+
+double *ptd_compose_scc_prcs_live(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph)
+{
+    if (parent == NULL || scc_graph == NULL) {
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_compose_scc_prcs_live: NULL argument");
+        return NULL;
+    }
+
+    uint64_t start_ns = monotonic_ns();
+    atomic_add_u64(&g_compose_calls, 1);
+
+    double *result = ptd_compose_scc_prcs_inner(
+            parent, scc_graph, NULL, 0, true);
 
     uint64_t elapsed = monotonic_ns() - start_ns;
     atomic_add_u64(&g_total_compose_ns, elapsed);
