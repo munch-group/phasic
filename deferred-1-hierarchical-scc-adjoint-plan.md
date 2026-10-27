@@ -41,6 +41,13 @@ require) SCC decomposition are not permanently excluded from exact gradients.
   NUMERIC path (a log-mode parameterized graph under `parallel_elimination=True`
   gets linear-weight results with no error) — recorded in the master plan's
   §16b follow-ups ledger as its own guard/doc item, not gated on this unit.
+  *(Update 2026-10-27: that hazard is FIXED independently, `ccc54e33`. The
+  numeric composer's default route — `parallel_elimination=True` via
+  `ptd_expected_waiting_time` — now uses `ptd_compose_scc_prcs_live` and
+  reads live edge weights, so the "no change to the composer's default
+  behavior" non-goal above now refers to the post-fix composer. The
+  linear-only gradient scope stands on its own: non-linear modes need
+  their own dw/dθ in the adjoint, not because the forward is linear-only.)*
 
 ## 2. Why this is deferred (restated, so the activation logic is explicit)
 

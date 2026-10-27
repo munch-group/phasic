@@ -39,6 +39,34 @@ on all 6 toy fixtures × 4 θ.
   composer is silently linear-only (`scc_compose.c:187/:315`,
   `use_log=false` unconditional) and rewards-free; every other mode is
   declined LOUDLY at the entry point.
+  *(Update 2026-10-27, `ccc54e33` — the parallel-elimination weight-mode
+  fix; not yet folded into the plan body, to be absorbed at sign-off):*
+  - The premise "the composer is silently linear-only" no longer holds
+    for the forward: `ptd_expected_waiting_time`'s hierarchical route now
+    calls the new `ptd_compose_scc_prcs_live` (live edge weights, correct
+    for all four weight modes). The linear-only GRADIENT scope still
+    stands, for a different reason: log/callback/formula need their own
+    dw/dθ contraction in the two-level adjoint. Declining them loudly
+    remains right for v1.
+  - The composer is no longer the "rewards-free first moment only"
+    consumer it was described as: under `parallel_elimination=True` its
+    per-vertex vector also seeds every higher moment (`_moments`,
+    `compute_moments_impl`). The gradient scope (P3(a), E[T]-class) is
+    unchanged.
+  - I2 (retention flag): `ptd_compose_scc_one` and
+    `ptd_compose_scc_prcs_inner` now take a `bool live_weights`
+    argument. The flag must be threaded through the LIVE entry (the one
+    production uses), not only the theta-based `ptd_compose_scc_prcs`.
+    For linear weights the two give the same values (0 difference on the
+    test fixtures; not bit-checked on the E1 fixtures).
+  - Line references in this plan predate the fix: Step 1 synth
+    re-weighting `:187` → `:178-208` (now skipped in live mode); parent
+    re-weighting `:315` → `:337`; Step 2 override `:191-226` →
+    `:210-245`; synth destroy `:262` → `:281`; `parent_result` calloc
+    `:290-292` → `:311-313`.
+  - The E1 reference (`experiments/dr_d1_e1_twolevel_adjoint.py`) was
+    re-run after the fix: GO, all 6 fixtures × 4 θ (it calls the
+    theta-based `SCCGraph.compose`, whose linear behaviour is unchanged).
 - **Default paths byte-identical, but NOT purely additive [F-P2 —
   the v2 "Additive only" banner obscured what is being approved].
   TWO SHIPPED-CODE MODIFICATIONS are part of this unit and are
@@ -320,3 +348,5 @@ the math; I4 is where the E0 value is proven end-to-end.
 - The composer's silent linear-only weight recompute is a PRE-EXISTING
   hazard recorded in master §16b — this unit inherits linear-only scope
   and must not be blamed for (or silently fix) that value-side bug.
+  *(RESOLVED independently 2026-10-27, `ccc54e33` — see the update note
+  in §1.)*

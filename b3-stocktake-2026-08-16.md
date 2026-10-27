@@ -123,6 +123,9 @@ decline latch, and declined moments calls still pay a full tape build),
 
 Item 6 deserves promotion in light of the scale finding: it is a silent
 wrong answer on exactly the path large models must use.
+*(Update 2026-10-27: item 6 is FIXED, `ccc54e33` — the hierarchical route
+now composes at the live edge weights, correct for all four weight modes
+and all moments; see the master plan §16b item 6 for the record.)*
 
 ## 4b. Which quantity each likelihood actually uses (established 2026-08-16, see b3-likelihood-path-map.md)
 

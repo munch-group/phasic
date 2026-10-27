@@ -3,7 +3,8 @@
 Written 2026-10-10 as the single entry point to the ~70 plan, findings and
 review files in the repository root; updated 2026-10-12 with the October
 model-building consistency work (§1d) and the Stage-3 status correction;
-updated 2026-10-15 after the C++ `discretize()` merge (§1f). Everything here is a summary of those
+updated 2026-10-15 after the C++ `discretize()` merge (§1f); updated
+2026-10-27 with the parallel-elimination weight-mode fix (§1c item 8). Everything here is a summary of those
 files (named in each entry) plus git history; nothing new was measured to
 write it. When a file and this overview disagree, the file is the record —
 and this overview should be corrected.
@@ -114,12 +115,20 @@ shipped and passed review. A stock-take on 16 August
    ~1e-7. No implementation plan yet.
 7. **High-precision (MPFR) gradients** ("Deferred 4"). Parked by your
    decision. Its cheap end is item 3a above.
-8. **Loose ends** (the master plan's §16b list). Most important: log-weight
-   models combined with parallel elimination give a **silently wrong
-   answer**, because the parallel composer always treats weights as linear
-   (§16b item 6). Others: documentation overstating parallel-elimination
-   benefits, a forward/backward mismatch when a rate blows up, and failures
-   in the multi-epoch FFI that become unlogged NaNs. Full list in
+8. **Loose ends** (the master plan's §16b list). The most important one,
+   parallel elimination silently treating every weight as linear (§16b
+   item 6), is **fixed** (2026-10-27, `ccc54e33`): the parallel route now
+   composes at the graph's current edge weights, so `expectation()`,
+   `moments()`, `variance()`, `covariance()` and the JAX moments path give
+   the same answer with or without `parallel_elimination` for all four
+   weight modes (linear, log, callback, formula). It was wider than
+   recorded: callback and formula were wrong too, and a formula graph
+   whose coefficient count differs from θ's length left a stale error that
+   made the next `update_weights()` fail. Guarded by
+   `tests/pytest/test_parallel_elimination_weight_modes.py`. Still open:
+   documentation overstating parallel-elimination benefits, a
+   forward/backward mismatch when a rate blows up, and failures in the
+   multi-epoch FFI that become unlogged NaNs. Full list in
    `b3-stocktake-2026-08-16.md` §4.
 9. **Leftovers outside the gradient programme** (end of
    `b3-execution-tracker.md`):

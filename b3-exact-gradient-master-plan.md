@@ -1356,6 +1356,21 @@ on any batch here):
    with no error (rewards-free first-moment path). Pre-existing
    silent-wrong-answer hazard; needs its own guard/doc micro-fix (decline
    or warn in the hierarchical gate), independent of any gradient work.
+   **[RESOLVED 2026-10-27, `ccc54e33` — fixed rather than declined]**
+   `ptd_expected_waiting_time`'s hierarchical route now calls the new
+   `ptd_compose_scc_prcs_live`, which composes at the parent's LIVE edge
+   weights (neither parent nor synth is re-weighted), so it equals the
+   monolithic result for linear, log, callback AND formula. The hazard
+   was wider than recorded: callback and formula were also wrong, every
+   moment (not only E[T]: the composed per-vertex vector seeds all higher
+   moments) was affected, and the JAX/GraphBuilder moments path
+   (`compute_moments_impl`) reached it too. A failed synth re-weighting
+   also leaked a stale thread-local `ptd_err` into the next
+   `update_weights()`. The theta-based `ptd_compose_scc_prcs` (pybind
+   `SCCGraph.compose`) keeps its linear semantics but now reports a failed
+   synth update instead of ignoring it. Test:
+   `tests/pytest/test_parallel_elimination_weight_modes.py` (verified to
+   fail 7/10 on the pre-fix build).
 7. **NEW (2026-08-12, Batch D Tier-1 triage): `pmf_from_cpp`'s callback
    likely shares the D.1 vmap bug** — its pure_callback wrapper uses
    `vmap_method='expand_dims'` with no ndim handling
