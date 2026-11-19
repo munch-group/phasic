@@ -72,5 +72,15 @@ verified against brute-force integration to 1e-14 during planning.
 * Both runs end with a segfault AFTER pytest prints its summary (at
   interpreter shutdown) — present in the baseline too, so pre-existing
   and unrelated to this change; noted for a separate look.
+* Cost (plan §2 item 9): coalescent n=8, reward_limit 3, 45,704-vertex
+  joint graph, 2,000 observations, two epochs [0, 1], jit(vmap(grad))
+  over 32 particles, master install vs branch install, same script:
+  no exposure 127.1 s (median of 7; range 121.4-132.2) -> 114.4 s
+  (median of 3; 113.3-115.9); exposure with 3 unique values 358.6 s
+  (357.6-378.7) -> 334.9 s (333.2-344.0). No slowdown. The ~7-10% lower
+  branch numbers are almost certainly machine-state variation (runs were
+  sequential, not interleaved); the change adds only a row sum per
+  exposure value and cannot make the FFI faster. Script:
+  scratchpad bench2.py (not kept).
 * Not run: the full 2000+ test suite (the subset covers every file that
   touches joint-prob / epoch / daisy / exposure / LRT / svgd_config).
