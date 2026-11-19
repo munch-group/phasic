@@ -182,6 +182,29 @@ approaches the absolute FD step of 1e-7 (measured 2.6e-2 relative
 gradient error at theta=[1,1e-8]; >10% only past a ~1e9 scale ratio) —
 the previously recorded "4-9% at theta=[1,1e-8]" was overstated.
 
+## Joint-probability likelihood is conditional (normalised) on every path (2026-11-19)
+
+Observations beyond `reward_limit`/`tot_reward_limit` cannot be passed
+to inference (over-cap rows raise in the observation mapping), so every
+joint-graph likelihood is prod p_i / Z(theta, alpha_i), where Z is the
+table mass of the observation's own (exposure-scaled) parameters. Data
+must be truncated at exactly the graph's caps. The epoch (daisy-chain)
+path was raw (unnormalised) until branch `fix/epoch-normalization`
+(plan `epoch-normalization-plan.md`), which biased estimates toward
+parameters that minimise overflow (test.py reproducer: 6.44 for a true
+5.0). `final_read='stopprob'` is rejected for epoch fits (rule R33):
+normalising it would cancel the penalty for mass unabsorbed at t_eval.
+
+**Potential efficiency gain, not implemented:** if users keep over-cap
+observations as an explicit overflow category, the full likelihood
+prod_in p_i x prod_over (1 - Z) is unbiased and about twice as
+informative (tied two-epoch test model: sd 0.036 vs 0.074). A reviewed
+design exists in `overflow-observations-plan.md` (v3, deferred).
+Constraints found: the single-epoch joint-index model reads sojourn =
+probability / mu on continuous graphs, so censoring must use the epoch
+path (`epoch_starts=[0.0]`), whose build is ~36x slower at 45k vertices
+though per-iteration cost is within 6-12%.
+
 ## Build & environment
 
 The project is managed with **pixi** (conda-based). All commands run inside the pixi environment. The build stack is scikit-build-core + CMake + pybind11, compiling C and C++ into the `phasic_pybind` extension module. MPFR/GMP (high-precision arithmetic) are required on Linux/macOS; OpenMP and JAX/XLA-FFI headers are used when present.
