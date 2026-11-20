@@ -21,13 +21,15 @@ namespace parameterized {
  * by builder address and store this id; they drop entries whose id is no
  * longer live (see model_memory::sweep_*). A copy of a builder is a
  * separate builder, so copying the token takes a fresh id; assignment
- * keeps the target's own id.
+ * is deleted.
  */
 class BuilderInstanceToken {
 public:
     BuilderInstanceToken();
     BuilderInstanceToken(const BuilderInstanceToken&);
-    BuilderInstanceToken& operator=(const BuilderInstanceToken&) { return *this; }
+    // Assigning one builder to another is not supported: keeping either id
+    // would let a per-thread cache serve a graph of the wrong structure.
+    BuilderInstanceToken& operator=(const BuilderInstanceToken&) = delete;
     ~BuilderInstanceToken();
     uint64_t id() const { return id_; }
 private:
@@ -41,7 +43,9 @@ private:
  * sweeps its own per-thread caches of entries whose builder is gone, on
  * its next access. clear_generation() changes when the user asks to free
  * all model memory (phasic.clear_model_memory()); each thread then drops
- * all of its cached builders and graphs on its next access.
+ * its cached builders on its next access, which destroys them, and their
+ * graphs go with the next sweep. Sweeps never drop a live builder's
+ * graph (a caller may hold it).
  */
 namespace model_memory {
 bool builder_is_live(uint64_t id);
@@ -52,8 +56,7 @@ void request_clear();
 /// Number of per-thread cached graphs alive in the process.
 long cached_graph_count();
 void count_cached_graph(long delta);
-/// Sweep this thread's GraphBuilder persistent graphs (dead builders, or
-/// everything when a clear was requested since the last sweep).
+/// Sweep this thread's GraphBuilder persistent graphs of destroyed builders.
 void sweep_thread_persistent_graphs();
 }  // namespace model_memory
 

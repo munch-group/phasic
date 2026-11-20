@@ -563,10 +563,11 @@ class PhasicConfig:
         kept model holds its parsed structure plus one graph per worker
         thread - about 6 KB per vertex measured on joint-probability
         graphs (~290 MB at 45,704 vertices). None = the start-up value:
-        PHASIC_MODEL_MEMORY_CACHE_SIZE if set in the shell, else 4. Use
-        at least 2 for epoch fits (each uses two graphs) and more when
-        alternating between models, or every call rebuilds. See also
-        phasic.clear_model_memory().
+        PHASIC_MODEL_MEMORY_CACHE_SIZE if set in the shell, else 4. An
+        epoch fit uses two graphs, so alternating between two epoch
+        models (e.g. a tied-vs-free likelihood-ratio test) needs 4 and
+        three need 6; below that every call rebuilds (results are the
+        same, only slower). See also phasic.clear_model_memory().
 
     strict : bool, default True
         Raise on missing-feature warnings (e.g. JAX requested but
@@ -992,10 +993,9 @@ def _push_model_memory_capacity(value: int | None) -> None:
         if env is None or env == '':
             effective = 4
         else:
-            try:
-                effective = int(env)
-            except ValueError:
-                effective = 0
+            # Same rule as the native reader (strtoll, whole string): plain
+            # decimal digits only, so '1_0' or '5 ' fail here, not later.
+            effective = int(env) if env.isascii() and env.isdigit() else 0
             if effective < 1:
                 raise PTDConfigError(
                     f"PHASIC_MODEL_MEMORY_CACHE_SIZE must be an integer >= 1; "
@@ -1006,11 +1006,13 @@ def _push_model_memory_capacity(value: int | None) -> None:
             # runs during package import, before OMP_NUM_THREADS is set.
             return
     else:
-        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        import numbers
+        if (isinstance(value, bool) or not isinstance(value, numbers.Integral)
+                or value < 1):
             raise PTDConfigError(
                 f"model_memory_cache_size={value!r} must be an integer >= 1 "
                 f"or None.")
-        effective = value
+        effective = int(value)
     if effective == _model_memory_capacity_pushed:
         return
     from . import phasic_pybind

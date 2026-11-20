@@ -88,8 +88,12 @@ def test_clear_model_memory():
         a = model(0); b = model(1)
         va = evaluate(*a); evaluate(*b)
         assert phasic.model_memory_info()['models'] == 2
+        assert phasic.model_memory_info()['cached_graphs'] > 0
         info = phasic.clear_model_memory()
-        assert info['models'] == 0, info
+        # Builders and the OpenMP workers' per-thread graphs go now, not at
+        # the workers' next call (review of T11).
+        assert info['models'] == 0 and info['live_builders'] == 0, info
+        assert info['cached_graphs'] == 0, info
         assert np.array_equal(evaluate(*a), va)   # rebuilt after the clear
         info = phasic.model_memory_info()
         assert info['models'] == 1, info
@@ -114,6 +118,8 @@ def test_configure_validates_and_context_restores():
         with phasic.configure(model_memory_cache_size=3):
             assert phasic.model_memory_info()['capacity'] == 3
         assert phasic.model_memory_info()['capacity'] == 4
+        phasic.configure(model_memory_cache_size=np.int64(5))   # numpy ints accepted
+        assert phasic.model_memory_info()['capacity'] == 5
         print("OK")
     """)
     assert r.returncode == 0 and "OK" in r.stdout, r.stdout + r.stderr
@@ -128,8 +134,12 @@ def test_start_up_env_value():
     assert r.returncode == 0 and "OK" in r.stdout, r.stdout + r.stderr
 
 
-def test_bad_env_value_raises():
+@pytest.mark.parametrize("bad", ["lots", "0", "1_0", "5 ", "-2"])
+def test_bad_env_value_raises(bad):
+    # Python and the native reader apply the same rule (whole string of
+    # decimal digits, >= 1), so a bad value fails at import, not later
+    # inside every FFI call.
     r = _run("""
         print("UNREACHED")
-    """, {"PHASIC_MODEL_MEMORY_CACHE_SIZE": "lots"})
+    """, {"PHASIC_MODEL_MEMORY_CACHE_SIZE": bad})
     assert r.returncode != 0 and "PHASIC_MODEL_MEMORY_CACHE_SIZE" in r.stderr, r.stdout + r.stderr

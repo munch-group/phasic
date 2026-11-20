@@ -433,3 +433,23 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
   Gate: correctness (cycling more models than the capacity gives the
   same values as fresh), memory bounded in a subprocess, the T1 stale
   cache test, and the FFI-reaching test files.
+- 2026-11-20: T11 independent review (commit 987c8d77). Thread-exit and
+  shutdown ordering judged sound (leaked registries, trivially
+  destructible atomics, no sweep from a destructor). Fixed:
+  (1) use-after-free: DaisyChainSojournFfiImpl holds the JSP graph
+  pointer while fetching the sojourn graph, and a concurrent
+  clear_model_memory() made that second lookup clear ALL slots, freeing
+  the held graph. Sweeps now only drop graphs of destroyed builders,
+  never a live builder's (a clear destroys the cached builders, so their
+  graphs still go). (2) clear left most memory in idle OpenMP workers
+  until their next batched call (probe: 12 graphs -> 9 left); clear now
+  runs an OpenMP region in which every pool thread drops its builders,
+  then (after a barrier) sweeps. (3) Python and the native reader parsed
+  PHASIC_MODEL_MEMORY_CACHE_SIZE differently ('1_0', '5 '); same rule
+  now, and the native error no longer reads as a JSON problem.
+  (4) builder assignment deleted (keeping either id could serve a graph
+  of the wrong structure; nothing assigns builders today). numpy ints
+  accepted for model_memory_cache_size. Not changed: capacity counts
+  structure JSONs, so alternating between two epoch models needs 4 (the
+  default) and three need 6 (documented); a rejected configure() value
+  stays in the config object (pre-existing pattern for every field).

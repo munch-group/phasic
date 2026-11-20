@@ -495,32 +495,28 @@ struct PersistentGraphHolder {
 };
 thread_local PersistentGraphHolder tl_persistent_graphs_holder;
 
-// Generation counters this thread last swept at (ticket T11).
+// Generation counter this thread last swept at (ticket T11).
 thread_local uint64_t tl_persistent_seen_generation = 0;
-thread_local uint64_t tl_persistent_seen_clear = 0;
 }  // namespace
 
+// Only graphs of DESTROYED builders are dropped, never a live builder's:
+// a caller may hold a reference to its graph across a later lookup. A
+// clear request destroys the cached builders, so their graphs go here.
 void model_memory::sweep_thread_persistent_graphs() {
     if (tl_persistent_graphs_live == nullptr) return;
     const uint64_t gen = generation();
-    const uint64_t clr = clear_generation();
-    if (gen == tl_persistent_seen_generation && clr == tl_persistent_seen_clear) return;
+    if (gen == tl_persistent_seen_generation) return;
     PersistentGraphMap& m = *tl_persistent_graphs_live;
-    if (clr != tl_persistent_seen_clear) {
-        m.clear();
-    } else {
-        // Ids never come back to life, so dead keys found here stay dead.
-        std::vector<const GraphBuilder*> dead;
-        {
-            LiveRegistry& r = live_registry();
-            std::lock_guard<std::mutex> lock(r.mutex);
-            for (auto& kv : m)
-                if (!r.ids.count(kv.second.builder_id)) dead.push_back(kv.first);
-        }
-        for (auto* k : dead) m.erase(k);
+    // Ids never come back to life, so dead keys found here stay dead.
+    std::vector<const GraphBuilder*> dead;
+    {
+        LiveRegistry& r = live_registry();
+        std::lock_guard<std::mutex> lock(r.mutex);
+        for (auto& kv : m)
+            if (!r.ids.count(kv.second.builder_id)) dead.push_back(kv.first);
     }
+    for (auto* k : dead) m.erase(k);
     tl_persistent_seen_generation = gen;
-    tl_persistent_seen_clear = clr;
 }
 
 GraphBuilder::~GraphBuilder() {

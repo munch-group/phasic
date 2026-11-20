@@ -19,10 +19,13 @@ def _param():
 def clear_model_memory() -> dict:
     """Free the memory the native likelihood code keeps for every model.
 
-    The calling thread releases its share immediately; JAX's worker
-    threads (which run most native computations) release theirs at their
-    next native computation. The next evaluation of any model rebuilds
-    what it needs. The on-disk caches are not touched (see
+    Releases the cached models of the calling thread and of the OpenMP
+    worker threads (which hold most of the memory: one graph per model
+    per worker) immediately. A model cached by another thread that runs
+    native computations (for example one of JAX's own threads) is
+    released when that thread next runs one. A computation already in
+    progress keeps what it is using until it finishes. The next
+    evaluation of any model rebuilds what it needs. The on-disk caches are not touched (see
     ``phasic.clear_caches()``), nor are JAX's own compilation caches
     (``jax.clear_caches()``).
 

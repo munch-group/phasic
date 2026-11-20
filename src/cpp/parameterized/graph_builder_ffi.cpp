@@ -193,7 +193,6 @@ std::string g_capacity_error;                 // non-empty: bad env value
 thread_local uint64_t tl_builders_seen_lru = 0;
 thread_local uint64_t tl_builders_seen_clear = 0;
 thread_local uint64_t tl_slots_seen_generation = 0;
-thread_local uint64_t tl_slots_seen_clear = 0;
 }  // namespace
 
 size_t model_memory_capacity_now() {
@@ -211,7 +210,8 @@ size_t model_memory_capacity_now() {
         char* end = nullptr;
         long long n = std::strtoll(v, &end, 10);
         if (end == v || *end != '\0' || n < 1) {
-            g_capacity_error = std::string("PHASIC_MODEL_MEMORY_CACHE_SIZE must be an "
+            g_capacity_error = std::string("invalid PHASIC_MODEL_MEMORY_CACHE_SIZE "
+                                           "(not a structure problem): must be an "
                                            "integer >= 1; got '") + v + "'";
             throw std::invalid_argument(g_capacity_error);
         }
@@ -221,23 +221,20 @@ size_t model_memory_capacity_now() {
     return parsed;
 }
 
-// Drop this thread's per-thread FFI graphs whose builder is gone (or all
-// of them after a clear request).
+// Drop this thread's per-thread FFI graphs whose builder is destroyed.
+// Never a live builder's slot: a handler may hold the Graph* of one slot
+// while it looks up another (DaisyChainSojournFfiImpl holds the JSP graph
+// while fetching the sojourn graph), and clearing all slots there freed
+// the held graph (review of T11).
 static void sweep_thread_ffi_slots() {
     const uint64_t gen = model_memory::generation();
-    const uint64_t clr = model_memory::clear_generation();
-    if (gen == tl_slots_seen_generation && clr == tl_slots_seen_clear) return;
-    if (clr != tl_slots_seen_clear) {
-        per_thread_graph_cache.clear();
-    } else {
-        std::vector<const GraphBuilder*> dead;
-        for (auto& kv : per_thread_graph_cache)
-            if (!model_memory::builder_is_live(kv.second.builder_id))
-                dead.push_back(kv.first);
-        for (auto* k : dead) per_thread_graph_cache.erase(k);
-    }
+    if (gen == tl_slots_seen_generation) return;
+    std::vector<const GraphBuilder*> dead;
+    for (auto& kv : per_thread_graph_cache)
+        if (!model_memory::builder_is_live(kv.second.builder_id))
+            dead.push_back(kv.first);
+    for (auto* k : dead) per_thread_graph_cache.erase(k);
     tl_slots_seen_generation = gen;
-    tl_slots_seen_clear = clr;
 }
 
 static void forget_daisy_meta(const std::string& json_str) {
@@ -2436,10 +2433,25 @@ void clear_model_memory() {
         std::lock_guard<std::mutex> lock(ffi_handlers::daisy_chain_meta_init_mutex);
         ffi_handlers::daisy_chain_meta_cache.clear();
     }
-    // The calling thread releases now; every other thread on its next call.
+    // The calling thread drops its builders now (destroying them); every
+    // other thread on its next call.
     ffi_handlers::prune_thread_builders();
     ffi_handlers::sweep_thread_ffi_slots();
     model_memory::sweep_thread_persistent_graphs();
+#ifdef PHASIC_HAVE_OPENMP
+    // Make every OpenMP pool thread sweep now: their per-thread graphs are
+    // most of the memory, and an idle worker would otherwise keep them
+    // until a later batched call. Only graphs of destroyed builders go.
+    // Pool threads can hold builders of their own (SamplePathConditioned
+    // caches one per worker): all drop theirs first, then all sweep.
+    #pragma omp parallel
+    {
+        ffi_handlers::prune_thread_builders();
+        #pragma omp barrier
+        ffi_handlers::sweep_thread_ffi_slots();
+        model_memory::sweep_thread_persistent_graphs();
+    }
+#endif
 }
 
 ModelMemoryInfo model_memory_info() {
