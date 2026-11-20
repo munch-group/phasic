@@ -10094,6 +10094,11 @@ extern "C" {{
         Optimised reimplementation of :meth:`_joint_prob_graph` that produces
         a **bit-identical** graph (same vertices, same insertion order, same
         edges/weights, same serialization) while building much faster.
+        One intentional difference (2026-11-20): t-vertices (base state
+        absorbing) get no trash edge, because no time passes there; the
+        reference gave a t-vertex at ``tot_reward_limit`` a trash edge, which
+        made continuous (and ``reward_only``) joint graphs report wrong
+        probabilities for outcomes at the cap.
 
         The speedup comes from hoisting the per-base-state-index → reward-index
         mapping out of the per-vertex construction loop: that mapping is a pure
@@ -10385,6 +10390,18 @@ extern "C" {{
                 # absorbing, we add it to the array of t-states
                 if not self.find_vertex(child_state[state_indices]).edges():
                     t_vertex_indices_list.append(child_vertex.index())
+
+            # A t-vertex (base state absorbing) is reached at the moment the
+            # base chain absorbs: no time passes there, so it can carry no
+            # mutation and no overflow. Its mutation edges were already
+            # skipped below (their child is base-absorbing), but its trash
+            # rate was still recorded: under a total cap, a t-vertex AT the
+            # cap got a trash edge, which on a continuous graph divides its
+            # sojourn read (and the single-epoch likelihood) by the extra
+            # exit rate. Give it only its edge to the absorbing vertex.
+            if not base_vertex.edges():
+                index = index + 1
+                continue
 
             # base part of current state
             current_state = state[state_indices]
