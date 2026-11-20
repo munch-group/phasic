@@ -5484,10 +5484,17 @@ extern "C" {{
             )
             theta_hat = np.asarray(pm_result.theta, dtype=np.float64)
             theta_std = np.asarray(pm_result.std, dtype=np.float64)
-        except Exception:
-            # Fall through to None — SVGD will use its standard-normal
-            # default prior.
-            return model, theta_dim, None, broadcast_fixed
+        except Exception as _pm_exc:
+            # No silent fallback (ticket T5): this used to return no prior,
+            # so SVGD silently used a standard normal on the unconstrained
+            # scale.
+            raise ValueError(
+                "prior=None: the default data-informed epoch prior "
+                "(probability_matching on the time-homogeneous model) could "
+                f"not be built: {type(_pm_exc).__name__}: {_pm_exc}\n"
+                "  Fix the cause above, or pass prior= explicitly "
+                "(one prior per parameter; it is broadcast over epochs)."
+            ) from _pm_exc
 
         # Per-parameter Gaussian priors, broadcast n_epochs times.
         # GaussPrior takes ci=[lo, hi]; we pass mean ± sd*std as the
@@ -5781,8 +5788,8 @@ extern "C" {{
             If None (default), constructs ``DataPrior(graph, observed_data, sd=5)``
             which uses method-of-moments (or probability matching for joint probability
             graphs) to estimate prior means from the data, with a wide spread
-            (5x the asymptotic standard error).  Falls back to standard normal
-            if DataPrior construction fails.
+            (5x the asymptotic standard error).  If DataPrior cannot be
+            built, a ValueError names the cause (there is no fallback prior).
 
             Note: this data-driven default differs from the lower-level ``SVGD``
             class, whose ``prior=None`` is a plain standard normal
@@ -6510,17 +6517,18 @@ extern "C" {{
                     _ledger.set_inferred('prior', 'DataPrior(sd=5)',
                                          'default data-informed prior')
                 except Exception as _prior_exc:
-                    # DataPrior construction failed; SVGD falls back to a
-                    # standard-normal prior. Surface this — it was silently
-                    # swallowed before.
-                    _ledger.set_inferred('prior', 'standard-normal',
-                                         'DataPrior failed; fell back')
-                    _svgd_assume(
-                        "prior=None: data-informed DataPrior construction failed "
-                        f"({type(_prior_exc).__name__}); falling back to a "
-                        "standard-normal prior.",
-                        quiet=quiet_assumptions,
-                    )
+                    # No silent fallback (ticket T5): a standard-normal prior
+                    # on the unconstrained scale is not what prior=None
+                    # promises, and the failure usually names the real
+                    # problem with the data or model (e.g. an observation
+                    # that cannot be mapped).
+                    raise ValueError(
+                        "prior=None: the default data-informed prior "
+                        "(DataPrior) could not be built: "
+                        f"{type(_prior_exc).__name__}: {_prior_exc}\n"
+                        "  Fix the cause above, or pass prior= explicitly "
+                        "(e.g. a GaussPrior per parameter)."
+                    ) from _prior_exc
 
             # Handle joint_index mode
             if self._joint_prob_base_graph_indexer is not None:
@@ -6962,8 +6970,14 @@ extern "C" {{
                     self, observed_data, sd=5.0, fixed=fixed,
                     theta_dim=theta_dim, discrete=discrete, verbose=verbose,
                 )
-            except Exception:
-                pass  # Fall through to MCMC's standard-normal default
+            except Exception as _prior_exc:
+                # No silent fallback (ticket T5; same rule as svgd).
+                raise ValueError(
+                    "prior=None: the default data-informed prior "
+                    "(DataPrior) could not be built: "
+                    f"{type(_prior_exc).__name__}: {_prior_exc}\n"
+                    "  Fix the cause above, or pass prior= explicitly."
+                ) from _prior_exc
 
         # Build model (MCMC only needs PMF, not moments)
         if rewards is not None:
