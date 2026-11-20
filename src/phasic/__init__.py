@@ -10143,70 +10143,6 @@ extern "C" {{
 
 
 
-#     def _joint_prob_reward(self,
-#                            state: np.ndarray,
-#                         indexer: StateIndexer,
-#                         reward_indexer: StateIndexer,
-#                         current_rewards: np.ndarray | None = None,
-#                         mutation_rate: float = 1.0,
-#                         reward_limit: int | dict = 10,
-#                         tot_reward_limit: float = np.inf) -> tuple[np.ndarray, float]:
-
-#             logger = get_logger(__name__)
-
-#             prop_set_names = [p.name for p in indexer.property_sets()]
-#             prop_set_name, *_ = prop_set_names
-
-#             # determine reward dimensions (extension to state vector)
-#             # reward_length = indexer.state_length - indexer[prop_set_name].state_length
-#             reward_length = reward_indexer.state_length
-
-#             if not isinstance(reward_limit, dict):
-#                 reward_limits = np.repeat(reward_limit, reward_length)
-
-#             if current_rewards is None:
-#                 current_rewards = np.zeros(reward_length)
-
-#             reward_rates = np.zeros(reward_length)
-#             trash_rate = 0
-
-#             reward_prop_names = set(prop.name for prop_set in reward_indexer.property_sets() for prop in prop_set.properties)
-
-#             # for each base graph state index
-#             for i in range(indexer[prop_set_name].state_length):
-#                 # get properties for the property set
-#                 props = indexer[prop_set_name].index_to_props(i, as_dict=True)
-
-# #                props = indexer.index_to_props(i, as_dict=True)
-#                 # for prop, value in getattr(props, prop_set_name).items():
-
-#                 # for each property and its value
-#                 for prop, value in props.items():
-
-#                     # make flattened prop_set + property nmae
-#                     _prop_name = f'{prop_set_name}_{prop}'
-
-#                     if _prop_name not in reward_prop_names:
-#                         continue
-
-#                     reward_idx = reward_indexer.props_to_index(**{_prop_name: value})
-#                     rate = state[i] * mutation_rate 
-
-#                     # logger.debug("i: %d; prop: %s; value: %s; rate: %e; reward_idx: %d", i, repr(prop), repr(value), rate, reward_idx)
-#                     if isinstance(reward_limit, dict):
-#                         if current_rewards[i] + 1 > reward_limit[prop] and np.sum(current_rewards + r) <= tot_reward_limit:
-#                             reward_rates[reward_idx] += rate
-#                         else:
-#                             trash_rate = trash_rate + rate
-#                     else:
-#                         r = np.zeros_like(reward_rates)
-#                         r[reward_idx] = 1
-#                         if (reward_limit is None or np.all(current_rewards + r <= reward_limits)) and np.sum(current_rewards + r) <= tot_reward_limit:
-#                             reward_rates[reward_idx] += rate
-#                         else:
-#                             trash_rate = trash_rate + rate
-
-#             return reward_rates, trash_rate
 
 
     def joint_prob_graph(self,
@@ -10219,24 +10155,44 @@ extern "C" {{
                         discrete: bool = True) -> Graph:
         """Build the joint-probability graph from this parameterized graph.
 
-        Optimised reimplementation of :meth:`_joint_prob_graph` that produces
-        a **bit-identical** graph (same vertices, same insertion order, same
-        edges/weights, same serialization) while building much faster.
-        One intentional difference (2026-11-20): t-vertices (base state
-        absorbing) get no trash edge, because no time passes there; the
-        reference gave a t-vertex at ``tot_reward_limit`` a trash edge, which
-        made continuous (and ``reward_only``) joint graphs report wrong
-        probabilities for outcomes at the cap.
+        Optimised reimplementation (2026-05-21) of the original builder (since
+        removed), producing the same graph while building much faster, with
+        two intentional differences (2026-11-20): t-vertices (base state
+        absorbing) get no trash edge, because no time passes there (the
+        original gave a t-vertex at ``tot_reward_limit`` a trash edge, which
+        made continuous and ``reward_only`` joint graphs report wrong
+        probabilities for outcomes at the cap); and with several absorbing
+        base states, outcomes with equal reward vectors share one t-vertex
+        (see the canonical absorbing state in the body).
 
         The speedup comes from hoisting the per-base-state-index → reward-index
         mapping out of the per-vertex construction loop: that mapping is a pure
         function of the indexers and was previously recomputed (via millions of
         ``index_to_props`` / ``props_to_index`` calls) once per joint vertex.
 
-        When a custom ``reward_rates_callback`` is supplied the fast path is
-        bypassed and the callback is invoked exactly as in
-        :meth:`_joint_prob_graph`, so behaviour is unchanged for custom
-        callbacks.
+        ``reward_rates_callback`` (optional) replaces the built-in mutation
+        rates. It is called once per joint vertex whose base state is NOT
+        absorbing (outcome vertices carry no mutations, and the starting
+        vertex is not called) as::
+
+            rates, trash_rate = reward_rates_callback(
+                current_state, base_graph_indexer, reward_indexer,
+                current_rewards, mutation_rate=mutation_rate,
+                reward_limit=reward_limit, tot_reward_limit=tot_reward_limit)
+
+        ``current_state`` is the base part of the vertex state (for a graph
+        built with ``add_epoch`` it includes the epoch slot) and
+        ``current_rewards`` the reward counts so far. ``rates`` must have
+        one finite, non-negative entry per reward counter (the
+        ``reward_indexer`` state length): the rate at which that counter
+        increases by one; ``trash_rate`` (finite, >= 0) is extra rate sent
+        straight to the trash state. The builder enforces ``reward_limit``
+        and ``tot_reward_limit``: any increment that would pass a cap goes
+        to trash, exactly as for the built-in rates, so the caps mean the
+        same for every graph and construction terminates. Rates are
+        constants placed in the mutation slot (the last theta entry), so
+        the effective rate is ``rate * theta[-1]``; they cannot depend on
+        theta. A dict ``reward_limit`` is not supported with a callback.
         """
         _require_parameterized(self, 'joint_prob_graph')
         _require_linear_weight_mode(self, 'joint_prob_graph()')
@@ -10292,21 +10248,15 @@ extern "C" {{
         if len(base_graph_indexer.property_sets()) != 1:
             raise ValueError("Indexer must have exactly one property set representing the base graph state.")
 
-        # When the caller supplies a custom callback we cannot use the fast
-        # precomputed reward path (it is specific to _joint_prob_reward). Fall
-        # back to the reference implementation, which honours arbitrary
-        # callbacks. Passing the resolved base_graph_indexer keeps behaviour
-        # identical.
-        if reward_rates_callback is not None:
-            return self._joint_prob_graph(
-                base_graph_indexer=base_graph_indexer,
-                reward_only=reward_only,
-                reward_rates_callback=reward_rates_callback,
-                mutation_rate=mutation_rate,
-                reward_limit=reward_limit,
-                tot_reward_limit=tot_reward_limit,
-                discrete=discrete,
-            )
+        # A custom reward_rates_callback runs inside this builder (ticket T2;
+        # it used to forward to a reference implementation that had been
+        # commented out, so every callback raised AttributeError). Only the
+        # rate computation is replaced; see _callback_reward below.
+        if reward_rates_callback is not None and isinstance(reward_limit, dict):
+            raise ValueError(
+                "joint_prob_graph: a dict reward_limit is not supported with "
+                "reward_rates_callback; pass a scalar reward_limit and/or "
+                "tot_reward_limit.")
 
         base_starting_vertex = self.starting_vertex()
 
@@ -10423,6 +10373,54 @@ extern "C" {{
                         else:
                             trash_rate = trash_rate + rate
             return reward_rates, trash_rate
+
+        def _callback_reward(current_state, current_rewards):
+            # User rates, validated (the discretize rate-callback contract:
+            # shape, finite, >= 0), with the caps enforced HERE so they mean
+            # the same as for the built-in rates and construction terminates.
+            out = reward_rates_callback(
+                current_state, base_graph_indexer, reward_indexer,
+                current_rewards, mutation_rate=mutation_rate,
+                reward_limit=reward_limit, tot_reward_limit=tot_reward_limit)
+            if not (isinstance(out, (tuple, list)) and len(out) == 2):
+                raise TypeError(
+                    "reward_rates_callback must return (rates, trash_rate); "
+                    f"got {type(out).__name__} for state "
+                    f"{list(current_state)} rewards {list(current_rewards)}")
+            rates = np.asarray(out[0], dtype=np.float64)
+            if rates.shape != (reward_length,):
+                raise TypeError(
+                    f"reward_rates_callback rates must have shape "
+                    f"({reward_length},) (one entry per reward counter); got "
+                    f"{rates.shape} for state {list(current_state)}")
+            try:
+                extra_trash = float(out[1])
+            except (TypeError, ValueError):
+                raise TypeError(
+                    "reward_rates_callback trash_rate must be a scalar; got "
+                    f"{out[1]!r} for state {list(current_state)}") from None
+            if not (np.all(np.isfinite(rates)) and np.all(rates >= 0)
+                    and np.isfinite(extra_trash) and extra_trash >= 0):
+                raise ValueError(
+                    "reward_rates_callback must return finite, non-negative "
+                    f"rates and trash_rate; got rates={rates.tolist()} "
+                    f"trash_rate={extra_trash} for state "
+                    f"{list(current_state)} rewards {list(current_rewards)}")
+            rates = rates.copy()
+            trash = extra_trash
+            cr_sum = current_rewards.sum()
+            for i in range(reward_length):
+                if rates[i] == 0:
+                    continue
+                over = ((cr_sum + 1) > _tot_reward_limit or
+                        (_reward_limit is not None
+                         and current_rewards[i] + 1 > _reward_limit))
+                if over:
+                    trash = trash + rates[i]
+                    rates[i] = 0.0
+            return rates, trash
+
+        _reward_rates = fast_reward if reward_rates_callback is None else _callback_reward
 
         # create the new graph
         joint_graph = Graph(state_vector_length)
@@ -10559,7 +10557,7 @@ extern "C" {{
             current_rewards = state[reward_state_indices]
 
             # get rates to states representing an additional mutation
-            rates, trash_rate = fast_reward(current_state, current_rewards)
+            rates, trash_rate = _reward_rates(current_state, current_rewards)
 
             trash_rates[index] = trash_rate
             for i in range(reward_length):
@@ -10655,289 +10653,6 @@ extern "C" {{
         return joint_graph
 
 
-    # def _joint_prob_graph(self,
-    #                     base_graph_indexer: StateIndexer | None = None,
-    #                     reward_only: list | None = None,
-    #                     reward_rates_callback: Callable | None = None,
-    #                     mutation_rate: float = 1.0,
-    #                     reward_limit: int | None = None,
-    #                     tot_reward_limit: float = np.inf,
-    #                     discrete: bool = True) -> Graph:
-    #     """DEPRECATED reference implementation of :meth:`joint_prob_graph`.
-
-    #     Kept verbatim for A/B comparison against the optimised
-    #     ``joint_prob_graph``. Slated for removal. Do not use in new code.
-    #     """
-
-    #     logger = get_logger(__name__)
-
-    #     if self.param_length() == 0:
-    #         raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
-    #     if reward_limit is None and tot_reward_limit == np.inf:
-    #         raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
-
-    #     if base_graph_indexer is None:
-    #         if hasattr(self, '_indexer'):
-    #             base_graph_indexer = self._indexer
-    #         else:
-    #             raise TypeError("If the graph was not created using an indexer, the base_graph_indexer kwarg must be supplied.")
-
-    #     # Reconcile the supplied indexer with the graph's actual state vector
-    #     # length. After composition (e.g. add_epoch), the graph carries a wider
-    #     # state vector than the original indexer describes; in that case prefer
-    #     # the graph's own _indexer, which add_epoch keeps in sync.
-    #     graph_state_length = self.state_length()
-    #     if base_graph_indexer.state_length != graph_state_length:
-    #         graph_indexer = getattr(self, '_indexer', None)
-    #         if graph_indexer is not None and graph_indexer.state_length == graph_state_length:
-    #             logger.info(
-    #                 "joint_prob_graph: supplied indexer state_length=%d does not match "
-    #                 "graph state_length=%d; using graph._indexer instead.",
-    #                 base_graph_indexer.state_length, graph_state_length,
-    #             )
-    #             base_graph_indexer = graph_indexer
-    #         else:
-    #             raise ValueError(
-    #                 f"Indexer state_length ({base_graph_indexer.state_length}) does not "
-    #                 f"match graph state_length ({graph_state_length}). Pass the indexer "
-    #                 f"returned by add_epoch (graph._indexer), or rebuild the graph from "
-    #                 f"this indexer."
-    #             )
-
-    #     if len(base_graph_indexer.property_sets()) != 1:
-    #         raise ValueError("Indexer must have exactly one property set representing the base graph state.")
-
-    #     if reward_rates_callback is None:
-    #         # default to joint prob reward callback
-    #         reward_rates_callback = self._joint_prob_reward
-
-    #     base_starting_vertex = self.starting_vertex()
-
-    #     # create indexer for rewards (each property gets its own property set)
-    #     reward_prop_sets = []
-    #     _rewarded_props = []
-    #     property_set = base_graph_indexer.property_sets()[0]
-    #     for p in property_set.properties:
-    #         if reward_only is None or p.name in reward_only:
-    #             _rewarded_props.append(p)                    
-    #             reward_prop_sets.append(
-    #                 PropertySet(
-    #                     name=f'{property_set.name}_{p.name}',
-    #                     properties=[
-    #                         Property(f'{property_set.name}_{p.name}', 
-    #                                 min_value=p.min_value, 
-    #                                 max_value=p.max_value)
-    #                                 ]
-    #                     )
-    #                 )
-    #     kwargs = OrderedDict()        
-    #     for x in reward_prop_sets:
-    #         kwargs[x.name] = x.properties
-    #     reward_indexer = StateIndexer(**kwargs)                    
-    #     reward_length = reward_indexer.state_length
-
-    #     # logger.debug(f"Reward indexer created with {reward_indexer.state_length} states: {reward_indexer}")
-
-    #     # append reward indexer to original indexer
-    #     joint_graph_indexer = base_graph_indexer + reward_indexer
-
-    #     # joint graph state vector length
-    #     state_vector_length = joint_graph_indexer.state_length
-
-    #     # indices for original and new parts of the state vector
-    #     state_indices = base_graph_indexer.indices()
-    #     reward_state_indices = np.arange(base_graph_indexer.state_length, joint_graph_indexer.state_length)
-
-    #     # create the new graph
-    #     joint_graph = Graph(state_vector_length)
-    #     starting_vertex = joint_graph.starting_vertex()
-
-    #     # array of zeros for extension of state vector
-    #     null_rewards = np.zeros(reward_length)
-
-    #     # graph index of last vertex visited
-    #     index = 0
-
-    #     # get param_length for extracting parameterized edge coefficients
-    #     param_length = self.param_length()
-
-    #     # copy initial (extended) states to new graph
-    #     for edge in base_starting_vertex.parameterized_edges():
-    #         starting_vertex.add_edge(
-    #         joint_graph.find_or_create_vertex(
-    #             np.append(edge.to().state(), null_rewards).astype(int)),
-    #         edge.weight())
-
-    #     # pgbar
-    #     # pgbar_prev = 0    
-    #     # pgbar = tqdm(position=0, total=1, miniters=0, 
-    #     #             desc='Visited / Created', bar_format='{l_bar}{bar}'
-    #     #             )
-    #     index = index + 1
-
-    #     # weights of edges to trash    
-    #     trash_rates = {}
-
-    #     # indices of t-states (with absorbing as only child)
-    #     t_vertex_indices = np.array([], dtype=int)
-
-    #     # graph construction loop
-    #     while index < joint_graph.vertices_length():
-
-    #         # graph state
-    #         vertex = joint_graph.vertex_at(index) 
-    #         state = vertex.state()
-
-    #         # get vertex with same state in base graph
-    #         base_state = vertex.state()[state_indices]
-    #         base_vertex = self.find_vertex(base_state)
-
-    #         # add edges and children of vertex in base graph
-    #         for edge in base_vertex.parameterized_edges():
-    #             # child states are copies of the base_vertex child_states
-    #             # extended with a with a copy of the extended part of the 
-    #             # current states state vector
-    #             child_state = np.append(
-    #                 edge.to().state(),
-    #                 state[reward_state_indices]
-    #                 )
-
-    #             if np.all(state == child_state): # FIXME: should this ever happen?
-    #                 continue
-
-    #             # create the vertex
-    #             child_vertex = joint_graph.find_or_create_vertex(
-    #                 child_state
-    #                 )
-                
-    #             # get the edge state (ensuring it is param_length)
-    #             coeffs = list(edge.edge_state(param_length))
-                
-    #             # Pad with 0 for mutation rate slot
-    #             coeffs.append(0) 
-
-    #             # add edge to the child vertex
-    #             vertex.add_edge(child_vertex, coeffs)
-
-    #             # if the base graph version of the child state was
-    #             # absorbing, we add it to the array of t-states
-    #             if not self.find_vertex(child_state[state_indices]).edges():
-    #                 t_vertex_indices = np.append(t_vertex_indices, child_vertex.index()) 
-
-    #         # base part of current state
-    #         current_state = state[state_indices]
-    #         # extended part of current state
-    #         current_rewards = state[reward_state_indices]
-
-    #         # get rates to states representing an additional mutation
-    #         rates, trash_rate = reward_rates_callback(
-    #             current_state, 
-    #             base_graph_indexer, 
-    #             reward_indexer,
-    #             current_rewards, 
-    #             mutation_rate=mutation_rate, 
-    #             reward_limit=reward_limit, 
-    #             tot_reward_limit=tot_reward_limit
-    #             ) 
-
-    #         trash_rates[index] = trash_rate
-    #         for i in range(reward_length):
-    #             rate = rates[i]
-    #             if rate > 0:
-    #                 new_rewards = current_rewards.copy()
-    #                 new_rewards[i] = new_rewards[i] + 1
-    #                 child_state = np.append(current_state, new_rewards)
-    #                 if not self.find_vertex(child_state[state_indices]).edges():
-    #                     continue
-    #                 child_vertex = joint_graph.find_or_create_vertex(child_state)
-    #                 vertex.add_edge(child_vertex, np.append(np.zeros(base_coeff_length), rate))
-                                    
-    #         index = index + 1 
-
-    #     t_vertex_indices = np.unique(t_vertex_indices).tolist()
-
-    #     #     pgbar_this = index/joint_graph.vertices_length()
-    #     #     pgbar.update(pgbar_this - pgbar_prev)
-    #     #     pgbar_prev = pgbar_this
-
-    #     # pgbar.close()
-
-    #     # create trash vertices
-    #     trash_vertex = joint_graph.find_or_create_vertex(np.repeat(0, state_vector_length))
-    #     trash_loop_vertex = joint_graph.create_vertex(np.repeat(0, state_vector_length))
-    #     trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(base_coeff_length), 1.0))
-    #     trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), 1.0))
-
-    #     # connect edges to first trash state
-    #     for i, rate in trash_rates.items():
-    #         if rate > 0:
-    #             joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(base_coeff_length), rate))
-
-
-    #     if reward_only is not None:
-    #         reward_only = sorted(reward_only)
-    #         sorted_prop_names = sorted([p.name for p in property_set.properties])
-    #         if all(x == y for x, y in zip_longest(reward_only, sorted_prop_names)):
-    #             # no effect anyway
-    #             logger.info('Specified reward_only lists all properties. Set to None for same effect.')
-    #             reward_only = None
-
-    #     if reward_only is not None:
-
-    #         # for sets of t-states representing the same observation, remove them from
-    #         # the list of t-states and add prob 1 edges to a new t-state representing all
-    #         # of them. t-states in such sets are the ones that only differ by properties not
-    #         # in the reward_only keyword arg
-    #         values = []
-    #         for p in property_set.properties:
-    #             if p.name in reward_only:
-    #                 values.append(list(range(p.min_value, p.max_value+1)))
-    #         idxs = []
-    #         for tup in product(*values):
-    #             idxs.extend(property_set.props_to_index(**dict(zip(reward_only, tup))))
-    #         idxs = np.array(sorted(idxs))
-
-    #         t_vertex_sets = defaultdict(list)
-    #         for i in range(joint_graph.vertices_length()):
-    #             state = joint_graph.vertex_at(i).state()
-    #             mask = np.ones(state_vector_length, np.bool)
-    #             mask[idxs] = 0
-    #             if i in t_vertex_indices:
-    #                 t_vertex_sets[tuple(state[mask].tolist())].append(i)
-
-    #         for t_vertex_set in t_vertex_sets.values():
-    #             state = np.repeat(0, state_vector_length)
-    #             state[mask] = joint_graph.vertex_at(t_vertex_set[0]).state()[mask]
-    #             t_set_abs = joint_graph.create_vertex(state)    
-    #             for i in t_vertex_set:
-    #                 joint_graph.vertex_at(i).add_edge(
-    #                     t_set_abs, 
-    #                     np.append(np.zeros(base_coeff_length), 1.0)
-    #                     )
-    #                 t_vertex_indices.remove(i)
-    #             t_vertex_indices.append(t_set_abs.index())
-
-
-    #     # the t-states represent variants of the original absorbing state
-    #     # add a new absorbing with edges from all t-states
-    #     new_absorbing = joint_graph.create_vertex(np.repeat(0, state_vector_length))
-        
-    #     for i in t_vertex_indices:
-    #         joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(base_coeff_length), 1.0))
-
-    #     # set discrete flag for update_weights to also normalize and for
-    #     # expected_sojourn_time to call its discrete version
-    #     joint_graph.is_discrete = discrete
-    #     joint_graph.set_was_dph(discrete)  # Enable auto-normalization in C update_weights()
-
-    #     joint_graph._joint_prob_base_graph_indexer = base_graph_indexer
-    #     joint_graph._rewarded_props = _rewarded_props
-    #     # Attach the combined (base + reward) indexer so the joint graph
-    #     # carries an indexer matching its own state vector length, mirroring
-    #     # the convention for callback-built and epoch-augmented graphs.
-    #     joint_graph._indexer = joint_graph_indexer
-
-    #     return joint_graph
 
 
     def joint_stop_prob_graph(self) -> 'Graph':

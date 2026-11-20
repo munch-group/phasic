@@ -50,7 +50,7 @@ For the $N=2$ coalescent with one descendants Property, the base graph has two t
 
 #### Joint probability graph $G_J$
 
-*Let $G$ be a parameterized base graph with state-vector length $\ell$ and parameter dimension $k$. Let $\boldsymbol{\rho}: V(G) \to \mathbb{R}_{\geq 0}^m$ be a state-dependent **reward-rate function** (the `_joint_prob_reward` callback), assigning to each base state $v$ a vector of $m$ per-bin rates $\rho_j(v)$ and a scalar trash rate $\rho_{\mathrm{trash}}(v)$. Let $\mathbf{r}^{\max}$ be the reward cap vector and $r^{\mathrm{tot}}_{\max}$ the total-mass cap (with $\rho_{\mathrm{trash}}$ absorbing any rate that would push the cumulative reward vector past these caps).*
+*Let $G$ be a parameterized base graph with state-vector length $\ell$ and parameter dimension $k$. Let $\boldsymbol{\rho}: V(G) \to \mathbb{R}_{\geq 0}^m$ be a state-dependent **reward-rate function** (the built-in rates inside `joint_prob_graph`, or a user `reward_rates_callback`), assigning to each base state $v$ a vector of $m$ per-bin rates $\rho_j(v)$ and a scalar trash rate $\rho_{\mathrm{trash}}(v)$. Let $\mathbf{r}^{\max}$ be the reward cap vector and $r^{\mathrm{tot}}_{\max}$ the total-mass cap (with $\rho_{\mathrm{trash}}$ absorbing any rate that would push the cumulative reward vector past these caps).*
 
 *The **joint probability graph** $G_J = (V_J, E_J, W_J)$ is the parameterized graph constructed as follows.*
 
@@ -439,7 +439,7 @@ Joint-Probability Graph Construction
 | $p_J$ | joint state vector length | `state_vector_length` |
 | `I_base`, `I_rwd` | base / reward index sets | `state_indices`, `reward_state_indices` |
 | $d$, $d_J = d+1$ | param length, joint param length | `param_length`, `self.param_length()+1` |
-| `rewardCallback` | $\phi_{\mathrm{rwd}}$ | `reward_rates_callback` / `self._joint_prob_reward` |
+| `rewardCallback` | $\phi_{\mathrm{rwd}}$ | `reward_rates_callback` / built-in `fast_reward` (caps enforced by the builder in both cases) |
 | `mutation_rate` | $\mu_0$ | `mutation_rate` |
 | `reward_limit`, `tot_reward_limit` | $\rho_{\max}$, $\Sigma_{\max}$ | `reward_limit`, `tot_reward_limit` |
 | `trashRate` | trash-rate map | `trash_rates` |
@@ -840,7 +840,7 @@ Probability Matching Estimation
 | Algorithm / construction | File | Function / method | Lines |
 |--------------------------|------|-------------------|-------|
 | @def-22-jp-joint-graph (joint-prob graph build) | `src/phasic/__init__.py` | `joint_prob_graph` | L7923--L8200 |
-| @def-22-jp-reward-extension (reward callback) | `src/phasic/__init__.py` | `_joint_prob_reward` | L7857--L7920 |
+| @def-22-jp-reward-extension (reward callback) | `src/phasic/__init__.py` | `joint_prob_graph` (`fast_reward`, `_callback_reward`) | — |
 | @def-22-jp-joint-stop-prob-graph | `src/phasic/__init__.py` | `joint_stop_prob_graph` | L8203--L8369 |
 | @def-22-jp-daisy-chain (daisy chain dynamics) | `src/phasic/__init__.py` | `daisy_chain_joint_probs` | L8372--L8560 |
 | @def-22-jp-ipv-layout (update_ipv) | `src/phasic/__init__.py` | `update_ipv` | L2101--... |
@@ -854,7 +854,7 @@ Probability Matching Estimation
 
 - The aux-loop edges in `joint_stop_prob_graph()` are constructed with coefficient vector `[1.0] * param_length`, not unit weight. Under the default linear weight mode this gives runtime weight $\sum_k \theta_k$ rather than $1$. The asymptotic correctness of @thm-22-jp-continuous-correct is insensitive to the choice of positive aux-loop coefficient.
 - `daisy_chain_joint_probs` uses a `jax.custom_vjp` wrapper with central-difference finite-difference gradients ($\epsilon = 10^{-7}$); it is not analytical reverse-mode autodiff.
-- The trash channel is sourced by the `_joint_prob_reward` callback: whenever a reward-rate increment would push the cumulative reward vector past either `reward_limit` or `tot_reward_limit`, the corresponding rate is added to `trash_rate` instead of `reward_rates[i]`. The trash pair is reachable only from non-t-vertices.
+- The trash channel is sourced by the reward-rate function (built-in or `reward_rates_callback`; the builder applies the caps): whenever a reward-rate increment would push the cumulative reward vector past either `reward_limit` or `tot_reward_limit`, the corresponding rate is added to `trash_rate` instead of `reward_rates[i]`. The trash pair is reachable only from non-t-vertices.
 - The model probability function `probs_fn` of probability matching uses `compute_sojourn_times_ffi` from the FFI wrappers rather than directly calling the forward algorithm. This leverages the trace cache for efficient repeated evaluation with different parameter vectors.
 - The terminal vertex identification traverses the graph structure once to find all vertices that have at least one edge leading to a vertex with no outgoing edges. The pseudocode abstracts this as `AllTerminalVertices(G)`.
 - The `ProbMatchResult` dataclass stores `empirical_probs`, `model_probs`, and `unique_indices` for diagnostic comparison, not shown in the pseudocode return.
