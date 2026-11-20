@@ -10186,6 +10186,15 @@ extern "C" {{
         function of the indexers and was previously recomputed (via millions of
         ``index_to_props`` / ``props_to_index`` calls) once per joint vertex.
 
+        **Several properties.** When the indexer has more than one property,
+        ``reward_only`` must list the counted properties. Each listed property
+        gets its own independent mutation process at the full rate and its own
+        block of reward columns. That is right for separate loci (e.g.
+        ``reward_only=['loc1', 'loc2']`` gives the two-locus joint SFS) and
+        wrong for attributes of the same lineage (e.g. a population label),
+        whose blocks would not count the same mutations; count those through a
+        single property. ``tot_reward_limit`` caps the sum over all blocks.
+
         ``reward_rates_callback`` (optional) replaces the built-in mutation
         rates. It is called once per joint vertex whose base state is NOT
         absorbing (outcome vertices carry no mutations, and the starting
@@ -10263,6 +10272,26 @@ extern "C" {{
 
         if len(base_graph_indexer.property_sets()) != 1:
             raise ValueError("Indexer must have exactly one property set representing the base graph state.")
+
+        # With several properties, every counted property gets its OWN
+        # independent mutation process at the full rate (one reward block
+        # per property). That is right when the properties are separate loci
+        # (e.g. loc1/loc2: the two-locus joint SFS) and wrong when they are
+        # attributes of the same material (e.g. descendants + population),
+        # where the blocks would not count the same mutations. Make the
+        # choice explicit (ticket T9, user decision 2026-11-20).
+        _prop_names = [p.name for p in base_graph_indexer.property_sets()[0].properties]
+        if len(_prop_names) > 1 and reward_only is None:
+            raise ValueError(
+                f"joint_prob_graph: the indexer has several properties "
+                f"{_prop_names}; pass reward_only=[...] naming the properties "
+                f"whose mutations are counted. Each listed property gets its "
+                f"own independent mutation process at the full rate (one block "
+                f"of reward columns per property): right for separate loci "
+                f"(e.g. reward_only={_prop_names[:2]!r} for two loci), wrong for "
+                f"attributes of the same lineage (e.g. a population label) — "
+                f"count those via a single property. tot_reward_limit caps the "
+                f"sum over all listed blocks.")
 
         # A custom reward_rates_callback runs inside this builder (ticket T2;
         # it used to forward to a reference implementation that had been
@@ -10608,7 +10637,8 @@ extern "C" {{
             sorted_prop_names = sorted([p.name for p in property_set.properties])
             if all(x == y for x, y in zip_longest(reward_only, sorted_prop_names)):
                 # no effect anyway
-                logger.info('Specified reward_only lists all properties. Set to None for same effect.')
+                # Listing every property is required with several properties
+                # (T9) and builds the same graph as no merging, so no message.
                 reward_only = None
 
         if reward_only is not None:

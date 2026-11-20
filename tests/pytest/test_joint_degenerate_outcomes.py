@@ -25,6 +25,11 @@ from phasic import Graph, Property, StateIndexer, with_ipv
 from test_notebook_model_recovery import coalescent_indexed
 
 THETA = [1.0, 0.5, 0.7]
+# Both properties counted, explicitly (required with several properties since
+# T9). Each gets its own mutation process; that is the wrong semantics for a
+# population label, but this file tests the outcome MERGE, not the counting,
+# and the pins below were computed with exactly this graph.
+BOTH = ['descendants', 'pop']
 PINS = {
     (0, 0, 0, 0): 0.23989898989898994,
     (0, 0, 0, 1): 0.0026276907553334614,
@@ -105,7 +110,7 @@ def island():
 @pytest.mark.parametrize("discrete", [True, False])
 def test_one_vertex_per_outcome_and_pinned_probabilities(island, discrete):
     g, idx = island
-    j = g.joint_prob_graph(idx, discrete=discrete, reward_limit=2)
+    j = g.joint_prob_graph(idx, discrete=discrete, reward_limit=2, reward_only=BOTH)
     j.update_weights(THETA)
     t = j.joint_prob_table()
     cols = list(t.columns[:-1])
@@ -118,7 +123,7 @@ def test_one_vertex_per_outcome_and_pinned_probabilities(island, discrete):
 
 def test_likelihoods_match_pinned_outcome_probabilities(island):
     g, idx = island
-    j = g.joint_prob_graph(idx, discrete=False, reward_limit=2)
+    j = g.joint_prob_graph(idx, discrete=False, reward_limit=2, reward_only=BOTH)
     term = _t_vertices(j)
     n_r = j.state_length() - g.state_length()
     keys = [tuple(int(x) for x in j.vertex_at(i).state()[-n_r:]) for i in term]
@@ -134,7 +139,7 @@ def test_likelihoods_match_pinned_outcome_probabilities(island):
 
 def test_observations_map_deterministically(island):
     g, idx = island
-    j = g.joint_prob_graph(idx, discrete=False, reward_limit=2)
+    j = g.joint_prob_graph(idx, discrete=False, reward_limit=2, reward_only=BOTH)
     obs = [list(k) for k in PINS][:10] * 3
     a = j._map_joint_observations_to_indices(obs)
     b = j._map_joint_observations_to_indices(obs, seed=7)
