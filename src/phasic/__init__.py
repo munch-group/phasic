@@ -11872,6 +11872,19 @@ extern "C" {{
         t_indices = list(idx2obs.keys())
         sojourn_times = self.expected_sojourn_time(t_indices)
         assert len(sojourn_times) == len(t_indices)
+        if not getattr(self, 'is_discrete', False):
+            # Continuous graph: the expected sojourn time at a t-vertex is
+            # P(reach it) / (its exit rate), and its only exits go to
+            # absorption, so P = sojourn * r_v with r_v the summed weight
+            # of its edges into absorbing vertices (the same r_v the epoch
+            # path's final read uses). Without this the table reported
+            # probability / mu. Discrete graphs already read visit
+            # probabilities.
+            r_v = np.array([
+                sum(e.weight() for e in self.vertex_at(int(i)).edges()
+                    if len(e.to().edges()) == 0)
+                for i in t_indices], dtype=np.float64)
+            sojourn_times = np.asarray(sojourn_times, dtype=np.float64) * r_v
         outcomes = []
         probs = []
         t_index = []
