@@ -679,7 +679,11 @@ double _covariance_discrete(phasic::Graph &graph,
   
 
 bool is_number(const py::object& obj) {
-    static py::object np_number = py::module_::import("numpy").attr("number");
+    // Leaked on purpose (pybind11's recommendation for cached Python
+    // objects): a function-local static py::object would DECREF from its
+    // destructor at process exit, after Py_Finalize and without the GIL.
+    static py::object& np_number =
+        *new py::object(py::module_::import("numpy").attr("number"));
     return py::isinstance<py::float_>(obj) || 
            py::isinstance<py::int_>(obj) ||
            py::isinstance(obj, np_number);
