@@ -147,3 +147,46 @@ def test_single_absorbing_state_graph_unchanged():
     g, idx = coalescent_indexed(3)
     j = g.joint_prob_graph(idx, discrete=True, reward_limit=2)
     assert len(_t_vertices(j)) == 9
+
+
+def _two_absorbing_children():
+    # One transient state (two singleton lineages in pop 0) with an edge to
+    # EACH of two absorbing states (the ancestor in pop 0 at rate t0, in
+    # pop 1 at rate t1). After the canonical substitution both edges point
+    # at the same outcome vertex: parallel edges, which the C layer sums.
+    idx = StateIndexer(lineage=[Property('descendants', min_value=1, max_value=2),
+                                Property('pop', min_value=0, max_value=1)])
+    L = idx.lineage
+    s0 = np.zeros(idx.state_length, int)
+    s0[L.props_to_index(descendants=1, pop=0)] = 2
+
+    @with_ipv(list(s0))
+    def cb(state, indexer=None):
+        L = indexer.lineage
+        if sum(state) == 1:
+            return []
+        a = np.zeros_like(state); a[L.props_to_index(descendants=2, pop=0)] = 1
+        b = np.zeros_like(state); b[L.props_to_index(descendants=2, pop=1)] = 1
+        return [[a, [1.0, 0.0]], [b, [0.0, 1.0]]]
+    return Graph(cb, indexer=idx), idx
+
+
+@pytest.mark.parametrize("discrete", [True, False])
+def test_parent_with_two_absorbing_children_matches_closed_form(discrete):
+    # Mutations on the two singletons at total rate r = 2 mu while the
+    # transient state is left at rate lam = t0 + t1, so the number of
+    # descendants_1 mutations is geometric: P(k) = (r/(r+lam))^k lam/(r+lam).
+    t0, t1, mu = 1.0, 0.5, 0.7
+    g, idx = _two_absorbing_children()
+    j = g.joint_prob_graph(idx, discrete=discrete, reward_limit=2,
+                           reward_only=['descendants'])
+    j.update_weights([t0, t1, mu])
+    parallel = [v for v in j.vertices()
+                if len({e.to().index() for e in v.edges()}) < len(v.edges())]
+    assert parallel, "fixture no longer produces parallel edges"
+    t = j.joint_prob_table()
+    k = t.iloc[:, 0].to_numpy().astype(int)
+    r, lam = 2 * mu, t0 + t1
+    ref = [(r / (r + lam)) ** x * lam / (r + lam) for x in k]
+    assert len(k) == len(set(k)) == 3
+    np.testing.assert_allclose(t['prob'].to_numpy(), ref, rtol=1e-12)

@@ -489,6 +489,13 @@ class TestAdaptiveTeval:
 # ---------------------------------------------------------------------------
 
 
+# These fixed/tied plumbing tests pass no observations, so the default
+# data-informed prior cannot be built (it used to fall back silently to a
+# standard normal; since ticket T5 that raises). Give an explicit prior.
+from phasic import GaussPrior as _GaussPrior
+_FIXTURE_PRIOR = _GaussPrior(ci=[0.1, 10.0])
+
+
 class TestPerEpochFixed:
     def _build_source_jp(self):
         """Source joint-prob graph (continuous) for daisy SVGD wiring."""
@@ -509,6 +516,7 @@ class TestPerEpochFixed:
 
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_fixed=[(0, 1.5)],
@@ -528,6 +536,7 @@ class TestPerEpochFixed:
         per_epoch = [1.0, 2.5, 3.7]
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_fixed=[(1, per_epoch)],
@@ -547,6 +556,7 @@ class TestPerEpochFixed:
 
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_fixed=[(0, 5.0), (1, [2.0, 8.0])],
@@ -564,6 +574,7 @@ class TestPerEpochFixed:
         with pytest.raises(ValueError, match="length n_epochs"):
             jp._daisy_chain_svgd_model(
                 observed_indices=[],
+                user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
                 epoch_starts=epoch_starts,
                 t_eval=10.0,
                 user_fixed=[(0, [1.0, 2.0])],  # length 2, expected 3
@@ -578,6 +589,7 @@ class TestPerEpochFixed:
 
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_fixed=[(0, np.array([1.5, 4.5]))],
@@ -620,6 +632,7 @@ class TestTied:
         # Tie local_idx=0 across epochs 0 and 2 (master=0, slave=2).
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_tied=[(0, [0, 2])],
@@ -639,6 +652,7 @@ class TestTied:
 
         model, _, _, _ = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_tied=[(0, [0, 2])],
@@ -658,6 +672,7 @@ class TestTied:
 
         model, _, _, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_tied=None,
@@ -676,6 +691,7 @@ class TestTied:
 
         model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
             observed_indices=[],
+            user_prior=_FIXTURE_PRIOR,  # no data: the default prior cannot be fitted (T5)
             epoch_starts=epoch_starts,
             t_eval=10.0,
             user_fixed=[(1, 1.5)],          # fix local 1 in every epoch

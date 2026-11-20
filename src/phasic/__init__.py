@@ -6507,12 +6507,27 @@ extern "C" {{
             # Default prior: DataPrior with sd=5 (wide, data-informed).
             # Skip when epoch_starts is given — the daisy-chain branch
             # builds its own broadcast prior with the right shape.
+            # Joint-prob graphs: map the observations BEFORE building the
+            # default prior, so a data error (an outcome not in the table,
+            # a derived graph, fewer than two outcomes) surfaces as itself
+            # rather than as a prior-construction failure (T5 review S1).
+            # The result is reused below instead of mapping twice.
+            _joint_mapped = None
+            if (prior is None and epoch_starts is None
+                    and self._joint_prob_base_graph_indexer is not None):
+                _joint_mapped = self._map_joint_observations_to_indices(observed_data)
             if prior is None and epoch_starts is None:
                 from .svgd import DataPrior
+                # theta_dim may still be None when only theta_init was given
+                # (it is resolved from theta_init later); give DataPrior the
+                # same dimension rather than letting it fail to infer one.
+                _prior_theta_dim = theta_dim
+                if _prior_theta_dim is None and theta_init is not None:
+                    _prior_theta_dim = int(np.shape(theta_init)[-1])
                 try:
                     prior = DataPrior(
                         self, observed_data, sd=5.0, fixed=fixed, rewards=rewards,
-                        theta_dim=theta_dim, discrete=discrete, verbose=verbose,
+                        theta_dim=_prior_theta_dim, discrete=discrete, verbose=verbose,
                     )
                     _ledger.set_inferred('prior', 'DataPrior(sd=5)',
                                          'default data-informed prior')
@@ -6552,9 +6567,10 @@ extern "C" {{
                         "Cannot use joint_index=True."
                     )
                 # map observed data to indices in joint probability table
-                # (shared helper; seed=None keeps the historic global-RNG
-                # tie-break behaviour, bit-identical to the previous inline code)
-                observed_data = self._map_joint_observations_to_indices(observed_data)
+                # (shared helper; deterministic since degenerate outcomes are
+                # merged at construction). Reuse the early mapping if made.
+                observed_data = (_joint_mapped if _joint_mapped is not None
+                                 else self._map_joint_observations_to_indices(observed_data))
 
                 # Check for unsupported combinations. The validator (R3/R4)
                 # already raises on these before model construction; kept here
