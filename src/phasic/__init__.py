@@ -4299,18 +4299,19 @@ extern "C" {{
         """Map joint-observation outcome tuples to joint-prob-table vertex indices.
 
         Each observation (a tuple over the non-``prob`` outcome columns) is
-        looked up in ``self.joint_prob_table()``. A degenerate outcome that maps
-        to more than one index is resolved by sampling proportional to the
-        outcomes' probability. Pass ``seed`` for a deterministic tie-break; the
-        default ``seed=None`` uses the global ``np.random`` stream (bit-identical
-        to the historic inline mapping in ``Graph.svgd``).
+        looked up in ``self.joint_prob_table()``. Every outcome has exactly
+        one vertex: ``joint_prob_graph`` merges outcomes that differ only in
+        their absorbing base state (ticket T4). An outcome mapping to several
+        vertices is refused; it used to be resolved by a random draw, which
+        assigned the observation one vertex's probability instead of the
+        group's sum. ``seed`` is accepted for backward compatibility and no
+        longer used.
 
         This is the single implementation shared by ``Graph.svgd`` (joint-index /
         daisy-chain paths) and ``Graph.epoch_model``; both feed the returned
         1-D index list to the daisy-chain / joint-index model as
         ``observed_indices``.
         """
-        rng = np.random if seed is None else np.random.RandomState(seed)
         joint_prob_table = self.joint_prob_table()
         obs2idx = joint_prob_table.groupby(
             joint_prob_table.columns[:-1].to_list()
@@ -4328,14 +4329,13 @@ extern "C" {{
         for obs in observed_data:
             idx = obs2idx[tuple(obs)]
             if idx.size > 1:
-                # observation maps to multiple indices: sample by probability
-                p = joint_prob_table.loc[idx, 'prob'].to_numpy()
-                p = p / p.sum()
-                chosen_idx = rng.choice(idx, p=p)
-                obs_indices.append(chosen_idx.item())
-            else:
-                # unique index
-                obs_indices.append(idx.item())
+                raise ValueError(
+                    f"Outcome {tuple(obs)} corresponds to {idx.size} outcome "
+                    f"vertices ({list(idx)}); its probability is their sum, "
+                    f"which a single observed index cannot express. Graphs "
+                    f"built by joint_prob_graph() merge such vertices; rebuild "
+                    f"the joint graph.")
+            obs_indices.append(idx.item())
         return obs_indices
 
 
@@ -5567,9 +5567,10 @@ extern "C" {{
             the table mass of its own (exposure-scaled) parameters, as in
             :meth:`svgd`.
         seed : int, optional
-            Seed for the observation-mapping tie-break (degenerate outcome
-            groups). ``None`` (default) uses the global ``np.random`` stream, as
-            ``Graph.svgd`` does. Pass a seed for reproducible mapping.
+            No longer used (kept for backward compatibility). It seeded a
+            random tie-break for outcomes with several outcome vertices;
+            ``joint_prob_graph`` now merges those, so mapping is
+            deterministic.
 
         Returns
         -------
@@ -10442,11 +10443,33 @@ extern "C" {{
         # it doesn't lock to the (possibly longer) coefficient length.
         joint_graph.set_param_length(param_length + 1)
 
+        # Degenerate outcomes: when the base graph has SEVERAL absorbing
+        # states (e.g. the common ancestor ends in either of two islands),
+        # outcome vertices with the same reward vector but different
+        # absorbing base states would be separate t-vertices, and an
+        # observation (a reward vector) could not be assigned to one of
+        # them. Every absorbing base state is therefore replaced by one
+        # canonical absorbing state (the first by vertex index) when a
+        # joint vertex is created, so equal reward vectors meet in ONE
+        # t-vertex via find_or_create_vertex: no extra vertex and no extra
+        # edge (finite-time stop probabilities are unaffected). With a
+        # single absorbing state this is a no-op.
+        _base_start_index = base_starting_vertex.index()
+        _absorbing_base = [v for v in self.vertices()
+                           if v.index() != _base_start_index and not v.edges()]
+        _canonical_absorbing_state = (_absorbing_base[0].state()
+                                      if len(_absorbing_base) > 1 else None)
+
+        def _child_base_state(to_vertex):
+            if _canonical_absorbing_state is not None and not to_vertex.edges():
+                return _canonical_absorbing_state
+            return to_vertex.state()
+
         # copy initial (extended) states to new graph
         for edge in base_starting_vertex.parameterized_edges():
             starting_vertex.add_edge(
             joint_graph.find_or_create_vertex(
-                np.append(edge.to().state(), null_rewards).astype(int)),
+                np.append(_child_base_state(edge.to()), null_rewards).astype(int)),
             edge.weight())
 
         index = index + 1
@@ -10477,7 +10500,7 @@ extern "C" {{
                 # extended with a copy of the extended part of the
                 # current state's state vector
                 child_state = np.append(
-                    edge.to().state(),
+                    _child_base_state(edge.to()),
                     state[reward_state_indices]
                     )
 
