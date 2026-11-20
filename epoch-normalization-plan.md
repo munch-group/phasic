@@ -265,6 +265,11 @@ truth — not usable as a recovery test as-is.
 
 ## 9. Pre-existing defects (separate tickets, not fixed here)
 
+Status 2026-11-20: item 1 FIXED (merge `9cedb4f3`, commit `86e1f8ac`);
+items 2-7 are tickets T3, T4, T5, T6, T7, T8 in
+`joint-prob-followups-plan.md`, which tracks them from here. The exit
+segfault seen in this plan's test runs is FIXED (merge `038dcc63`).
+
 1. Continuous joint graph + finite `tot_reward_limit` + no epochs:
    single-epoch path returns wrong probabilities (trash edges on outcome
    vertices; n=2: 0.097 vs 0.177 for the capped row).

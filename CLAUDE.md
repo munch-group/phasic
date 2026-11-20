@@ -205,6 +205,28 @@ probability / mu on continuous graphs, so censoring must use the epoch
 path (`epoch_starts=[0.0]`), whose build is ~36x slower at 45k vertices
 though per-iteration cost is within 6-12%.
 
+**Outcome vertices (t-vertices) carry no mutation and no overflow**
+(fix `86e1f8ac`, 2026-11-20): `joint_prob_graph` skips the reward/trash
+computation at a vertex whose base state is absorbing. Before, a
+t-vertex at `tot_reward_limit` got a trash edge, which on a continuous
+graph divided its sojourn read by the extra exit rate (single-epoch
+likelihood 43-49% wrong; `test_joint_prob_tot_cap.py`). The epoch path
+never read t-vertex out-edges, so it was unaffected. Open follow-ups
+(continuous `joint_prob_table()` is probability / mu, degenerate
+outcomes, prior fallbacks, ...) are tracked in
+`joint-prob-followups-plan.md`.
+
+**C++ thread_local caches: destruction order matters** (fix `2dc4f60f`,
+2026-11-20). thread_locals are destroyed in reverse construction order
+at thread exit, and JAX's worker threads exit at interpreter shutdown.
+`~GraphBuilder` erased from the persistent-graph map after that map had
+been destroyed (the FFI `builder_cache` is built first, so destroyed
+last), segfaulting at exit after long test runs. The map now sits
+behind a trivially-destructible live pointer. Any new destructor that
+touches another thread_local must do the same. Reproducer:
+`tests/pytest/test_thread_local_teardown.py` (reliable on macOS/libc++
+only).
+
 ## Build & environment
 
 The project is managed with **pixi** (conda-based). All commands run inside the pixi environment. The build stack is scikit-build-core + CMake + pybind11, compiling C and C++ into the `phasic_pybind` extension module. MPFR/GMP (high-precision arithmetic) are required on Linux/macOS; OpenMP and JAX/XLA-FFI headers are used when present.

@@ -4,7 +4,9 @@ Written 2026-10-10 as the single entry point to the ~70 plan, findings and
 review files in the repository root; updated 2026-10-12 with the October
 model-building consistency work (§1d) and the Stage-3 status correction;
 updated 2026-10-15 after the C++ `discretize()` merge (§1f); updated
-2026-10-27 with the parallel-elimination weight-mode fix (§1c item 8). Everything here is a summary of those
+2026-10-27 with the parallel-elimination weight-mode fix (§1c item 8);
+updated 2026-11-20 with the November joint-probability likelihood work
+(§1g) and its follow-up plan (§1c item 12). Everything here is a summary of those
 files (named in each entry) plus git history; nothing new was measured to
 write it. When a file and this overview disagree, the file is the record —
 and this overview should be corrected.
@@ -14,9 +16,17 @@ gate, rule) is written together with a few words saying what it is.
 
 ---
 
-## 1. Where the project stands (October 2026)
+## 1. Where the project stands (November 2026)
 
-Master carries both October work streams, merged and pushed: the
+**November (§1g):** master `038dcc63` carries three merges from
+2026-11-20, not yet pushed: the epoch joint-probability likelihood is
+now normalised, `tot_reward_limit` no longer corrupts the single-epoch
+likelihood, and a C++ segfault at thread exit is fixed. Each was gated
+on the 35 test files that build joint-probability graphs, not on the
+full suite. Follow-up tickets are tracked in
+`joint-prob-followups-plan.md`.
+
+**October:** master carries both October work streams, merged and pushed: the
 model-building consistency work (§1d, merged 2026-10-13) and the C++-owned
 `discretize()` (§1f, merged 2026-10-15 at `61b1ab93`). No branch is in
 flight. Last full-suite result (on the discretize branch, which contains
@@ -146,6 +156,17 @@ shipped and passed review. A stock-take on 16 August
     SVGD multi-epoch models, a C++ `StateIndexer` and `joint_prob_graph`,
     `is_aux` in the C++ serialized graph and the SLURM per-component path,
     constant edges in discrete graphs, and a stale Stage-3 plan record.
+12. **Joint-probability follow-ups** (§1g), tracked ticket by ticket in
+    `joint-prob-followups-plan.md`: stale cached graphs in the C++ FFI
+    (T1), the broken `reward_rates_callback` route (T2), the continuous
+    `joint_prob_table()` returning probability / mutation rate (T3),
+    degenerate outcomes picked at random instead of summed (T4), silent
+    prior fallbacks (T5), the slow `epoch_starts=[0.0]` build (T6),
+    joint-stop-probability graphs mis-routed in `svgd` (T7), no check
+    for tables with fewer than two outcomes (T8), multi-property reward
+    counting (T9), and a shutdown-order nit in the pybind layer (T10).
+    Decided 2026-11-20: T2 implement, T4 merge at construction, T5
+    raise.
 
 ### 1d. Model-building consistency (10–12 October)
 
@@ -181,7 +202,8 @@ before the branch).
 **Left open (recorded in the plan's §13):** constant edges in discrete and
 joint graphs are refused rather than supported (needs a C change);
 `joint_prob_graph(reward_rates_callback=...)` has been broken since
-21 May 2026 (calls a commented-out method); per-state rate APIs not yet on
+21 May 2026 (calls a commented-out method; now ticket T2 in
+`joint-prob-followups-plan.md`); per-state rate APIs not yet on
 the new rules (`joint_prob_graph`'s `mutation_rate`; the legacy
 `_discretize_inplace` and the C++ `discretize` are resolved, §1f);
 `expectation()` on a discretized
@@ -225,6 +247,38 @@ Result at 204k vertices (coalescent): `discretize()` 17.7 s → 0.8 s with a
 fixed rate, 18.3 s → 1.7 s with a rate callback. Follow-ups are item 11 in
 §1c; full list in the plan's §13.
 
+### 1g. Joint-probability likelihood correctness (19–20 November)
+
+Started from your reproducer `docs/pages/tutorial/test.py`: a two-epoch
+model with both epochs' rates tied estimated a coalescence rate of 6.44
+where the truth was 5.0, while the same data fitted without epochs
+recovered 5.0. Three fixes, each on its own branch, merged into master
+2026-11-20 with `--no-ff` (not pushed):
+
+| Merge | Fix | Record |
+|---|---|---|
+| `e7282362` (commits `8feea1d1`, `656beb41`) | **Epoch likelihood normalised.** Observations beyond `reward_limit`/`tot_reward_limit` cannot be passed to inference, so the correct likelihood conditions on not overflowing: each observation's probability divided by its own table mass Z(θ, exposure). The single-epoch path did this; the epoch (daisy-chain) path used raw probabilities, which pulls estimates toward rates that reduce overflow (the 6.44). Now normalised on both the no-exposure and the exposure branch, including the exact final-epoch gradient. `final_read='stopprob'` is rejected for fits (new rule R33), because normalising it would cancel the penalty for mass not yet absorbed. The reproducer's likelihood now peaks at 5.000000. No measurable slowdown at 45,704 vertices | `epoch-normalization-plan.md` (v2, two review rounds), `epoch-normalization-findings.md`, `tests/pytest/test_epoch_normalization.py` (17 tests) |
+| `9cedb4f3` (commit `86e1f8ac`) | **Total-cap trash edge.** `joint_prob_graph` gave an outcome vertex sitting at `tot_reward_limit` an edge to the trash vertex. On a continuous graph that made the single-epoch likelihood 43–49% wrong for every capped outcome; with `reward_only` discrete graphs were wrong too. The epoch path was never affected | `tests/pytest/test_joint_prob_tot_cap.py` (28 tests, against closed forms) |
+| `038dcc63` (commit `2dc4f60f`) | **Segfault at interpreter exit** after long test runs. A C++ destructor (`~GraphBuilder`) erased from a per-thread map that had already been destroyed when JAX's worker threads shut down. Located with lldb and disassembly, confirmed by thread tracing | `tests/pytest/test_thread_local_teardown.py` (macOS-reliable reproducer) |
+
+Every fix was checked against independent closed forms or a
+deterministic reproducer, passed the 35 test files that build
+joint-probability graphs, and was read by an independent adversarial
+reviewer. The full test suite was not run.
+
+**Deferred by your decision:** keeping over-cap observations as an
+explicit overflow category would make the likelihood about twice as
+informative. A reviewed design is in `overflow-observations-plan.md`
+(v3); the note is also in `CLAUDE.md`.
+
+**Your notebooks:** the epoch-fit notebooks (`svgd-joint-prob`,
+`model-selection`, `time-inhomogeneous`, `popgen/ghost`) and any
+notebook using `tot_reward_limit` on a continuous joint graph will show
+different (corrected) numbers when re-run.
+
+**Open:** the follow-up tickets in `joint-prob-followups-plan.md`
+(§1c item 12).
+
 ---
 
 ## 2. How the work unfolded (timeline)
@@ -244,6 +298,7 @@ fixed rate, 18.3 s → 1.7 s with a rate callback. Follow-ups are item 11 in
 | 16–17 Aug | Inference correctness | Recovery tests on the tutorial models; budget-vs-defect verdicts | See 1a |
 | 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | Merged 13 Oct (§1d) |
 | 12–15 Oct | discretize → C++ | One C++ `discretize()` + widening and layout standards; linear `clone()`; C fixes | Merged 15 Oct (§1f) |
+| 19–20 Nov | Joint-probability likelihood | Epoch likelihood normalised; total-cap trash edge; thread-exit segfault; overflow design deferred | Merged 20 Nov, not pushed (§1g); follow-ups in `joint-prob-followups-plan.md` |
 
 ---
 
@@ -274,7 +329,9 @@ Several schemes reuse the same letters. **Collisions are marked ⚠.**
 | **Tier 1–3** ⚠ | (B3) Three candidate strategies: exact differentiation via the trace / smarter FD step (abandoned) / C adjoint (chosen). ⚠ In the recovery tests, Tiers 0–2 mean sampler check / likelihood-peak check / full SVGD fit. ⚠ "Batch D Tier-1" and "SVGD plumbing Tier 3" mean yet another thing | `b3-derisking-strategy.md`; test file docstring |
 | **G0–G5** | Checklist every batch passed: baseline current, own tests, targeted tests, full suite vs ledger, adversarial diff review, merge record | `b3-execution-process.md` §4 |
 | **§16b items 1–14** | The master plan's list of unscheduled loose ends | master plan §16b |
-| **R9, R29–R32** | Numbered argument-validation rules in `svgd_config.py` that reject an option where it would have no effect | `src/phasic/svgd_config.py` |
+| **R9, R29–R33** | Numbered argument-validation rules in `svgd_config.py` that reject an option where it would have no effect (R33: `final_read='stopprob'` refused for epoch fits) | `src/phasic/svgd_config.py` |
+| **T1–T10** | Joint-probability follow-up tickets (November) | `joint-prob-followups-plan.md` |
+| **D1–D4 (epoch plan)** ⚠ | Decisions in the epoch-normalisation plan (D2a = refuse `stopprob` for fits). ⚠ Not Deferred 1–4 | `epoch-normalization-plan.md` §7 |
 | **Leaf 1–5** | Branches of `Graph.svgd()`'s internal routing: 1 multi-epoch, 2 joint-probability, 3 multi-feature rewards, 4 single rewards, 5 plain moments | `atlas/exact-fd-atlas-svgd-reachability.md` |
 | **DR-A, DR-D** | Early "de-risk" experiments: DR-A an analytic gradient oracle, DR-D a scale-aware FD step (dead end) | `b3-experiment-findings.md` |
 | **F-001…** ⚠ | Audit findings. ⚠ Also "F1–F7" (audit phase-1 findings), "F-P1…" (reviewer findings inside plans) | `audit-differential-findings.md` |
@@ -355,6 +412,15 @@ meanings in the decoder. History.
 | `discretize-cpp-derisk-findings.md` | Measurements behind that plan (where the time went, quadratic `clone()`, C bugs found on the way) | History |
 | `test-suite-timings-2026-10-12.md` | Time per test file and the slowest tests | Reference |
 | `stage3-refactor-plan.md` | The larger refactoring plan still in force (doctrine, workstreams, commit sequence, decisions) | Current |
+
+### Joint-probability likelihood (November)
+| File | What it is | |
+|---|---|---|
+| `joint-prob-followups-plan.md` | Plan and tracker for the follow-up tickets T1–T10, with decisions and a log | Current |
+| `epoch-normalization-plan.md` | Plan (v2) for normalising the epoch likelihood; §9 lists the defects found on the way | History |
+| `epoch-normalization-findings.md` | Closed-form checks, test gate and timing for that fix | History |
+| `overflow-observations-plan.md` | Reviewed design (v3) for keeping over-cap observations as an overflow category; deferred | Current (deferred) |
+| `experiments/dr_epochnorm_checks.py`, `experiments/dr_tot_reward_trash.py` | Scripts behind those checks | History |
 
 ### Refactor and audit (July)
 `stage2-coverage-safety-net-handoff.md`,

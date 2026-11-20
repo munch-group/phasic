@@ -559,6 +559,8 @@ pushes.
   Any custom callback therefore raises `AttributeError` (source; not run).
   Confirmed by reviewer B (`__init__.py:10026-10035`); no test, notebook
   or experiment uses it, and the docstring (`:9977-9981`) claims it works.
+  (2026-11-20: now ticket T2 in `joint-prob-followups-plan.md`;
+  decided: implement in the fast builder.)
   It is a candidate for a clear `NotImplementedError` (and a docstring
   correction), or for revival under the Part 4 contract.
 - `pmf_from_graph` and `moments_from_graph` on this install fail with "JIT
