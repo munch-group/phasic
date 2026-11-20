@@ -387,21 +387,45 @@ namespace {
  * thread_local guarantees per-OS-thread storage; the inner map is
  * keyed by the GraphBuilder*'s address so multiple GraphBuilder
  * instances (different model structures) don't share entries. */
-thread_local std::unordered_map<const phasic::parameterized::GraphBuilder*,
-                                std::unique_ptr<phasic::Graph>>
-        tl_persistent_graphs;
+using PersistentGraphMap =
+    std::unordered_map<const phasic::parameterized::GraphBuilder*,
+                       std::unique_ptr<phasic::Graph>>;
+
+/* Points at this thread's map while it is alive, nullptr before it is
+ * constructed and after it is destroyed. A raw pointer is trivially
+ * destructible, so it stays readable for the whole thread lifetime.
+ *
+ * Needed because thread_local destructors run in reverse construction
+ * order at thread exit: builder_cache (graph_builder_ffi.cpp) is built
+ * before this map, so it is destroyed AFTER it, and dropping the last
+ * shared_ptr<GraphBuilder> there runs ~GraphBuilder against an
+ * already-destroyed map (use-after-destroy; segfault at interpreter
+ * shutdown when XLA joins its worker threads). */
+thread_local PersistentGraphMap* tl_persistent_graphs_live = nullptr;
+
+struct PersistentGraphHolder {
+    PersistentGraphMap map;
+    PersistentGraphHolder() { tl_persistent_graphs_live = &map; }
+    ~PersistentGraphHolder() { tl_persistent_graphs_live = nullptr; }
+};
+thread_local PersistentGraphHolder tl_persistent_graphs_holder;
 }  // namespace
 
 GraphBuilder::~GraphBuilder() {
     /* Evict this builder's entry from the current thread's
      * persistent-graph cache so a new builder allocated at the same
      * address can't accidentally hit a stale entry. ``erase`` on a
-     * key that isn't present is a no-op. */
-    tl_persistent_graphs.erase(this);
+     * key that isn't present is a no-op. Skip it when this thread's
+     * map is not alive (never built here, or already destroyed at
+     * thread exit). */
+    if (tl_persistent_graphs_live != nullptr) {
+        tl_persistent_graphs_live->erase(this);
+    }
 }
 
 phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
         const double* theta, size_t theta_len) {
+    PersistentGraphMap& tl_persistent_graphs = tl_persistent_graphs_holder.map;
     /* Graphs with no non-IPV parameterised edges (only IPV
      * parameterised edges, or no parameterised edges at all) cannot be
      * refreshed via ``ptd_graph_update_weights``: the C function
