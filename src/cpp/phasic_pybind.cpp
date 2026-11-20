@@ -5850,6 +5850,28 @@ Use Graph.distribution_context(granularity) instead.
   attribute ``sojourn_structure_json`` (the sojourn graph) and the extra
   ``_daisy_chain`` fields ``sojourn_jsp_gather`` and ``sojourn_t_indices``.
   )delim");
+
+  // Model-memory cap for the FFI caches (ticket T11). Public wrappers:
+  // phasic.configure(model_memory_cache_size=...), phasic.clear_model_memory(),
+  // phasic.model_memory_info().
+  param_module.attr("_model_memory_available") = true;
+  param_module.def("_model_memory_set_capacity", [](size_t capacity) {
+      phasic::parameterized::set_model_memory_capacity(capacity);
+  }, py::arg("capacity"), "Set how many distinct models the FFI caches keep (>= 1).");
+  param_module.def("_model_memory_clear", []() {
+      phasic::parameterized::clear_model_memory();
+  }, "Free all cached FFI models: now on this thread, on every other thread at its next call.");
+  param_module.def("_model_memory_info", []() {
+      auto i = phasic::parameterized::model_memory_info();
+      py::dict d;
+      d["capacity"] = i.capacity;
+      d["models"] = i.models;
+      d["live_builders"] = i.live_builders;
+      d["cached_graphs"] = i.cached_graphs;
+      return d;
+  }, "Model-memory counters: capacity, models cached, live builders, per-thread cached graphs.");
+#else
+  param_module.attr("_model_memory_available") = false;
 #endif
 
   // ============================================================================

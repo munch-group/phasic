@@ -359,6 +359,7 @@ from .auto_parallel import (
 # Cache management (JAX compilation cache)
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
 from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_model_cache_info, get_all_cache_stats, print_all_cache_info
+from .model_memory import clear_model_memory, model_memory_info
 from .trace_cache import get_trace_cache_stats, print_trace_cache_info
 
 # Model selection (AIC, BIC, likelihood-ratio tests) for fitted SVGD

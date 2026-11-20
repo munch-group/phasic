@@ -55,7 +55,7 @@ skipped, 5 xfailed, 0 failed.
 | T7 | `joint_stop_prob` graphs reach the joint-index leaf in `svgd` with the wrong terminal set | correctness | — | committed `ea467324` on fix/joint-prob-tickets-1 |
 | T8 | No check that a joint table has >= 2 outcomes; zero outcomes gives an `IndexError` | robustness | — | committed `1cb3b9fb` on fix/joint-prob-tickets-1 |
 | T9 | Multi-property indexers: one independent mutation process per counted property | semantics | DECIDED 2026-11-20: require an explicit reward_only when the indexer has several properties (option 1) | committed `33eb75ae` on fix/joint-prob-callback |
-| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | NEEDS DECISION: eviction policy | analysed, not built |
+| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | LRU cap + explicit clear (user, 2026-11-20) | in progress on fix/ffi-cache-eviction |
 | T12 | `Graph.mcmc` builds its default DataPrior without `rewards=` (svgd passes it), so with rewards the prior is fitted to the unrewarded model | correctness | — | committed `7fc6caee` on fix/joint-prob-callback |
 | T10 | `static py::object np_number` (`phasic_pybind.cpp:682`) DECREFs after interpreter shutdown without the GIL | nit | — | committed `607fdbfc` on fix/ffi-stale-graph-cache (with T1) |
 | — | Exit segfault | crash | — | DONE `038dcc63` |
@@ -407,3 +407,29 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
 - 2026-11-20: C++ branch fix/ffi-stale-graph-cache (T1 + T10, head
   `607fdbfc`) gate: 35 FFI-reaching files plus the T1 test: 592 passed,
   0 failed, 6 skipped, 5 xfailed (56 min). Both branches ready to merge.
+- 2026-11-20: T11 measured on master: RSS retained after each distinct
+  model's Python objects are deleted and jax.clear_caches() runs:
+  ~68 MB per 11,320-vertex model (6 models), ~290 MB per 45,704-vertex
+  model (4 models), linear (~6 KB/vertex; ~1.3-3.8 GB per model at
+  200k-600k). User decision: LRU cap + explicit clear.
+  Design (branch fix/ffi-cache-eviction):
+  1. Live-builder registry: the builder's id moves into a member token
+     that registers on construction (a copy gets a fresh id) and
+     unregisters on destruction; a process-wide generation counter is
+     bumped whenever builders are evicted or cleared.
+  2. One lookup helper replaces the 11 find-or-create sites of
+     builder_cache: entries carry a last-used stamp; on insert beyond
+     the capacity (env PHASIC_MODEL_MEMORY_CACHE_SIZE, default 4, set
+     via phasic.configure(model_memory_cache_size=K)) the least recently
+     used entry is dropped together with its daisy-chain metadata.
+  3. Each thread sweeps its per-thread graph caches (FFI worker slots
+     and GraphBuilder persistent graphs) of entries whose builder is no
+     longer live, when the generation counter has changed - checked on
+     every access, so idle workers release on their next use.
+  4. phasic.clear_model_memory(): clears the calling thread's caches now
+     and bumps a clear counter so every other thread drops its
+     builder_cache and graphs on its next FFI call;
+     phasic.model_memory_info() reports capacity and counts.
+  Gate: correctness (cycling more models than the capacity gives the
+  same values as fresh), memory bounded in a subprocess, the T1 stale
+  cache test, and the FFI-reaching test files.

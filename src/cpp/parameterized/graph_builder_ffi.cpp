@@ -7,6 +7,10 @@
 #include <memory>
 #include <limits>
 #include <mutex>
+#include <atomic>
+#include <algorithm>
+#include <cstdlib>
+#include <functional>
 #include <cstring>   // std::strncpy in BatchError (allocation-free error recording)
 #include <nlohmann/json.hpp>
 
@@ -89,8 +93,14 @@ struct BatchError {
 };
 
 // Thread-local cache for GraphBuilder instances
-// Key: JSON string, Value: GraphBuilder instance
-thread_local std::unordered_map<std::string, std::shared_ptr<GraphBuilder>> builder_cache;
+// Key: JSON string, Value: GraphBuilder instance and the model's key in the
+// process-wide model-memory LRU (std::hash of the JSON). Always go through
+// cached_builder(): it enforces the model-memory cap (ticket T11).
+struct BuilderCacheEntry {
+    std::shared_ptr<GraphBuilder> builder;
+    size_t model_key;
+};
+thread_local std::unordered_map<std::string, BuilderCacheEntry> builder_cache;
 
 // Parsed daisy-chain metadata + topology-derived lookup tables.
 // Computed once per builder (topology-only — no theta dependence) and
@@ -137,17 +147,161 @@ static std::mutex daisy_chain_meta_init_mutex;
 // records the builder's instance_id() and is rebuilt when it does not
 // match; without this a new model could run on a previous model's graph
 // (measured: "Invalid vertex index" errors and NaN results).
+// Every slot object alive is counted in model_memory::cached_graph_count().
 struct PerThreadGraphSlot {
     uint64_t builder_id = 0;
     std::unique_ptr<phasic::Graph> graph;
+    PerThreadGraphSlot() { model_memory::count_cached_graph(+1); }
+    PerThreadGraphSlot(PerThreadGraphSlot&& o) noexcept
+        : builder_id(o.builder_id), graph(std::move(o.graph)) {
+        model_memory::count_cached_graph(+1);
+    }
+    PerThreadGraphSlot& operator=(PerThreadGraphSlot&& o) noexcept {
+        builder_id = o.builder_id; graph = std::move(o.graph); return *this;
+    }
+    PerThreadGraphSlot(const PerThreadGraphSlot&) = delete;
+    PerThreadGraphSlot& operator=(const PerThreadGraphSlot&) = delete;
+    ~PerThreadGraphSlot() { model_memory::count_cached_graph(-1); }
 };
 thread_local std::unordered_map<const GraphBuilder*, PerThreadGraphSlot>
     per_thread_graph_cache;
+
+// ---------------------------------------------------------------------
+// Model-memory cap (ticket T11). Each thread keeps its own builders and
+// graphs (builders are not shared across threads), but WHICH models may
+// stay cached is decided process-wide: a least-recently-used list of
+// model keys holds at most model_memory_capacity() models. A thread drops
+// its builder for a model that left the list on its next call; dropping
+// the builder destroys it, and every thread then sweeps its per-thread
+// graphs of builders that are gone (model_memory::generation()).
+// ---------------------------------------------------------------------
+namespace {
+struct ModelLru {
+    std::mutex mutex;
+    std::unordered_map<size_t, uint64_t> last_used;  // model key -> clock
+    uint64_t clock = 0;
+};
+ModelLru& model_lru() {
+    static ModelLru* m = new ModelLru();  // never destroyed (see LiveRegistry)
+    return *m;
+}
+std::atomic<uint64_t> g_lru_generation{0};    // bumped when models leave the list
+std::atomic<size_t> g_model_capacity{0};      // 0 = not yet read from the env
+std::mutex g_capacity_mutex;
+std::string g_capacity_error;                 // non-empty: bad env value
+
+thread_local uint64_t tl_builders_seen_lru = 0;
+thread_local uint64_t tl_builders_seen_clear = 0;
+thread_local uint64_t tl_slots_seen_generation = 0;
+thread_local uint64_t tl_slots_seen_clear = 0;
+}  // namespace
+
+size_t model_memory_capacity_now() {
+    size_t cap = g_model_capacity.load(std::memory_order_relaxed);
+    if (cap != 0) return cap;
+    std::lock_guard<std::mutex> lock(g_capacity_mutex);
+    cap = g_model_capacity.load(std::memory_order_relaxed);
+    if (cap != 0) return cap;
+    if (!g_capacity_error.empty()) throw std::invalid_argument(g_capacity_error);
+    // Read once: setenv is not thread-safe, so the env var is only the
+    // start-up value; phasic.configure() calls set_model_memory_capacity.
+    const char* v = std::getenv("PHASIC_MODEL_MEMORY_CACHE_SIZE");
+    size_t parsed = 4;
+    if (v != nullptr && *v != '\0') {
+        char* end = nullptr;
+        long long n = std::strtoll(v, &end, 10);
+        if (end == v || *end != '\0' || n < 1) {
+            g_capacity_error = std::string("PHASIC_MODEL_MEMORY_CACHE_SIZE must be an "
+                                           "integer >= 1; got '") + v + "'";
+            throw std::invalid_argument(g_capacity_error);
+        }
+        parsed = static_cast<size_t>(n);
+    }
+    g_model_capacity.store(parsed, std::memory_order_relaxed);
+    return parsed;
+}
+
+// Drop this thread's per-thread FFI graphs whose builder is gone (or all
+// of them after a clear request).
+static void sweep_thread_ffi_slots() {
+    const uint64_t gen = model_memory::generation();
+    const uint64_t clr = model_memory::clear_generation();
+    if (gen == tl_slots_seen_generation && clr == tl_slots_seen_clear) return;
+    if (clr != tl_slots_seen_clear) {
+        per_thread_graph_cache.clear();
+    } else {
+        std::vector<const GraphBuilder*> dead;
+        for (auto& kv : per_thread_graph_cache)
+            if (!model_memory::builder_is_live(kv.second.builder_id))
+                dead.push_back(kv.first);
+        for (auto* k : dead) per_thread_graph_cache.erase(k);
+    }
+    tl_slots_seen_generation = gen;
+    tl_slots_seen_clear = clr;
+}
+
+static void forget_daisy_meta(const std::string& json_str) {
+    std::lock_guard<std::mutex> lock(daisy_chain_meta_init_mutex);
+    daisy_chain_meta_cache.erase(json_str);
+}
+
+// Drop this thread's builders for models no longer in the LRU list (or
+// all of them after a clear request).
+static void prune_thread_builders() {
+    const uint64_t lru = g_lru_generation.load(std::memory_order_relaxed);
+    const uint64_t clr = model_memory::clear_generation();
+    if (lru == tl_builders_seen_lru && clr == tl_builders_seen_clear) return;
+    std::vector<std::string> drop;
+    if (clr != tl_builders_seen_clear) {
+        for (auto& kv : builder_cache) drop.push_back(kv.first);
+    } else {
+        ModelLru& L = model_lru();
+        std::lock_guard<std::mutex> lock(L.mutex);
+        for (auto& kv : builder_cache)
+            if (!L.last_used.count(kv.second.model_key)) drop.push_back(kv.first);
+    }
+    for (auto& k : drop) {
+        builder_cache.erase(k);
+        forget_daisy_meta(k);
+    }
+    tl_builders_seen_lru = lru;
+    tl_builders_seen_clear = clr;
+}
+
+// The builder for `json_str` in this thread: cached, or parsed and cached.
+// Marks the model as most recently used and evicts the least recently
+// used models beyond the capacity. Throws on a bad structure JSON or a
+// bad PHASIC_MODEL_MEMORY_CACHE_SIZE.
+static std::shared_ptr<GraphBuilder> cached_builder(const std::string& json_str) {
+    const size_t cap = model_memory_capacity_now();
+    const size_t key = std::hash<std::string>{}(json_str);
+    {
+        ModelLru& L = model_lru();
+        std::lock_guard<std::mutex> lock(L.mutex);
+        L.last_used[key] = ++L.clock;
+        bool evicted = false;
+        while (L.last_used.size() > cap) {
+            auto victim = std::min_element(
+                L.last_used.begin(), L.last_used.end(),
+                [](const auto& a, const auto& b) { return a.second < b.second; });
+            L.last_used.erase(victim);   // never `key`: it holds the newest clock
+            evicted = true;
+        }
+        if (evicted) g_lru_generation.fetch_add(1, std::memory_order_relaxed);
+    }
+    prune_thread_builders();
+    auto it = builder_cache.find(json_str);
+    if (it != builder_cache.end()) return it->second.builder;
+    auto builder = std::make_shared<GraphBuilder>(json_str);
+    builder_cache.emplace(json_str, BuilderCacheEntry{builder, key});
+    return builder;
+}
 
 // This thread's Graph for `builder` (built at theta = ones on first use or
 // when the slot belongs to an earlier builder at the same address).
 static phasic::Graph* per_thread_graph_for(GraphBuilder& builder,
                                            size_t theta_len) {
+    sweep_thread_ffi_slots();
     auto& slot = per_thread_graph_cache[&builder];
     if (!slot.graph || slot.builder_id != builder.instance_id()) {
         std::vector<double> dummy_theta(theta_len, 1.0);
@@ -192,19 +346,12 @@ ffi::Error ComputePmfFfiImpl(
 
         // Look up or create GraphBuilder in thread-local cache
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            // Create new GraphBuilder and cache it
-            try {
-                builder = std::make_shared<GraphBuilder>(json_str);
-                builder_cache[json_str] = builder;
-            } catch (const std::exception& e) {
-                return ffi::Error::InvalidArgument(
-                    std::string("Failed to parse JSON structure: ") + e.what()
-                );
-            }
+        try {
+            builder = cached_builder(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to parse JSON structure: ") + e.what()
+            );
         }
 
         // Discreteness: per-call flag OR the graph's own is_discrete (serialize).
@@ -349,19 +496,12 @@ ffi::Error ComputeMomentsFfiImpl(
 
         // Look up or create GraphBuilder in thread-local cache
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            // Create new GraphBuilder and cache it
-            try {
-                builder = std::make_shared<GraphBuilder>(json_str);
-                builder_cache[json_str] = builder;
-            } catch (const std::exception& e) {
-                return ffi::Error::InvalidArgument(
-                    std::string("Failed to parse JSON structure: ") + e.what()
-                );
-            }
+        try {
+            builder = cached_builder(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to parse JSON structure: ") + e.what()
+            );
         }
 
         // Extract buffer dimensions
@@ -468,19 +608,12 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
 
     // Look up or create GraphBuilder in thread-local cache
     std::shared_ptr<GraphBuilder> builder;
-    auto it = builder_cache.find(json_str);
-    if (it != builder_cache.end()) {
-        builder = it->second;
-    } else {
-        // Create new GraphBuilder and cache it
-        try {
-            builder = std::make_shared<GraphBuilder>(json_str);
-            builder_cache[json_str] = builder;
-        } catch (const std::exception& e) {
-            return ffi::Error::InvalidArgument(
-                std::string("Failed to parse JSON structure: ") + e.what()
-            );
-        }
+    try {
+        builder = cached_builder(json_str);
+    } catch (const std::exception& e) {
+        return ffi::Error::InvalidArgument(
+            std::string("Failed to parse JSON structure: ") + e.what()
+        );
     }
 
     // Discreteness: per-call flag OR the graph's own is_discrete (propagated
@@ -737,18 +870,12 @@ ffi::Error ComputePmfMultivariateFfiImpl(
 
         // Look up or create GraphBuilder in thread-local cache
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            try {
-                builder = std::make_shared<GraphBuilder>(json_str);
-                builder_cache[json_str] = builder;
-            } catch (const std::exception& e) {
-                return ffi::Error::InvalidArgument(
-                    std::string("Failed to parse JSON structure: ") + e.what()
-                );
-            }
+        try {
+            builder = cached_builder(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to parse JSON structure: ") + e.what()
+            );
         }
 
         // Discreteness: per-call flag OR the graph's own is_discrete (serialize).
@@ -988,18 +1115,12 @@ ffi::Error ComputeSojournTimesFfiImpl(
 
         // Thread-local cache lookup
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            try {
-                builder = std::make_shared<GraphBuilder>(json_str);
-                builder_cache[json_str] = builder;
-            } catch (const std::exception& e) {
-                return ffi::Error::InvalidArgument(
-                    std::string("Failed to parse JSON: ") + e.what()
-                );
-            }
+        try {
+            builder = cached_builder(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to parse JSON: ") + e.what()
+            );
         }
 
         // Parse dimensions (handle vmap batching)
@@ -1212,13 +1333,7 @@ ffi::Error BackwardProbabilitiesFfiImpl(
         std::string json_str(structure_json);
 
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            builder = std::make_shared<GraphBuilder>(json_str);
-            builder_cache[json_str] = builder;
-        }
+        builder = cached_builder(json_str);
 
         // theta: (theta_len,) or (batch, theta_len) under vmap.
         auto theta_dims = theta.dimensions();
@@ -1321,13 +1436,7 @@ ffi::Error SamplePathConditionedFfiImpl(
         std::string json_str(structure_json);
 
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            builder = std::make_shared<GraphBuilder>(json_str);
-            builder_cache[json_str] = builder;
-        }
+        builder = cached_builder(json_str);
 
         // Parse dimensions for vmap batching
         auto theta_dims = theta.dimensions();
@@ -1417,14 +1526,7 @@ ffi::Error SamplePathConditionedFfiImpl(
                 #pragma omp parallel for if(batch_size > 4)
                 for (size_t b = 0; b < batch_size; b++) {
                     try {
-                        std::shared_ptr<GraphBuilder> local_builder;
-                        auto local_it = builder_cache.find(json_str);
-                        if (local_it != builder_cache.end()) {
-                            local_builder = local_it->second;
-                        } else {
-                            local_builder = std::make_shared<GraphBuilder>(json_str);
-                            builder_cache[json_str] = local_builder;
-                        }
+                        std::shared_ptr<GraphBuilder> local_builder = cached_builder(json_str);
 
                         const double* theta_b = theta_data + b * theta_len;
                         int32_t tv = target_data[target_batch > 1 ? b : 0];
@@ -1549,18 +1651,12 @@ ffi::Error DaisyChainJointProbsFfiImpl(
         // Thread-local GraphBuilder cache lookup (mirrors
         // ComputeSojournTimesFfiImpl).
         std::shared_ptr<GraphBuilder> builder;
-        auto it = builder_cache.find(json_str);
-        if (it != builder_cache.end()) {
-            builder = it->second;
-        } else {
-            try {
-                builder = std::make_shared<GraphBuilder>(json_str);
-                builder_cache[json_str] = builder;
-            } catch (const std::exception& e) {
-                return ffi::Error::InvalidArgument(
-                    std::string("Failed to parse JSON: ") + e.what()
-                );
-            }
+        try {
+            builder = cached_builder(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to parse JSON: ") + e.what()
+            );
         }
 
         // Look up cached daisy-chain metadata (parsed JSON + topology-
@@ -1933,18 +2029,12 @@ ffi::Error DaisyChainSojournFfiImpl(
         // Builders (thread-local cache, keyed by JSON string).
         std::shared_ptr<GraphBuilder> jsp_builder, soj_builder;
         {
-            auto it = builder_cache.find(jsp_json);
-            if (it != builder_cache.end()) jsp_builder = it->second;
-            else {
-                try { jsp_builder = std::make_shared<GraphBuilder>(jsp_json); builder_cache[jsp_json] = jsp_builder; }
-                catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse JSP JSON: ") + e.what()); }
-            }
-            auto it2 = builder_cache.find(soj_json);
-            if (it2 != builder_cache.end()) soj_builder = it2->second;
-            else {
-                try { soj_builder = std::make_shared<GraphBuilder>(soj_json); builder_cache[soj_json] = soj_builder; }
-                catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse sojourn JSON: ") + e.what()); }
-            }
+            // Both builders are held here, so caching the second cannot
+            // destroy the first even at capacity 1.
+            try { jsp_builder = cached_builder(jsp_json); }
+            catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse JSP JSON: ") + e.what()); }
+            try { soj_builder = cached_builder(soj_json); }
+            catch (const std::exception& e) { return ffi::Error::InvalidArgument(std::string("Failed to parse sojourn JSON: ") + e.what()); }
         }
 
         // Parse metadata from the JSP JSON's _daisy_chain block.
@@ -2301,6 +2391,68 @@ XLA_FFI_Handler* CreateDaisyChainSojournHandler() {
         return bound_handler->Call(call_frame);
     };
     return handler;
+}
+
+// ---- Model-memory control (ticket T11; phasic.configure /
+// phasic.clear_model_memory / phasic.model_memory_info) ----
+
+size_t model_memory_capacity() {
+    return ffi_handlers::model_memory_capacity_now();
+}
+
+void set_model_memory_capacity(size_t capacity) {
+    if (capacity < 1) {
+        throw std::invalid_argument("model memory cache size must be >= 1");
+    }
+    {
+        std::lock_guard<std::mutex> lock(ffi_handlers::g_capacity_mutex);
+        ffi_handlers::g_capacity_error.clear();
+        ffi_handlers::g_model_capacity.store(capacity, std::memory_order_relaxed);
+    }
+    // Shrink now: models beyond the new capacity leave the list, and each
+    // thread drops their builders on its next call.
+    ffi_handlers::ModelLru& L = ffi_handlers::model_lru();
+    std::lock_guard<std::mutex> lock(L.mutex);
+    bool evicted = false;
+    while (L.last_used.size() > capacity) {
+        auto victim = std::min_element(
+            L.last_used.begin(), L.last_used.end(),
+            [](const auto& a, const auto& b) { return a.second < b.second; });
+        L.last_used.erase(victim);
+        evicted = true;
+    }
+    if (evicted) ffi_handlers::g_lru_generation.fetch_add(1, std::memory_order_relaxed);
+}
+
+void clear_model_memory() {
+    {
+        ffi_handlers::ModelLru& L = ffi_handlers::model_lru();
+        std::lock_guard<std::mutex> lock(L.mutex);
+        L.last_used.clear();
+    }
+    ffi_handlers::g_lru_generation.fetch_add(1, std::memory_order_relaxed);
+    model_memory::request_clear();
+    {
+        std::lock_guard<std::mutex> lock(ffi_handlers::daisy_chain_meta_init_mutex);
+        ffi_handlers::daisy_chain_meta_cache.clear();
+    }
+    // The calling thread releases now; every other thread on its next call.
+    ffi_handlers::prune_thread_builders();
+    ffi_handlers::sweep_thread_ffi_slots();
+    model_memory::sweep_thread_persistent_graphs();
+}
+
+ModelMemoryInfo model_memory_info() {
+    ModelMemoryInfo info;
+    info.capacity = model_memory_capacity();
+    {
+        ffi_handlers::ModelLru& L = ffi_handlers::model_lru();
+        std::lock_guard<std::mutex> lock(L.mutex);
+        info.models = L.last_used.size();
+    }
+    info.live_builders = model_memory::live_builder_count();
+    info.cached_graphs = model_memory::cached_graph_count();
+    return info;
 }
 
 } // namespace parameterized
