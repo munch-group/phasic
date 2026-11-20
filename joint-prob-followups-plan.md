@@ -404,3 +404,6 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
   in_pop, coalescent-derived is_derived) were counting extra
   independent mutation blocks before T9, so their earlier outputs were
   probably wrong, not only about to break (inferred, not run).
+- 2026-11-20: C++ branch fix/ffi-stale-graph-cache (T1 + T10, head
+  `607fdbfc`) gate: 35 FFI-reaching files plus the T1 test: 592 passed,
+  0 failed, 6 skipped, 5 xfailed (56 min). Both branches ready to merge.
