@@ -4315,6 +4315,15 @@ extern "C" {{
         obs2idx = joint_prob_table.groupby(
             joint_prob_table.columns[:-1].to_list()
         ).groups
+        if len(obs2idx) < 2:
+            # Every joint-prob likelihood conditions on the table's outcome
+            # set (normalises by its mass), so a single distinct outcome
+            # has probability 1 for every theta: nothing can be inferred.
+            raise ValueError(
+                f"The joint-probability table has {len(obs2idx)} distinct "
+                f"outcome; at least 2 are needed for inference, because the "
+                f"likelihood is normalised over the outcomes. Raise "
+                f"reward_limit / tot_reward_limit or check the model.")
         obs_indices = []
         for obs in observed_data:
             idx = obs2idx[tuple(obs)]
@@ -7175,22 +7184,10 @@ extern "C" {{
         if theta_dim is None:
             theta_dim = self.param_length()
 
-        # Map observations (feature-count tuples) -> vertex indices
-        joint_prob_table = self.joint_prob_table()
-        obs2idx = joint_prob_table.groupby(
-            joint_prob_table.columns[:-1].to_list()
-        ).groups
-        obs_indices = []
-        for obs in observed_data:
-            key = tuple(obs)
-            idx = obs2idx[key]
-            if idx.size > 1:
-                p = joint_prob_table.loc[idx, 'prob'].to_numpy()
-                p = p / p.sum()
-                chosen_idx = np.random.choice(idx, p=p)
-                obs_indices.append(chosen_idx.item())
-            else:
-                obs_indices.append(idx.item())
+        # Map observations (feature-count tuples) -> vertex indices, via the
+        # single shared mapping (same lookup and tie-break as svgd /
+        # epoch_model; seed=None keeps the global np.random stream).
+        obs_indices = self._map_joint_observations_to_indices(observed_data)
 
         return _prob_match(
             self, obs_indices,
@@ -8764,6 +8761,18 @@ extern "C" {{
         if exclude_vertices is not None:
             exclude_set = set(int(v) for v in exclude_vertices)
             all_terminal_indices = [v for v in all_terminal_indices if v not in exclude_set]
+        if len(all_terminal_indices) < 2:
+            # The model normalises over the terminal set, so with one
+            # terminal every observation has probability 1 for every theta
+            # (no information), and with none there is nothing to read.
+            raise ValueError(
+                f"pmf_from_graph_joint_index: the graph has "
+                f"{len(all_terminal_indices)} terminal vertex(es) (vertices "
+                f"with an edge into an absorbing vertex"
+                f"{', after exclude_vertices' if exclude_vertices is not None else ''}"
+                f"); at least 2 are needed, because the likelihood is "
+                f"normalised over them and a single outcome carries no "
+                f"information about theta.")
         all_terminal_indices_np = np.asarray(all_terminal_indices, dtype=np.int32)
         all_terminal_indices = jnp.array(all_terminal_indices, dtype=jnp.int32)
 
@@ -11845,6 +11854,11 @@ extern "C" {{
                 if len(edge.to().edges()) == 0:
                     t_vertex_indices.append(vertex.index())
                     break
+        if not t_vertex_indices:
+            raise ValueError(
+                "This joint-probability graph has no outcome vertices (no "
+                "vertex has an edge into an absorbing vertex). Check that "
+                "the base graph reaches an absorbing state.")
         t_vertex_indices = np.unique(t_vertex_indices)
         states = self.states()
 
