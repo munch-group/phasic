@@ -1,6 +1,7 @@
 #ifndef PTDALGORITHMS_PARAMETERIZED_GRAPH_BUILDER_HPP
 #define PTDALGORITHMS_PARAMETERIZED_GRAPH_BUILDER_HPP
 
+#include <cstdint>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <string>
@@ -58,13 +59,22 @@ public:
      * address would silently "hit" that entry — returning a graph
      * built from a previous theta with a different model structure.
      *
-     * Note: only evicts the entry on the *current* thread. Builders
-     * destroyed on threads other than the one that populated the
-     * cache (uncommon) leave a stale entry; this is acceptable
-     * because the next call from that other thread will overwrite
-     * the entry anyway (every cache miss writes a fresh entry).
+     * Note: only evicts the entry on the *current* thread. Entries
+     * on other threads (e.g. OpenMP workers) stay behind; a later
+     * builder at the same address would find them, so every cache
+     * also stores the builder's instance_id() and treats an entry
+     * whose id differs as a miss (rebuilds it).
      */
     ~GraphBuilder();
+
+    /**
+     * @brief Process-unique id of this builder (never reused).
+     *
+     * Per-thread graph caches are keyed by builder address, and an
+     * address can be reused after a builder is destroyed. Caches store
+     * this id with each entry and rebuild when it does not match.
+     */
+    uint64_t instance_id() const { return instance_id_; }
 
     /**
      * @brief Build graph with specific parameter values
@@ -315,6 +325,8 @@ public:
     Graph& get_or_init_persistent_graph(const double* theta, size_t theta_len);
 
 private:
+    uint64_t instance_id_;  // process-unique; see instance_id()
+
     // Cached structure data (parsed from JSON once)
     int param_length_;      // Number of parameters
     int state_length_;      // Dimension of state vectors
