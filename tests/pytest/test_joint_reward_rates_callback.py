@@ -96,7 +96,7 @@ def test_bad_callback_output_is_refused(ret, exc, match):
 
 def test_dict_reward_limit_refused_with_callback():
     g, idx = coalescent_indexed(2)
-    with pytest.raises(ValueError, match="dict reward_limit"):
+    with pytest.raises(ValueError, match=r"dict \(per-property\) reward_limit"):
         g.joint_prob_graph(idx, discrete=False, reward_limit={'descendants': 2},
                            reward_rates_callback=_default_like)
 
@@ -116,3 +116,36 @@ def test_epoch_graph_callback_sees_epoch_slot():
     b = ge.joint_prob_graph(ge._indexer, discrete=True, reward_limit=2, reward_rates_callback=cb)
     assert lens == {ge.state_length()} and ge.state_length() == g.state_length() + 1
     assert _structure(a) == _structure(b)
+
+
+def test_callback_gets_copies():
+    # Mutating the arguments in place used to corrupt the build (native
+    # "unknown exception"); the builder now passes copies.
+    g, idx = coalescent_indexed(3)
+
+    def cb(current_state, base_indexer, reward_indexer, current_rewards, **kw):
+        r, t = _default_like(current_state, base_indexer, reward_indexer,
+                             current_rewards, **kw)
+        current_state[:] = 0
+        current_rewards[:] = 0
+        return r, t
+
+    a = g.joint_prob_graph(idx, discrete=False, reward_limit=2)
+    b = g.joint_prob_graph(idx, discrete=False, reward_limit=2, reward_rates_callback=cb)
+    assert _structure(a) == _structure(b)
+
+
+@pytest.mark.parametrize("ret", [
+    lambda n: (np.array(['1'] * n), 0.0),
+    lambda n: (np.ones(n) * (1 + 1j), 0.0),
+    lambda n: (np.ones(n), True),
+    lambda n: (np.ones(n), '0.5'),
+], ids=["str_rates", "complex_rates", "bool_trash", "str_trash"])
+def test_non_numeric_callback_output_refused(ret):
+    g, idx = coalescent_indexed(2)
+
+    def cb(current_state, base_indexer, reward_indexer, current_rewards, **kw):
+        return ret(reward_indexer.state_length)
+
+    with pytest.raises(TypeError, match="real numbers|scalar"):
+        g.joint_prob_graph(idx, discrete=False, reward_limit=2, reward_rates_callback=cb)

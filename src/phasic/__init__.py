@@ -10194,6 +10194,10 @@ extern "C" {{
         wrong for attributes of the same lineage (e.g. a population label),
         whose blocks would not count the same mutations; count those through a
         single property. ``tot_reward_limit`` caps the sum over all blocks.
+        ``reward_only`` must be a non-empty list of property names of the
+        indexer; an unknown name raises. ``reward_limit`` must be a scalar
+        (or None): a per-property dict was never implemented correctly and
+        is refused.
 
         ``reward_rates_callback`` (optional) replaces the built-in mutation
         rates. It is called once per joint vertex whose base state is NOT
@@ -10217,7 +10221,8 @@ extern "C" {{
         same for every graph and construction terminates. Rates are
         constants placed in the mutation slot (the last theta entry), so
         the effective rate is ``rate * theta[-1]``; they cannot depend on
-        theta. A dict ``reward_limit`` is not supported with a callback.
+        theta. The callback gets copies of ``current_state`` and
+        ``current_rewards``; changing them has no effect.
         """
         _require_parameterized(self, 'joint_prob_graph')
         _require_linear_weight_mode(self, 'joint_prob_graph()')
@@ -10281,6 +10286,25 @@ extern "C" {{
         # where the blocks would not count the same mutations. Make the
         # choice explicit (ticket T9, user decision 2026-11-20).
         _prop_names = [p.name for p in base_graph_indexer.property_sets()[0].properties]
+        if reward_only is not None:
+            # A misspelled name used to be dropped silently (that property
+            # was then not counted), a bare string matched by substring, and
+            # an empty list failed deep inside StateIndexer.
+            if (isinstance(reward_only, (str, bytes))
+                    or not all(isinstance(x, str) for x in reward_only)):
+                raise TypeError(
+                    "joint_prob_graph: reward_only must be a list of property "
+                    f"names; got {reward_only!r}")
+            reward_only = list(reward_only)
+            _unknown = [x for x in reward_only if x not in _prop_names]
+            if _unknown:
+                raise ValueError(
+                    f"joint_prob_graph: reward_only names {_unknown} are not "
+                    f"properties of the indexer {_prop_names}")
+            if not reward_only:
+                raise ValueError(
+                    "joint_prob_graph: reward_only is empty; list at least one "
+                    f"of the indexer's properties {_prop_names}")
         if len(_prop_names) > 1 and reward_only is None:
             raise ValueError(
                 f"joint_prob_graph: the indexer has several properties "
@@ -10288,7 +10312,7 @@ extern "C" {{
                 f"whose mutations are counted. Each listed property gets its "
                 f"own independent mutation process at the full rate (one block "
                 f"of reward columns per property): right for separate loci "
-                f"(e.g. reward_only={_prop_names[:2]!r} for two loci), wrong for "
+                f"(e.g. reward_only=['loc1', 'loc2'] for two loci), wrong for "
                 f"attributes of the same lineage (e.g. a population label) — "
                 f"count those via a single property. tot_reward_limit caps the "
                 f"sum over all listed blocks.")
@@ -10297,10 +10321,14 @@ extern "C" {{
         # it used to forward to a reference implementation that had been
         # commented out, so every callback raised AttributeError). Only the
         # rate computation is replaced; see _callback_reward below.
-        if reward_rates_callback is not None and isinstance(reward_limit, dict):
+        if isinstance(reward_limit, dict):
+            # The dict branch of the built-in rates had its test inverted (it
+            # counted a mutation only when it went OVER the limit) and read
+            # the wrong counter, so it silently built a graph that sent every
+            # mutation to trash. Refused on every path.
             raise ValueError(
-                "joint_prob_graph: a dict reward_limit is not supported with "
-                "reward_rates_callback; pass a scalar reward_limit and/or "
+                "joint_prob_graph: a dict (per-property) reward_limit is not "
+                "supported; pass a scalar reward_limit and/or "
                 "tot_reward_limit.")
 
         base_starting_vertex = self.starting_vertex()
@@ -10423,26 +10451,35 @@ extern "C" {{
             # User rates, validated (the discretize rate-callback contract:
             # shape, finite, >= 0), with the caps enforced HERE so they mean
             # the same as for the built-in rates and construction terminates.
+            # Copies: the builder uses both arrays after the call.
             out = reward_rates_callback(
-                current_state, base_graph_indexer, reward_indexer,
-                current_rewards, mutation_rate=mutation_rate,
+                np.array(current_state), base_graph_indexer, reward_indexer,
+                np.array(current_rewards), mutation_rate=mutation_rate,
                 reward_limit=reward_limit, tot_reward_limit=tot_reward_limit)
             if not (isinstance(out, (tuple, list)) and len(out) == 2):
                 raise TypeError(
                     "reward_rates_callback must return (rates, trash_rate); "
                     f"got {type(out).__name__} for state "
                     f"{list(current_state)} rewards {list(current_rewards)}")
-            rates = np.asarray(out[0], dtype=np.float64)
+            _raw = np.asarray(out[0])
+            if _raw.dtype.kind not in 'iuf':
+                raise TypeError(
+                    "reward_rates_callback rates must be real numbers; got "
+                    f"dtype {_raw.dtype} for state {list(current_state)}")
+            rates = _raw.astype(np.float64)
             if rates.shape != (reward_length,):
                 raise TypeError(
                     f"reward_rates_callback rates must have shape "
                     f"({reward_length},) (one entry per reward counter); got "
                     f"{rates.shape} for state {list(current_state)}")
             try:
-                extra_trash = float(out[1])
+                _t = np.asarray(out[1])
+                if _t.ndim != 0 or _t.dtype.kind not in 'iuf':
+                    raise TypeError
+                extra_trash = float(_t)
             except (TypeError, ValueError):
                 raise TypeError(
-                    "reward_rates_callback trash_rate must be a scalar; got "
+                    "reward_rates_callback trash_rate must be a real scalar; got "
                     f"{out[1]!r} for state {list(current_state)}") from None
             if not (np.all(np.isfinite(rates)) and np.all(rates >= 0)
                     and np.isfinite(extra_trash) and extra_trash >= 0):
@@ -10647,13 +10684,17 @@ extern "C" {{
             # the list of t-states and add prob 1 edges to a new t-state representing all
             # of them. t-states in such sets are the ones that only differ by properties not
             # in the reward_only keyword arg
-            values = []
+            # Names and value ranges in the same (property) order: zipping the
+            # ranges with the sorted reward_only paired a property with
+            # another one's range when the order was not alphabetical.
+            names, values = [], []
             for p in property_set.properties:
                 if p.name in reward_only:
+                    names.append(p.name)
                     values.append(list(range(p.min_value, p.max_value+1)))
             idxs = []
             for tup in product(*values):
-                idxs.extend(property_set.props_to_index(**dict(zip(reward_only, tup))))
+                idxs.extend(property_set.props_to_index(**dict(zip(names, tup))))
             idxs = np.array(sorted(idxs))
 
             t_vertex_sets = defaultdict(list)
