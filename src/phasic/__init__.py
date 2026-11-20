@@ -8761,10 +8761,15 @@ extern "C" {{
         if exclude_vertices is not None:
             exclude_set = set(int(v) for v in exclude_vertices)
             all_terminal_indices = [v for v in all_terminal_indices if v not in exclude_set]
-        if len(all_terminal_indices) < 2:
-            # The model normalises over the terminal set, so with one
-            # terminal every observation has probability 1 for every theta
-            # (no information), and with none there is nothing to read.
+        if (len(all_terminal_indices) < 2
+                and getattr(graph, '_joint_prob_base_graph_indexer', None)):
+            # Joint-probability graphs only: their observations ARE
+            # terminal (outcome) vertices and the model normalises over the
+            # terminal set, so with one terminal every observation has
+            # probability 1 for every theta (no information), and with none
+            # there is nothing to read. NOT applied to other graphs: this is
+            # a generic API, and reading a non-terminal vertex against a
+            # single terminal (sojourn ratio) does depend on theta.
             raise ValueError(
                 f"pmf_from_graph_joint_index: the graph has "
                 f"{len(all_terminal_indices)} terminal vertex(es) (vertices "

@@ -74,3 +74,24 @@ def test_zero_outcomes_clear_error():
     j = g.joint_prob_graph(idx, discrete=True, reward_limit=1)
     with pytest.raises(ValueError, match="no outcome vertices"):
         j.joint_prob_table()
+
+
+def test_generic_single_terminal_graph_still_accepted():
+    # pmf_from_graph_joint_index is a generic API: on a NON-joint graph a
+    # single terminal vertex is fine, because a non-terminal vertex read
+    # against it (sojourn ratio) depends on theta. Chain s -> v3 -> v2 -> v1
+    # with v2 the only terminal: sojourn(v3)/sojourn(v2) = w2/w3 =
+    # (t0 + 2 t1) / (2 t0 + 3 t1). (Regression: the T8 guard first applied
+    # to every graph and broke 17 tests built on such chains.)
+    g = Graph(1)
+    v3 = g.find_or_create_vertex([3])
+    v2 = g.find_or_create_vertex([2])
+    v1 = g.find_or_create_vertex([1])
+    g.starting_vertex().add_edge(v3, 1.0)
+    v3.add_edge(v2, [2.0, 3.0])
+    v2.add_edge(v1, [1.0, 2.0])
+    m = Graph.pmf_from_graph_joint_index(g, theta_dim=2)
+    for t0, t1 in [(1.0, 1.0), (0.5, 2.0)]:
+        p = float(np.asarray(m(jnp.array([t0, t1]),
+                               jnp.array([v3.index()], dtype=jnp.int32))[0])[0])
+        np.testing.assert_allclose(p, (t0 + 2 * t1) / (2 * t0 + 3 * t1), rtol=1e-10)
