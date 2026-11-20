@@ -1332,6 +1332,24 @@ def _check_R32_2d_rewards_reject_dense_1d_observations(c: SvgdConfig) -> None:
         )
 
 
+def _check_R33_epoch_fit_requires_sojourn_final_read(c: SvgdConfig) -> None:
+    # epoch-normalization plan v2, decision D2(a): epoch-model likelihoods
+    # are normalised by the table mass. With final_read='stopprob' that
+    # sum also omits mass not yet absorbed at the finite t_eval, so
+    # normalising would cancel the penalty for unabsorbed mass and the
+    # likelihood would plateau (instead of vanishing) as coalescence
+    # rates go to 0. 'sojourn' (the default) is exact. The private
+    # builder still accepts 'stopprob' as a test reference.
+    if c.has_epoch_starts and c.final_read == 'stopprob':
+        raise SvgdConfigError(
+            "final_read='stopprob' is not supported for epoch fits: the "
+            "conditional (normalised) likelihood is only exact with the "
+            "default final_read='sojourn'. With 'stopprob', normalising "
+            "would also cancel the penalty for probability mass not yet "
+            "absorbed at t_eval. Use final_read='sojourn'."
+        )
+
+
 _RULES = (
     _check_R1_epoch_requires_continuous_joint_prob,
     _check_R2_joint_index_requires_joint_prob,
@@ -1365,6 +1383,7 @@ _RULES = (
     _check_R30_exact_final_grad_leaf_scope,
     _check_R31_exact_grad_leaf_scope,
     _check_R32_2d_rewards_reject_dense_1d_observations,
+    _check_R33_epoch_fit_requires_sojourn_final_read,
 )
 
 

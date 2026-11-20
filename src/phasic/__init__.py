@@ -4736,7 +4736,14 @@ extern "C" {{
             gather_np = np.asarray(gather_l, dtype=np.int64)
             sti_list = [int(x) for x in sti_l]
 
-            def block(theta_full_np):
+            def block_with_rows(theta_full_np):
+                """Return ``(final_jp, J)``: the raw final-epoch joint
+                probabilities ``r_v * soj * mass`` over all t-vertices
+                (shape ``(n_t,)``) and the Jacobian ``block`` returns.
+                The rows let the exposure branch apply the quotient
+                rule of its per-unique row normalisation without an
+                extra FFI call in the backward (epoch-normalization
+                plan v2, section 5.2)."""
                 th = np.asarray(theta_full_np, dtype=np.float64).ravel()
                 ipv_work = np.asarray(init_ipv_np, dtype=np.float64).copy()
                 for ep in range(n_ep - 1):
@@ -4775,7 +4782,7 @@ extern "C" {{
                     # Subnormal-but-nonzero mass deliberately falls
                     # through to the C call -> decline -> raise
                     # (micro-gate (d) decision, b3-batchH-findings.md).
-                    return np.zeros((n_t_l, P_l))
+                    return np.zeros(n_t_l), np.zeros((n_t_l, P_l))
                 efg_sg.update_ipv(alpha)
                 efg_sg.update_weights(theta_final.tolist())
                 soj = np.asarray(efg_sg.expected_sojourn_time(sti_list))
@@ -4800,9 +4807,14 @@ extern "C" {{
                     )
                 J_soj = np.asarray(raw_j, dtype=np.float64).reshape(n_t_l, P_l)
                 r_v = r_const + r_coeff @ theta_final
-                return (r_coeff * (soj * mass)[:, None]
+                return (r_v * soj * mass,
+                        r_coeff * (soj * mass)[:, None]
                         + r_v[:, None] * J_soj * mass)
 
+            def block(theta_full_np):
+                return block_with_rows(theta_full_np)[1]
+
+            block.with_rows = block_with_rows
             return block, n_t_l
 
         if exposure_arr is None:
@@ -5009,8 +5021,23 @@ extern "C" {{
                 # add into dL/d(master) automatically.
                 theta_arr = _apply_tying(theta_arr)
                 joint_probs = _autodiff(theta_arr)
-                per_obs = joint_probs[observed_pos_jnp]
+                # Conditional likelihood: observations beyond the
+                # graph's reward caps cannot be passed, so each
+                # observation's probability is normalised by the table
+                # mass Z(theta) = sum over ALL t-vertices (overflow mass
+                # excluded). Done outside the custom_vjp so JAX
+                # differentiates the division; the FD and exact-final
+                # backwards supply d(joint_probs)/d(theta) unchanged.
+                per_obs = joint_probs[observed_pos_jnp] / jnp.sum(joint_probs)
                 return per_obs, jnp.zeros(2)
+
+            def _raw_forward_noexp(theta):
+                """Test seam: raw (un-normalised) final joint
+                probabilities over all t-vertices, after tying."""
+                theta_arr = jnp.atleast_1d(theta).reshape(-1)
+                return _autodiff(_apply_tying(theta_arr))
+
+            model._raw_forward = _raw_forward_noexp
 
             # Tag the model so SVGD.__init__ keeps parallel_mode='vmap'.
             # _handles_exposure_internally is a slight misnomer on this
@@ -5177,15 +5204,30 @@ extern "C" {{
                 _efg_scale_np = np.asarray(scale_per_unique, dtype=np.float64)
 
                 def _efg_block_exp_np(theta_flat_np):
+                    """Per-unique raw final rows and exposure-scaled
+                    final-slot Jacobians: ``(rows (n_unique, n_t),
+                    J (n_unique, n_t, P))``. Rows are evaluated at the
+                    same scaled theta as J (and as the forward)."""
                     th = np.asarray(theta_flat_np, dtype=np.float64).ravel()
+                    rows = np.empty((n_unique, _efg_n_t))
                     out = np.empty(
                         (n_unique, _efg_n_t, theta_dim_local))
                     for u in range(n_unique):
-                        Ju = _efg_block_core(th * _efg_scale_np[u])
+                        ru, Ju = _efg_block_core.with_rows(
+                            th * _efg_scale_np[u])
+                        rows[u] = ru
                         out[u] = Ju * _efg_scale_np[u, _efg_final_lo:][None, :]
-                    return out
+                    return rows, out
 
             from jax import custom_batching as _cb_local
+
+            def _normalise_rows(joint):
+                # Conditional likelihood per exposure value: each
+                # observation is normalised by the table mass of ITS
+                # OWN (exposure-scaled) theta, i.e. the row sum over all
+                # t-vertices of its unique-alpha row. Shared by the 1-D
+                # core and its vmap rule so the two cannot diverge.
+                return joint / jnp.sum(joint, axis=-1, keepdims=True)
 
             # Core per-particle forward, wrapped with custom_vmap so that
             # under ANY vmap composition (vmap(f), vmap(grad(f)), etc.)
@@ -5209,6 +5251,7 @@ extern "C" {{
                 # (n_unique, theta_dim) batch and call FFI once.
                 theta_pk = theta_flat[None, :] * scale_per_unique
                 joint = _dc_call(theta_pk, initial_ipv_one)  # (n_unique, n_t)
+                joint = _normalise_rows(joint)
                 # Scatter to per-obs positions via inverse_idx_jnp and
                 # pick each obs's own t-vertex. Two paired integer
                 # arrays of equal length -> (n_obs,).
@@ -5228,6 +5271,7 @@ extern "C" {{
                 ).reshape(P * n_unique, n_epochs * param_length)
                 joint = _dc_call(theta_pk, initial_ipv_one)  # (P*n_unique, n_t)
                 joint = joint.reshape(P, n_unique, -1)  # (P, n_unique, n_t)
+                joint = _normalise_rows(joint)
                 per_obs_2d = joint[:, inverse_idx_jnp, observed_pos_jnp]
                 # out is batched along axis 0.
                 return per_obs_2d, True
@@ -5278,15 +5322,29 @@ extern "C" {{
                     the no-exposure override (fixed wins; tied slaves
                     exact)."""
                     n_params = theta_flat.shape[0]
-                    Jb = jax.pure_callback(
+                    raw_rows, Jb = jax.pure_callback(
                         _efg_block_exp_np,
-                        jax.ShapeDtypeStruct(
+                        (jax.ShapeDtypeStruct(
+                            (n_unique, _efg_n_t), jnp.float64),
+                         jax.ShapeDtypeStruct(
                             (n_unique, _efg_n_t, theta_dim_local),
-                            jnp.float64),
+                            jnp.float64)),
                         theta_flat,
                         vmap_method='sequential',
                     )
-                    per_obs_J = Jb[inverse_idx_jnp, observed_pos_jnp, :]
+                    # Quotient rule for the per-unique row normalisation
+                    # in _per_obs_core: d(raw_i / Z) = (J_i - q_i S) / Z
+                    # with Z = sum_t raw, q = raw / Z, S = sum_t J. Rows
+                    # with Z == 0 (the block's zero-handoff-mass limit,
+                    # where it returns zero rows and zero J) keep the
+                    # exact zero they had before normalisation.
+                    Z = jnp.sum(raw_rows, axis=-1)  # (n_unique,)
+                    Z_safe = jnp.where(Z > 0, Z, 1.0)
+                    q = raw_rows / Z_safe[:, None]
+                    S = jnp.sum(Jb, axis=1)  # (n_unique, P)
+                    Jn = (Jb - q[:, :, None] * S[:, None, :]) / Z_safe[:, None, None]
+                    Jn = jnp.where((Z > 0)[:, None, None], Jn, 0.0)
+                    per_obs_J = Jn[inverse_idx_jnp, observed_pos_jnp, :]
                     exact_final = cotangent @ per_obs_J  # (P,)
                     grads = []
                     for i in range(n_params):
@@ -5328,6 +5386,17 @@ extern "C" {{
             #     so vmap-over-particles fuses with the internal batch.
             model._handles_exposure_internally = True
             model._handles_particle_vmap = True
+
+            def _raw_forward_exp(theta):
+                """Test seam: raw (un-normalised) per-unique-exposure
+                final joint probabilities, shape (n_unique, n_t), after
+                tying. NOT vmappable (a bare _dc_call under vmap gives
+                the C handler a 3-D theta buffer it rejects)."""
+                theta_arr = _apply_tying(jnp.atleast_1d(theta))
+                return _dc_call(theta_arr[None, :] * scale_per_unique,
+                                initial_ipv_one)
+
+            model._raw_forward = _raw_forward_exp
 
         # broadcast_fixed already built above (alongside fixed_indices)
         # so we could pass fixed_indices into the model's custom_vjp.
@@ -5483,6 +5552,11 @@ extern "C" {{
             re-pass to ``fit``).
         daisy_chain_t_eval, daisy_chain_probe_theta, daisy_chain_t_eval_tol, daisy_chain_granularity, final_read
             As in :meth:`svgd` (the ``'auto'`` probe, granularity, sojourn read).
+            ``final_read='stopprob'`` is rejected (see :meth:`svgd`). The
+            model's likelihood is conditional on each observation lying within
+            the graph's caps: each observation's probability is normalised by
+            the table mass of its own (exposure-scaled) parameters, as in
+            :meth:`svgd`.
         seed : int, optional
             Seed for the observation-mapping tie-break (degenerate outcome
             groups). ``None`` (default) uses the global ``np.random`` stream, as
@@ -5509,6 +5583,15 @@ extern "C" {{
             raise ValueError(
                 "Graph.epoch_model requires a joint-probability graph. Construct "
                 "one with graph.joint_prob_graph(indexer, ..., discrete=False)."
+            )
+        if final_read == 'stopprob':
+            # epoch-normalization plan v2, D2(a); mirrors svgd rule R33.
+            raise ValueError(
+                "final_read='stopprob' is not supported for epoch models: the "
+                "conditional (normalised) likelihood is only exact with the "
+                "default final_read='sojourn'. With 'stopprob', normalising "
+                "would also cancel the penalty for probability mass not yet "
+                "absorbed at t_eval. Use final_read='sojourn'."
             )
         # 1. observations -> joint-prob vertex indices (shared mapping helper).
         mapped = self._map_joint_observations_to_indices(observed_data, seed=seed)
@@ -6034,6 +6117,22 @@ extern "C" {{
             so the flattened theta has length ``n_epochs * param_length``. Requires
             a continuous-time joint-prob graph (``discrete=False``). See ``fixed`` and
             ``tied`` for how those kwargs interpret indices under daisy-chain.
+
+            The likelihood is CONDITIONAL on each observation lying within the
+            graph's caps (``reward_limit`` / ``tot_reward_limit``): every
+            observation's probability is divided by the table mass of its own
+            (exposure-scaled) parameters, exactly as on the single-epoch
+            joint-index path. Observations beyond the caps cannot be passed,
+            so data must be truncated at exactly the graph's caps. A single
+            epoch (or epochs whose parameters are all tied) identifies only
+            rate RATIOS; fix one rate. Requires ``final_read='sojourn'`` (the
+            default); ``'stopprob'`` is rejected for fits.
+        final_read : {'sojourn', 'stopprob'}, default='sojourn'
+            How the final epoch's outcome probabilities are read. ``'sojourn'``
+            is exact (no time cut-off). ``'stopprob'`` (absorption by a finite
+            ``daisy_chain_t_eval``) is rejected when ``epoch_starts`` is given,
+            because normalising it would also cancel the penalty for mass not
+            yet absorbed at ``t_eval``.
         daisy_chain_t_eval : float, str, or None, default=None
             Time at which the final-epoch joint stop-probabilities are read off the
             JSP graph's t-vertices. Only used when ``epoch_starts`` is set.

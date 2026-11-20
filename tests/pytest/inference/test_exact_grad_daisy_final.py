@@ -154,7 +154,11 @@ def _oracle_per_obs(jpg, obs):
         af = jnp.zeros(n_sg, dtype=jnp.float64).at[jnp.asarray(a_scat)].set(alpha)
         soj = jnp.linalg.solve(-T.T, af[jnp.asarray(trans)])
         r = jnp.asarray(r_const) + jnp.asarray(r_coeff) @ thf
-        return (r * soj[jnp.asarray(t_pos)])[jnp.asarray(obs_pos)]
+        # epoch-normalization plan v2: the model's per-observation
+        # output is conditional on the outcome lying within the caps,
+        # i.e. normalised by the table mass over ALL t-vertices.
+        full = r * soj[jnp.asarray(t_pos)]
+        return full[jnp.asarray(obs_pos)] / jnp.sum(full)
 
     return chain
 
@@ -211,13 +215,29 @@ def test_false_path_is_plain_fd(jpg, obs):
     g_d = np.asarray(jax.grad(loss_of(model_d))(th))
     np.testing.assert_array_equal(g_f, g_d)
 
+    # epoch-normalization plan v2: the FD backward differentiates the
+    # RAW joint-probability vector (unchanged path); the per-observation
+    # normalisation raw[pos] / sum(raw) sits outside the custom_vjp and
+    # is differentiated analytically by JAX. Reference: central
+    # difference of the raw forward (via the _raw_forward seam) pushed
+    # through the same quotient rule -- equal to float round-off.
     eps = 1e-7
+    tvi = [int(x) for x in jpg.joint_stop_prob_graph()._t_vertex_indices]
+    pos = np.asarray([tvi.index(o) for o in obs])
+    raw0 = np.asarray(model_f._raw_forward(th))
+    Z0 = raw0.sum()
+    y0 = raw0[pos] / Z0
     ref = np.empty(th.shape[0])
     for i in range(th.shape[0]):
         tp = th.at[i].add(eps); tm = th.at[i].add(-eps)
-        ref[i] = float(jnp.sum(
-            cot * (model_f(tp, None)[0] - model_f(tm, None)[0]) / (2 * eps)))
+        d_raw = (np.asarray(model_f._raw_forward(tp))
+                 - np.asarray(model_f._raw_forward(tm))) / (2 * eps)
+        dy = (d_raw[pos] - y0 * d_raw.sum()) / Z0
+        ref[i] = float(np.sum(np.asarray(cot) * dy))
     np.testing.assert_allclose(g_f, ref, rtol=1e-12, atol=0)
+    # and the model forward IS the normalised raw forward
+    np.testing.assert_allclose(np.asarray(model_f(th, None)[0]), y0,
+                               rtol=1e-14, atol=0)
 
 
 # --------------------------------------------------------------- test 3
