@@ -64,3 +64,24 @@ def test_mcmc_raises_when_dataprior_fails(monkeypatch):
     monkeypatch.setattr(phasic.svgd, "DataPrior", _boom)
     with pytest.raises(ValueError, match="default data-informed prior.*on purpose"):
         g.mcmc(data, n_samples=10, n_chains=1, burn_in=5)
+
+
+def test_mcmc_default_prior_receives_rewards(monkeypatch):
+    # T12: Graph.mcmc built its default DataPrior without rewards= (svgd
+    # passes it), so with rewards the prior was fitted to the unrewarded
+    # model.
+    g = coalescent_graph(3)
+    g.update_weights([1.0])
+    data = np.asarray(g.sample(50), dtype=float)
+    rewards = np.ones(g.vertices_length())
+    seen = {}
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        raise _Boom("stop after recording the call")
+
+    monkeypatch.setattr(phasic.svgd, "DataPrior", spy)
+    with pytest.raises(ValueError):
+        g.mcmc(data, rewards=rewards, n_samples=10, n_chains=1, burn_in=5)
+    assert seen.get("rewards") is not None
+    np.testing.assert_array_equal(np.asarray(seen["rewards"]), rewards)

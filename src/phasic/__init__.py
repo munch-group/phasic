@@ -6983,7 +6983,7 @@ extern "C" {{
             from .svgd import DataPrior
             try:
                 prior = DataPrior(
-                    self, observed_data, sd=5.0, fixed=fixed,
+                    self, observed_data, sd=5.0, fixed=fixed, rewards=rewards,
                     theta_dim=theta_dim, discrete=discrete, verbose=verbose,
                 )
             except Exception as _prior_exc:
