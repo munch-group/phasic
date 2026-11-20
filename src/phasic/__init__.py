@@ -11819,7 +11819,26 @@ extern "C" {{
 
         if not self._joint_prob_base_graph_indexer:
             raise ValueError("Graph is not a joint probability representation.")
-            
+        # Graphs DERIVED from a joint-prob graph keep its metadata but not
+        # its outcome structure: in a joint_stop_prob_graph the t-vertices
+        # end in trap loops and the vertices whose trash edges were
+        # redirected to absorption look like outcomes (wrong outcome set,
+        # NaN probabilities); a joint_sojourn_graph likewise redirects
+        # trash edges to absorption. Refuse rather than return a wrong
+        # table (this also stops svgd/probability_matching from mapping
+        # observations onto such a graph).
+        for _attr, _kind in (('_joint_stop_prob_graph', 'joint_stop_prob_graph()'),
+                             ('_joint_sojourn_graph', 'joint_sojourn_graph()')):
+            if getattr(self, _attr, False):
+                raise ValueError(
+                    f"This graph was built by {_kind}; its vertices ending in "
+                    f"absorption are not the joint-probability outcomes, so "
+                    f"joint_prob_table() (and svgd / probability_matching, "
+                    f"which map observations through it) cannot be used on "
+                    f"it. Use the source joint-probability graph "
+                    f"(graph.joint_prob_graph(...)), or epoch_context() for "
+                    f"probabilities at finite times.")
+
         t_vertex_indices = []
         for vertex in self.vertices():
             for edge in vertex.edges():
