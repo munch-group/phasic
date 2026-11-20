@@ -24,7 +24,8 @@ now normalised, `tot_reward_limit` no longer corrupts the single-epoch
 likelihood, and a C++ segfault at thread exit is fixed. Each was gated
 on the 35 test files that build joint-probability graphs, not on the
 full suite. Follow-up tickets are tracked in
-`joint-prob-followups-plan.md`.
+`joint-prob-followups-plan.md`; ten of them are merged too (master
+`928bfb6c`, two more merges the same day, not pushed): see §1g.
 
 **October:** master carries both October work streams, merged and pushed: the
 model-building consistency work (§1d, merged 2026-10-13) and the C++-owned
@@ -166,7 +167,11 @@ shipped and passed review. A stock-take on 16 August
     for tables with fewer than two outcomes (T8), multi-property reward
     counting (T9), and a shutdown-order nit in the pybind layer (T10).
     Decided 2026-11-20: T2 implement, T4 merge at construction, T5
-    raise.
+    raise, T9 require an explicit `reward_only`. MERGED 2026-11-20:
+    T1, T2, T3, T4, T5, T7, T8, T9, T10 and T12 (the `mcmc` default
+    prior now gets `rewards=`). Still open: T6 (profiling) and T11
+    (memory held by the C++ model caches; needs your choice of
+    eviction policy).
 
 ### 1d. Model-building consistency (10–12 October)
 
@@ -276,8 +281,27 @@ informative. A reviewed design is in `overflow-observations-plan.md`
 notebook using `tot_reward_limit` on a continuous joint graph will show
 different (corrected) numbers when re-run.
 
-**Open:** the follow-up tickets in `joint-prob-followups-plan.md`
-(§1c item 12).
+**Follow-ups merged the same day** (not pushed), each ticket with its
+own tests and both branches reviewed independently:
+
+| Merge | Tickets | Record |
+|---|---|---|
+| `31e799b3` (branch `fix/joint-prob-callback`) | T7 `joint_prob_table()` refuses graphs derived from a joint graph; T8 joint-probability inference needs at least two outcomes; T3 the continuous `joint_prob_table()` reports probabilities (was probability / mutation rate); T4 outcomes that differ only in their absorbing base state are merged at construction (two-island: 54 → 27 outcome vertices, results equal the old group sums); T5 no silent fallback to a standard-normal prior in `svgd`, the epoch path or `mcmc`; T2 `reward_rates_callback` works again, with the caps enforced by the builder; T9 an indexer with several properties requires an explicit `reward_only`; T12 `mcmc`'s default prior receives `rewards=`. Review fixes: `reward_only` names are validated, the subset merge no longer depends on property order, a dict `reward_limit` (never worked) is refused | `joint-prob-followups-plan.md` §6; gate 742 + 146 + 112 passed, 0 failed |
+| `928bfb6c` (branch `fix/ffi-stale-graph-cache`) | T1 the C++ FFI per-thread graph caches are keyed by a process-unique model id, so a new model can no longer run on a destroyed model's cached graph (silent NaN, 13–50 per 3,000 threads before); T10 a cached Python object is never released after interpreter shutdown | `tests/pytest/test_ffi_stale_graph_cache.py`; gate 592 passed, 0 failed |
+
+**Your notebooks after T9:** notebooks that build a joint graph from an
+indexer with several properties must now pass `reward_only`: two-locus
+models `['loc1', 'loc2']`, models with a label property (`in_pop`,
+`is_derived`) `['descendants']`. Before T9 a label property was counted
+as an extra independent mutation process, so those notebooks' earlier
+numbers were probably wrong (inferred from the code, not re-run):
+`svgd-joint-prob`, `model-selection`, `smc`, `method-of-moments`,
+`coalescent-derived`, `old-moran-coalescent-derived`, possibly
+`time-inhomogeneous`.
+
+**Open:** T6 (slow `epoch_starts=[0.0]` build, profiling) and T11
+(memory held by the C++ model caches) in
+`joint-prob-followups-plan.md` (§1c item 12).
 
 ---
 
@@ -298,7 +322,7 @@ different (corrected) numbers when re-run.
 | 16–17 Aug | Inference correctness | Recovery tests on the tutorial models; budget-vs-defect verdicts | See 1a |
 | 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | Merged 13 Oct (§1d) |
 | 12–15 Oct | discretize → C++ | One C++ `discretize()` + widening and layout standards; linear `clone()`; C fixes | Merged 15 Oct (§1f) |
-| 19–20 Nov | Joint-probability likelihood | Epoch likelihood normalised; total-cap trash edge; thread-exit segfault; overflow design deferred | Merged 20 Nov, not pushed (§1g); follow-ups in `joint-prob-followups-plan.md` |
+| 19–20 Nov | Joint-probability likelihood | Epoch likelihood normalised; total-cap trash edge; thread-exit segfault; overflow design deferred | Merged 20 Nov, not pushed (§1g); ten follow-up tickets merged the same day (`928bfb6c`); T6, T11 open |
 
 ---
 
