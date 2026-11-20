@@ -6,13 +6,19 @@
 #include <limits>
 #include <unordered_map>  // tl_persistent_graphs cache
 #include <memory>         // std::unique_ptr
+#include <atomic>         // instance-id counter
 
 using json = nlohmann::json;
 
 namespace phasic {
 namespace parameterized {
 
-GraphBuilder::GraphBuilder(const std::string& structure_json) {
+namespace {
+std::atomic<uint64_t> g_next_builder_instance_id{1};
+}  // namespace
+
+GraphBuilder::GraphBuilder(const std::string& structure_json)
+    : instance_id_(g_next_builder_instance_id.fetch_add(1, std::memory_order_relaxed)) {
     parse_structure(structure_json);
 }
 
@@ -387,9 +393,17 @@ namespace {
  * thread_local guarantees per-OS-thread storage; the inner map is
  * keyed by the GraphBuilder*'s address so multiple GraphBuilder
  * instances (different model structures) don't share entries. */
+/* Each entry records the instance_id() of the builder that built it: an
+ * entry left behind by a destroyed builder (on a thread other than the
+ * one that destroyed it) must not be served to a new builder allocated
+ * at the same address. */
+struct PersistentGraphEntry {
+    uint64_t builder_id = 0;
+    std::unique_ptr<phasic::Graph> graph;
+};
 using PersistentGraphMap =
     std::unordered_map<const phasic::parameterized::GraphBuilder*,
-                       std::unique_ptr<phasic::Graph>>;
+                       PersistentGraphEntry>;
 
 /* Points at this thread's map while it is alive, nullptr before it is
  * constructed and after it is destroyed. A raw pointer is trivially
@@ -442,13 +456,14 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
      * by ``this``) so subsequent calls overwrite the entry rather
      * than leaking. */
     if (param_edges_.empty()) {
-        auto g = std::make_unique<phasic::Graph>(build(theta, theta_len));
-        tl_persistent_graphs[this] = std::move(g);
-        return *tl_persistent_graphs[this];
+        auto& entry = tl_persistent_graphs[this];
+        entry.graph = std::make_unique<phasic::Graph>(build(theta, theta_len));
+        entry.builder_id = instance_id_;
+        return *entry.graph;
     }
 
     auto it = tl_persistent_graphs.find(this);
-    if (it == tl_persistent_graphs.end()) {
+    if (it == tl_persistent_graphs.end() || it->second.builder_id != instance_id_) {
         // First call from this thread for this builder: build the
         // graph in PARAMETERIZED mode (build() now uses
         // add_edge_parameterized and applies update_weights for the
@@ -456,9 +471,12 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
         // this graph will populate parameterized_reward_compute_graph;
         // Stage A0 ensures that cache survives subsequent
         // update_weights calls.
-        auto g = std::make_unique<phasic::Graph>(build(theta, theta_len));
-        auto [inserted_it, ok] = tl_persistent_graphs.emplace(this, std::move(g));
-        return *inserted_it->second;
+        // (Also taken when the entry was left by an earlier builder at
+        // this address: its builder_id differs, so rebuild in place.)
+        auto& entry = tl_persistent_graphs[this];
+        entry.graph = std::make_unique<phasic::Graph>(build(theta, theta_len));
+        entry.builder_id = instance_id_;
+        return *entry.graph;
     }
     // Cached: refresh edge weights for the new theta. update_weights
     // bumps weight_version (Stage 1) and clears the *concrete*
@@ -468,8 +486,8 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
     // rather than the expensive O(n^3) Gaussian elimination.
     std::vector<double> theta_vec(theta, theta + theta_len);
     bool use_log = (weight_mode_ == WeightMode::LOG);
-    it->second->update_weights_parameterized(theta_vec, use_log);
-    return *it->second;
+    it->second.graph->update_weights_parameterized(theta_vec, use_log);
+    return *it->second.graph;
 }
 
 double GraphBuilder::compute_weight(const std::vector<double>& coefficients, const double* theta) const {

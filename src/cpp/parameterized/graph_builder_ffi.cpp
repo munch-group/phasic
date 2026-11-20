@@ -130,8 +130,33 @@ static std::mutex daisy_chain_meta_init_mutex;
 // builds its Graph once on first use, then reuses via update_weights
 // (zero alloc) on every subsequent batch element. Eliminates the
 // dominant allocator-contention loss in the per-obs path.
-thread_local std::unordered_map<const GraphBuilder*, std::unique_ptr<phasic::Graph>>
+//
+// Keyed by address, which can be reused once a builder is destroyed
+// (builders live in the CALLING thread's builder_cache and die with that
+// thread, while OpenMP workers are long-lived). Each entry therefore
+// records the builder's instance_id() and is rebuilt when it does not
+// match; without this a new model could run on a previous model's graph
+// (measured: "Invalid vertex index" errors and NaN results).
+struct PerThreadGraphSlot {
+    uint64_t builder_id = 0;
+    std::unique_ptr<phasic::Graph> graph;
+};
+thread_local std::unordered_map<const GraphBuilder*, PerThreadGraphSlot>
     per_thread_graph_cache;
+
+// This thread's Graph for `builder` (built at theta = ones on first use or
+// when the slot belongs to an earlier builder at the same address).
+static phasic::Graph* per_thread_graph_for(GraphBuilder& builder,
+                                           size_t theta_len) {
+    auto& slot = per_thread_graph_cache[&builder];
+    if (!slot.graph || slot.builder_id != builder.instance_id()) {
+        std::vector<double> dummy_theta(theta_len, 1.0);
+        slot.graph = std::make_unique<phasic::Graph>(
+            builder.build(dummy_theta.data(), theta_len));
+        slot.builder_id = builder.instance_id();
+    }
+    return slot.graph.get();
+}
 
 // Disables libomp dynamic-thread-count adjustment so OMP regions get
 // the full width configured via OMP_NUM_THREADS (i.e. phasic.config
@@ -1068,14 +1093,7 @@ ffi::Error ComputeSojournTimesFfiImpl(
                 // Mirrors the daisy-chain handler's reuse pattern.
                 phasic::Graph* g_ptr = nullptr;
                 {
-                    auto& slot = per_thread_graph_cache[builder.get()];
-                    if (!slot) {
-                        std::vector<double> dummy_theta(theta_len, 1.0);
-                        slot = std::make_unique<phasic::Graph>(
-                            builder->build(dummy_theta.data(), theta_len)
-                        );
-                    }
-                    g_ptr = slot.get();
+                    g_ptr = per_thread_graph_for(*builder, theta_len);
                 }
                 phasic::Graph& g = *g_ptr;
                 ptd_graph_update_weights(
@@ -1138,14 +1156,7 @@ ffi::Error ComputeSojournTimesFfiImpl(
             // Not batched — same per-thread reuse as the batched branch.
             phasic::Graph* g_ptr = nullptr;
             {
-                auto& slot = per_thread_graph_cache[builder.get()];
-                if (!slot) {
-                    std::vector<double> dummy_theta(theta_len, 1.0);
-                    slot = std::make_unique<phasic::Graph>(
-                        builder->build(dummy_theta.data(), theta_len)
-                    );
-                }
-                g_ptr = slot.get();
+                g_ptr = per_thread_graph_for(*builder, theta_len);
             }
             phasic::Graph& g = *g_ptr;
             ptd_graph_update_weights(
@@ -1740,17 +1751,8 @@ ffi::Error DaisyChainJointProbsFfiImpl(
             // satisfying the length check.
             phasic::Graph* g_ptr = nullptr;
             {
-                auto& slot = per_thread_graph_cache[builder.get()];
-                if (!slot) {
-                    std::vector<double> dummy_theta(param_length, 1.0);
-                    slot = std::make_unique<phasic::Graph>(
-                        builder->build(
-                            dummy_theta.data(),
-                            static_cast<size_t>(param_length)
-                        )
-                    );
-                }
-                g_ptr = slot.get();
+                g_ptr = per_thread_graph_for(
+                    *builder, static_cast<size_t>(param_length));
             }
             phasic::Graph& g = *g_ptr;
 
@@ -2030,14 +2032,12 @@ ffi::Error DaisyChainSojournFfiImpl(
             phasic::Graph* gj = nullptr;
             phasic::Graph* gs = nullptr;
             {
-                auto& slot = per_thread_graph_cache[jsp_builder.get()];
-                if (!slot) { std::vector<double> dt(param_length, 1.0); slot = std::make_unique<phasic::Graph>(jsp_builder->build(dt.data(), static_cast<size_t>(param_length))); }
-                gj = slot.get();
+                gj = per_thread_graph_for(
+                    *jsp_builder, static_cast<size_t>(param_length));
             }
             {
-                auto& slot = per_thread_graph_cache[soj_builder.get()];
-                if (!slot) { std::vector<double> dt(param_length, 1.0); slot = std::make_unique<phasic::Graph>(soj_builder->build(dt.data(), static_cast<size_t>(param_length))); }
-                gs = slot.get();
+                gs = per_thread_graph_for(
+                    *soj_builder, static_cast<size_t>(param_length));
             }
 
             std::vector<double> ipv_work(ipv_b_in, ipv_b_in + n_ipv);
