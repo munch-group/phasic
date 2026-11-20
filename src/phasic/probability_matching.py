@@ -190,7 +190,7 @@ def probability_matching(
 
     from . import Graph
     from .svgd import GaussPrior
-    from .ffi_wrappers import compute_sojourn_times_ffi
+    from .ffi_wrappers import compute_sojourn_times_ffi, _ensure_json_string
 
     # ------------------------------------------------------------------
     # 1. Infer dimensions
@@ -227,7 +227,10 @@ def probability_matching(
     # ------------------------------------------------------------------
     # 3. Build model probability function
     # ------------------------------------------------------------------
-    serialized = graph.serialize(theta_dim=theta_dim)
+    # Encode the graph to JSON once: compute_sojourn_times_ffi re-encodes a
+    # dict on every call (~0.13 s at 45k vertices, 158 calls in a default
+    # prior build; ticket T6). A string is passed through unchanged.
+    serialized = _ensure_json_string(graph.serialize(theta_dim=theta_dim))
 
     # Find ALL terminal vertex indices for normalization
     all_terminal_indices = []
