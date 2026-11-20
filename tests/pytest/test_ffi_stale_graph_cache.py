@@ -7,10 +7,13 @@ destroyed when that thread exits, while OpenMP workers are long-lived,
 so their entries outlive the builder. A later builder allocated at the
 same address used to hit the old entry and run a different model on the
 previous model's graph: "Invalid vertex index" errors from the C layer
-and NaN results, with no exception. Measured on master: 6-8 wrong
-results per 2000 short-lived threads alternating two models; 0 with the
-fix (entries store the builder's instance id and are rebuilt on
-mismatch). See joint-prob-followups-plan.md, ticket T1.
+and NaN results, with no exception. Measured on master (macOS): about
+10-50 wrong results per 3000 short-lived threads alternating two models
+(13-50 depending on OMP_NUM_THREADS), 0 with the fix (entries store the
+builder's instance id and are rebuilt on mismatch). With one OpenMP
+thread the hazard cannot occur, so the subprocess pins
+OMP_NUM_THREADS=4. Detection on Linux has not been measured. See
+joint-prob-followups-plan.md, ticket T1.
 
 The workload runs in a subprocess so its many short-lived threads (and
 their FFI builders) do not interact with the rest of the session.
@@ -56,7 +59,8 @@ def test_new_builder_at_reused_address_gets_its_own_graph(tmp_path):
     script.write_text(_SCRIPT)
     tests_dir = os.path.dirname(os.path.abspath(__file__))
     proc = subprocess.run([sys.executable, str(script), tests_dir, "3000"],
-                          capture_output=True, text=True, timeout=600)
+                          capture_output=True, text=True, timeout=600,
+                          env={**os.environ, "OMP_NUM_THREADS": "4"})
     assert proc.returncode == 0, proc.stderr[-3000:]
     lines = [ln for ln in proc.stdout.splitlines() if ln.startswith("BAD")]
     assert lines, proc.stdout[-2000:]
