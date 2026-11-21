@@ -10,6 +10,7 @@ Plan of record: svgd-notices-plan.md (batch B2).
 import io
 import warnings
 
+import numpy as np
 import pytest
 
 from phasic import GaussPrior, _epoch_layout_records
@@ -119,9 +120,21 @@ def test_explicit_form_keeps_full_precision():
     assert "fixed=[(1, [0.0123456789, 0.0123456789])]" in explicit
 
 
-def test_tuple_prior_is_not_described_as_per_parameter_list():
+def test_tuple_prior_is_described_as_per_parameter_list():
     note, _ = _epoch_layout_records((_gp(), None), None, 3, 2)['prior']
-    assert "repeated for every epoch" not in note
+    assert "Your 2 priors are repeated for every epoch" in note
+
+
+@pytest.mark.parametrize("prior", [
+    (GaussPrior(ci=[0.5, 10.0]), None),
+    (GaussPrior(ci=[0.5, 10.0]), None, GaussPrior(ci=[0.5, 10.0]), None),
+])
+def test_tuple_prior_works_like_list_on_epoch_fit(jc2, prior):
+    s, _ = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])],
+                prior=prior)
+    s_list, _ = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])],
+                     prior=list(prior))
+    assert np.allclose(np.asarray(s.particles), np.asarray(s_list.particles))
 
 
 def test_overridden_theta_dim_is_announced(jc2):

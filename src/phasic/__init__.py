@@ -1458,7 +1458,7 @@ def _epoch_layout_records(user_prior, user_fixed, n_epochs: int,
             f"{layout} No prior was given, so the default data-informed "
             "prior (fitted once on the time-homogeneous model) is used for "
             "every epoch.", explicit_prior)
-    elif isinstance(user_prior, list):  # as _daisy_chain_svgd_model
+    elif isinstance(user_prior, (list, tuple)):  # as _daisy_chain_svgd_model
         if len(user_prior) == param_length and param_length != n_flat:
             out['prior'] = (
                 f"{layout} Your {param_length} priors are repeated for every "
@@ -5514,8 +5514,10 @@ extern "C" {{
         model._precondition_output = 'probability'
 
         if user_prior is not None:
-            # Determine the broadcast pattern.
-            if isinstance(user_prior, list):
+            # Determine the broadcast pattern. A tuple of priors is a list of
+            # priors, as on the non-epoch path (SVGD.prior_list).
+            if isinstance(user_prior, (list, tuple)):
+                user_prior = list(user_prior)
                 if len(user_prior) == theta_dim:
                     return (
                         model,
