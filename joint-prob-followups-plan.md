@@ -51,11 +51,11 @@ skipped, 5 xfailed, 0 failed.
 | T3 | `joint_prob_table()` on a continuous graph returns probability / mu | correctness | — | committed `ad76a044` on fix/joint-prob-tickets-1 |
 | T4 | Degenerate outcomes (several t-vertices, same reward vector) resolved by a random pick | correctness | DECIDED 2026-11-20: merge at construction | committed `242cabd0` on fix/joint-prob-tickets-1 |
 | T5 | Silent / warned standard-normal prior fallbacks | API contract | DECIDED 2026-11-20: raise | committed `44f29924` on fix/joint-prob-tickets-1 (svgd, epoch path, and mcmc) |
-| T6 | `epoch_starts=[0.0]` build cost (43 s vs 1.2 s single-epoch at 45,704 vertices) | performance | — | fixed on branch fix/epoch-build-cost: 47.7 s → 7.5 s (default prior), 22.8 s → 4.9 s (explicit prior); outputs bit-identical |
+| T6 | `epoch_starts=[0.0]` build cost (43 s vs 1.2 s single-epoch at 45,704 vertices) | performance | — | MERGED `36edaaa8` (2026-11-21): 47.7 s → 7.5 s (default prior), 22.8 s → 4.9 s (explicit prior); outputs bit-identical |
 | T7 | `joint_stop_prob` graphs reach the joint-index leaf in `svgd` with the wrong terminal set | correctness | — | committed `ea467324` on fix/joint-prob-tickets-1 |
 | T8 | No check that a joint table has >= 2 outcomes; zero outcomes gives an `IndexError` | robustness | — | committed `1cb3b9fb` on fix/joint-prob-tickets-1 |
 | T9 | Multi-property indexers: one independent mutation process per counted property | semantics | DECIDED 2026-11-20: require an explicit reward_only when the indexer has several properties (option 1) | committed `33eb75ae` on fix/joint-prob-callback |
-| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | LRU cap + explicit clear (user, 2026-11-20) | in progress on fix/ffi-cache-eviction |
+| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | LRU cap + explicit clear (user, 2026-11-20) | MERGED `7b0b7a7c` (2026-11-21): `configure(model_memory_cache_size=K)`, `clear_model_memory()`, `model_memory_info()` |
 | T12 | `Graph.mcmc` builds its default DataPrior without `rewards=` (svgd passes it), so with rewards the prior is fitted to the unrewarded model | correctness | — | committed `7fc6caee` on fix/joint-prob-callback |
 | T13 | Default data-informed prior (`probability_matching`) fits joint-probability data badly: on coalescent n=4/6 its estimate has log-likelihood 1,800-4,000 below truth; mu stays at its grid initial guess | correctness (prior quality) | — | found 2026-11-20, not investigated |
 | T10 | `static py::object np_number` (`phasic_pybind.cpp:682`) DECREFs after interpreter shutdown without the GIL | nit | — | committed `607fdbfc` on fix/ffi-stale-graph-cache (with T1) |
@@ -487,3 +487,4 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
 - 2026-11-21: T11 gate at `0e834208` (FFI-reaching files + T1 test +
   test_model_memory): 602 passed, 0 failed, 6 skipped, 5 xfailed. (At
   987c8d77, before the review fixes: 598 passed, 0 failed.)
+- 2026-11-21: T6 and T11 merged into master (`36edaaa8`, `7b0b7a7c`, --no-ff, not pushed). Open: T13 (default prior fit quality).
