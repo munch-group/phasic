@@ -500,3 +500,7 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
   (n=4), -19,667.29 vs -19,666.70 (n=6). The internal function is not
   exported; it does not validate its input shape (a 2-D array is
   silently flattened), a possible hardening only.
+- 2026-11-21: that hardening merged (branch `fix/probmatch-input-check`):
+  the internal function now raises on non-1-D, empty or non-integer
+  input and on indices that are not outcome vertices.
+  `tests/pytest/test_probmatch_input_check.py`; gate 252 passed, 0 failed.
