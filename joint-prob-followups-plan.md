@@ -51,12 +51,13 @@ skipped, 5 xfailed, 0 failed.
 | T3 | `joint_prob_table()` on a continuous graph returns probability / mu | correctness | — | committed `ad76a044` on fix/joint-prob-tickets-1 |
 | T4 | Degenerate outcomes (several t-vertices, same reward vector) resolved by a random pick | correctness | DECIDED 2026-11-20: merge at construction | committed `242cabd0` on fix/joint-prob-tickets-1 |
 | T5 | Silent / warned standard-normal prior fallbacks | API contract | DECIDED 2026-11-20: raise | committed `44f29924` on fix/joint-prob-tickets-1 (svgd, epoch path, and mcmc) |
-| T6 | `epoch_starts=[0.0]` build cost (43 s vs 1.2 s single-epoch at 45,704 vertices) | performance | — | open |
+| T6 | `epoch_starts=[0.0]` build cost (43 s vs 1.2 s single-epoch at 45,704 vertices) | performance | — | fixed on branch fix/epoch-build-cost: 47.7 s → 7.5 s (default prior), 22.8 s → 4.9 s (explicit prior); outputs bit-identical |
 | T7 | `joint_stop_prob` graphs reach the joint-index leaf in `svgd` with the wrong terminal set | correctness | — | committed `ea467324` on fix/joint-prob-tickets-1 |
 | T8 | No check that a joint table has >= 2 outcomes; zero outcomes gives an `IndexError` | robustness | — | committed `1cb3b9fb` on fix/joint-prob-tickets-1 |
 | T9 | Multi-property indexers: one independent mutation process per counted property | semantics | DECIDED 2026-11-20: require an explicit reward_only when the indexer has several properties (option 1) | committed `33eb75ae` on fix/joint-prob-callback |
 | T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | NEEDS DECISION: eviction policy | analysed, not built |
 | T12 | `Graph.mcmc` builds its default DataPrior without `rewards=` (svgd passes it), so with rewards the prior is fitted to the unrewarded model | correctness | — | committed `7fc6caee` on fix/joint-prob-callback |
+| T13 | Default data-informed prior (`probability_matching`) fits joint-probability data badly: on coalescent n=4/6 its estimate has log-likelihood 1,800-4,000 below truth; mu stays at its grid initial guess | correctness (prior quality) | — | found 2026-11-20, not investigated |
 | T10 | `static py::object np_number` (`phasic_pybind.cpp:682`) DECREFs after interpreter shutdown without the GIL | nit | — | committed `607fdbfc` on fix/ffi-stale-graph-cache (with T1) |
 | — | Exit segfault | crash | — | DONE `038dcc63` |
 | — | `tot_reward_limit` trash edge on t-vertices | correctness | — | DONE `9cedb4f3` |
@@ -407,3 +408,33 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
 - 2026-11-20: C++ branch fix/ffi-stale-graph-cache (T1 + T10, head
   `607fdbfc`) gate: 35 FFI-reaching files plus the T1 test: 592 passed,
   0 failed, 6 skipped, 5 xfailed (56 min). Both branches ready to merge.
+- 2026-11-20: T6 profiled (coalescent n=8, reward_limit 3, 45,704
+  vertices, 2,000 observations). `epoch_model(obs, [0.0])` took 47.7 s:
+  ~25 s building the default data-informed prior and ~23 s building the
+  model. Causes, found with a native stack sampler (macOS `sample`;
+  Python's own sampler blamed the wrong line): (1) `joint_stop_prob_graph`
+  tested `v.index() in t_vertex_old_indices`, a list of ~16k numpy ints,
+  once per vertex - O(vertices x t-vertices), 18.9 s of the model build;
+  (2) `probability_matching` passed the graph as a dict, which
+  `compute_sojourn_times_ffi` re-encodes to 6.3 MB of JSON on each of
+  158 calls (~20 s). Same list-membership pattern fixed in
+  `joint_prob_graph`'s reward_only merge loop. After: 7.5 s (default
+  prior), 4.9 s (explicit prior), `joint_stop_prob_graph` 1.0 s; the
+  rest is spread out (derived-graph copies ~1 s each, observation
+  mapping, JAX compile) with no single hot spot. Identity check against
+  master: derived-graph serializations (n=4, 6), probability_matching
+  estimates and reward_only merged graphs bit-identical.
+- 2026-11-20: NEW ticket T13 (found during the T6 identity check, also
+  on master): the default data-informed prior (`probability_matching`)
+  fits joint-probability data badly. Coalescent n=4 / n=6, reward_limit
+  3, 5,000 observations from the continuous table at (c, mu) = (5, 3):
+  estimates (0.34, 0.85) / (0.26, 0.85). Only mu/c is identified here,
+  but the fit is not on the right ratio: log-likelihood at truth
+  -13,961 / -19,667, at the prior's fit -15,795 / -23,711, and at the
+  fit's mu with the true ratio -13,961 / -19,667 (equal to truth, as
+  expected). mu never moves from its grid initial guess (0.853). Svgd
+  and the epoch path centre their default prior here (T5 made failures
+  raise, but a bad fit is silent). Not investigated further.
+- 2026-11-20: T6 gate: 42 files touching joint_stop_prob / joint_sojourn
+  graphs, epoch_model, probability_matching, DataPrior, reward_only,
+  daisy-chain and exposure: 629 passed, 0 failed, 7 skipped, 5 xfailed.

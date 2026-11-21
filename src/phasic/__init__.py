@@ -10698,12 +10698,15 @@ extern "C" {{
             idxs = np.array(sorted(idxs))
 
             t_vertex_sets = defaultdict(list)
-            for i in range(joint_graph.vertices_length()):
+            mask = np.ones(state_vector_length, np.bool)
+            mask[idxs] = 0
+            # t_vertex_indices is sorted ascending, so this visits the
+            # t-vertices in the same order as scanning every vertex and
+            # testing list membership did (that scan was O(vertices x
+            # t-vertices): ticket T6).
+            for i in t_vertex_indices:
                 state = joint_graph.vertex_at(i).state()
-                mask = np.ones(state_vector_length, np.bool)
-                mask[idxs] = 0
-                if i in t_vertex_indices:
-                    t_vertex_sets[tuple(state[mask].tolist())].append(i)
+                t_vertex_sets[tuple(state[mask].tolist())].append(i)
 
             for t_vertex_set in t_vertex_sets.values():
                 state = np.repeat(0, state_vector_length)
@@ -10835,6 +10838,10 @@ extern "C" {{
                 trash_old_indices.append(v.index())
 
         t_vertex_old_indices = list(np.unique(t_vertex_old_indices))
+        # Membership test below runs once per vertex; on the list of numpy
+        # ints it was O(vertices x t-vertices) and took ~19 s of the 23 s
+        # epoch_starts=[0.0] build at 45,704 vertices (ticket T6).
+        t_vertex_old_set = set(int(i) for i in t_vertex_old_indices)
         if len(trash_old_indices) != 2:
             raise ValueError(
                 f"joint_stop_prob_graph: expected exactly 2 trash vertices "
@@ -10868,7 +10875,7 @@ extern "C" {{
 
             nv = vmap[v.index()]
 
-            if v.index() in t_vertex_old_indices:
+            if v.index() in t_vertex_old_set:
                 # Install the trapping loop as bidirectional
                 # COEFFICIENT-LESS constant-weight edges. The previous
                 # implementation used parameterised edges with
