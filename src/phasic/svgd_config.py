@@ -153,24 +153,46 @@ class SvgdOptionsLedger:
         self._entries: dict[str, dict] = {}
         self._order: list[str] = []
 
-    def _put(self, name, value, status, *, user_value=None, reason=None) -> None:
-        if name not in self._entries:
+    def _put(self, name, value, status, *, user_value=None, reason=None,
+             note=None, explicit=None, display=None) -> None:
+        if name not in self._order:
             self._order.append(name)
         self._entries[name] = dict(
             value=value, status=status, user_value=user_value, reason=reason,
+            note=note, explicit=explicit, display=display,
         )
 
     def set_default(self, name, value) -> None:
         self._put(name, value, 'default')
 
-    def set_user(self, name, value) -> None:
-        self._put(name, value, 'user')
+    def set_user(self, name, value, *, note=None, explicit=None,
+                 display=None) -> None:
+        self._put(name, value, 'user', note=note, explicit=explicit,
+                  display=display)
 
-    def set_inferred(self, name, value, reason) -> None:
-        self._put(name, value, 'inferred', reason=reason)
+    def set_inferred(self, name, value, reason, *, note=None, explicit=None,
+                     display=None) -> None:
+        self._put(name, value, 'inferred', reason=reason, note=note,
+                  explicit=explicit, display=display)
 
-    def set_forced(self, name, value, user_value, reason) -> None:
-        self._put(name, value, 'forced', user_value=user_value, reason=reason)
+    def set_forced(self, name, value, user_value, reason, *, note=None,
+                   explicit=None, display=None) -> None:
+        self._put(name, value, 'forced', user_value=user_value, reason=reason,
+                  note=note, explicit=explicit, display=display)
+
+    def annotate(self, name, *, note=None, explicit=None, display=None) -> None:
+        """Attach the long explanation (``note``), the explicit argument
+        form (``explicit``) and/or a display string to an existing entry
+        without changing its value or status."""
+        if name not in self._entries:
+            raise KeyError(f"no ledger entry for option {name!r}")
+        e = self._entries[name]
+        if note is not None:
+            e['note'] = note
+        if explicit is not None:
+            e['explicit'] = explicit
+        if display is not None:
+            e['display'] = display
 
     def record_user_or_default(self, name, value, default) -> None:
         """Classify a plain option as 'user' (value != default) or 'default'.
@@ -191,33 +213,115 @@ class SvgdOptionsLedger:
     def as_dict(self) -> dict:
         return {n: dict(self._entries[n]) for n in self._order}
 
+    # Value column: at least this wide, widened to the longest value up to
+    # the cap; longer values are cut and the footer points to the
+    # single-option view, which never cuts.
+    _VALUE_MIN_WIDTH = 30
+    _VALUE_MAX_WIDTH = 40
+    _WRAP_WIDTH = 80
+
+    def names(self) -> list:
+        return list(self._order)
+
+    def _display(self, e) -> str:
+        return e['display'] if e.get('display') else format_option_value(e['value'])
+
+    def _status_text(self, e) -> str:
+        status = e['status']
+        if status == 'forced':
+            return "forced (was {}; {})".format(
+                format_option_value(e['user_value']),
+                e['reason'] or 'model requirement')
+        if status == 'inferred':
+            return "inferred ({})".format(e['reason'] or 'derived')
+        if status == 'user':
+            return "set by user"
+        return "default"
+
     def render(self) -> str:
-        def fmt(v):
-            s = repr(v)
-            return s if len(s) <= 28 else s[:25] + '...'
+        shown = {n: self._display(self._entries[n]) for n in self._order}
+        width = max([self._VALUE_MIN_WIDTH]
+                    + [min(len(v), self._VALUE_MAX_WIDTH) for v in shown.values()])
+        cut_any = False
+
+        def cell(v):
+            nonlocal cut_any
+            if len(v) <= width:
+                return v
+            cut_any = True
+            return v[:width - 3] + '...'
+
+        fmt_row = "  {:1} {:<22} {:<%d} {}" % width
         lines = [
             "SVGD options in effect "
             "(* = non-default, ! = forced/overriding):",
-            "  {:1} {:<22} {:<30} {}".format('', 'option', 'value', 'status'),
-            "  " + "-" * 74,
+            fmt_row.format('', 'option', 'value', 'status'),
+            "  " + "-" * (44 + width),
         ]
         for name in self._order:
             e = self._entries[name]
             status = e['status']
             marker = '!' if status == 'forced' else (
                 '*' if status in self._NONDEFAULT else ' ')
-            if status == 'forced':
-                detail = "forced (was {}; {})".format(
-                    fmt(e['user_value']), e['reason'] or 'model requirement')
-            elif status == 'inferred':
-                detail = "inferred ({})".format(e['reason'] or 'derived')
-            elif status == 'user':
-                detail = "set by user"
-            else:
-                detail = "default"
-            lines.append("  {:1} {:<22} {:<30} {}".format(
-                marker, name, fmt(e['value']), detail))
+            lines.append(fmt_row.format(
+                marker, name, cell(shown[name]), self._status_text(e)))
+        if cut_any:
+            lines.append("  Values ending in ... are shown in full by "
+                         "effective_options('<option>').")
         return "\n".join(lines)
+
+    def render_option(self, name) -> str:
+        """Full, wrapped, untruncated record of one option."""
+        import textwrap
+        if name not in self._entries:
+            raise ValueError(
+                f"unknown option {name!r}; options in this ledger: "
+                + ", ".join(self._order))
+        e = self._entries[name]
+        indent = " " * 13
+
+        def field(label, text):
+            return textwrap.fill(
+                str(text), width=self._WRAP_WIDTH,
+                initial_indent="  " + (label + ":").ljust(11),
+                subsequent_indent=indent,
+                break_long_words=False, break_on_hyphens=False)
+
+        out = [name, field("value", self._display(e)),
+               field("status", self._status_text(e))]
+        if e.get('note'):
+            out.append(field("details", e['note']))
+        if e.get('explicit'):
+            out.append(field("explicit", e['explicit']))
+        return "\n".join(out)
+
+
+def format_option_value(v) -> str:
+    """Readable one-line form of an option value for effective_options().
+
+    Objects without their own ``__repr__`` (priors, optimizers, step-size
+    schedules) show as ``<last module component>.<class>``, e.g.
+    ``svgd.GaussPrior``, also inside lists and tuples; functions as
+    ``function <qualname>``; numpy arrays of more than 6 values by their
+    length; everything else by ``repr``.
+    """
+    import types
+    if isinstance(v, (list, tuple)):
+        inner = ", ".join(format_option_value(x) for x in v)
+        if isinstance(v, tuple):
+            return "(" + inner + ("," if len(v) == 1 else "") + ")"
+        return "[" + inner + "]"
+    if isinstance(v, np.ndarray):
+        if v.size > 6:
+            return f"array of {v.size} values"
+        return np.array2string(v, separator=', ')
+    if isinstance(v, (types.FunctionType, types.BuiltinFunctionType,
+                      types.MethodType)):
+        return f"function {getattr(v, '__qualname__', repr(v))}"
+    if type(v).__repr__ is object.__repr__:
+        mod = type(v).__module__.rsplit('.', 1)[-1]
+        return f"{mod}.{type(v).__qualname__}"
+    return repr(v)
 
 
 GraphKind = Literal['standard', 'joint_prob', 'joint_stop_prob', 'unknown']
