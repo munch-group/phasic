@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.19">
+<meta name="generator" content="quarto-1.11.9">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Priors and schedules</title>
+<title>Learning rate</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -73,14 +73,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-11f9688bef680c4d48792b58de99e319.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-871a850597a4385684433f3724584ffe.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-8374c82cef23ffcceacf43190d690000.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-46552314c9f3109742e28979668fd613.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -154,11 +155,11 @@ window.Quarto = {
 <link rel="stylesheet" href="../../api/_styles-quartodoc.css">
 </head>
 
-<body class="nav-fixed quarto-light">
+<body class="nav-fixed quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark" aria-label="Site">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="../../index.html" class="navbar-brand navbar-brand-logo">
@@ -166,8 +167,7 @@ window.Quarto = {
     <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo dark-content">
     </a>
   </div>
-            <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
@@ -199,6 +199,7 @@ window.Quarto = {
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
 </div>
+            <div id="quarto-search" class="" title="Search"></div>
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -207,18 +208,11 @@ window.Quarto = {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#priors" id="toc-priors" class="nav-link active" data-scroll-target="#priors">Priors</a>
-  <ul class="collapse">
-  <li><a href="#gaussprior" id="toc-gaussprior" class="nav-link" data-scroll-target="#gaussprior">GaussPrior</a></li>
-  <li><a href="#halfcauchyprior" id="toc-halfcauchyprior" class="nav-link" data-scroll-target="#halfcauchyprior">HalfCauchyPrior</a></li>
-  <li><a href="#dataprior" id="toc-dataprior" class="nav-link" data-scroll-target="#dataprior">DataPrior</a></li>
-  <li><a href="#per-parameter-priors" id="toc-per-parameter-priors" class="nav-link" data-scroll-target="#per-parameter-priors">Per-parameter priors</a></li>
-  </ul></li>
-  <li><a href="#step-size-schedules" id="toc-step-size-schedules" class="nav-link" data-scroll-target="#step-size-schedules">Step size schedules</a>
+  <li><a href="#step-size-schedules" id="toc-step-size-schedules" class="nav-link active" data-scroll-target="#step-size-schedules">Step size schedules</a>
   <ul class="collapse">
   <li><a href="#constantstepsize" id="toc-constantstepsize" class="nav-link" data-scroll-target="#constantstepsize">ConstantStepSize</a></li>
   <li><a href="#expstepsize" id="toc-expstepsize" class="nav-link" data-scroll-target="#expstepsize">ExpStepSize</a></li>
@@ -226,6 +220,7 @@ window.Quarto = {
   <li><a href="#adaptivestepsize" id="toc-adaptivestepsize" class="nav-link" data-scroll-target="#adaptivestepsize">AdaptiveStepSize</a></li>
   <li><a href="#comparison" id="toc-comparison" class="nav-link" data-scroll-target="#comparison">Comparison</a></li>
   </ul></li>
+  <li><a href="#adaptive-optimizers" id="toc-adaptive-optimizers" class="nav-link" data-scroll-target="#adaptive-optimizers">Adaptive optimizers</a></li>
   <li><a href="#regularization-schedules" id="toc-regularization-schedules" class="nav-link" data-scroll-target="#regularization-schedules">Regularization schedules</a>
   <ul class="collapse">
   <li><a href="#constantregularization" id="toc-constantregularization" class="nav-link" data-scroll-target="#constantregularization">ConstantRegularization</a></li>
@@ -238,11 +233,11 @@ window.Quarto = {
 <div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-learning-rate.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-learning-rate.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content" id="quarto-document-content" tabindex="-1">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Priors and schedules</h1>
+<h1 class="title">Learning rate</h1>
 </div>
 
 
@@ -263,64 +258,23 @@ window.Quarto = {
 <div id="a1000003" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:57:56.106701Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:57:56.106500Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:00.209570Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:00.204530Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Graph, with_ipv,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Priors</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    GaussPrior, HalfCauchyPrior, DataPrior,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step size schedules</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    ConstantStepSize, ExpStepSize, AdaptiveStepSize, WarmupExpStepSize,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Regularization schedules</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    ConstantRegularization, ExpRegularization, ExponentialCDFRegularization,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Optimizers (for examples)</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    Adam,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> vscodenb <span class="im">import</span> set_vscode_theme</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    set_vscode_theme()</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ImportError</span>:</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-
-<style>
-.widget-label,
-.widget-html,
-.widget-button,
-.widget-dropdown,
-.widget-text,
-.widget-textarea {
-    color: #CCCCCC !important;  /* Set to desired color */
-    font-size: 10px !important;      /* Font size */
-
-}
-div.widget-html-content > progress { /* Outer container */
-    height: 10px !important;
-
-}
-div.jp-OutputArea-output td.output_html { /* tqdm HTML output area */
-    height: 5px !important;
-}
-div.progress { /* Jupyter Notebook (classic) */
-    height: 5px !important;
-    min-height: 5px !important;
-    margin-top: 12px !important;    
-}
-div.progress-bar { /* Inner bar */
-    height: 5px !important;
-    min-height: 5px !important;
-    line-height: 5px !important;
-    color: 'white' !important;
-    padding-bottom: 0px !important;    
-}
-
-table {
-    font-variant-numeric: tabular-nums; 
-}
-</style>
-</div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    GaussPrior, HalfCauchyPrior, DataPrior,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    ConstantStepSize, ExpStepSize, AdaptiveStepSize, WarmupExpStepSize,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    ConstantRegularization, ExpRegularization, ExponentialCDFRegularization,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    Adam, Adamelia,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    set_log_level, clear_caches,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> vscodenb</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> svgd_tests</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>sns.set_palette(<span class="st">'tab10'</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>set_log_level(<span class="st">'INFO'</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>clear_caches()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 
         <style>
@@ -364,197 +318,60 @@ table {
             color: 'white' !important;
             padding-bottom: 0px !important;    
         }
+        table {
+            font-variant-numeric: tabular-nums; 
+        }                     
         </style>                          
         
 </div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[INFO] phasic.graph_cache: Cleared 0 cached graphs</code></pre>
 </div>
-<section id="priors" class="level2">
-<h2 class="anchored" data-anchor-id="priors">Priors</h2>
-<section id="gaussprior" class="level3">
-<h3 class="anchored" data-anchor-id="gaussprior">GaussPrior</h3>
-<p>A Gaussian (normal) prior centred on a point estimate with a given spread. It can be specified either by the mean and standard deviation or by a credible interval. E.g., “I believe the parameter is between 2 and 8 with 95% probability” translates directly to <code>GaussPrior(ci=(2, 8))</code>. The two specifications are equivalent: a 95% credible interval <code>[low, high]</code> maps to <code>mean = (low + high) / 2</code> and <code>std = (high - low) / (2 * z_0.975)</code>.</p>
-<div id="a1000006" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:00.218702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:00.218035Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:02.538596Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:02.537173Z&quot;}}" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Mean + std</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>p1 <span class="op">=</span> GaussPrior(mean<span class="op">=</span><span class="fl">5.0</span>, std<span class="op">=</span><span class="fl">1.5</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>p1.plot(ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="ss">f'mean=5, std=1.5'</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. 95% credible interval</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>p2 <span class="op">=</span> GaussPrior(ci<span class="op">=</span>(<span class="fl">2.0</span>, <span class="fl">8.0</span>))</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>p2.plot(ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="ss">f'ci=[2, 8], prob=0.95'</span>)</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 80% credible interval (tighter)</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>p3 <span class="op">=</span> GaussPrior(ci<span class="op">=</span>(<span class="fl">3.0</span>, <span class="fl">7.0</span>), prob<span class="op">=</span><span class="fl">0.80</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>p3.plot(ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="ss">f'ci=[3, 7], prob=0.80'</span>)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-3-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="svgd-learning-rate_files/figure-html/cell-3-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="halfcauchyprior" class="level3">
-<h3 class="anchored" data-anchor-id="halfcauchyprior">HalfCauchyPrior</h3>
-<p>A half-Cauchy prior with support on <span class="math inline">\((0, \infty)\)</span>. Its heavy tails make it a popular weakly informative prior for scale and rate parameters. Concentrates mass near zero but allows for large values.</p>
-<p><span class="math display">\[
-f(\theta) = \frac{2}{\pi \, \gamma \left(1 + (\theta/\gamma)^2\right)}, \quad \theta &gt; 0
-\]</span></p>
-<p>It can be specified via the scale parameter <span class="math inline">\(\gamma\)</span> directly, or via a credible-interval upper bound. The CI specification says: “I believe there is a <code>prob</code> probability that the parameter is below <code>ci</code>.” A lower <code>prob</code> for the same <code>ci</code> implies a larger scale (heavier tail).</p>
-<div id="a1000009" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:02.544463Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:02.544129Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:03.168453Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:03.167598Z&quot;}}" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Scale parameter</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>h1 <span class="op">=</span> HalfCauchyPrior(scale<span class="op">=</span><span class="fl">2.0</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>h1.plot(ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'scale=2'</span>)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. 95% CI upper bound</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>h2 <span class="op">=</span> HalfCauchyPrior(ci<span class="op">=</span><span class="fl">10.0</span>)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>h2.plot(ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="ss">f'ci=10, prob=0.95</span><span class="ch">\n</span><span class="ss">(scale=</span><span class="sc">{</span>h2<span class="sc">.</span>scale<span class="sc">:.2f}</span><span class="ss">)'</span>)</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 80% CI upper bound</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>h3 <span class="op">=</span> HalfCauchyPrior(ci<span class="op">=</span><span class="fl">10.0</span>, prob<span class="op">=</span><span class="fl">0.80</span>)</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>h3.plot(ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="ss">f'ci=10, prob=0.80</span><span class="ch">\n</span><span class="ss">(scale=</span><span class="sc">{</span>h3<span class="sc">.</span>scale<span class="sc">:.2f}</span><span class="ss">)'</span>)</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-4-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="svgd-learning-rate_files/figure-html/cell-4-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="dataprior" class="level3">
-<h3 class="anchored" data-anchor-id="dataprior">DataPrior</h3>
-<p><code>DataPrior</code> constructs a data-informed prior automatically. Instead of specifying mean and spread by hand, it estimates them from the observed data using either method of moments (standard phase-type graphs) or probability matching (joint probability graphs). The graph type is detected automatically. The result is a list of per-parameter <code>GaussPrior</code> objects (with <code>None</code> at fixed-parameter positions) that integrates directly with <code>graph.svgd()</code>.</p>
-<div id="a1000014" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:03.170715Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:03.170464Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:03.177008Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:03.176420Z&quot;}}" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a simple coalescent model</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="fl">7.0</span>]</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> graph.sample(<span class="dv">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<div id="a1000015" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:03.178742Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:03.178597Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:03.949042Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:03.947833Z&quot;}}" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dp <span class="op">=</span> DataPrior(graph, data, sd<span class="op">=</span><span class="fl">2.0</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dp)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Method:    </span><span class="sc">{</span>dp<span class="sc">.</span>method<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Theta:     </span><span class="sc">{</span>dp<span class="sc">.</span>theta<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Std:       </span><span class="sc">{</span>dp<span class="sc">.</span>std<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Converged: </span><span class="sc">{</span>dp<span class="sc">.</span>success<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>DataPrior(method=method_of_moments, converged, theta=[6.9229])
-Method:    method_of_moments
-Theta:     [6.92289235]
-Std:       [0.15351262]
-Converged: True</code></pre>
+<pre><code>  Removed 2 file(s), preserved directory structure</code></pre>
 </div>
 </div>
-<div id="a1000016" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:03.950645Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:03.950520Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:04.211457Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:04.209371Z&quot;}}" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>dp.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-7-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="svgd-learning-rate_files/figure-html/cell-7-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
+<div id="34dffb1d" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">@with_ipv</span>([nr_samples]<span class="op">+</span>[<span class="dv">0</span>]<span class="op">*</span>(nr_samples<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_1param(state):</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    transitions <span class="op">=</span> []</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(state.size):</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, state.size):            </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>            same <span class="op">=</span> <span class="bu">int</span>(i <span class="op">==</span> j)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> same <span class="kw">and</span> state[i] <span class="op">&lt;</span> <span class="dv">2</span>:</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> same <span class="kw">and</span> (state[i] <span class="op">&lt;</span> <span class="dv">1</span> <span class="kw">or</span> state[j] <span class="op">&lt;</span> <span class="dv">1</span>):</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>                <span class="cf">continue</span> </span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>            new <span class="op">=</span> state.copy()</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            new[i] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            new[j] <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>            new[i<span class="op">+</span>j<span class="op">+</span><span class="dv">1</span>] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            transitions.append([new, [state[i]<span class="op">*</span>(state[j]<span class="op">-</span>same)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>same)]])</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> transitions</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent_1param)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>true_theta <span class="op">=</span> [<span class="dv">7</span>]</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> graph.sample(<span class="dv">10000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[INFO] phasic.graph_cache: Saved graph to cache: 4e7d3baaa4030c3c... (6 vertices)
+[INFO] phasic: Saved graph to cache: 6 vertices</code></pre>
 </div>
 </div>
-</div>
-<p><code>DataPrior</code> is iterable — you can inspect individual per-parameter priors and pass it directly to <code>graph.svgd()</code> as the <code>prior</code> argument:</p>
-<div id="a1000018" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:04.216375Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:04.216140Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:04.222376Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:04.220867Z&quot;}}" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect per-parameter priors</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Number of parameters: </span><span class="sc">{</span><span class="bu">len</span>(dp)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, p <span class="kw">in</span> <span class="bu">enumerate</span>(dp):</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> p <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  theta[</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">]: GaussPrior(mean=</span><span class="sc">{</span>p<span class="sc">.</span>mu<span class="sc">:.3f}</span><span class="ss">, std=</span><span class="sc">{</span>p<span class="sc">.</span>sigma<span class="sc">:.3f}</span><span class="ss">)"</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"  theta[</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">]: None (fixed)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Number of parameters: 1
-  theta[0]: GaussPrior(mean=6.923, std=0.307)</code></pre>
-</div>
-</div>
-<div id="a1000019" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:04.226103Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:04.225818Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:35.723714Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:35.722505Z&quot;}}" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use directly with SVGD</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(data, prior<span class="op">=</span>dp, optimizer<span class="op">=</span>Adam(<span class="fl">0.25</span>))</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             6.922      6.929      0.09609    6.768        7.023       
-
-Particles: 20, Iterations: 1000</code></pre>
-</div>
-</div>
-<p>See the API documentation on <code>DataPrior</code> for all parameters.</p>
-</section>
-<section id="per-parameter-priors" class="level3">
-<h3 class="anchored" data-anchor-id="per-parameter-priors">Per-parameter priors</h3>
-<p>When a model has multiple parameters, you can assign a different prior to each one by passing a list of prior objects to <code>graph.svgd()</code>. Use <code>None</code> at positions corresponding to fixed parameters:</p>
-<div id="a1000022" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:35.726835Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:35.726427Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:36.392044Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:36.390485Z&quot;}}" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>per_param_priors <span class="op">=</span> [</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    GaussPrior(mean<span class="op">=</span><span class="fl">5.0</span>, std<span class="op">=</span><span class="fl">2.0</span>),   <span class="co"># theta[0]</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    HalfCauchyPrior(ci<span class="op">=</span><span class="fl">10.0</span>),        <span class="co"># theta[1]</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">3</span>))</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>per_param_priors[<span class="dv">0</span>].plot(ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'theta[0]: GaussPrior'</span>)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>per_param_priors[<span class="dv">1</span>].plot(ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'theta[1]: HalfCauchyPrior'</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-10-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="svgd-learning-rate_files/figure-html/cell-10-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
 <section id="step-size-schedules" class="level2">
 <h2 class="anchored" data-anchor-id="step-size-schedules">Step size schedules</h2>
 <p>The step size (learning rate) controls how far particles move at each SVGD iteration. A step size that is too large causes oscillation; too small causes slow convergence. Schedules let you vary the step size over the course of optimization. Pass a schedule to <code>graph.svgd()</code> via the <code>learning_rate</code> parameter, or to an optimizer like <code>Adam(learning_rate=schedule)</code>.</p>
 <section id="constantstepsize" class="level3">
 <h3 class="anchored" data-anchor-id="constantstepsize">ConstantStepSize</h3>
 <p>The simplest schedule: the same step size at every iteration. This is also the implicit default when you pass a plain number as the <code>learning_rate</code>.</p>
-<div id="a1000032" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:36.396703Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:36.396287Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:36.744539Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:36.743926Z&quot;}}" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>const <span class="op">=</span> ConstantStepSize(<span class="fl">0.01</span>)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Step at iteration 0:   </span><span class="sc">{</span>const(<span class="dv">0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Step at iteration 500: </span><span class="sc">{</span>const(<span class="dv">500</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>const.plot(<span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a1000032" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:36.396703Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:36.396287Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:36.744539Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:36.743926Z&quot;}}" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>const <span class="op">=</span> ConstantStepSize(<span class="fl">0.01</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Step at iteration 0:   </span><span class="sc">{</span>const(<span class="dv">0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Step at iteration 500: </span><span class="sc">{</span>const(<span class="dv">500</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>const.plot(<span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Step at iteration 0:   0.01
 Step at iteration 500: 0.01</code></pre>
@@ -562,7 +379,7 @@ Step at iteration 500: 0.01</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-11-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="svgd-learning-rate_files/figure-html/cell-11-output-2.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-learning-rate_files/figure-html/cell-4-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="svgd-learning-rate_files/figure-html/cell-4-output-2.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -576,29 +393,29 @@ Step at iteration 500: 0.01</code></pre>
 \eta(t) = \eta_0 \, e^{-t/\tau} + \eta_\infty \left(1 - e^{-t/\tau}\right)
 \]</span></p>
 <p>At <span class="math inline">\(t = \tau\)</span>, roughly 63% of the decay has occurred. This is the most commonly used schedule — start with a large step to explore, then settle down for fine-tuning.</p>
-<div id="a1000035" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:36.746286Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:36.746137Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:37.290212Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:37.289460Z&quot;}}" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast decay</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">50.0</span>)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>s1.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Fast decay (tau=50)'</span>)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Moderate decay</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>s2 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>s2.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Moderate decay (tau=200)'</span>)</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Slow decay</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>s3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">1000.0</span>)</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>s3.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Slow decay (tau=1000)'</span>)</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a1000035" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:36.746286Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:36.746137Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:37.290212Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:37.289460Z&quot;}}" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast decay</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">50.0</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>s1.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Fast decay (tau=50)'</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Moderate decay</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>s2 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>s2.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Moderate decay (tau=200)'</span>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Slow decay</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>s3 <span class="op">=</span> ExpStepSize(first_step<span class="op">=</span><span class="fl">0.1</span>, last_step<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">1000.0</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>s3.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Slow decay (tau=1000)'</span>)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-12-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="svgd-learning-rate_files/figure-html/cell-12-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-learning-rate_files/figure-html/cell-5-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="svgd-learning-rate_files/figure-html/cell-5-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -614,29 +431,29 @@ Step at iteration 500: 0.01</code></pre>
 \eta_{\text{peak}} \, e^{-(t - T_{\text{warmup}})/\tau} + \eta_\infty \left(1 - e^{-(t - T_{\text{warmup}})/\tau}\right) &amp; t \geq T_{\text{warmup}}
 \end{cases}
 \]</span></p>
-<div id="a1000038" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:37.292086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:37.291944Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:37.959892Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:37.957942Z&quot;}}" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Short warmup</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>w1 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.01</span>, warmup_steps<span class="op">=</span><span class="dv">20</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>w1.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Short warmup (20 steps)'</span>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Medium warmup</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>w2 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.01</span>, warmup_steps<span class="op">=</span><span class="dv">70</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>w2.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Medium warmup (70 steps)'</span>)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Long warmup, high peak</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>w3 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.05</span>, warmup_steps<span class="op">=</span><span class="dv">100</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">500.0</span>)</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>w3.plot(<span class="dv">600</span>, ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Long warmup (100 steps)'</span>)</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a1000038" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:37.292086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:37.291944Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:37.959892Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:37.957942Z&quot;}}" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Short warmup</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>w1 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.01</span>, warmup_steps<span class="op">=</span><span class="dv">20</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>w1.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">0</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Short warmup (20 steps)'</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Medium warmup</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>w2 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.01</span>, warmup_steps<span class="op">=</span><span class="dv">70</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">200.0</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>w2.plot(<span class="dv">300</span>, ax<span class="op">=</span>axes[<span class="dv">1</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Medium warmup (70 steps)'</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Long warmup, high peak</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>w3 <span class="op">=</span> WarmupExpStepSize(peak_lr<span class="op">=</span><span class="fl">0.05</span>, warmup_steps<span class="op">=</span><span class="dv">100</span>, last_lr<span class="op">=</span><span class="fl">0.001</span>, tau<span class="op">=</span><span class="fl">500.0</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>w3.plot(<span class="dv">600</span>, ax<span class="op">=</span>axes[<span class="dv">2</span>], return_ax<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Long warmup (100 steps)'</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-13-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7"><img src="svgd-learning-rate_files/figure-html/cell-13-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-learning-rate_files/figure-html/cell-6-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="svgd-learning-rate_files/figure-html/cell-6-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -645,19 +462,19 @@ Step at iteration 500: 0.01</code></pre>
 </section>
 <section id="adaptivestepsize" class="level3">
 <h3 class="anchored" data-anchor-id="adaptivestepsize">AdaptiveStepSize</h3>
-<p>Adjusts the step size dynamically based on particle spread. When particles are too concentrated the step size increases; when too dispersed it decreases. This is a simple heuristic that does not require tuning a decay schedule, but its behaviour depends on the optimisation trajectory.</p>
-<div id="a1000041" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:37.967590Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:37.967169Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:38.131004Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:38.129684Z&quot;}}" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>adaptive <span class="op">=</span> AdaptiveStepSize(base_step<span class="op">=</span><span class="fl">0.01</span>, kl_target<span class="op">=</span><span class="fl">0.1</span>, adjust_rate<span class="op">=</span><span class="fl">0.1</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Base step: </span><span class="sc">{</span>adaptive<span class="sc">.</span>base_step<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Without particles: </span><span class="sc">{</span>adaptive(<span class="dv">0</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate concentrated particles</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>concentrated <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>], [<span class="fl">1.01</span>], [<span class="fl">0.99</span>]])</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Concentrated particles: </span><span class="sc">{</span>adaptive(<span class="dv">1</span>, concentrated)<span class="sc">:.4f}</span><span class="ss"> (increases)"</span>)</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate spread particles</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>spread <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>], [<span class="fl">10.0</span>], [<span class="fl">100.0</span>]])</span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Spread particles: </span><span class="sc">{</span>adaptive(<span class="dv">2</span>, spread)<span class="sc">:.4f}</span><span class="ss"> (decreases)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Adjusts the step size dynamically based on particle spread. When particles are too concentrated the step size increases; when too dispersed it decreases. This is a simple heuristic that does not require tuning a decay schedule, but its behavior depends on the optimization trajectory (se the API documentation for <code>AdaptiveStepSize</code> for all parameters.).</p>
+<div id="a1000041" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:37.967590Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:37.967169Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:38.131004Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:38.129684Z&quot;}}" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>adaptive <span class="op">=</span> AdaptiveStepSize(base_step<span class="op">=</span><span class="fl">0.01</span>, kl_target<span class="op">=</span><span class="fl">0.1</span>, adjust_rate<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Base step: </span><span class="sc">{</span>adaptive<span class="sc">.</span>base_step<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Without particles: </span><span class="sc">{</span>adaptive(<span class="dv">0</span>)<span class="sc">:.4f}</span><span class="ss">"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate concentrated particles</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>concentrated <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>], [<span class="fl">1.01</span>], [<span class="fl">0.99</span>]])</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Concentrated particles: </span><span class="sc">{</span>adaptive(<span class="dv">1</span>, concentrated)<span class="sc">:.4f}</span><span class="ss"> (increases)"</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate spread particles</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>spread <span class="op">=</span> jnp.array([[<span class="fl">1.0</span>], [<span class="fl">10.0</span>], [<span class="fl">100.0</span>]])</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Spread particles: </span><span class="sc">{</span>adaptive(<span class="dv">2</span>, spread)<span class="sc">:.4f}</span><span class="ss"> (decreases)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Base step: 0.01
 Without particles: 0.0100
@@ -665,39 +482,229 @@ Concentrated particles: 0.0110 (increases)
 Spread particles: 0.0099 (decreases)</code></pre>
 </div>
 </div>
-<p>Se the API documentation for <code>AdaptiveStepSize</code> for all parameters.</p>
 </section>
 <section id="comparison" class="level3">
 <h3 class="anchored" data-anchor-id="comparison">Comparison</h3>
 <p>All four schedules on the same axes for a 300-iteration run:</p>
-<div id="a1000044" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:38.136077Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:38.134275Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:38.730183Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:38.728228Z&quot;}}" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>nr_iter <span class="op">=</span> <span class="dv">300</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> np.arange(nr_iter)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>schedules <span class="op">=</span> {</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ConstantStepSize(0.01)'</span>: ConstantStepSize(<span class="fl">0.01</span>),</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ExpStepSize(0.05 → 0.001, tau=100)'</span>: ExpStepSize(<span class="fl">0.05</span>, <span class="fl">0.001</span>, <span class="fl">100.0</span>),</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'WarmupExpStepSize(peak=0.05, warmup=50)'</span>: WarmupExpStepSize(<span class="fl">0.05</span>, <span class="dv">50</span>, <span class="fl">0.001</span>, <span class="fl">200.0</span>),</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>))</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sched <span class="kw">in</span> schedules.items():</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    vals <span class="op">=</span> [<span class="bu">float</span>(sched(i)) <span class="cf">for</span> i <span class="kw">in</span> iters]</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    ax.plot(iters, vals, label<span class="op">=</span>label)</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Iteration'</span>)</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Step Size'</span>)</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Step size schedules'</span>)</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a1000044" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:38.136077Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:38.134275Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:38.730183Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:38.728228Z&quot;}}" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>nr_iter <span class="op">=</span> <span class="dv">300</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> np.arange(nr_iter)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>schedules <span class="op">=</span> {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ConstantStepSize(0.01)'</span>: ConstantStepSize(<span class="fl">0.01</span>),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'ExpStepSize(0.05 → 0.001, tau=100)'</span>: ExpStepSize(<span class="fl">0.05</span>, <span class="fl">0.001</span>, <span class="fl">100.0</span>),</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'WarmupExpStepSize(peak=0.05, warmup=50)'</span>: WarmupExpStepSize(<span class="fl">0.05</span>, <span class="dv">50</span>, <span class="fl">0.001</span>, <span class="fl">200.0</span>),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">3</span>))</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sched <span class="kw">in</span> schedules.items():</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    vals <span class="op">=</span> [<span class="bu">float</span>(sched(i)) <span class="cf">for</span> i <span class="kw">in</span> iters]</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    ax.plot(iters, vals, label<span class="op">=</span>label)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Iteration'</span>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Step Size'</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Step size schedules'</span>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-15-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-8"><img src="svgd-learning-rate_files/figure-html/cell-15-output-1.svg" class="img-fluid figure-img"></a></p>
+<p><a href="svgd-learning-rate_files/figure-html/cell-8-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="svgd-learning-rate_files/figure-html/cell-8-output-1.svg" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
+</section>
+</section>
+<section id="adaptive-optimizers" class="level2">
+<h2 class="anchored" data-anchor-id="adaptive-optimizers">Adaptive optimizers</h2>
+<p>Phasic provides three optimizers for SVGD that offer adaptive per-parameter learning rates. These can be particularly useful when gradients have vastly different scales across parameters or when fixed step sizes cause oscillation.</p>
+<section id="adam" class="level4">
+<h4 class="anchored" data-anchor-id="adam">Adam</h4>
+<p>When using <code>Adam</code>, the <code>learning_rate</code> parameter passed to SVGD is ignored in favor of the optimizer’s learning rate.</p>
+<p><code>Adam</code> (Adaptive Moment Estimation) maintains running estimates of two quantities for each parameter:</p>
+<ol type="1">
+<li><strong>First moment (<span class="math inline">\(m\)</span>)</strong>: An exponentially weighted average of past gradients (momentum)</li>
+<li><strong>Second moment (<span class="math inline">\(v\)</span>)</strong>: An exponentially weighted average of past squared gradients (gradient variance)</li>
+</ol>
+<p><strong>Update rule:</strong></p>
+<p><span class="math display">\[
+\begin{align}
+m &amp;\leftarrow \beta_1 \cdot m + (1 - \beta_1) \cdot g \\
+v &amp;\leftarrow \beta_2 \cdot v + (1 - \beta_2) \cdot g^2 \\[0.5em]
+\hat{m} &amp;= \frac{m}{1 - \beta_1^t} \\[0.5em]
+\hat{v} &amp;= \frac{v}{1 - \beta_2^t} \\[0.5em]
+\theta &amp;\leftarrow \theta - \alpha \cdot \frac{\hat{m}}{\sqrt{\hat{v}} + \epsilon}
+\end{align}
+\]</span></p>
+<p>Each parameter gets its own effective learning rate:</p>
+<ul>
+<li>Parameters with consistently large gradients <span class="math inline">\(\rightarrow\)</span> larger <span class="math inline">\(\hat{v}\)</span> <span class="math inline">\(\rightarrow\)</span> smaller effective step</li>
+<li>Parameters with consistently small gradients <span class="math inline">\(\rightarrow\)</span> smaller <span class="math inline">\(\hat{v}\)</span> <span class="math inline">\(\rightarrow\)</span> larger effective step</li>
+</ul>
+<p>This automatic scaling helps when different parameters naturally have different gradient magnitudes.</p>
+<p>When fixed learning rate works well:</p>
+<ul>
+<li>Well-behaved optimization landscapes</li>
+<li>Parameters with similar gradient scales</li>
+<li>When you’ve tuned the learning rate carefully</li>
+</ul>
+<p>When Adam helps:</p>
+<ul>
+<li>Large datasets causing large gradient magnitudes</li>
+<li>Parameters with vastly different scales</li>
+<li>“Shark teeth” oscillation patterns in convergence</li>
+<li>When you want reasonable results without extensive tuning</li>
+</ul>
+<p>Tuning Guidelines:</p>
+<ul>
+<li>learning_rate: Start with 0.001-0.01. If convergence is too slow, increase. If unstable, decrease.</li>
+<li>beta1: 0.9 works well for most cases. Lower values (0.8) give less momentum.</li>
+<li>beta2: 0.999 is standard. Lower values (0.99) adapt faster to gradient changes.</li>
+<li>epsilon: Rarely needs adjustment. Increase to 1e-7 if you see numerical issues.</li>
+</ul>
+<p>Consider Adam when you observe:</p>
+<ul>
+<li>Oscillating convergence (“shark teeth” pattern in loss)</li>
+<li>Different parameters converging at different rates</li>
+<li>Sensitivity to learning rate choice</li>
+<li>Large datasets** causing large gradient magnitudes</li>
+</ul>
+<p>Stick with fixed learning rate when:</p>
+<ul>
+<li>Convergence is already smooth and fast</li>
+<li>You’ve tuned the learning rate well for your problem</li>
+<li>You want minimal computational overhead</li>
+<li>The optimization landscape is well-behaved</li>
+</ul>
+<p><a href="https://arxiv.org/abs/1412.6980">Kingma and Ba (2014)</a> - Adam: A Method for Stochastic Optimization. arXiv:1412.6980.</p>
+<p>It can overcome even a misleading prior:</p>
+<div id="2c1a9f0d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adam(learning_rate<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">20</span>]),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             7.045      7.042      0.1084     6.864        7.219       
+
+Particles: 100, Iterations: 200</code></pre>
+</div>
+</div>
+<div id="bde0583d" class="cell" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-learning-rate_files/figure-html/cell-10-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="svgd-learning-rate_files/figure-html/cell-10-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="1c5800cf" class="cell" data-execution_count="20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_ci(true_theta<span class="op">=</span>true_theta) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-learning-rate_files/figure-html/cell-11-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="svgd-learning-rate_files/figure-html/cell-11-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="c61666e9" class="cell" data-execution_count="21">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>svgd.plot_trace() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><a href="svgd-learning-rate_files/figure-html/cell-12-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-7"><img src="svgd-learning-rate_files/figure-html/cell-12-output-1.svg" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sgdmomentum" class="level4">
+<h4 class="anchored" data-anchor-id="sgdmomentum">SGDMomentum</h4>
+<p><code>SGDMomentum</code> (SGD with momentum) accumulates velocity in directions of persistent gradient descent, helping accelerate convergence and dampen oscillations. Update rule:</p>
+<p><span class="math display">\[
+\begin{align}
+v &amp;= m * v + g \\
+\theta &amp;= \theta + (l * v)
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(g\)</span> is gradient <span class="math inline">\(l\)</span> is learning rate, and <span class="math inline">\(m\)</span> and <span class="math inline">\(v\)</span> are the first and second moments.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> SGDMomentum</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> SGDMomentum(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.01</span>,  <span class="co"># Step size</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    momentum<span class="op">=</span><span class="fl">0.9</span>         <span class="co"># Momentum coefficient (0.9 standard, 0.99 high)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">20</span>]),</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="rmsprop" class="level4">
+<h4 class="anchored" data-anchor-id="rmsprop">RMSprop</h4>
+<p><code>RMSprop</code> <a href="https://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf">(Hinton 2012)</a> divides the learning rate by an exponentially decaying average of squared gradients, adapting per-parameter. Update rule:</p>
+<p>$$ <span class="math display">\[\begin{align}
+
+v &amp;= d * v + (1 - d) * g^2 \\
+\theta &amp;= \theta + \frac{l * g}{\sqrt{v} + \epsilon}
+\end{align}\]</span> $$</p>
+<p>where <span class="math inline">\(g\)</span> is gradient <span class="math inline">\(l\)</span> is learning rate, <span class="math inline">\(d\)</span> is the decay and <span class="math inline">\(v\)</span> is</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.svgd <span class="im">import</span> RMSprop</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> RMSprop(</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.05</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    decay<span class="op">=</span><span class="fl">0.99</span>,       <span class="co"># Decay rate for squared gradient average</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>      <span class="co"># Numerical stability</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">20</span>]),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="adagrad" class="level4">
+<h4 class="anchored" data-anchor-id="adagrad">Adagrad</h4>
+<p><code>Adagrad</code> <a href="https://jmlr.org/papers/v12/duchi11a.html">(Duchi et al.&nbsp;2011)</a> accumulates the sum of squared gradients, giving smaller learning rates to parameters with large accumulated gradients. Update rule:</p>
+<p><span class="math display">\[
+\begin{align}
+G &amp;= g^2 \\
+\theta &amp;= \theta \frac{l * g}{\sqrt{G} + \epsilon}
+\end{align}
+\]</span></p>
+<p>The learning rate of <code>Adagrad</code> decays over time as <span class="math inline">\(G\)</span> accumulates. For long runs, <code>RMSprop</code> or <code>Adam</code> may perform better.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Adagrad</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> Adagrad(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    learning_rate<span class="op">=</span><span class="fl">0.5</span>,  <span class="co"># Base learning rate (default 0.001)</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    epsilon<span class="op">=</span><span class="fl">1e-8</span>         <span class="co"># Numerical stability</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    observed_data,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    prior <span class="op">=</span> GaussPrior(ci<span class="op">=</span>[<span class="dv">5</span>, <span class="dv">20</span>]),</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    optimizer<span class="op">=</span>optimizer,</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="regularization-schedules" class="level2">
@@ -706,23 +713,12 @@ Spread particles: 0.0099 (decreases)</code></pre>
 <section id="constantregularization" class="level3">
 <h3 class="anchored" data-anchor-id="constantregularization">ConstantRegularization</h3>
 <p>A fixed regularization strength throughout optimisation.</p>
-<div id="a1000052" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:38.735176Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:38.734894Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:39.855239Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:39.854357Z&quot;}}" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>const_reg <span class="op">=</span> ConstantRegularization(<span class="fl">1.0</span>)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strength at iteration 0:   </span><span class="sc">{</span>const_reg(<span class="dv">0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strength at iteration 500: </span><span class="sc">{</span>const_reg(<span class="dv">500</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>const_reg.plot(<span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Strength at iteration 0:   1.0
-Strength at iteration 500: 1.0</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-16-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-9"><img src="svgd-learning-rate_files/figure-html/cell-16-output-2.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
+<div id="a1000052" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:38.735176Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:38.734894Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:39.855239Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:39.854357Z&quot;}}">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>const_reg <span class="op">=</span> ConstantRegularization(<span class="fl">1.0</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strength at iteration 0:   </span><span class="sc">{</span>const_reg(<span class="dv">0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Strength at iteration 500: </span><span class="sc">{</span>const_reg(<span class="dv">500</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>const_reg.plot(<span class="dv">200</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Se the API documentation for <code>ConstantRegularization</code> for all parameters.</p>
 </section>
@@ -733,7 +729,7 @@ Strength at iteration 500: 1.0</code></pre>
 \lambda(t) = \lambda_0 \, e^{-t/\tau} + \lambda_\infty \left(1 - e^{-t/\tau}\right)
 \]</span></p>
 <p>Start with strong regularization to guide particles, then reduce to let the likelihood dominate.</p>
-<div id="a1000055" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:39.861029Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:39.860527Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:41.203094Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:41.197088Z&quot;}}" data-execution_count="16">
+<div id="a1000055" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:39.861029Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:39.860527Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:41.203094Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:41.197088Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>r1 <span class="op">=</span> ExpRegularization(first_reg<span class="op">=</span><span class="fl">10.0</span>, last_reg<span class="op">=</span><span class="fl">0.1</span>, tau<span class="op">=</span><span class="fl">30.0</span>)</span>
@@ -749,13 +745,6 @@ Strength at iteration 500: 1.0</code></pre>
 <span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Slow decay (tau=500)'</span>)</span>
 <span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-17-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-10"><img src="svgd-learning-rate_files/figure-html/cell-17-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
 </div>
 <p>Se the API documentation for <code>ExpRegularization</code> for all parameters.</p>
 </section>
@@ -766,7 +755,7 @@ Strength at iteration 500: 1.0</code></pre>
 \lambda(t) = \lambda_0 + (\lambda_\infty - \lambda_0) \left(1 - e^{-t/\tau}\right)
 \]</span></p>
 <p>This is mathematically equivalent to <code>ExpRegularization</code> for decreasing schedules, but the parameterisation makes it equally natural for <em>increasing</em> schedules — useful for progressive regularization where you start with pure likelihood and gradually add moment matching.</p>
-<div id="a1000058" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:41.216471Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:41.211156Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:41.938806Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:41.934775Z&quot;}}" data-execution_count="17">
+<div id="a1000058" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:41.216471Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:41.211156Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:41.938806Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:41.934775Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">3</span>))</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Decreasing (same as ExpRegularization)</span></span>
@@ -780,19 +769,12 @@ Strength at iteration 500: 1.0</code></pre>
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Increasing (0 → 5)'</span>)</span>
 <span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-18-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-11"><img src="svgd-learning-rate_files/figure-html/cell-18-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
 </div>
 <p>Se the API documentation for <code>ExponentialCDFRegularization</code> for all parameters.</p>
 </section>
 <section id="comparison-1" class="level3">
 <h3 class="anchored" data-anchor-id="comparison-1">Comparison</h3>
-<div id="a1000061" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:41.944027Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:41.943818Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:42.381574Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:42.372478Z&quot;}}" data-execution_count="18">
+<div id="a1000061" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:41.944027Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:41.943818Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:42.381574Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:42.372478Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>nr_iter <span class="op">=</span> <span class="dv">300</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>iters <span class="op">=</span> np.arange(nr_iter)</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -813,20 +795,13 @@ Strength at iteration 500: 1.0</code></pre>
 <span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Regularization schedules'</span>)</span>
 <span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
 <span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-19-output-1.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-12"><img src="svgd-learning-rate_files/figure-html/cell-19-output-1.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
 </div>
 </section>
 </section>
 <section id="putting-it-together" class="level2">
 <h2 class="anchored" data-anchor-id="putting-it-together">Putting it together</h2>
 <p>A typical SVGD call combining priors and schedules:</p>
-<div id="a1000071" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:42.386788Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:42.386443Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:50.566278Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:50.552571Z&quot;}}" data-execution_count="19">
+<div id="a1000071" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-05-25T21:58:42.386788Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-05-25T21:58:42.386443Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-05-25T21:58:50.566278Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-05-25T21:58:50.552571Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> graph.svgd(</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    data,</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    prior<span class="op">=</span>DataPrior(graph, data, sd<span class="op">=</span><span class="fl">2.0</span>),</span>
@@ -839,19 +814,6 @@ Strength at iteration 500: 1.0</code></pre>
 <span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>svgd.summary()</span>
 <span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>svgd.plot_convergence() <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
-0          No             6.919      6.917      0.03428    6.838        6.976       
-
-Particles: 20, Iterations: 200</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><a href="svgd-learning-rate_files/figure-html/cell-20-output-2.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-13"><img src="svgd-learning-rate_files/figure-html/cell-20-output-2.svg" class="img-fluid figure-img"></a></p>
-</figure>
-</div>
-</div>
 </div>
 
 
@@ -936,7 +898,8 @@ Particles: 20, Iterations: 200</code></pre>
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
       // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      window.quartoDecorateExternalLinks = function (root) {
+     var links = (root || window.document).querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
       for (var i=0; i<links.length; i++) {
         const link = links[i];
         if (!isInternal(link.href)) {
@@ -945,8 +908,69 @@ Particles: 20, Iterations: 200</code></pre>
           if (link.dataset.originalHref !== undefined) {
             link.href = link.dataset.originalHref;
           }
+          if (!link.classList.contains('no-external-icon')) {
+          }
         }
       }
+      };
+      window.quartoDecorateExternalLinks(window.document);
+    // Esc closes the popup (WCAG 1.4.13) and focus leaving both trigger and
+    // popup closes it (WCAG 2.4.11); tippy handles neither for interactive popups.
+    const hideOnEscAndFocusOut = {
+      name: 'hideOnEscAndFocusOut',
+      defaultValue: true,
+      fn(instance) {
+        const dismiss = () => {
+          // A show scheduled by the trigger delay would otherwise reopen it
+          instance.clearDelayTimeouts();
+          instance.hide();
+        };
+        const onKeyDown = (event) => {
+          if (event.key !== 'Escape') {
+            return;
+          }
+          // Keep Esc from also reaching page handlers (e.g. reveal.js overview),
+          // except an open reveal.js slide menu, which Esc should close too.
+          // The menu handles keys only when its keyboard option is on.
+          const menuHandlesEsc = window.Reveal?.getPlugin?.('menu')?.isOpen() &&
+            window.Reveal.getConfig().menu?.keyboard !== false;
+          if (!menuHandlesEsc) {
+            event.stopPropagation();
+          }
+          if (instance.popper.contains(window.document.activeElement)) {
+            // Disabled while refocusing so the focus trigger does not reopen it
+            instance.disable();
+            instance.reference.focus();
+            instance.enable();
+          }
+          dismiss();
+        };
+        const onFocusOut = (event) => {
+          const target = event.relatedTarget;
+          if (target && !instance.reference.contains(target) &&
+              !instance.popper.contains(target)) {
+            dismiss();
+          }
+        };
+        // On the trigger too: a click trigger (code-annotations: select) has no
+        // blur handling. Attached for the instance's lifetime so leaving the
+        // trigger also cancels a show still pending on the trigger delay.
+        instance.reference.addEventListener('focusout', onFocusOut);
+        return {
+          onShow() {
+            window.document.addEventListener('keydown', onKeyDown, true);
+            instance.popper.addEventListener('focusout', onFocusOut);
+          },
+          onHide() {
+            window.document.removeEventListener('keydown', onKeyDown, true);
+            instance.popper.removeEventListener('focusout', onFocusOut);
+          },
+          onDestroy() {
+            instance.reference.removeEventListener('focusout', onFocusOut);
+          },
+        };
+      },
+    };
     function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
       const config = {
         allowHTML: true,
@@ -960,6 +984,7 @@ Particles: 20, Iterations: 200</code></pre>
         interactiveBorder: 10,
         theme: 'quarto',
         placement: 'bottom-start',
+        plugins: [hideOnEscAndFocusOut],
       };
       if (contentFn) {
         config.content = contentFn;
@@ -1122,44 +1147,54 @@ Particles: 20, Iterations: 200</code></pre>
           const lineIds = lines.map((line) => {
             return targetCell + "-" + line;
           })
-          let top = null;
-          let height = null;
-          let parent = null;
+          // Each band is positioned against its own containing block, which is
+          // not the offsetParent of the lines, so place it from client rects.
+          const placeBand = (band, firstEl, lastEl, codeBlock) => {
+            const container = band.offsetParent;
+            if (container === null) {
+              return;
+            }
+            const containerRect = container.getBoundingClientRect();
+            // Reveal.js scales slides with a transform, so convert client
+            // pixels back to the CSS pixels of the container.
+            const scale = containerRect.height / container.offsetHeight || 1;
+            const firstRect = firstEl.getBoundingClientRect();
+            const lastRect = lastEl.getBoundingClientRect();
+            const top = (firstRect.top - containerRect.top) / scale - container.clientTop + container.scrollTop;
+            const height = (lastRect.bottom - firstRect.top) / scale;
+            band.style.top = top - 2 + "px";
+            band.style.height = height + 4 + "px";
+            if (codeBlock) {
+              // Without the copy button wrapper, the containing block is wider
+              // than the code block, so span the code block explicitly.
+              const blockRect = codeBlock.getBoundingClientRect();
+              band.style.left = (blockRect.left - containerRect.left) / scale - container.clientLeft + container.scrollLeft + "px";
+              band.style.width = blockRect.width / scale + "px";
+            }
+          };
           if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
+            const el = window.document.getElementById(lineIds[0]);
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const parent = el.parentElement.parentElement;
+            // cook up a div (if necessary) and position it
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
             }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
+            placeBand(div, el, lastEl, parent.closest("div.sourceCode") || parent);
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
             }
+            placeBand(gutterDiv, el, lastEl);
             selectedAnnoteEl = annoteEl;
           }
         };
@@ -1257,6 +1292,9 @@ Particles: 20, Iterations: 200</code></pre>
       }
     }
   });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Scrollable code","output":"Scrollable output"};
   </script>
 </div> <!-- /content -->
 <footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-learning-rate.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/tutorial/svgd-learning-rate.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
