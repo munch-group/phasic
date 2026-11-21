@@ -1,16 +1,18 @@
-"""The epoch-fit notice about per-epoch expansion of prior and fixed.
+"""Epoch fits: the short notice about per-epoch expansion of prior and fixed,
+and the full records it points to in effective_options().
 
-It must appear only when something was expanded (two or more epochs and a
-scalar fixed value, a per-parameter prior list, a single prior, or no
-prior), say what was expanded, and name the explicit arguments that avoid
-it.
+The notice must appear only when something was expanded (two or more
+epochs and a scalar fixed value, a per-parameter prior list, a single
+prior, or no prior), name exactly those options, and stay short. The
+records hold the explanation and the explicit arguments that avoid it.
+Plan of record: svgd-notices-plan.md (batch B2).
 """
+import io
 import warnings
 
-import numpy as np
 import pytest
 
-from phasic import GaussPrior, _epoch_layout_notice
+from phasic import GaussPrior, _epoch_layout_records
 from phasic.svgd_config import SvgdAssumptionWarning
 
 from test_epoch_normalization import ROWS_N2, _jc  # noqa: E402
@@ -22,32 +24,36 @@ def _gp():
 
 
 # ------------------------------------------------------------ helper
-def test_single_epoch_never_notifies():
-    assert _epoch_layout_notice(None, [(1, 0.7)], 1, 2) is None
+def test_single_epoch_records_nothing():
+    rec = _epoch_layout_records(None, [(1, 0.7)], 1, 2)
+    assert rec == {'layout': None, 'prior': None, 'fixed': None}
 
 
-def test_explicit_per_epoch_forms_do_not_notify():
+def test_explicit_per_epoch_forms_are_not_expanded():
     prior = [_gp(), None, _gp(), None, _gp(), None]
-    assert _epoch_layout_notice(prior, [(1, [0.7, 0.7, 0.7])], 3, 2) is None
+    rec = _epoch_layout_records(prior, [(1, [0.7, 0.7, 0.7])], 3, 2)
+    assert rec['prior'] is None and rec['fixed'] is None
+    assert "3 epochs" in rec['layout'] and "6 values" in rec['layout']
 
 
-def test_scalar_fixed_and_short_prior_are_named_with_remedy():
-    msg = _epoch_layout_notice([_gp(), None], [(1, 0.7)], 3, 2)
-    assert "3 epochs" in msg and "6 values" in msg
-    assert "fixes parameter 1 at 0.7 in every epoch" in msg
-    assert "the 2 priors are repeated for every epoch" in msg
-    assert "fixed=[(1, [0.7, 0.7, 0.7])]" in msg
-    assert "prior= a list of 6 priors" in msg
-    assert "quiet_assumptions=True" in msg
+def test_scalar_fixed_and_short_prior_records():
+    rec = _epoch_layout_records([_gp(), None], [(0, 5.0), (1, [0.7, 0.8, 0.9])],
+                                3, 2)
+    note, explicit = rec['fixed']
+    assert "fixes parameter 0 at 5 in every epoch" in note
+    assert "parameter 1" not in note           # already per-epoch
+    assert explicit.startswith("fixed=[(0, [5, 5, 5]), (1, [0.7, 0.8, 0.9])]")
+    note, explicit = rec['prior']
+    assert "Your 2 priors are repeated for every epoch" in note
+    assert "a list of 6 priors (your 2 repeated 3 times)" in explicit
 
 
-def test_no_prior_and_single_prior():
-    msg = _epoch_layout_notice(None, None, 2, 2)
-    assert "default data-informed prior" in msg
-    assert "prior= a list of 4 priors" in msg
-    assert "fixed=[" not in msg
-    msg = _epoch_layout_notice(_gp(), None, 2, 2)
-    assert "single prior is used for every parameter" in msg
+def test_no_prior_and_single_prior_records():
+    note, explicit = _epoch_layout_records(None, None, 2, 2)['prior']
+    assert "default data-informed prior" in note
+    assert "a list of 4 priors" in explicit
+    note, _ = _epoch_layout_records(_gp(), None, 2, 2)['prior']
+    assert "single prior is used for every parameter" in note
 
 
 # ------------------------------------------------------------ through svgd
@@ -56,30 +62,53 @@ def jc2():
     return _jc(coalescent_indexed(2), reward_limit=3)
 
 
-def _notices(jc, **kw):
+def _fit(jc, **kw):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        jc.svgd(ROWS_N2, n_iterations=1, n_particles=4, seed=0,
-                progress=False, **kw)
-    return [str(x.message) for x in w
+        s = jc.svgd(ROWS_N2, n_iterations=1, n_particles=4, seed=0,
+                    progress=False, **kw)
+    msgs = [str(x.message) for x in w
             if issubclass(x.category, SvgdAssumptionWarning)
             and "epoch" in str(x.message)]
+    return s, msgs
 
 
-def test_svgd_two_epochs_scalar_fixed_notifies(jc2):
-    msgs = _notices(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, 0.7)],
-                    prior=[_gp(), None])
+def test_two_epochs_scalar_fixed_short_notice_and_full_record(jc2):
+    s, msgs = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, 0.7)],
+                   prior=[_gp(), None])
     assert len(msgs) == 1, msgs
-    assert "fixed=[(1, [0.7, 0.7])]" in msgs[0]
+    m = msgs[0]
+    assert m == ("svgd: prior and fixed applied to each of 2 epochs. "
+                 "See .effective_options('prior', 'fixed') on the returned "
+                 "SVGD object.")
+    assert len(m) <= 160
+    buf = io.StringIO()
+    d = s.effective_options('prior', 'fixed', file=buf, return_dict=True)
+    text = buf.getvalue()
+    flat = " ".join(text.split())
+    assert "fixed=[(1, [0.7, 0.7])]" in flat
+    assert "a list of 4 priors (your 2 repeated 2 times)" in flat
+    assert all(len(ln) <= 80 for ln in text.splitlines())
+    assert d['fixed']['status'] == 'user'
+    td = s.effective_options(return_dict=True, file=io.StringIO())['theta_dim']
+    assert td['status'] == 'inferred' and td['value'] == 4
+    assert "ordered epoch by epoch" in td['note']
 
 
-def test_svgd_two_epochs_explicit_forms_silent(jc2):
-    msgs = _notices(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])],
-                    prior=[_gp(), None, _gp(), None])
+def test_two_epochs_only_fixed_expanded(jc2):
+    _, msgs = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, 0.7)],
+                   prior=[_gp(), None, _gp(), None])
+    assert msgs == ["svgd: fixed applied to each of 2 epochs. See "
+                    ".effective_options('fixed') on the returned SVGD object."]
+
+
+def test_two_epochs_explicit_forms_silent(jc2):
+    _, msgs = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])],
+                   prior=[_gp(), None, _gp(), None])
     assert msgs == []
 
 
-def test_svgd_one_epoch_silent(jc2):
-    msgs = _notices(jc2, epoch_starts=[0.0], fixed=[(1, 0.7)],
-                    prior=[_gp(), None])
+def test_one_epoch_silent(jc2):
+    _, msgs = _fit(jc2, epoch_starts=[0.0], fixed=[(1, 0.7)],
+                   prior=[_gp(), None])
     assert msgs == []

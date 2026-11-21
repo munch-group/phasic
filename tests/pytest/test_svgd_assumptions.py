@@ -90,8 +90,11 @@ def test_forcing_notices_emitted_by_default():
     msgs = [str(ww.message) for ww in w
             if issubclass(ww.category, SvgdAssumptionWarning)]
     joined = "\n".join(msgs)
-    assert any('discrete=True' in m and 'overridden' in m for m in msgs), joined
-    assert any('probability-Jacobian' in m for m in msgs), joined
+    assert any('discrete=False overridden to True' in m
+               and ".effective_options('discrete')" in m for m in msgs), joined
+    assert any("preconditioner='auto' resolved to 'jacobian'" in m
+               and ".effective_options('preconditioner')" in m
+               for m in msgs), joined
     # joint_index is inferred silently (no notice) since the default is None;
     # only an explicit joint_index=False would be an error (R28), not a notice.
     assert not any('joint_index' in m for m in msgs), joined
@@ -138,7 +141,10 @@ def test_effective_options_provenance():
     assert d['joint_index']['value'] is True
 
     assert d['preconditioner']['status'] == 'inferred'
-    assert 'probability-Jacobian' in d['preconditioner']['value']
+    assert d['preconditioner']['value'] == 'jacobian'
+    assert d['preconditioner']['display'] == "'auto' -> 'jacobian'"
+    assert 'probability-Jacobian' in d['preconditioner']['note']
+    assert 'visit counts' in d['discrete']['note']
 
     assert d['theta_dim']['status'] == 'inferred'
     assert d['theta_dim']['value'] == 2
@@ -186,7 +192,8 @@ def test_explicit_jacobian_preconditioner_no_notice():
     assert not any('preconditioner' in m for m in msgs), "\n".join(msgs)
     d = result.effective_options(return_dict=True)
     assert d['preconditioner']['status'] == 'user'
-    assert 'probability-Jacobian' in d['preconditioner']['value']
+    assert d['preconditioner']['value'] == 'jacobian'
+    assert 'probability-Jacobian' in d['preconditioner']['note']
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
