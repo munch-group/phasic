@@ -171,8 +171,8 @@ shipped and passed review. A stock-take on 16 August
     T1, T2, T3, T4, T5, T7, T8, T9, T10 and T12 (the `mcmc` default
     prior now gets `rewards=`). MERGED 2026-11-21: T6 (`epoch_starts=[0.0]`
     build 6x faster) and T11 (cap and clear the per-model memory of the
-    C++ caches). Open: T13 (the default data-informed prior fits
-    joint-probability data badly).
+    C++ caches). T13 (suspected poor fit of the default data-informed
+    prior) CLOSED 2026-11-21 as not a defect: the check was invalid.
 
 ### 1d. Model-building consistency (10–12 October)
 
@@ -307,11 +307,13 @@ numbers were probably wrong (inferred from the code, not re-run):
 | `36edaaa8` (branch `fix/epoch-build-cost`) | T6: the `epoch_starts=[0.0]` build took 47.7 s at 45,704 vertices, now 7.5 s (4.9 s with an explicit prior), outputs bit-identical. Causes: `joint_stop_prob_graph` scanned a list of ~16k numpy ints once per vertex, and the default prior re-encoded the 6.3 MB graph JSON on each of 158 calls | `joint-prob-followups-plan.md` §6; gate 629 passed, 0 failed |
 | `7b0b7a7c` (branch `fix/ffi-cache-eviction`) | T11: the C++ caches kept every model's structure plus one graph per worker thread until exit (~290 MB per 45,704-vertex model). Now at most `model_memory_cache_size` models (default 4, `phasic.configure`) stay cached process-wide; `phasic.clear_model_memory()` frees them and `phasic.model_memory_info()` reports usage. The review caught a use-after-free in the first version (fixed before merge) | `tests/pytest/test_model_memory.py`; gate 602 passed, 0 failed |
 
-**Open:** T13, found during T6: the default data-informed prior
-(`probability_matching`) fits joint-probability data badly (estimate
-1,800-4,000 log-likelihood units below the truth on small coalescent
-models; mu stays at its initial grid value). On master since before
-this work; `joint-prob-followups-plan.md` (§1c item 12).
+**Closed, not a defect:** T13, the suspected poor fit of the default
+data-informed prior (`probability_matching`). The check that found it
+called the internal module function with observation tuples instead of
+vertex indices. Through `Graph.probability_matching`, which every
+caller uses, the fit matches the truth (coalescent n=4/6: estimated
+mu/c 0.589 vs 0.6, log-likelihood within 0.6 of the truth's);
+`joint-prob-followups-plan.md` (§1c item 12).
 
 ---
 
@@ -332,7 +334,7 @@ this work; `joint-prob-followups-plan.md` (§1c item 12).
 | 16–17 Aug | Inference correctness | Recovery tests on the tutorial models; budget-vs-defect verdicts | See 1a |
 | 10–12 Oct | Model-building consistency | Constant vs parameterized models, lossless widening, one-number discretize callback, edge-array memory fix | Merged 13 Oct (§1d) |
 | 12–15 Oct | discretize → C++ | One C++ `discretize()` + widening and layout standards; linear `clone()`; C fixes | Merged 15 Oct (§1f) |
-| 19–20 Nov | Joint-probability likelihood | Epoch likelihood normalised; total-cap trash edge; thread-exit segfault; overflow design deferred | Merged 20 Nov, not pushed (§1g); ten follow-up tickets merged the same day (`928bfb6c`), T6 and T11 on 21 Nov (`7b0b7a7c`); T13 open |
+| 19–20 Nov | Joint-probability likelihood | Epoch likelihood normalised; total-cap trash edge; thread-exit segfault; overflow design deferred | Merged 20 Nov, not pushed (§1g); ten follow-up tickets merged the same day (`928bfb6c`), T6 and T11 on 21 Nov (`7b0b7a7c`); T13 closed as not a defect |
 
 ---
 

@@ -57,7 +57,7 @@ skipped, 5 xfailed, 0 failed.
 | T9 | Multi-property indexers: one independent mutation process per counted property | semantics | DECIDED 2026-11-20: require an explicit reward_only when the indexer has several properties (option 1) | committed `33eb75ae` on fix/joint-prob-callback |
 | T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | LRU cap + explicit clear (user, 2026-11-20) | MERGED `7b0b7a7c` (2026-11-21): `configure(model_memory_cache_size=K)`, `clear_model_memory()`, `model_memory_info()` |
 | T12 | `Graph.mcmc` builds its default DataPrior without `rewards=` (svgd passes it), so with rewards the prior is fitted to the unrewarded model | correctness | — | committed `7fc6caee` on fix/joint-prob-callback |
-| T13 | Default data-informed prior (`probability_matching`) fits joint-probability data badly: on coalescent n=4/6 its estimate has log-likelihood 1,800-4,000 below truth; mu stays at its grid initial guess | correctness (prior quality) | — | found 2026-11-20, not investigated |
+| T13 | Default data-informed prior (`probability_matching`) fits joint-probability data badly: on coalescent n=4/6 its estimate has log-likelihood 1,800-4,000 below truth; mu stays at its grid initial guess | correctness (prior quality) | — | CLOSED 2026-11-21: not a defect (invalid check, see log) |
 | T10 | `static py::object np_number` (`phasic_pybind.cpp:682`) DECREFs after interpreter shutdown without the GIL | nit | — | committed `607fdbfc` on fix/ffi-stale-graph-cache (with T1) |
 | — | Exit segfault | crash | — | DONE `038dcc63` |
 | — | `tot_reward_limit` trash edge on t-vertices | correctness | — | DONE `9cedb4f3` |
@@ -488,3 +488,15 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
   test_model_memory): 602 passed, 0 failed, 6 skipped, 5 xfailed. (At
   987c8d77, before the review fixes: 598 passed, 0 failed.)
 - 2026-11-21: T6 and T11 merged into master (`36edaaa8`, `7b0b7a7c`, --no-ff, not pushed). Open: T13 (default prior fit quality).
+- 2026-11-21: T13 CLOSED, not a defect. The 2026-11-20 check called
+  the internal `probability_matching.probability_matching` with
+  observation tuples; it expects vertex indices, so the tuples were
+  flattened by `np.unique` into the values 0..3 and read as vertex
+  indices. Rerun through `Graph.probability_matching` (the wrapper
+  svgd's DataPrior uses; the epoch path passes vertex indices, checked
+  at `_daisy_chain_svgd_model`): n=4 estimate (1.61, 0.949), n=6
+  (1.61, 0.944); only mu/c is identified here and the fits give 0.589
+  vs the true 0.6. Log-likelihood -13,960.89 vs -13,960.65 at truth
+  (n=4), -19,667.29 vs -19,666.70 (n=6). The internal function is not
+  exported; it does not validate its input shape (a 2-D array is
+  silently flattened), a possible hardening only.
