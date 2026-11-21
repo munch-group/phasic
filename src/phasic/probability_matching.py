@@ -213,7 +213,25 @@ def probability_matching(
     # ------------------------------------------------------------------
     # 2. Compute empirical probabilities from observed indices
     # ------------------------------------------------------------------
-    observed_indices = np.asarray(observed_indices, dtype=np.int64)
+    # Validate before casting: a 2-D array of feature-count tuples would
+    # otherwise be flattened by np.unique and its counts read as vertex
+    # indices, and floats would be truncated silently.
+    _obs_raw = np.asarray(observed_indices)
+    if _obs_raw.ndim != 1:
+        raise ValueError(
+            f"observed_indices must be a 1-D sequence of vertex indices; got "
+            f"an array of shape {_obs_raw.shape}. Feature-count tuples go "
+            f"through Graph.probability_matching(), which maps them to "
+            f"vertex indices."
+        )
+    if _obs_raw.size == 0:
+        raise ValueError("observed_indices is empty.")
+    if _obs_raw.dtype == np.bool_ or not np.issubdtype(_obs_raw.dtype, np.integer):
+        raise TypeError(
+            f"observed_indices must be integer vertex indices; got dtype "
+            f"{_obs_raw.dtype}."
+        )
+    observed_indices = _obs_raw.astype(np.int64)
     n_obs = len(observed_indices)
 
     unique_indices, counts = np.unique(observed_indices, return_counts=True)
@@ -239,7 +257,16 @@ def probability_matching(
             if len(edge.to().edges()) == 0:
                 all_terminal_indices.append(vertex.index())
                 break
-    all_terminal_indices_arr = jnp.array(sorted(set(all_terminal_indices)), dtype=jnp.int32)
+    _terminal_set = set(all_terminal_indices)
+    _not_outcome = [int(i) for i in unique_indices if int(i) not in _terminal_set]
+    if _not_outcome:
+        raise ValueError(
+            f"observed_indices contains {len(_not_outcome)} vertex index(es) "
+            f"that are not outcome vertices of this joint probability graph "
+            f"(first: {_not_outcome[:5]}). Pass the vertex indices that "
+            f"Graph.probability_matching() maps observations to."
+        )
+    all_terminal_indices_arr = jnp.array(sorted(_terminal_set), dtype=jnp.int32)
     unique_indices_jnp = jnp.array(unique_indices, dtype=jnp.int32)
 
     def probs_fn(theta_full):
