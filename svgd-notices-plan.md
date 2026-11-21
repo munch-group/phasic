@@ -1,6 +1,6 @@
 # Plan: short SVGD notices that point into `effective_options`
 
-Status: DRAFT, awaiting sign-off (2026-11-21). Not started.
+Status: IMPLEMENTED on branch `fix/epoch-layout-notice` (2026-11-21), awaiting merge. See section 7.
 
 ## 1. Goal
 
@@ -176,3 +176,27 @@ text that changes again. One merge at the end, after you approve.
   (e.g. `logger.warning` in svgd.py, DataPrior messages). Same approach
   could follow later.
 - Your notebooks (they call `effective_options()`, which keeps working).
+
+## 7. Outcome (2026-11-21)
+
+B1-B3 were done as planned. An adversarial review found 12 points; the
+real ones were fixed and tested:
+- values with line breaks (2-D numpy, JAX arrays) broke the table;
+- a `__repr__` that raises crashed `effective_options()`;
+- the explicit `fixed=` form rounded to 6 digits;
+- an explicit `theta_dim` overridden on an epoch fit lost its notice;
+- the default epoch prior was recorded as `DataPrior`;
+- tuple priors were described as per-parameter lists;
+- repeated option names were printed twice.
+
+Left as is:
+- the `...` footer can also fire on a value whose own repr contains `...`;
+- `effective_options('x')` on an object with no ledger prints the
+  no-ledger message instead of rejecting the name.
+
+Found but out of scope: a tuple prior on an epoch fit fails with "Prior at
+index 0 does not have a sample() method", because the epoch builder only
+accepts lists. That was already the case.
+
+Gate: 243 passed, 0 failed (the svgd, epoch, daisy-chain, preconditioning
+and prior test files).
