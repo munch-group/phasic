@@ -453,3 +453,6 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
   structure JSONs, so alternating between two epoch models needs 4 (the
   default) and three need 6 (documented); a rejected configure() value
   stays in the config object (pre-existing pattern for every field).
+- 2026-11-21: T11 gate at `0e834208` (FFI-reaching files + T1 test +
+  test_model_memory): 602 passed, 0 failed, 6 skipped, 5 xfailed. (At
+  987c8d77, before the review fixes: 598 passed, 0 failed.)
