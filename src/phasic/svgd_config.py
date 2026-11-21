@@ -104,8 +104,11 @@ def assume(message: str, *, quiet: bool = False, stacklevel: int = 3) -> None:
     Parameters
     ----------
     message : str
-        Human-readable notice, e.g. "assuming discrete=True because the graph
-        is a joint-probability model".
+        One short sentence ending with the ``.effective_options('<option>')``
+        call that shows the full record (see ``_options_hint`` in
+        ``phasic/__init__.py``). Put the long explanation on the ledger entry
+        (``note``/``explicit``), not here: notebooks print warnings on one
+        unwrapped line.
     quiet : bool, default False
         When True, suppress the notice entirely (the value is still recorded in
         the SVGD options ledger for ``effective_options()``).

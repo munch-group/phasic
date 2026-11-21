@@ -6296,14 +6296,18 @@ extern "C" {{
             ``exposure_param_index`` remains the *local* per-epoch
             index and is broadcast across every epoch internally.
         quiet_assumptions : bool, default False
-            When False (default), emit a one-time
+            When False (default), emit a short one-time
             :class:`~phasic.exceptions.SvgdAssumptionWarning` whenever an option
             is forced or notably assumed from the model type (e.g.
             ``discrete=True`` for a joint-index model, the preconditioner
-            resolution, the daisy-chain re-derivation). Set True to suppress
-            those notices; the full resolved set is still available via
-            ``result.effective_options()``. (Routine inferences such as
-            ``theta_dim`` from the graph are recorded silently regardless.)
+            resolution, prior/fixed applied to every epoch of an epoch fit).
+            Each notice names the options concerned; for the full
+            explanation and the arguments that state the choice explicitly
+            (which avoids the notice), call e.g.
+            ``result.effective_options('prior', 'fixed')``. Set True to
+            suppress the notices; the records are kept either way.
+            (Routine inferences such as ``theta_dim`` from the graph are
+            recorded silently regardless.)
 
         Returns
         -------

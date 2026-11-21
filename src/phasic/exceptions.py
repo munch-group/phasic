@@ -117,9 +117,11 @@ class SvgdAssumptionWarning(UserWarning):
         from phasic.exceptions import SvgdAssumptionWarning
         warnings.filterwarnings('ignore', category=SvgdAssumptionWarning)
 
-    or per-call with ``Graph.svgd(..., quiet_assumptions=True)``. The full set
-    of resolved options is also available on the returned object via
-    ``svgd.effective_options()``.
+    or per-call with ``Graph.svgd(..., quiet_assumptions=True)``. Each notice
+    is one short sentence naming the options concerned; the full explanation
+    and the arguments that state the choice explicitly are printed by
+    ``svgd.effective_options('<option>', ...)`` on the returned object, and
+    ``svgd.effective_options()`` shows every resolved option as a table.
     """
     pass
 
