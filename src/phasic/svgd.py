@@ -6823,6 +6823,7 @@ class SVGD:
                   "option-resolution provenance to show.", file=out)
             return None
         if names:
+            names = tuple(dict.fromkeys(names))  # drop repeats, keep order
             for n in names:
                 if not isinstance(n, str):
                     raise TypeError(

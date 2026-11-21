@@ -1406,7 +1406,8 @@ def _cdf_zero_blowup_penalty(rewards):
 
 
 def _fmt_num(v) -> str:
-    return f"{float(v):g}"
+    # Full precision: the explicit form is meant to be copied back.
+    return repr(float(v))
 
 
 def _epoch_layout_records(user_prior, user_fixed, n_epochs: int,
@@ -1457,7 +1458,7 @@ def _epoch_layout_records(user_prior, user_fixed, n_epochs: int,
             f"{layout} No prior was given, so the default data-informed "
             "prior (fitted once on the time-homogeneous model) is used for "
             "every epoch.", explicit_prior)
-    elif isinstance(user_prior, (list, tuple)):
+    elif isinstance(user_prior, list):  # as _daisy_chain_svgd_model
         if len(user_prior) == param_length and param_length != n_flat:
             out['prior'] = (
                 f"{layout} Your {param_length} priors are repeated for every "
@@ -6784,17 +6785,28 @@ extern "C" {{
                             note=_rec['layout'])
                     if _epoch_user_prior is None:
                         _ledger.set_inferred(
-                            'prior', 'DataPrior(sd=5)',
-                            'default data-informed prior, per epoch')
+                            'prior', 'probability_matching per epoch',
+                            'default data-informed prior',
+                            display="data-informed GaussPrior per epoch")
                     _expanded = [n for n in ('prior', 'fixed') if _rec[n]]
                     for _n in _expanded:
                         _ledger.annotate(_n, note=_rec[_n][0],
                                          explicit=_rec[_n][1])
+                    _parts = []
+                    _hint = []
+                    if (_orig_theta_dim is not None
+                            and _orig_theta_dim != theta_dim):
+                        _parts.append(f"theta_dim={_orig_theta_dim} "
+                                      f"overridden to {theta_dim}")
+                        _hint.append('theta_dim')
                     if _expanded:
+                        _parts.append(" and ".join(_expanded) + " applied "
+                                      f"to each of {_n_epochs} epochs")
+                        _hint.extend(_expanded)
+                    if _parts:
                         _svgd_assume(
-                            "svgd: " + " and ".join(_expanded) + " applied "
-                            f"to each of {_n_epochs} epochs. "
-                            + _options_hint(*_expanded),
+                            "svgd: " + "; ".join(_parts) + ". "
+                            + _options_hint(*_hint),
                             quiet=quiet_assumptions,
                         )
                 else:

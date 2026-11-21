@@ -133,3 +133,42 @@ def test_effective_options_names_print_blocks_and_subset_dict():
         s.effective_options('nope', file=io.StringIO())
     with pytest.raises(TypeError):
         s.effective_options(3, file=io.StringIO())
+
+
+# ------------------------------------------------------------ review fixes
+def test_values_never_span_lines():
+    import jax.numpy as jnp
+    assert format_option_value(np.eye(2)) == "[[1., 0.], [0., 1.]]"
+    assert format_option_value(jnp.ones(30)) == "array of 30 values"
+    assert "\n" not in format_option_value(jnp.ones(3))
+    led = SvgdOptionsLedger()
+    led.set_user('exposure', np.eye(2))
+    led.set_forced('theta_dim', 4, user_value=jnp.ones(30), reason='x')
+    text = led.render()
+    assert len(text.splitlines()) == 3 + 2
+
+
+def test_numpy_scalars_dicts_sets():
+    assert format_option_value([(1, np.float64(0.012))]) == "[(1, 0.012)]"
+    assert (format_option_value({'a': GaussPrior(ci=[1, 2])})
+            == "{'a': svgd.GaussPrior}")
+    assert format_option_value({GaussPrior(ci=[1, 2])}) == "{svgd.GaussPrior}"
+
+
+def test_raising_repr_falls_back_to_class_name():
+    class Bad:
+        def __repr__(self):
+            raise RuntimeError("no")
+    assert format_option_value(Bad()).endswith(".Bad")
+    led = SvgdOptionsLedger()
+    led.set_user('optimizer', Bad())
+    led.render()  # must not raise
+    assert ".Bad" in led.render_option('optimizer')
+
+
+def test_repeated_names_print_once():
+    s = _Stub()
+    s._options_ledger = _ledger()
+    buf = io.StringIO()
+    s.effective_options('prior', 'prior', file=buf)
+    assert buf.getvalue().count("value:") == 1

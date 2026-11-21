@@ -304,27 +304,52 @@ def format_option_value(v) -> str:
 
     Objects without their own ``__repr__`` (priors, optimizers, step-size
     schedules) show as ``<last module component>.<class>``, e.g.
-    ``svgd.GaussPrior``, also inside lists and tuples; functions as
-    ``function <qualname>``; numpy arrays of more than 6 values by their
-    length; everything else by ``repr``.
+    ``svgd.GaussPrior``, also inside lists, tuples, dicts and sets; numpy
+    scalars as plain numbers; functions as ``function <qualname>``; arrays
+    (numpy or JAX) of more than 6 values by their length; everything else by
+    ``repr``. The result never contains a line break, and a ``__repr__``
+    that raises falls back to the class name.
     """
+    import re
     import types
+
+    def cls_name(x):
+        mod = type(x).__module__.rsplit('.', 1)[-1]
+        return f"{mod}.{type(x).__qualname__}"
+
+    def one_line(text):
+        return re.sub(r"\s*\n\s*", " ", text)
+
     if isinstance(v, (list, tuple)):
         inner = ", ".join(format_option_value(x) for x in v)
         if isinstance(v, tuple):
             return "(" + inner + ("," if len(v) == 1 else "") + ")"
         return "[" + inner + "]"
-    if isinstance(v, np.ndarray):
-        if v.size > 6:
-            return f"array of {v.size} values"
-        return np.array2string(v, separator=', ')
+    if isinstance(v, dict):
+        return "{" + ", ".join(
+            f"{format_option_value(k)}: {format_option_value(x)}"
+            for k, x in v.items()) + "}"
+    if isinstance(v, (set, frozenset)):
+        return "{" + ", ".join(sorted(format_option_value(x) for x in v)) + "}"
+    if isinstance(v, np.generic):
+        return repr(v.item())
+    if (not isinstance(v, (str, bytes)) and hasattr(v, 'shape')
+            and hasattr(v, 'dtype') and hasattr(v, 'size')):
+        try:
+            if int(v.size) > 6:
+                return f"array of {int(v.size)} values"
+            return one_line(np.array2string(np.asarray(v), separator=', '))
+        except Exception:
+            return cls_name(v)
     if isinstance(v, (types.FunctionType, types.BuiltinFunctionType,
                       types.MethodType)):
-        return f"function {getattr(v, '__qualname__', repr(v))}"
+        return f"function {getattr(v, '__qualname__', cls_name(v))}"
     if type(v).__repr__ is object.__repr__:
-        mod = type(v).__module__.rsplit('.', 1)[-1]
-        return f"{mod}.{type(v).__qualname__}"
-    return repr(v)
+        return cls_name(v)
+    try:
+        return one_line(repr(v))
+    except Exception:
+        return cls_name(v)
 
 
 GraphKind = Literal['standard', 'joint_prob', 'joint_stop_prob', 'unknown']

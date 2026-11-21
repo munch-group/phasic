@@ -40,9 +40,9 @@ def test_scalar_fixed_and_short_prior_records():
     rec = _epoch_layout_records([_gp(), None], [(0, 5.0), (1, [0.7, 0.8, 0.9])],
                                 3, 2)
     note, explicit = rec['fixed']
-    assert "fixes parameter 0 at 5 in every epoch" in note
+    assert "fixes parameter 0 at 5.0 in every epoch" in note
     assert "parameter 1" not in note           # already per-epoch
-    assert explicit.startswith("fixed=[(0, [5, 5, 5]), (1, [0.7, 0.8, 0.9])]")
+    assert explicit.startswith("fixed=[(0, [5.0, 5.0, 5.0]), (1, [0.7, 0.8, 0.9])]")
     note, explicit = rec['prior']
     assert "Your 2 priors are repeated for every epoch" in note
     assert "a list of 6 priors (your 2 repeated 3 times)" in explicit
@@ -69,7 +69,7 @@ def _fit(jc, **kw):
                     progress=False, **kw)
     msgs = [str(x.message) for x in w
             if issubclass(x.category, SvgdAssumptionWarning)
-            and "epoch" in str(x.message)]
+            and ("epoch" in str(x.message) or "theta_dim" in str(x.message))]
     return s, msgs
 
 
@@ -112,3 +112,32 @@ def test_one_epoch_silent(jc2):
     _, msgs = _fit(jc2, epoch_starts=[0.0], fixed=[(1, 0.7)],
                    prior=[_gp(), None])
     assert msgs == []
+
+
+def test_explicit_form_keeps_full_precision():
+    _, explicit = _epoch_layout_records(None, [(1, 0.0123456789)], 2, 2)['fixed']
+    assert "fixed=[(1, [0.0123456789, 0.0123456789])]" in explicit
+
+
+def test_tuple_prior_is_not_described_as_per_parameter_list():
+    note, _ = _epoch_layout_records((_gp(), None), None, 3, 2)['prior']
+    assert "repeated for every epoch" not in note
+
+
+def test_overridden_theta_dim_is_announced(jc2):
+    s, msgs = _fit(jc2, epoch_starts=[0.0, 0.5], theta_dim=2,
+                   fixed=[(1, [0.7, 0.7])], prior=[_gp(), None, _gp(), None])
+    assert msgs == ["svgd: theta_dim=2 overridden to 4. See "
+                    ".effective_options('theta_dim') on the returned SVGD "
+                    "object."]
+    td = s.effective_options(return_dict=True, file=io.StringIO())['theta_dim']
+    assert td['status'] == 'forced' and "ordered epoch by epoch" in td['note']
+
+
+def test_default_epoch_prior_record(jc2):
+    s, msgs = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])])
+    assert msgs == ["svgd: prior applied to each of 2 epochs. See "
+                    ".effective_options('prior') on the returned SVGD object."]
+    buf = io.StringIO()
+    s.effective_options('prior', file=buf)
+    assert "data-informed GaussPrior per epoch" in buf.getvalue()
