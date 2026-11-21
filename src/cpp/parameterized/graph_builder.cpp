@@ -7,6 +7,8 @@
 #include <unordered_map>  // tl_persistent_graphs cache
 #include <memory>         // std::unique_ptr
 #include <atomic>         // instance-id counter
+#include <mutex>          // live-builder registry
+#include <unordered_set>
 
 using json = nlohmann::json;
 
@@ -15,10 +17,66 @@ namespace parameterized {
 
 namespace {
 std::atomic<uint64_t> g_next_builder_instance_id{1};
+
+/* Live-builder registry and generation counters (ticket T11). Builders
+ * are destroyed from thread_local destructors at thread exit, which can
+ * run after static destruction has begun, so the registry is heap-
+ * allocated and never destroyed; the counters are trivially destructible
+ * atomics. */
+struct LiveRegistry {
+    std::mutex mutex;
+    std::unordered_set<uint64_t> ids;
+};
+LiveRegistry& live_registry() {
+    static LiveRegistry* r = new LiveRegistry();  // intentionally leaked
+    return *r;
+}
+std::atomic<uint64_t> g_generation{0};
+std::atomic<uint64_t> g_clear_generation{0};
+std::atomic<long> g_cached_graphs{0};
 }  // namespace
 
-GraphBuilder::GraphBuilder(const std::string& structure_json)
-    : instance_id_(g_next_builder_instance_id.fetch_add(1, std::memory_order_relaxed)) {
+BuilderInstanceToken::BuilderInstanceToken()
+    : id_(g_next_builder_instance_id.fetch_add(1, std::memory_order_relaxed)) {
+    LiveRegistry& r = live_registry();
+    std::lock_guard<std::mutex> lock(r.mutex);
+    r.ids.insert(id_);
+}
+
+BuilderInstanceToken::BuilderInstanceToken(const BuilderInstanceToken&)
+    : BuilderInstanceToken() {}
+
+BuilderInstanceToken::~BuilderInstanceToken() {
+    {
+        LiveRegistry& r = live_registry();
+        std::lock_guard<std::mutex> lock(r.mutex);
+        r.ids.erase(id_);
+    }
+    g_generation.fetch_add(1, std::memory_order_relaxed);
+}
+
+namespace model_memory {
+bool builder_is_live(uint64_t id) {
+    LiveRegistry& r = live_registry();
+    std::lock_guard<std::mutex> lock(r.mutex);
+    return r.ids.count(id) != 0;
+}
+size_t live_builder_count() {
+    LiveRegistry& r = live_registry();
+    std::lock_guard<std::mutex> lock(r.mutex);
+    return r.ids.size();
+}
+uint64_t generation() { return g_generation.load(std::memory_order_relaxed); }
+uint64_t clear_generation() { return g_clear_generation.load(std::memory_order_relaxed); }
+void request_clear() {
+    g_clear_generation.fetch_add(1, std::memory_order_relaxed);
+    g_generation.fetch_add(1, std::memory_order_relaxed);
+}
+long cached_graph_count() { return g_cached_graphs.load(std::memory_order_relaxed); }
+void count_cached_graph(long delta) { g_cached_graphs.fetch_add(delta, std::memory_order_relaxed); }
+}  // namespace model_memory
+
+GraphBuilder::GraphBuilder(const std::string& structure_json) {
     parse_structure(structure_json);
 }
 
@@ -397,9 +455,22 @@ namespace {
  * entry left behind by a destroyed builder (on a thread other than the
  * one that destroyed it) must not be served to a new builder allocated
  * at the same address. */
+/* Every entry object alive is counted in model_memory::cached_graph_count()
+ * (constructed +1, destroyed -1; moves construct a new object). */
 struct PersistentGraphEntry {
     uint64_t builder_id = 0;
     std::unique_ptr<phasic::Graph> graph;
+    PersistentGraphEntry() { model_memory::count_cached_graph(+1); }
+    PersistentGraphEntry(PersistentGraphEntry&& o) noexcept
+        : builder_id(o.builder_id), graph(std::move(o.graph)) {
+        model_memory::count_cached_graph(+1);
+    }
+    PersistentGraphEntry& operator=(PersistentGraphEntry&& o) noexcept {
+        builder_id = o.builder_id; graph = std::move(o.graph); return *this;
+    }
+    PersistentGraphEntry(const PersistentGraphEntry&) = delete;
+    PersistentGraphEntry& operator=(const PersistentGraphEntry&) = delete;
+    ~PersistentGraphEntry() { model_memory::count_cached_graph(-1); }
 };
 using PersistentGraphMap =
     std::unordered_map<const phasic::parameterized::GraphBuilder*,
@@ -423,7 +494,30 @@ struct PersistentGraphHolder {
     ~PersistentGraphHolder() { tl_persistent_graphs_live = nullptr; }
 };
 thread_local PersistentGraphHolder tl_persistent_graphs_holder;
+
+// Generation counter this thread last swept at (ticket T11).
+thread_local uint64_t tl_persistent_seen_generation = 0;
 }  // namespace
+
+// Only graphs of DESTROYED builders are dropped, never a live builder's:
+// a caller may hold a reference to its graph across a later lookup. A
+// clear request destroys the cached builders, so their graphs go here.
+void model_memory::sweep_thread_persistent_graphs() {
+    if (tl_persistent_graphs_live == nullptr) return;
+    const uint64_t gen = generation();
+    if (gen == tl_persistent_seen_generation) return;
+    PersistentGraphMap& m = *tl_persistent_graphs_live;
+    // Ids never come back to life, so dead keys found here stay dead.
+    std::vector<const GraphBuilder*> dead;
+    {
+        LiveRegistry& r = live_registry();
+        std::lock_guard<std::mutex> lock(r.mutex);
+        for (auto& kv : m)
+            if (!r.ids.count(kv.second.builder_id)) dead.push_back(kv.first);
+    }
+    for (auto* k : dead) m.erase(k);
+    tl_persistent_seen_generation = gen;
+}
 
 GraphBuilder::~GraphBuilder() {
     /* Evict this builder's entry from the current thread's
@@ -440,6 +534,9 @@ GraphBuilder::~GraphBuilder() {
 phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
         const double* theta, size_t theta_len) {
     PersistentGraphMap& tl_persistent_graphs = tl_persistent_graphs_holder.map;
+    // Drop entries of builders destroyed since this thread last looked
+    // (or everything after phasic.clear_model_memory()); ticket T11.
+    model_memory::sweep_thread_persistent_graphs();
     /* Graphs with no non-IPV parameterised edges (only IPV
      * parameterised edges, or no parameterised edges at all) cannot be
      * refreshed via ``ptd_graph_update_weights``: the C function
@@ -458,12 +555,12 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
     if (param_edges_.empty()) {
         auto& entry = tl_persistent_graphs[this];
         entry.graph = std::make_unique<phasic::Graph>(build(theta, theta_len));
-        entry.builder_id = instance_id_;
+        entry.builder_id = instance_id_.id();
         return *entry.graph;
     }
 
     auto it = tl_persistent_graphs.find(this);
-    if (it == tl_persistent_graphs.end() || it->second.builder_id != instance_id_) {
+    if (it == tl_persistent_graphs.end() || it->second.builder_id != instance_id_.id()) {
         // First call from this thread for this builder: build the
         // graph in PARAMETERIZED mode (build() now uses
         // add_edge_parameterized and applies update_weights for the
@@ -475,7 +572,7 @@ phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
         // this address: its builder_id differs, so rebuild in place.)
         auto& entry = tl_persistent_graphs[this];
         entry.graph = std::make_unique<phasic::Graph>(build(theta, theta_len));
-        entry.builder_id = instance_id_;
+        entry.builder_id = instance_id_.id();
         return *entry.graph;
     }
     // Cached: refresh edge weights for the new theta. update_weights

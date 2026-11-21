@@ -225,6 +225,18 @@ XLA_FFI_Handler* CreateSamplePathConditionedHandler();
 XLA_FFI_Handler* CreateDaisyChainJointProbsHandler();
 XLA_FFI_Handler* CreateDaisyChainSojournHandler();
 
+// Model-memory cap for the FFI caches (ticket T11). See graph_builder_ffi.cpp.
+struct ModelMemoryInfo {
+    size_t capacity = 0;        // max distinct models kept (process-wide)
+    size_t models = 0;          // models currently in the LRU list
+    size_t live_builders = 0;   // GraphBuilder objects alive (incl. Python-owned)
+    long cached_graphs = 0;     // per-thread cached graphs alive, all threads
+};
+size_t model_memory_capacity();
+void set_model_memory_capacity(size_t capacity);
+void clear_model_memory();
+ModelMemoryInfo model_memory_info();
+
 } // namespace parameterized
 } // namespace phasic
 

@@ -178,6 +178,12 @@ class _ConfigureContext:
             # against the restored values.
             _global_config._validated = True
 
+        # The model-memory capacity lives in the native cache, not in an
+        # env var, so roll it back explicitly (ticket T11).
+        _push_model_memory_capacity(
+            None if _global_config is None
+            else _global_config.model_memory_cache_size)
+
 
 def _snapshot_config_for_context() -> _ConfigureContext:
     """Capture the current PhasicConfig + env vars + assigned-set
@@ -551,6 +557,18 @@ class PhasicConfig:
         Override the cache root. None = $HOME/.phasic_cache. Backs
         PHASIC_CACHE_DIR.
 
+    model_memory_cache_size : int or None, default None
+        How many distinct models the native (FFI) likelihood code keeps
+        in memory, process-wide, least recently used dropped first. Each
+        kept model holds its parsed structure plus one graph per worker
+        thread - about 6 KB per vertex measured on joint-probability
+        graphs (~290 MB at 45,704 vertices). None = the start-up value:
+        PHASIC_MODEL_MEMORY_CACHE_SIZE if set in the shell, else 4. An
+        epoch fit uses two graphs, so alternating between two epoch
+        models (e.g. a tied-vs-free likelihood-ratio test) needs 4 and
+        three need 6; below that every call rebuilds (results are the
+        same, only slower). See also phasic.clear_model_memory().
+
     strict : bool, default True
         Raise on missing-feature warnings (e.g. JAX requested but
         not installed) instead of logging a warning. Does NOT
@@ -592,6 +610,7 @@ class PhasicConfig:
     reward_compute_cache: bool = False
     graph_cache: bool = True
     cache_dir: str | None = None
+    model_memory_cache_size: int | None = None
 
     # --- runtime behaviour ---
     strict: bool = True
@@ -847,6 +866,11 @@ class PhasicConfig:
             # 'auto' uses the C default (1e12).
             os.environ.pop('PHASIC_CONDITION_THRESHOLD', None)
 
+        # 13. model_memory_cache_size: pushed to the native cache directly
+        #     (not via os.environ: FFI worker threads may read the
+        #     environment concurrently, and setenv is not thread-safe).
+        _push_model_memory_capacity(self.model_memory_cache_size)
+
         self._validated = True
 
         # (The rev-2-era "reward_compute_cache is counterproductive" advisory
@@ -956,6 +980,51 @@ def _env_was_set_by_phasic(env_var: str) -> bool:
     """True if phasic auto-set this env var (e.g. import-time
     OMP_NUM_THREADS detection)."""
     return env_var in _phasic_assigned_env
+
+
+_model_memory_capacity_pushed: int | None = None
+
+
+def _push_model_memory_capacity(value: int | None) -> None:
+    """Apply model_memory_cache_size to the native FFI cache (ticket T11)."""
+    global _model_memory_capacity_pushed
+    if value is None:
+        env = os.environ.get('PHASIC_MODEL_MEMORY_CACHE_SIZE')
+        if env is None or env == '':
+            effective = 4
+        else:
+            # Same rule as the native reader (strtoll, whole string): plain
+            # decimal digits only, so '1_0' or '5 ' fail here, not later.
+            effective = int(env) if env.isascii() and env.isdigit() else 0
+            if effective < 1:
+                raise PTDConfigError(
+                    f"PHASIC_MODEL_MEMORY_CACHE_SIZE must be an integer >= 1; "
+                    f"got {env!r}.")
+        if _model_memory_capacity_pushed is None:
+            # Nothing set yet: the native side reads the same start-up
+            # value itself. Do not import the native module here - this
+            # runs during package import, before OMP_NUM_THREADS is set.
+            return
+    else:
+        import numbers
+        if (isinstance(value, bool) or not isinstance(value, numbers.Integral)
+                or value < 1):
+            raise PTDConfigError(
+                f"model_memory_cache_size={value!r} must be an integer >= 1 "
+                f"or None.")
+        effective = int(value)
+    if effective == _model_memory_capacity_pushed:
+        return
+    from . import phasic_pybind
+    param = phasic_pybind.parameterized
+    if not param._model_memory_available:
+        if value is not None:
+            raise PTDConfigError(
+                "model_memory_cache_size has no effect: this phasic build has "
+                "no FFI handlers (built without XLA FFI headers).")
+        return
+    param._model_memory_set_capacity(effective)
+    _model_memory_capacity_pushed = effective
 
 
 def _field_to_env_value(field_name: str, value: Any, invert: bool) -> str | None:

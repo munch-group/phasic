@@ -15,6 +15,52 @@ namespace phasic {
 namespace parameterized {
 
 /**
+ * @brief Process-unique id of one GraphBuilder, registered while it lives.
+ *
+ * Model-memory bookkeeping (ticket T11): per-thread graph caches are keyed
+ * by builder address and store this id; they drop entries whose id is no
+ * longer live (see model_memory::sweep_*). A copy of a builder is a
+ * separate builder, so copying the token takes a fresh id; assignment
+ * is deleted.
+ */
+class BuilderInstanceToken {
+public:
+    BuilderInstanceToken();
+    BuilderInstanceToken(const BuilderInstanceToken&);
+    // Assigning one builder to another is not supported: keeping either id
+    // would let a per-thread cache serve a graph of the wrong structure.
+    BuilderInstanceToken& operator=(const BuilderInstanceToken&) = delete;
+    ~BuilderInstanceToken();
+    uint64_t id() const { return id_; }
+private:
+    uint64_t id_;
+};
+
+/**
+ * @brief Process-wide model-memory state shared by the per-thread caches.
+ *
+ * generation() changes whenever a builder is destroyed; each thread then
+ * sweeps its own per-thread caches of entries whose builder is gone, on
+ * its next access. clear_generation() changes when the user asks to free
+ * all model memory (phasic.clear_model_memory()); each thread then drops
+ * its cached builders on its next access, which destroys them, and their
+ * graphs go with the next sweep. Sweeps never drop a live builder's
+ * graph (a caller may hold it).
+ */
+namespace model_memory {
+bool builder_is_live(uint64_t id);
+size_t live_builder_count();
+uint64_t generation();
+uint64_t clear_generation();
+void request_clear();
+/// Number of per-thread cached graphs alive in the process.
+long cached_graph_count();
+void count_cached_graph(long delta);
+/// Sweep this thread's GraphBuilder persistent graphs of destroyed builders.
+void sweep_thread_persistent_graphs();
+}  // namespace model_memory
+
+/**
  * @brief GraphBuilder: Efficient parameterized graph construction and computation
  *
  * This class separates graph structure (topology) from parameters (theta values).
@@ -74,7 +120,7 @@ public:
      * address can be reused after a builder is destroyed. Caches store
      * this id with each entry and rebuild when it does not match.
      */
-    uint64_t instance_id() const { return instance_id_; }
+    uint64_t instance_id() const { return instance_id_.id(); }
 
     /**
      * @brief Build graph with specific parameter values
@@ -325,7 +371,7 @@ public:
     Graph& get_or_init_persistent_graph(const double* theta, size_t theta_len);
 
 private:
-    uint64_t instance_id_;  // process-unique; see instance_id()
+    BuilderInstanceToken instance_id_;  // process-unique; see instance_id()
 
     // Cached structure data (parsed from JSON once)
     int param_length_;      // Number of parameters

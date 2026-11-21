@@ -55,7 +55,7 @@ skipped, 5 xfailed, 0 failed.
 | T7 | `joint_stop_prob` graphs reach the joint-index leaf in `svgd` with the wrong terminal set | correctness | — | committed `ea467324` on fix/joint-prob-tickets-1 |
 | T8 | No check that a joint table has >= 2 outcomes; zero outcomes gives an `IndexError` | robustness | — | committed `1cb3b9fb` on fix/joint-prob-tickets-1 |
 | T9 | Multi-property indexers: one independent mutation process per counted property | semantics | DECIDED 2026-11-20: require an explicit reward_only when the indexer has several properties (option 1) | committed `33eb75ae` on fix/joint-prob-callback |
-| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | NEEDS DECISION: eviction policy | analysed, not built |
+| T11 | FFI caches retain memory: per-thread builder_cache keeps every distinct model's builder for the process lifetime; worker caches keep dead builders' Graphs until address reuse | memory | LRU cap + explicit clear (user, 2026-11-20) | in progress on fix/ffi-cache-eviction |
 | T12 | `Graph.mcmc` builds its default DataPrior without `rewards=` (svgd passes it), so with rewards the prior is fitted to the unrewarded model | correctness | — | committed `7fc6caee` on fix/joint-prob-callback |
 | T13 | Default data-informed prior (`probability_matching`) fits joint-probability data badly: on coalescent n=4/6 its estimate has log-likelihood 1,800-4,000 below truth; mu stays at its grid initial guess | correctness (prior quality) | — | found 2026-11-20, not investigated |
 | T10 | `static py::object np_number` (`phasic_pybind.cpp:682`) DECREFs after interpreter shutdown without the GIL | nit | — | committed `607fdbfc` on fix/ffi-stale-graph-cache (with T1) |
@@ -438,3 +438,52 @@ decisions) → T9 (investigation) → T6 (profiling) → T10.
 - 2026-11-20: T6 gate: 42 files touching joint_stop_prob / joint_sojourn
   graphs, epoch_model, probability_matching, DataPrior, reward_only,
   daisy-chain and exposure: 629 passed, 0 failed, 7 skipped, 5 xfailed.
+- 2026-11-20: T11 measured on master: RSS retained after each distinct
+  model's Python objects are deleted and jax.clear_caches() runs:
+  ~68 MB per 11,320-vertex model (6 models), ~290 MB per 45,704-vertex
+  model (4 models), linear (~6 KB/vertex; ~1.3-3.8 GB per model at
+  200k-600k). User decision: LRU cap + explicit clear.
+  Design (branch fix/ffi-cache-eviction):
+  1. Live-builder registry: the builder's id moves into a member token
+     that registers on construction (a copy gets a fresh id) and
+     unregisters on destruction; a process-wide generation counter is
+     bumped whenever builders are evicted or cleared.
+  2. One lookup helper replaces the 11 find-or-create sites of
+     builder_cache: entries carry a last-used stamp; on insert beyond
+     the capacity (env PHASIC_MODEL_MEMORY_CACHE_SIZE, default 4, set
+     via phasic.configure(model_memory_cache_size=K)) the least recently
+     used entry is dropped together with its daisy-chain metadata.
+  3. Each thread sweeps its per-thread graph caches (FFI worker slots
+     and GraphBuilder persistent graphs) of entries whose builder is no
+     longer live, when the generation counter has changed - checked on
+     every access, so idle workers release on their next use.
+  4. phasic.clear_model_memory(): clears the calling thread's caches now
+     and bumps a clear counter so every other thread drops its
+     builder_cache and graphs on its next FFI call;
+     phasic.model_memory_info() reports capacity and counts.
+  Gate: correctness (cycling more models than the capacity gives the
+  same values as fresh), memory bounded in a subprocess, the T1 stale
+  cache test, and the FFI-reaching test files.
+- 2026-11-20: T11 independent review (commit 987c8d77). Thread-exit and
+  shutdown ordering judged sound (leaked registries, trivially
+  destructible atomics, no sweep from a destructor). Fixed:
+  (1) use-after-free: DaisyChainSojournFfiImpl holds the JSP graph
+  pointer while fetching the sojourn graph, and a concurrent
+  clear_model_memory() made that second lookup clear ALL slots, freeing
+  the held graph. Sweeps now only drop graphs of destroyed builders,
+  never a live builder's (a clear destroys the cached builders, so their
+  graphs still go). (2) clear left most memory in idle OpenMP workers
+  until their next batched call (probe: 12 graphs -> 9 left); clear now
+  runs an OpenMP region in which every pool thread drops its builders,
+  then (after a barrier) sweeps. (3) Python and the native reader parsed
+  PHASIC_MODEL_MEMORY_CACHE_SIZE differently ('1_0', '5 '); same rule
+  now, and the native error no longer reads as a JSON problem.
+  (4) builder assignment deleted (keeping either id could serve a graph
+  of the wrong structure; nothing assigns builders today). numpy ints
+  accepted for model_memory_cache_size. Not changed: capacity counts
+  structure JSONs, so alternating between two epoch models needs 4 (the
+  default) and three need 6 (documented); a rejected configure() value
+  stays in the config object (pre-existing pattern for every field).
+- 2026-11-21: T11 gate at `0e834208` (FFI-reaching files + T1 test +
+  test_model_memory): 602 passed, 0 failed, 6 skipped, 5 xfailed. (At
+  987c8d77, before the review fixes: 598 passed, 0 failed.)
