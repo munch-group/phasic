@@ -196,7 +196,9 @@ Left as is:
 
 Found but out of scope: a tuple prior on an epoch fit fails with "Prior at
 index 0 does not have a sample() method", because the epoch builder only
-accepts lists. That was already the case.
+accepts lists. That was already the case. FIXED on branch
+`fix/epoch-tuple-prior`: the epoch builder treats a tuple of priors as a
+list, as the non-epoch path does.
 
 Gate: 243 passed, 0 failed (the svgd, epoch, daisy-chain, preconditioning
 and prior test files).
