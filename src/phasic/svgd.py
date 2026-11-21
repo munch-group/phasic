@@ -6776,10 +6776,11 @@ class SVGD:
 
         return compiled_grad
 
-    def effective_options(self, *, file=None, return_dict: bool = False):
+    def effective_options(self, *names, file=None, return_dict: bool = False):
         """Show the SVGD options actually in effect and their provenance.
 
-        Prints a table of the key inference options with a status flag:
+        With no ``names``, prints a table of the key inference options with a
+        status flag:
 
         - ``default``      — left at the signature default
         - ``set by user``  — you passed this value (``*`` = non-default)
@@ -6787,17 +6788,25 @@ class SVGD:
         - ``forced``       — phasic overrode the value the model type requires
           (``!``), e.g. ``discrete=True`` for a joint-index model
 
-        The same events that show as ``forced`` (and a few notable ``inferred``
-        ones) also emit a one-time :class:`~phasic.exceptions.SvgdAssumptionWarning`
-        at call time unless ``quiet_assumptions=True`` was passed.
+        With one or more option names, e.g. ``effective_options('prior',
+        'fixed')``, prints each option's full record instead: value, status,
+        the explanation of what phasic did and why, and the arguments that
+        state the choice explicitly. Nothing is truncated; text is wrapped at
+        80 columns. The short :class:`~phasic.exceptions.SvgdAssumptionWarning`
+        notices emitted by ``Graph.svgd`` name the options to look up here
+        (silence them with ``quiet_assumptions=True``).
 
         Parameters
         ----------
+        *names : str
+            Options to show in full. Unknown names raise ``ValueError``
+            listing the valid ones.
         file : text stream or None
             Where to print. Defaults to ``sys.stdout``.
         return_dict : bool, default False
             When True, also return the underlying provenance dict
-            (``{name: {value, status, user_value, reason}}``) instead of None.
+            (``{name: {value, status, user_value, reason, note, explicit,
+            display}}``), restricted to ``names`` when given, instead of None.
 
         Notes
         -----
@@ -6812,7 +6821,19 @@ class SVGD:
             print("No options ledger: this SVGD object was built directly "
                   "(SVGD(model=...)), not via Graph.svgd(...), so there is no "
                   "option-resolution provenance to show.", file=out)
-            return ledger.as_dict() if (return_dict and ledger is not None) else None
+            return None
+        if names:
+            names = tuple(dict.fromkeys(names))  # drop repeats, keep order
+            for n in names:
+                if not isinstance(n, str):
+                    raise TypeError(
+                        f"option names must be strings; got {n!r}")
+            blocks = [ledger.render_option(n) for n in names]
+            print("\n\n".join(blocks), file=out)
+            if return_dict:
+                d = ledger.as_dict()
+                return {n: d[n] for n in names}
+            return None
         print(ledger.render(), file=out)
         return ledger.as_dict() if return_dict else None
 

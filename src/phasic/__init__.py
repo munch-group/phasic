@@ -1405,6 +1405,78 @@ def _cdf_zero_blowup_penalty(rewards):
     return np.full((1,), _PMF_FLOOR, dtype=np.float64)
 
 
+def _fmt_num(v) -> str:
+    # Full precision: the explicit form is meant to be copied back.
+    return repr(float(v))
+
+
+def _epoch_layout_records(user_prior, user_fixed, n_epochs: int,
+                          param_length: int) -> dict:
+    """Ledger notes for an epoch fit's per-epoch expansion of prior/fixed.
+
+    Returns ``{'layout': str | None, 'prior': (note, explicit) | None,
+    'fixed': (note, explicit) | None}``. ``prior``/``fixed`` are None when
+    that argument was not expanded: a single epoch, a prior list of
+    ``n_epochs * param_length``, or fixed values given one per epoch. The
+    notice names exactly the non-None ones.
+    """
+    out = {'layout': None, 'prior': None, 'fixed': None}
+    if n_epochs < 2:
+        return out
+    n_flat = n_epochs * param_length
+    layout = (
+        f"epoch_starts gives {n_epochs} epochs, so each of the "
+        f"{param_length} model parameters is fitted separately per epoch: "
+        f"{n_flat} values, ordered epoch by epoch (all parameters of epoch "
+        f"1, then all of epoch 2, ...).")
+    out['layout'] = layout
+
+    entries = [e for e in (user_fixed or [])
+               if isinstance(e, tuple) and len(e) == 2]
+    scalar = [(i, v) for i, v in entries
+              if isinstance(v, (int, float, np.integer, np.floating))]
+    if scalar:
+        what = "; ".join(
+            f"fixed=({i}, {_fmt_num(v)}) fixes parameter {i} at "
+            f"{_fmt_num(v)} in every epoch" for i, v in scalar)
+        parts = []
+        for i, v in entries:
+            if isinstance(v, (int, float, np.integer, np.floating)):
+                vals = [_fmt_num(v)] * n_epochs
+            else:
+                vals = [_fmt_num(x) for x in np.asarray(v, dtype=float).ravel()]
+            parts.append(f"({i}, [{', '.join(vals)}])")
+        out['fixed'] = (
+            f"{layout} {what}.",
+            "fixed=[" + ", ".join(parts) + "] (one value per epoch; the "
+            "index is the parameter's index within an epoch)")
+
+    explicit_prior = (f"prior= a list of {n_flat} priors, ordered epoch by "
+                      "epoch")
+    if user_prior is None:
+        out['prior'] = (
+            f"{layout} No prior was given, so the default data-informed "
+            "prior (fitted once on the time-homogeneous model) is used for "
+            "every epoch.", explicit_prior)
+    elif isinstance(user_prior, list):  # as _daisy_chain_svgd_model
+        if len(user_prior) == param_length and param_length != n_flat:
+            out['prior'] = (
+                f"{layout} Your {param_length} priors are repeated for every "
+                "epoch.",
+                f"prior= a list of {n_flat} priors (your {param_length} "
+                f"repeated {n_epochs} times), ordered epoch by epoch")
+    else:
+        out['prior'] = (
+            f"{layout} The single prior is used for every parameter in every "
+            "epoch.", explicit_prior)
+    return out
+
+
+def _options_hint(*names) -> str:
+    """Tail of every short svgd notice: where the full record is."""
+    args = ", ".join(repr(n) for n in names)
+    return f"See .effective_options({args}) on the returned SVGD object."
+
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
     def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool | None = None, **kwargs: Any) -> None:
@@ -6225,14 +6297,18 @@ extern "C" {{
             ``exposure_param_index`` remains the *local* per-epoch
             index and is broadcast across every epoch internally.
         quiet_assumptions : bool, default False
-            When False (default), emit a one-time
+            When False (default), emit a short one-time
             :class:`~phasic.exceptions.SvgdAssumptionWarning` whenever an option
             is forced or notably assumed from the model type (e.g.
             ``discrete=True`` for a joint-index model, the preconditioner
-            resolution, the daisy-chain re-derivation). Set True to suppress
-            those notices; the full resolved set is still available via
-            ``result.effective_options()``. (Routine inferences such as
-            ``theta_dim`` from the graph are recorded silently regardless.)
+            resolution, prior/fixed applied to every epoch of an epoch fit).
+            Each notice names the options concerned; for the full
+            explanation and the arguments that state the choice explicitly
+            (which avoids the notice), call e.g.
+            ``result.effective_options('prior', 'fixed')``. Set True to
+            suppress the notices; the records are kept either way.
+            (Routine inferences such as ``theta_dim`` from the graph are
+            recorded silently regardless.)
 
         Returns
         -------
@@ -6588,14 +6664,21 @@ extern "C" {{
                 # Force discrete mode for joint_index: these models read
                 # converged visit counts, not a continuous PDF/PMF.
                 if _orig_discrete is False:
+                    _ledger.set_forced(
+                        'discrete', True, user_value=False,
+                        reason='joint-index reads visit counts',
+                        note="Joint-probability (joint-index) models read "
+                             "converged visit counts, not a continuous "
+                             "PDF/PMF, so they are always fitted with "
+                             "discrete=True; your discrete=False was "
+                             "overridden.",
+                        explicit="discrete=True, or leave discrete unset")
                     _svgd_assume(
-                        "forcing discrete=True: joint-index models read converged "
-                        "visit counts, not a continuous PDF/PMF; your "
-                        "discrete=False was overridden.",
+                        "svgd: discrete=False overridden to True "
+                        "(joint-probability model). "
+                        + _options_hint('discrete'),
                         quiet=quiet_assumptions,
                     )
-                    _ledger.set_forced('discrete', True, user_value=False,
-                                       reason='joint-index reads visit counts')
                 elif _orig_discrete is None:
                     _ledger.set_inferred('discrete', True, 'joint-index model')
                 discrete = True
@@ -6606,23 +6689,29 @@ extern "C" {{
                 # degenerate to a no-op here). Announce it.
                 # An explicit 'jacobian' is the user's own choice, so it is
                 # recorded as such without a notice.
+                _pc_note = (
+                    "On a joint-probability model, preconditioner='jacobian' "
+                    "builds the probability-Jacobian preconditioner from the "
+                    "model's probability output; the moment-Jacobian "
+                    "preconditioner would have no effect here. "
+                    "preconditioner='auto' (also what the default, None, "
+                    "means) resolves to the same thing.")
                 if isinstance(preconditioner, str) and preconditioner == 'jacobian':
-                    _ledger.set_user(
-                        'preconditioner', "jacobian -> probability-Jacobian")
+                    _ledger.set_user('preconditioner', 'jacobian',
+                                     note=_pc_note)
                 elif preconditioner is None or (
                     isinstance(preconditioner, str) and preconditioner == 'auto'
                 ):
-                    _pc_shown = 'auto' if preconditioner is None else preconditioner
                     _ledger.set_inferred(
-                        'preconditioner',
-                        f"{_pc_shown} -> probability-Jacobian",
+                        'preconditioner', 'jacobian',
                         'joint-probability model',
+                        display="'auto' -> 'jacobian'",
+                        note=_pc_note,
+                        explicit="preconditioner='jacobian'",
                     )
                     _svgd_assume(
-                        f"preconditioner={_pc_shown!r} resolves to the "
-                        "probability-Jacobian preconditioner (built from the "
-                        "model's probability output) for this joint-probability "
-                        "model.",
+                        "svgd: preconditioner='auto' resolved to 'jacobian'. "
+                        + _options_hint('preconditioner'),
                         quiet=quiet_assumptions,
                     )
 
@@ -6657,6 +6746,7 @@ extern "C" {{
                             float(_daisy_exposure.item()),
                             dtype=np.float64,
                         )
+                    _epoch_user_prior, _epoch_user_fixed = prior, fixed
                     model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
                         observed_indices=observed_data,
                         epoch_starts=epoch_starts,
@@ -6675,16 +6765,50 @@ extern "C" {{
                     )
                     # The daisy-chain builder re-derives theta_dim (flat
                     # n_epochs x param_length), and its own broadcast prior and
-                    # fixed layout, overriding what was resolved above.
-                    _ledger.set_forced(
-                        'theta_dim', theta_dim, user_value=_orig_theta_dim,
-                        reason='daisy-chain flat layout n_epochs x param_length')
-                    _svgd_assume(
-                        "daisy-chain: theta_dim, prior and fixed were re-derived "
-                        "for the flat per-epoch layout "
-                        "(n_epochs x param_length); per-epoch indices apply.",
-                        quiet=quiet_assumptions,
-                    )
+                    # fixed layout. Record what was expanded on the ledger;
+                    # the notice only names those options.
+                    _n_epochs = len(np.asarray(epoch_starts).ravel())
+                    _rec = _epoch_layout_records(
+                        _epoch_user_prior, _epoch_user_fixed, _n_epochs,
+                        theta_dim // _n_epochs)
+                    if _orig_theta_dim is None:
+                        _ledger.set_inferred(
+                            'theta_dim', theta_dim,
+                            'epochs x model parameters', note=_rec['layout'])
+                    elif _orig_theta_dim == theta_dim:
+                        _ledger.set_user('theta_dim', theta_dim,
+                                         note=_rec['layout'])
+                    else:
+                        _ledger.set_forced(
+                            'theta_dim', theta_dim, user_value=_orig_theta_dim,
+                            reason='epochs x model parameters',
+                            note=_rec['layout'])
+                    if _epoch_user_prior is None:
+                        _ledger.set_inferred(
+                            'prior', 'probability_matching per epoch',
+                            'default data-informed prior',
+                            display="data-informed GaussPrior per epoch")
+                    _expanded = [n for n in ('prior', 'fixed') if _rec[n]]
+                    for _n in _expanded:
+                        _ledger.annotate(_n, note=_rec[_n][0],
+                                         explicit=_rec[_n][1])
+                    _parts = []
+                    _hint = []
+                    if (_orig_theta_dim is not None
+                            and _orig_theta_dim != theta_dim):
+                        _parts.append(f"theta_dim={_orig_theta_dim} "
+                                      f"overridden to {theta_dim}")
+                        _hint.append('theta_dim')
+                    if _expanded:
+                        _parts.append(" and ".join(_expanded) + " applied "
+                                      f"to each of {_n_epochs} epochs")
+                        _hint.extend(_expanded)
+                    if _parts:
+                        _svgd_assume(
+                            "svgd: " + "; ".join(_parts) + ". "
+                            + _options_hint(*_hint),
+                            quiet=quiet_assumptions,
+                        )
                 else:
                     # Parse fixed to get mask for joint_index model
                     # This allows the custom VJP to skip finite differences for fixed dimensions

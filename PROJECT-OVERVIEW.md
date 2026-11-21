@@ -315,6 +315,18 @@ caller uses, the fit matches the truth (coalescent n=4/6: estimated
 mu/c 0.589 vs 0.6, log-likelihood within 0.6 of the truth's);
 `joint-prob-followups-plan.md` (§1c item 12).
 
+**SVGD notices (21 Nov):**
+- `probability_matching` now rejects input that isn't vertex indices.
+- An explicit `preconditioner='jacobian'` no longer gets a notice.
+- The `SvgdAssumptionWarning` notices from `Graph.svgd` are one short
+  sentence each. Each ends with `.effective_options('<option>', ...)`, a
+  new single-option view that prints the full explanation and the
+  arguments that state the choice explicitly. The epoch notice appears
+  only when prior, fixed or theta_dim were actually expanded. The
+  `effective_options()` table shows readable values (`svgd.GaussPrior`,
+  `'auto' -> 'jacobian'`).
+- Record: `svgd-notices-plan.md`.
+
 ---
 
 ## 2. How the work unfolded (timeline)
