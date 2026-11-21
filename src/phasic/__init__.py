@@ -1405,6 +1405,63 @@ def _cdf_zero_blowup_penalty(rewards):
     return np.full((1,), _PMF_FLOOR, dtype=np.float64)
 
 
+def _epoch_layout_notice(user_prior, user_fixed, n_epochs: int,
+                         param_length: int) -> str | None:
+    """Notice text for an epoch fit whose prior/fixed were expanded per epoch.
+
+    Returns None when nothing was expanded: a single epoch, or arguments
+    already given per epoch (fixed values as one-per-epoch lists, prior as a
+    list of n_epochs * param_length). Otherwise says what was expanded and
+    which arguments state it explicitly.
+    """
+    if n_epochs < 2:
+        return None
+    n_flat = n_epochs * param_length
+    expanded = []
+    fix_examples = []
+    for entry in (user_fixed or []):
+        if isinstance(entry, tuple) and len(entry) == 2:
+            idx, value = entry
+            if isinstance(value, (int, float, np.integer, np.floating)):
+                expanded.append(
+                    f"fixed=({idx}, {float(value):g}) fixes parameter {idx} "
+                    f"at {float(value):g} in every epoch")
+                fix_examples.append(
+                    f"({idx}, [{', '.join([f'{float(value):g}'] * n_epochs)}])")
+    prior_fix = None
+    if user_prior is None:
+        expanded.append(
+            "no prior was given, so the default data-informed prior (fitted "
+            "once on the time-homogeneous model) is used for every epoch")
+        prior_fix = f"prior= a list of {n_flat} priors"
+    elif isinstance(user_prior, (list, tuple)):
+        if len(user_prior) == param_length and param_length != n_flat:
+            expanded.append(
+                f"the {param_length} priors are repeated for every epoch")
+            prior_fix = (f"prior= a list of {n_flat} priors (your "
+                         f"{param_length} repeated {n_epochs} times)")
+    else:
+        expanded.append("the single prior is used for every parameter in "
+                        "every epoch")
+        prior_fix = f"prior= a list of {n_flat} priors"
+    if not expanded:
+        return None
+    how = []
+    if fix_examples:
+        how.append("fixed=[" + ", ".join(fix_examples) + "] (one value per "
+                   "epoch; the index is the parameter's index within an epoch)")
+    if prior_fix:
+        how.append(prior_fix + ", ordered epoch by epoch")
+    return (
+        f"epoch_starts gives {n_epochs} epochs, so each of the "
+        f"{param_length} model parameters is fitted separately per epoch: "
+        f"{n_flat} values, ordered epoch by epoch (all parameters of epoch "
+        f"1, then epoch 2, ...). Expanded to every epoch: "
+        + "; ".join(expanded) + ". To state this explicitly, pass "
+        + " and ".join(how) + "; or pass quiet_assumptions=True."
+    )
+
+
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
     def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool | None = None, **kwargs: Any) -> None:
@@ -6657,6 +6714,7 @@ extern "C" {{
                             float(_daisy_exposure.item()),
                             dtype=np.float64,
                         )
+                    _epoch_user_prior, _epoch_user_fixed = prior, fixed
                     model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
                         observed_indices=observed_data,
                         epoch_starts=epoch_starts,
@@ -6679,12 +6737,12 @@ extern "C" {{
                     _ledger.set_forced(
                         'theta_dim', theta_dim, user_value=_orig_theta_dim,
                         reason='daisy-chain flat layout n_epochs x param_length')
-                    _svgd_assume(
-                        "daisy-chain: theta_dim, prior and fixed were re-derived "
-                        "for the flat per-epoch layout "
-                        "(n_epochs x param_length); per-epoch indices apply.",
-                        quiet=quiet_assumptions,
-                    )
+                    _n_epochs = len(np.asarray(epoch_starts).ravel())
+                    _layout_msg = _epoch_layout_notice(
+                        _epoch_user_prior, _epoch_user_fixed, _n_epochs,
+                        theta_dim // _n_epochs)
+                    if _layout_msg is not None:
+                        _svgd_assume(_layout_msg, quiet=quiet_assumptions)
                 else:
                     # Parse fixed to get mask for joint_index model
                     # This allows the custom VJP to skip finite differences for fixed dimensions
