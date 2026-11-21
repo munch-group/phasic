@@ -6604,9 +6604,13 @@ extern "C" {{
                 # 'auto'/'jacobian' on a joint-prob model build the
                 # probability-Jacobian preconditioner (the moment Jacobian would
                 # degenerate to a no-op here). Announce it.
-                if preconditioner is None or (
-                    isinstance(preconditioner, str)
-                    and preconditioner in ('auto', 'jacobian')
+                # An explicit 'jacobian' is the user's own choice, so it is
+                # recorded as such without a notice.
+                if isinstance(preconditioner, str) and preconditioner == 'jacobian':
+                    _ledger.set_user(
+                        'preconditioner', "jacobian -> probability-Jacobian")
+                elif preconditioner is None or (
+                    isinstance(preconditioner, str) and preconditioner == 'auto'
                 ):
                     _pc_shown = 'auto' if preconditioner is None else preconditioner
                     _ledger.set_inferred(

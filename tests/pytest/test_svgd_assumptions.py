@@ -171,3 +171,26 @@ def test_direct_svgd_has_no_ledger(capsys):
     ret = svgd.effective_options(return_dict=True)
     assert ret is None
     assert 'No options ledger' in capsys.readouterr().out
+
+
+def test_explicit_jacobian_preconditioner_no_notice():
+    """preconditioner='jacobian' is the user's own choice: no notice, and
+    effective_options() records it as user-set. 'auto' still announces."""
+    jpg = _make_joint_prob_graph(discrete=True)
+    obs = _joint_observations(jpg)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        result = _fit_joint(jpg, obs, preconditioner='jacobian')
+    msgs = [str(ww.message) for ww in w
+            if issubclass(ww.category, SvgdAssumptionWarning)]
+    assert not any('preconditioner' in m for m in msgs), "\n".join(msgs)
+    d = result.effective_options(return_dict=True)
+    assert d['preconditioner']['status'] == 'user'
+    assert 'probability-Jacobian' in d['preconditioner']['value']
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        _fit_joint(jpg, obs, preconditioner='auto')
+    msgs = [str(ww.message) for ww in w
+            if issubclass(ww.category, SvgdAssumptionWarning)]
+    assert any("preconditioner='auto'" in m for m in msgs), "\n".join(msgs)
