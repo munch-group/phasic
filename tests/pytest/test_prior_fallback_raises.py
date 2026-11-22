@@ -53,7 +53,7 @@ def test_explicit_prior_skips_the_default(joint, monkeypatch):
     from phasic import GaussPrior
     j, obs = joint
     monkeypatch.setattr(phasic.probability_matching, "probability_matching", _boom)
-    em = j.epoch_model(obs, [0.0, 0.5], prior=GaussPrior(ci=[0.5, 2.0]))
+    em = j.epoch_model(obs, [0.0, 0.5], prior=GaussPrior(ci=[0.5, 2.0], lower=0.0))
     assert em.theta_dim == 4
 
 

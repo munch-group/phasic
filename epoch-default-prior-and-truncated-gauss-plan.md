@@ -425,6 +425,30 @@ cleared, the numbers below are the record.
     the `_inverse_softplus` 1e-6 floor still catches a draw.
 - Gate: no new failures; changes limited to the Batch 0e inventory.
 
+### Batch 1 results (2026-11-22, branch `fix/gauss-prior-lower`, worktree `../phasic-gausslower`)
+
+- Implemented as designed, with one placement change: the
+  lower/positive_params check runs in `SVGD.__init__` and `MCMC.__init__`
+  (`svgd._check_gauss_prior_lower`, right after the transforms are
+  attached), not as an `svgd_config` rule; it covers `Graph.svgd`, direct
+  `SVGD`, `FreeEpochModel.fit` and MCMC alike. `DataPrior`,
+  `probability_matching`, `method_of_moments` (and their `Graph`
+  wrappers) take `lower` (default 0.0); `Graph.svgd`/`Graph.mcmc` pass
+  `0.0 if positive_params else None`; the epoch builder takes
+  `prior_lower` (moved to fit time in Batch 2). No `__repr__` was added:
+  the effective-options view shows default-repr objects as `svgd.GaussPrior`
+  and its tests pin that.
+- `tests/pytest/test_gauss_prior_truncation.py`: 27 tests, all pass.
+- Gate: 614 of 615 pass (574 baseline + 14 added files + 27 new). The one
+  failure, `test_reward_validation.py::test_svgd_runs_silently_on_partial_coverage_with_introspection`
+  (11.98 vs true 10, tolerance 1.5), is PRE-EXISTING flakiness: the test
+  samples without a seed. On six seeded datasets master and the branch
+  give bit-identical estimates (10.50, 10.66, 10.24, 10.47, 11.33, 10.47).
+  All six are above 10: a ~5% upward bias at this budget, not
+  investigated (out of scope). Test left unchanged.
+- Notebooks not changed (user); the cells needing `lower=0.0` are listed
+  in the Batch 0 report.
+
 ### Batch 2 — default epoch prior and the guard
 
 (The guard and the new helper ship together: the helper needs the guard to

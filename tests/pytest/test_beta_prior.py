@@ -120,7 +120,7 @@ def test_svgd_with_betaprior_in_mixed_list_keeps_param_in_unit():
 
     svgd = g.svgd(
         observed_data=jnp.array([1.5, 2.0, 2.5, 3.0]),
-        prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.95))],
+        prior=[GaussPrior(ci=[1, 5], lower=0.0), BetaPrior(ci=(0.05, 0.95))],
         theta_dim=2,
         n_iterations=5,
         n_particles=8,
@@ -153,7 +153,7 @@ def test_svgd_param_transform_is_per_dim_when_betaprior_present():
 
     svgd = g.svgd(
         observed_data=jnp.array([1.5, 2.0]),
-        prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.95))],
+        prior=[GaussPrior(ci=[1, 5], lower=0.0), BetaPrior(ci=(0.05, 0.95))],
         theta_dim=2,
         n_iterations=1,
         n_particles=2,
@@ -288,7 +288,7 @@ def test_svgd_callback_mode_partial_coverage_avoids_legacy_visit_prob():
             rewards=rewards_2d,
             callback=cb,
             theta_dim=2,
-            prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.95))],
+            prior=[GaussPrior(ci=[1, 5], lower=0.0), BetaPrior(ci=(0.05, 0.95))],
             n_iterations=2,
             n_particles=3,
             progress=False,
@@ -313,7 +313,7 @@ def test_svgd_without_betaprior_keeps_uniform_softplus():
     g.update_weights(np.array([1.0, 0.5]))
     svgd = g.svgd(
         observed_data=jnp.array([1.5, 2.0]),
-        prior=[GaussPrior(ci=[1, 5]), GaussPrior(ci=[0.1, 1.0])],
+        prior=[GaussPrior(ci=[1, 5], lower=0.0), GaussPrior(ci=[0.1, 1.0], lower=0.0)],
         theta_dim=2,
         n_iterations=1,
         n_particles=2,

@@ -147,7 +147,7 @@ def _fit_svgd(graph: Graph, observed_data, rewards=None):
         svgd = graph.svgd(
             observed_data=observed_data,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=2,
             n_particles=4,
             learning_rate=ExpStepSize(

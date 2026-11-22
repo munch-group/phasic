@@ -124,6 +124,7 @@ quartodoc:
         - DataPrior
         - Prior
         - GaussPrior
+        - GammaPrior
         - HalfCauchyPrior
 
     - title: Learning rate and regularization

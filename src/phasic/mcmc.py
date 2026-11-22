@@ -286,6 +286,10 @@ class MCMC:
             elif self.prior is not None and hasattr(self.prior, '_transform'):
                 self.prior._transform = self.param_transform
 
+        from .svgd import _check_gauss_prior_lower
+        _check_gauss_prior_lower(self.prior, self.prior_list,
+                                 positive_params, "MCMC")
+
         # Determine theta_dim
         if theta_init is not None:
             theta_init = jnp.array(theta_init)

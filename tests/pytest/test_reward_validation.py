@@ -245,7 +245,7 @@ def test_svgd_runs_silently_on_partial_coverage_with_introspection():
         svgd = g_svgd.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=200,
             n_particles=10,
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
@@ -298,7 +298,7 @@ def test_svgd_full_coverage_has_empty_zero_inflated_features():
         svgd = g_svgd.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=50,
             n_particles=4,
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
@@ -568,7 +568,7 @@ def test_zero_inflated_validate_rewards_false_skips_zi():
         svgd = g_svgd.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=5,
             n_particles=4,
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),
@@ -657,7 +657,7 @@ def test_svgd_absorbing_reward_runs_via_zero_inflation():
         svgd = g.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=2,
             n_particles=4,
             learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=30.0),

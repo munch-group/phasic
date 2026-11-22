@@ -21,7 +21,7 @@ from test_notebook_model_recovery import coalescent_indexed  # noqa: E402
 
 
 def _gp():
-    return GaussPrior(ci=[0.5, 10.0])
+    return GaussPrior(ci=[0.5, 10.0], lower=0.0)
 
 
 # ------------------------------------------------------------ helper
@@ -126,8 +126,8 @@ def test_tuple_prior_is_described_as_per_parameter_list():
 
 
 @pytest.mark.parametrize("prior", [
-    (GaussPrior(ci=[0.5, 10.0]), None),
-    (GaussPrior(ci=[0.5, 10.0]), None, GaussPrior(ci=[0.5, 10.0]), None),
+    (GaussPrior(ci=[0.5, 10.0], lower=0.0), None),
+    (GaussPrior(ci=[0.5, 10.0], lower=0.0), None, GaussPrior(ci=[0.5, 10.0], lower=0.0), None),
 ])
 def test_tuple_prior_works_like_list_on_epoch_fit(jc2, prior):
     s, _ = _fit(jc2, epoch_starts=[0.0, 0.5], fixed=[(1, [0.7, 0.7])],

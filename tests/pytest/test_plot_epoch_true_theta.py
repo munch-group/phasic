@@ -50,7 +50,7 @@ def epoch_fit():
     svgd = jg.svgd(
         obs,
         fixed=[(1, 1.0)],
-        prior=GaussPrior(ci=[0.2, 3.0]),
+        prior=GaussPrior(ci=[0.2, 3.0], lower=0.0),
         learning_rate=ExpStepSize(first_step=0.01, last_step=0.005, tau=5.0),
         epoch_starts=[0.0, 0.5],
         n_iterations=3,

@@ -147,6 +147,7 @@ def probability_matching(
     fixed: list[tuple[int, float]] | None = None,
     std_multiplier: float = 2.0,
     verbose: bool = True,
+    lower: float | None = 0.0,
 ) -> ProbMatchResult:
     """Find parameter estimates by matching model probabilities to empirical probabilities.
 
@@ -177,6 +178,10 @@ def probability_matching(
         ``prior_std = std_multiplier * asymptotic_std``.
     verbose : bool
         Print progress information.
+    lower : {0.0, None}, default=0.0
+        ``lower`` of the returned GaussPrior objects: ``0.0`` (truncated at
+        zero) for use with ``positive_params=True``, ``None`` for
+        ``positive_params=False``.
 
     Returns
     -------
@@ -374,6 +379,7 @@ def probability_matching(
             priors.append(GaussPrior(
                 mean=float(theta_full_opt[i]),
                 std=float(std_multiplier * std_full[i]),
+                lower=lower,
             ))
 
     return ProbMatchResult(
