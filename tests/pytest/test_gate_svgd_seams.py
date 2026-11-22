@@ -47,7 +47,7 @@ def _approx(golden):
 # Priors (-> svgd_priors.py)
 # --------------------------------------------------------------------------- #
 def test_gauss_prior_log_prob_golden():
-    gp = S.GaussPrior(mean=5.0, std=2.0)
+    gp = S.GaussPrior(mean=5.0, std=2.0, lower=0.0)
     assert _flat(gp(jnp.array([5.0]))) == _approx([-0.0])
     assert _flat(gp(jnp.array([3.0]))) == _approx([-0.5])
     assert _flat(gp(jnp.array([7.0]))) == _approx([-0.5])

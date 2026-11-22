@@ -13,14 +13,14 @@ from phasic.svgd_config import SvgdOptionsLedger, format_option_value
 
 # ------------------------------------------------------------ formatter
 def test_default_repr_objects_show_module_and_class():
-    assert format_option_value(GaussPrior(ci=[1, 2])) == "svgd.GaussPrior"
+    assert format_option_value(GaussPrior(ci=[1, 2], lower=0.0)) == "svgd.GaussPrior"
     assert format_option_value(Adam(learning_rate=0.1)) == "svgd.Adam"
     assert format_option_value(ExpStepSize(first_step=0.1, last_step=0.01,
                                            tau=10)) == "svgd.ExpStepSize"
 
 
 def test_containers_recurse():
-    assert (format_option_value([GaussPrior(ci=[1, 2]), None])
+    assert (format_option_value([GaussPrior(ci=[1, 2], lower=0.0), None])
             == "[svgd.GaussPrior, None]")
     assert format_option_value([(1, 0.5)]) == "[(1, 0.5)]"
     assert format_option_value((3,)) == "(3,)"
@@ -48,7 +48,7 @@ def _ledger():
                      note="On a joint-probability model 'auto' builds the "
                           "probability-Jacobian preconditioner. " * 4,
                      explicit="preconditioner='jacobian'")
-    led.set_user('prior', [GaussPrior(ci=[1, 2]), None])
+    led.set_user('prior', [GaussPrior(ci=[1, 2], lower=0.0), None])
     return led
 
 
@@ -150,9 +150,9 @@ def test_values_never_span_lines():
 
 def test_numpy_scalars_dicts_sets():
     assert format_option_value([(1, np.float64(0.012))]) == "[(1, 0.012)]"
-    assert (format_option_value({'a': GaussPrior(ci=[1, 2])})
+    assert (format_option_value({'a': GaussPrior(ci=[1, 2], lower=0.0)})
             == "{'a': svgd.GaussPrior}")
-    assert format_option_value({GaussPrior(ci=[1, 2])}) == "{svgd.GaussPrior}"
+    assert format_option_value({GaussPrior(ci=[1, 2], lower=0.0)}) == "{svgd.GaussPrior}"
 
 
 def test_raising_repr_falls_back_to_class_name():

@@ -214,6 +214,7 @@ def method_of_moments(
     discrete: bool = False,
     verbose: bool = True,
     weighted: bool = True,
+    lower: float | None = 0.0,
 ) -> MoMResult:
     """Find parameter estimates by matching model moments to sample moments.
 
@@ -280,6 +281,10 @@ def method_of_moments(
         weighting matrix ``W = Σ⁻¹``.  This down-weights high-variance
         moments and generally produces tighter standard errors.
         If ``False``, use unweighted least squares (legacy behavior).
+    lower : {0.0, None}, default=0.0
+        ``lower`` of the returned GaussPrior objects: ``0.0`` (truncated at
+        zero) for use with ``positive_params=True``, ``None`` for
+        ``positive_params=False``.
 
     Returns
     -------
@@ -573,6 +578,7 @@ def method_of_moments(
             priors.append(GaussPrior(
                 mean=float(theta_full_opt[i]),
                 std=float(std_multiplier * std_full[i]),
+                lower=lower,
             ))
 
     # Restore logger level if we changed it

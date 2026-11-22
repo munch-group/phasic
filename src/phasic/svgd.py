@@ -731,7 +731,7 @@ class Prior:
 
 
 class GaussPrior(Prior):
-    """Gaussian prior distribution.
+    """Gaussian prior distribution, optionally truncated at zero.
 
     The prior is defined in THETA space (the natural parameter space).
     When used with positive_params=True, SVGD automatically handles
@@ -742,21 +742,50 @@ class GaussPrior(Prior):
     Parameters
     ----------
     mean : float, optional
-        Prior mean in THETA space. Required if std is provided.
+        Mean of the (parent) Gaussian in THETA space. Required if std is
+        provided.
     std : float, optional
-        Prior standard deviation in THETA space. Required if mean is provided.
+        Standard deviation of the (parent) Gaussian in THETA space.
+        Required if mean is provided.
     ci : tuple of (float, float), optional
-        Credible interval (low, high) in THETA space. Alternative to mean/std.
+        Credible interval (low, high) of the parent Gaussian in THETA
+        space. Alternative to mean/std.
     prob : float, default=0.95
         Probability mass in the credible interval (only used with ci).
+    lower : {None, 0.0}, default=None
+        Truncation point. ``0.0`` gives the Gaussian truncated to
+        theta > 0; ``None`` gives the untruncated Gaussian.
+
+        Under ``positive_params=True`` (the default of ``Graph.svgd`` and
+        ``Graph.mcmc``) a GaussPrior must have ``lower=0.0``; with
+        ``positive_params=False`` it must have ``lower=None``. Both are
+        checked when the SVGD / MCMC object is built, and a mismatch
+        raises ``ValueError``. Other values of ``lower`` are not
+        supported.
+
+    Notes
+    -----
+    ``mean``/``std``/``ci`` always describe the parent Gaussian, so
+    ``mu`` and ``sigma`` do not depend on ``lower``. With ``lower=0.0``
+    and an interval near or below zero, the truncated prior's mass inside
+    ``ci`` differs from ``prob`` and its mean is above ``mu``.
+
+    The log density (``__call__``) is unnormalised and the same for both
+    values of ``lower``: on theta > 0 the truncated density differs from
+    the Gaussian only by the constant ``log Phi(mu/sigma)``. Under the
+    positivity transform theta > 0 always, so the SVGD and MCMC target is
+    the zero-truncated prior either way. What ``lower=0.0`` changes is
+    the initial particles: ``sample`` draws from the truncated Gaussian
+    exactly (each non-positive Gaussian draw is mapped to a truncated
+    draw by the inverse CDF), instead of clipping it to 1e-6.
 
     Examples
     --------
     >>> # Specify via mean and std
-    >>> prior = GaussPrior(mean=5.0, std=2.0)
+    >>> prior = GaussPrior(mean=5.0, std=2.0, lower=0.0)
     >>>
     >>> # Specify via 95% credible interval
-    >>> prior = GaussPrior(ci=(2.0, 8.0))
+    >>> prior = GaussPrior(ci=(2.0, 8.0), lower=0.0)
     >>>
     >>> # Plot to verify prior matches your beliefs
     >>> prior.plot()  # Shows Gaussian centered at 5
@@ -765,7 +794,12 @@ class GaussPrior(Prior):
     >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
-    def __init__(self, mean: float | None = None, std: float | None = None, ci: tuple[float, float] | None = None, prob: float = 0.95) -> None:
+    #: Smallest parent mass above zero accepted with ``lower=0.0``
+    #: (``mu/sigma >= -4.753``). Below it the prior cannot describe a
+    #: positive parameter.
+    _MIN_MASS_ABOVE_ZERO = 1e-6
+
+    def __init__(self, mean: float | None = None, std: float | None = None, ci: tuple[float, float] | None = None, prob: float = 0.95, lower: float | None = None) -> None:
         if mean is not None and std is not None:
             self.mu = mean
             self.sigma = std
@@ -780,11 +814,65 @@ class GaussPrior(Prior):
             raise ValueError(
                 "Invalid prior specification. Provide either (mean, std) or ci."
             )
+        if lower is not None:
+            if isinstance(lower, bool) or not isinstance(lower, (int, float, np.integer, np.floating)) or float(lower) != 0.0:
+                raise ValueError(
+                    f"GaussPrior: lower must be None (no truncation) or 0.0 "
+                    f"(truncated at zero); got {lower!r}. Other truncation "
+                    f"points are not supported: the positivity transform keeps "
+                    f"theta > 0 but cannot keep it above another bound."
+                )
+            lower = 0.0
+            if not (np.isfinite(self.mu) and np.isfinite(self.sigma) and self.sigma > 0):
+                raise ValueError(
+                    f"GaussPrior: need finite mean and positive finite std; got "
+                    f"mean={self.mu!r}, std={self.sigma!r}."
+                )
+            if norm.sf(-self.mu / self.sigma) < self._MIN_MASS_ABOVE_ZERO:
+                raise ValueError(
+                    f"GaussPrior(lower=0.0): the Gaussian N({self.mu:.3g}, "
+                    f"{self.sigma:.3g}^2) has less than "
+                    f"{self._MIN_MASS_ABOVE_ZERO:g} of its mass above zero, so "
+                    f"it cannot describe a positive parameter. If the "
+                    f"parameter may be negative, use positive_params=False "
+                    f"with lower=None."
+                )
+        self.lower = lower
         # Transform function set by SVGD when positive_params=True
         self._transform = None
 
+    def _describe(self) -> str:
+        """Short form used in SVGD's verbose printout."""
+        if self.lower is None:
+            return f"N({self.mu:.2g}, {self.sigma:.2g}²)"
+        return f"N({self.mu:.2g}, {self.sigma:.2g}²) truncated to θ > 0"
+
+    def _sample_theta(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
+        """Draw in THETA space: the Gaussian, or with ``lower=0.0`` the
+        Gaussian truncated to theta > 0.
+
+        Truncated draws are exact and key-free: the Gaussian draw ``z`` is
+        made exactly as for ``lower=None``; a draw with ``z > 0`` is kept
+        bit-for-bit, and a draw with ``z <= 0`` is mapped to a truncated
+        draw by the inverse CDF. Given ``z <= 0``,
+        ``U = Phi(w)/Phi(a)`` (``w = (z-mu)/sigma``, ``a = -mu/sigma``) is
+        uniform on (0, 1), and ``x = mu - sigma * Phi^-1((1-U) * Phi(-a))``
+        (survival form, accurate in both tails) has the truncated
+        distribution. Each particle depends only on its own ``z``.
+        """
+        z = jax.random.normal(key, shape) * self.sigma + self.mu
+        if self.lower is None:
+            return z
+        from jax.scipy.special import log_ndtr, ndtr, ndtri
+        a = -self.mu / self.sigma
+        w = jnp.minimum((z - self.mu) / self.sigma, a)
+        u = jnp.exp(log_ndtr(w) - log_ndtr(a))
+        x = self.mu - self.sigma * ndtri((1.0 - u) * ndtr(-a))
+        return jnp.where(z > 0, z, x)
+
     def __call__(self, phi: jnp.ndarray) -> float:
-        """Compute log-probability.
+        """Compute log-probability (unnormalised; the same for both values
+        of ``lower``, see the class Notes).
 
         When _transform is set (by SVGD with positive_params=True), evaluates
         the prior in THETA space with proper Jacobian correction. Otherwise,
@@ -830,11 +918,13 @@ class GaussPrior(Prior):
             Samples (in PHI space if transform is set)
         """
         # Sample in THETA space (what user understands)
-        theta_samples = jax.random.normal(key, shape) * self.sigma + self.mu
+        theta_samples = self._sample_theta(key, shape)
 
         if self._transform is not None:
-            # Convert THETA → PHI using inverse softplus
-            # Clip to ensure positive values before inverse transform
+            # Convert THETA → PHI using inverse softplus. With lower=None
+            # negative draws are clipped to 1e-6 here (legacy behaviour);
+            # with lower=0.0 every draw is already positive.
+            # _inverse_softplus itself still floors at 1e-6.
             theta_samples = jnp.maximum(theta_samples, 1e-6)
             return _inverse_softplus(theta_samples)
         else:
@@ -864,21 +954,56 @@ class GaussPrior(Prior):
             fig, ax = plt.subplots(figsize=(4, 3))
         # Always plot in THETA space (what user understands)
         x = np.linspace(max(0, self.mu - 4*self.sigma), self.mu + 4*self.sigma, 200)
+        # With lower=0.0 the density on theta > 0 is the Gaussian divided by
+        # its mass above zero, so it integrates to 1 there.
+        log_z = 0.0 if self.lower is None else norm.logsf(-self.mu / self.sigma)
+        kind = 'Gaussian' if self.lower is None else 'Gaussian truncated at 0,'
         if log:
             # Log-probability in THETA space
             log_prob = -0.5 * ((x - self.mu) / self.sigma)**2
             ax.plot(x, log_prob, **kwargs)
-            ax.set_title(f'Log Gaussian({self.mu:.2g}, {self.sigma:.2g})')
+            ax.set_title(f'Log {kind} ({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Log density')
         else:
-            ax.plot(x, norm.pdf(x, loc=self.mu, scale=self.sigma), **kwargs)
-            ax.set_title(f'Gaussian({self.mu:.2g}, {self.sigma:.2g})')
+            ax.plot(x, norm.pdf(x, loc=self.mu, scale=self.sigma) * np.exp(-log_z), **kwargs)
+            ax.set_title(f'{kind} ({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Density')
         ax.set_xlabel('Parameter value (θ)')
         if ax or return_ax:
             return ax
         else:
             plt.show()
+
+
+def _check_gauss_prior_lower(prior, prior_list, positive_params: bool, where: str) -> None:
+    """Raise unless every GaussPrior's ``lower`` matches ``positive_params``.
+
+    Under ``positive_params=True`` a GaussPrior must be truncated at zero
+    (``lower=0.0``); with ``positive_params=False`` it must not be
+    (``lower=None``). Decided from ``positive_params`` itself, not from
+    ``prior._transform`` (which is never reset between fits).
+    """
+    if prior_list is not None:
+        items = [(f"prior[{i}]", p) for i, p in enumerate(prior_list)]
+    else:
+        items = [("prior", prior)]
+    for label, p in items:
+        if not isinstance(p, GaussPrior):
+            continue
+        if positive_params and p.lower is None:
+            raise ValueError(
+                f"{where}: {label} is a GaussPrior {p._describe()} with lower=None, but "
+                f"positive_params=True keeps every parameter positive, so a "
+                f"GaussPrior must be truncated at zero. Pass "
+                f"GaussPrior(..., lower=0.0)."
+            )
+        if not positive_params and p.lower is not None:
+            raise ValueError(
+                f"{where}: {label} is a GaussPrior {p._describe()}, but "
+                f"positive_params=False leaves the parameter unconstrained, "
+                f"so nothing keeps particles positive. Pass "
+                f"GaussPrior(..., lower=None), or use positive_params=True."
+            )
 
 
 class LogGaussPrior(Prior):
@@ -1218,7 +1343,7 @@ class BetaPrior(Prior):
     is mapped to (0, 1) regardless of what the other parameters use.
     To exploit this, pass it inside a per-dimension ``prior`` list:
 
-        prior=[GaussPrior(ci=[1, 5]),    # positive: softplus
+        prior=[GaussPrior(ci=[1, 5], lower=0.0),    # positive: softplus
                BetaPrior(ci=[0.05, 0.5])] # in (0, 1): sigmoid
 
     SVGD then assembles a composite ``param_transform`` that applies
@@ -1261,7 +1386,7 @@ class BetaPrior(Prior):
     >>> # Inside a per-dim prior list
     >>> svgd = graph.svgd(
     ...     data, theta_dim=2,
-    ...     prior=[GaussPrior(ci=[1, 5]), BetaPrior(ci=(0.05, 0.5))],
+    ...     prior=[GaussPrior(ci=[1, 5], lower=0.0), BetaPrior(ci=(0.05, 0.5))],
     ... )
     """
 
@@ -1487,6 +1612,10 @@ class DataPrior(Prior):
         ``True`` for discrete models, ``False`` for continuous (standard graphs only).
     verbose : bool, default=False
         Print progress information.
+    lower : {0.0, None}, default=0.0
+        ``lower`` of the per-parameter GaussPriors: ``0.0`` (truncated at
+        zero) for ``positive_params=True`` fits (the default), ``None`` for
+        ``positive_params=False``.
 
     Examples
     --------
@@ -1508,6 +1637,7 @@ class DataPrior(Prior):
         theta_init=None,
         discrete=None,
         verbose=False,
+        lower=0.0,
     ):
         is_joint = graph._joint_prob_base_graph_indexer is not None
 
@@ -1520,6 +1650,7 @@ class DataPrior(Prior):
                 verbose=verbose,
                 theta_dim=theta_dim,
                 theta_init=theta_init,
+                lower=lower,
             )
         else:
             self._method = "method_of_moments"
@@ -1533,6 +1664,7 @@ class DataPrior(Prior):
                 theta_dim=theta_dim,
                 theta_init=theta_init,
                 discrete=discrete,
+                lower=lower,
             )
 
         self._priors = self._result.prior
@@ -4837,7 +4969,7 @@ class SVGD:
         at indices corresponding to fixed parameters. This is validated at initialization.
 
         Example:
-            prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],
+            prior=[GaussPrior(ci=[0,1], lower=0.0), None, GaussPrior(ci=[0,1], lower=0.0)],
             fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
     n_particles : int, default is 20 times length of theta
         Number of SVGD particles
@@ -5694,6 +5826,9 @@ class SVGD:
                     natural if natural is not None else self.param_transform
                 )
 
+        _check_gauss_prior_lower(self.prior, self.prior_list,
+                                 positive_params, "SVGD")
+
         # Validate and initialize particles
         if theta_init is None and theta_dim is None:
             raise ValueError(
@@ -5771,6 +5906,8 @@ class SVGD:
                     for i, prior_i in enumerate(self.prior_list):
                         if prior_i is None:
                             print(f"    θ[{i}]: (fixed parameter)")
+                        elif isinstance(prior_i, GaussPrior):
+                            print(f"    θ[{i}]: {prior_i._describe()}")
                         elif hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
                             print(f"    θ[{i}]: N({prior_i.mu:.2g}, {prior_i.sigma:.2g}²)")
                         elif hasattr(prior_i, 'scale'):
@@ -5783,7 +5920,9 @@ class SVGD:
                 self.theta_init = self.prior.sample(key, (n_particles, theta_dim))
                 if verbose:
                     print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from prior")
-                    if hasattr(self.prior, 'mu') and hasattr(self.prior, 'sigma'):
+                    if isinstance(self.prior, GaussPrior):
+                        print(f"  (Prior: {self.prior._describe()})")
+                    elif hasattr(self.prior, 'mu') and hasattr(self.prior, 'sigma'):
                         print(f"  (Prior: N({self.prior.mu:.2g}, {self.prior.sigma:.2g}²))")
                     elif hasattr(self.prior, 'scale'):
                         print(f"  (Prior: HalfCauchy(scale={self.prior.scale:.2g}))")

@@ -311,7 +311,7 @@ def main():
         data = g.sample(500)
         # 95% interval [1, 3] EXCLUDES the true 7: coverage can only
         # come from the likelihood pulling particles up.
-        prior = GaussPrior(ci=[1, 3])
+        prior = GaussPrior(ci=[1, 3], lower=0.0)
         all_rows += analyse(
             "coalescent", nv, [7.0],
             lambda seed, g=g, data=data, prior=prior: g.svgd(
@@ -338,7 +338,7 @@ def main():
     rewards = np.sum(g.states().T, axis=0)
     random.seed(17); np.random.seed(17)
     rdata = g.sample(500, rewards=rewards)
-    rprior = GaussPrior(ci=[1, 4])          # EXCLUDES the true 10
+    rprior = GaussPrior(ci=[1, 4], lower=0.0)          # EXCLUDES the true 10
     all_rows += analyse(
         "coalescent+rewards", 43, [10.0],
         lambda seed, g=g, rdata=rdata, rewards=rewards, rprior=rprior: g.svgd(

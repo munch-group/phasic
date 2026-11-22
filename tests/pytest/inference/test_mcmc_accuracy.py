@@ -59,7 +59,7 @@ class TestExponentialPosterior:
         data = np.array(g.sample(n_obs))
 
         model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
-        prior = GaussPrior(ci=[0.5, 10.0])
+        prior = GaussPrior(ci=[0.5, 10.0], lower=0.0)
 
         t0 = time()
         mcmc = MCMC(

@@ -4429,8 +4429,12 @@ extern "C" {{
         final_read: str = 'sojourn',
         bake_fd_skip: bool = True,
         exact_final_grad: bool = False,
+        prior_lower: float | None = 0.0,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
+
+        ``prior_lower`` is the ``lower`` of the default (prior=None)
+        GaussPriors: ``0.0`` for positive_params fits, ``None`` otherwise.
 
         Internal helper for ``Graph.svgd(epoch_starts=...)``. Constructs
         the JSP graph from ``self``, fits a time-homogeneous reference
@@ -5581,7 +5585,7 @@ extern "C" {{
                 s = float(theta_std[k]) if k < theta_std.size else 1.0
                 lo = m - sd * s
                 hi = m + sd * s
-                broadcast_priors.append(GaussPrior(ci=[lo, hi]))
+                broadcast_priors.append(GaussPrior(ci=[lo, hi], lower=prior_lower))
 
         return (
             model,
@@ -5857,7 +5861,7 @@ extern "C" {{
             Log prior function for parameters. Can be:
             - Single callable: prior(theta) -> scalar, applied to entire theta vector
             - List of Prior objects: One prior per parameter dimension.
-              Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])]
+              Use None for fixed parameters: prior=[GaussPrior(ci=[0,1], lower=0.0), None, GaussPrior(ci=[0,1], lower=0.0)]
             - DataPrior instance: Data-informed prior estimated from the observed data.
 
             If None (default), constructs ``DataPrior(graph, observed_data, sd=5)``
@@ -5876,7 +5880,7 @@ extern "C" {{
             at indices corresponding to fixed parameters. This is validated at initialization.
 
             Example:
-                prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],
+                prior=[GaussPrior(ci=[0,1], lower=0.0), None, GaussPrior(ci=[0,1], lower=0.0)],
                 fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
         n_particles : int or None, default None
             Number of SVGD particles. ``None`` resolves to ``20 * theta_dim``.
@@ -6607,6 +6611,7 @@ extern "C" {{
                     prior = DataPrior(
                         self, observed_data, sd=5.0, fixed=fixed, rewards=rewards,
                         theta_dim=_prior_theta_dim, discrete=discrete, verbose=verbose,
+                        lower=0.0 if positive_params else None,
                     )
                     _ledger.set_inferred('prior', 'DataPrior(sd=5)',
                                          'default data-informed prior')
@@ -6757,6 +6762,7 @@ extern "C" {{
                         user_fixed=fixed,
                         user_tied=tied,
                         sd=5.0,
+                        prior_lower=0.0 if positive_params else None,
                         verbose=verbose,
                         granularity=daisy_chain_granularity,
                         exposure_arr=_daisy_exposure,
@@ -7123,6 +7129,7 @@ extern "C" {{
                 prior = DataPrior(
                     self, observed_data, sd=5.0, fixed=fixed, rewards=rewards,
                     theta_dim=theta_dim, discrete=discrete, verbose=verbose,
+                    lower=0.0 if positive_params else None,
                 )
             except Exception as _prior_exc:
                 # No silent fallback (ticket T5; same rule as svgd).
@@ -7189,6 +7196,7 @@ extern "C" {{
         discrete: bool | None = None,
         verbose: bool = True,
         weighted: bool = True,
+        lower: float | None = 0.0,
     ) -> MoMResult:
         """Find parameter estimates by matching model moments to sample moments.
 
@@ -7244,6 +7252,10 @@ extern "C" {{
             weighting matrix ``W = Σ⁻¹``.  This down-weights high-variance
             moments and generally produces tighter standard errors.
             If ``False``, use unweighted least squares (legacy behavior).
+        lower : {0.0, None}, default=0.0
+            ``lower`` of the returned GaussPrior objects: ``0.0`` (truncated
+            at zero) for ``positive_params=True`` fits, ``None`` for
+            ``positive_params=False``.
 
         Returns
         -------
@@ -7283,6 +7295,7 @@ extern "C" {{
             discrete=discrete,
             verbose=verbose,
             weighted=weighted,
+            lower=lower,
         )
 
     def probability_matching(
@@ -7293,6 +7306,7 @@ extern "C" {{
         theta_init: ArrayLike | None = None,
         std_multiplier: float = 2.0,
         verbose: bool = True,
+        lower: float | None = 0.0,
     ) -> ProbMatchResult:
         """Find parameter estimates by matching model probabilities to empirical probabilities.
 
@@ -7321,6 +7335,10 @@ extern "C" {{
             prior standard deviation: ``prior_std = std_multiplier * se``.
         verbose : bool
             Print progress information.
+        lower : {0.0, None}, default=0.0
+            ``lower`` of the returned GaussPrior objects: ``0.0`` (truncated
+            at zero) for ``positive_params=True`` fits, ``None`` for
+            ``positive_params=False``.
 
         Returns
         -------
@@ -7365,6 +7383,7 @@ extern "C" {{
             fixed=fixed,
             std_multiplier=std_multiplier,
             verbose=verbose,
+            lower=lower,
         )
 
     @classmethod

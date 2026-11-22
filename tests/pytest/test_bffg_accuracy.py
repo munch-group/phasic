@@ -340,7 +340,7 @@ class TestBFFGMCMCEndToEnd:
 
         mcmc = MCMC(
             log_prob_fn=bffg_ll,
-            prior=[GaussPrior(ci=[0.1, 10.0]), GaussPrior(ci=[0.1, 10.0])],
+            prior=[GaussPrior(ci=[0.1, 10.0], lower=0.0), GaussPrior(ci=[0.1, 10.0], lower=0.0)],
             theta_dim=2,
             n_samples=150,
             n_chains=2,

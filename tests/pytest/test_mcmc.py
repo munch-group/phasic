@@ -59,7 +59,7 @@
 #         data = np.array(g.sample(n_obs))
 
 #         model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
-#         prior = GaussPrior(ci=[0.5, 10.0])
+#         prior = GaussPrior(ci=[0.5, 10.0], lower=0.0)
 
 #         t0 = time()
 #         mcmc = MCMC(
@@ -185,7 +185,7 @@
 
 #         mcmc = MCMC(
 #             log_prob_fn=log_lik,
-#             prior=GaussPrior(mean=prior_mean, std=prior_std),
+#             prior=GaussPrior(mean=prior_mean, std=prior_std, lower=0.0),
 #             theta_dim=1, n_samples=5000, n_chains=4,
 #             burn_in=500, thin=1, proposal_scale=0.5,
 #             positive_params=False, seed=42,
@@ -797,7 +797,7 @@
 
 #         mcmc = MCMC(
 #             log_prob_fn=log_lik,
-#             prior=GaussPrior(mean=1.0, std=1.0),
+#             prior=GaussPrior(mean=1.0, std=1.0, lower=0.0),
 #             theta_dim=1,
 #             n_samples=1000,
 #             n_chains=2,

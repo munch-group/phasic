@@ -89,7 +89,7 @@ def fitted_zi_svgd():
         svgd = g_fit.svgd(
             observed_data=sparse_obs,
             rewards=rewards,
-            prior=GaussPrior(ci=[1, 20]),
+            prior=GaussPrior(ci=[1, 20], lower=0.0),
             n_iterations=20,
             n_particles=8,
             learning_rate=ExpStepSize(

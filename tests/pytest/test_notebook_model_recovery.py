@@ -412,11 +412,11 @@ def sample_joint_observations(jpg, theta, n, rng):
 #
 # They are deliberately WIDE. A tight off-truth prior sets up a
 # prior-likelihood fight that SVGD resolves badly: measured, a
-# GaussPrior(ci=[0.02, 0.1]) on two_island drives the first parameter to
+# GaussPrior(ci=[0.02, 0.1], lower=0.0) on two_island drives the first parameter to
 # 0.0 and keeps it there for 400 iterations at any step size.
-OFF_TRUTH_COAL = GaussPrior(ci=[1, 3])                 # true 7
+OFF_TRUTH_COAL = GaussPrior(ci=[1, 3], lower=0.0)                 # true 7
 OFF_TRUTH_ISLAND = LogGaussPrior(ci=[0.01, 0.2])       # true [0.7, 0.3]
-OFF_TRUTH_REWARD = GaussPrior(ci=[1, 4])               # true 10
+OFF_TRUTH_REWARD = GaussPrior(ci=[1, 4], lower=0.0)               # true 10
 OFF_TRUTH_JOINT = LogGaussPrior(ci=[2e-5, 6e-5])       # true 1e-4
 # NB a more distant joint prior ([2e-6, 1e-5]) drives the parameter to
 # the boundary (~1e-9) at the 168-vertex size -- the same collapse the

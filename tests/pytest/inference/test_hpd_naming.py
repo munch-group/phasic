@@ -104,7 +104,8 @@ def _mcmc(positive_params):
     def log_lik(theta):
         return -0.5 * jnp.sum((theta - 3.0) ** 2 / 0.5 ** 2)
 
-    mcmc = MCMC(log_prob_fn=log_lik, prior=GaussPrior(mean=1.0, std=2.0),
+    mcmc = MCMC(log_prob_fn=log_lik, prior=GaussPrior(mean=1.0, std=2.0,
+                                                        lower=0.0 if positive_params else None),
                 theta_dim=2, n_samples=300, n_chains=2, burn_in=50,
                 proposal_scale=0.5, positive_params=positive_params,
                 seed=42, verbose=False, progress=False)

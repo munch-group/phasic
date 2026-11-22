@@ -117,9 +117,9 @@ def tied_fit_mixed_transform():
     # re-tie in get_results() must make the reported slave rate equal the master.
     return _fit_tied(prior=[
         BetaPrior(ci=[0.2, 0.85]),    # flat 0 = master (sigmoid)
-        GaussPrior(ci=[1e-6, 1e-2]),  # flat 1 = fixed
-        GaussPrior(ci=[1e-6, 1e-2]),  # flat 2 = slave  (softplus)
-        GaussPrior(ci=[1e-6, 1e-2]),  # flat 3 = fixed
+        GaussPrior(ci=[1e-6, 1e-2], lower=0.0),  # flat 1 = fixed
+        GaussPrior(ci=[1e-6, 1e-2], lower=0.0),  # flat 2 = slave  (softplus)
+        GaussPrior(ci=[1e-6, 1e-2], lower=0.0),  # flat 3 = fixed
     ])
 
 

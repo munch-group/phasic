@@ -493,7 +493,7 @@ class TestAdaptiveTeval:
 # data-informed prior cannot be built (it used to fall back silently to a
 # standard normal; since ticket T5 that raises). Give an explicit prior.
 from phasic import GaussPrior as _GaussPrior
-_FIXTURE_PRIOR = _GaussPrior(ci=[0.1, 10.0])
+_FIXTURE_PRIOR = _GaussPrior(ci=[0.1, 10.0], lower=0.0)
 
 
 class TestPerEpochFixed:
