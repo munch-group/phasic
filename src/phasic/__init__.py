@@ -6770,6 +6770,13 @@ extern "C" {{
                     # fixed layout. Record what was expanded on the ledger;
                     # the notice only names those options.
                     _n_epochs = len(np.asarray(epoch_starts).ravel())
+                    # Flat epoch-by-epoch layout, read by the SVGD plotting
+                    # methods so a per-epoch true_theta / param_names can be
+                    # repeated across epochs (same convention as prior).
+                    model._epoch_layout = {
+                        'n_epochs': _n_epochs,
+                        'param_length': theta_dim // _n_epochs,
+                    }
                     _rec = _epoch_layout_records(
                         _epoch_user_prior, _epoch_user_fixed, _n_epochs,
                         theta_dim // _n_epochs)
@@ -10296,10 +10303,11 @@ extern "C" {{
                         base_graph_indexer: StateIndexer | None = None,
                         reward_only: list | None = None,
                         reward_rates_callback: Callable | None = None,
-                        mutation_rate: float = 1.0,
+                        event_rate_coefficient: float | None = None,
                         reward_limit: int | None = None,
                         tot_reward_limit: float = np.inf,
-                        discrete: bool = True) -> Graph:
+                        discrete: bool = True,
+                        mutation_rate: float | None = None) -> Graph:
         """Build the joint-probability graph from this parameterized graph.
 
         Optimised reimplementation (2026-05-21) of the original builder (since
@@ -10330,15 +10338,40 @@ extern "C" {{
         (or None): a per-property dict was never implemented correctly and
         is refused.
 
-        ``reward_rates_callback`` (optional) replaces the built-in mutation
+        **Event edges and ``event_rate_coefficient``.** The joint graph adds
+        edges for discrete events, each of which increases one counter by
+        one (in population genetics: a mutation on a lineage). Their rates
+        are linear in the LAST theta entry (the event slot, theta dimension
+        = base theta dimension + 1). With the built-in rates the event edge
+        out of a vertex for counted property state index ``i`` has rate::
+
+            current_state[i] * event_rate_coefficient * theta[-1]
+
+        so ``event_rate_coefficient`` (default 1.0) is a FIXED scale stored
+        in the edge coefficients, not the event rate itself: it is not
+        replaced by ``update_weights``. Leave it at 1.0 and put the rate in
+        ``theta[-1]``; a non-unit value only rescales the meaning of
+        ``theta[-1]`` (e.g. 2.0 with ``theta[-1] = 1`` behaves exactly like
+        1.0 with ``theta[-1] = 2``). Overflow (trash) edges, built from the
+        same rates, are scaled by it too. It must be finite and > 0.
+
+        ``mutation_rate`` is the deprecated former name of
+        ``event_rate_coefficient``. It still works with a
+        ``DeprecationWarning``; passing both raises ``TypeError``.
+
+        ``reward_rates_callback`` (optional) replaces the built-in event
         rates. It is called once per joint vertex whose base state is NOT
         absorbing (outcome vertices carry no mutations, and the starting
         vertex is not called) as::
 
             rates, trash_rate = reward_rates_callback(
                 current_state, base_graph_indexer, reward_indexer,
-                current_rewards, mutation_rate=mutation_rate,
+                current_rewards, mutation_rate=event_rate_coefficient,
                 reward_limit=reward_limit, tot_reward_limit=tot_reward_limit)
+
+        (The callback keyword is still named ``mutation_rate`` for
+        compatibility with existing callbacks; it carries the resolved
+        ``event_rate_coefficient``.)
 
         ``current_state`` is the base part of the vertex state (for a graph
         built with ``add_epoch`` it includes the epoch slot) and
@@ -10350,11 +10383,41 @@ extern "C" {{
         and ``tot_reward_limit``: any increment that would pass a cap goes
         to trash, exactly as for the built-in rates, so the caps mean the
         same for every graph and construction terminates. Rates are
-        constants placed in the mutation slot (the last theta entry), so
+        constants placed in the event slot (the last theta entry), so
         the effective rate is ``rate * theta[-1]``; they cannot depend on
         theta. The callback gets copies of ``current_state`` and
         ``current_rewards``; changing them has no effect.
         """
+        # Deprecated alias: mutation_rate -> event_rate_coefficient.
+        if mutation_rate is not None:
+            if event_rate_coefficient is not None:
+                raise TypeError(
+                    "joint_prob_graph() got both event_rate_coefficient and "
+                    "its deprecated alias mutation_rate; pass only "
+                    "event_rate_coefficient.")
+            import warnings
+            warnings.warn(
+                "joint_prob_graph(mutation_rate=...) is deprecated; use "
+                "event_rate_coefficient=... instead (same meaning: a fixed "
+                "scale on the event-edge rates, effective rate = "
+                "event_rate_coefficient * theta[-1]). The mutation_rate "
+                "keyword will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            event_rate_coefficient = mutation_rate
+        if event_rate_coefficient is None:
+            event_rate_coefficient = 1.0
+        if isinstance(event_rate_coefficient, bool) or not isinstance(
+                event_rate_coefficient, (int, float, np.integer, np.floating)):
+            raise TypeError(
+                "event_rate_coefficient must be a real number; got "
+                f"{event_rate_coefficient!r}")
+        if not (np.isfinite(event_rate_coefficient) and event_rate_coefficient > 0):
+            raise ValueError(
+                "event_rate_coefficient must be finite and > 0; got "
+                f"{event_rate_coefficient!r}")
+
         _require_parameterized(self, 'joint_prob_graph')
         _require_linear_weight_mode(self, 'joint_prob_graph()')
         if self.get_was_dph() or any(v.is_aux() for v in self.vertices()):
@@ -10557,7 +10620,7 @@ extern "C" {{
                 mapped = base_idx_to_rewards[i]
                 if not mapped:
                     continue
-                si_rate = current_state[i] * mutation_rate
+                si_rate = current_state[i] * event_rate_coefficient
                 for reward_idx, prop in mapped:
                     rate = si_rate
                     if isinstance(_reward_limit, dict):
@@ -10585,7 +10648,7 @@ extern "C" {{
             # Copies: the builder uses both arrays after the call.
             out = reward_rates_callback(
                 np.array(current_state), base_graph_indexer, reward_indexer,
-                np.array(current_rewards), mutation_rate=mutation_rate,
+                np.array(current_rewards), mutation_rate=event_rate_coefficient,
                 reward_limit=reward_limit, tot_reward_limit=tot_reward_limit)
             if not (isinstance(out, (tuple, list)) and len(out) == 2):
                 raise TypeError(

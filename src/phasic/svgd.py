@@ -7663,6 +7663,56 @@ class SVGD:
             return np.zeros(0, dtype=np.int64)
         return np.asarray(arr, dtype=np.int64)
 
+    def _plot_epoch_layout(self):
+        """``(n_epochs, param_length)`` for an epoch fit with >= 2 epochs,
+        else None. Set by ``Graph.svgd`` on the daisy-chain model; theta is
+        then flat, epoch by epoch."""
+        lay = getattr(self.model, '_epoch_layout', None)
+        if not lay or lay.get('n_epochs', 1) < 2:
+            return None
+        return int(lay['n_epochs']), int(lay['param_length'])
+
+    def _resolve_true_theta(self, true_theta):
+        """Return ``true_theta`` as a flat array of length ``theta_dim``.
+
+        Accepts one value per fitted parameter, or, for an epoch fit, one
+        value per model parameter (repeated for every epoch, as a prior of
+        that length is). Anything else raises."""
+        if true_theta is None:
+            return None
+        arr = np.asarray(true_theta, dtype=float).ravel()
+        if arr.size == self.theta_dim:
+            return arr
+        lay = self._plot_epoch_layout()
+        if lay is not None and arr.size == lay[1]:
+            return np.tile(arr, lay[0])
+        accepted = f"{self.theta_dim} values (one per fitted parameter)"
+        if lay is not None:
+            accepted += (f" or {lay[1]} values (one per model parameter, "
+                         f"repeated for each of the {lay[0]} epochs)")
+        raise ValueError(
+            f"true_theta has {arr.size} values; expected {accepted}.")
+
+    def _resolve_param_names(self, param_names):
+        """Return ``param_names`` as a list of length ``theta_dim`` (or None).
+
+        For an epoch fit, names given per model parameter are repeated for
+        every epoch with an ``(epoch k)`` suffix."""
+        if param_names is None or len(param_names) == 0:
+            return None
+        names = list(param_names)
+        if len(names) == self.theta_dim:
+            return names
+        lay = self._plot_epoch_layout()
+        if lay is not None and len(names) == lay[1]:
+            return [f"{n} (epoch {e + 1})"
+                    for e in range(lay[0]) for n in names]
+        accepted = f"{self.theta_dim} names (one per fitted parameter)"
+        if lay is not None:
+            accepted += (f" or {lay[1]} names (one per model parameter, "
+                         f"repeated for each of the {lay[0]} epochs)")
+        raise ValueError(
+            f"param_names has {len(names)} entries; expected {accepted}.")
 
     def plot_posterior(self, true_theta: jnp.ndarray | list | None = None,
                       param_names: list[str] | None = None, bins: int = 20,
@@ -7711,6 +7761,8 @@ class SVGD:
         tuple[matplotlib.figure.Figure, numpy.ndarray]
             Matplotlib figure and axes array (only if return_fig=True).
         """
+        true_theta = self._resolve_true_theta(true_theta)
+        param_names = self._resolve_param_names(param_names)
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
@@ -7875,7 +7927,8 @@ class SVGD:
         hide_fixed : bool, default=True
             If True, hide fixed parameters in the trace plot.
         true_theta : list, optional
-            List of true theta values.
+            True parameter values: one per fitted parameter, or, for an
+            epoch fit, one per model parameter (repeated for every epoch).
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
         estimate : str, default='map'
@@ -7892,6 +7945,8 @@ class SVGD:
         tuple[matplotlib.figure.Figure, numpy.ndarray]
             Matplotlib figure and axes array (only if return_fig=True).
         """
+        true_theta = self._resolve_true_theta(true_theta)
+        param_names = self._resolve_param_names(param_names)
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
@@ -7976,7 +8031,7 @@ class SVGD:
             if true_theta is not None:
                 ax.plot(x[skip:], [true_theta[i]]*len(x[skip:]),
                     color=black_or_white,
-                    linestyle='dotted', label=f'{line_label} = {float(y[-1]):.3g}')
+                    linestyle='dotted', label=f'True = {float(true_theta[i]):.3g}')
 
 
             # Labels
@@ -8040,6 +8095,7 @@ class SVGD:
         tuple[matplotlib.figure.Figure, numpy.ndarray]
             Matplotlib figure and axes array (only if return_fig=True).
         """
+        param_names = self._resolve_param_names(param_names)
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
@@ -8322,6 +8378,7 @@ class SVGD:
         tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
             Matplotlib figure and axes (only if return_fig=True).
         """
+        true_theta = self._resolve_true_theta(true_theta)
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
@@ -9832,6 +9889,8 @@ class SVGD:
         tuple[matplotlib.figure.Figure, numpy.ndarray]
             Matplotlib figure and axes array (only if return_fig=True).
         """
+        true_theta = self._resolve_true_theta(true_theta)
+        param_names = self._resolve_param_names(param_names)
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
 
@@ -10032,6 +10091,7 @@ class SVGD:
         >>> anim = svgd.animate(param_idx=0, true_theta=[2.0, 3.0, 2.0],
         ...                     param_name='jump rate')
         """
+        true_theta = self._resolve_true_theta(true_theta)
         plt, FuncAnimation = self._validate_animation_params(skip)
 
         if param_idx < 0 or param_idx >= self.theta_dim:
@@ -10219,6 +10279,8 @@ class SVGD:
         ...     save_as_gif='svgd_evolution.gif'
         ... )
         """
+        true_theta = self._resolve_true_theta(true_theta)
+        param_names = self._resolve_param_names(param_names)
         plt, FuncAnimation = self._validate_animation_params(skip)
 
         if self.theta_dim < 2:
