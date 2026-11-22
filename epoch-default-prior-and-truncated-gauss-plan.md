@@ -316,13 +316,94 @@ Gate files (all batches): the new test files, plus
 `inference/test_svgd_exact_moment_grad_kwarg.py`,
 `inference/test_log_prob_unified_bit_identity.py`,
 `inference/test_model_selection.py`, `inference/test_lrt_at.py`, and
-`test_notebook_model_recovery.py -m "not slow"`.
+`test_notebook_model_recovery.py -m "not slow"`, `test_weight_formula_kwarg.py`,
+`inference/test_log_likelihood_zero_inflated.py`.
+
+### Batch 0 results (2026-11-22, master `54117196`)
+
+Scripts: session scratchpad `.../scratchpad/b0/` (`a_scale.py`,
+`c_cost.py`, `d_sampler.py`, `inv_plugin.py`, `run_gates.sh`); may be
+cleared, the numbers below are the record.
+
+- **0a scale invariance: confirmed.** Normalised joint table unchanged to
+  1.1e-16 (continuous) and 5.6e-17 (discrete) under theta -> c*theta,
+  c in {2, 0.01, 37}, on the 1-rate and a 2-rate coalescent (theta_dim 2,
+  3); holding the event slot fixed while scaling the rest changes it by
+  0.13-0.20. Single epoch with varying exposure: log-likelihood change
+  exactly 0 under scaling. Two epochs [0, 0.3]: scaling only the final
+  epoch's rates changes the log-likelihood by exactly 0; scaling the first
+  epoch's by 0.747.
+- **0b exposure: confirmed.** Daisy log-likelihood with uniform exposure
+  3.5 equals the no-exposure model with the exposure slot multiplied by
+  3.5 in every epoch, difference exactly 0, for 1 and 2 epochs.
+- **0c cost (D8 cap = 100).** 680 vertices: one table 0.2 ms, 1000
+  batched 8 ms. 113,734 vertices: one table 11.3 ms; batched 10 / 100 /
+  1000 tables 45 / 301 / 2966 ms. A reference fit takes 37-39 table
+  evaluations (0.1 s and 3.4 s). A 9-sample graph did not build within
+  the 20-minute limit.
+- **0d sampler: confirmed exact.** Key-free survival-form inverse CDF:
+  over 40 keys the KS p-values against truncnorm are uniform (fraction
+  below 0.05: 0.00-0.05) at a in {-3, 0, 2, 4.75}; finite and correct at
+  a = 6 and 8; kept draws bit-identical; an all-positive prior gives
+  identical samples.
+- **0f baseline:** 574 passed, 4 skipped, 6 deselected (slow), 3 xfailed,
+  0 failed, 31 min, peak 3.9 GB (`-m "not slow"` over all gate files).
+  Two GaussPrior test files missing from the gate list were added and
+  baselined: `test_weight_formula_kwarg.py`,
+  `inference/test_log_likelihood_zero_inflated.py` (14 passed).
+- **0e inventory** (record-only plugin over the gate run; same 574
+  passed):
+  - D1 (user GaussPrior under positive_params): sampled in 8 test files;
+    all 24 test files with GaussPrior get `lower=0.0` where
+    positive_params is on. Notebooks: 11 files, listed for the user, not
+    changed.
+  - D4: user GaussPriors with positive_params=False only in
+    `inference/test_hpd_naming.py` (8) and `inference/test_mcmc_accuracy.py`
+    (4); they keep `lower=None`, so nothing breaks.
+  - Changed initial particles (default priors with negative draws):
+    `inference/test_svgd_exact_final_grad_kwarg.py`,
+    `inference/test_svgd_exact_grad_kwarg.py`,
+    `inference/test_svgd_exact_moment_grad_kwarg.py`,
+    `test_constant_parameterized_consistency.py`,
+    `test_epoch_layout_notice.py`, `inference/test_hpd_naming.py`; user
+    prior: `inference/test_log_prob_unified_bit_identity.py`. Their
+    assertions compare paths under the same prior, so they should hold;
+    confirmed at the gate.
+  - Direct builder calls (`test_epoch_normalization.py` 83,
+    `inference/test_exact_grad_daisy_final.py` 69/470,
+    `test_daisy_chain_c_path.py` 742/1037, `test_epoch_sojourn_finalread.py`
+    237-260, `test_exposure_daisy_chain.py` 617-979) all discard the
+    returned prior: unaffected by 3.1. `epoch_model` callers never fit
+    with the default prior: unaffected.
+  - Will raise under D5 (default prior, joint graph, nothing fixed),
+    disposition = pass an explicit `GaussPrior(..., lower=0.0)` (keeps the
+    tests' free parameters and intent): `inference/test_svgd_exact_final_grad_kwarg.py`
+    (13 svgd epoch calls + `test_none_never_raises[joint_prob]`),
+    `inference/test_svgd_exact_grad_kwarg.py` (7 tests via DataPrior).
+    `test_probmatch_input_check.py::test_mapped_indices_fit_ratio` fits the
+    unidentified case on purpose: change to fix one rate and check the
+    estimate, plus a new assertion that the unfixed case raises. Its input
+    validation tests must keep their own errors: the guard runs AFTER input
+    validation.
+  - `test_prior_fallback_raises.py::test_epoch_path_raises_when_probability_matching_fails`
+    expects `epoch_model(obs, ...)` to raise at construction; under 3.1 the
+    default prior is built at fit time: change it to `.fit(fixed=...)` and
+    add the same check through `svgd(epoch_starts=..., fixed=...)`.
+  - D2: no test uses differing per-epoch fixed values with prior=None.
+  - D7 notice: epoch fits with the final epoch unidentified occur in 12
+    gate files; the notice is additive (no test asserts the full notice
+    list for these fits; confirmed at the gate).
+  - D8: existing tests have at most 30 distinct exposure values, so the
+    binning path (>100) is covered only by the new tests.
 
 ### Batch 1 — GaussPrior `lower`
 
-- Add `lower=0.0` to every GaussPrior in tests, docs notebooks,
-  experiments and docstrings (D1), each notebook edit limited to the
-  GaussPrior calls.
+- Add `lower=0.0` to every GaussPrior in tests, experiments and
+  docstrings (D1). **Docs notebooks are NOT changed (user, 2026-11-22).**
+  Instead, Batch 1 reports a list of every notebook cell with a GaussPrior
+  that needs `lower=0.0`; those cells raise under the new rule until the
+  user updates them (this includes the notebook-to-script step of
+  `pixi run test`).
 - Implement 3.3 (`svgd.py`, `svgd_config.py`, `mcmc.py`, and the `lower`
   pass-through in `DataPrior`, `probability_matching`, `method_of_moments`,
   `Graph.svgd`, `Graph.mcmc`).
@@ -430,7 +511,9 @@ Decided (user, 2026-11-22):
   be None (D4). The priors phasic builds itself follow the same rule
   (`lower=0.0` under positive_params). Every GaussPrior in the repo (about
   55 calls in 24 test files, 45 calls in 11 docs notebooks, 2 experiment
-  scripts, docstring examples) gets `lower=0.0` in Batch 1. User scripts
+  scripts, docstring examples) gets `lower=0.0` in Batch 1, except the
+  docs notebooks, which are not changed (the user updates them from a
+  list Batch 1 provides). User scripts
   outside the repo break with a clear message (accepted by the user).
   Since every prior under positive_params is now truncated, no particle is
   clipped at initialisation.
@@ -449,8 +532,11 @@ Decided (user, 2026-11-22):
   with a visible notice in the fit's notices. The epoch default prior
   gets a relative width floor, sigma = max(sd*s, 0.5*|m|).
 - **D8 — (b):** the grouped reference fit evaluates every distinct
-  exposure value exactly up to a cap (set from the Batch 0c timings);
-  above it, exposures are grouped into quantile bins (default 50), each
+  exposure value exactly up to a cap of 100 distinct values (Batch 0c:
+  at 114k vertices one table is 11 ms, 100 values batched 0.3 s, 1000
+  values 3.0 s, and a reference fit needs ~39 table evaluations, so the
+  cap adds ~12 s there); above it, exposures are grouped into 100
+  quantile bins, each
   treated at its mean exposure, with a visible notice that the default
   prior used binned exposure. Only the default prior's centre and width
   are approximated; the fit's likelihood uses each observation's exact
