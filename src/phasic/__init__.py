@@ -12536,7 +12536,7 @@ except (ImportError, AttributeError):
 _JAX_LAZY_NAMES = frozenset({
     # svgd
     'SVGD',
-    'Prior', 'GaussPrior', 'LogGaussPrior', 'HalfCauchyPrior', 'BetaPrior', 'DataPrior',
+    'Prior', 'GaussPrior', 'LogGaussPrior', 'GammaPrior', 'HalfCauchyPrior', 'BetaPrior', 'DataPrior',
     'StepSizeSchedule', 'ConstantStepSize', 'ExpStepSize',
     'AdaptiveStepSize', 'WarmupExpStepSize',
     'Adam', 'Adamelia', 'SGDMomentum', 'RMSprop', 'Adagrad',

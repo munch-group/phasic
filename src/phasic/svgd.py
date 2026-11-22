@@ -976,7 +976,9 @@ class GaussPrior(Prior):
 
 
 def _check_gauss_prior_lower(prior, prior_list, positive_params: bool, where: str) -> None:
-    """Raise unless every GaussPrior's ``lower`` matches ``positive_params``.
+    """Raise unless every GaussPrior's ``lower`` matches ``positive_params``
+    (and no positive-support prior -- GammaPrior, LogGaussPrior,
+    HalfCauchyPrior -- is used with ``positive_params=False``).
 
     Under ``positive_params=True`` a GaussPrior must be truncated at zero
     (``lower=0.0``); with ``positive_params=False`` it must not be
@@ -988,6 +990,13 @@ def _check_gauss_prior_lower(prior, prior_list, positive_params: bool, where: st
     else:
         items = [("prior", prior)]
     for label, p in items:
+        if isinstance(p, (GammaPrior, LogGaussPrior, HalfCauchyPrior)) and not positive_params:
+            raise ValueError(
+                f"{where}: {label} is a {type(p).__name__}, which has positive support, but "
+                f"positive_params=False leaves the parameter unconstrained, "
+                f"so nothing keeps particles positive. Use "
+                f"positive_params=True."
+            )
         if not isinstance(p, GaussPrior):
             continue
         if positive_params and p.lower is None:
@@ -1015,7 +1024,9 @@ class LogGaussPrior(Prior):
     log-normal, so is 1/θ.
 
     When used with positive_params=True, SVGD automatically handles the
-    transformation to PHI space with proper Jacobian correction.
+    transformation to PHI space with proper Jacobian correction. It must be
+    used with positive_params=True: positive_params=False raises when the
+    SVGD / MCMC object is built.
 
     Can be specified via mean/std on the log scale, or via a credible interval
     in THETA space (the bounds are converted to the log scale internally).
@@ -1150,12 +1161,193 @@ class LogGaussPrior(Prior):
             plt.show()
 
 
+class GammaPrior(Prior):
+    """Gamma prior distribution (positive support only).
+
+    The prior is defined in THETA space: θ ~ Gamma(shape, rate), with
+    density proportional to θ^(shape-1) exp(-rate θ) on θ > 0. A natural
+    prior for rates; the exponential distribution is shape = 1.
+
+    It must be used with ``positive_params=True`` (the default of
+    ``Graph.svgd`` and ``Graph.mcmc``), which keeps θ > 0; SVGD then
+    handles the transformation to PHI space with the Jacobian correction.
+    ``positive_params=False`` raises when the SVGD / MCMC object is built.
+
+    Specify exactly one of: ``shape`` and ``rate``; ``mean`` and ``std``
+    (shape = (mean/std)², rate = mean/std²); or ``ci``, a central
+    credible interval on θ, solved numerically for shape and rate.
+
+    Parameters
+    ----------
+    shape : float, optional
+        Shape parameter (> 0). Requires ``rate``.
+    rate : float, optional
+        Rate parameter (> 0), the inverse of the scale. Requires ``shape``.
+    mean : float, optional
+        Prior mean of θ (> 0). Requires ``std``.
+    std : float, optional
+        Prior standard deviation of θ (> 0). Requires ``mean``.
+    ci : tuple of (float, float), optional
+        Central credible interval (low, high) on θ, 0 < low < high: the
+        Gamma whose ``(1-prob)/2`` and ``(1+prob)/2`` quantiles are low and
+        high.
+    prob : float, default=0.95
+        Probability mass in the credible interval (only used with ci).
+
+    Notes
+    -----
+    The log density (``__call__``) is unnormalised, as for the other
+    priors. Initial particles are exact Gamma draws. A draw below 1e-6
+    (likely only for shape well below 1) is floored to 1e-6 by the
+    inverse softplus, as for every positive prior.
+
+    Examples
+    --------
+    >>> prior = GammaPrior(shape=2.0, rate=0.5)       # mean 4
+    >>> prior = GammaPrior(mean=4.0, std=2.0)
+    >>> prior = GammaPrior(ci=(1.0, 10.0))            # 95% interval
+    >>> prior.plot()
+    """
+
+    def __init__(self, shape: float | None = None, rate: float | None = None,
+                 mean: float | None = None, std: float | None = None,
+                 ci: tuple[float, float] | None = None, prob: float = 0.95) -> None:
+        given = [name for name, v in (('shape', shape), ('rate', rate),
+                                      ('mean', mean), ('std', std), ('ci', ci))
+                 if v is not None]
+        if set(given) == {'shape', 'rate'}:
+            a, b = self._positive('shape', shape), self._positive('rate', rate)
+        elif set(given) == {'mean', 'std'}:
+            m, s = self._positive('mean', mean), self._positive('std', std)
+            a, b = (m / s) ** 2, m / s ** 2
+        elif given == ['ci']:
+            a, b = self._from_ci(ci, prob)
+        else:
+            raise ValueError(
+                "GammaPrior: give exactly one of (shape, rate), (mean, std) or "
+                f"ci; got {given or 'nothing'}."
+            )
+        self.shape = float(a)
+        self.rate = float(b)
+        self._transform = None
+
+    @staticmethod
+    def _positive(name, v) -> float:
+        if isinstance(v, bool) or not isinstance(v, (int, float, np.integer, np.floating)):
+            raise TypeError(f"GammaPrior: {name} must be a real number; got {v!r}.")
+        v = float(v)
+        if not (np.isfinite(v) and v > 0):
+            raise ValueError(f"GammaPrior: {name} must be finite and > 0; got {v!r}.")
+        return v
+
+    @classmethod
+    def _from_ci(cls, ci, prob):
+        from scipy.optimize import brentq
+        from scipy.stats import gamma as _gamma
+        try:
+            low, high = ci
+        except (TypeError, ValueError):
+            raise ValueError(f"GammaPrior: ci must be a pair (low, high); got {ci!r}.")
+        low, high = cls._positive('ci low', low), cls._positive('ci high', high)
+        if not low < high:
+            raise ValueError(f"GammaPrior: ci needs low < high; got {ci!r}.")
+        if not (0 < prob < 1):
+            raise ValueError(f"GammaPrior: prob must be in (0, 1); got {prob!r}.")
+        q_lo, q_hi = (1 - prob) / 2, (1 + prob) / 2
+        target = np.log(high / low)
+
+        # log(q_hi-quantile / q_lo-quantile) of Gamma(a, 1) decreases
+        # monotonically in a, from +inf (a -> 0) to 0 (a -> inf).
+        def f(log_a):
+            a = np.exp(log_a)
+            # At very small shape the lower quantile underflows to 0 and the
+            # log ratio is +inf, which still brackets the root correctly.
+            with np.errstate(divide='ignore'):
+                return np.log(_gamma.ppf(q_hi, a)) - np.log(_gamma.ppf(q_lo, a)) - target
+
+        lo_bound, hi_bound = np.log(1e-3), np.log(1e8)
+        if not (f(lo_bound) > 0 > f(hi_bound)):
+            raise ValueError(
+                f"GammaPrior: no Gamma with shape in [1e-3, 1e8] has the "
+                f"{prob:g} interval {ci!r} (ratio high/low = {high / low:.4g}). "
+                f"Give shape and rate directly."
+            )
+        a = float(np.exp(brentq(f, lo_bound, hi_bound, xtol=1e-12, rtol=1e-12)))
+        b = float(_gamma.ppf(q_lo, a) / low)
+        return a, b
+
+    def _describe(self) -> str:
+        """Short form used in SVGD's verbose printout."""
+        return f"Gamma(shape={self.shape:.2g}, rate={self.rate:.2g})"
+
+    def __call__(self, phi: jnp.ndarray) -> float:
+        """Compute log-probability (unnormalised).
+
+        When _transform is set (by SVGD / MCMC with positive_params=True),
+        evaluates the Gamma log density in THETA space plus the softplus
+        Jacobian. Otherwise evaluates directly on the input (which must be
+        > 0); SVGD and MCMC never do that, see the class docstring.
+        """
+        if self._transform is not None:
+            theta = self._transform(phi)
+            log_prior_theta = jnp.sum((self.shape - 1.0) * jnp.log(theta)
+                                      - self.rate * theta)
+            log_jacobian = -jnp.sum(jax.nn.softplus(-phi))
+            return log_prior_theta + log_jacobian
+        return jnp.sum((self.shape - 1.0) * jnp.log(phi) - self.rate * phi)
+
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
+        """Exact Gamma draws in THETA space; in PHI space when _transform
+        is set."""
+        theta_samples = jax.random.gamma(key, self.shape, shape) / self.rate
+        if self._transform is not None:
+            return _inverse_softplus(theta_samples)
+        return theta_samples
+
+    def plot(self, log: bool = False, ax: matplotlib.axes.Axes | None = None, return_ax: bool = False, **kwargs) -> matplotlib.axes.Axes | None:
+        """Plot the Gamma prior density in THETA space.
+
+        Parameters
+        ----------
+        log : bool, default=False
+            If True, plot the log density instead of the density.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure.
+        return_ax : bool, default=False
+            If True, return ax. If False, call plt.show().
+        **kwargs
+            Additional arguments passed to plot function.
+        """
+        import matplotlib.pyplot as plt
+        from scipy.stats import gamma as _gamma
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4, 3))
+        dist = _gamma(self.shape, scale=1.0 / self.rate)
+        x = np.linspace(dist.ppf(1e-4), dist.ppf(1 - 1e-4), 400)
+        label = f'Gamma(shape={self.shape:.2g}, rate={self.rate:.2g})'
+        if log:
+            ax.plot(x, dist.logpdf(x), **kwargs)
+            ax.set_title(f'Log {label}')
+            ax.set_ylabel('Log density')
+        else:
+            ax.plot(x, dist.pdf(x), **kwargs)
+            ax.set_title(label)
+            ax.set_ylabel('Density')
+        ax.set_xlabel('Parameter value (θ)')
+        if ax or return_ax:
+            return ax
+        else:
+            plt.show()
+
+
 class HalfCauchyPrior(Prior):
     """Half-Cauchy prior distribution (positive support only).
 
     The prior is defined in THETA space (the natural parameter space).
     When used with positive_params=True, SVGD automatically handles
-    the transformation to PHI space with proper Jacobian correction.
+    the transformation to PHI space with proper Jacobian correction. It
+    must be used with positive_params=True: positive_params=False raises
+    when the SVGD / MCMC object is built.
 
     Useful for scale parameters due to heavy tails.
     PDF: f(θ) = 2 / (π × scale × (1 + (θ/scale)²)) for θ > 0
@@ -5906,7 +6098,7 @@ class SVGD:
                     for i, prior_i in enumerate(self.prior_list):
                         if prior_i is None:
                             print(f"    θ[{i}]: (fixed parameter)")
-                        elif isinstance(prior_i, GaussPrior):
+                        elif hasattr(prior_i, '_describe'):
                             print(f"    θ[{i}]: {prior_i._describe()}")
                         elif hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
                             print(f"    θ[{i}]: N({prior_i.mu:.2g}, {prior_i.sigma:.2g}²)")
@@ -5920,7 +6112,7 @@ class SVGD:
                 self.theta_init = self.prior.sample(key, (n_particles, theta_dim))
                 if verbose:
                     print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from prior")
-                    if isinstance(self.prior, GaussPrior):
+                    if hasattr(self.prior, '_describe'):
                         print(f"  (Prior: {self.prior._describe()})")
                     elif hasattr(self.prior, 'mu') and hasattr(self.prior, 'sigma'):
                         print(f"  (Prior: N({self.prior.mu:.2g}, {self.prior.sigma:.2g}²))")
