@@ -1,6 +1,6 @@
 # Bug 2: fixed parameter values are not delivered to the model as given — fix plan
 
-**Status: v2, 2026-11-23. v1 was reviewed by three independent agents
+**Status: v3, 2026-11-23 — SIGNED OFF by all three reviewers (reviewers 1 and 3 on v2; reviewer 2 conditional on two test rewordings, applied here as written, section 8). v1 was reviewed by three independent agents
 (diagnosis/scope; fix design; tests/impact). All confirmed the diagnosis
 and the wrapper design (prototyped by two of them) and required the
 changes made here (section 8). Branch `fix/fixed-value-under-positive`,
@@ -148,7 +148,10 @@ Documented limits (not changed here):
   prior sees a different constant. Stated in the `prior` docstring.
 - A user-supplied preconditioner INSTANCE keeps its own transform.
 - `map_estimate_with_optimization` already raises `TypeError` on master
-  whenever a transform is active; not repaired here.
+  (with or without a transform); not repaired here.
+- `MCMC(parallel='processes')` fails on master for graph-built models
+  (`TypeError: cannot pickle ... GraphBuilder`); unrelated, not repaired
+  here.
 - Finite-difference backwards at sites that do not skip fixed slots
   (`pmf_from_graph`, `pmf_from_cpp`, `moments_from_graph`, reward-visit)
   probe ±1e-7 around a slot fixed at 0 (the discarded component only);
@@ -173,13 +176,20 @@ Model input and exports (fail on master except where noted):
    variants: exactly 1.0.
 3. No transform (v = 0, -0.5, 0.3): exact (guard; passes on master) and
    `param_transform is None` still.
-4. MCMC: the rows of 1 and 2 (model input and results), plus
-   `parallel='processes'` once.
+4. MCMC: the rows of 1 and 2 (model input and results). One additional
+   `parallel='processes'` row uses a picklable pure-Python `log_prob_fn`
+   and asserts EXPORTED results only (fixed column, mean, std, HPD exact):
+   a spy's record lives in the child process, and graph-built models
+   cannot be used in this mode at all (see limits).
 5. User-supplied `theta_init` with a different value in the fixed column:
    model input and `history[0]` are the fixed value.
-6. Exposure on a fixed parameter, SVGD-level wrapper and epoch path
-   (`Graph.svgd(..., epoch_starts=..., exposure=...)`): the model's
-   per-observation values are `alpha * v` bitwise for v in {1e-10, 0, 2}.
+6. Exposure on a fixed parameter, v in {1e-10, 0, 2}. SVGD-level exposure
+   wrapper: a spy sees per-observation values `alpha * v` bitwise. Epoch
+   path (`Graph.svgd(..., epoch_starts=..., exposure=...)`), where the
+   scaling happens inside the model and a spy on the input sees only v:
+   the model input is `== v`, and the fit's `log_likelihood` equals the
+   epoch model evaluated directly with exactly v at the fixed slot (as in
+   test 11).
 7. `plot_pairwise_hdr` on a fit fixed at 1e-8: every model evaluation
    during the plot has the fixed slot at 1e-8.
 8. Same model object, consecutive fits with different fixed VALUES and
@@ -188,12 +198,20 @@ Model input and exports (fail on master except where noted):
 
 The fit is the fit at that value (real models):
 9. A model with a competing edge, `fixed=(1, 0)`: free-slot particles and
-   `log_likelihood` equal those of the reduced one-parameter model
+   `log_likelihood` match those of the reduced one-parameter model
    (prototype: -18.36418179450782 both; master evaluates at 0.693 and
-   gives -18.652). For the moments family and a joint-probability model.
-10. Same-build equivalence: fit A with `fixed=[(1, 2.0)]` vs fit B on a
-    model that ignores theta[1] and hard-codes 2.0: free-slot particles
-    array-equal. (Replaces v1's cross-build reference numbers.)
+   gives -18.652). Array-equal if the implementation reproduces the
+   prototype's bitwise agreement, otherwise rtol 1e-9 with the reason
+   recorded (a zero-weight edge can change the elimination order). For the
+   moments family and for a joint-probability model in which the rate
+   fixed at 0 is a COMPETING rate (not the mutation rate, which would make
+   the model degenerate); the reduced graph is built explicitly.
+10. Same-build equivalence, v in {2.0, 0.3, 5.0}: fit A with
+    `fixed=[(1, v)]` vs fit B on a model that ignores theta[1] and
+    hard-codes v, B keeping two parameters with slot 1 fixed at another
+    value (7.0) so initialisation matches: free-slot particles
+    array-equal. (v = 0.3 and 5.0 fail on master by 2e-10 / 5e-10; 2.0 is
+    the guard. Replaces v1's cross-build reference numbers.)
 11. Epoch model built by `Graph.epoch_model`, one epoch's rate fixed at a
     value below the old floor (1e-10): `log_likelihood` at the fitted
     particles equals the model evaluated with exactly 1e-10 there.
@@ -246,17 +264,26 @@ Numeric shifts expected: fits are chaotic in the fixed value (delivering
 exactly 5.0 instead of 4.999999999999999 moved free particles by up to
 1.25 after 30 iterations in a prototype), so EVERY existing fit whose
 fixed value does not round-trip today (1e-8, 1e-4, 1.2e-4, 0.3, 0.7, 5.0,
-...) changes numerically. The reviewers' list of affected test files
-(about 20, all with loose assertions) is in
-`experiments/bug2_fixed_values/review3/`; the gate judges each.
+...) changes numerically. Affected test files found by review 3 (loose
+assertions, expected to stay green; the gate judges each):
+`test_epoch_normalization.py`, `test_epoch_layout_notice.py`,
+`test_epoch_default_prior.py`, `test_svgd_config.py`,
+`test_daisy_chain_c_path.py`, `inference/test_model_selection.py`,
+`inference/test_epoch_model.py`, `test_weight_formula_daisy.py`,
+`test_weight_formula_kwarg.py`, `test_daisy_chain_svgd_kernel.py`,
+`test_notebook_model_recovery.py`,
+`inference/test_svgd_exact_final_grad_kwarg.py`, `inference/test_lrt_at.py`,
+`test_svgd_tied_export.py`, `test_exposure_daisy_chain.py`.
 
 For the user (not edited by me):
 - `docs/pages/tutorial/model-selection.ipynb` cell 13 fixes migration at
   0 for "svgd_no_mig". Today that is evaluated at migration 0.693; after
   the fix it is a true zero-migration model, so its likelihood-ratio
   results change (or the cell raises if that model is degenerate).
-- Every notebook fit with a non-round-tripping fixed value shifts at the
-  1e-10 relative level (list in review3's report).
+- Every notebook fit with a non-round-tripping fixed value changes
+  numerically (svgd-joint-prob cells 26, 34, 40, 45, 50, 63;
+  model-selection cells 7, 26, 30; method-of-moments cells 35, 40; ghost
+  cell 11; coalescent-derived cell 14; moran-coalescent-derived cell 19).
 
 ## 5. Gate
 
@@ -309,3 +336,15 @@ input coercion, user preconditioner instance, FD wording,
 `map_estimate_with_optimization`, numeric shifts → section 2 limits,
 items 3 and 7, section 4. Negative-value policy (reviews 2, 3 asked for
 an explicit choice) → section 7.
+
+Re-review of v2: reviewers 1 and 3 SIGN-OFF (their notes adopted: epoch
+half of test 6; user-fixed slots = fixed mask minus tied slaves when
+assigning exports — implementation note; test 10 gains v = 0.3 and 5.0;
+wording of the MAP limit; the affected-test list pasted into section 4;
+test 9's joint variant specified). Reviewer 2 required two rewordings
+(tests 4 and 6) and stated no further round is needed once applied as
+written → applied in v3.
+
+Implementation note (review 1): SVGD sees tied slaves as ordinary
+`(slave, 0.0)` fixed entries, so "user-fixed" for the export assignment is
+the fixed mask minus `model._tying_info['slave_to_master']`.

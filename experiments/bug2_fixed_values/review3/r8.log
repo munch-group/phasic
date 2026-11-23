@@ -1,0 +1,12 @@
+## (a) map_estimate_with_optimization, default positive_params
+Rewards not yet implemented
+  RAISED TypeError logaddexp requires ndarray or scalar arguments, got <class 'list'> at position 0.
+RuntimeError: Computation produced NaN at vertex 1 (command 5) - numerical catastrophe
+RuntimeError: Computation produced NaN at vertex 2 (command 4) - numerical catastrophe
+Rewards not yet implemented
+  no transform: RAISED TypeError unsupported operand type(s) for -: 'list' and 'float'
+## (c) test 10: fit A fixed=(1,v) on the real model vs fit B on a model hard-coding v (B fixed at 7.0)
+  v=2: free slots array-equal=True  max abs diff=0.000e+00
+  v=0.3: free slots array-equal=False  max abs diff=2.130e-10
+  v=5: free slots array-equal=False  max abs diff=5.134e-10
+[runcap] exit 0, peak RSS 816 MB, 17s
