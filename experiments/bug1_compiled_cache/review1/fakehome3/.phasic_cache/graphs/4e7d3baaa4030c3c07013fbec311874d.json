@@ -1,0 +1,130 @@
+{
+  "version": "0.20.0",
+  "callback_hash": "4e7d3baaa4030c3c07013fbec311874d",
+  "created_at": "2026-11-23T15:34:59.515162",
+  "python_version": "3.13",
+  "construction_params": {},
+  "graph_data": {
+    "states": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ]
+    },
+    "vertex_indices": {
+      "__type__": "ndarray",
+      "__data__": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "constant_edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "start_edges": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          1.0,
+          1.0
+        ]
+      ]
+    },
+    "param_edges": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          1.0,
+          2.0,
+          6.0
+        ],
+        [
+          2.0,
+          3.0,
+          1.0
+        ],
+        [
+          2.0,
+          4.0,
+          2.0
+        ],
+        [
+          3.0,
+          5.0,
+          1.0
+        ],
+        [
+          4.0,
+          5.0,
+          1.0
+        ]
+      ]
+    },
+    "start_param_edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "param_length": 1,
+    "state_length": 4,
+    "n_vertices": 6,
+    "weight_mode": "linear",
+    "dyn_ordering": false,
+    "is_discrete": false,
+    "was_dph": false,
+    "is_aux": {
+      "__type__": "ndarray",
+      "__data__": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  }
+}

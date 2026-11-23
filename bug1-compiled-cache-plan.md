@@ -1,6 +1,6 @@
 # Bug 1: SVGD's compiled-gradient cache returns another fit's gradient — fix plan
 
-**Status: v2, 2026-11-23. v1 was reviewed by three independent agents
+**Status: v3, 2026-11-23 (v2 + the re-review's gate and wording corrections, section 7). v1 was reviewed by three independent agents
 (diagnosis; fix design; tests and gate). All three confirmed the fix and
 required changes to the diagnosis, cost figures, test list and gate; v2
 makes them (section 7). Branch `fix/svgd-compiled-cache`, worktree
@@ -72,10 +72,10 @@ Unused older path: `_precompile_model`, `_save_compiled`,
 (`svgd.py:6826-6841`) have no caller; `self.compiled_model` /
 `self.compiled_grad` (`svgd.py:6432-6434`) are written only by them.
 
-Not affected: regularization schedules and `precompile=False` (never
-touch the cache; note `jit=False` alone does not avoid it because
-`precompile=True` forces JIT, `svgd.py:5704-5707`), parallel mode, tied
-parameters (baked into distinct models).
+Not affected: regularization schedules; `jit=False` TOGETHER WITH
+`precompile=False` (measured: either one alone still leaves
+`jit_enabled=True` and creates a cache entry, `svgd.py:5691-5707`);
+parallel mode; tied parameters (baked into distinct models).
 
 ## 2. Fix
 
@@ -145,16 +145,23 @@ Fail on master, pass after the fix:
 2. the same with `return_history=False` (the grad entry);
 3. the same with `regularization > 0` (sample moments differ with the data);
 4. different prior;
-5. mutate `svgd.observed_data` on one instance, `optimize()` again;
+5. mutate `svgd.observed_data` on one instance, `optimize()` again —
+   WITHOUT regularization (with `regularization > 0` the result differs
+   from a fresh instance even with no cache, because `sample_moments` is
+   computed in `__init__` and not refreshed: a property of mutation, not
+   of this bug);
 6. FreeEpochModel: `fit(prior=P1)` then `fit(prior=P2)`;
 7. FreeEpochModel: non-nested `fixed` sets;
 8. FreeEpochModel: nested then full;
 9. FreeEpochModel: `prior=None`, same slots fixed at different values;
 10. no retention: a weakref to a fitted SVGD instance dies after `del` +
     `gc.collect()` (default, no-history and epoch paths);
-11. under `monkeypatch.setenv('HOME', tmp_path)`: a fit creates no
-    `compiled_svgd_*` file and performs no `pickle.load` (recorder patched
-    onto `pickle.load`);
+11. under `monkeypatch.setenv('HOME', tmp_path)`: fits (pdf, epoch,
+    `Graph.svgd`) create no `compiled_svgd_*` file, and a recorder on
+    `pickle.load` sees no load of a `compiled_svgd_*` path (other caches
+    may legitimately unpickle their own files); a planted non-empty
+    `compiled_svgd_*.pkl` cannot be loaded because nothing computes its
+    name any more — asserted by the recorder;
 12. `SVGD` has no attribute `_compiled_cache`.
 
 Pass on master and after (guards):
@@ -185,24 +192,47 @@ After the fix it becomes a real comparison, and it is unseeded. It is run
 in isolation on both builds before the gate, three times each; whatever it
 does is reported, and it is not edited to pass.
 
-## 5. Gate (hardened after review)
+## 5. Gate (hardened after two review rounds)
+
+Order: edit source → `pixi run install-dev` in this worktree (the package
+is an installed copy; without it the old code is tested) → new test file →
+gate.
 
 Runner `.git/claude-scratch/gate2.sh`: one pytest process per test file
-(199 files), not-slow, memory-capped 8 GB, the project's own 600 s
-per-test timeout (not overridden), `--junitxml` per file, exit code per
-file. Comparison `.git/claude-scratch/gate_compare.py` on the junit files:
+(199 files + the new one), not-slow, memory-capped 8 GB, the project's own
+600 s per-test timeout, `--junitxml` and exit code per file, a `DONE`
+marker at the end. `gate_rerun.sh <tree> <tag> <cap> files...` reruns
+named files into an existing result directory without wiping it (used for
+killed files, with a larger cap, and for isolated reruns under separate
+tags). `gate2.sh` wipes its output directory, so it is never re-invoked
+with the tag of a finished run.
 
-- every file must have a usable result on the candidate side (pytest exit
-  code 0/1/5, xml present, not killed); otherwise the gate fails until
-  that file is rerun;
-- every test that passed in the baseline must pass in the candidate;
-- no test may disappear; new tests are listed;
-- tests above 540 s in the candidate are listed with their baseline time.
+`.git/claude-scratch/gate_compare.py <baseline> <candidate> --new-file
+tests/pytest/test_svgd_no_shared_compiled_grad.py` passes only if ALL hold:
 
-Any regression is rerun three times in isolation on both builds before it
-is classified (flake vs caused by the fix). The baseline is master
-`ca09e2e1` (same source as this branch's base). Total test time of both
-runs is reported.
+- both directories have `DONE`;
+- the file sets are equal apart from the declared new file;
+- every file has a usable result on BOTH sides (pytest exit 0/1/5, xml
+  present and parsable, not killed); a file unusable on both sides with
+  the same exit code needs an explicit `--ack-unusable` (reported);
+- every test that passed in the baseline passes in the candidate;
+- no test disappeared;
+- every new test passes.
+
+It also prints every other outcome change, the tests failing on both
+sides, and tests above 540 s. Follow-up, before merging:
+
+- any regression is rerun three times in isolation on both builds
+  (separate tags) and classified (flake vs caused by the fix);
+- tests failing on both sides that construct `SVGD` or call `.fit(` are
+  rerun in isolation on both builds the same way (a test that failed in
+  the single baseline run for an unrelated reason and is ALSO broken by
+  the fix would otherwise be invisible);
+- `tests/pytest/inference/_demo_svgd_jax.py` is checked with
+  `python -m py_compile`.
+
+Baseline: master `ca09e2e1` (same source as this branch's base). Total
+test time of both runs is reported.
 
 ## 6. Other caches checked (review 1) — not changed here
 
@@ -228,6 +258,15 @@ fresh-model reference, power, finiteness, `return_history=False` (section
 twice for a flake set" — replaced by triple isolated reruns of any
 regression on both builds, which answers the same question only where it
 arises.
+
+Re-review of v2: reviewer 1 SIGN-OFF (notes adopted: the `precompile`
+sentence; test 11 records paths). Reviewer 2: new tests must pass for the
+gate to pass; an unusable baseline file fails the gate; reruns must not
+wipe results; `install-dev` step; the `precompile` sentence → all done.
+Reviewer 3: `DONE` on both sides and equal file sets; unusable-on-both
+needs explicit acknowledgement; failing-on-both list and isolated reruns of
+SVGD-touching ones; test 5 without regularization; other outcome changes
+printed → all done (`gate_compare.py` rewritten, `gate_rerun.sh` added).
 
 ## 8. Risks
 

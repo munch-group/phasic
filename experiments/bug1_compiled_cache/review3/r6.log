@@ -1,0 +1,11 @@
+Matplotlib is building the font cache; this may take a moment.
+test5 [default; assign numpy] mutated-refit (cache cleared) vs fresh instance: BITEQ; first vs ref maxabs 9.035e+00
+test5 [default; assign same type as stored] mutated-refit (cache cleared) vs fresh instance: BITEQ; first vs ref maxabs 9.035e+00
+test5 [no history; assign numpy] mutated-refit (cache cleared) vs fresh instance: BITEQ; first vs ref maxabs 9.035e+00
+test5 [no history; assign same type as stored] mutated-refit (cache cleared) vs fresh instance: BITEQ; first vs ref maxabs 9.035e+00
+test5 [regularization; assign numpy] mutated-refit (cache cleared) vs fresh instance: maxabs 1.842e-01; first vs ref maxabs 9.046e+00
+test5 [regularization; assign same type as stored] mutated-refit (cache cleared) vs fresh instance: maxabs 1.842e-01; first vs ref maxabs 9.046e+00
+pickle.load calls during pdf-path fits: ['svgd-cache'] 6
+pickle.load calls during epoch (default prior) + Graph.svgd fits: [] 0
+files under fake home: []
+[runcap] exit 0, peak RSS 1010 MB, 42s

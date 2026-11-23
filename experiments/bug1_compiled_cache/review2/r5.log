@@ -1,0 +1,24 @@
+## (c) redirected HOME, pickle.load recorded
+  pickle.load calls: 0
+  files under redirected HOME: 5
+     .phasic_cache/compiled_svgd_44ed08e38497eeb8_vg.pkl 0
+     .phasic_cache/compiled_svgd_68eb8efcd7fd5d1b_vg.pkl 0
+     .phasic_cache/compiled_svgd_7cdd0822096525f9_vg.pkl 0
+     .phasic_cache/compiled_svgd_bdfa7a99e1227aec_vg.pkl 0
+     .phasic_cache/compiled_svgd_f2ae14e45cdcee7e_vg.pkl 0
+## (a) same instance, optimize() twice
+  default: bit-equal True  max abs diff 0
+  no history: bit-equal True  max abs diff 0
+  epoch: bit-equal True  max abs diff 0
+## (b) retention with the class cache cleared (what the fix gives)
+  direct SVGD, default      : True
+  direct SVGD, no history   : True
+  FreeEpochModel.fit        : True
+  Graph.svgd (pdf)          : True
+  Graph.svgd (epoch)        : True
+  direct SVGD, regularized  : True
+## (d) precompile / jit and the cache
+  {'precompile': False}: jit_enabled=True  cache entries after fit 1
+  {'jit': False}: jit_enabled=True  cache entries after fit 1
+  {'jit': False, 'precompile': False}: jit_enabled=False  cache entries after fit 0
+[runcap] exit 0, peak RSS 990 MB, 24s
