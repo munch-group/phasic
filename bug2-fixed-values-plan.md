@@ -358,26 +358,32 @@ on the preconditioner's learnable-subset branch; summaries pinned in
 `_check_nested_fixed` on `fixed_theta`; docstrings). Deviations in the
 tests, each for a stated reason:
 
-- **Test 4, `parallel='processes'` row: not written.** Reviewer 2 measured
-  that this MCMC mode fails on master for graph models and that a spy
-  cannot record in the parent; the remaining pure-Python variant would
-  only re-test the export assignment already covered by the sequential
-  rows.
-- **Tests 6 and 11 (epoch path) use v = 1e-6 and 2.0, not 1e-10 / 0.**
-  The model built by `Graph.epoch_model` probes fixed slots in its
-  finite-difference backward (`bake_fd_skip=False`), so a value below the
-  1e-7 step raises the NEGATIVE-rate error — on master as well (where
-  1e-10 arrived as 1e-9). That is the gradient-step defect, not this bug.
-  1e-6 does not round-trip on master, so the test still fails there. The
-  assertion is on the model INPUT (spy), which is what the plan's
-  "evaluated with exactly v" amounts to.
+- **Test 4, `parallel='processes'` row: written after the implementation
+  review** with a module-level `log_prob_fn` (a spy cannot record in the
+  child processes, so it asserts the chain column, mean, std and HPD). A
+  model-plus-data MCMC row (the vmap route) was added as well.
+- **Epoch path.** A model built by `Graph.epoch_model` (FreeEpochModel)
+  probes fixed slots in its finite-difference backward
+  (`bake_fd_skip=False`), so a fixed value below the 1e-7 step raises the
+  NEGATIVE-rate error there — on master as well (where 1e-10 arrived as
+  1e-9). That is the gradient-step defect, not this bug; those tests use
+  1e-6 and 2.0 (1e-6 does not round-trip on master, so they still fail
+  there). The limit applies to FreeEpochModel ONLY: `Graph.svgd(...,
+  epoch_starts=...)` bakes the fixed slots out of its backward, and
+  `test_graph_svgd_epoch_fit_below_the_old_floor` fits at 1e-10 with and
+  without exposure, spying on the model input.
+  Behaviour change to record: `FreeEpochModel.fit` with a slot fixed at
+  exactly 0 now raises the negative-rate message (the probe goes to
+  -1e-7); before, 0 silently became 0.693 and the fit ran at the wrong
+  value.
 - **Test 9, joint-probability variant: not written.** The reference joint
   models have no competing rate that can be set to 0 without making the
   model degenerate (the reviewers' own caveat); the moments-family variant
   is implemented (rtol 1e-9 on free-slot particles against the reduced
   model, explicit identical `theta_init`).
-- **Test 14** asserts `map_estimate_from_particles` (exact) and that
-  `log_likelihood(refine=True)` is finite.
+- **Test 14** asserts `map_estimate_from_particles` (exact), that
+  `log_likelihood(refine=True)` is finite, and (spy) that every model call
+  during the refinement received the fixed value.
 - **Test 17** calls `_check_nested_fixed` directly on real fits of a
   3-parameter spy model (full fixes slot 1; nested fixes slots 1 and 2).
   The existing `test_lrt_shared_fixed_value_mismatch_raises` needed no
@@ -392,3 +398,13 @@ Existing tests rewritten as listed in section 4:
 column equals the placeholder) and `test_svgd_tied_export.py` (the
 "not the sentinel" check is now exact inequality with 0.0: the slave's
 true rate in that fixture is 5.9e-5, inside the old 1e-3 margin).
+
+Changes after the implementation review (round 1, CHANGES REQUIRED):
+`_parse_fixed` rejects bool and repeated indices; "All parameters are
+fixed" is raised regardless of `verbose`; `_check_nested_fixed` compares
+with `rel_tol=1e-9, abs_tol=0` and prints full-precision values;
+docstrings and stale comments corrected; `inference/test_preconditioning.py`
+is CRLF again (8 insertions / 2 deletions against master); the placeholder
+test uses a full-vector prior; in-test skips replaced by explicit
+parameter lists. New test file: 78 passed.
+

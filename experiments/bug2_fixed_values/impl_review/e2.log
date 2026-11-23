@@ -1,0 +1,24 @@
+/Users/kmt/phasic-bug2/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:01,  1.11it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  6.65it/s]                                             .                                                                       [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[fisher]
+  /Users/kmt/phasic-bug2/tests/pytest/inference/test_preconditioning.py:55: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [1.0, 0.0])  # rate = theta[0]
+
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[fisher]
+  /Users/kmt/phasic-bug2/tests/pytest/inference/test_preconditioning.py:56: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [0.0, 1.0])  # rate = theta[1]
+
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[fisher]
+  /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 8 samples; result may be unreliable.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2 passed, 29 deselected, 6 warnings in 3.51s
+[runcap] exit 0, peak RSS 653 MB, 7s

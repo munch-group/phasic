@@ -237,13 +237,13 @@ def _check_nested_fixed(
             return
         for i in shared:
             if not math.isclose(
-                float(vals_f[i]), float(vals_n[i]), rel_tol=1e-9, abs_tol=1e-12
+                float(vals_f[i]), float(vals_n[i]), rel_tol=1e-9, abs_tol=0.0
             ):
                 _violate(
                     strict,
                     f"Parameter {int(i)} is fixed in both models but at different "
-                    f"values: full={float(vals_f[i]):.6g} vs "
-                    f"nested={float(vals_n[i]):.6g} (parameter space). LRT requires the "
+                    f"values: full={float(vals_f[i])!r} vs "
+                    f"nested={float(vals_n[i])!r} (parameter space). LRT requires the "
                     f"nested restriction to lie inside the full parameter space.",
                 )
                 return

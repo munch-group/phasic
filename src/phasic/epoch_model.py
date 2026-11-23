@@ -76,10 +76,6 @@ class FreeEpochModel:
         Parameters
         ----------
         fixed : list of (flat_idx, value), optional
-            Values are in parameter space and reach the model exactly as
-            given: a fixed parameter does not pass through any transform, so 0,
-            values of any magnitude and negative values are delivered unchanged
-            (a non-finite value raises).
             Additional fixings in **flat** ``[0, n_epochs * param_length)`` index
             space — NOT the per-epoch/local space used by
             ``Graph.epoch_model(fixed=)`` / ``Graph.svgd(fixed=)``. Merged with
@@ -87,6 +83,10 @@ class FreeEpochModel:
             index). Fixing ONE flat slot adds df=1 to a nested LRT; a
             per-epoch-constant restriction spans ``n_epochs`` flat slots
             (df = n_epochs).
+            Values are in parameter space and reach the model exactly as
+            given: a fixed parameter does not pass through any transform, so 0,
+            values of any magnitude and negative values are delivered unchanged
+            (a non-finite value raises).
         prior : optional
             Overrides the builder's prior for this fit. A per-slot list is
             re-masked to ``None`` at every fixed index; a scalar callable is

@@ -4542,8 +4542,10 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         # Create wrapped log_prob that handles projection
         def log_prob_fn_reduced(theta_learnable):
             # Expand to full space: learnable → full
-            # NOTE: Fixed dims initialized to values from fixed_values (untransformed space)
-            # If param_transform is active (e.g., softplus), these will be transformed
+            # NOTE: fixed dims are pinned at `fixed_values`: the values
+            # themselves when no transform is active, a placeholder otherwise
+            # (the model-facing transform then overwrites those slots with the
+            # exact fixed values).
             # IMPORTANT: Must create fresh array copy for JAX gradient tracing
             if fixed_values is not None:
                 theta_full = jnp.array(fixed_values)  # Create fresh copy
@@ -5123,13 +5125,19 @@ def _parse_fixed(fixed, theta_dim, where):
     if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
         mask = np.zeros(theta_dim)
         vals = np.ones(theta_dim, dtype=np.float64)
+        seen_idx = set()
         for idx, value in fixed:
-            if not isinstance(idx, (int, np.integer)):
+            if isinstance(idx, (bool, np.bool_)) or not isinstance(idx, (int, np.integer)):
                 raise TypeError(f"Parameter index must be integer, got {type(idx)}")
             if idx < 0 or idx >= theta_dim:
                 raise ValueError(
                     f"Invalid parameter index {idx}, must be in [0, {theta_dim})"
                 )
+            if int(idx) in seen_idx:
+                raise ValueError(
+                    f"{where}: parameter {int(idx)} appears more than once in fixed=."
+                )
+            seen_idx.add(int(idx))
             v = float(value)
             if not np.isfinite(v):
                 raise ValueError(
@@ -5259,6 +5267,12 @@ class SVGD:
         - List of Prior objects: One prior per parameter dimension.
           Use None for fixed parameters: prior=[GaussPrior(...), None, GaussPrior(...)]
 
+        A single callable is evaluated on the whole unconstrained vector,
+        fixed slots included; at a fixed slot it sees a constant placeholder
+        (not the fixed value). For a prior that is a sum over parameters (all
+        built-in priors) that only adds a constant; a prior that couples
+        parameters should be given per dimension instead.
+
         If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
 
         **With fixed parameters**:
@@ -5378,7 +5392,7 @@ class SVGD:
         ``value``. Values are in parameter space and reach the model exactly as
         given: a fixed parameter does not pass through any transform, so 0,
         values of any magnitude and negative values are delivered unchanged
-        (a non-finite value raises).::
+        (a non-finite value raises). For example::
 
             fixed=[(1, 0.01)]              # theta[1] = 0.01, rest learned
             fixed=[(0, 2.5), (2, 0.1)]     # theta[0]=2.5, theta[2]=0.1
@@ -5520,7 +5534,11 @@ class SVGD:
         Final posterior samples (n_particles, theta_dim) in the optimiser's
         unconstrained space (e.g. softplus^-1 of the rates under
         ``positive_params=True``); ``get_results()['particles']`` gives
-        them on the parameter scale
+        them on the parameter scale. At FIXED slots the unconstrained
+        particles (and every ``unconstrained=True`` result) hold a constant
+        placeholder (0.0) whenever a transform is active, because fixed
+        values do not pass through the transform; the parameter-scale
+        results hold the fixed value exactly
     theta_mean : array
         Posterior mean on the parameter scale (equal to
         ``get_results()['theta_mean']``)
@@ -6283,8 +6301,8 @@ class SVGD:
                 for _i in np.where(_mask_np)[0]:
                     print(f"  θ_{int(_i)} fixed at {float(_fixed_theta[_i])}")
                 print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
-                if n_learnable == 0:
-                    raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+            if n_learnable == 0:
+                raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
             # Pin the fixed columns of the initial particles, also when the
             # user supplied theta_init.
             _fixed_idx = jnp.asarray(np.where(_mask_np)[0])
@@ -7343,8 +7361,8 @@ class SVGD:
         # `_daisy_chain_svgd_model` locks each tied *slave* flat index at a 0.0
         # sentinel and only copies master->slave INSIDE the forward pass (a
         # scatter on a copy, never persisted). So run_svgd's particles/history
-        # still carry 0.0 at slave columns -- and softplus(0)=0.693 makes every
-        # downstream surface (theta_mean, get_results, history) ~8000x wrong.
+        # still carry the slave's placeholder at slave columns, which every
+        # downstream surface (theta_mean, get_results, history) would report.
         # Only summary() resolves them today (via slave_to_master). Resolve them
         # once here, at the single result-finalization point, so ALL surfaces
         # agree. Copy is in UNCONSTRAINED space: the shared per-dim transform
@@ -7436,8 +7454,9 @@ class SVGD:
     def _constrained_particles(self, particles):
         """Map unconstrained particles to the parameter (constrained) scale.
 
-        Transforms ALL dimensions, learnable and fixed: fixed dimensions are
-        stored in PHI space too (e.g. inv_softplus(1.0) = 0.541).
+        Goes through ``self.param_transform``, which overwrites fixed slots
+        with the user's exact values (their unconstrained columns only hold a
+        placeholder).
 
         Tied slaves are then re-tied in CONSTRAINED space (F-010). The model
         applies the tie AFTER the transform (theta_transformed[slave] =

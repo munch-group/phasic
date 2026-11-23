@@ -74,11 +74,12 @@ def assert_exports_exact(s, slot, v):
 
 
 # ------------------------------------------------- SVGD: model input, exports
-@pytest.mark.parametrize("v", VALUES)
-@pytest.mark.parametrize("n_particles", [4, 40, 50])
+# All values at 4 particles; 40 and 50 particles for two values whose mean
+# over identical floats does not round back to the value.
+@pytest.mark.parametrize("v, n_particles",
+                         [(v, 4) for v in VALUES]
+                         + [(v, n) for v in (0.3, 1e-10) for n in (40, 50)])
 def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
-    if n_particles != 4 and v not in (0.3, 1e-10):
-        pytest.skip("particle-count variants only for values whose mean rounds")
     s, seen = svgd_fit([(1, v)], n_particles=n_particles)
     np.testing.assert_array_equal(seen_at(seen, 1), v)
     assert_exports_exact(s, 1, v)
@@ -225,6 +226,34 @@ def test_mcmc_binary_mask_means_exactly_one():
     assert_mcmc_exports_exact(m, 1, 1.0)
 
 
+def _module_level_log_prob(theta):
+    return -0.5 * jnp.sum((theta[0] - 1.0) ** 2)
+
+
+@pytest.mark.parametrize("v", [1e-10, 0.3])
+def test_mcmc_processes_mode_exports_fixed_value(v):
+    # Chains run in child processes (a spy cannot record there): the chain
+    # values themselves must hold the fixed value.
+    m = MCMC(log_prob_fn=_module_level_log_prob, prior=[gauss(), None],
+             theta_dim=2, fixed=[(1, v)], n_samples=40, n_chains=2, burn_in=5,
+             proposal_scale=0.5, positive_params=True, parallel='processes',
+             verbose=False, progress=False, seed=0)
+    m.run()
+    assert_mcmc_exports_exact(m, 1, v)
+
+
+@pytest.mark.parametrize("v", [1e-10, 0.3])
+def test_mcmc_model_mode_delivers_fixed_value(v):
+    spy, seen = make_spy()
+    m = MCMC(model=spy, observed_data=DATA, prior=[gauss(), None], theta_dim=2,
+             fixed=[(1, v)], n_samples=40, n_chains=2, burn_in=5,
+             proposal_scale=0.5, positive_params=True, verbose=False,
+             progress=False, seed=0)
+    m.run()
+    np.testing.assert_array_equal(seen_at(seen, 1), v)
+    assert_mcmc_exports_exact(m, 1, v)
+
+
 # ------------------------------------------- the fit is the fit at that value
 def chain2():
     """S -> a; a --theta0--> absorbing; a --theta1--> b --theta0--> absorbing."""
@@ -355,6 +384,54 @@ def test_epoch_model_with_exposure_receives_the_fixed_value(joint_rows, v):
     np.testing.assert_array_equal(seen_at(seen, 3), v)
 
 
+@pytest.fixture
+def spy_on_svgd_models(monkeypatch):
+    """Record the theta every SVGD-held model is called with (Graph.svgd
+    builds its model internally, so the spy is installed on the model handed
+    to SVGD.__init__)."""
+    seen = []
+    orig = SVGD.__init__
+
+    def wrap(model):
+        def spy(theta, *a, **k):
+            jax.debug.callback(
+                lambda t: seen.append(np.atleast_2d(np.asarray(t)).copy()), theta)
+            return model(theta, *a, **k)
+        spy.__dict__.update(getattr(model, '__dict__', {}))
+        return spy
+
+    def init(self, *a, **k):
+        if k.get('model') is not None:
+            k['model'] = wrap(k['model'])
+        elif a:
+            a = (wrap(a[0]),) + a[1:]
+        return orig(self, *a, **k)
+
+    monkeypatch.setattr(SVGD, '__init__', init)
+    return seen
+
+
+@pytest.mark.parametrize("exposure", [False, True], ids=["plain", "exposure"])
+def test_graph_svgd_epoch_fit_below_the_old_floor(joint_rows, spy_on_svgd_models,
+                                                  exposure):
+    # Graph.svgd bakes the fixed slots into the epoch model's backward, so a
+    # value below the 1e-7 finite-difference step works here (unlike a model
+    # built by Graph.epoch_model, which probes fixed slots).
+    jc, rows = joint_rows
+    kw = {}
+    if exposure:
+        kw = dict(exposure=np.linspace(1.0, 3.0, len(rows)), exposure_param_index=1)
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1e-10)],
+                prior=[gauss(), None], n_particles=4, n_iterations=2,
+                learning_rate=0.01, progress=False, seed=1, **kw)
+    seen = spy_on_svgd_models
+    for slot in (1, 3):
+        np.testing.assert_array_equal(seen_at(seen, slot), 1e-10)
+        assert float(np.asarray(s.theta_mean)[slot]) == 1e-10
+        np.testing.assert_array_equal(
+            np.asarray(s.get_results()['particles'])[:, slot], 1e-10)
+
+
 def test_tied_epochs_still_export_master_values(joint_rows):
     jc, rows = joint_rows
     s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 0.3)], tied=[(0, [0, 1])],
@@ -388,12 +465,21 @@ def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
 
 def test_map_and_refine_keep_fixed_values():
     base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
-    s = SVGD(model=base, observed_data=REAL_DATA, theta_dim=2,
+    seen = []
+
+    def spied(theta, times, rewards=None):
+        jax.debug.callback(
+            lambda t: seen.append(np.atleast_2d(np.asarray(t)).copy()), theta)
+        return base(theta, times)
+
+    s = SVGD(model=spied, observed_data=REAL_DATA, theta_dim=2,
              prior=[gauss(), None], fixed=[(1, 1e-10)], **REAL_KW)
     s.optimize()
     theta_map, _ = s.map_estimate_from_particles()
     assert float(theta_map[1]) == 1e-10
+    seen.clear()
     assert np.isfinite(float(s.log_likelihood(refine=True)))
+    np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
 
 
 # ------------------------------------------------------ validation and guards
@@ -407,6 +493,25 @@ def test_non_finite_fixed_value_raises(bad):
         MCMC(log_prob_fn=lambda t: 0.0 * jnp.sum(t), prior=[gauss(), None],
              theta_dim=2, fixed=[(1, bad)], n_samples=10, n_chains=2, burn_in=2,
              positive_params=True, verbose=False, progress=False)
+
+
+def test_bool_and_duplicate_indices_raise():
+    spy, _ = make_spy()
+    common = dict(model=spy, observed_data=DATA, theta_dim=2,
+                  prior=[gauss(), None], n_particles=4, n_iterations=1,
+                  progress=False)
+    with pytest.raises(TypeError, match="must be integer"):
+        SVGD(fixed=[(True, 0.3)], **common)
+    with pytest.raises(ValueError, match="more than once"):
+        SVGD(fixed=[(1, 0.3), (1, 0.4)], **common)
+
+
+def test_all_parameters_fixed_raises_without_verbose():
+    spy, _ = make_spy()
+    with pytest.raises(ValueError, match="All parameters are fixed"):
+        SVGD(model=spy, observed_data=DATA, theta_dim=2, prior=[None, None],
+             fixed=[(0, 1.0), (1, 0.3)], n_particles=4, n_iterations=1,
+             progress=False, verbose=False)
 
 
 def test_coupled_custom_transform_with_fixed_raises():
@@ -439,7 +544,8 @@ def _fit3(fixed):
 
 
 @pytest.mark.parametrize("a, b, ok", [(2.0, 2.0, True), (2.0, 3.0, False),
-                                      (800.0, 900.0, False), (800.0, 800.0, True)])
+                                      (800.0, 900.0, False), (800.0, 800.0, True),
+                                      (0.0, 5e-13, False)])
 def test_nested_fixed_check_compares_parameter_values(a, b, ok):
     full = _fit3([(1, a)])
     nested = _fit3([(1, b), (2, 1.0)])       # a strict superset of fixed slots
@@ -455,8 +561,10 @@ def test_placeholder_does_not_influence_free_slots(monkeypatch):
 
     def run():
         base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
+        # A single (full-vector) prior is evaluated at the fixed slot's
+        # placeholder too; being separable it must not affect the free slot.
         s = SVGD(model=base, observed_data=REAL_DATA, theta_dim=2,
-                 prior=[gauss(), None], fixed=[(1, 2.0)], **REAL_KW)
+                 prior=gauss(), fixed=[(1, 2.0)], **REAL_KW)
         s.optimize()
         return np.asarray(s.get_results()['particles'])[:, 0]
 
