@@ -1,0 +1,4 @@
+nested alone rerun BITEQ | fresh epoch_model BITEQ | after full, MASTER (test 5) BITEQ
+em.fit(prior=pri2) alone vs after em.fit(prior=pri) on same FreeEpochModel, MASTER: maxabs 3.948e-02  means [-1.279  0.541 -3.221  0.541] [-1.261  0.541 -3.218  0.541]
+weakref epoch: alive with cache True  alive after clear False
+[runcap] exit 0, peak RSS 755 MB, 14s

@@ -1,0 +1,11 @@
+## nested fixes slot 0 at 1.0
+  full                   theta_mean [1.9896 0.5    2.4641 0.5   ]  priors [(1.831, 1.831), None, (1.831, 1.831), None]
+  nested after full      theta_mean [1.     0.5    2.9982 0.5   ]  priors [None, None, (1.831, 1.831), None]
+  nested alone           theta_mean [1.     0.5    2.9982 0.5   ]  priors [None, None, (1.831, 1.831), None]
+  particles identical: True  max abs diff 0.0
+## nested fixes slot 2 at 4.0
+  full                   theta_mean [1.9896 0.5    2.4641 0.5   ]  priors [(1.831, 1.831), None, (1.831, 1.831), None]
+  nested after full      theta_mean [1.5702 0.5    4.     0.5   ]  priors [(1.831, 1.831), None, None, None]
+  nested alone           theta_mean [1.5702 0.5    4.     0.5   ]  priors [(1.831, 1.831), None, None, None]
+  particles identical: True  max abs diff 0.0
+[runcap] exit 0, peak RSS 829 MB, 24s

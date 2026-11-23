@@ -1,0 +1,67 @@
+................                                                         [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_epoch_default_prior.py::test_default_prior_centred_on_reference_estimate
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:75: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    return jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, fixed=[(1, MU)], **FIT)
+
+tests/pytest/test_epoch_default_prior.py::test_default_prior_centred_on_reference_estimate
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:75: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    return jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, fixed=[(1, MU)], **FIT)
+
+tests/pytest/test_epoch_default_prior.py::test_per_epoch_fixed_lists
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:114: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    same = jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, fixed=[(1, [MU, MU])], **FIT)
+
+tests/pytest/test_epoch_default_prior.py::test_per_epoch_fixed_lists
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:114: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    same = jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, fixed=[(1, [MU, MU])], **FIT)
+
+tests/pytest/test_epoch_default_prior.py::test_per_epoch_fixed_lists
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:117: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, fixed=[(1, [MU, 2 * MU])], **FIT)
+
+tests/pytest/test_epoch_default_prior.py::test_uniform_exposure_notebook_case
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:135: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=alpha,
+
+tests/pytest/test_epoch_default_prior.py::test_uniform_exposure_notebook_case
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:135: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=alpha,
+
+tests/pytest/test_epoch_default_prior.py::test_varying_exposure_few_values
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:148: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=np.array(alpha),
+
+tests/pytest/test_epoch_default_prior.py::test_varying_exposure_few_values
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:148: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=np.array(alpha),
+
+tests/pytest/test_epoch_default_prior.py::test_free_exposure_parameter_with_another_rate_fixed
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:163: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(0, c)], exposure=np.array(alpha),
+
+tests/pytest/test_epoch_default_prior.py::test_free_exposure_parameter_with_another_rate_fixed
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:163: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(0, c)], exposure=np.array(alpha),
+
+tests/pytest/test_epoch_default_prior.py::test_many_distinct_exposures_are_binned_with_notice
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:176: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=alpha,
+
+tests/pytest/test_epoch_default_prior.py::test_many_distinct_exposures_are_binned_with_notice
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:176: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, mu)], exposure=alpha,
+
+tests/pytest/test_epoch_default_prior.py::test_no_rate_fixed_raises_everywhere
+  /Users/kmt/phasic-bug1/tests/pytest/test_epoch_default_prior.py:211: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    jc.svgd(two_epoch_rows, epoch_starts=EPOCHS, **FIT)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations ==============================
+3.68s setup    tests/pytest/test_epoch_default_prior.py::test_default_prior_centred_on_reference_estimate
+3.63s call     tests/pytest/test_epoch_default_prior.py::test_last_epoch_scale_notice
+3.51s call     tests/pytest/test_epoch_default_prior.py::test_many_distinct_exposures_are_binned_with_notice
+1.42s call     tests/pytest/test_epoch_default_prior.py::test_varying_exposure_few_values
+0.98s call     tests/pytest/test_epoch_default_prior.py::test_uniform_exposure_notebook_case
+16 passed, 14 warnings in 15.60s
+[runcap] exit 0, peak RSS 984 MB, 20s

@@ -1,0 +1,2 @@
+STALE:prior	tests/pytest/inference/test_epoch_model.py::test_same_model_lrt_fast_path (call)
+STALE:prior	tests/pytest/inference/test_epoch_model.py::test_fit_extra_fixed_remasks_prior (call)

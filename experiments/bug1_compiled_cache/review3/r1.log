@@ -1,0 +1,130 @@
+phasic from /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+1 data                             alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.035e+00
+2 prior                            alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 6.089e+00
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:50:39,106:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:50:39,738:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:50:40,366:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:50:41,665:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:50:42,975:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+3 positive_params                  alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 1.246e-02
+3b softplus transform vs pos_params alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) BITEQ
+4 regularization data              alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.046e+00
+8 return_history=False data        alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.035e+00
+9 hist->nohist same data (ctl)     alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) BITEQ
+10 fixed-only differs? n/a 1d; seed alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) BITEQ
+11 jit=False data (ctl)            alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.035e+00
+12 n_particles differs             alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) BITEQ
+13 parallel=vmap data              alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.035e+00
+13 parallel=none data              alone-rerun BITEQ            fresh-model BITEQ            after-first(cleared) BITEQ            after-first(MASTER) maxabs 9.035e+00
+same instance optimize() twice: BITEQ
+Graph.svgd B alone vs B after A (cache NOT cleared): BITEQ  entries 2
+weakref default                      alive with cache: True   alive after clear: False
+weakref regularization               alive with cache: True   alive after clear: False
+weakref no history                   alive with cache: True   alive after clear: False
+weakref jit=False                    alive with cache: True   alive after clear: False
+[runcap] exit 0, peak RSS 1939 MB, 92s

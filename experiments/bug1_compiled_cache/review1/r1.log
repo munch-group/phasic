@@ -1,0 +1,95 @@
+Matplotlib is building the font cache; this may take a moment.
+phasic from /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+Path.home() = /Users/kmt/phasic-bug1/experiments/bug1_compiled_cache/review1/fakehome
+## E0 determinism: nested alone twice (fresh model each)
+  nested vs nested: max|particle diff| = 0.000e+00  mean after=[8.9909 1.     0.5    1.    ] alone=[8.9909 1.     0.5    1.    ]
+     history_log_prob diff: min 0 max 0
+## E1 plan row (c): full -> nested (explicit prior)
+  nested after full: max|particle diff| = 0.000e+00  mean after=[8.9909 1.     0.5    1.    ] alone=[8.9909 1.     0.5    1.    ]
+     history_log_prob diff: min -2.85348 max 0
+## E2 REVERSE order: nested -> full (explicit prior, same list)
+  full after nested: max|particle diff| = 5.709e-04  mean after=[9.4954 1.     9.6248 1.    ] alone=[9.4954 1.     9.6249 1.    ]
+     history_log_prob diff: min -0.00580398 max 2.43885
+## E3 different fixed VALUES, same slots, explicit prior
+  mu=3 after mu=1: max|particle diff| = 0.000e+00  mean after=[10.0131  3.      9.6332  3.    ] alone=[10.0131  3.      9.6332  3.    ]
+     history_log_prob diff: min 0 max 0
+## E4 different fixed VALUES, same slots, prior=None (FreeEpochModel default prior)
+  mu=3 after mu=1 (default prior): max|particle diff| = 6.032e-03  mean after=[8.1215 3.     8.6345 3.    ] alone=[8.124  3.     8.6374 3.    ]
+     history_log_prob diff: min -44.7846 max 0.247057
+    prior_list A(mu=1) [(2.3091, 2.3091), None, (2.3091, 2.3091), None]
+    prior_list B after A [(6.9273, 6.9273), None, (6.9273, 6.9273), None]
+    prior_list B alone [(6.9273, 6.9273), None, (6.9273, 6.9273), None]
+## E5 full -> nested with prior=None (default prior)
+  nested after full (default prior): max|particle diff| = 0.000e+00  mean after=[2.5693 1.     0.5    1.    ] alone=[2.5693 1.     0.5    1.    ]
+     history_log_prob diff: min -1.23966 max 0
+## E6 Graph.svgd twice on one graph, different data: does it ever hit?
+  cache entries after 1st/2nd call: 1/2; same model object: False
+  Graph.svgd B after A: max|particle diff| = 0.000e+00  mean after=[2.1768] alone=[2.1768]
+     history_log_prob diff: min 0 max 0
+## E7 positive_params differs on one model object (plan test 3)
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:52:32,399:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+[ERROR] phasic.c: Computation produced NaN at vertex 4 (command 6: from=4 to=5 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 14:52:33,026:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 4 (command 6) - numerical catastrophe
+  pp=False after pp=True: max|particle diff| = 1.081e-02  mean after=[9.3819] alone=[9.3853]
+     history_log_prob diff: min -0.237966 max 2.1925
+## E8 one instance, optimize() twice after replacing observed_data (stale within instance?)
+  fit(dA) 9.3805; same instance after observed_data=dB 9.3805; fresh fit(dB) 2.1768
+## E9 files left by the "dead" disk path under the redirected HOME
+   compiled_svgd_04fc9281c8622dde_vg.pkl 0 bytes
+   compiled_svgd_09c5d093acc13da1_vg.pkl 0 bytes
+   compiled_svgd_0b3ad26d1df377cc_vg.pkl 0 bytes
+   compiled_svgd_2319b2df978224e2_vg.pkl 0 bytes
+   compiled_svgd_23e00454070bf744_vg.pkl 0 bytes
+   compiled_svgd_40efeb75383a48df_vg.pkl 0 bytes
+   compiled_svgd_40f2ccc5076e02bb_vg.pkl 0 bytes
+   compiled_svgd_6326da19ae32b6c8_vg.pkl 0 bytes
+   compiled_svgd_649af89448813d8c_vg.pkl 0 bytes
+   compiled_svgd_6f8bc8c0293d4853_vg.pkl 0 bytes
+   compiled_svgd_8281b5616d561a1f_vg.pkl 0 bytes
+   compiled_svgd_8df0a362300b25a8_vg.pkl 0 bytes
+   compiled_svgd_aa264b276539d4ba_vg.pkl 0 bytes
+   compiled_svgd_e653ca318cfd0405_vg.pkl 0 bytes
+   compiled_svgd_ee7974d275b538a5_vg.pkl 0 bytes
+  count: 15
+[runcap] exit 0, peak RSS 888 MB, 49s

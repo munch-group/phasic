@@ -1,0 +1,28 @@
+A pdf+moments coalescent n=10             43v P=1 par=vmap  cold   3.18s | recompile 0.47-0.56s | hit 0.24-0.28s | refit cost 0.23..0.32s | warmup(single) 0.09s exec1 0.002s vmap-first 0.15s vmap-exec 0.016s
+A pdf+moments coalescent n=22           1003v P=1 par=vmap  cold   5.38s | recompile 4.95-5.07s | hit 4.58-4.62s | refit cost 0.37..0.49s | warmup(single) 0.27s exec1 0.159s vmap-first 2.91s vmap-exec 2.732s
+A pdf+moments coalescent n=26           2437v P=1 par=vmap  cold  31.33s | recompile 30.62-30.95s | hit 28.09-29.37s | refit cost 2.53..2.86s | warmup(single) 1.11s exec1 1.015s vmap-first 17.91s vmap-exec 18.583s
+A2 pdf+moments two-island n=4             21v P=2 par=vmap  cold   3.24s | recompile 1.28-1.45s | hit 1.00-1.12s | refit cost 0.27..0.45s | warmup(single) 0.18s exec1 0.035s vmap-first 0.44s vmap-exec 0.261s
+A2 pdf+moments two-island n=8            186v P=2 par=vmap  cold  12.50s | recompile 11.15-11.90s | hit 10.14-10.55s | refit cost 1.02..1.77s | warmup(single) 0.66s exec1 0.535s vmap-first 4.42s vmap-exec 4.223s
+B rewards 1-D coalescent n=10             43v P=1 par=vmap  cold   0.66s | recompile 0.61-0.78s | hit 0.34-0.35s | refit cost 0.26..0.44s | warmup(single) 0.11s exec1 0.004s vmap-first 0.19s vmap-exec 0.025s
+C rewards 2-D (4 features) n=10: FAILED TypeError: observed_data must be a 1-D array or SparseObservations. For multivariate data, use dense_to_sparse().
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug1/experiments/bug1_compiled_cache/review2/r1_refit_cost.py", line 28, in measure
+    t = time.time(); s0 = mk(); cold = time.time() - t
+                          ~~^^
+  File "/Users/kmt/phasic-bug1/experiments/bug1_compiled_cache/review2/r1_refit_cost.py", line 81, in <lambda>
+    lambda: g.svgd(observed_data=d2, rewards=rw2, prior=P1, **KW))
+            ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 6654, in svgd
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: observed_data must be a 1-D array or SparseObservations. For multivariate data, use dense_to_sparse().
+D joint-index (discrete) n=4             168v P=2 par=vmap  cold   1.80s | recompile 0.30-0.31s | hit 0.03-0.03s | refit cost 0.27..0.28s | warmup(single) 0.11s exec1 0.001s vmap-first 0.18s vmap-exec 0.003s
+D joint-index (discrete) n=6            2808v P=2 par=vmap  cold   0.84s | recompile 0.50-0.62s | hit 0.10-0.10s | refit cost 0.41..0.53s | warmup(single) 0.18s exec1 0.002s vmap-first 0.24s vmap-exec 0.005s
+E epoch 2-epoch n=4                      168v P=4 par=vmap  cold   2.67s | recompile 0.49-0.50s | hit 0.05-0.06s | refit cost 0.44..0.45s | warmup(single) 0.19s exec1 0.009s vmap-first 0.39s vmap-exec 0.023s
+E2 epoch + 40 unique exposures n=4       168v P=4 par=vmap  cold   1.63s | recompile 0.91-0.94s | hit 0.39-0.40s | refit cost 0.52..0.55s | warmup(single) 0.25s exec1 0.044s vmap-first 0.58s vmap-exec 0.296s
+E epoch 2-epoch n=6                     2808v P=4 par=vmap  cold   1.97s | recompile 1.44-1.63s | hit 0.51-0.56s | refit cost 0.93..1.11s | warmup(single) 0.51s exec1 0.203s vmap-first 0.77s vmap-exec 0.261s
+E2 epoch + 40 unique exposures n=6      2808v P=4 par=vmap  cold   9.58s | recompile 8.55-8.97s | hit 7.15-7.38s | refit cost 1.39..1.82s | warmup(single) 1.70s exec1 0.797s vmap-first 6.78s vmap-exec 7.202s
+F pdf+moments n=10 parallel=none          43v P=1 par=none  cold   1.18s | recompile 0.68-0.69s | hit 0.58-0.61s | refit cost 0.10..0.12s | warmup(single) 0.12s exec1 0.002s
+F pdf+moments n=10 parallel=pmap          43v P=1 par=vmap  cold   0.79s | recompile 0.76-0.78s | hit 0.45-0.46s | refit cost 0.31..0.33s | warmup(single) 0.12s exec1 0.003s vmap-first 0.21s vmap-exec 0.016s
+[runcap] exit 0, peak RSS 2065 MB, 521s
