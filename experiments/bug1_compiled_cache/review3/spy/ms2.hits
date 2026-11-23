@@ -1,0 +1,4 @@
+benign-other-instance	tests/pytest/inference/test_model_selection.py::test_lrt_basic_correct_df_and_pvalue (call)
+benign-other-instance	tests/pytest/inference/test_model_selection.py::test_lrt_identical_fixed_mask_raises (call)
+benign-other-instance	tests/pytest/inference/test_model_selection.py::test_lrt_nested_not_superset_raises (call)
+benign-other-instance	tests/pytest/inference/test_model_selection.py::test_lrt_shared_fixed_value_mismatch_raises (call)

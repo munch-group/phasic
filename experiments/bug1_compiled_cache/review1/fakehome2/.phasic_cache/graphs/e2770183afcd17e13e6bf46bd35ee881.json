@@ -1,0 +1,87 @@
+{
+  "version": "0.20.0",
+  "callback_hash": "e2770183afcd17e13e6bf46bd35ee881",
+  "created_at": "2026-11-23T14:53:51.884734",
+  "python_version": "3.13",
+  "construction_params": {},
+  "graph_data": {
+    "states": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          0
+        ],
+        [
+          3
+        ],
+        [
+          2
+        ],
+        [
+          1
+        ]
+      ]
+    },
+    "vertex_indices": {
+      "__type__": "ndarray",
+      "__data__": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "constant_edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "start_edges": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          1.0,
+          1.0
+        ]
+      ]
+    },
+    "param_edges": {
+      "__type__": "ndarray",
+      "__data__": [
+        [
+          1.0,
+          2.0,
+          3.0
+        ],
+        [
+          2.0,
+          3.0,
+          2.0
+        ]
+      ]
+    },
+    "start_param_edges": {
+      "__type__": "ndarray",
+      "__data__": []
+    },
+    "param_length": 1,
+    "state_length": 1,
+    "n_vertices": 4,
+    "weight_mode": "linear",
+    "dyn_ordering": false,
+    "is_discrete": false,
+    "was_dph": false,
+    "is_aux": {
+      "__type__": "ndarray",
+      "__data__": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  }
+}

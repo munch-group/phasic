@@ -1,0 +1,9 @@
+Matplotlib is building the font cache; this may take a moment.
+graph cache dir: /Users/kmt/phasic-bug1/experiments/bug1_compiled_cache/review1/fakehome2/.phasic_cache/graphs
+## (a) with_ipv callback reading a MODULE GLOBAL
+   SCALE=1: 0.833333   SCALE=10 (cache on): 0.833333   SCALE=10 (graph_cache=False): 0.083333
+## (b) with_ipv callback CLOSING OVER a local (closure check is skipped for with_ipv wrappers)
+   scale=1: 0.833333   scale=10 (cache on): 0.833333   scale=10 (graph_cache=False): 0.083333
+## (c) with_ipv callback calling a module-level HELPER that is then redefined
+   helper x1: 0.833333   helper x10 (cache on): 0.833333   helper x10 (graph_cache=False): 0.083333
+[runcap] exit 0, peak RSS 294 MB, 17s

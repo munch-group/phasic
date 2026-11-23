@@ -531,11 +531,11 @@ PtDAlgorithms uses a three-layer caching architecture:
    - Key: SHA-256 hash of graph structure
    - Speedup: 10-1000ms → 0.1-1ms on cache hit
 
-2. SVGD COMPILATION CACHE (Layer 2)
-   - Location: Memory (dict) + disk (pickle, unreliable)
-   - Purpose: Cache JIT-compiled gradient functions
-   - Key: (model_id, theta_shape, particles_shape)
-   - Speedup: 1-60s compilation → instant on cache hit
+2. SVGD GRADIENT COMPILATION (Layer 2) -- no cache
+   - The gradient is JIT-compiled once per optimize() call
+   - It is NOT shared between SVGD instances or saved to disk: the
+     compiled function closes over the instance's data, priors and
+     transforms (a shared cache returned another fit's gradient)
 
 3. JAX COMPILATION CACHE (Layer 3)
    - Location: ~/.jax_cache/ (or $JAX_COMPILATION_CACHE_DIR)
@@ -603,32 +603,16 @@ PtDAlgorithms uses a three-layer caching architecture:
     print(f"  5. Future builds of same structure: instant")
 
     # -------------------------------------------------------------------------
-    # Test 7b: Layer 2 - SVGD Compilation Cache (Memory)
+    # Test 7b: Layer 2 - SVGD gradient compilation (no cross-fit cache)
     # -------------------------------------------------------------------------
-    print("\n\n7b. Layer 2: SVGD Compilation Cache Testing")
+    print("\n\n7b. Layer 2: SVGD gradient compilation")
     print("-" * 80)
 
-    print(f"\nSVGD compilation cache: In-memory dict + disk (best-effort)")
-    print(f"Note: SVGD cache testing skipped in this demo to avoid long compilation times")
-    print(f"      The cache works automatically within a Python session")
-
-    print(f"\nHow SVGD compilation cache works:")
-    print(f"  1. Generate cache key: (model_id, theta_shape, n_particles)")
-    print(f"  2. Check memory cache: SVGD._compiled_cache[key]")
-    print(f"  3. Hit: Reuse compiled gradient function (instant)")
-    print(f"  4. Miss: Check disk cache (unreliable, often fails)")
-    print(f"  5. Miss: Compile with jit(grad(log_prob)) (1-60s)")
-    print(f"  6. Save to memory cache for this session")
-    print(f"  7. Try to save to disk (often fails due to pickle limitations)")
-
-    print(f"\nTo test SVGD cache manually:")
-    print(f"  # First SVGD creation compiles (slow)")
-    print(f"  svgd1 = SVGD(model, data, theta_dim=1, n_particles=100)")
-    print(f"  ")
-    print(f"  # Second SVGD with same config uses cache (fast)")
-    print(f"  svgd2 = SVGD(model, data, theta_dim=1, n_particles=100)")
-    print(f"  ")
-    print(f"  # Speedup: typically 2-10x on second creation")
+    print(f"\nSVGD compiles jit(grad(log_prob)) once per optimize() call.")
+    print(f"Compiled gradients are NOT shared between SVGD instances or")
+    print(f"saved to disk: the compiled function closes over the instance's")
+    print(f"data, priors and transforms, so sharing it by model identity")
+    print(f"returned another fit's gradient (removed 2026-11).")
 
     # -------------------------------------------------------------------------
     # Test 7c: Layer 3 - JAX Compilation Cache
@@ -707,9 +691,7 @@ PtDAlgorithms uses a three-layer caching architecture:
     print("    → Convert to JAX-callable function")
 
     print("\n[3] Initialize SVGD")
-    print("    → SVGD COMPILATION CACHE: Checks for compiled gradients")
-    print("    → Hit: Reuse gradient function (instant)")
-    print("    → Miss: Compile with jit(grad(log_prob)) (1-60s)")
+    print("    → Compile jit(grad(log_prob)) for this fit (no cross-fit cache)")
 
     print("\n[4] Run SVGD.fit()")
     print("    → JAX COMPILATION CACHE: Checks for XLA compilations")
@@ -727,13 +709,12 @@ PtDAlgorithms uses a three-layer caching architecture:
     print("    Subsequent runs (warm caches):")
     print("      Graph build:     0.1-1ms    (trace cache hit)")
     print("      Model creation:  1-10ms     (serialization)")
-    print("      SVGD init:       <100ms     (SVGD cache hit)")
+    print("      SVGD init:       compile    (once per fit)")
     print("      SVGD fit:        1-10s      (JAX cache hit + iterations)")
     print("      Total:           ~2-15 seconds")
 
     print("\n    Cache effectiveness:")
     print("      • Trace cache: 10-1000x speedup on graph builds")
-    print("      • SVGD cache: Instant gradient reuse within session")
     print("      • JAX cache: >5,000x speedup on XLA compilation")
 
     print("\n    Performance tip:")
@@ -756,12 +737,7 @@ Three-Layer Caching System Status:
   - Hit rate: High (graph structures reused)
   - Speedup: 10-1000x on hit
 
-✓ Layer 2 (SVGD Cache): Working (memory only)
-  - Location: Memory dict + disk (unreliable)
-  - Caches: JIT-compiled gradient functions
-  - Hit rate: Medium (session-based)
-  - Speedup: Instant on memory hit
-  - Note: Disk cache often fails (pickle limitations)
+✓ Layer 2 (SVGD gradient compilation): compiled once per fit, not cached
 
 ✓ Layer 3 (JAX Cache): Working
   - Location: ~/.jax_cache/

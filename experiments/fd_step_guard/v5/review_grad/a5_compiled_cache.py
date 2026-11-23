@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """A5 (master): SVGD._compiled_cache key = (id(model), theta_dim, obs_shape, nr_moments, regularization, rewards).
 Same model object, same-shape data, DIFFERENT prior / positive_params / observed values (the FreeEpochModel.fit and
 "rebind the model later" situations): does the second SVGD reuse the first one's compiled gradient?"""

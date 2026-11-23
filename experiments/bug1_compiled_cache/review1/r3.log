@@ -1,0 +1,6 @@
+Matplotlib is building the font cache; this may take a moment.
+defaults                         jit_enabled=True  cache entries after fit: 1
+precompile=False                 jit_enabled=True  cache entries after fit: 1
+jit=False                        jit_enabled=True  cache entries after fit: 1
+jit=False, precompile=False      jit_enabled=False  cache entries after fit: 0
+[runcap] exit 0, peak RSS 684 MB, 26s

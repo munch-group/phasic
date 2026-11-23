@@ -1,0 +1,5 @@
+priors full  : [{'mu': 2.309115482188569, 'sigma': 2.309115482188569, 'lower': 0.0}, None, {'mu': 2.309115482188569, 'sigma': 2.309115482188569, 'lower': 0.0}, None]
+priors nested: [{'mu': 2.309115482188569, 'sigma': 2.309115482188569, 'lower': 0.0}, None, None, None]
+nested alone rerun BITEQ | nested after full, MASTER BITEQ
+means [ 2.6111  0.5413 -0.4328  0.5413] [ 2.6111  0.5413 -0.4328  0.5413]
+[runcap] exit 0, peak RSS 802 MB, 11s

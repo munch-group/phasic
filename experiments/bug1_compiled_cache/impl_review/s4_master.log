@@ -1,0 +1,10 @@
+Matplotlib is building the font cache; this may take a moment.
+build: /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py has cache: True
+pdf path, same model, 20k obs: RSS MB fit1 602 fit5 598 fit10 713 fit20 570 | growth fit5->fit20 -29 MB (-1.90/fit) | SVGD instances alive 1/20 | s/fit first 6.19 median(2..) 2.89
+   rss: 602 574 599 601 598 625 647 671 693 713 735 759 780 740 691 683 576 565 562 570
+joint graph vertices 168
+epoch path, same FreeEpochModel: RSS MB fit1 669 fit5 648 fit10 613 fit20 614 | growth fit5->fit20 -34 MB (-2.29/fit) | SVGD instances alive 1/20 | s/fit first 3.86 median(2..) 0.55
+   rss: 669 672 666 663 648 634 633 619 614 613 613 613 613 613 614 614 614 614 613 614
+cache entries 2
+compiled_svgd files in fake HOME: 2
+[runcap] exit 0, peak RSS 1078 MB, 98s

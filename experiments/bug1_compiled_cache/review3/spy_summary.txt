@@ -1,0 +1,8 @@
+tests/pytest/inference/test_svgd_correctness.py :: 4 passed, 13 warnings in 154.99s (0:02:34)  :: hits: 
+tests/pytest/inference/test_svgd_api_parity.py :: 3 passed in 6.54s  :: hits: 
+tests/pytest/inference/test_nan_observations_correctness.py :: ERROR:2026-11-23 15:13:34,657:jax._src.callback:94: jax.pure_callback failed 3 passed in 138.58s (0:02:18)  :: hits:    1 STALE:data 
+tests/pytest/inference/test_multivariate.py :: 10 passed, 2 skipped, 10 warnings in 6.45s  :: hits: 
+tests/pytest/test_svgd_assumptions.py :: 7 passed, 5 warnings in 7.60s  :: hits: 
+tests/pytest/inference/test_svgd_exposure.py :: 17 passed, 19 warnings in 388.92s (0:06:28)  :: hits: 
+tests/pytest/inference/test_preconditioning.py :: 31 passed, 39 warnings in 25.67s  :: hits: 
+QUEUE-DONE

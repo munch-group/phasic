@@ -1,0 +1,4 @@
+Path.home() -> /Users/kmt/phasic-bug1/experiments/bug1_compiled_cache/review3/fakehome
+files after an honest fit: ['compiled_svgd_741ec83635e750b3.pkl']
+poisoned file compiled_svgd_741ec83635e750b3.pkl -> particles equal to honest fit: False  mean honest 8.8794  mean poisoned 8.3751
+[runcap] exit 0, peak RSS 519 MB, 7s

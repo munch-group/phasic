@@ -1,0 +1,3 @@
+fit(fixed=[(3,1)]) alone       theta_mean [1.0539 0.9455 1.0073 1.    ]
+same after fit(fixed=[(1,1)])  theta_mean [1.023  0.4556 1.015  1.    ]  particles maxabs 1.094e+00
+[runcap] exit 0, peak RSS 717 MB, 11s

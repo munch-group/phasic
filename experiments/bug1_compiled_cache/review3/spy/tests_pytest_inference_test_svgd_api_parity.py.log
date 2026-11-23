@@ -1,0 +1,8 @@
+...                                                                      [100%]
+============================= slowest 5 durations ==============================
+6.48s call     tests/pytest/inference/test_svgd_api_parity.py::test_graph_svgd_and_direct_svgd_agree
+0.04s call     tests/pytest/inference/test_svgd_api_parity.py::test_validator_runs_on_direct_svgd
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+3 passed in 6.54s
+[runcap] exit 0, peak RSS 632 MB, 10s

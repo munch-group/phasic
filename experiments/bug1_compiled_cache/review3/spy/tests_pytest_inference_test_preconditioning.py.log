@@ -1,0 +1,39 @@
+.....................  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:01,  1.27it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  8.10it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  7.41it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:01,  1.78it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  6.38it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  3.02it/s]                                             .  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  6.37it/s]                                             ...  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  7.15it/s]                                             .                                          [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_preconditioning.py::test_scaling_shape_and_positivity[MomentJacobianPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_shape_and_positivity[FisherPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_reflects_scale_difference[MomentJacobianPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_reflects_scale_difference[FisherPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_2d[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_2d[fisher]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[fisher]
+tests/pytest/inference/test_preconditioning.py::test_jacobian_column_norms_finite
+  /Users/kmt/phasic-bug1/tests/pytest/inference/test_preconditioning.py:55: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [1.0, 0.0])  # rate = theta[0]
+
+tests/pytest/inference/test_preconditioning.py::test_scaling_shape_and_positivity[MomentJacobianPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_shape_and_positivity[FisherPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_reflects_scale_difference[MomentJacobianPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_scaling_reflects_scale_difference[FisherPreconditioner]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_2d[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_2d[fisher]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[fisher]
+tests/pytest/inference/test_preconditioning.py::test_jacobian_column_norms_finite
+  /Users/kmt/phasic-bug1/tests/pytest/inference/test_preconditioning.py:56: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [0.0, 1.0])  # rate = theta[1]
+
+tests/pytest/inference/test_preconditioning.py: 21 warnings
+  /Users/kmt/phasic-bug1/tests/pytest/inference/test_preconditioning.py:39: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations ==============================
+6.61s call     tests/pytest/inference/test_preconditioning.py::test_reference_search_no_overflow[MomentJacobianPreconditioner]
+6.59s call     tests/pytest/inference/test_preconditioning.py::test_reference_search_no_overflow[FisherPreconditioner]
+2.10s call     tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_runs[jacobian]
+1.91s call     tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_2d[jacobian]
+1.26s call     tests/pytest/inference/test_preconditioning.py::test_svgd_optimize_with_fixed_params[jacobian]
+31 passed, 39 warnings in 25.67s
+[runcap] exit 0, peak RSS 2053 MB, 30s

@@ -1,0 +1,6 @@
+run 1 phasic: Posterior mean: [1.69217875]|  Using cached compiled gradient from memory|Posterior mean: [1.67643891]|  Posterior mean: 1.6922|  Posterior mean: 1.6764|  Difference between NaN and Full: 0.0157|1 passed in 65.27s (0:01:05)|
+run 1 phasic-bug1: Posterior mean: [1.39639787]|Posterior mean: [1.4228752]|  Posterior mean: 1.3964|  Posterior mean: 1.4229|  Difference between NaN and Full: 0.0265|1 passed in 68.79s (0:01:08)|
+run 2 phasic: Posterior mean: [1.467216]|  Using cached compiled gradient from memory|Posterior mean: [1.48564705]|  Posterior mean: 1.4672|  Posterior mean: 1.4856|  Difference between NaN and Full: 0.0184|1 passed in 62.77s (0:01:02)|
+run 2 phasic-bug1: Posterior mean: [1.15569907]|Posterior mean: [1.18226991]|  Posterior mean: 1.1557|  Posterior mean: 1.1823|  Difference between NaN and Full: 0.0266|1 passed in 74.85s (0:01:14)|
+run 3 phasic: Posterior mean: [1.92674514]|  Using cached compiled gradient from memory|Posterior mean: [1.92598879]|  Posterior mean: 1.9267|  Posterior mean: 1.9260|  Difference between NaN and Full: 0.0008|1 passed in 54.88s|
+run 3 phasic-bug1: Posterior mean: [1.37863471]|Posterior mean: [1.30111748]|  Posterior mean: 1.3786|  Posterior mean: 1.3011|  Difference between NaN and Full: 0.0775|1 passed in 70.90s (0:01:10)|

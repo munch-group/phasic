@@ -1,0 +1,15 @@
+.......  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [00:01<00:09,  1.02s/it] 90%|█████████ | 9/10 [00:01<00:00, 10.56it/s]                                              .  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [00:00<00:01,  4.84it/s] 70%|███████   | 7/10 [00:00<00:00, 27.23it/s]                                              .  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [00:00<00:02,  4.42it/s] 70%|███████   | 7/10 [00:00<00:00, 25.75it/s]                                              .ss                                                             [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_multivariate.py: 10 warnings
+  /Users/kmt/phasic-bug1/tests/pytest/inference/test_multivariate.py:18: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v_transient.add_edge_parameterized(v_absorb, 0.0, [1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations ==============================
+2.93s call     tests/pytest/inference/test_multivariate.py::TestSVGDMultivariate::test_svgd_1d_inference
+1.75s call     tests/pytest/inference/test_multivariate.py::TestSVGDMultivariate::test_svgd_2d_inference
+1.02s call     tests/pytest/inference/test_multivariate.py::TestSVGDMultivariate::test_svgd_2d_moments_regularization
+0.23s call     tests/pytest/inference/test_multivariate.py::TestSVGDMultivariate::test_svgd_accepts_rewards
+0.14s call     tests/pytest/inference/test_multivariate.py::TestMultivariateModel::test_2d_rewards_shape
+10 passed, 2 skipped, 10 warnings in 6.45s
+[runcap] exit 0, peak RSS 742 MB, 11s
