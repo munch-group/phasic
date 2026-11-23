@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 2: is the shipped LRT reuse (FreeEpochModel full -> nested on one
 object) really unaffected on master?  With prior=None the default prior is
 rebuilt from the merged fixed list, so full and nested have DIFFERENT priors

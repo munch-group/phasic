@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3: FreeEpochModel.fit with NON-nested fixed sets on one model object.
 First fit fixes slot 1 (so slot 1 has no prior in the compiled function); second
 fit fixes slot 3 and leaves slot 1 FREE.  Does the second fit lose slot 1's prior?"""

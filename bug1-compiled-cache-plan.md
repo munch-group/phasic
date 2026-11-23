@@ -1,6 +1,6 @@
 # Bug 1: SVGD's compiled-gradient cache returns another fit's gradient — fix plan
 
-**Status: v3, 2026-11-23 (v2 + the re-review's gate and wording corrections, section 7). v1 was reviewed by three independent agents
+**Status: IMPLEMENTED AND GATED 2026-11-23 (results in section 9). Plan v3, 2026-11-23 (v2 + the re-review's gate and wording corrections, section 7). v1 was reviewed by three independent agents
 (diagnosis; fix design; tests and gate). All three confirmed the fix and
 required changes to the diagnosis, cost figures, test list and gate; v2
 makes them (section 7). Branch `fix/svgd-compiled-cache`, worktree
@@ -276,3 +276,33 @@ printed → all done (`gate_compare.py` rewritten, `gate_rerun.sh` added).
   section 4); the gate finds others.
 - Files `compiled_svgd_*.pkl` already in `~/.phasic_cache` are no longer
   read or written; the user can delete them (not done by this change).
+
+## 9. Results
+
+- Implementation: commit `44b82f09` + review tidy-up. New tests: 17 pass on
+  the fixed build; on the unmodified build 15 fail (array mismatches,
+  retained instances, a written cache file, the class attribute) and the 2
+  guard tests pass (`experiments/bug1_compiled_cache/new_tests_on_master.log`).
+- Implementation review (one adversarial agent): SIGN-OFF, no blocker or
+  major finding; 16 further scenarios (sparse data, exposure, tied epochs,
+  schedules, non-JIT paths, multivariate) bit-equal to a fresh model; six
+  minor notes applied (demo text, headers on obsolete scripts, test data
+  moved out of import time, dead parameter) except m4/m6, which are
+  observations.
+- Gate (`gate_compare.py`, master `ca09e2e1` baseline vs this branch, 199 +
+  1 files, one process per file): **GATE PASS** — baseline 2710 passed / 6
+  failed; candidate 2729 passed / 4 failed; no passed test regressed, none
+  disappeared, 17 new tests pass. Two baseline failures passed on this
+  build (`test_mcmc_accuracy::test_two_param_recovery`,
+  `test_svgd_correctness::test_basic_convergence`: flaky, unseeded). Four
+  tests fail on both builds identically and deterministically in three
+  isolated reruns each (`inference/test_plot_ci.py`: plot-label
+  assertions, pre-existing, unrelated). Test time 58.3 vs 57.6 minutes.
+- `test_nan_correctness_univariate` (section 4): passes 3/3 on both builds;
+  on master it prints "Using cached compiled gradient" (comparing the NaN
+  fit with itself); on this build it is a real comparison (differences
+  0.03-0.08) and still passes
+  (`experiments/bug1_compiled_cache/nan_test_both_builds.log`).
+- Observed, not caused by this fix (logged in
+  `found-defects-2026-11-23.md` on master): fits with 1-D rewards are not
+  bit-reproducible run to run; RSS grows per fit on both builds.

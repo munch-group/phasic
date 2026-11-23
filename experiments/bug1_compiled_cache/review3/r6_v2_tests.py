@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3 re-review of plan v2: feasibility of test 5 (mutate observed_data, optimize again)
 and test 11 (no pickle.load under redirected HOME), on unmodified code with the cache
 cleared before each fit (= fixed behaviour)."""

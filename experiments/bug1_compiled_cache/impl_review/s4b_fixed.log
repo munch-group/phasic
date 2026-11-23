@@ -1,0 +1,7 @@
+Matplotlib is building the font cache; this may take a moment.
+build: /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py has cache: False
+(i) same model, 80 refits: alive 0/80  RSS slope over last 3/4: +1.58 MB/fit  total 66s
+   rss every 8: 524 675 739 908 942 1022 1089 1183 957 976 | last 958
+(ii) Graph.svgd x25 on one graph: alive 0/25  RSS slope over last 3/4: -6.96 MB/fit  total 26s
+   rss every 3: 986 1028 1089 1058 998 1011 949 961 984 | last 984
+[runcap] exit 0, peak RSS 1774 MB, 113s

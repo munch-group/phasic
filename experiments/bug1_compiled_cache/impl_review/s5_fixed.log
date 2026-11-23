@@ -1,0 +1,9 @@
+Matplotlib is building the font cache; this may take a moment.
+verbose dense: OK finite=True  | Precompiling gradient function... / Theta shape: (1,), Times shape: (60,) / Gradient JIT compiled in 0.1s / Precompilation complete!
+verbose dense no_history: OK finite=True  | Precompiling gradient function... / Theta shape: (1,), Times shape: (60,) / Gradient JIT compiled in 0.08s / Precompilation complete!
+verbose regularized: OK finite=True  | Precompiling gradient function... / Theta shape: (1,), Times shape: (60,) / Gradient JIT compiled in 0.08s / Precompilation complete!
+verbose jit=False precompile=False: OK finite=True  | 
+verbose precompile=True jit=False: OK finite=True  | Precompiling gradient function... / Theta shape: (1,), Times shape: (60,) / Gradient JIT compiled in 0.08s / Precompilation complete!
+verbose sparse 2-D rewards: OK finite=True  | Precompiling gradient function... / Theta shape: (2,), Times shape: (52, 2) / Gradient JIT compiled in 0.2s / Precompilation complete!
+epoch: 3rd fit on used model vs fresh model/used jc: 0.000e+00 (logp 0.000e+00);  vs fresh model/FRESH jc: 0.000e+00 (logp 0.000e+00)
+[runcap] exit 0, peak RSS 1171 MB, 37s

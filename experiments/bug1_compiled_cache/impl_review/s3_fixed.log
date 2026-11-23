@@ -1,0 +1,24 @@
+Matplotlib is building the font cache; this may take a moment.
+build: /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py  has cache: False
+rewards 1-D, data A->B                         after-vs-fresh 8.511e-09  power(first-vs-fresh) 7.424e+00  DIFFERENT
+rewards 1-D + regularization                   after-vs-fresh 2.683e-08  power(first-vs-fresh) 7.417e+00  DIFFERENT
+regularization schedule, data A->B             after-vs-fresh 0.000e+00  power(first-vs-fresh) 8.132e+00  EQUAL
+parallel='none'                                after-vs-fresh 0.000e+00  power(first-vs-fresh) 8.129e+00  EQUAL
+parallel='none', jit=False                     after-vs-fresh 0.000e+00  power(first-vs-fresh) 3.464e+00  EQUAL
+jit=False precompile=False                     after-vs-fresh 0.000e+00  power(first-vs-fresh) 3.464e+00  EQUAL
+jit=False precompile=False no_history          after-vs-fresh 0.000e+00  power(first-vs-fresh) 3.464e+00  EQUAL
+direct exposure, exposure values differ        after-vs-fresh 0.000e+00  power(first-vs-fresh) 1.119e-01  EQUAL
+multivariate dense 2-D rewards                 after-vs-fresh 0.000e+00  power(first-vs-fresh) 4.074e+00  EQUAL
+sparse observations (same mask), 2-D rewards   after-vs-fresh 0.000e+00  power(first-vs-fresh) 2.309e+00  EQUAL
+sparse observations, different mask same count after-vs-fresh 0.000e+00  power(first-vs-fresh) 7.372e-01  EQUAL
+different model objects, equal shapes          0.000e+00
+epoch + exposure, prior P1->P2                 after-vs-fresh 0.000e+00  power(first-vs-fresh) 2.322e+01  EQUAL
+epoch + exposure, non-nested fixed             after-vs-fresh 0.000e+00  power(first-vs-fresh) 2.069e+01  EQUAL
+epoch + exposure, default prior, fixed values  after-vs-fresh 0.000e+00  power(first-vs-fresh) 1.394e+01  EQUAL
+epoch single epoch_starts=[0.0], prior P1->P2  after-vs-fresh 0.000e+00  power(first-vs-fresh) 2.032e+01  EQUAL
+Graph.svgd tied epochs, data 1->2              after-vs-fresh 0.000e+00  power(first-vs-fresh) 4.652e-01  EQUAL
+Graph.svgd tied epochs + exposure, data 1->2   after-vs-fresh 0.000e+00  power(first-vs-fresh) 4.532e-01  EQUAL
+Graph.svgd joint (no epochs), data 1->2        after-vs-fresh 0.000e+00  power(first-vs-fresh) 4.652e-01  EQUAL
+fake HOME contents: ['.matplotlib/fontlist-v390.json', '.phasic_cache/graphs/309e6324b552e80efbe19c45b55494ac.json', '.phasic_cache/graphs/4e7d3baaa4030c3c07013fbec311874d.json']
+compiled_svgd files: []
+[runcap] exit 0, peak RSS 1489 MB, 115s

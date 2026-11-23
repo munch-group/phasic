@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3: is a stale on-disk compiled_svgd_*.pkl really READ on master, and can a
 test show it without touching the real home directory (HOME redirected in-process)?"""
 import os, sys, random, pickle, pathlib, warnings

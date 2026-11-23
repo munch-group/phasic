@@ -1,0 +1,6 @@
+Matplotlib is building the font cache; this may take a moment.
+build: /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py False
+rewards     fresh1-fresh2 1.742e-08  fresh1-fresh3 9.911e-09  same-model twice 1.053e-08  s1-fresh1 9.745e-09  B-after-A vs fresh1 5.124e-09
+no rewards  fresh1-fresh2 0.000e+00  fresh1-fresh3 0.000e+00  same-model twice 0.000e+00  s1-fresh1 0.000e+00  B-after-A vs fresh1 0.000e+00
+model(theta,t,rewards) repeat diffs ['0.000e+00', '0.000e+00', '0.000e+00']  other model object 0.000e+00
+[runcap] exit 0, peak RSS 686 MB, 31s

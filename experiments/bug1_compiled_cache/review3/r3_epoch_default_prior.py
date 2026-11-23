@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3: LRT pattern with the DEFAULT epoch prior (prior=None): full then nested vs nested alone."""
 import sys, warnings
 import numpy as np

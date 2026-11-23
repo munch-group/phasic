@@ -1,0 +1,596 @@
+/Users/kmt/phasic/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+FFFFF..FFFFFFFFFF                                                        [100%]
+=================================== FAILURES ===================================
+___________________ test_different_data_same_shape[default] ____________________
+
+kw = {}
+
+    @pytest.mark.parametrize("kw", [
+        dict(),                                    # value_and_grad (history kept)
+        dict(return_history=False),                # plain grad
+        dict(regularization=1.0, nr_moments=2),    # sample moments differ with data
+    ], ids=["default", "no_history", "regularized"])
+    def test_different_data_same_shape(kw):
+        assert DATA_A.shape == DATA_B.shape
+>       _assert_second_fit_independent(
+            lambda m: _fit(m, DATA_A, _wide(), **kw),
+            lambda m: _fit(m, DATA_B, _wide(), **kw))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+first = <function test_different_data_same_shape.<locals>.<lambda> at 0x16a60cea0>
+second = <function test_different_data_same_shape.<locals>.<lambda> at 0x16a60cf40>
+
+    def _assert_second_fit_independent(first, second):
+        """first/second: callables model -> fitted SVGD."""
+        shared = _model()
+        p_first = _particles(first(shared))
+        p_after = _particles(second(shared))
+        p_fresh = _particles(second(_model()))
+        # power: the two fits really are different problems
+        assert np.max(np.abs(p_first - p_fresh)) > 1e-3
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 12 / 12 (100%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 6.160889857560159 (ACTUAL), 0.48511966113624283 (DESIRED)
+E        [1, 0]: 9.385079264269555 (ACTUAL), 0.604933489748035 (DESIRED)
+E        [2, 0]: 10.422281181351087 (ACTUAL), 1.8043944933358158 (DESIRED)
+E        [3, 0]: 14.339355344696813 (ACTUAL), 11.024316992466057 (DESIRED)
+E        [4, 0]: 7.422262471962844 (ACTUAL), 0.5323289403886468 (DESIRED)
+E       Max absolute difference among violations: 9.21012302
+E       Max relative difference among violations: 14.51423326
+E        ACTUAL: array([[ 6.16089 ],
+E              [ 9.385079],
+E              [10.422281],...
+E        DESIRED: array([[ 0.48512 ],
+E              [ 0.604933],
+E              [ 1.804394],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:79: AssertionError
+__________________ test_different_data_same_shape[no_history] __________________
+
+kw = {'return_history': False}
+
+    @pytest.mark.parametrize("kw", [
+        dict(),                                    # value_and_grad (history kept)
+        dict(return_history=False),                # plain grad
+        dict(regularization=1.0, nr_moments=2),    # sample moments differ with data
+    ], ids=["default", "no_history", "regularized"])
+    def test_different_data_same_shape(kw):
+        assert DATA_A.shape == DATA_B.shape
+>       _assert_second_fit_independent(
+            lambda m: _fit(m, DATA_A, _wide(), **kw),
+            lambda m: _fit(m, DATA_B, _wide(), **kw))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+first = <function test_different_data_same_shape.<locals>.<lambda> at 0x7034ab34c0>
+second = <function test_different_data_same_shape.<locals>.<lambda> at 0x7034ab3600>
+
+    def _assert_second_fit_independent(first, second):
+        """first/second: callables model -> fitted SVGD."""
+        shared = _model()
+        p_first = _particles(first(shared))
+        p_after = _particles(second(shared))
+        p_fresh = _particles(second(_model()))
+        # power: the two fits really are different problems
+        assert np.max(np.abs(p_first - p_fresh)) > 1e-3
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 12 / 12 (100%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 6.160889857560159 (ACTUAL), 0.48511966113624283 (DESIRED)
+E        [1, 0]: 9.385079264269555 (ACTUAL), 0.604933489748035 (DESIRED)
+E        [2, 0]: 10.422281181351087 (ACTUAL), 1.8043944933358158 (DESIRED)
+E        [3, 0]: 14.339355344696813 (ACTUAL), 11.024316992466057 (DESIRED)
+E        [4, 0]: 7.422262471962844 (ACTUAL), 0.5323289403886468 (DESIRED)
+E       Max absolute difference among violations: 9.21012302
+E       Max relative difference among violations: 14.51423326
+E        ACTUAL: array([[ 6.16089 ],
+E              [ 9.385079],
+E              [10.422281],...
+E        DESIRED: array([[ 0.48512 ],
+E              [ 0.604933],
+E              [ 1.804394],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:79: AssertionError
+_________________ test_different_data_same_shape[regularized] __________________
+
+kw = {'regularization': 1.0, 'nr_moments': 2}
+
+    @pytest.mark.parametrize("kw", [
+        dict(),                                    # value_and_grad (history kept)
+        dict(return_history=False),                # plain grad
+        dict(regularization=1.0, nr_moments=2),    # sample moments differ with data
+    ], ids=["default", "no_history", "regularized"])
+    def test_different_data_same_shape(kw):
+        assert DATA_A.shape == DATA_B.shape
+>       _assert_second_fit_independent(
+            lambda m: _fit(m, DATA_A, _wide(), **kw),
+            lambda m: _fit(m, DATA_B, _wide(), **kw))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+first = <function test_different_data_same_shape.<locals>.<lambda> at 0x7049135d00>
+second = <function test_different_data_same_shape.<locals>.<lambda> at 0x7049135da0>
+
+    def _assert_second_fit_independent(first, second):
+        """first/second: callables model -> fitted SVGD."""
+        shared = _model()
+        p_first = _particles(first(shared))
+        p_after = _particles(second(shared))
+        p_fresh = _particles(second(_model()))
+        # power: the two fits really are different problems
+        assert np.max(np.abs(p_first - p_fresh)) > 1e-3
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 12 / 12 (100%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 6.161821189100932 (ACTUAL), 0.4774615760214839 (DESIRED)
+E        [1, 0]: 9.385128840105562 (ACTUAL), 0.5667894304886117 (DESIRED)
+E        [2, 0]: 10.422237580071572 (ACTUAL), 1.8417404859131854 (DESIRED)
+E        [3, 0]: 14.339341417914442 (ACTUAL), 11.048028602610792 (DESIRED)
+E        [4, 0]: 7.422865298413644 (ACTUAL), 0.510308847385632 (DESIRED)
+E       Max absolute difference among violations: 9.25347817
+E       Max relative difference among violations: 15.55840482
+E        ACTUAL: array([[ 6.161821],
+E              [ 9.385129],
+E              [10.422238],...
+E        DESIRED: array([[ 0.477462],
+E              [ 0.566789],
+E              [ 1.84174 ],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:79: AssertionError
+_____________________________ test_different_prior _____________________________
+
+    def test_different_prior():
+>       _assert_second_fit_independent(
+            lambda m: _fit(m, DATA_A, _wide()),
+            lambda m: _fit(m, DATA_A, _narrow()))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+first = <function test_different_prior.<locals>.<lambda> at 0x704a144040>
+second = <function test_different_prior.<locals>.<lambda> at 0x704a145c60>
+
+    def _assert_second_fit_independent(first, second):
+        """first/second: callables model -> fitted SVGD."""
+        shared = _model()
+        p_first = _particles(first(shared))
+        p_after = _particles(second(shared))
+        p_fresh = _particles(second(_model()))
+        # power: the two fits really are different problems
+        assert np.max(np.abs(p_first - p_fresh)) > 1e-3
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 12 / 12 (100%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 4.182178463805232 (ACTUAL), 0.5416136651822369 (DESIRED)
+E        [1, 0]: 6.661943143828971 (ACTUAL), 0.4356887670705545 (DESIRED)
+E        [2, 0]: 6.656906266148158 (ACTUAL), 0.4345755580726824 (DESIRED)
+E        [3, 0]: 6.651740772927142 (ACTUAL), 0.43454657369611727 (DESIRED)
+E        [4, 0]: 6.336504969129837 (ACTUAL), 0.5011652815231297 (DESIRED)
+E       Max absolute difference among violations: 6.22799144
+E       Max relative difference among violations: 14.33253207
+E        ACTUAL: array([[4.182178],
+E              [6.661943],
+E              [6.656906],...
+E        DESIRED: array([[0.541614],
+E              [0.435689],
+E              [0.434576],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:79: AssertionError
+____________________ test_mutated_data_then_optimize_again _____________________
+
+    def test_mutated_data_then_optimize_again():
+        # Without regularization: sample_moments is computed in __init__ and is
+        # not refreshed by mutation, which is a separate matter.
+        s = _fit(_model(), DATA_A, _wide())
+        p_first = _particles(s).copy()
+        s.observed_data = jnp.asarray(DATA_B, dtype=s.observed_data.dtype)
+        s.optimize()
+        p_fresh = _particles(_fit(_model(), DATA_B, _wide()))
+        assert np.max(np.abs(p_first - p_fresh)) > 1e-3
+>       np.testing.assert_array_equal(_particles(s), p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 12 / 12 (100%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 6.160889857560159 (ACTUAL), 0.48511966113624283 (DESIRED)
+E        [1, 0]: 9.385079264269555 (ACTUAL), 0.604933489748035 (DESIRED)
+E        [2, 0]: 10.422281181351087 (ACTUAL), 1.8043944933358158 (DESIRED)
+E        [3, 0]: 14.339355344696813 (ACTUAL), 11.024316992466057 (DESIRED)
+E        [4, 0]: 7.422262471962844 (ACTUAL), 0.5323289403886468 (DESIRED)
+E       Max absolute difference among violations: 9.21012302
+E       Max relative difference among violations: 14.51423326
+E        ACTUAL: array([[ 6.16089 ],
+E              [ 9.385079],
+E              [10.422281],...
+E        DESIRED: array([[ 0.48512 ],
+E              [ 0.604933],
+E              [ 1.804394],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:110: AssertionError
+_______________________ test_epoch_model_prior_override ________________________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_epoch_model_prior_override(joint):
+>       _epoch_independent(
+            joint,
+            lambda em: em.fit(fixed=FULL, prior=_prior4(_wide), **EKW),
+            lambda em: em.fit(fixed=FULL, prior=_prior4(_narrow), **EKW))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+first = <function test_epoch_model_prior_override.<locals>.<lambda> at 0x70669a4680>
+second = <function test_epoch_model_prior_override.<locals>.<lambda> at 0x70669a5da0>
+compare_log_prob = False, need_power = True
+
+    def _epoch_independent(joint, first, second, compare_log_prob=False,
+                           need_power=True):
+        shared = _em(joint)
+        s_first = first(shared)
+        s_after = second(shared)
+        s_fresh = second(_em(joint))
+        p_after, p_fresh = _particles(s_after), _particles(s_fresh)
+        if need_power:
+            assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 24 / 48 (50%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: -0.9426811350020659 (ACTUAL), -1.3460631487838084 (DESIRED)
+E        [0, 2]: -3.930445441649113 (ACTUAL), -4.129705122099019 (DESIRED)
+E        [1, 0]: -0.6574487084452254 (ACTUAL), -1.3363072473564055 (DESIRED)
+E        [1, 2]: -3.671953887619514 (ACTUAL), -4.063071047091758 (DESIRED)
+E        [2, 0]: -0.4272533857102407 (ACTUAL), -1.0456771585867313 (DESIRED)
+E       Max absolute difference among violations: 0.81021715
+E       Max relative difference among violations: 0.6219207
+E        ACTUAL: array([[-0.942681,  0.541325, -3.930445,  0.541325],
+E              [-0.657449,  0.541325, -3.671954,  0.541325],
+E              [-0.427253,  0.541325, -3.229352,  0.541325],...
+E        DESIRED: array([[-1.346063,  0.541325, -4.129705,  0.541325],
+E              [-1.336307,  0.541325, -4.063071,  0.541325],
+E              [-1.045677,  0.541325, -3.418821,  0.541325],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:169: AssertionError
+______________________ test_epoch_model_non_nested_fixed _______________________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_epoch_model_non_nested_fixed(joint):
+        # Fixed slot 1 then fixed slot 3: the first fit's compiled function had no
+        # prior on slot 1, which is free in the second fit.
+        pri = lambda: [_wide(), _wide(), _wide(), _wide()]
+>       _epoch_independent(
+            joint,
+            lambda em: em.fit(fixed=[(1, 1.0)], prior=pri(), **EKW),
+            lambda em: em.fit(fixed=[(3, 1.0)], prior=pri(), **EKW))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+first = <function test_epoch_model_non_nested_fixed.<locals>.<lambda> at 0x7084987380>
+second = <function test_epoch_model_non_nested_fixed.<locals>.<lambda> at 0x70849859e0>
+compare_log_prob = False, need_power = True
+
+    def _epoch_independent(joint, first, second, compare_log_prob=False,
+                           need_power=True):
+        shared = _em(joint)
+        s_first = first(shared)
+        s_after = second(shared)
+        s_fresh = second(_em(joint))
+        p_after, p_fresh = _particles(s_after), _particles(s_fresh)
+        if need_power:
+            assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 36 / 48 (75%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 13.86747944518577 (ACTUAL), 13.867504558906436 (DESIRED)
+E        [0, 1]: 7.446074466491574 (ACTUAL), 7.448935958880941 (DESIRED)
+E        [0, 2]: 3.5059734063327075 (ACTUAL), 3.5059733914070264 (DESIRED)
+E        [1, 0]: 10.7206640161701 (ACTUAL), 10.720673097088797 (DESIRED)
+E        [1, 1]: 9.193841131101182 (ACTUAL), 9.195028456921863 (DESIRED)
+E       Max absolute difference among violations: 0.00933314
+E       Max relative difference among violations: 0.00102449
+E        ACTUAL: array([[13.867479,  7.446074,  3.505973,  0.541325],
+E              [10.720664,  9.193841,  8.146294,  0.541325],
+E              [13.934055, 13.262286, 13.245176,  0.541325],...
+E        DESIRED: array([[13.867505,  7.448936,  3.505973,  0.541325],
+E              [10.720673,  9.195028,  8.146294,  0.541325],
+E              [13.934054, 13.257923, 13.245176,  0.541325],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:169: AssertionError
+______________________ test_epoch_model_nested_then_full _______________________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_epoch_model_nested_then_full(joint):
+>       _epoch_independent(
+            joint,
+            lambda em: em.fit(fixed=NESTED, prior=_prior4(), **EKW),
+            lambda em: em.fit(fixed=FULL, prior=_prior4(), **EKW))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+first = <function test_epoch_model_nested_then_full.<locals>.<lambda> at 0x709186ad40>
+second = <function test_epoch_model_nested_then_full.<locals>.<lambda> at 0x709186b240>
+compare_log_prob = False, need_power = True
+
+    def _epoch_independent(joint, first, second, compare_log_prob=False,
+                           need_power=True):
+        shared = _em(joint)
+        s_first = first(shared)
+        s_after = second(shared)
+        s_fresh = second(_em(joint))
+        p_after, p_fresh = _particles(s_after), _particles(s_fresh)
+        if need_power:
+            assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 24 / 48 (50%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 13.336965221510578 (ACTUAL), 13.337329992633954 (DESIRED)
+E        [0, 2]: 3.4896767722921957 (ACTUAL), 3.4971895363895595 (DESIRED)
+E        [1, 0]: 9.415619620627348 (ACTUAL), 9.415765700628205 (DESIRED)
+E        [1, 2]: 8.11406287378192 (ACTUAL), 8.119618894300144 (DESIRED)
+E        [2, 0]: 13.118848035836429 (ACTUAL), 13.11898141393661 (DESIRED)
+E       Max absolute difference among violations: 0.01001467
+E       Max relative difference among violations: 0.00214823
+E        ACTUAL: array([[13.336965,  0.541325,  3.489677,  0.541325],
+E              [ 9.41562 ,  0.541325,  8.114063,  0.541325],
+E              [13.118848,  0.541325, 13.240662,  0.541325],...
+E        DESIRED: array([[13.33733 ,  0.541325,  3.49719 ,  0.541325],
+E              [ 9.415766,  0.541325,  8.119619,  0.541325],
+E              [13.118981,  0.541325, 13.235282,  0.541325],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:169: AssertionError
+__________ test_epoch_model_default_prior_with_different_fixed_values __________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_epoch_model_default_prior_with_different_fixed_values(joint):
+        # prior=None: the default prior is built from the fixed values.
+>       _epoch_independent(
+            joint,
+            lambda em: em.fit(fixed=[(1, 1.0), (3, 1.0)], **EKW),
+            lambda em: em.fit(fixed=[(1, 3.0), (3, 3.0)], **EKW))
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:201: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+first = <function test_epoch_model_default_prior_with_different_fixed_values.<locals>.<lambda> at 0x7091dbe8e0>
+second = <function test_epoch_model_default_prior_with_different_fixed_values.<locals>.<lambda> at 0x7091dbe980>
+compare_log_prob = False, need_power = True
+
+    def _epoch_independent(joint, first, second, compare_log_prob=False,
+                           need_power=True):
+        shared = _em(joint)
+        s_first = first(shared)
+        s_after = second(shared)
+        s_fresh = second(_em(joint))
+        p_after, p_fresh = _particles(s_after), _particles(s_fresh)
+        if need_power:
+            assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+>       np.testing.assert_array_equal(p_after, p_fresh)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 24 / 48 (50%)
+E       First 5 mismatches are at indices:
+E        [0, 0]: 11.661919384837237 (ACTUAL), 11.761857163893605 (DESIRED)
+E        [0, 2]: 9.081113453337696 (ACTUAL), 9.165892268315975 (DESIRED)
+E        [1, 0]: 7.768832893226992 (ACTUAL), 7.8238496852246975 (DESIRED)
+E        [1, 2]: 3.8922222012812417 (ACTUAL), 3.9342277640535284 (DESIRED)
+E        [2, 0]: 11.644076308589405 (ACTUAL), 11.737267638010305 (DESIRED)
+E       Max absolute difference among violations: 0.11094464
+E       Max relative difference among violations: 0.01080844
+E        ACTUAL: array([[11.661919,  2.948931,  9.081113,  2.948931],
+E              [ 7.768833,  2.948931,  3.892222,  2.948931],
+E              [11.644076,  2.948931, 11.009893,  2.948931],...
+E        DESIRED: array([[11.761857,  2.948931,  9.165892,  2.948931],
+E              [ 7.82385 ,  2.948931,  3.934228,  2.948931],
+E              [11.737268,  2.948931, 11.104813,  2.948931],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:169: AssertionError
+__________ test_epoch_model_full_then_nested_including_log_posterior ___________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_epoch_model_full_then_nested_including_log_posterior(joint):
+        # The likelihood-ratio order. Particles were already right; the recorded
+        # log posterior carried the full fit's prior term for the now-fixed slot.
+>       _epoch_independent(
+            joint,
+            lambda em: em.fit(fixed=FULL, prior=_prior4(), **EKW),
+            lambda em: em.fit(fixed=NESTED, prior=_prior4(), **EKW),
+            compare_log_prob=True)
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:210: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+first = <function test_epoch_model_full_then_nested_including_log_posterior.<locals>.<lambda> at 0x7092239bc0>
+second = <function test_epoch_model_full_then_nested_including_log_posterior.<locals>.<lambda> at 0x7092238cc0>
+compare_log_prob = True, need_power = True
+
+    def _epoch_independent(joint, first, second, compare_log_prob=False,
+                           need_power=True):
+        shared = _em(joint)
+        s_first = first(shared)
+        s_after = second(shared)
+        s_fresh = second(_em(joint))
+        p_after, p_fresh = _particles(s_after), _particles(s_fresh)
+        if need_power:
+            assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+        np.testing.assert_array_equal(p_after, p_fresh)
+        if compare_log_prob:
+>           np.testing.assert_array_equal(np.asarray(s_after.history_log_prob),
+                                          np.asarray(s_fresh.history_log_prob))
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 300 / 312 (96.2%)
+E           First 5 mismatches are at indices:
+E            [0, 0]: -582.9961890901808 (ACTUAL), -580.1427075502666 (DESIRED)
+E            [0, 1]: -537.4064113947611 (ACTUAL), -534.5529298548469 (DESIRED)
+E            [0, 2]: -582.7028290396778 (ACTUAL), -579.8493474997636 (DESIRED)
+E            [0, 3]: -505.4419476409847 (ACTUAL), -502.5884661010705 (DESIRED)
+E            [0, 4]: -467.808677576896 (ACTUAL), -464.9551960369817 (DESIRED)
+E           Max absolute difference among violations: 2.85348154
+E           Max relative difference among violations: 0.0064861
+E            ACTUAL: array([[-582.996189, -537.406411, -582.702829, -505.441948, -467.808678,
+E                   -551.232345, -591.586593, -475.39298 , -645.351355, -512.642382,
+E                   -608.710074, -443.326477],...
+E            DESIRED: array([[-580.142708, -534.55293 , -579.849347, -502.588466, -464.955196,
+E                   -548.378863, -588.733112, -472.539499, -642.497874, -509.788901,
+E                   -605.856593, -440.472995],...
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:171: AssertionError
+__________________ test_fitted_instance_is_released[default] ___________________
+
+kw = {}
+
+    @pytest.mark.parametrize("kw", [dict(), dict(return_history=False)],
+                             ids=["default", "no_history"])
+    def test_fitted_instance_is_released(kw):
+        s = _fit(_model(), DATA_A, _wide(), **kw)
+        ref = weakref.ref(s)
+        del s
+        gc.collect()
+>       assert ref() is None
+E       AssertionError: assert <phasic.svgd.SVGD object at 0x70927d3890> is None
+E        +  where <phasic.svgd.SVGD object at 0x70927d3890> = <weakref at 0x70928128e0; to 'phasic.svgd.SVGD' at 0x70927d3890>()
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:225: AssertionError
+_________________ test_fitted_instance_is_released[no_history] _________________
+
+kw = {'return_history': False}
+
+    @pytest.mark.parametrize("kw", [dict(), dict(return_history=False)],
+                             ids=["default", "no_history"])
+    def test_fitted_instance_is_released(kw):
+        s = _fit(_model(), DATA_A, _wide(), **kw)
+        ref = weakref.ref(s)
+        del s
+        gc.collect()
+>       assert ref() is None
+E       AssertionError: assert <phasic.svgd.SVGD object at 0x70861afed0> is None
+E        +  where <phasic.svgd.SVGD object at 0x70861afed0> = <weakref at 0x704a1bdb70; to 'phasic.svgd.SVGD' at 0x70861afed0>()
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:225: AssertionError
+____________________ test_fitted_epoch_instance_is_released ____________________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_fitted_epoch_instance_is_released(joint):
+        s = _em(joint).fit(fixed=FULL, prior=_prior4(), **EKW)
+        ref = weakref.ref(s)
+        del s
+        gc.collect()
+>       assert ref() is None
+E       AssertionError: assert <phasic.svgd.SVGD object at 0x708498f890> is None
+E        +  where <phasic.svgd.SVGD object at 0x708498f890> = <weakref at 0x703422dd50; to 'phasic.svgd.SVGD' at 0x708498f890>()
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:233: AssertionError
+_______________ test_no_compiled_gradient_files_written_or_read ________________
+
+joint = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+tmp_path = PosixPath('/private/var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/pytest-of-kmt/pytest-15/test_no_compiled_gradient_file0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1078568b0>
+
+    def test_no_compiled_gradient_files_written_or_read(joint, tmp_path, monkeypatch):
+        monkeypatch.setenv('HOME', str(tmp_path))
+        cache = tmp_path / '.phasic_cache'
+        cache.mkdir()
+        # A non-empty file of the kind the old code would have loaded.
+        planted = cache / 'compiled_svgd_0123456789abcdef.pkl'
+        with open(planted, 'wb') as f:
+            pickle.dump({'grad': 'not a function'}, f)
+        before = planted.read_bytes()
+    
+        loaded = []
+        real_load = pickle.load
+    
+        def recording_load(fh, *a, **k):
+            loaded.append(str(getattr(fh, 'name', '')))
+            return real_load(fh, *a, **k)
+    
+        monkeypatch.setattr(pickle, 'load', recording_load)
+    
+        _fit(_model(), DATA_A, _wide())
+        _fit(_model(), DATA_A, _wide(), return_history=False)
+        _em(joint).fit(fixed=FULL, prior=_prior4(), **EKW)
+        coalescent_graph(4).svgd(DATA_A, prior=_wide(), **KW)
+    
+        assert not [p for p in loaded if 'compiled_svgd' in p]
+>       assert sorted(p.name for p in tmp_path.rglob('compiled_svgd_*')) == [planted.name]
+E       AssertionError: assert ['compiled_sv...702af_vg.pkl'] == ['compiled_sv...89abcdef.pkl']
+E         
+E         Left contains 4 more items, first extra item: 'compiled_svgd_06ba0964b672b21b_vg.pkl'
+E         Use -v to get more diff
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:261: AssertionError
+________________________ test_class_level_cache_is_gone ________________________
+
+    def test_class_level_cache_is_gone():
+>       assert not hasattr(SVGD, '_compiled_cache')
+E       AssertionError: assert not True
+E        +  where True = hasattr(SVGD, '_compiled_cache')
+
+../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py:266: AssertionError
+=============================== warnings summary ===============================
+tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_non_nested_fixed
+  /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/epoch_model.py:139: SvgdAssumptionWarning: FreeEpochModel.fit: none of the last epoch's rates is fixed, so the data cannot determine their overall scale and it follows the prior; fix a rate with fixed= to identify it.
+    assume(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[default]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[no_history]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[regularized]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_prior
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_mutated_data_then_optimize_again
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_prior_override
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_non_nested_fixed
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_nested_then_full
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_default_prior_with_different_fixed_values
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_full_then_nested_including_log_posterior
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_instance_is_released[default]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_instance_is_released[no_history]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_epoch_instance_is_released
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_no_compiled_gradient_files_written_or_read
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_class_level_cache_is_gone
+15 failed, 2 passed, 1 warning in 40.19s
+[runcap] exit 1, peak RSS 1422 MB, 46s

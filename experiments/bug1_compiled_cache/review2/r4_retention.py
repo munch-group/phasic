@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 2: Graph.svgd() builds a fresh model per call, so the class cache
 never hits there and only retains.  RSS after k fits, with the cache left
 alone (master behaviour) vs cleared after every fit (what the fix gives)."""

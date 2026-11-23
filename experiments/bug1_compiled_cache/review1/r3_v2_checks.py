@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Re-review of plan v2: (a) does precompile=False avoid the class cache? (b) jit=False, precompile=False?
 HOME redirected; unmodified code."""
 import os, sys

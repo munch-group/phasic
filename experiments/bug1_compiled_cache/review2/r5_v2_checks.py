@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 2 of plan v2: feasibility of planned tests 10, 11, 14 and the
 'precompile=False never touches the cache' statement (unmodified build)."""
 import sys, os, gc, weakref, warnings, random, pickle, traceback, tempfile, pathlib

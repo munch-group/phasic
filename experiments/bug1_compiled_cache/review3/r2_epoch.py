@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3: epoch (FreeEpochModel) path — bit determinism, test 5, prior override, weakref."""
 import sys, gc, weakref, warnings
 import numpy as np

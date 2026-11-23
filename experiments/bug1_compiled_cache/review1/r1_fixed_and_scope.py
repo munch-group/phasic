@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Adversarial review 1 of bug1-compiled-cache-plan.md (unmodified code).
 HOME is redirected into this directory so nothing touches the real ~/.phasic_cache.
 """

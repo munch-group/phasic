@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 3: is 'second fit alone' bit-reproducible on unmodified code, and
 would each proposed test fail on master?  (cache cleared manually = the fix)"""
 import sys, random, gc, weakref, warnings

@@ -38,7 +38,15 @@ def _data(theta, n=150, seed=3):
     return np.asarray(g.sample(n))
 
 
-DATA_A, DATA_B = _data(8.0), _data(1.0, seed=4)
+DATA_A = DATA_B = None
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _datasets():
+    # Built in a fixture, not at import: sampling seeds the global RNGs, and
+    # doing that at collection time would shift unseeded tests elsewhere.
+    global DATA_A, DATA_B
+    DATA_A, DATA_B = _data(8.0), _data(1.0, seed=4)
 
 
 def _model():
@@ -157,15 +165,13 @@ FULL = [(1, 1.0), (3, 1.0)]                    # mu fixed in both epochs
 NESTED = [(1, 1.0), (2, 0.5), (3, 1.0)]        # epoch-2 coalescence also fixed
 
 
-def _epoch_independent(joint, first, second, compare_log_prob=False,
-                       need_power=True):
+def _epoch_independent(joint, first, second, compare_log_prob=False):
     shared = _em(joint)
     s_first = first(shared)
     s_after = second(shared)
     s_fresh = second(_em(joint))
     p_after, p_fresh = _particles(s_after), _particles(s_fresh)
-    if need_power:
-        assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
+    assert np.max(np.abs(_particles(s_first) - p_fresh)) > 1e-6
     np.testing.assert_array_equal(p_after, p_fresh)
     if compare_log_prob:
         np.testing.assert_array_equal(np.asarray(s_after.history_log_prob),

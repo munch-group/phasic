@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """Review 2: what does a REFIT on the same model object cost once the cache is
 gone?  Protocol per path: s0 = first fit (cold everything); then
   recompile = [clear cache; new SVGD on s0.model; optimize(1 iter)]  x3

@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache / removed helpers, which no longer exist; it does not
+# run on builds that include the fix.
 """pytest plugin (-p hitspy): on UNMODIFIED code, log every SVGD compiled-gradient
 cache hit, and whether the instance that hits differs from the one that compiled
 (data / prior / transform / sample moments).  Read-only spy; forwards unchanged."""
