@@ -333,8 +333,14 @@ def test_svgd_optimize_with_fixed_params(precond_arg):
     # With one fixed param, SVGD operates in 1D internally
     # but returns the full 2D particles with the fixed value restored
     assert svgd.particles.shape[1] == 2
-    # Fixed dimension should be constant across particles
-    np.testing.assert_allclose(svgd.particles[:, 0], 5.0, atol=0.1)
+    # The fixed dimension is exactly 5.0 on the parameter scale; the
+    # unconstrained particles (svgd.particles) carry a constant placeholder
+    # there, because fixed values do not pass through the transform.
+    np.testing.assert_array_equal(
+        np.asarray(svgd.get_results()['particles'])[:, 0], 5.0)
+    from phasic.svgd import _FIXED_PLACEHOLDER
+    np.testing.assert_array_equal(
+        np.asarray(svgd.particles)[:, 0], _FIXED_PLACEHOLDER)
 
 
 # ---------------------------------------------------------------------------

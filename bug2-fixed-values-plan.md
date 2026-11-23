@@ -348,3 +348,47 @@ written → applied in v3.
 Implementation note (review 1): SVGD sees tied slaves as ordinary
 `(slave, 0.0)` fixed entries, so "user-fixed" for the export assignment is
 the fixed mask minus `model._tying_info['slave_to_master']`.
+
+## 9. Implementation notes and deviations from section 3 (for the implementation review)
+
+Implemented as designed (helpers `_parse_fixed`, `_fixed_value_transform`
+and `_FIXED_PLACEHOLDER` in `svgd.py`; both constructors; `_free_transform`
+on the preconditioner's learnable-subset branch; summaries pinned in
+`SVGD.optimize`, `SVGD.get_results`, `MCMC.get_results`;
+`_check_nested_fixed` on `fixed_theta`; docstrings). Deviations in the
+tests, each for a stated reason:
+
+- **Test 4, `parallel='processes'` row: not written.** Reviewer 2 measured
+  that this MCMC mode fails on master for graph models and that a spy
+  cannot record in the parent; the remaining pure-Python variant would
+  only re-test the export assignment already covered by the sequential
+  rows.
+- **Tests 6 and 11 (epoch path) use v = 1e-6 and 2.0, not 1e-10 / 0.**
+  The model built by `Graph.epoch_model` probes fixed slots in its
+  finite-difference backward (`bake_fd_skip=False`), so a value below the
+  1e-7 step raises the NEGATIVE-rate error — on master as well (where
+  1e-10 arrived as 1e-9). That is the gradient-step defect, not this bug.
+  1e-6 does not round-trip on master, so the test still fails there. The
+  assertion is on the model INPUT (spy), which is what the plan's
+  "evaluated with exactly v" amounts to.
+- **Test 9, joint-probability variant: not written.** The reference joint
+  models have no competing rate that can be set to 0 without making the
+  model degenerate (the reviewers' own caveat); the moments-family variant
+  is implemented (rtol 1e-9 on free-slot particles against the reduced
+  model, explicit identical `theta_init`).
+- **Test 14** asserts `map_estimate_from_particles` (exact) and that
+  `log_likelihood(refine=True)` is finite.
+- **Test 17** calls `_check_nested_fixed` directly on real fits of a
+  3-parameter spy model (full fixes slot 1; nested fixes slots 1 and 2).
+  The existing `test_lrt_shared_fixed_value_mismatch_raises` needed no
+  change: its shared-slot mismatch comes from the constructors.
+- New tests on the unmodified build (master with bug 1): 58 fail, 11 pass
+  (the guards and the values that round-trip today):
+  `experiments/bug2_fixed_values/new_tests_on_master.log`.
+
+Existing tests rewritten as listed in section 4:
+`test_theta_mean_constrained.py`, `inference/test_preconditioning.py`,
+`test_exposure_daisy_chain.py` (constrained value exact; unconstrained
+column equals the placeholder) and `test_svgd_tied_export.py` (the
+"not the sentinel" check is now exact inequality with 0.0: the slave's
+true rate in that fixture is 5.9e-5, inside the old 1e-3 margin).

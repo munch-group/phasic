@@ -6190,6 +6190,11 @@ extern "C" {{
             those positions removed from the kernel and the gradient
             computation. Two accepted forms:
 
+            Values are in parameter space and reach the model exactly as
+            given: a fixed parameter does not pass through any transform, so 0,
+            values of any magnitude and negative values are delivered unchanged
+            (a non-finite value raises).
+
             **(a) Index/value tuples** (recommended) —
             ``[(idx, value), ...]``. Each tuple pins parameter ``idx``
             at ``value``::
@@ -7207,6 +7212,10 @@ extern "C" {{
             Reward vector/matrix for multivariate distributions.
         fixed : list or array, optional
             Fixed parameters: [(index, value), ...] or binary mask.
+            Values are in parameter space and reach the model exactly as
+            given: a fixed parameter does not pass through any transform, so 0,
+            values of any magnitude and negative values are delivered unchanged
+            (a non-finite value raises).
 
         Returns
         -------

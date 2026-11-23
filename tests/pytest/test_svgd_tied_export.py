@@ -31,7 +31,10 @@ from phasic import (
     Property, set_log_level,
 )
 
-_SENTINEL_IMAGE = np.log(2.0)  # softplus(0) -- the wrong value the bug produced
+# What a slave slot would export if the tie were NOT applied: the 0.0
+# placeholder it is locked at (delivered untransformed since fixed values
+# bypass the transform; it used to come out as softplus(0) = ln 2).
+_SENTINEL_IMAGE = 0.0
 
 
 def _fit_tied(prior=None):
@@ -144,15 +147,16 @@ def test_particles_slave_equals_master(tied_fit):
 
 def test_theta_mean_slave_equals_master_and_is_not_the_sentinel(tied_fit):
     # get_results() transforms to constrained (rate) space. The slave rate must
-    # equal the master rate -- and must NOT be softplus(0)=0.693, the specific
-    # wrong value the 0.0 sentinel produced.
+    # equal the master rate -- and must NOT be the placeholder the slave slot
+    # is locked at (0.0 exactly; before fixed values bypassed the transform it
+    # came out as softplus(0) = 0.693).
     s2m = tied_fit.model._tying_info["slave_to_master"]
     res = tied_fit.get_results()
     tm = np.asarray(res["theta_mean"])
     for slave, master in s2m.items():
         assert tm[slave] == pytest.approx(tm[master], rel=1e-12)
-        assert abs(tm[slave] - _SENTINEL_IMAGE) > 1e-3, (
-            f"slave theta_mean {tm[slave]} is the softplus(0) sentinel image -- "
+        assert tm[slave] != _SENTINEL_IMAGE and tm[slave] > 0, (
+            f"slave theta_mean {tm[slave]} is the un-tied placeholder value -- "
             "the tie was not applied to the export"
         )
     # And the raw-attribute path (self.theta_mean, unconstrained) must agree too.
