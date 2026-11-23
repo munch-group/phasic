@@ -1,141 +1,295 @@
 # Bug 3: a BetaPrior's (0, 1) transform is not applied consistently — fix plan
 
-**Status: v1, 2026-11-23. Branch `fix/single-betaprior-transform`,
-worktree `/Users/kmt/phasic-bug3` (own pixi env, built from master
-`ca09e2e1`). No source changed yet. Backward compatibility is not required
-(user decision). Depends on bugs 1 and 2 being merged first (same region of
-`SVGD.__init__` / `MCMC.__init__`); this branch is rebased onto master
-after they merge and implemented then. Experiments use a fresh model
-object per fit (bug 1).**
+**Status: v2, 2026-11-23. v1 was reviewed by three independent agents
+(diagnosis; fix design, with a full prototype; tests/impact). The core
+design survived; the diagnosis, three decisions, the function contract
+and most tests changed (section 8). Branch
+`fix/single-betaprior-transform`, worktree `/Users/kmt/phasic-bug3`. No
+source changed yet. Backward compatibility is not required (user
+decision).**
 
-Evidence: `experiments/bug3_single_betaprior/` (`b1_scope.py`, `b1.log`),
-unmodified code.
+**Prerequisites (correctness): bug 1 (no shared compiled gradients) and
+bug 2 (fixed values bypass the transform).** With this fix alone, a single
+BetaPrior on a 2-parameter model with `fixed=[(0, 5.0)]` would deliver
+sigmoid(inverse-softplus(5)) = 0.9933 to the model (measured on a
+prototype); with bug 2's wrapper underneath it delivers exactly 5.0
+(measured). The branch is rebased onto master after bugs 1 and 2 merge and
+implemented then.
 
-## 1. The defect (read from source + measured)
+Evidence: `experiments/bug3_single_betaprior/` (`b1`; reviewers' scripts,
+logs and the prototype in `review1/`, `review2/`, `review3/`), unmodified
+code, fresh model object per fit.
+
+## 1. The defect
 
 `BetaPrior` declares `_natural_transform = sigmoid` (clipped to
-[1e-9, 1-1e-9]; `src/phasic/svgd.py:1587`, `416`) so that its parameter
-lives in (0, 1). Who applies it:
+[1e-9, 1-1e-9]; `src/phasic/svgd.py:1587`, `416`), and — like every
+built-in prior — hard-codes the Jacobian and the inverse of that one
+transform in its density and sampler (`svgd.py:1663-1676`, `1694`). Who
+applies the transform to the MODEL:
 
-- `SVGD.__init__` builds the MODEL-facing transform per dimension only when
-  `prior` is a list containing a prior with a natural transform
-  (`svgd.py:5937-5969`). For a single prior object it falls through to
-  softplus (`svgd.py:5982`).
-- The PRIOR's own transform is wired separately (`svgd.py:6000-6023`): a
-  single prior with a natural transform gets that natural transform.
-- `MCMC.__init__` always uses softplus and hands softplus to every prior
-  (`src/phasic/mcmc.py:271-287`); natural transforms are never consulted.
-  Initial points come from `prior.sample`, which for a BetaPrior returns
-  the inverse SIGMOID of a Beta draw (`svgd.py:1694`).
+- **SVGD**, list prior containing a prior with a natural transform:
+  per-slot composite (`svgd.py:5937-5969`). Correct today.
+- **SVGD**, single prior: softplus for the model (`svgd.py:5982`) while the
+  prior is wired to its own sigmoid (`svgd.py:6019-6023`). Measured
+  (`Graph.svgd`, single BetaPrior, 2 parameters): constrained particles up
+  to 2.06 and 3.75. On a real discrete geometric model the constructor
+  raises ("outgoing rate <= 1. Is 1.43") because the model is handed a
+  probability above 1.
+- **SVGD, epoch path**: a single prior is broadcast to a per-slot list
+  first (`__init__.py:5566-5571`), so a single BetaPrior IS honoured there
+  (measured: free slots sigmoid, particles <= 0.77). The two SVGD entry
+  routes disagree.
+- **SVGD, `positive_params=False`**: no transform at all; particles leave
+  (0, 1) (4 of 20 below 0 in the single form; 9 below 0 and 5 above 1 in
+  the list form).
+- **MCMC**, `positive_params=True` (`mcmc.py:271-287`): softplus for the
+  model AND handed to the BetaPrior as its phi → theta map, while the
+  BetaPrior still uses its sigmoid Jacobian and its logit inverse for
+  initial points — a three-way mix. Consequences, measured over 8 runs of
+  4 chains: for theta > 1 the log-prior is NaN; a chain that STARTS there
+  never moves (`log_u < nan` is always False) — 17 of 32 chains frozen,
+  no warning; chains that move sample the wrong density (mean 0.37-0.41
+  for a Beta with mean 0.5).
+- **MCMC, `positive_params=False`, no transform**: CORRECT today — the
+  untransformed BetaPrior returns -inf outside (0, 1) and proposals there
+  are rejected (KS p 0.29-0.82 against the Beta over 5 seeds, single and
+  list form).
 
-Measured (b1.log; "model saw" is the range of theta the model received):
+Also measured:
 
-| call | model transform | prior transform | model saw |
-|---|---|---|---|
-| SVGD, `prior=BetaPrior(...)`, dim 1 or 2 | softplus | sigmoid | theta up to **12.5** |
-| SVGD, `prior=[BetaPrior]`, `[Beta, Beta]`, `[Gauss, Beta]` | per-dim, correct | same | Beta slots in (0, 1] |
-| SVGD, BetaPrior (single or list), `positive_params=False` | none | none | theta in **[-2, 12.5]** |
-| MCMC, single BetaPrior | softplus | softplus | samples up to **1.31**, mean 0.83 (prior mean 0.5) |
-| MCMC, `[BetaPrior]` | softplus | softplus | samples up to **1.74**, mean 1.07 |
-| MCMC, `[GaussPrior, BetaPrior]` | softplus | softplus | Beta slot up to **1.77** |
-
-So a probability parameter given a BetaPrior is only confined to (0, 1) in
-one of the ways of calling SVGD, and never in MCMC.
-
-Also read from source (not yet measured): with a CUSTOM `param_transform`
-and a list prior, a BetaPrior's own `_transform` becomes its sigmoid
-(`svgd.py:6014-6017`) while the model gets the custom transform — the same
-inconsistency.
+- `plot_pairwise_hdr` inverts every axis with inverse softplus
+  (`svgd.py:9345`): on a (0, 1) slot a hexagon labelled 0.5 is evaluated
+  at 0.393, 0.9 at 0.593. Affects list forms today.
+- The BetaPrior's log-density is computed from the CLIPPED theta, so it is
+  flat beyond |phi| ≈ 20.7: the target in phi is improper. With alpha or
+  beta < 1 (e.g. `ci=(0.01, 0.99)` → alpha 0.75) an MCMC chain escapes
+  (Beta(0.1, 0.1): 100% of samples at the clip, |phi| up to 4.7e77).
+- `prior._transform` is mutable state on an object the user may reuse: it
+  is never reset to None, and a later MCMC silently re-wires a prior an
+  earlier SVGD fit still uses.
 
 ## 2. Fix
 
-**Principle: the transform a parameter goes through is decided in one
-place, from its prior, and the model, the prior and the initial points all
-use that one transform. A prior that needs a bounded domain is either
-honoured or refused — never silently ignored.**
+**Principle: for each parameter slot, the transform is decided in one
+place, and the model, the prior and the initial points all use that one
+function. A prior that needs a bounded domain is honoured or refused —
+never silently ignored.**
 
-1. One function in `svgd.py`, used by both `SVGD.__init__` and
+1. **One resolver** in `svgd.py`, used by `SVGD.__init__` and
    `MCMC.__init__`:
    `_resolve_param_transform(prior, prior_list, positive_params,
-   param_transform, theta_dim, where)` → `(transform_or_None,
-   per_dim_fns_or_None)`, which also sets each prior's `_transform`.
-   Rules:
+   param_transform, where)` → the model-facing transform (or `None`), and
+   it assigns `_transform` on every prior object it is given —
+   unconditionally, including `None`. `theta_dim` is not an argument (it
+   is not known yet at either call site; the list length suffices). Call
+   position in both constructors: where the wiring happens today — before
+   any `prior.sample`, before fixed parsing, before bug 2's wrapper.
+   Returned callable: in the per-slot composite case it carries
+   `_per_dim_fns` (the preconditioner and bug 2's wrapper read that
+   attribute); in the elementwise cases (all softplus; all natural) it is a
+   plain elementwise function without it.
+2. **Rules**
    - `positive_params=True`:
-     - list prior: slot i uses its prior's natural transform if it has one,
-       else softplus (today's SVGD behaviour, now also MCMC's);
-     - single prior WITH a natural transform: every slot uses that natural
-       transform (new for SVGD and MCMC);
-     - single prior without one, or no prior: softplus (unchanged).
-     The prior's `_transform` is the same function the model side uses for
-     that slot.
-   - `positive_params=False` (with or without a custom `param_transform`):
-     a prior with a natural transform raises `ValueError` — it cannot be
-     honoured without the library's transform, in line with the existing
-     rule that positive-support priors require `positive_params=True`
-     (`_check_gauss_prior_lower`, `svgd.py`).
-   - Everything else as today.
-2. `MCMC` drops its own softplus-only wiring (`mcmc.py:262-287`) and calls
-   the function; its result export (`mcmc.py:846-890`) and proposals
-   already go through `self.param_transform`, so they need no change.
-3. `BetaPrior`'s docstring ("pass it inside a per-dimension list") is
-   updated: a single BetaPrior now applies to every parameter.
+     - list prior: slot i uses its prior's natural transform if it has
+       one, else softplus (today's SVGD behaviour; new for MCMC);
+     - single prior with a natural transform: every slot uses it (new;
+       consistent with how any single prior applies to all slots and with
+       the epoch path's broadcast). Fixed slots are exempt through bug 2;
+     - otherwise softplus (unchanged).
+     Each prior's `_transform` is the function its slot uses.
+   - `positive_params=False`, no custom transform:
+     - **SVGD: a prior with a natural transform raises `ValueError`**
+       (a gradient method cannot honour a bounded domain without a
+       transform; the message names the fix: use `positive_params=True`).
+       Same family as the existing rule for positive-support priors.
+     - **MCMC: allowed, unchanged** — it is correct today (the prior's hard
+       wall rejects proposals outside (0, 1)).
+   - custom `param_transform`: every prior's `_transform` is the custom
+     function (model and prior use the same map). No new refusal: a
+     BetaPrior with a custom sigmoid is consistent today and stays so.
+     That built-in priors hard-code their own Jacobian and inverse, so a
+     custom transform other than the prior's own gives a wrong log-prior,
+     is a separate, pre-existing defect covering EVERY built-in prior
+     (`found-defects-2026-11-23.md`, item B) and is not changed here. The
+     list form no longer wires a BetaPrior to its sigmoid while the model
+     gets the custom transform (today's inconsistency).
+3. **BetaPrior's log-density under its natural transform** becomes
+   `alpha * log_sigmoid(phi) + beta * log_sigmoid(-phi)` (the Beta
+   log-density plus log-Jacobian, with no clip): proper for all
+   alpha, beta > 0 (measured: Beta(0.1, 0.1) KS D 0.064 instead of 0.45;
+   Beta(0.5, 0.5) no chain enters the flat region). The model still
+   receives the clipped theta. The no-transform branch (hard wall) is
+   unchanged.
+4. **`plot_pairwise_hdr`** inverts each axis with its slot's inverse
+   (inverse softplus or inverse sigmoid, taken from the resolver's
+   per-slot information); with a custom transform it raises a clear error
+   instead of inverting with softplus.
+5. **Docs**: BetaPrior docstring and the comment at `svgd.py:1585`; Prior
+   base class (`svgd.py:664-676`); `param_transform` docstring
+   (`svgd.py:5246-5249`); `positive_params` statements (`svgd.py:5239`,
+   `mcmc.py:119-121` — which also wrongly says `param_transform`
+   "overrides" it — `__init__.py:6064, 7203`): a single BetaPrior confines
+   EVERY parameter, including rates, to (0, 1); exposure on a (0, 1) slot
+   scales after the transform. Generated `docs/api/*.qmd` are regenerated
+   by `pixi run api` (noted for the user).
 
-Not changed: the transform functions themselves, the clipping constants,
-`BetaPrior`'s density, fixed-value handling (bug 2's wrapper sits on top of
-whatever transform this function returns).
+Not changed: softplus/sigmoid functions and their clips; how initial
+points are drawn (single form: one draw of shape (n, dim); list form: a
+split key per slot — the two forms legitimately start from different
+particles); the preconditioner's moment-matching grid (item G of the
+found-defects list); MCMC's silent freeze on a non-finite initial
+log-probability (item A) — this fix removes one way of reaching it, and
+its tests assert finite initial log-probabilities.
 
 ## 3. Tests (new file `tests/pytest/test_betaprior_transform_consistency.py`)
 
-Spy model (records theta), fresh model object per fit.
+Spy models assert a minimum number of recorded calls. MCMC tests use
+`MCMC(...)` directly with pure-JAX models (`Graph.mcmc` is not
+seed-reproducible, item C).
 
 Fail on master:
-1. SVGD, single BetaPrior, dim 1 and dim 2: every theta the model receives
-   is in [1e-9, 1-1e-9]; `svgd.param_transform(phi)` equals
-   `prior._transform(phi)` slot by slot for a grid of phi.
-2. SVGD, single BetaPrior is equivalent to the list form: dim 1 fit with
-   `BetaPrior(...)` vs `[BetaPrior(...)]`, and dim 2 vs `[Beta, Beta]`
-   (separate prior objects), same seed: particles array-equal.
-3. MCMC with a flat likelihood and BetaPrior (single; `[BetaPrior]`;
-   `[GaussPrior, BetaPrior]`): all samples of Beta slots in (0, 1); a
-   Kolmogorov-Smirnov test against the Beta distribution (several seeds,
-   median p > 0.1); the Gauss slot still matches its truncated Gaussian.
-4. MCMC initial points for a Beta slot are inside (0, 1) after the
-   transform.
-5. BetaPrior with `positive_params=False` raises (SVGD and MCMC; single and
-   list; with and without a custom `param_transform`).
+1. SVGD, single BetaPrior, dim 1 and 2: model inputs, initial particles
+   after the transform, `get_results` particles, `theta_mean` and HPD
+   bounds all in (0, 1); `param_transform(phi)` equals
+   `prior._transform(phi)` slot by slot on a phi grid.
+2. SVGD, single vs list form with the SAME explicit `theta_init`: dim 1
+   (`BetaPrior` vs `[BetaPrior]`) and dim 2 (vs `[Beta, Beta]`, separate
+   objects): particles array-equal (prototype: equal; master: differ by
+   0.10 / 0.13).
+3. Real model, SVGD: discrete geometric chain with success probability
+   theta (4 lines with the Graph API), truth 0.3, n = 200, single
+   `BetaPrior(ci=(0.5, 0.95))` (prior mass below 0.3 is 4e-4: the prior
+   excludes the truth): the fit constructs (master raises), particles in
+   (0, 1), and |SVGD mean - exact conjugate posterior mean| < 1 exact
+   posterior sd (posterior Beta(a + n, b + sum(k - 1)); no
+   truth-in-interval assertion because of the known under-dispersion).
+4. Real model, MCMC: the same geometric model and prior; ESS-based check
+   |mean - exact mean| < 4 sd / sqrt(ESS).
+5. MCMC, flat likelihood, `positive_params=True`, priors: single
+   Beta(1.35, 1.35); `[Beta(2, 5)]`; `[GaussPrior, BetaPrior]`; and one
+   with alpha < 1 (`BetaPrior(ci=(0.01, 0.99))`). For each: every chain's
+   initial log-probability finite and acceptance rate > 0; all Beta-slot
+   samples in (0, 1); draws thinned by k = ceil(2N / ESS) then KS against
+   the Beta — median p over >= 5 seeds > 0.1 (never a per-seed
+   threshold); the Gauss slot against its truncated Gaussian the same way.
+   2000 x 4 draws, burn-in 500. The multi-seed part is marked slow except
+   for one prior form.
+6. Fixed slots (needs bug 2), SVGD and MCMC: single BetaPrior, dim 2,
+   `fixed=[(0, 5.0)]`; `[None, BetaPrior]` and `[BetaPrior, None]` with a
+   fixed value outside (0, 1); binary-mask form with a single BetaPrior:
+   the model input at the fixed slot is exactly the fixed value and the
+   free slot is in (0, 1).
+7. SVGD with `positive_params=False` and a BetaPrior (single, list)
+   raises, and the message names `positive_params=True`.
+8. `plot_pairwise_hdr` on a `[Gauss, Beta]` fit and on a single-BetaPrior
+   2-parameter fit: every model evaluation during the plot has the Beta
+   slot at the axis value it is plotted at (spy), within the grid's
+   (0, 1) range; with a custom transform the plot raises.
+9. `_transform` is reassigned on every construction: a prior object used
+   with `param_transform=exp` and then in a fit without a transform has
+   `_transform is None`; a prior used by an SVGD and then given to an MCMC
+   is wired per the MCMC's own rule.
+10. List prior with a custom transform: the BetaPrior's `_transform` is
+    the custom function (today it is its sigmoid while the model gets the
+    custom one).
 
 Guards (pass on master and after):
-6. SVGD list forms (`[BetaPrior]`, `[Gauss, Beta]`): particles
-   bit-identical to master's behaviour is asserted indirectly — the model
-   input stays in range and `param_transform` equals the per-dim functions
-   (no stored reference numbers).
-7. Priors without a natural transform (Gauss, LogGauss, Gamma, HalfCauchy;
-   single and list) still get softplus on the model and on the prior, in
-   SVGD and MCMC.
-8. A real fit: a discrete geometric model whose parameter is a probability,
-   single BetaPrior: posterior particles in (0, 1) and the truth inside
-   the 95% interval (prior chosen to exclude the truth's neighbourhood
-   only mildly — a recovery smoke test, not a pin).
+11. MCMC with `positive_params=False` and a BetaPrior, no transform:
+    samples in (0, 1), thinned KS as in test 5 (the route that is correct
+    today must stay correct).
+12. SVGD list forms `[BetaPrior]`, `[Gauss, Beta]`: `param_transform`
+    equals the per-slot functions on a phi grid (array-equal) and
+    `_per_dim_fns` is present; model inputs in range. (Particles are NOT
+    asserted bit-identical to master: item 3 of the fix changes the
+    BetaPrior's log-density at the rounding level.)
+13. Priors without a natural transform (Gauss, LogGauss, Gamma,
+    HalfCauchy; single and list), `prior=None` and DataPrior paths: the
+    transform is plain softplus without `_per_dim_fns`, on the model and
+    on the prior, in SVGD and MCMC; fits bit-identical to a reference
+    computed in the same test run through the unchanged list/softplus
+    path where one exists.
+14. Single BetaPrior + custom sigmoid `param_transform`
+    (`positive_params=False`): consistent (model and prior equal on a
+    grid), does not raise.
+15. Single BetaPrior, dim 2, default preconditioner with a fixed slot:
+    runs; free slot in (0, 1) (the elementwise transform works on the
+    preconditioner's learnable subset).
 
-## 4. Existing tests and documents that change
+## 4. Existing tests and documents
 
-- Any existing test or notebook that uses a BetaPrior with
-  `positive_params=False`, with a custom transform, or as a single prior
-  in SVGD/MCMC changes behaviour (raises, or is now confined to (0, 1)).
-  The reviewers are asked to list them; the gate confirms.
-- MCMC fits with a BetaPrior in a list change (the Beta slot is now
-  confined).
+Inventory (reviews 1 and 3, both trees): no existing test or notebook uses
+a BetaPrior as a single prior, with `positive_params=False`, with a custom
+transform, or with MCMC.
+
+- `tests/pytest/test_beta_prior.py` (12 tests; list forms and prior-level
+  checks) and `tests/pytest/test_svgd_tied_export.py:117-122` (BetaPrior
+  master in a list): transform behaviour unchanged. Their fits can shift
+  numerically because the BetaPrior log-density changes at the rounding
+  level (fix item 3); any assertion that fails for that reason is examined
+  and reported, not loosened silently.
+- `tests/pytest/test_gamma_prior.py:134-149`,
+  `test_gauss_prior_truncation.py:140-201` pin the existing
+  `positive_params=False` messages; the new SVGD refusal keeps the
+  "positive_params=False" wording they match.
+- Bug 2's `tests/pytest/test_fixed_values_exact.py` (on master by then):
+  its rows combining BetaPrior with a custom transform are not refused by
+  this fix (no new refusal under custom transforms); its MCMC
+  `[BetaPrior, None]` rows now also get a confined Beta slot.
+- Notebooks: `coalescent-derived.ipynb` cell 14 and
+  `old-moran-coalescent-derived.ipynb` cell 25 use `[None, BetaPrior]` in
+  SVGD with defaults — transform unchanged. No notebook cell needs
+  editing for this fix.
 
 ## 5. Gate
 
-Same procedure and tools as bugs 1 and 2 (`gate2.sh`, `gate_compare.py
+Same tools and rules as bugs 1 and 2 (`gate2.sh`, `gate_compare.py
 --new-file tests/pytest/test_betaprior_transform_consistency.py`,
-`gate_rerun.sh`), after rebasing onto master-with-bugs-1-and-2 and
-`pixi run install-dev`; baseline = the previous bug's gate run.
+`gate_rerun.sh`; DONE on both sides, equal file sets, usable results on
+both sides, passed stays passed, nothing disappears, new tests pass;
+isolated triple reruns), after rebasing onto master-with-bugs-1-and-2 and
+`pixi run install-dev`; baseline = bug 2's gate run.
 
 ## 6. Risks
 
-- MCMC and SVGD constructors are edited in the same region as bug 2's fix:
-  rebase first, then implement.
-- A user who relied on a single BetaPrior being softplus-transformed on
-  the model side (an accident) gets different, now consistent, results.
+- A single BetaPrior on a multi-parameter model now confines every
+  parameter to (0, 1) (documented; test 1 at dim 2).
+- BetaPrior fits shift numerically (unclipped log-density).
+- Constructor edits in the same region as bug 2's: rebase first.
+
+## 7. Decisions recorded (reported to the user)
+
+- MCMC without a transform keeps accepting a BetaPrior (correct today);
+  only SVGD refuses it.
+- No new refusal under a custom transform; the hard-coded-Jacobian defect
+  of all built-in priors is tracked separately.
+- BetaPrior's log-density under its natural transform uses the unclipped
+  form (proper for all shape parameters).
+- `plot_pairwise_hdr` uses per-slot inverses and refuses custom
+  transforms.
+
+## 8. Review of v1 — dispositions
+
+Review 1 (diagnosis): M1 MCMC mechanism (NaN, frozen chains, wrong
+Jacobian) → section 1, test 5 assertions, defect list item A; M2 "never in
+MCMC" false → section 1, rule for MCMC without transform, test 11; M3 root
+cause (hard-coded Jacobians) → section 2 rules for custom transforms,
+defect list item B, tests 10 and 14; M4 test 2 → explicit `theta_init`;
+M5 plot and preconditioner grid → fix item 4 / defect list item G; M6
+bug 2 prerequisite, resolver shape and call point, bug 2's test file →
+header, fix item 1, section 4; m1 particle ranges, m2 epoch route, m3
+unconditional `_transform`, m4 exposure sentence, m5 inventory → sections
+1, 2, 4, test 9.
+Review 2 (design, prototype): M1 prerequisite + fixed-slot test → header,
+test 6; M2 test 2 → as above; M3 improper tails → fix item 3, test 5
+(alpha < 1, thinning), `Graph.mcmc` not used in tests (defect list item
+C); M4 plot → fix item 4, test 8; m1-m6 contract, stale `_transform`,
+message, docs, stronger guard → fix items 1, 2, 5, tests 9, 12.
+Review 3 (tests): B1 KS on correlated draws → thinned KS, medians, ESS
+checks; B2 test 2 → explicit `theta_init`; M1 geometric model moved to
+"fails on master", prior excluding the truth, conjugate-posterior
+assertion, MCMC counterpart → tests 3, 4; M2 fixed-slot tests → test 6;
+M3 plot → fix item 4, test 8; M4 refusal vs documented sigmoid route →
+rules (no refusal under custom transform; MCMC without transform kept),
+message, docstring, test 14; m1-m6 → section 4 inventory, guards 13, 15,
+assertions in test 1, non-vacuous spies, section 6.

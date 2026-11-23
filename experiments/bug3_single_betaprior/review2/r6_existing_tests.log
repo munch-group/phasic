@@ -1,0 +1,41 @@
+patched: True
+....................                                                     [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_beta_prior.py::test_svgd_with_betaprior_in_mixed_list_keeps_param_in_unit
+tests/pytest/test_svgd_tied_export.py::test_theta_mean_slave_equals_master_and_is_not_the_sentinel
+tests/pytest/test_svgd_tied_export.py::test_history_slave_equals_master
+tests/pytest/test_svgd_tied_export.py::test_mixed_transform_slave_equals_master_in_constrained_space
+tests/pytest/test_svgd_tied_export.py::test_summary_still_marks_the_slave_as_tied
+  /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:514: UserWarning: HPD interval computed from only 8 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_beta_prior.py::test_svgd_callback_mode_with_betaprior_and_fixed_dim_runs_end_to_end
+  /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:514: UserWarning: HPD interval computed from only 4 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_svgd_tied_export.py::test_tying_is_actually_active
+tests/pytest/test_svgd_tied_export.py::test_mixed_transform_slave_equals_master_in_constrained_space
+  /Users/kmt/phasic-bug3/tests/pytest/test_svgd_tied_export.py:80: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg_disc = graph.joint_prob_graph(
+
+tests/pytest/test_svgd_tied_export.py::test_tying_is_actually_active
+tests/pytest/test_svgd_tied_export.py::test_mixed_transform_slave_equals_master_in_constrained_space
+  /Users/kmt/phasic-bug3/tests/pytest/test_svgd_tied_export.py:89: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg_cont = graph.joint_prob_graph(
+
+tests/pytest/test_svgd_tied_export.py::test_tying_is_actually_active
+tests/pytest/test_svgd_tied_export.py::test_mixed_transform_slave_equals_master_in_constrained_space
+  /Users/kmt/phasic-bug3/tests/pytest/test_svgd_tied_export.py:92: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jpg_cont.svgd(
+
+tests/pytest/test_svgd_tied_export.py::test_tying_is_actually_active
+  /Users/kmt/phasic-bug3/tests/pytest/test_svgd_tied_export.py:92: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    svgd = jpg_cont.svgd(
+
+tests/pytest/test_svgd_tied_export.py::test_mixed_transform_slave_equals_master_in_constrained_space
+  /Users/kmt/phasic-bug3/tests/pytest/test_svgd_tied_export.py:92: SvgdAssumptionWarning: svgd: fixed applied to each of 2 epochs. See .effective_options('fixed') on the returned SVGD object.
+    svgd = jpg_cont.svgd(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+20 passed, 14 warnings in 21.53s
+[runcap] exit 0, peak RSS 1453 MB, 26s

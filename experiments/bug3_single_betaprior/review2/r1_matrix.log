@@ -1,0 +1,65 @@
+patched: True | PROTO_OFF = None
+## SVGD
+  single Beta dim1 [precond=None]: OK; model saw ([0.1192], [1.0]); has _per_dim_fns=False; theta_mean=[0.5125]; init theta range [0.2781]
+  single Beta dim1 [precond=none]: OK; model saw ([0.27805], [0.74605]); has _per_dim_fns=False; theta_mean=[0.5125]; init theta range [0.2781]
+  single Beta dim2 [precond=None]: OK; model saw ([0.1192, 0.00896], [1.0, 1.0]); has _per_dim_fns=False; theta_mean=[0.4825, 0.4276]; init theta range [0.1642, 0.009]
+  single Beta dim2 [precond=none]: OK; model saw ([0.16415, 0.00896], [0.73038, 0.74605]); has _per_dim_fns=False; theta_mean=[0.4825, 0.4276]; init theta range [0.1642, 0.009]
+  [Beta] [precond=None]: OK; model saw ([0.08152], [1.0]); has _per_dim_fns=True; theta_mean=[0.5189]; init theta range [0.0815]
+  [Beta] [precond=none]: OK; model saw ([0.08152], [0.95716]); has _per_dim_fns=True; theta_mean=[0.5189]; init theta range [0.0815]
+  [Gauss, Beta] [precond=None]: OK; model saw ([0.12693, 0.1192], [12.5, 1.0]); has _per_dim_fns=True; theta_mean=[2.7965, 0.528]; init theta range [1.6983, 0.1322]
+  [Gauss, Beta] [precond=none]: OK; model saw ([1.69834, 0.1322], [3.7287, 0.93838]); has _per_dim_fns=True; theta_mean=[2.7965, 0.528]; init theta range [1.6983, 0.1322]
+  [None, Beta] fixed slot0=5.0 [precond=None]: OK; model saw ([5.0, 0.1192], [5.0, 1.0]); has _per_dim_fns=True; theta_mean=[5.0, 0.5232]; init theta range [5.0, 0.1322]
+  [None, Beta] fixed slot0=5.0 [precond=none]: OK; model saw ([5.0, 0.1322], [5.0, 0.93838]); has _per_dim_fns=True; theta_mean=[5.0, 0.5232]; init theta range [5.0, 0.1322]
+  single Beta dim2 fixed slot0=5.0 [precond=None]: OK; model saw ([0.99326, 0.00896], [0.99326, 1.0]); has _per_dim_fns=False; theta_mean=[0.9933, 0.4276]; init theta range [0.9933, 0.009]
+  single Beta dim2 fixed slot0=5.0 [precond=none]: OK; model saw ([0.99326, 0.00896], [0.99326, 0.74605]); has _per_dim_fns=False; theta_mean=[0.9933, 0.4276]; init theta range [0.9933, 0.009]
+  single Beta dim2 fixed slot0=0.25 [precond=None]: OK; model saw ([0.2212, 0.00896], [0.2212, 1.0]); has _per_dim_fns=False; theta_mean=[0.2212, 0.4276]; init theta range [0.2212, 0.009]
+  single Beta dim2 fixed slot0=0.25 [precond=none]: OK; model saw ([0.2212, 0.00896], [0.2212, 0.74605]); has _per_dim_fns=False; theta_mean=[0.2212, 0.4276]; init theta range [0.2212, 0.009]
+  single Gauss dim2 [precond=None]: OK; model saw ([0.12693, 0.12693], [12.5, 12.5]); has _per_dim_fns=False; theta_mean=[2.6407, 2.5418]; init theta range [1.3905, 1.1974]
+  single Gauss dim2 [precond=none]: OK; model saw ([1.39046, 1.19739], [4.2209, 3.84897]); has _per_dim_fns=False; theta_mean=[2.6407, 2.5418]; init theta range [1.3905, 1.1974]
+  no prior dim2 [precond=None]: OK; model saw ([0.12693, 0.12693], [12.5, 12.5]); has _per_dim_fns=False; theta_mean=[1.0533, 1.003]; init theta range [0.6052, 0.5324]
+  no prior dim2 [precond=none]: OK; model saw ([0.60524, 0.53236], [2.37856, 2.08942]); has _per_dim_fns=False; theta_mean=[1.0533, 1.003]; init theta range [0.6052, 0.5324]
+  custom transform exp, Gauss(lower=None) [precond=None]: OK; model saw ([0.0], [268336.28652]); has _per_dim_fns=False; theta_mean=[0.0286]; init theta range [3.0167]
+  custom transform exp, Gauss(lower=None) [precond=none]: OK; model saw ([0.0], [45.94467]); has _per_dim_fns=False; theta_mean=[0.0286]; init theta range [3.0167]
+  custom transform exp, single Beta [precond=None]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  custom transform exp, single Beta [precond=none]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  custom transform exp, [Gauss(None), Beta] [precond=None]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  custom transform exp, [Gauss(None), Beta] [precond=none]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False single Beta [precond=None]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False single Beta [precond=none]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False [Beta] [precond=None]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False [Beta] [precond=none]: ValueError: SVGD: BetaPrior needs its own transform and requires positive_params=True
+  single Beta, theta_init given, theta_dim=None [precond=None]: OK; model saw ([0.1192, 0.1192], [1.0, 1.0]); has _per_dim_fns=False; theta_mean=[0.5, 0.5]; init theta range [0.5, 0.5]
+  single Beta, theta_init given, theta_dim=None [precond=none]: OK; model saw ([0.5, 0.5], [0.5, 0.5]); has _per_dim_fns=False; theta_mean=[0.5, 0.5]; init theta range [0.5, 0.5]
+  [Beta,Beta], theta_init given, theta_dim=None [precond=None]: OK; model saw ([0.1192, 0.1192], [1.0, 1.0]); has _per_dim_fns=True; theta_mean=[0.5, 0.5]; init theta range [0.5, 0.5]
+  [Beta,Beta], theta_init given, theta_dim=None [precond=none]: OK; model saw ([0.5, 0.5], [0.5, 0.5]); has _per_dim_fns=True; theta_mean=[0.5, 0.5]; init theta range [0.5, 0.5]
+## MCMC (log_prob_fn mode, sequential)
+  single Beta dim1: OK; init(theta)=[[0.3861], [0.73]]; model saw ([9e-05], [0.99994]); samples min [0.01] max [0.9849] mean [0.4704]
+  single Beta dim2: OK; init(theta)=[[0.3861, 0.8386], [0.73, 0.5824]]; model saw ([5e-05, 0.00036], [0.99997, 0.99983]); samples min [0.0051, 0.0174] max [0.9797, 0.9951] mean [0.45, 0.5153]
+  [Beta]: OK; init(theta)=[[0.8249], [0.3779]]; model saw ([8e-05], [0.99997]); samples min [0.0097] max [0.9695] mean [0.4559]
+  [Gauss, Beta]: OK; init(theta)=[[4.206, 0.3625], [2.9652, 0.8297]]; model saw ([0.00441, 0.00103], [8.92802, 0.99959]); samples min [0.0953, 0.0221] max [5.8317, 0.9978] mean [2.5869, 0.4869]
+  [None, Beta] fixed slot0=5.0: OK; init(theta)=[[5.0, 0.3625], [5.0, 0.8297]]; model saw ([5.0, 1e-05], [5.0, 1.0]); samples min [5.0, 0.0313] max [5.0, 0.9965] mean [5.0, 0.537]
+  single Beta dim2 fixed slot0=5.0: OK; init(theta)=[[0.9933, 0.8386], [0.9933, 0.5824]]; model saw ([0.99326, 1e-05], [0.99326, 1.0]); samples min [0.9933, 0.0252] max [0.9933, 0.9964] mean [0.9933, 0.5259]
+  single Beta dim2 fixed slot0=0.25: OK; init(theta)=[[0.2212, 0.8386], [0.2212, 0.5824]]; model saw ([0.2212, 1e-05], [0.2212, 1.0]); samples min [0.2212, 0.0252] max [0.2212, 0.9964] mean [0.2212, 0.5259]
+  single Gauss dim2: OK; init(theta)=[[1.1418, 4.3941], [3.1983, 4.0963]]; model saw ([0.00516, 0.01143], [8.9844, 10.22779]); samples min [0.0857, 0.4025] max [6.0355, 7.1346] mean [2.4746, 2.8649]
+  no prior dim2: OK; init(theta)=[[0.5127, 2.5163], [1.6128, 2.2806]]; model saw ([0.00138, 0.00273], [4.67722, 5.9858]); samples min [0.0533, 0.1065] max [2.6129, 3.7492] mean [0.73, 0.8505]
+  custom transform exp, Gauss(lower=None): OK; init(theta)=[[2.1324], [23.491]]; model saw ([0.00364], [540.46969]); samples min [0.0503] max [5.3131] mean [2.1342]
+  custom transform exp, single Beta: ValueError: MCMC: BetaPrior needs its own transform and requires positive_params=True
+  custom transform exp, [Gauss(None), Beta]: ValueError: MCMC: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False single Beta: ValueError: MCMC: BetaPrior needs its own transform and requires positive_params=True
+  positive_params=False [Beta]: ValueError: MCMC: BetaPrior needs its own transform and requires positive_params=True
+  single Beta, theta_init given, theta_dim=None: OK; init(theta)=[[0.5, 0.5], [0.5, 0.5]]; model saw ([0.00019, 0.00029], [0.99755, 0.9997]); samples min [0.0063, 0.0123] max [0.9865, 0.9983] mean [0.4661, 0.5048]
+  [Beta,Beta], theta_init given, theta_dim=None: OK; init(theta)=[[0.5, 0.5], [0.5, 0.5]]; model saw ([0.00019, 0.00029], [0.99755, 0.9997]); samples min [0.0063, 0.0123] max [0.9865, 0.9983] mean [0.4661, 0.5048]
+## MCMC model mode, parallel=vmap (jit) and sequential
+  single Beta dim1 [parallel=vmap]: OK; model saw ([0.0], [0.99999]); samples min [0.0083] max [0.9763]; rhat [1.0]
+  single Beta dim1 [parallel=vmap]: OK; model saw ([0.0], [0.99999]); samples min [0.0083] max [0.9763]; rhat [1.0]
+  single Beta dim2 [parallel=vmap]: OK; model saw ([0.00013, 0.00079], [0.99962, 0.99969]); samples min [0.0265, 0.0179] max [0.9867, 0.979]; rhat [1.01, 1.01]
+  single Beta dim2 [parallel=vmap]: OK; model saw ([0.00013, 0.00079], [0.99962, 0.99969]); samples min [0.0265, 0.0179] max [0.9867, 0.979]; rhat [1.01, 1.01]
+  [Beta] [parallel=vmap]: OK; model saw ([0.0], [0.99999]); samples min [0.0072] max [0.9708]; rhat [1.01]
+  [Beta] [parallel=vmap]: OK; model saw ([0.0], [0.99999]); samples min [0.0072] max [0.9708]; rhat [1.01]
+  [Gauss, Beta] [parallel=vmap]: OK; model saw ([0.0062, 0.00011], [10.62891, 0.99996]); samples min [0.2537, 0.0031] max [6.1516, 0.9748]; rhat [1.0, 1.0]
+  [Gauss, Beta] [parallel=vmap]: OK; model saw ([0.0062, 0.00011], [10.62891, 0.99996]); samples min [0.2537, 0.0031] max [6.1516, 0.9748]; rhat [1.0, 1.0]
+  [None, Beta] fixed slot0=5.0 [parallel=vmap]: OK; model saw ([5.0, 1e-05], [5.0, 1.0]); samples min [5.0, 0.0127] max [5.0, 0.9954]; rhat [1.0, 1.0]
+  [None, Beta] fixed slot0=5.0 [parallel=vmap]: OK; model saw ([5.0, 1e-05], [5.0, 1.0]); samples min [5.0, 0.0127] max [5.0, 0.9954]; rhat [1.0, 1.0]
+  single Beta dim2 fixed slot0=5.0 [parallel=vmap]: OK; model saw ([0.99326, 1e-05], [0.99326, 1.0]); samples min [0.9933, 0.0012] max [0.9933, 0.9872]; rhat [1.0, 1.0]
+  single Beta dim2 fixed slot0=5.0 [parallel=vmap]: OK; model saw ([0.99326, 1e-05], [0.99326, 1.0]); samples min [0.9933, 0.0012] max [0.9933, 0.9872]; rhat [1.0, 1.0]
+[runcap] exit 0, peak RSS 991 MB, 45s

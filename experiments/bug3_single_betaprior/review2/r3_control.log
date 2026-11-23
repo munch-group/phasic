@@ -1,0 +1,36 @@
+PROTO_OFF = True
+## (a) guards: non-natural priors must be bit-identical patched vs control
+G SVGD single Gauss: particles 4e19ccf22365 results 98d75e7eb060
+G MCMC single Gauss: chains 21c9d18b82f1 results 0154485b28c4
+G SVGD single LogGauss: particles 2d13d3471cc1 results 44f37585ce0f
+G MCMC single LogGauss: chains f348ad242f17 results ce3098c107a7
+G SVGD [Gamma, HalfCauchy]: particles 5712bb7316e9 results f143905da21f
+G MCMC [Gamma, HalfCauchy]: chains 50054a684dcf results 395ec63d1714
+G SVGD [None, Gauss] fixed: particles 0102bbf6a59a results 93f74360fb85
+G MCMC [None, Gauss] fixed: chains 5ddf116c8d36 results 23847ee07898
+G SVGD no prior: particles 0ae9c03cbc54 results 94051d2ae02f
+G MCMC no prior: chains 61a69a23425a results 3d87c9b67dec
+G SVGD custom exp, Gauss(None): particles b65a7dffb611 results c28923551c4f
+G MCMC custom exp, Gauss(None): chains eddf759e77f2 results 6e7cb03edc81
+G SVGD no transform, Gauss(None): particles ca54dd3c0445 results ca54dd3c0445
+G MCMC no transform, Gauss(None): chains 3b285b718526 results 3b285b718526
+G SVGD [Beta] list (master already per-dim): particles 367faac04cd9 results e6dda12de31b
+X(expected to differ) MCMC [Beta] list (master already per-dim): chains 6e8d5c32119e results f452bc1070db
+G SVGD [Gauss, Beta] list: particles 872c34ad3c18 results 79c0c3204272
+X(expected to differ) MCMC [Gauss, Beta] list: chains 0ab3644eaf2f results 8df480b62436
+G Graph.svgd default DataPrior: e4ccf0b57361 prior_list types ['GaussPrior', 'GaussPrior']
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       G Graph.mcmc default DataPrior: 0b2cfa10e993 prior_list types ['GaussPrior', 'GaussPrior']
+## (b) plan test 2: single BetaPrior vs list form, same seed -> particles array-equal?
+  dim 1, theta_init sampled: init equal=False; particles equal=False; max|diff|=2.65
+  dim 1, theta_init given: init equal=True; particles equal=False; max|diff|=0.102
+  dim 2, theta_init sampled: init equal=False; particles equal=False; max|diff|=6.21
+  dim 2, theta_init given: init equal=True; particles equal=False; max|diff|=0.131
+## (c) plot_pairwise_hdr with sigmoid slots: does the model get the grid theta?
+  single Beta dim2: requested display grid within [0.2, 0.8] (+pad); model evaluated at theta in ([0.025, 0.0094], [1.1608, 1.2351])
+  [Beta, Beta]: requested display grid within [0.2, 0.8] (+pad); model evaluated at theta in ([0.0247, 0.0105], [0.9535, 0.9323])
+  single Gauss dim2 (control): requested display grid within [0.2, 0.8] (+pad); model evaluated at theta in ([0.025, 0.0105], [3.9745, 3.4977])
+## (d) prior._transform is stale across fits (transform -> no transform)
+  after fit with param_transform=exp then fit with NO transform: prior._transform is STILL SET (stale)
+## (e) BetaPrior density/sampler are sigmoid-specific regardless of the _transform handed in
+  with _transform=softplus: prior(phi)=-9.947740; correct Beta log-density + softplus log-Jacobian=-8.418103
+[runcap] exit 0, peak RSS 1709 MB, 38s

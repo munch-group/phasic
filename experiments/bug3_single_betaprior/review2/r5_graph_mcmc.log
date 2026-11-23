@@ -1,0 +1,8 @@
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF= rep 0: init e569404baa6a chains cd94e0f6269e results 78783b8fba23 priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF= rep 1: init e569404baa6a chains 33c20f605a88 results 2c5468d5305d priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF= rep 2: init e569404baa6a chains 543bfa611c45 results b88338c69fd9 priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+[runcap] exit 0, peak RSS 878 MB, 9s
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF=1 rep 0: init e569404baa6a chains 2b6b41562526 results 31c409d44141 priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF=1 rep 1: init e569404baa6a chains e098aa0a187e results 896f9b397951 priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+MCMC (2 chains):   0%|          | 0/80 [00:00<?, ?it/s]                                                       PROTO_OFF=1 rep 2: init e569404baa6a chains 3dc1f03bb7b6 results d428856a2202 priors [(0.01, 0.025), (0.77105, 0.996323)] parallel=vmap T(0.3)=[0.854355244468527, 1e-09]
+[runcap] exit 0, peak RSS 819 MB, 9s

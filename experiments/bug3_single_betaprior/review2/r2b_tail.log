@@ -1,0 +1,14 @@
+BetaPrior(ci=(0.05, 0.95)): alpha=1.350 beta=1.350
+BetaPrior(ci=(0.01, 0.5)): alpha=1.262 beta=5.967
+BetaPrior(ci=(0.05, 0.5)): alpha=2.727 beta=9.005
+BetaPrior(ci=(0.01, 0.99)): alpha=0.749 beta=0.749
+BetaPrior(ci=(0.001, 0.999)): alpha=0.465 beta=0.465
+BetaPrior(ci=(0.001, 0.5)): alpha=0.695 beta=4.480
+BetaPrior(ci=(0.0001, 0.1)): alpha=0.643 beta=27.529
+Beta(0.5,0.5) log-density in phi at 0,-10,-20,-25,-40,-400: [-0.693, -5.0, -10.0, -10.362, -10.362, -10.362]
+  MCMC BetaPrior seed=0 (29s): KS D=0.0152 p=0.443; frac of samples AT the clip (theta==1e-9 or 1-1e-9): 0.0009 (Beta mass outside [1e-9,1-1e-9]: 0.0000); max|phi|=31.4; per-chain max|phi| [14.2, 26.5, 31.4, 12.2]
+  MCMC BetaExact seed=0 (27s): KS D=0.0132 p=0.625; frac of samples AT the clip (theta==1e-9 or 1-1e-9): 0.0000 (Beta mass outside [1e-9,1-1e-9]: 0.0000); max|phi|=16.4; per-chain max|phi| [14.2, 15.5, 16.4, 12.2]
+Beta(0.1,0.1) log-density in phi at 0,-10,-20,-25,-40,-400: [-0.139, -1.0, -2.0, -2.072, -2.072, -2.072]
+  MCMC BetaPrior seed=0 (26s): KS D=0.4533 p=0; frac of samples AT the clip (theta==1e-9 or 1-1e-9): 1.0000 (Beta mass outside [1e-9,1-1e-9]: 0.1277); max|phi|=472469380485160989765590466646025185467861370245160168814568927748415878594560.0; per-chain max|phi| [6.57230013329732e+74, 8.646128530104022e+76, 1.2859492835263591e+74, 4.72469380485161e+77]
+  MCMC BetaExact seed=0 (26s): KS D=0.0639 p=8.69e-12; frac of samples AT the clip (theta==1e-9 or 1-1e-9): 0.1350 (Beta mass outside [1e-9,1-1e-9]: 0.1277); max|phi|=84.4; per-chain max|phi| [74.7, 84.4, 76.2, 80.5]
+[runcap] exit 0, peak RSS 546 MB, 113s
