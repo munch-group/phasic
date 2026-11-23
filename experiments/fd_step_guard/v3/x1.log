@@ -1,0 +1,15 @@
+## shipped pdf vs closed form at explicit granularity (l1=1, l2=3, t=0.7)
+  G= 1024: shipped relerr 1.161e-03   poisson-mix relerr 2.236e-13
+  G= 2048: shipped relerr 5.467e-04   poisson-mix relerr 3.959e-13
+  G= 4096: shipped relerr 2.396e-04   poisson-mix relerr 1.080e-12
+  G= 8192: shipped relerr 1.282e-04   poisson-mix relerr 2.594e-12
+## poisson-mix with different G (must agree):  ['0.561193313307641', '0.561193313307641', '0.561193313307641', '0.561193313307516'] exact 0.561193313307641
+## across rate magnitudes (l2 = 3*l1, t chosen so l1*t = 0.7): relative pdf error and steps
+  l1=  1e-09 t= 7.0e+08: shipped relerr   skipped (7.17e+11 steps)   poisson-mix relerr 3.68e-16 (58 steps)
+  l1=  1e-06 t= 7.0e+05: shipped relerr   skipped (7.17e+08 steps)   poisson-mix relerr 3.77e-16 (58 steps)
+  l1=  1e-03 t= 7.0e+02: shipped relerr  1.23e-06 (7.17e+05 steps)   poisson-mix relerr 1.93e-16 (58 steps)
+  l1=  1e+00 t= 7.0e-01: shipped relerr  1.16e-03 (717 steps)   poisson-mix relerr 1.98e-16 (58 steps)
+  l1=  1e+02 t= 7.0e-03: shipped relerr  1.09e-01 (7.17 steps)   poisson-mix relerr 1.27e-16 (58 steps)
+  l1=  1e+04 t= 7.0e-05: shipped relerr  2.13e-01 (4.2 steps)   poisson-mix relerr 1.62e-16 (58 steps)
+  l1=  1e+06 t= 7.0e-07: shipped relerr  2.13e-01 (4.2 steps)   poisson-mix relerr 2.07e-16 (58 steps)
+[runcap] exit 0, peak RSS 319 MB, 4s

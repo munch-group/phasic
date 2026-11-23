@@ -1,0 +1,11 @@
+reference dF/dlog(theta) at scale 1 (Richardson, s=1e-2/5e-3): 3.0375203367 -0.4002935957
+scale=     1 maxrate=       8: steps shipped    2048 vs new  120;  F shipped-new = +3.48e-04;  roughness shipped 1.7e-10 vs new 1.7e-10
+      log-step s=0.001: |error| new forward 2.0e-07 2.6e-08   shipped forward 4.2e-03 1.4e-04
+      log-step s=0.0001: |error| new forward 1.9e-09 2.3e-10   shipped forward 4.2e-03 1.4e-04
+scale=   200 maxrate=    1600: steps shipped      32 vs new  120;  F shipped-new = +2.83e-02;  roughness shipped 4.1e-02 vs new 1.7e-10
+      log-step s=0.001: |error| new forward 2.0e-07 2.6e-08   shipped forward 2.0e+01 2.1e+01
+      log-step s=0.0001: |error| new forward 1.9e-09 2.5e-10   shipped forward 2.1e+02 2.1e+02
+scale=  2000 maxrate= 1.6e+04: steps shipped      32 vs new  120;  F shipped-new = +2.83e-02;  roughness shipped 4.1e-02 vs new 1.7e-10
+      log-step s=0.001: |error| new forward 2.0e-07 2.6e-08   shipped forward 2.0e+01 2.1e+01
+      log-step s=0.0001: |error| new forward 1.9e-09 2.4e-10   shipped forward 2.1e+02 2.1e+02
+[runcap] exit 0, peak RSS 396 MB, 7s
