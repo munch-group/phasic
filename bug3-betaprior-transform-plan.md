@@ -1,6 +1,6 @@
 # Bug 3: a BetaPrior's (0, 1) transform is not applied consistently — fix plan
 
-**Status: v2, 2026-11-23. v1 was reviewed by three independent agents
+**Status: v3, 2026-11-23 (v2 + the re-review's additions: test 10b, branch selection, plot details; reviewers 1 and 2 signed off — reviewer 2 conditional on test 10b, added as written). v1 was reviewed by three independent agents
 (diagnosis; fix design, with a full prototype; tests/impact). The core
 design survived; the diagnosis, three decisions, the function contract
 and most tests changed (section 8). Branch
@@ -120,11 +120,16 @@ never silently ignored.**
    alpha, beta > 0 (measured: Beta(0.1, 0.1) KS D 0.064 instead of 0.45;
    Beta(0.5, 0.5) no chain enters the flat region). The model still
    receives the clipped theta. The no-transform branch (hard wall) is
-   unchanged.
+   unchanged. Branch selection in `BetaPrior.__call__`, stated explicitly:
+   `_transform is None` → hard wall; `_transform` is the class's natural
+   sigmoid → the unclipped form (summed over elements); any other
+   (custom) transform → the existing formula through that transform.
 4. **`plot_pairwise_hdr`** inverts each axis with its slot's inverse
    (inverse softplus or inverse sigmoid, taken from the resolver's
-   per-slot information); with a custom transform it raises a clear error
-   instead of inverting with softplus.
+   per-slot information); with a custom transform and
+   `unconstrained=False` it raises a clear error instead of inverting with
+   softplus (the unconstrained view needs no inverse). Axis limits on a
+   (0, 1) slot are clipped to (0, 1).
 5. **Docs**: BetaPrior docstring and the comment at `svgd.py:1585`; Prior
    base class (`svgd.py:664-676`); `param_transform` docstring
    (`svgd.py:5246-5249`); `positive_params` statements (`svgd.py:5239`,
@@ -193,6 +198,13 @@ Fail on master:
 10. List prior with a custom transform: the BetaPrior's `_transform` is
     the custom function (today it is its sigmoid while the model gets the
     custom one).
+10b. The log-density itself (pins fix item 3; deterministic): for a
+    BetaPrior wired to its natural transform (alpha = 0.75 and 2.0), at
+    phi = ±25 and ±40, `prior(phi)` equals
+    `alpha*log_sigmoid(phi) + beta*log_sigmoid(-phi)` (rtol 1e-12) and is
+    strictly decreasing in |phi| (master is flat there: -15.5424 at
+    phi = -21, -25, -30); for a 2-vector input the value is the sum over
+    elements.
 
 Guards (pass on master and after):
 11. MCMC with `positive_params=False` and a BetaPrior, no transform:

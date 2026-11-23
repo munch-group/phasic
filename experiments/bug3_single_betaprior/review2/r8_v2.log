@@ -1,0 +1,20 @@
+## (b) BetaPrior whose _transform is a custom function (v2 rule) vs its sigmoid (master)
+  _transform=exp: log-prior at phi=-2,-0.5,0.5,2: [-4.727, -5.664, nan, nan]; d/dphi [1.217, -5.707, 14.707, 7.783]; correct d/dphi [1.374, -4.166, 12.166, 6.626]
+  _transform=jax.nn.sigmoid: log-prior at phi=-2,-0.5,0.5,2: [-4.888, -4.319, -5.819, -10.888]; d/dphi [1.166, -0.643, -2.357, -4.166]; correct d/dphi [1.166, -0.643, -2.357, -4.166]
+  _transform=0.5*sigmoid: log-prior at phi=-2,-0.5,0.5,2: [-5.947, -4.38, -4.199, -4.543]; d/dphi [1.482, 0.521, -0.098, -0.231]; correct d/dphi [1.419, 0.288, -0.55, -1.018]
+  SVGD single Beta + custom exp, master wiring (prior keeps sigmoid): init theta range [0.2, 0.867]; particles nan=0/8, range [0.512, 0.996]
+  MCMC single Beta + custom exp, v2=False (master MCMC already hands the custom fn): init log-prob [nan, -5.24, -11.12, -5.58]; acceptance [0.0, 0.45, 0.38, 0.36]; samples range [0.0237, 1.54] frac>1: 0.25
+  SVGD list Beta + custom exp, master wiring (prior keeps sigmoid): init theta range [0.0687, 1.54]; particles nan=0/8, range [0.371, 0.615]
+  MCMC list Beta + custom exp, v2=False (master MCMC already hands the custom fn): init log-prob [-4.75, -4.52, nan, -4.39]; acceptance [0.44, 0.42, 0.0, 0.39]; samples range [0.00578, 1.08] frac>1: 0.25
+  SVGD single Beta + custom exp, v2 wiring (prior gets exp): init theta range [0.2, 0.867]; particles nan=0/8, range [0.512, 0.996]
+  MCMC single Beta + custom exp, v2=True (master MCMC already hands the custom fn): init log-prob [nan, -5.24, -11.12, -5.58]; acceptance [0.0, 0.45, 0.38, 0.36]; samples range [0.0237, 1.54] frac>1: 0.25
+  SVGD list Beta + custom exp, v2 wiring (prior gets exp): init theta range [0.2, 0.867]; particles nan=0/8, range [0.512, 0.996]
+  MCMC list Beta + custom exp, v2=True (master MCMC already hands the custom fn): init log-prob [-4.75, -4.52, nan, -4.39]; acceptance [0.44, 0.42, 0.0, 0.39]; samples range [0.00578, 1.08] frac>1: 0.25
+## (a) MCMC, positive_params=False, no transform, BetaPrior hard wall
+  single Beta(0.75,0.75): param_transform is None: True; init log-prob finite: True; acceptance [0.34, 0.35, 0.36, 0.36]; in (0,1): True; KS D=0.0280 p=0.0843
+  [Gauss(lower=None), Beta(2,5)]: param_transform is None: True; init log-prob finite: True; acceptance [0.31, 0.3, 0.3, 0.3]; in (0,1): True; KS D=0.0261 p=0.13
+## guard 12 / item 3: how far do list-form SVGD particles move when only the log-density form changes?
+  [Beta]: bit-identical=False; max|diff| after 30 iterations = 1.11e-16
+  [Gauss, Beta]: bit-identical=False; max|diff| after 30 iterations = 1.11e-16
+  alpha=0.75 shipped log-density at phi=-21,-25,-30: [-15.5424, -15.5424, -15.5424] | unclipped: [-15.75, -18.75, -22.5]
+[runcap] exit 0, peak RSS 836 MB, 64s

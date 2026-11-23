@@ -1,0 +1,6 @@
+## test 5, alpha < 1 form: BetaPrior(ci=(0.01,0.99)), 2000x4, burn 500, 5 seeds
+## test 5, [GaussPrior, BetaPrior] form, 3 seeds
+   seed 0: ESS [1239.0, 989.0] Gauss slot thinned KS p 0.381 (mu 2.75 sigma 1.15) Beta slot thinned KS p 0.254  z_gauss -0.74 z_beta -0.38
+   seed 1: ESS [915.0, 982.0] Gauss slot thinned KS p 0.229 (mu 2.75 sigma 1.15) Beta slot thinned KS p 0.012  z_gauss -0.93 z_beta -2.30
+   seed 2: ESS [1002.0, 1008.0] Gauss slot thinned KS p 0.465 (mu 2.75 sigma 1.15) Beta slot thinned KS p 0.675  z_gauss -0.54 z_beta 0.71
+## test 4: geometric likelihood (pure JAX), truth 0.3, n=200, BetaPrior(ci=(0.5,0.95)); |mean-exact| < 4 sd/sqrt(ESS)?
