@@ -1,0 +1,4 @@
+pdf path, two-island n=8 (186 v), 300 obs: cold 8.85s, cache hit 5.98s, saved 2.87s
+epoch path, joint n=4 (168 v), 40 obs: cold 2.97s, cache hit 0.07s, saved 2.91s
+epoch path, joint n=6 (2808 v), 40 obs: cold 1.51s, cache hit 0.55s, saved 0.97s
+[runcap] exit 0, peak RSS 1153 MB, 27s

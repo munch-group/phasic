@@ -1,0 +1,17 @@
+phasic from /Users/kmt/phasic-bug1/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+## (a) same model object, different data
+  A: 9.3805   B after A: 9.3805   B alone: 2.1768   cache entries 1
+## (b) same model and data, different prior
+  prior1: 9.3805   prior2 after prior1: 6.7231   prior2 alone: 1.8094
+## (c) FreeEpochModel: full then nested (fixed differs)
+  full: [9.4954 1.     9.6249 1.    ]
+  nested after full: [8.9909 1.     0.5    1.    ]
+  nested alone:      [8.9909 1.     0.5    1.    ]
+## (d) pickling the compiled gradient
+  pickle fails: PicklingError: Can't pickle <function _log_prob_unified at 0x7041b04f40>: attribute lookup _log_prob_unified on functools failed
+## (e) what one cache entry keeps alive
+  SVGD instance alive after del + gc with cache entry: True
+  ... after clearing the cache: False
+## (f) compile cost saved by a cache hit (pdf model, 200 obs)
+  first fit 0.87s, second fit on the same model (cache hit) 0.60s
+[runcap] exit 0, peak RSS 1032 MB, 45s
