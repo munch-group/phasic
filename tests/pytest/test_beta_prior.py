@@ -126,11 +126,8 @@ def test_svgd_with_betaprior_in_mixed_list_keeps_param_in_unit():
         n_particles=8,
         progress=False,
     )
-    # `svgd.theta_mean` is the mean of φ-space particles directly
-    # off the optimiser. To compare against the *constrained* (θ)
-    # parameter space the model sees, use `get_results()` which
-    # applies `param_transform` per particle and reports the mean
-    # of the constrained sample.
+    # get_results() applies `param_transform` per particle and reports
+    # the mean of the constrained sample (svgd.theta_mean is the same).
     results = svgd.get_results()
     theta = np.asarray(results['theta_mean'])
     assert theta.shape == (2,)
