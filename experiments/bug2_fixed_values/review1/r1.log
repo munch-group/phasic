@@ -1,0 +1,49 @@
+phasic from /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+
+## E1 reproduce plan rows (positive_params)
+  fixed=(1,0) -> model saw [0.6931471805599453]
+  fixed=(1,1e-10) -> model saw [1e-09]
+  fixed=(1,800) -> model saw [inf]
+  fixed=(1,1e+06) -> model saw [inf]
+
+## E2 how often is the softplus round trip NOT bit-exact (pure math, as in svgd.py:6172 + transform)
+  v in [1e-08,0.001]: not bit-exact 100%  max rel err 8.16e-09
+  v in [0.001,1]: not bit-exact 88%  max rel err 9.05e-14
+  v in [1,30]: not bit-exact 6%  max rel err 2.20e-16
+  v in [30,700]: not bit-exact 0%  max rel err 0.00e+00
+
+## E3 SAME model object, two fits with different fixed values / sets (bug-1 cache is live)
+  fit1 fixed=(1,2.0): saw [2.0]
+  fit2 fixed=(1,5.0), same model object, during optimize: saw [4.999999999999999] | cache entries 5
+  nested fit on same model, extra fixed (1,7.0): theta[1] seen [7.0]  theta[2] seen [2.0]
+
+## E4 user-supplied theta_init + fixed
+  after __init__ (smoke call): theta[1] seen [3.048587351573742] (softplus(3.0)=3.048587)
+  during optimize: theta[1] seen [0.24999999999999994, 3.048587351573742]
+  history[0][:,1] = [3.04858735 3.04858735 3.04858735 3.04858735]  history[-1][:,1] = [0.25 0.25 0.25 0.25]
+
+## E5 MCMC
+  fixed=(1,0) -> model saw [0.6931471805599453]; theta_mean[1]=0.6931471805599451 theta_std[1]=2.220446049250313e-16
+  fixed=(1,1e-10) -> model saw [1e-09]; theta_mean[1]=1.000000000000001e-09 theta_std[1]=1.0339757656912846e-24
+  fixed=(1,0.3) -> model saw [0.30000000000000004]; theta_mean[1]=0.3000000000000004 theta_std[1]=3.3306690738754696e-16
+  fixed=(1,800) -> model saw [inf]; theta_mean[1]=inf theta_std[1]=nan
+
+## E6 is mean/std of a constant column bit-exact? (plan test 1: theta_mean == v, theta_std == 0)
+  v=0.3: jnp.mean != v for 112/199 sizes (e.g. [3, 5, 9, 11, 12]); np.mean != v for 115/199 (e.g. [10, 11, 12, 13, 14]); jnp.std != 0 for 109/199; np.std != 0 for 1410/1999
+  v=0.1: jnp.mean != v for 189/199 sizes (e.g. [6, 7, 8, 9, 10]); np.mean != v for 172/199 (e.g. [3, 6, 7, 12, 13]); jnp.std != 0 for 181/199; np.std != 0 for 1347/1999
+  v=1e-10: jnp.mean != v for 194/199 sizes (e.g. [3, 5, 6, 7, 8]); np.mean != v for 143/199 (e.g. [7, 11, 12, 13, 14]); jnp.std != 0 for 184/199; np.std != 0 for 1293/1999
+  v=0.00012: jnp.mean != v for 171/199 sizes (e.g. [5, 9, 10, 11, 12]); np.mean != v for 160/199 (e.g. [5, 10, 11, 12, 13]); jnp.std != 0 for 167/199; np.std != 0 for 1745/1999
+  v=2: jnp.mean != v for 8/199 sizes (e.g. [49, 98, 103, 107, 161]); np.mean != v for 0/199 (e.g. []); jnp.std != 0 for 8/199; np.std != 0 for 0/1999
+
+## E7 plot_pairwise_hdr re-inverts the constrained mean with _inverse_softplus (floor 1e-6)
+  fixed=(2,1e-08): fit saw [9.999999889225275e-09]; plot_pairwise_hdr evaluated the model at theta[2] = [9.999999889225275e-09, 1.0000000000000004e-06]
+  fixed=(2,0): fit saw [0.6931471805599453]; plot_pairwise_hdr evaluated the model at theta[2] = [0.6931471805599452, 0.6931471805599453]
+  fixed=(2,2): fit saw [2.0]; plot_pairwise_hdr evaluated the model at theta[2] = [2.0]
+
+## E8 model_selection._check_nested_fixed reads fixed_values in PHI space
+  today, shared slot 2 at 2.0 vs 3.0: rejected (Parameter 2 is fixed in both models but at different values: full=1.85459 vs nested=2.9489)
+  today, shared slot 2 at 800 vs 900 (both phi=inf): ACCEPTED
+  today, shared slot 2 at 1e-8 vs 1.00000001e-8 (rel 1e-8): rejected (Parameter 2 is fixed in both models but at different values: full=-18.4207 vs nested=-18.4)
+  today, shared slot 2 at 1e-3 vs 1.000001e-3 (rel 1e-6): rejected (Parameter 2 is fixed in both models but at different values: full=-6.90726 vs nested=-6.90)
+  EMULATED plan step 3 (fixed_values := placeholder 0.0), 2.0 vs 3.0: ACCEPTED
+[runcap] exit 0, peak RSS 1396 MB, 37s

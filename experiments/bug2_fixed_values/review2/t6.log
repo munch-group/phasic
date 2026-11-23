@@ -1,0 +1,14 @@
+  v=0 patched : free finite=True free mean=1.8856934661 fixed=0.0 ll=-23.758822
+  v=0 master  : free finite=True free mean=1.4687401446 fixed=0.6931471805599453 ll=-24.044085
+  v=1e-12 patched : free finite=True free mean=1.8841582737 fixed=1e-12 ll=-23.758729
+  v=1e-12 master  : free finite=True free mean=1.8899200488 fixed=1e-09 ll=-23.756518
+  v=1e-08 patched : free finite=True free mean=1.8820172581 fixed=1e-08 ll=-23.754157
+  v=1e-08 master  : free finite=True free mean=1.8780283322 fixed=9.999999889225275e-09 ll=-23.759132
+  v=0.3 patched : free finite=True free mean=1.6546128483 fixed=0.3 ll=-23.839421
+  v=0.3 master  : free finite=True free mean=1.6550287079 fixed=0.30000000000000004 ll=-23.805462
+  v=5 patched : free finite=True free mean=0.7847749926 fixed=5.0 ll=-25.865775
+  v=5 master  : free finite=True free mean=0.9029152269 fixed=4.999999999999999 ll=-25.819133
+## preconditioner none
+  v=0 patched : free finite=True free mean=1.8856934661 fixed=0.0 ll=-23.758822
+  v=0.3 patched : free finite=True free mean=1.6546128483 fixed=0.3 ll=-23.839421
+[runcap] exit 0, peak RSS 938 MB, 20s

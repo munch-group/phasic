@@ -1,0 +1,17 @@
+v=2.0: master delivers 2.0
+   master vs patched(v)               : identical=True maxdiff=0.000e+00
+   master vs patched(value master saw): identical=True maxdiff=0.000e+00
+   patched placeholder 0.0 vs 0.7     : identical=True maxdiff=0.000e+00
+   first history step where master and patched(value master saw) differ in the free column: None; diffs first 6: ['0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00']
+v=5.0: master delivers 4.999999999999999
+   master vs patched(v)               : identical=False maxdiff=1.254e+00
+   master vs patched(value master saw): identical=True maxdiff=0.000e+00
+   patched placeholder 0.0 vs 0.7     : identical=True maxdiff=0.000e+00
+   first history step where master and patched(value master saw) differ in the free column: None; diffs first 6: ['0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00', '0.0e+00']
+v=0.3: master delivers 0.3
+   master vs patched(v)               : identical=False maxdiff=4.130e-02
+   master vs patched(value master saw): identical=False maxdiff=4.130e-02
+   patched placeholder 0.0 vs 0.7     : identical=True maxdiff=0.000e+00
+   first history step where master and patched(value master saw) differ in the free column: 1; diffs first 6: ['0.0e+00', '9.8e-11', '4.5e-09', '1.3e-08', '1.2e-08', '1.6e-08']
+v=5 {'preconditioner': 'none'}: master vs patched(value master saw) identical=True maxdiff=0.000e+00
+[runcap] exit 0, peak RSS 859 MB, 19s

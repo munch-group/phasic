@@ -1,0 +1,64 @@
+===== /Users/kmt/phasic-bug2
+  popgen/moran-coalescent-derived.ipynb [cell 2] rates /= (rates.sum() + 1e-12)
+  popgen/simulate_data.ipynb [cell 8] mut_rate = 5e-10
+  popgen/two-locus-island.ipynb [cell 15] mut_rate = 5e-10
+  popgen/two-locus-island.ipynb [cell 43] mut_rate = 5e-10
+  tutorial/model-hub.ipynb [cell 12] assert abs(exp - 1.6) < 1e-10, 'unexpected expectation value'
+  tutorial/model-hub.ipynb [cell 16] print(f'agreement: {abs(exp_local - exp_hub) < 1e-10}')
+  tutorial/model-selection.ipynb [cell 13] fixed=[(1, 0), (3, mutation_rate)],
+  tutorial/svgd-joint-prob.ipynb [cell 74] mut_rate = 5e-10
+  vignettes/jablonski_phase_type.ipynb [cell 12] times = np.linspace(t0 + 1e-15, t1, 5000)
+  vignettes/jablonski_phase_type.ipynb [cell 14] if P_tadf[:, j].max() > 1e-10:
+  vignettes/jablonski_phase_type.ipynb [cell 16] elif tau > 1e-12:
+  vignettes/jablonski_phase_type.ipynb [cell 18] if phi[i] > 1e-10:
+  vignettes/jablonski_phase_type.ipynb [cell 18] if green[i] > 1e-15:
+===== /Users/kmt/phasic
+  popgen/moran-coalescent-derived.ipynb [cell 2] rates /= (rates.sum() + 1e-12)
+  popgen/simulate_data.ipynb [cell 8] mut_rate = 5e-10
+  popgen/two-locus-island.ipynb [cell 15] mut_rate = 5e-10
+  popgen/two-locus-island.ipynb [cell 43] mut_rate = 5e-10
+  tutorial/model-hub.ipynb [cell 12] assert abs(exp - 1.6) < 1e-10, 'unexpected expectation value'
+  tutorial/model-hub.ipynb [cell 16] print(f'agreement: {abs(exp_local - exp_hub) < 1e-10}')
+  tutorial/model-selection.ipynb [cell 13] fixed=[(1, 0), (3, mutation_rate)],
+  tutorial/svgd-joint-prob.ipynb [cell 95] mut_rate = 5e-10
+  vignettes/jablonski_phase_type.ipynb [cell 12] times = np.linspace(t0 + 1e-15, t1, 5000)
+  vignettes/jablonski_phase_type.ipynb [cell 14] if P_tadf[:, j].max() > 1e-10:
+  vignettes/jablonski_phase_type.ipynb [cell 16] elif tau > 1e-12:
+  vignettes/jablonski_phase_type.ipynb [cell 18] if phi[i] > 1e-10:
+  vignettes/jablonski_phase_type.ipynb [cell 18] if green[i] > 1e-15:
+  tutorial/test.py:147 #     fixed=[(1, 1.2e-8 * rate_scale)],
+  tutorial/test.py:177 fixed=[(1, 1.2e-8 * rate_scale)],
+----- /Users/kmt/phasic-bug2 model-selection cell 13
+svgd_no_mig = SVGD(
+    model=svgd.model,
+    theta_dim=svgd.theta_dim,
+    # Reuse the *processed* observations from the first fit — for a joint-prob
+    # model these are the per-observation positions, not the raw 2D array.
+    observed_data=svgd.observed_data,
+    preconditioner='none',
+    prior=GaussPrior(ci=[0.1, 7]),
+    n_iterations=50,
+    n_particles=50,
+    optimizer=Adamelia(learning_rate=0.2),
+    fixed=[(1, 0), (3, mutation_rate)], 
+    progress=True,
+)
+svgd_no_mig.optimize()
+svgd_no_mig.summary()
+----- /Users/kmt/phasic model-selection cell 13
+svgd_no_mig = SVGD(
+    model=svgd.model,
+    theta_dim=svgd.theta_dim,
+    # Reuse the *processed* observations from the first fit — for a joint-prob
+    # model these are the per-observation positions, not the raw 2D array.
+    observed_data=svgd.observed_data,
+    preconditioner='none',
+    prior=GaussPrior(ci=[0.1, 7]),
+    n_iterations=50,
+    n_particles=50,
+    optimizer=Adamelia(learning_rate=0.2),
+    fixed=[(1, 0), (3, mutation_rate)], 
+    progress=True,
+)
+svgd_no_mig.optimize()
+svgd_no_mig.summary()

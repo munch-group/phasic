@@ -1,0 +1,20 @@
+## (a) SAME model object, fit fixed=0.3 then fixed=2.0 (no cache clear between)
+   patched=False: second fit model saw slot1 = [2.0]; reported mean = 2.0
+   patched=True: second fit model saw slot1 = [0.3, 1.0, 2.0]; reported mean = 2.0
+## (b) LRT nested check: full fixed (1,0.3); nested claims fixed (1,2.0)+... same index different value
+   patched=False: check raised: Parameter 1 is fixed in both models but at different values: full=-1.05023 vs nested=1.85459 (PHI space). LRT requires the nested restrictio
+   patched=True: check PASSED (values 0.3 vs 2.0 at shared index NOT detected)
+## (c) MCMC
+   [plan] fixed=0 parallel=vmap: saw=[0.0] mean=0.0 std=0.0 hpd=(np.float64(0.0),np.float64(0.0)) free_finite=True shapes=[(2,)]
+   [plan] fixed=0 parallel=None: saw=[0.0] mean=0.0 std=0.0 hpd=(np.float64(0.0),np.float64(0.0)) free_finite=True shapes=[(2,)]
+   [plan] fixed=1e-12 parallel=vmap: saw=[1e-12] mean=1.0000000000000012e-12 std=1.2116903504194741e-27 hpd=(np.float64(1e-12),np.float64(1e-12)) free_finite=True shapes=[(2,)]
+   [plan] fixed=1e-12 parallel=None: saw=[1e-12] mean=1.0000000000000012e-12 std=1.2116903504194741e-27 hpd=(np.float64(1e-12),np.float64(1e-12)) free_finite=True shapes=[(2,)]
+   [plan] fixed=0.3 parallel=vmap: saw=[0.3] mean=0.3000000000000004 std=3.885780586188048e-16 hpd=(np.float64(0.3),np.float64(0.3)) free_finite=True shapes=[(2,)]
+   [plan] fixed=0.3 parallel=None: saw=[0.3] mean=0.3000000000000004 std=3.885780586188048e-16 hpd=(np.float64(0.3),np.float64(0.3)) free_finite=True shapes=[(2,)]
+   [plan] fixed=800 parallel=vmap: saw=[800.0] mean=800.0 std=0.0 hpd=(np.float64(800.0),np.float64(800.0)) free_finite=True shapes=[(2,)]
+   [plan] fixed=800 parallel=None: saw=[800.0] mean=800.0 std=0.0 hpd=(np.float64(800.0),np.float64(800.0)) free_finite=True shapes=[(2,)]
+   [strict] strict fixed=0.3 parallel=vmap: saw=[0.3] mean=0.3000000000000004 std=3.885780586188048e-16 hpd=(np.float64(0.3),np.float64(0.3)) free_finite=True shapes=[(2,)]
+   [strict] strict fixed=0.3 parallel=None: saw=[0.3] mean=0.3000000000000004 std=3.885780586188048e-16 hpd=(np.float64(0.3),np.float64(0.3)) free_finite=True shapes=[(2,)]
+   [plan] exp fixed=2 parallel=vmap: saw=[2.0] mean=2.0 std=0.0 hpd=(np.float64(2.0),np.float64(2.0)) free_finite=True shapes=[(2,)]
+   [plan] exp fixed=2 parallel=None: saw=[2.0] mean=2.0 std=0.0 hpd=(np.float64(2.0),np.float64(2.0)) free_finite=True shapes=[(2,)]
+[runcap] exit 0, peak RSS 834 MB, 15s

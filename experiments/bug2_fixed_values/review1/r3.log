@@ -1,0 +1,17 @@
+  v=1e-10 today   : model saw [1e-09, 1e-08, 1.0000000000000001e-07, 1.0000000000000002e-06]
+      want alpha*v = [1e-10, 1e-09, 1e-08, 1.0000000000000001e-07]  exact: False
+  v=1e-10 EMULATED: model saw [1e-10, 1e-09, 1e-08, 1.0000000000000001e-07]
+      want alpha*v = [1e-10, 1e-09, 1e-08, 1.0000000000000001e-07]  exact: True
+  v=1e-08 today   : model saw [9.999999889225275e-09, 9.999999889225274e-08, 9.999999889225274e-07, 9.999999889225274e-06]
+      want alpha*v = [1e-08, 1e-07, 1e-06, 1e-05]  exact: False
+  v=1e-08 EMULATED: model saw [1e-08, 1e-07, 1e-06, 1e-05]
+      want alpha*v = [1e-08, 1e-07, 1e-06, 1e-05]  exact: True
+  v=0 today   : model saw [0.6931471805599453, 6.931471805599453, 69.31471805599453, 693.1471805599452]
+      want alpha*v = [0.0, 0.0, 0.0, 0.0]  exact: False
+  v=0 EMULATED: model saw [0.0]
+      want alpha*v = [0.0, 0.0, 0.0, 0.0]  exact: False
+  v=2 today   : model saw [2.0, 20.0, 200.0, 2000.0]
+      want alpha*v = [2.0, 20.0, 200.0, 2000.0]  exact: True
+  v=2 EMULATED: model saw [2.0, 20.0, 200.0, 2000.0]
+      want alpha*v = [2.0, 20.0, 200.0, 2000.0]  exact: True
+[runcap] exit 0, peak RSS 613 MB, 9s
