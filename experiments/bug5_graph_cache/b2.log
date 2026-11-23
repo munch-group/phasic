@@ -1,0 +1,5 @@
+coalescent n=22: 1003 vertices; build (cache off) 0.076s; build+save 0.135s; load (hit) 0.026s; same size: True
+two_island n=12: 1166 vertices; build (cache off) 0.387s; build+save 0.574s; load (hit) 0.128s; same size: True
+two_island n=16: 5823 vertices; build (cache off) 3.470s; build+save 4.952s; load (hit) 0.979s; same size: True
+coalescent_indexed n=8: 23 vertices; build (cache off) 0.007s; build+save 0.010s; load (hit) 0.002s; same size: True
+[runcap] exit 0, peak RSS 581 MB, 29s
