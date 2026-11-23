@@ -44,6 +44,15 @@ class ProbMatchResult:
         Vertex indices corresponding to the unique observations.
     message : str
         Solver status message.
+    exposure_groups : int
+        Number of exposure groups the fit used (1 without exposure).
+    exposure_binned : bool
+        True when there were more distinct exposure values than
+        ``max_exposure_groups`` and observations were grouped into quantile
+        bins of exposure (each bin at its mean exposure).
+
+    With exposure, ``empirical_probs``, ``model_probs`` and
+    ``unique_indices`` are stacked group by group.
     """
     theta: np.ndarray
     std: np.ndarray
@@ -54,6 +63,8 @@ class ProbMatchResult:
     model_probs: np.ndarray
     unique_indices: np.ndarray
     message: str
+    exposure_groups: int = 1
+    exposure_binned: bool = False
 
 
 def _estimate_multinomial_covariance(empirical_probs: np.ndarray, n_obs: int) -> np.ndarray:
@@ -148,6 +159,9 @@ def probability_matching(
     std_multiplier: float = 2.0,
     verbose: bool = True,
     lower: float | None = 0.0,
+    exposure: ArrayLike | float | None = None,
+    exposure_param_index: int | None = None,
+    max_exposure_groups: int = 100,
 ) -> ProbMatchResult:
     """Find parameter estimates by matching model probabilities to empirical probabilities.
 
@@ -182,6 +196,32 @@ def probability_matching(
         ``lower`` of the returned GaussPrior objects: ``0.0`` (truncated at
         zero) for use with ``positive_params=True``, ``None`` for
         ``positive_params=False``.
+    exposure : float or array-like, optional
+        Per-observation exposure alpha_i (a scalar applies to every
+        observation). Observation i is modelled with
+        ``theta[exposure_param_index]`` multiplied by alpha_i, as on the
+        epoch (daisy-chain) path. Observations are grouped by exposure value;
+        each group's outcome frequencies are matched to the model table at
+        its own exposure, with residuals weighted by sqrt(n_g / n).
+        Requires ``exposure_param_index``.
+    exposure_param_index : int, optional
+        The parameter that exposure multiplies.
+    max_exposure_groups : int, default=100
+        With more distinct exposure values than this, observations are
+        grouped into this many quantile bins of exposure, each evaluated at
+        the mean exposure of its members (an approximation that only affects
+        this estimate, e.g. a default prior's centre and width), and
+        ``ProbMatchResult.exposure_binned`` is set.
+
+    Raises
+    ------
+    ValueError
+        On a joint probability graph with no parameter fixed: multiplying
+        every rate by the same factor leaves every joint probability
+        unchanged (continuous and discrete graphs, with or without
+        exposure), so the data cannot determine the overall scale. Also when
+        the delta-method standard errors cannot be computed, or are zero or
+        non-finite for a free parameter (the data do not determine it).
 
     Returns
     -------
@@ -274,6 +314,84 @@ def probability_matching(
     all_terminal_indices_arr = jnp.array(sorted(_terminal_set), dtype=jnp.int32)
     unique_indices_jnp = jnp.array(unique_indices, dtype=jnp.int32)
 
+    # ------------------------------------------------------------------
+    # 3a. Identifiability: the overall rate scale (structural, exact)
+    # ------------------------------------------------------------------
+    if graph._joint_prob_base_graph_indexer is not None and not fixed:
+        raise ValueError(
+            "probability_matching: no parameter is fixed, and on a joint "
+            "probability graph multiplying every rate by the same factor "
+            "leaves every joint probability unchanged, so the data cannot "
+            "determine the overall scale of the rates. Fix one rate with "
+            "fixed=[(index, value)], or pass prior= explicitly."
+        )
+
+    # ------------------------------------------------------------------
+    # 3b. Exposure groups
+    # ------------------------------------------------------------------
+    exposure_binned = False
+    groups = None          # None: no exposure (single group, unscaled)
+    if exposure is not None:
+        if exposure_param_index is None:
+            raise ValueError(
+                "probability_matching: exposure requires exposure_param_index."
+            )
+        k_exp = int(exposure_param_index)
+        if not (0 <= k_exp < theta_dim):
+            raise ValueError(
+                f"probability_matching: exposure_param_index={exposure_param_index} "
+                f"out of range [0, {theta_dim})."
+            )
+        alpha = np.asarray(exposure, dtype=np.float64).ravel()
+        if alpha.size == 1:
+            alpha = np.full(n_obs, float(alpha[0]))
+        if alpha.size != n_obs:
+            raise ValueError(
+                f"probability_matching: exposure has {alpha.size} values for "
+                f"{n_obs} observations."
+            )
+        if not np.all(np.isfinite(alpha) & (alpha > 0)):
+            raise ValueError(
+                "probability_matching: exposure values must be finite and > 0."
+            )
+        group_alpha, group_of = np.unique(alpha, return_inverse=True)
+        if group_alpha.size > max_exposure_groups:
+            exposure_binned = True
+            edges = np.quantile(alpha, np.linspace(0.0, 1.0, max_exposure_groups + 1))
+            bin_of = np.clip(np.searchsorted(edges[1:-1], alpha, side='right'),
+                             0, max_exposure_groups - 1)
+            used, group_of = np.unique(bin_of, return_inverse=True)
+            group_alpha = np.array([alpha[group_of == g].mean()
+                                    for g in range(used.size)])
+        _term_sorted = sorted(_terminal_set)
+        _term_pos = {v: i for i, v in enumerate(_term_sorted)}
+        groups = []
+        for g in range(group_alpha.size):
+            obs_g = observed_indices[group_of == g]
+            u_g, c_g = np.unique(obs_g, return_counts=True)
+            groups.append(dict(
+                alpha=float(group_alpha[g]),
+                n=int(obs_g.size),
+                unique=u_g,
+                pos=np.array([_term_pos[int(v)] for v in u_g], dtype=np.int64),
+                emp=c_g.astype(np.float64) / obs_g.size,
+            ))
+        if verbose:
+            print(f"ProbMatch: {len(groups)} exposure group(s)"
+                  + (" (binned)" if exposure_binned else ""))
+        _alphas = np.array([gr['alpha'] for gr in groups])
+        _weights = np.sqrt(np.array([gr['n'] for gr in groups]) / n_obs)
+        import jax
+        _batched_sojourn = jax.vmap(
+            lambda t: compute_sojourn_times_ffi(serialized, t, all_terminal_indices_arr))
+
+        def grouped_probs(theta_full):
+            th = np.tile(np.asarray(theta_full, dtype=np.float64), (len(groups), 1))
+            th[:, k_exp] *= _alphas
+            soj = np.asarray(_batched_sojourn(jnp.asarray(th)))
+            p_all = soj / soj.sum(axis=1, keepdims=True)
+            return [p_all[g, gr['pos']] for g, gr in enumerate(groups)]
+
     def probs_fn(theta_full):
         """Compute model probabilities for unique observed indices."""
         theta_jnp = jnp.array(theta_full)
@@ -293,11 +411,18 @@ def probability_matching(
             raise ValueError(
                 f"theta_init has {len(x0)} elements but there are {n_free} free parameters"
             )
-    else:
+    elif groups is None:
         # Grid search: match the most common observation's probability
         most_common_prob = float(np.max(empirical_probs))
         x0 = _initial_guess_grid_probs(
             probs_fn, most_common_prob, n_free, fixed, theta_dim
+        )
+    else:
+        # Grid search on the largest exposure group's table.
+        _gl = int(np.argmax([gr['n'] for gr in groups]))
+        x0 = _initial_guess_grid_probs(
+            lambda th: grouped_probs(th)[_gl],
+            float(np.max(groups[_gl]['emp'])), n_free, fixed, theta_dim
         )
 
     if verbose:
@@ -309,8 +434,12 @@ def probability_matching(
     # ------------------------------------------------------------------
     def residual_fn(theta_free):
         theta_full = _reconstruct_theta(theta_free, theta_dim, fixed)
-        model_probs = probs_fn(theta_full)
-        return model_probs.ravel() - empirical_probs.ravel()
+        if groups is None:
+            model_probs = probs_fn(theta_full)
+            return model_probs.ravel() - empirical_probs.ravel()
+        return np.concatenate([
+            w * (p - gr['emp'])
+            for w, p, gr in zip(_weights, grouped_probs(theta_full), groups)])
 
     # ------------------------------------------------------------------
     # 6. Optimise
@@ -326,7 +455,12 @@ def probability_matching(
     theta_full_opt = _reconstruct_theta(theta_free_opt, theta_dim, fixed)
 
     # Final model probabilities
-    model_probs_opt = probs_fn(theta_full_opt)
+    if groups is None:
+        model_probs_opt = probs_fn(theta_full_opt)
+    else:
+        model_probs_opt = np.concatenate(grouped_probs(theta_full_opt))
+        empirical_probs = np.concatenate([gr['emp'] for gr in groups])
+        unique_indices = np.concatenate([gr['unique'] for gr in groups])
 
     residual_sum = float(np.sum(result.fun ** 2))
 
@@ -345,14 +479,25 @@ def probability_matching(
     std_full = np.full(theta_dim, np.nan)
     try:
         J = result.jac  # shape (n_unique, n_free)
-        multinomial_cov = _estimate_multinomial_covariance(empirical_probs, n_obs)
+        if groups is None:
+            multinomial_cov = _estimate_multinomial_covariance(empirical_probs, n_obs)
+        else:
+            # Weighted residual r_g = sqrt(w_g) (p_g - e_g), w_g = n_g / n:
+            # Cov(r_g) = w_g * Cov(e_g), blocks independent across groups.
+            from scipy.linalg import block_diag
+            multinomial_cov = block_diag(*[
+                (gr['n'] / n_obs) * _estimate_multinomial_covariance(gr['emp'], gr['n'])
+                for gr in groups])
         G = np.linalg.pinv(J)  # shape (n_free, n_unique)
         cov_theta = G @ multinomial_cov @ G.T
         std_free = np.sqrt(np.maximum(np.diag(cov_theta), 0.0))
-    except (np.linalg.LinAlgError, ValueError):
-        std_free = 0.5 * np.abs(theta_free_opt)
-        if verbose:
-            print("ProbMatch: WARNING — delta method failed, using fallback std = 0.5 * |theta|")
+    except (np.linalg.LinAlgError, ValueError) as _dm_exc:
+        # No silent fallback (was: std = 0.5 * |theta|).
+        raise ValueError(
+            "probability_matching: the delta-method standard errors could not "
+            f"be computed ({type(_dm_exc).__name__}: {_dm_exc}). Pass prior= "
+            "explicitly."
+        ) from _dm_exc
 
     # Map std back to full theta vector
     j = 0
@@ -363,10 +508,18 @@ def probability_matching(
             std_full[i] = std_free[j]
             j += 1
 
-    # Ensure std is never zero for free parameters
-    for i in range(theta_dim):
-        if i not in fixed_dict and (std_full[i] <= 0 or not np.isfinite(std_full[i])):
-            std_full[i] = 0.5 * max(abs(theta_full_opt[i]), 1e-4)
+    # A zero or non-finite std means the data do not determine that
+    # parameter (no silent fallback; was: std = 0.5 * max(|theta|, 1e-4)).
+    _bad = [i for i in range(theta_dim)
+            if i not in fixed_dict
+            and (not np.isfinite(std_full[i]) or std_full[i] <= 0)]
+    if _bad:
+        raise ValueError(
+            f"probability_matching: the standard error of parameter(s) {_bad} "
+            f"is zero or not finite at the estimate {theta_full_opt[_bad]}, so "
+            f"the observed outcomes do not determine them. Fix them with "
+            f"fixed=, or pass prior= explicitly."
+        )
 
     # ------------------------------------------------------------------
     # 8. Build priors
@@ -392,4 +545,6 @@ def probability_matching(
         model_probs=model_probs_opt,
         unique_indices=unique_indices,
         message=str(result.message),
+        exposure_groups=1 if groups is None else len(groups),
+        exposure_binned=exposure_binned,
     )

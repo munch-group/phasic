@@ -42,10 +42,17 @@ def test_svgd_raises_when_dataprior_fails(joint, monkeypatch):
 
 
 def test_epoch_path_raises_when_probability_matching_fails(joint, monkeypatch):
+    # The default epoch prior is built where it is used: in svgd, and in
+    # FreeEpochModel.fit (not when the model is built).
     j, obs = joint
     monkeypatch.setattr(phasic.probability_matching, "probability_matching", _boom)
     with pytest.raises(ValueError, match="default data-informed epoch prior.*on purpose"):
-        j.epoch_model(obs, [0.0, 0.5])
+        j.svgd(obs, epoch_starts=[0.0, 0.5], fixed=[(1, 0.5)], n_particles=4,
+               n_iterations=1, progress=False)
+    em = j.epoch_model(obs, [0.0, 0.5])
+    with pytest.raises(ValueError, match="default data-informed epoch prior.*on purpose"):
+        em.fit(fixed=[(1, 0.5), (3, 0.5)], n_particles=4, n_iterations=1,
+               progress=False)
 
 
 def test_explicit_prior_skips_the_default(joint, monkeypatch):

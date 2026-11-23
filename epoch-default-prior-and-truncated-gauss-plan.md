@@ -487,6 +487,40 @@ helper.)
   memory-capped, completes.
 - Gate: no new failures beyond the inventoried, explained ones.
 
+### Batch 2 results (2026-11-23, branch `fix/epoch-default-prior`, worktree `../phasic-epochprior`)
+
+- Implemented as designed: `Graph._epoch_default_prior` (reference fit with
+  the fit's fixed rates and exposure; sigma = max(sd*se, |m|); lower from
+  positive_params) called from `Graph.svgd` and `FreeEpochModel.fit`
+  (factory set by `Graph.epoch_model(prior=None)`); the builder returns
+  prior None. `probability_matching` gained `exposure`,
+  `exposure_param_index`, `max_exposure_groups=100` (quantile bins above;
+  `ProbMatchResult.exposure_groups/exposure_binned`), the structural
+  "no rate fixed" error (after input validation), and errors in place of
+  the two silent std fallbacks. Notices: binned exposure, and an epoch fit
+  whose last-epoch scale nothing pins (`_epoch_final_scale_unidentified`;
+  FreeEpochModel.fit checks its merged fixed). The builder's `prior_lower`
+  (Batch 1) is gone.
+- Width floor raised to |m| (user, 2026-11-23), see D7.
+- MCMC on a joint graph cannot take row observations at all, so its
+  default-prior path is not reachable there (covered via DataPrior).
+- Test changes per the Batch 0 dispositions: explicit prior in the
+  `_svgd` helpers of `inference/test_svgd_exact_final_grad_kwarg.py` and
+  `inference/test_svgd_exact_grad_kwarg.py` (joint graphs only);
+  `test_probmatch_input_check.py` fits with mu fixed and asserts the
+  unfixed case raises; `test_prior_fallback_raises.py` checks the epoch
+  default through svgd and `FreeEpochModel.fit`.
+- New `tests/pytest/test_epoch_default_prior.py` (16 tests, closed-form
+  n=2 data with per-epoch truths 2 and 6).
+- Gate: 661 passed, 0 failed.
+- Manual acceptance: the investigation fixture (4 samples, epochs
+  [0, 0.15], 10,000 windows, mu fixed, exposure 1000, prior=None) that
+  hung before finishes 300 iterations in 16.7 s; default prior
+  N(4.86, 4.86^2) truncated at 0 (truth 5).
+- Found, not fixed (pre-existing, also on master): `theta_mean` of an
+  epoch fit reports FIXED slots on the unconstrained scale (-9.028 =
+  log(expm1(1.2e-4)) for mu = 1.2e-4).
+
 After Batch 2: a short CLAUDE.md entry, then the second plan (positive FD
 step + slow-evaluation guard) and its adversarial review.
 
@@ -554,7 +588,10 @@ Decided (user, 2026-11-22):
 - **D7 — (a):** an epoch fit whose final-epoch scale is not identified
   (nothing fixed, no final-epoch rate tied to an earlier epoch) proceeds
   with a visible notice in the fit's notices. The epoch default prior
-  gets a relative width floor, sigma = max(sd*s, 0.5*|m|).
+  gets a relative width floor, sigma = max(sd*s, |m|) (raised from
+  0.5*|m| on 2026-11-23: with 0.5 the 95% interval reached only ~2x the
+  time-homogeneous estimate and missed a per-epoch rate 2.6x away in the
+  Batch 2 test; with |m| it reaches ~3x).
 - **D8 — (b):** the grouped reference fit evaluates every distinct
   exposure value exactly up to a cap of 100 distinct values (Batch 0c:
   at 114k vertices one table is 11 ms, 100 values batched 0.3 s, 1000

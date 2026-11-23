@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 import phasic
-from phasic import Graph, Property, StateIndexer, set_log_level, with_ipv
+from phasic import GaussPrior, Graph, Property, StateIndexer, set_log_level, with_ipv
 from phasic.exceptions import SvgdConfigError
 
 jax = pytest.importorskip("jax")
@@ -62,8 +62,13 @@ def fx():
 
 
 def _svgd(g, obs, **kw):
-    # priors only where the caller sets one; svgd's own default (data-
-    # informed) covers each leaf's shape correctly.
+    # A joint-probability graph's default (data-informed) prior needs a fixed
+    # rate (with nothing fixed the overall rate scale is not identified and
+    # prior=None raises). These tests are about gradient plumbing, not
+    # priors, so joint-graph fits get an explicit prior unless the caller
+    # sets one; other leaves keep svgd's own default.
+    if getattr(g, "_joint_prob_base_graph_indexer", None) is not None:
+        kw.setdefault("prior", GaussPrior(ci=[TH / 5, TH * 5], lower=0.0))
     kw.setdefault("n_iterations", 1)
     kw.setdefault("n_particles", 4)
     return g.svgd(obs, **kw)

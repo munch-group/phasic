@@ -1410,6 +1410,25 @@ def _fmt_num(v) -> str:
     return repr(float(v))
 
 
+def _epoch_final_scale_unidentified(user_fixed, user_tied, n_epochs: int) -> bool:
+    """True when nothing pins the overall scale of the last epoch's rates.
+
+    The last epoch runs to absorption, so its likelihood factor depends only
+    on the ratios of its rates. Its scale is pinned only by a fixed rate (a
+    per-epoch fixed entry fixes it in every epoch, including the last) or by
+    a last-epoch rate tied to an earlier epoch, whose scale the absolute
+    epoch start times determine.
+    """
+    if user_fixed:
+        return False
+    last = n_epochs - 1
+    for entry in (user_tied or []):
+        epochs = [int(e) for e in entry[1]]
+        if last in epochs and len(set(epochs)) > 1:
+            return False
+    return True
+
+
 def _epoch_layout_records(user_prior, user_fixed, n_epochs: int,
                           param_length: int) -> dict:
     """Ledger notes for an epoch fit's per-epoch expansion of prior/fixed.
@@ -4429,12 +4448,8 @@ extern "C" {{
         final_read: str = 'sojourn',
         bake_fd_skip: bool = True,
         exact_final_grad: bool = False,
-        prior_lower: float | None = 0.0,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
-
-        ``prior_lower`` is the ``lower`` of the default (prior=None)
-        GaussPriors: ``0.0`` for positive_params fits, ``None`` otherwise.
 
         Internal helper for ``Graph.svgd(epoch_starts=...)``. Constructs
         the JSP graph from ``self``, fits a time-homogeneous reference
@@ -4461,9 +4476,12 @@ extern "C" {{
             the ``'auto'`` resolution happens upstream in
             ``Graph.svgd``.
         user_prior : callable, optional
-            User-supplied prior. If given, used as-is. If None, a
-            data-informed prior is built from ``probability_matching``
-            on ``self`` and broadcast across epochs.
+            User-supplied prior. If given, broadcast across epochs and
+            returned with fixed slots masked. If None, the returned prior
+            is None: the default data-informed prior is built where it is
+            used (``Graph.svgd``, ``FreeEpochModel.fit``) by
+            :meth:`_epoch_default_prior`, so model-factory callers never
+            need data for it.
         user_fixed : list of (local_idx, value) tuples, optional
             Per-parameter fixings, broadcast to the flattened theta
             shape ``(n_epochs * param_length,)``. The ``value`` may be:
@@ -5552,21 +5570,85 @@ extern "C" {{
                 broadcast_fixed,
             )
 
-        # Otherwise: run probability_matching on self for a time-
-        # homogeneous reference, then broadcast across epochs.
-        from .probability_matching import probability_matching
+        # No user prior: the default data-informed prior is built where it
+        # is used (Graph.svgd / FreeEpochModel.fit, via _epoch_default_prior),
+        # with the fit's own fixed values, exposure and positive_params.
+        return (
+            model,
+            theta_dim,
+            None,
+            broadcast_fixed,
+        )
 
+
+    def _epoch_default_prior(self, *, observed_indices, user_fixed,
+                             exposure_arr, exposure_param_index, n_epochs,
+                             param_length, sd, lower, verbose=False):
+        """Default (prior=None) prior of an epoch fit, one slot per flat
+        theta entry.
+
+        A time-homogeneous reference fit (``probability_matching`` on
+        ``self``) with the fit's fixed rates and exposure, broadcast over
+        the epochs: per free parameter ``GaussPrior(mean=m, std=sigma,
+        lower=lower)`` with ``sigma = max(sd * se, |m|)``. ``sd * se`` is
+        the DataPrior (non-epoch default) width; the relative floor keeps
+        the prior wide enough to reach per-epoch rates that differ from the
+        time-homogeneous estimate (its 95% interval reaches about 3 * m).
+
+        Parameters
+        ----------
+        user_fixed : list of (local_idx, value) or None
+            Fixed values in per-epoch (local) form; ``value`` a scalar or a
+            per-epoch list. A list whose values differ raises: no single
+            value is right for the time-homogeneous reference fit.
+        exposure_arr : np.ndarray or None
+            Per-observation exposure (uniform or varying).
+
+        Returns
+        -------
+        (list, dict)
+            Flat list of ``n_epochs * param_length`` priors (fixed local
+            slots ``None``; the caller masks the flat fixed slots), and
+            ``{'exposure_groups': int, 'exposure_binned': bool}``.
+
+        Raises
+        ------
+        ValueError
+            Differing per-epoch fixed values; or the reference fit cannot be
+            built (e.g. no rate fixed, so the overall scale is not
+            identified), with its cause.
+        """
+        from .svgd import GaussPrior
+
+        ref_fixed = []
+        for local_idx, value in (user_fixed or []):
+            if isinstance(value, (int, float, np.integer, np.floating)):
+                ref_fixed.append((int(local_idx), float(value)))
+                continue
+            vals = np.asarray(value, dtype=np.float64).ravel()
+            if np.unique(vals).size > 1:
+                raise ValueError(
+                    f"prior=None: parameter {local_idx} is fixed at different "
+                    f"values in different epochs ({vals.tolist()}). The default "
+                    f"prior comes from a time-homogeneous fit, and no single "
+                    f"value is right for it. Pass prior= explicitly (one prior "
+                    f"per parameter; it is broadcast over epochs)."
+                )
+            ref_fixed.append((int(local_idx), float(vals[0])))
+
+        # Imported at call time so the module attribute can be patched.
+        from .probability_matching import probability_matching
         try:
             pm_result = probability_matching(
                 self, observed_indices,
-                std_multiplier=sd, verbose=verbose,
+                fixed=ref_fixed or None,
+                std_multiplier=sd, verbose=verbose, lower=lower,
+                exposure=exposure_arr,
+                exposure_param_index=(exposure_param_index
+                                      if exposure_arr is not None else None),
             )
-            theta_hat = np.asarray(pm_result.theta, dtype=np.float64)
-            theta_std = np.asarray(pm_result.std, dtype=np.float64)
         except Exception as _pm_exc:
-            # No silent fallback (ticket T5): this used to return no prior,
-            # so SVGD silently used a standard normal on the unconstrained
-            # scale.
+            # No silent fallback (ticket T5).
             raise ValueError(
                 "prior=None: the default data-informed epoch prior "
                 "(probability_matching on the time-homogeneous model) could "
@@ -5575,24 +5657,20 @@ extern "C" {{
                 "(one prior per parameter; it is broadcast over epochs)."
             ) from _pm_exc
 
-        # Per-parameter Gaussian priors, broadcast n_epochs times.
-        # GaussPrior takes ci=[lo, hi]; we pass mean ± sd*std as the
-        # 95% interval — same convention DataPrior uses.
-        broadcast_priors = []
-        for _epoch in range(n_epochs):
-            for k in range(param_length):
-                m = float(theta_hat[k])
-                s = float(theta_std[k]) if k < theta_std.size else 1.0
-                lo = m - sd * s
-                hi = m + sd * s
-                broadcast_priors.append(GaussPrior(ci=[lo, hi], lower=prior_lower))
-
-        return (
-            model,
-            theta_dim,
-            _mask_fixed(broadcast_priors),
-            broadcast_fixed,
-        )
+        theta_hat = np.asarray(pm_result.theta, dtype=np.float64)
+        theta_se = np.asarray(pm_result.std, dtype=np.float64)
+        fixed_local = {k for k, _v in ref_fixed}
+        per_param = []
+        for k in range(param_length):
+            if k in fixed_local:
+                per_param.append(None)
+                continue
+            m = float(theta_hat[k])
+            sigma = max(sd * float(theta_se[k]), abs(m))
+            per_param.append(GaussPrior(mean=m, std=sigma, lower=lower))
+        info = {'exposure_groups': int(pm_result.exposure_groups),
+                'exposure_binned': bool(pm_result.exposure_binned)}
+        return per_param * n_epochs, info
 
 
     def epoch_model(
@@ -5728,16 +5806,38 @@ extern "C" {{
         )
         from .epoch_model import FreeEpochModel
         es = np.asarray(epoch_starts, dtype=np.float64).ravel()
+        _n_ep, _plen = int(es.size), self.param_length()
+
+        def _default_prior_factory(flat_fixed, positive_params):
+            # Local form of the flat fixings: a parameter counts as fixed
+            # for the time-homogeneous reference fit only when it is fixed
+            # in EVERY epoch (a per-epoch list of values; differing values
+            # raise in _epoch_default_prior).
+            fmap = dict((int(i), v) for i, v in (flat_fixed or []))
+            local = []
+            for k in range(_plen):
+                slots = [e * _plen + k for e in range(_n_ep)]
+                if all(sl in fmap for sl in slots):
+                    local.append((k, [float(fmap[sl]) for sl in slots]))
+            return self._epoch_default_prior(
+                observed_indices=mapped, user_fixed=local,
+                exposure_arr=_daisy_exposure,
+                exposure_param_index=exposure_param_index,
+                n_epochs=_n_ep, param_length=_plen, sd=5.0,
+                lower=0.0 if positive_params else None, verbose=verbose)
+
         return FreeEpochModel(
             model=model,
             theta_dim=theta_dim,
             observed_data=mapped,
             prior=prior_out,
             fixed=fixed_out,
-            n_epochs=int(es.size),
-            param_length=self.param_length(),
+            n_epochs=_n_ep,
+            param_length=_plen,
             t_eval=resolved_t_eval,
             epoch_starts=es.tolist(),
+            default_prior_factory=(_default_prior_factory
+                                   if prior is None else None),
         )
 
 
@@ -6762,7 +6862,6 @@ extern "C" {{
                         user_fixed=fixed,
                         user_tied=tied,
                         sd=5.0,
-                        prior_lower=0.0 if positive_params else None,
                         verbose=verbose,
                         granularity=daisy_chain_granularity,
                         exposure_arr=_daisy_exposure,
@@ -6776,6 +6875,45 @@ extern "C" {{
                     # fixed layout. Record what was expanded on the ledger;
                     # the notice only names those options.
                     _n_epochs = len(np.asarray(epoch_starts).ravel())
+                    if _epoch_user_prior is None:
+                        # Default prior, built here with this fit's fixed
+                        # rates, exposure and positive_params (the builder
+                        # returns None for it).
+                        _flat_prior, _dp_info = self._epoch_default_prior(
+                            observed_indices=observed_data,
+                            user_fixed=_epoch_user_fixed,
+                            exposure_arr=_daisy_exposure,
+                            exposure_param_index=exposure_param_index,
+                            n_epochs=_n_epochs,
+                            param_length=theta_dim // _n_epochs,
+                            sd=5.0,
+                            lower=0.0 if positive_params else None,
+                            verbose=verbose,
+                        )
+                        _fixed_flat = {int(i) for i, _v in (fixed or [])}
+                        prior = [None if i in _fixed_flat else p
+                                 for i, p in enumerate(_flat_prior)]
+                        if _dp_info['exposure_binned']:
+                            _svgd_assume(
+                                "svgd: the default prior grouped the exposure "
+                                "values into "
+                                f"{_dp_info['exposure_groups']} quantile bins "
+                                "(each at its mean exposure); this only "
+                                "affects the prior's centre and width. "
+                                + _options_hint('prior'),
+                                quiet=quiet_assumptions,
+                            )
+                    if _epoch_final_scale_unidentified(
+                            _epoch_user_fixed, tied, _n_epochs):
+                        _svgd_assume(
+                            "svgd: no rate is fixed and none of the last "
+                            "epoch's rates is tied to an earlier epoch, so the "
+                            "data cannot determine the overall scale of the "
+                            "last epoch's rates and it follows the prior; fix "
+                            "a rate with fixed= to identify it. "
+                            + _options_hint('fixed'),
+                            quiet=quiet_assumptions,
+                        )
                     # Flat epoch-by-epoch layout, read by the SVGD plotting
                     # methods so a per-epoch true_theta / param_names can be
                     # repeated across epochs (same convention as prior).
