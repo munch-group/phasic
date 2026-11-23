@@ -1,0 +1,80 @@
+## (a) pure arithmetic: w_i / sum(w) summed sequentially; n edges, magnitudes spread over `dec` decades; worst of 300 draws
+  n=    10 decades= 0: worst excess +4.441e-16   (n*eps = 2.2e-15)
+  n=    10 decades= 6: worst excess +4.441e-16   (n*eps = 2.2e-15)
+  n=    10 decades=16: worst excess +4.441e-16   (n*eps = 2.2e-15)
+  n=   100 decades= 0: worst excess +1.110e-15   (n*eps = 2.2e-14)
+  n=   100 decades= 6: worst excess +1.332e-15   (n*eps = 2.2e-14)
+  n=   100 decades=16: worst excess +1.332e-15   (n*eps = 2.2e-14)
+  n=  1000 decades= 0: worst excess +3.553e-15   (n*eps = 2.2e-13)
+  n=  1000 decades= 6: worst excess +4.441e-15   (n*eps = 2.2e-13)
+  n=  1000 decades=16: worst excess +2.887e-15   (n*eps = 2.2e-13)
+  n=  5000 decades= 0: worst excess +7.994e-15   (n*eps = 1.1e-12)
+  n=  5000 decades= 6: worst excess +9.770e-15   (n*eps = 1.1e-12)
+  n=  5000 decades=16: worst excess +9.992e-15   (n*eps = 1.1e-12)
+  n= 50000 decades= 0: worst excess +2.509e-14   (n*eps = 1.1e-11)
+  n= 50000 decades= 6: worst excess +2.509e-14   (n*eps = 1.1e-11)
+  n= 50000 decades=16: worst excess +5.329e-14   (n*eps = 1.1e-11)
+  n=600000 decades= 0: worst excess +5.129e-14   (n*eps = 1.3e-10)
+  n=600000 decades= 6: worst excess +6.217e-15   (n*eps = 1.3e-10)
+  n=600000 decades=16: worst excess +4.352e-13   (n*eps = 1.3e-10)
+## (a2) user-normalised rows: numpy pairwise sum then divide (float64), and float32 probabilities
+  n=    3: float64 worst excess +2.220e-16;  float32-normalised worst excess +8.941e-08
+  n=   10: float64 worst excess +4.441e-16;  float32-normalised worst excess +1.295e-07
+  n=  100: float64 worst excess +8.882e-16;  float32-normalised worst excess +1.695e-07
+  n= 1000: float64 worst excess +2.442e-15;  float32-normalised worst excess +1.235e-07
+  n= 4000: float64 worst excess +4.885e-15;  float32-normalised worst excess +7.881e-08
+  decimal-rounded probabilities (rounded to d digits, as from a table/file): worst excess over 2000 draws
+    digits=3 n= 3: +1.000e-03
+    digits=3 n= 7: +2.000e-03
+    digits=3 n=20: +5.000e-03
+    digits=4 n= 3: +1.000e-04
+    digits=4 n= 7: +2.000e-04
+    digits=4 n=20: +5.000e-04
+    digits=6 n= 3: +1.000e-06
+    digits=6 n= 7: +2.000e-06
+    digits=6 n=20: +4.000e-06
+    digits=8 n= 3: +1.000e-08
+    digits=8 n= 7: +2.000e-08
+    digits=8 n=20: +4.000e-08
+## (b) real graph: one vertex with n parameterized out-edges, was_dph renormalisation in C (update_weights)
+  n=1000: worst excess +3.109e-15, most negative -2.220e-15
+    pdf(1) = 1.000000000000003
+  n=4500: worst excess +7.550e-15, most negative -6.328e-15
+    pdf(1) = 0.999999999999998
+## (c) discretize() at tiny / huge rates
+  coalescent n=22 theta=[0.37] discretize(1e-12): 2002 rows, max excess = +4.441e-16, min (sum-1) among rows within 1e-6 of 1 = -4.441e-16, rows > 1: 92
+       after update_weights: 2002 rows, max excess = +4.441e-16, min (sum-1) among rows within 1e-6 of 1 = -6.661e-16, rows > 1: 201
+  coalescent n=22 theta=[0.37] discretize(0.001): 2002 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 92
+       after update_weights: 2002 rows, max excess = +4.441e-16, min (sum-1) among rows within 1e-6 of 1 = -6.661e-16, rows > 1: 194
+  coalescent n=22 theta=[0.37] discretize(1): 2002 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -4.441e-16, rows > 1: 54
+       after update_weights: 2002 rows, max excess = +6.661e-16, min (sum-1) among rows within 1e-6 of 1 = -5.551e-16, rows > 1: 165
+  coalescent n=22 theta=[0.37] discretize(1e+09): 2002 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 0
+       after update_weights: 2002 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 0
+  two-island n=8 theta=[123.4, 0.017] discretize(1e-12): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 13
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 18
+  two-island n=8 theta=[123.4, 0.017] discretize(0.001): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 5
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 42
+  two-island n=8 theta=[123.4, 0.017] discretize(1): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -2.220e-16, rows > 1: 5
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 35
+  two-island n=8 theta=[123.4, 0.017] discretize(1e+09): 366 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 0
+       after update_weights: 366 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 0
+  two-island n=8 theta=[1e-09, 10000000.0] discretize(1e-12): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 13
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 10
+  two-island n=8 theta=[1e-09, 10000000.0] discretize(0.001): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -3.331e-16, rows > 1: 5
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 52
+  two-island n=8 theta=[1e-09, 10000000.0] discretize(1): 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -2.220e-16, rows > 1: 5
+       after update_weights: 366 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 51
+  two-island n=8 theta=[1e-09, 10000000.0] discretize(1e+09): 366 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 0
+       after update_weights: 366 rows, max excess = +0.000e+00, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 0
+## (d) reward_transform_discrete output rows (zero-reward elimination multiplies/sums probabilities)
+  coalescent n=14 theta=[0.37] rate=0.01: 270 vertices, 1849 transformed rows over 12 reward vectors, worst excess +4.441e-16, failures 0
+  two-island n=7 theta=[0.7, 0.3] rate=0.5: 219 vertices, 1417 transformed rows over 12 reward vectors, worst excess +0.000e+00, failures 0
+  two-island n=7 theta=[1e-06, 10000.0] rate=0.001: 219 vertices, 1470 transformed rows over 12 reward vectors, worst excess +0.000e+00, failures 0
+## (e) joint_prob_graph(discrete=True) with reward limits, extreme theta
+  n=5 theta=[2.0, 0.05] {'reward_limit': 3} (680 v): 678 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -2.220e-16, rows > 1: 375
+  n=5 theta=[1e-08, 1000000.0] {'reward_limit': 3} (680 v): 678 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = +0.000e+00, rows > 1: 5
+  n=6 theta=[100000.0, 1e-09] {'reward_limit': 2} (763 v): 761 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 110
+  n=6 theta=[5.0, 0.01] {'reward_limit': 3, 'tot_reward_limit': 5} (841 v): 839 rows, max excess = +2.220e-16, min (sum-1) among rows within 1e-6 of 1 = -1.110e-16, rows > 1: 372
+## (f) normalize_discrete (aux edge weight 1 - rate): rate + (1 - rate)
+  worst excess of rate + (1 - rate): +0.000e+00
+[runcap] exit 0, peak RSS 575 MB, 12s

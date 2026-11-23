@@ -1,0 +1,4 @@
+B1: values > 1e-14: 10; max rel diff 1.59e-13; bit-identical values 0/10; max abs diff all 3.89e-16
+B2: values > 1e-14: 10; max rel diff 1.48e-13; bit-identical values 0/10; max abs diff all 3.89e-16
+C: values > 1e-14: 10; max rel diff 1.19e-13; bit-identical values 1/10; max abs diff all 1.39e-17
+[runcap] exit 0, peak RSS 407 MB, 5s

@@ -1,0 +1,79 @@
+............ERROR:2026-11-23 20:19:40,302:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 9327, in _exact_sojourn_jac_np
+    raise RuntimeError(
+    ...<14 lines>...
+    )
+RuntimeError: pmf_from_graph_joint_index: exact sojourn gradient (exact_grad=True) declined at theta=[1.0, 1e-13]. The construction-time probe (theta=ones, over the all-terminal index union) succeeded, so the likely causes are: an ill-conditioned elimination tape at THIS theta (MPFR gate), a non-finite Jacobian row at one of the REQUESTED observed vertices, or an allocation failure. No automatic finite-difference fallback exists once the exact path is committed -- pass exact_grad=False, pass exact_grad_decline='fd' for a per-call host-side FD fallback, or investigate this theta/index set. (A NaN/inf theta raises a ValueError from update_weights before reaching this point.)
+ERROR:2026-11-23 20:19:40,467:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 9327, in _exact_sojourn_jac_np
+    raise RuntimeError(
+    ...<14 lines>...
+    )
+RuntimeError: pmf_from_graph_joint_index: exact sojourn gradient (exact_grad=True) declined at theta=[1.0, 1e-13]. The construction-time probe (theta=ones, over the all-terminal index union) succeeded, so the likely causes are: an ill-conditioned elimination tape at THIS theta (MPFR gate), a non-finite Jacobian row at one of the REQUESTED observed vertices, or an allocation failure. No automatic finite-difference fallback exists once the exact path is committed -- pass exact_grad=False, pass exact_grad_decline='fd' for a per-call host-side FD fallback, or investigate this theta/index set. (A NaN/inf theta raises a ValueError from update_weights before reaching this point.)
+ERROR:2026-11-23 20:19:40,517:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 9327, in _exact_sojourn_jac_np
+    raise RuntimeError(
+    ...<14 lines>...
+    )
+RuntimeError: pmf_from_graph_joint_index: exact sojourn gradient (exact_grad=True) declined at theta=[1.0, 1e-13]. The construction-time probe (theta=ones, over the all-terminal index union) succeeded, so the likely causes are: an ill-conditioned elimination tape at THIS theta (MPFR gate), a non-finite Jacobian row at one of the REQUESTED observed vertices, or an allocation failure. No automatic finite-difference fallback exists once the exact path is committed -- pass exact_grad=False, pass exact_grad_decline='fd' for a per-call host-side FD fallback, or investigate this theta/index set. (A NaN/inf theta raises a ValueError from update_weights before reaching this point.)
+ERROR:2026-11-23 20:19:40,549:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 9327, in _exact_sojourn_jac_np
+    raise RuntimeError(
+    ...<14 lines>...
+    )
+RuntimeError: pmf_from_graph_joint_index: exact sojourn gradient (exact_grad=True) declined at theta=[1.0, 1e-13]. The construction-time probe (theta=ones, over the all-terminal index union) succeeded, so the likely causes are: an ill-conditioned elimination tape at THIS theta (MPFR gate), a non-finite Jacobian row at one of the REQUESTED observed vertices, or an allocation failure. No automatic finite-difference fallback exists once the exact path is committed -- pass exact_grad=False, pass exact_grad_decline='fd' for a per-call host-side FD fallback, or investigate this theta/index set. (A NaN/inf theta raises a ValueError from update_weights before reaching this point.)
+...[ERROR] phasic.c: Invalid vertex index 999 (graph has 3 vertices)
+.[ERROR] phasic.c: Invalid vertex index 999 (graph has 3 vertices)
+.                                                        [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index.py:65: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [2.0, 0.1, 5.0, 1.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index.py:66: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v1, 0.0, [0.5, 3.0, 1.0, 7.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index.py:67: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v0, 0.0, [1.0, 2.0, 0.25, 3.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index.py:68: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v1.add_edge_parameterized(v0, 0.0, [4.0, 0.5, 2.0, 0.125])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 14 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index.py:50: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+17 passed, 174 warnings in 2.78s
+[runcap] exit 0, peak RSS 622 MB, 6s

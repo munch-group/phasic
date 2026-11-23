@@ -1,0 +1,44 @@
+tests/pytest/inference/test_exact_grad_callback_mode.py :: 14 passed in 79.54s (0:01:19) [runcap] exit 0, peak RSS 1664 MB, 84s 
+tests/pytest/inference/test_exact_grad_discrete.py :: 12 passed in 2.86s [runcap] exit 0, peak RSS 619 MB, 7s 
+tests/pytest/inference/test_exact_grad_formula_mode.py :: 15 passed in 74.06s (0:01:14) [runcap] exit 0, peak RSS 1451 MB, 77s 
+tests/pytest/inference/test_exact_grad_joint_index_baked.py :: 16 passed, 3 warnings in 2.31s [runcap] exit 0, peak RSS 567 MB, 6s 
+tests/pytest/inference/test_exact_grad_joint_index.py :: 17 passed, 174 warnings in 3.02s [runcap] exit 0, peak RSS 619 MB, 6s 
+tests/pytest/inference/test_exact_grad_log_weight_mode.py :: 9 passed, 45 warnings in 2.83s [runcap] exit 0, peak RSS 625 MB, 6s 
+tests/pytest/inference/test_exact_grad_rewards.py :: 12 passed, 1 warning in 3.04s [runcap] exit 0, peak RSS 672 MB, 6s 
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py :: 16 passed, 12 warnings in 12.24s [runcap] exit 0, peak RSS 1110 MB, 16s 
+tests/pytest/inference/test_svgd_exact_moment_grad_kwarg.py :: 7 passed, 3 skipped, 3 warnings in 9.74s [runcap] exit 0, peak RSS 1154 MB, 14s 
+tests/pytest/test_c_core_fixes.py :: 3 passed, 4 warnings in 0.03s [runcap] exit 0, peak RSS 321 MB, 4s 
+tests/pytest/test_clone_structure.py :: 9 passed, 1 warning in 0.03s [runcap] exit 0, peak RSS 330 MB, 3s 
+tests/pytest/test_constant_parameterized_consistency.py :: 93 passed, 2 warnings in 6.06s [runcap] exit 0, peak RSS 886 MB, 9s 
+tests/pytest/test_cpp_add_epoch_lossless.py :: 12 passed in 0.13s [runcap] exit 0, peak RSS 337 MB, 3s 
+tests/pytest/test_daisy_chain_c_path.py :: 35 passed, 1 skipped, 40 warnings in 10.22s [runcap] exit 0, peak RSS 1005 MB, 14s 
+tests/pytest/test_discrete_moments_and_reward.py :: 27 passed in 0.63s [runcap] exit 0, peak RSS 395 MB, 4s 
+tests/pytest/test_edge_array_capacity.py :: 40 passed in 0.04s [runcap] exit 0, peak RSS 330 MB, 3s 
+tests/pytest/test_epoch_context.py :: 17 passed, 2 skipped, 32 warnings in 0.28s [runcap] exit 0, peak RSS 332 MB, 3s 
+tests/pytest/test_epoch_default_prior.py :: 16 passed, 14 warnings in 15.10s [runcap] exit 0, peak RSS 1107 MB, 19s 
+tests/pytest/test_epoch_normalization.py :: 17 passed in 8.95s [runcap] exit 0, peak RSS 756 MB, 12s 
+tests/pytest/test_gate_discretize_cpp.py :: 70 passed, 1 skipped in 0.08s [runcap] exit 0, peak RSS 331 MB, 3s 
+tests/pytest/test_gate_discretize_pins.py :: 63 passed in 0.07s [runcap] exit 0, peak RSS 333 MB, 3s 
+tests/pytest/test_gate_ffi_vs_pybind.py :: 10 passed in 0.20s [runcap] exit 0, peak RSS 370 MB, 3s 
+tests/pytest/test_gate_moments_3way.py :: 3 passed, 1 skipped, 8 warnings in 0.06s [runcap] exit 0, peak RSS 358 MB, 3s 
+tests/pytest/test_gate_persistent_graph_reuse.py :: 4 passed in 0.16s [runcap] exit 0, peak RSS 388 MB, 3s 
+tests/pytest/test_joint_degenerate_outcomes.py :: 7 passed in 0.67s [runcap] exit 0, peak RSS 438 MB, 4s 
+tests/pytest/test_joint_derived_graph_table.py :: 5 passed in 0.47s [runcap] exit 0, peak RSS 426 MB, 4s 
+tests/pytest/test_joint_index_callback.py :: 3 passed, 1 warning in 0.22s [runcap] exit 0, peak RSS 401 MB, 3s 
+tests/pytest/test_joint_outcome_count.py :: 8 passed in 0.58s [runcap] exit 0, peak RSS 432 MB, 4s 
+tests/pytest/test_joint_reward_only_required.py :: 20 passed in 0.52s [runcap] exit 0, peak RSS 414 MB, 4s 
+tests/pytest/test_joint_reward_rates_callback.py :: 21 passed in 0.48s [runcap] exit 0, peak RSS 412 MB, 4s 
+tests/pytest/test_omp_exception_safety.py :: 9 passed in 21.11s [runcap] exit 0, peak RSS 659 MB, 24s 
+tests/pytest/test_prior_fallback_raises.py :: 5 passed, 1 warning in 0.58s [runcap] exit 0, peak RSS 426 MB, 4s 
+tests/pytest/test_reward_transform_discrete_flag.py :: 3 passed in 0.03s [runcap] exit 0, peak RSS 330 MB, 3s 
+tests/pytest/test_serialize_constant_roundtrip.py :: 14 passed in 0.05s [runcap] exit 0, peak RSS 329 MB, 3s 
+tests/pytest/test_svgd_assumptions.py :: 7 passed, 5 warnings in 6.92s [runcap] exit 0, peak RSS 828 MB, 10s 
+tests/pytest/test_svgd_config.py :: 66 passed, 32 warnings in 0.20s [runcap] exit 0, peak RSS 332 MB, 3s 
+tests/pytest/test_svgd_divergence_robustness.py :: 2 passed, 6 deselected in 0.11s [runcap] exit 0, peak RSS 370 MB, 3s 
+tests/pytest/test_graph.py :: 114 passed, 3 skipped in 0.20s [runcap] exit 0, peak RSS 341 MB, 3s 
+tests/pytest/test_reward_transform_idempotent.py :: 5 passed, 3 warnings in 0.03s [runcap] exit 0, peak RSS 329 MB, 3s 
+tests/pytest/test_graph_discretize.py :: 2 passed in 0.02s [runcap] exit 0, peak RSS 330 MB, 3s 
+tests/pytest/test_method_of_moments.py :: ..........  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:01,  1.07it/s]                                             .......  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  2.77it/s]                                             .....  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  6.63it/s]                                             ................[runcap] KILLED: RSS 2504 MB > cap 2500 MB 
+PATCHED divergence -k :: 2 passed, 6 deselected in 0.10s [runcap] exit 0, peak RSS 368 MB, 4s 
+PATCHED joint svgd 25v (slow tier) :: 1 passed, 22 deselected, 2 warnings in 8.27s [runcap] exit 0, peak RSS 814 MB, 11s 
+DONE

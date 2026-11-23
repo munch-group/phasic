@@ -1,0 +1,63 @@
+...SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  ! discrete               True                           forced (was False; joint-index reads visit counts)
+  * joint_index            True                           inferred (graph built with joint-probability support)
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            6                              set by user
+  * n_iterations           2                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+  * preconditioner         'auto' -> 'jacobian'           inferred (joint-probability model)
+    regularization         0.0                            default
+    nr_moments             2                              default
+    exact_moment_grad      None                           default
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  'DataPrior(sd=5)'              inferred (default data-informed prior)
+  * fixed                  [(1, 1.0)]                     set by user
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+...SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               True                           inferred (joint-index model)
+  * joint_index            True                           inferred (graph built with joint-probability support)
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            6                              set by user
+  * n_iterations           2                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+  * preconditioner         'jacobian'                     set by user
+    regularization         0.0                            default
+    nr_moments             2                              default
+    exact_moment_grad      None                           default
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  'DataPrior(sd=5)'              inferred (default data-informed prior)
+  * fixed                  [(1, 1.0)]                     set by user
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+.                                                                  [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_svgd_assumptions.py::test_forcing_notices_emitted_by_default
+tests/pytest/test_svgd_assumptions.py::test_quiet_assumptions_silences_notices
+tests/pytest/test_svgd_assumptions.py::test_effective_options_provenance
+tests/pytest/test_svgd_assumptions.py::test_effective_options_prints_table
+tests/pytest/test_svgd_assumptions.py::test_explicit_jacobian_preconditioner_no_notice
+  /Users/kmt/phasic-bug4/tests/pytest/test_svgd_assumptions.py:50: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return base.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 5 warnings in 6.92s
+[runcap] exit 0, peak RSS 828 MB, 10s

@@ -1,0 +1,51 @@
+/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py
+theta = 1 - 0.5
+  value pmf: OK [0.5   0.25  0.125]
+  grad pmf[0] (pmf_from_graph): OK [1.]
+  grad pmf[0] (pmf_and_moments use_ffi=False): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=False): OK [-28.]
+  grad pmf[0] (pmf_and_moments use_ffi=True): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=True): OK [-28.]
+theta = 1 - 0.01
+  value pmf: OK [9.9e-01 9.9e-03 9.9e-05]
+  grad pmf[0] (pmf_from_graph): OK [1.]
+  grad pmf[0] (pmf_and_moments use_ffi=False): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=False): OK [-3.10213656]
+  grad pmf[0] (pmf_and_moments use_ffi=True): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=True): OK [-3.10213656]
+theta = 1 - 1e-06
+  value pmf: OK [9.99999e-01 9.99999e-07 9.99999e-13]
+  grad pmf[0] (pmf_from_graph): OK [1.]
+  grad pmf[0] (pmf_and_moments use_ffi=False): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=False): OK [-3.00001]
+  grad pmf[0] (pmf_and_moments use_ffi=True): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=True): OK [-3.00001]
+theta = 1 - 2e-07
+  value pmf: OK [9.9999980e-01 1.9999996e-07 3.9999992e-14]
+  grad pmf[0] (pmf_from_graph): OK [1.]
+  grad pmf[0] (pmf_and_moments use_ffi=False): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=False): OK [-3.000002]
+  grad pmf[0] (pmf_and_moments use_ffi=True): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=True): OK [-3.000002]
+theta = 1 - 1.5e-07
+  value pmf: OK [9.99999850e-01 1.49999977e-07 2.24999966e-14]
+  grad pmf[0] (pmf_from_graph): OK [1.]
+  grad pmf[0] (pmf_and_moments use_ffi=False): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=False): OK [-3.0000015]
+  grad pmf[0] (pmf_and_moments use_ffi=True): OK [1.]
+  grad E[N^2] (pmf_and_moments use_ffi=True): OK [-3.0000015]
+theta = 1 - 5e-08
+  value pmf: OK [9.99999950e-01 4.99999975e-08 2.49999988e-15]
+  grad pmf[0] (pmf_from_graph): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+  grad pmf[0] (pmf_and_moments use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  grad E[N^2] (pmf_and_moments use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  grad pmf[0] (pmf_and_moments use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+  grad E[N^2] (pmf_and_moments use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+theta = 1 - 0
+  value pmf: OK [1. 0. 0.]
+  grad pmf[0] (pmf_from_graph): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+  grad pmf[0] (pmf_and_moments use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  grad E[N^2] (pmf_and_moments use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  grad pmf[0] (pmf_and_moments use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+  grad E[N^2] (pmf_and_moments use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000000'. Are you 
+[runcap] exit 0, peak RSS 481 MB, 4s

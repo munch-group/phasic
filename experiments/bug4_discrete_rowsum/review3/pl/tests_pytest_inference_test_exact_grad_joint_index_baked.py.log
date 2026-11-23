@@ -1,0 +1,25 @@
+........ERROR:2026-11-23 20:40:44,599:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9327, in _exact_sojourn_jac_np
+    raise RuntimeError(
+    ...<14 lines>...
+    )
+RuntimeError: pmf_from_graph_joint_index: exact sojourn gradient (exact_grad=True) declined at theta=[0.0001, 0.0001]. The construction-time probe (theta=ones, over the all-terminal index union) succeeded, so the likely causes are: an ill-conditioned elimination tape at THIS theta (MPFR gate), a non-finite Jacobian row at one of the REQUESTED observed vertices, or an allocation failure. No automatic finite-difference fallback exists once the exact path is committed -- pass exact_grad=False, pass exact_grad_decline='fd' for a per-call host-side FD fallback, or investigate this theta/index set. (A NaN/inf theta raises a ValueError from update_weights before reaching this point.)
+.....[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[0.00017, 8e-05] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+...                                                         [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_joint_index_baked.py::test_baked_exact_matches_nonbaked_oracle[main-benign]
+tests/pytest/inference/test_exact_grad_joint_index_baked.py::test_ladder_order_was_dph_and_formula_still_decline
+tests/pytest/inference/test_exact_grad_joint_index_baked.py::test_ladder_order_was_dph_and_formula_still_decline
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_joint_index_baked.py:73: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return graph.joint_prob_graph(indexer, reward_limit=4, mutation_rate=MU,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+16 passed, 3 warnings in 2.31s
+[runcap] exit 0, peak RSS 567 MB, 6s

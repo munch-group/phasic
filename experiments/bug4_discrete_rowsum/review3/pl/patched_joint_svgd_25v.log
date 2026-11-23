@@ -1,0 +1,13 @@
+  0%|          | 0/150 [00:00<?, ?it/s]  1%|          | 1/150 [00:01<02:56,  1.19s/it]  5%|▍         | 7/150 [00:01<00:20,  7.15it/s]  9%|▊         | 13/150 [00:01<00:09, 13.98it/s] 13%|█▎        | 19/150 [00:01<00:06, 21.19it/s] 17%|█▋        | 25/150 [00:01<00:04, 27.86it/s] 21%|██        | 31/150 [00:01<00:03, 32.56it/s] 25%|██▍       | 37/150 [00:01<00:02, 38.22it/s] 29%|██▊       | 43/150 [00:01<00:02, 42.86it/s] 33%|███▎      | 49/150 [00:02<00:02, 46.47it/s] 37%|███▋      | 55/150 [00:02<00:01, 49.45it/s] 41%|████      | 61/150 [00:02<00:01, 51.88it/s] 45%|████▍     | 67/150 [00:02<00:01, 52.73it/s] 49%|████▊     | 73/150 [00:02<00:01, 54.31it/s] 53%|█████▎    | 79/150 [00:02<00:01, 55.46it/s] 57%|█████▋    | 85/150 [00:02<00:01, 56.13it/s] 61%|██████    | 91/150 [00:02<00:01, 56.77it/s] 65%|██████▍   | 97/150 [00:02<00:00, 56.66it/s] 69%|██████▊   | 103/150 [00:02<00:00, 57.02it/s] 73%|███████▎  | 109/150 [00:03<00:00, 57.42it/s] 77%|███████▋  | 115/150 [00:03<00:00, 57.47it/s] 81%|████████▏ | 122/150 [00:03<00:00, 58.63it/s] 85%|████████▌ | 128/150 [00:03<00:00, 57.89it/s] 89%|████████▉ | 134/150 [00:03<00:00, 57.79it/s] 93%|█████████▎| 140/150 [00:03<00:00, 57.24it/s] 97%|█████████▋| 146/150 [00:03<00:00, 57.49it/s]                                                 .                                                                        [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[tens-25v]
+  /Users/kmt/phasic-bug4/tests/pytest/test_notebook_model_recovery.py:724: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(indexer, reward_limit=reward_limit,
+
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[tens-25v]
+  /Users/kmt/phasic-bug4/tests/pytest/test_notebook_model_recovery.py:732: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jpg.svgd(obs,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 22 deselected, 2 warnings in 8.27s
+[runcap] exit 0, peak RSS 814 MB, 11s

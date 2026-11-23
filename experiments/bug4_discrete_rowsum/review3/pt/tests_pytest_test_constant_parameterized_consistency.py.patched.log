@@ -1,0 +1,14 @@
+................................Chain 1/1:   0%|          | 0/3 [00:00<?, ?it/s]                                                ...........  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.51it/s]                                             ............................. [ 77%]
+.....................                                                    [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_constant_parameterized_consistency.py::test_widening_joint_prob_graph_keeps_duplicate_zero_states
+  /Users/kmt/phasic-bug4/tests/pytest/test_constant_parameterized_consistency.py:259: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jg = g.joint_prob_graph(indexer, reward_limit=1, mutation_rate=1.0)
+
+tests/pytest/test_constant_parameterized_consistency.py::test_joint_prob_graph_refuses_constant_base_edge
+  /Users/kmt/phasic-bug4/tests/pytest/test_constant_parameterized_consistency.py:354: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    g.joint_prob_graph(indexer, reward_limit=1, mutation_rate=1.0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+93 passed, 2 warnings in 7.20s
+[runcap] exit 0, peak RSS 828 MB, 12s

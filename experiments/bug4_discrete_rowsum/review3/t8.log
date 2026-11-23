@@ -1,0 +1,31 @@
+IPV sum = 1.0
+  pdf(1..3): OK array([0.5  , 0.25 , 0.125])
+  cdf(200): OK 1.0
+  sample: OK array([1., 2., 1.])
+  rtd.pdf: OK array([0.5  , 0.25 , 0.125])
+  expectation: OK 2.0
+IPV sum = 1.000000000001
+  pdf(1..3): OK array([0.5  , 0.25 , 0.125])
+  cdf(200): OK 1.000000000001
+  sample: OK array([1., 2., 1.])
+  rtd.pdf: OK array([0.5  , 0.25 , 0.125])
+  expectation: OK 2.0
+IPV sum = 1.00001
+  pdf(1..3): OK array([0.500005  , 0.2500025 , 0.12500125])
+  cdf(200): OK 1.00001
+  sample: OK array([1., 2., 1.])
+  rtd.pdf: OK array([0.500005  , 0.2500025 , 0.12500125])
+  expectation: OK 2.0
+IPV sum = 1.5
+  pdf(1..3): RAISES RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you su
+  cdf(200): RAISES RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you su
+  sample: RAISES RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you su
+  rtd.pdf: RAISES RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you su
+  expectation: OK 2.0
+IPV sum = 0.5
+  pdf(1..3): OK array([0.25  , 0.125 , 0.0625])
+  cdf(200): OK 0.5
+  sample: OK array([1., 1., 5.])
+  rtd.pdf: OK array([0.25  , 0.125 , 0.0625])
+  expectation: OK 2.0
+[runcap] exit 0, peak RSS 323 MB, 3s

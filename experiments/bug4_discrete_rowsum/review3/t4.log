@@ -1,0 +1,40 @@
+## discrete.ipynb pipeline: coalescent n=4, discretize(callback 0.3*lineages), reward transforms
+  n=4 discretize(callback): v=10 is_discrete=True was_dph=True rows=8 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=4 .reward_transform(aux rewards): v=6 is_discrete=True was_dph=True rows=4 max-1=-1.667e-01 min=0.6250 rows>1=0 rows>1+1e-12=0
+  n=4 rt(0).discretize(0.3): v=8 is_discrete=True was_dph=True rows=6 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=4 rt(0).discretize.reward_transform(aux): v=5 is_discrete=True was_dph=True rows=3 max-1=-1.667e-01 min=0.7692 rows>1=0 rows>1+1e-12=0
+      pmf min=+3.734e-254 neg=0 sum-1=-1.110e-16
+  n=4 rt(1).discretize(0.3): v=6 is_discrete=True was_dph=True rows=4 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=4 rt(1).discretize.reward_transform(aux): v=4 is_discrete=True was_dph=True rows=2 max-1=-9.091e-02 min=0.6250 rows>1=0 rows>1+1e-12=0
+      pmf min=+2.732e-171 neg=0 sum-1=+2.220e-16
+  n=8 discretize(callback): v=44 is_discrete=True was_dph=True rows=42 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=8 .reward_transform(aux rewards): v=23 is_discrete=True was_dph=True rows=21 max-1=-7.895e-02 min=0.6250 rows>1=0 rows>1+1e-12=0
+  n=8 rt(0).discretize(0.3): v=32 is_discrete=True was_dph=True rows=30 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=8 rt(0).discretize.reward_transform(aux): v=17 is_discrete=True was_dph=True rows=15 max-1=-4.762e-02 min=0.7692 rows>1=0 rows>1+1e-12=0
+      pmf min=+2.280e-254 neg=0 sum-1=-2.220e-16
+  n=8 rt(3).discretize(0.3): v=12 is_discrete=True was_dph=True rows=10 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=8 rt(3).discretize.reward_transform(aux): v=7 is_discrete=True was_dph=True rows=5 max-1=-2.913e-02 min=0.6250 rows>1=0 rows>1+1e-12=0
+      pmf min=+1.220e-171 neg=0 sum-1=+2.220e-16
+  n=12 discretize(callback): v=154 is_discrete=True was_dph=True rows=152 max-1=+2.220e-16 min=1.0000 rows>1=1 rows>1+1e-12=0
+  n=12 .reward_transform(aux rewards): v=78 is_discrete=True was_dph=True rows=76 max-1=-5.172e-02 min=0.6250 rows>1=0 rows>1+1e-12=0
+  n=12 rt(0).discretize(0.3): v=114 is_discrete=True was_dph=True rows=112 max-1=+2.220e-16 min=1.0000 rows>1=4 rows>1+1e-12=0
+  n=12 rt(0).discretize.reward_transform(aux): v=58 is_discrete=True was_dph=True rows=56 max-1=-1.961e-02 min=0.7692 rows>1=0 rows>1+1e-12=0
+      pmf min=+1.696e-254 neg=0 sum-1=-2.220e-16
+  n=12 rt(5).discretize(0.3): v=24 is_discrete=True was_dph=True rows=22 max-1=+0.000e+00 min=1.0000 rows>1=0 rows>1+1e-12=0
+  n=12 rt(5).discretize.reward_transform(aux): v=13 is_discrete=True was_dph=True rows=11 max-1=-1.408e-02 min=0.6250 rows>1=0 rows>1+1e-12=0
+      pmf min=+7.838e-172 neg=0 sum-1=+0.000e+00
+## reward_transform_discrete with random integer rewards (zeros eliminate vertices)
+  coalescent n=13 discretize(0.01): v=202 is_discrete=True was_dph=True rows=200 max-1=+2.220e-16 min=1.0000 rows>1=15 rows>1+1e-12=0
+     worst max-1 over 6 random integer reward transforms: +4.441e-16
+  coalescent n=22 discretize(0.01): v=2004 is_discrete=True was_dph=True rows=2002 max-1=+2.220e-16 min=1.0000 rows>1=96 rows>1+1e-12=0
+     worst max-1 over 6 random integer reward transforms: +1.332e-15
+  two-island n=8 discretize(0.01): v=369 is_discrete=True was_dph=True rows=366 max-1=+2.220e-16 min=1.0000 rows>1=31 rows>1+1e-12=0
+     worst max-1 over 6 random integer reward transforms: +4.441e-16
+## native DPH with long rows: 1/k probabilities (user-built), row sum rounding
+   k=3: sequential sum of k copies of 1/k - 1 = +0.000e+00
+   k=10: sequential sum of k copies of 1/k - 1 = -1.110e-16
+   k=49: sequential sum of k copies of 1/k - 1 = +6.661e-16
+   k=1000: sequential sum of k copies of 1/k - 1 = +6.661e-16
+   k=100000: sequential sum of k copies of 1/k - 1 = -1.916e-12
+   200000 random normalised weights: sequential sum - 1 = -1.155e-14
+[runcap] exit 0, peak RSS 458 MB, 5s

@@ -1,0 +1,4 @@
+n=3 {'reward_limit': 2, 'mutation_rate': 0.01}: fresh-vs-updated max abs diff 3.331e-16, table sum 0.999995; fresh expected_sojourn_time finite: False
+n=4 {'reward_limit': 2}: fresh-vs-updated max abs diff 6.939e-18, table sum 0.559797; fresh expected_sojourn_time finite: False
+n=5 {'reward_limit': 3}: fresh-vs-updated max abs diff 6.939e-18, table sum 0.726570; fresh expected_sojourn_time finite: False
+[runcap] exit 0, peak RSS 417 MB, 3s

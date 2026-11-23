@@ -1,0 +1,19 @@
+# native DPH, two out-edges with weights [-0.5, 1.2] (row sum 0.7)
+    pdf(1..3): [0.7, 0.21000000000000002, 0.06300000000000001]
+    stop_probability(1): [0.0, 0.30000000000000004, 0.0, 0.0]
+    expectation: 1.4285714285714286
+    variance: 0.6122448979591835
+    sample(3): [1.0, 1.0, 1.0]
+# native DPH, two out-edges with weights [nan, 0.2] (row sum nan)
+    pdf(1..3): ValueError: theta contains NaN values
+    stop_probability(1): ValueError: theta contains NaN values
+    expectation: ValueError: theta contains NaN values
+    variance: ValueError: theta contains NaN values
+    sample(3): ValueError: theta contains NaN values
+# native DPH, two out-edges with weights [1.3, -0.4] (row sum 0.9)
+    pdf(1..3): [0.9, 0.08999999999999998, 0.008999999999999996]
+    stop_probability(1): [0.0, 0.09999999999999998, 0.0, 0.0]
+    expectation: 1.1111111111111112
+    variance: 0.12345679012345694
+    sample(3): [1.0, 1.0, 1.0]
+[runcap] exit 0, peak RSS 314 MB, 3s

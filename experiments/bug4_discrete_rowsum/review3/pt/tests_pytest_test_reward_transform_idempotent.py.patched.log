@@ -1,0 +1,17 @@
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_reward_transform_idempotent.py::test_reward_transform_uses_current_edge_weights
+  /Users/kmt/phasic-bug4/tests/pytest/test_reward_transform_idempotent.py:150: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [3.0])
+
+tests/pytest/test_reward_transform_idempotent.py::test_reward_transform_uses_current_edge_weights
+  /Users/kmt/phasic-bug4/tests/pytest/test_reward_transform_idempotent.py:151: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [2.0])
+
+tests/pytest/test_reward_transform_idempotent.py::test_reward_transform_uses_current_edge_weights
+  /Users/kmt/phasic-bug4/tests/pytest/test_reward_transform_idempotent.py:152: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v1.add_edge_parameterized(g.find_or_create_vertex([0]), 0.0, [1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 3 warnings in 0.03s
+[runcap] exit 0, peak RSS 331 MB, 3s

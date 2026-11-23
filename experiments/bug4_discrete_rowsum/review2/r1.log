@@ -1,0 +1,45 @@
+long double bits: 52
+## random nv=40 deg=3: rows above 1: 4
+  rand A: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.776e-17 (#neg 11)  cdf-1 -4.834e-01  cdf+rest-1 +8.882e-16  max rel diff vs A 0.00e+00
+  rand B1: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.776e-17 (#neg 10)  cdf-1 -4.834e-01  cdf+rest-1 +0.000e+00  max rel diff vs A 2.58e-15
+  rand B2: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.776e-17 (#neg 10)  cdf-1 -4.834e-01  cdf+rest-1 -2.220e-16  max rel diff vs A 2.37e-15
+  rand C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 -4.834e-01  cdf+rest-1 -6.661e-16  max rel diff vs A 3.04e-15
+## random nv=40 deg=12: rows above 1: 8
+  rand A: min pmf +7.571e-05  #neg pmf 0  min transient mass -5.866e-17 (#neg 1)  cdf-1 -5.873e-03  cdf+rest-1 +0.000e+00  max rel diff vs A 0.00e+00
+  rand B1: min pmf +7.571e-05  #neg pmf 0  min transient mass -5.866e-17 (#neg 1)  cdf-1 -5.873e-03  cdf+rest-1 +0.000e+00  max rel diff vs A 1.73e-15
+  rand B2: min pmf +7.571e-05  #neg pmf 0  min transient mass -5.866e-17 (#neg 1)  cdf-1 -5.873e-03  cdf+rest-1 +0.000e+00  max rel diff vs A 7.02e-16
+  rand C: min pmf +7.571e-05  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 -5.873e-03  cdf+rest-1 +0.000e+00  max rel diff vs A 1.10e-15
+## random nv=200 deg=30: rows above 1: 49
+  rand A: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.082e-17 (#neg 1)  cdf-1 -1.022e-01  cdf+rest-1 -5.551e-16  max rel diff vs A 0.00e+00
+  rand B1: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.082e-17 (#neg 1)  cdf-1 -1.022e-01  cdf+rest-1 -6.661e-16  max rel diff vs A 6.63e-16
+  rand B2: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.082e-17 (#neg 1)  cdf-1 -1.022e-01  cdf+rest-1 -6.661e-16  max rel diff vs A 5.52e-16
+  rand C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 -1.022e-01  cdf+rest-1 -6.661e-16  max rel diff vs A 6.37e-16
+## geometric p = 1 + 2.22e-16
+  geom A: min pmf -2.220e-16  #neg pmf 3  min transient mass -2.220e-16 (#neg 3)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 0.00e+00
+  geom B1: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom B2: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+## geometric p = 1 + 1e-15
+  geom A: min pmf -1.110e-15  #neg pmf 3  min transient mass -1.110e-15 (#neg 3)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 0.00e+00
+  geom B1: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom B2: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+## geometric p = 1 + 1e-12
+  geom A: min pmf -1.000e-12  #neg pmf 3  min transient mass -1.000e-12 (#neg 3)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 0.00e+00
+  geom B1: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom B2: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+## geometric p = 1 + 1e-09
+  geom A: min pmf -1.000e-09  #neg pmf 3  min transient mass -1.000e-09 (#neg 3)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 0.00e+00
+  geom B1: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom B2: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+  geom C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 +0.000e+00  cdf+rest-1 +0.000e+00  max rel diff vs A 1.00e+00
+## real joint_prob_graph n=5: 680 vertices 1585 edges, is_discrete=True
+  jpg A: min pmf -3.291e-37  #neg pmf 9  min transient mass -2.220e-16 (#neg 7253)  cdf-1 -2.190e-06  cdf+rest-1 -1.110e-16  max rel diff vs A 0.00e+00
+  jpg B1: min pmf -9.881e-324  #neg pmf 1  min transient mass -1.059e-21 (#neg 1948)  cdf-1 -2.190e-06  cdf+rest-1 +0.000e+00  max rel diff vs A 3.09e+11
+  jpg B2: min pmf +0.000e+00  #neg pmf 0  min transient mass -2.912e-22 (#neg 1346)  cdf-1 -2.190e-06  cdf+rest-1 +0.000e+00  max rel diff vs A 3.68e+11
+  jpg C: min pmf +0.000e+00  #neg pmf 0  min transient mass +0.000e+00 (#neg 0)  cdf-1 -2.190e-06  cdf+rest-1 -1.110e-16  max rel diff vs A 5.52e+10
+  library pmf: min -3.291e-37  #neg 9  sum-1 -2.190e-06
+  library stop_probability: min -2.220e-16  #neg 334
+  library accumulated_visits(100): min +0.000e+00 #neg 0
+[runcap] exit 0, peak RSS 407 MB, 5s

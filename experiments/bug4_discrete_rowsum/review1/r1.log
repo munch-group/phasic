@@ -1,0 +1,136 @@
+## native geometric p = 0.5
+    pdf(1..3): [0.5, 0.25, 0.125]
+    cdf(1..3): [0.5, 0.75, 0.875]
+    expectation: 2.0
+    expectation(rewards): 4.0
+    variance: 2.0
+    variance(rewards): 8.0
+    covariance: 4.0
+    moments(2): [2.0, 8.0]
+    moments(2,discrete=True): [2.0, 6.0]
+    expected_waiting_time: [2.0, 2.0, 0.0]
+    expected_sojourn_time: [0.0, 2.0, 0.0]
+    stop_probability(1): [0.0, 0.5, 0.0]
+    stop_probability(2): [0.0, 0.25, 0.0]
+    accumulated_visits(3): [0.0, 1.875, 0.0]
+    accumulated_occupancy(3): [0.0, 1.875, 0.0]
+    sample(4): [1.0, 2.0, 1.0, 4.0]
+    sample(4,rewards): [2.0, 4.0, 2.0, 8.0]
+    random_sample_discrete_stop_vertex(3): 0
+    distribution_context step x3 pmf: [0.5, 0.25, 0.125]
+    reward_transform_discrete([0,2,0]).pdf(1..4): [0.0, 0.5, 0.0, 0.25]
+    reward_transform([0,2,0]).pdf(1..4): [0.0, 0.5, 0.0, 0.25]
+    normalize(): [1.0, 1.0, 1.0, 0.0]
+    as_matrices: ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 2 dim
+    defect: 0.0
+    sample_path: {'vertex_indices': array([0, 1, 2]), 'entry_times': array([0.        , 0.       
+    serialize->from_serialized pdf: [0.5, 0.25]
+    discretize(0.1): ValueError: discretize() needs a continuous graph (or a discretize() result), but this graph is a native discret
+## native geometric p = 1.00001
+    pdf(1..3): [1.00001, -1e-05, 0.0]
+    cdf(1..3): [1.00001, 1.0, 1.0]
+    expectation: 0.9999900000999989
+    expectation(rewards): 1.9999800001999979
+    variance: -9.999800003036725e-06
+    variance(rewards): -3.9999200012186265e-05
+    covariance: 1.999980000199998
+    moments(2): [0.99999, 1.99996]
+    moments(2,discrete=True): [0.99999, 0.99997]
+    expected_waiting_time: [0.99999, 0.99999, 0.0]
+    expected_sojourn_time: [0.0, 0.99999, 0.0]
+    stop_probability(1): [0.0, -1e-05, 0.0]
+    stop_probability(2): [0.0, 0.0, 0.0]
+    accumulated_visits(3): [0.0, 0.99999, 0.0]
+    accumulated_occupancy(3): [0.0, 0.99999, 0.0]
+    sample(4): [1.0, 1.0, 1.0, 1.0]
+    sample(4,rewards): [2.0, 2.0, 2.0, 2.0]
+    random_sample_discrete_stop_vertex(3): 0
+    distribution_context step x3 pmf: [1.00001, -1e-05, 0.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): [0.0, 1.00001, -1e-05, 0.0]
+    reward_transform([0,2,0]).pdf(1..4): [0.0, 1.00001, -1e-05, 0.0]
+    normalize(): [1.0, 1.0, 1.0]
+    as_matrices: ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 2 dim
+    defect: 0.0
+    sample_path: {'vertex_indices': array([0, 1, 2]), 'entry_times': array([0.        , 0.       
+    serialize->from_serialized pdf: [1.00001, -1e-05]
+    discretize(0.1): ValueError: discretize() needs a continuous graph (or a discretize() result), but this graph is a native discret
+## native geometric p = 1.5
+    pdf(1..3): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    cdf(1..3): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    expectation: 0.6666666666666666
+    expectation(rewards): 1.3333333333333333
+    variance: -0.22222222222222218
+    variance(rewards): -0.8888888888888888
+    covariance: 1.3333333333333335
+    moments(2): [0.66666667, 0.88888889]
+    moments(2,discrete=True): [0.66666667, 0.22222222]
+    expected_waiting_time: [0.66666667, 0.66666667, 0.0]
+    expected_sojourn_time: [0.0, 0.66666667, 0.0]
+    stop_probability(1): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    stop_probability(2): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    accumulated_visits(3): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    accumulated_occupancy(3): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    sample(4): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    sample(4,rewards): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    random_sample_discrete_stop_vertex(3): 0
+    distribution_context step x3 pmf: SKIPPED here (segfaults, see r1_crash.log)
+    reward_transform_discrete([0,2,0]).pdf(1..4): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    reward_transform([0,2,0]).pdf(1..4): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    normalize(): [1.0, 1.0, 1.0]
+    as_matrices: ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 2 dim
+    defect: 0.0
+    sample_path: {'vertex_indices': array([0, 1, 2]), 'entry_times': array([0.        , 0.       
+    serialize->from_serialized pdf: RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this 
+    discretize(0.1): ValueError: discretize() needs a continuous graph (or a discretize() result), but this graph is a native discret
+## STARTING VERTEX sum (p = 0.5 chain)
+# start edge = 0.5
+    pdf(1..3): [0.25, 0.125, 0.0625]
+    cdf(1..3): [0.25, 0.375, 0.4375]
+    expectation: 2.0
+    variance: 2.0
+    sample(4): [1.0, 1.0, 5.0, 5.0]
+    stop_probability(1): [0.0, 0.25, 0.0]
+    moments(2,discrete=True): [2.0, 6.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): [0.0, 0.25, 0.0, 0.125]
+    sum pmf(0..400): 0.5
+# start edge = 1.000000000001
+    pdf(1..3): [0.5, 0.25, 0.125]
+    cdf(1..3): [0.5, 0.75, 0.875]
+    expectation: 2.0
+    variance: 2.0
+    sample(4): [1.0, 2.0, 1.0, 4.0]
+    stop_probability(1): [0.0, 0.5, 0.0]
+    moments(2,discrete=True): [2.0, 6.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): [0.0, 0.5, 0.0, 0.25]
+    sum pmf(0..400): 1.000000000001
+# start edge = 1.00001
+    pdf(1..3): [0.500005, 0.2500025, 0.12500125]
+    cdf(1..3): [0.500005, 0.7500075, 0.87500875]
+    expectation: 2.0
+    variance: 2.0
+    sample(4): [1.0, 2.0, 1.0, 4.0]
+    stop_probability(1): [0.0, 0.500005, 0.0]
+    moments(2,discrete=True): [2.0, 6.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): [0.0, 0.500005, 0.0, 0.2500025]
+    sum pmf(0..400): 1.0000099999999996
+# start edge = 1.0002
+    pdf(1..3): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+    cdf(1..3): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+    expectation: 2.0
+    variance: 2.0
+    sample(4): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+    stop_probability(1): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+    moments(2,discrete=True): [2.0, 6.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+    sum pmf(0..400): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.000200'. 
+# start edge = 1.5
+    pdf(1..3): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+    cdf(1..3): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+    expectation: 2.0
+    variance: 2.0
+    sample(4): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+    stop_probability(1): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+    moments(2,discrete=True): [2.0, 6.0]
+    reward_transform_discrete([0,2,0]).pdf(1..4): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+    sum pmf(0..400): RuntimeError: Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. 
+[runcap] exit 0, peak RSS 321 MB, 3s
