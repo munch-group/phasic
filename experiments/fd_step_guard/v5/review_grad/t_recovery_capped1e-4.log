@@ -1,0 +1,19 @@
+/Users/kmt/phasic-epochprior/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+.........x.......x                                                       [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[tens-25v]
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[hundreds-168v]
+  /Users/kmt/phasic-epochprior/tests/pytest/test_notebook_model_recovery.py:724: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(indexer, reward_limit=reward_limit,
+
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[tens-25v]
+tests/pytest/test_notebook_model_recovery.py::test_joint_prob_svgd_recovers_coalescent_rate[hundreds-168v]
+  /Users/kmt/phasic-epochprior/tests/pytest/test_notebook_model_recovery.py:732: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jpg.svgd(obs,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+16 passed, 5 deselected, 2 xfailed, 4 warnings in 135.37s (0:02:15)
+[runcap] exit 0, peak RSS 982 MB, 140s

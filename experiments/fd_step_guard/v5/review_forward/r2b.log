@@ -1,0 +1,5 @@
+t=0.1: scipy expm gives 1.449e-56 for the trap mass; closed form 1.100e-65
+t=0.1: rule=plan steps   12  outcome-trap mass 0.000e+00 (exact 1.100e-65, rel err 1.0e+00)  absorbed rel err 1.5e-16
+t=0.1: rule=comp steps   43  outcome-trap mass 1.100e-65 (exact 1.100e-65, rel err 1.4e-14)  absorbed rel err 1.5e-16
+t=1.0: scipy expm gives 5.510e-32 for the trap mass; closed form 4.478e-35
+t=1.0: rule=plan steps   24  outcome-trap mass 0.000e+00 (exact 4.478e-35, rel err 1.0e+00)  absorbed rel err 2.6e-16

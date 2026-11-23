@@ -1,0 +1,22 @@
+vertices 6 absorbing [False False False False  True  True] ipv [0.  0.6 0.2 0.  0.1 0. ]
+at creation: time 0.0 cdf 0.1 pdf 0.12000000000000455
+ stop [0.  0.6 0.2 0.  0.  0. ]
+ avt  [0.         0.00058594 0.00019531 0.         0.         0.        ]  ipv/G [0.000000e+00 5.859375e-04 1.953125e-04 0.000000e+00 9.765625e-05
+ 0.000000e+00]
+ exact density at 0: 0.12
+after 300 steps: time 0.29296875 K/G 0.29296875
+ expm at K/G: pdf 0.134017110884 cdf 0.136290710621
+ expm at (K-1)/G: pdf 0.133927439216 cdf 0.136159878328
+ ctx pdf 0.1339160756514533 cdf 0.13627756144793504
+ stop at absorbing vertices: [0. 0.]
+ avt ctx [0.14358554 0.07966028 0.0066881 ] 
+ avt exact [0.14312999 0.07937397 0.00666497] 
+ diff [4.55546747e-04 2.86301681e-04 2.31362043e-05]  ipv/G [0.00058594 0.00019531 0.        ]
+after update_weights([5000,1]) + 1 step: stop [ 0.         -3.55854726  3.21058077  0.85377873  0.          0.        ] cdf 0.39418775853404286 pdf 264.10004181617444 time 0.2939453125
+ +5 steps: stop [      0.          184370.64116411 -283429.57950407  215151.25496523
+       0.               0.        ] cdf -116091.41662527023
+ctx before update_weights: pdf 0.12000000000000455 cdf 0.1 avt [0.         0.00058594 0.00019531 0.         0.         0.        ]
+ after update_weights (no step): pdf 0.12000000000000455
+add_aux_vertex_constant(0.0):
+  raises: add_aux_vertex_constant: weight must be strictly positive
+[runcap] exit 0, peak RSS 321 MB, 3s

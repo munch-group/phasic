@@ -1,0 +1,29 @@
+## Erlang-100 rate 1, t=5.0: true pdf 1.139e-89, true cdf 5.992e-91
+  rule=abs    advances=  1: pdf rel err 1.0e+00  cdf rel err 1.0e+00  worst state-component rel err 1.0e+00  worst occupancy rel err 1.0e+00  steps 34
+  rule=abs    advances= 50: pdf rel err 1.6e-03  cdf rel err 1.7e-03  worst state-component rel err 1.6e-03  worst occupancy rel err 1.7e-03  steps 500
+  rule=scalar advances=  1: pdf rel err 1.7e-14  cdf rel err 7.8e-15  worst state-component rel err 3.3e-14  worst occupancy rel err 3.1e-14  steps 113
+  rule=scalar advances= 50: pdf rel err 3.9e-14  cdf rel err 2.2e-14  worst state-component rel err 6.9e-14  worst occupancy rel err 8.0e-14  steps 3100
+  rule=comp   advances=  1: pdf rel err 1.7e-14  cdf rel err 7.8e-15  worst state-component rel err 3.3e-14  worst occupancy rel err 3.1e-14  steps 112
+  rule=comp   advances= 50: pdf rel err 3.9e-14  cdf rel err 2.2e-14  worst state-component rel err 6.9e-14  worst occupancy rel err 8.0e-14  steps 3068
+## Erlang-100 rate 1, t=0.5: true pdf 1.025e-186, true cdf 5.152e-189
+  rule=abs    advances=  1: pdf rel err 1.0e+00  cdf rel err 1.0e+00  worst state-component rel err 1.0e+00  worst occupancy rel err 1.0e+00  steps 15
+  rule=abs    advances= 50: pdf rel err 1.8e-01  cdf rel err 1.9e-01  worst state-component rel err 1.8e-01  worst occupancy rel err 1.9e-01  steps 350
+  rule=scalar advances=  1: pdf rel err 1.8e-14  cdf rel err 3.9e-14  worst state-component rel err 3.8e-14  worst occupancy rel err 5.3e-14  steps 108
+  rule=scalar advances= 50: pdf rel err 6.7e-14  cdf rel err 7.0e-14  worst state-component rel err 9.4e-14  worst occupancy rel err 9.6e-14  steps 3566
+  rule=comp   advances=  1: pdf rel err 1.8e-14  cdf rel err 3.9e-14  worst state-component rel err 3.8e-14  worst occupancy rel err 5.3e-14  steps 107
+  rule=comp   advances= 50: pdf rel err 6.7e-14  cdf rel err 7.0e-14  worst state-component rel err 9.4e-14  worst occupancy rel err 9.6e-14  steps 3535
+## Erlang-30 rate 1, t=40.0: true pdf 1.385e-02, true cdf 9.568e-01
+  rule=abs    advances=  1: pdf rel err 3.0e-15  cdf rel err 0.0e+00  worst state-component rel err 1.4e-14  worst occupancy rel err 7.8e-16  steps 104
+  rule=abs    advances= 50: pdf rel err 1.1e-14  cdf rel err 1.3e-15  worst state-component rel err 1.1e-14  worst occupancy rel err 1.3e-15  steps 850
+  rule=scalar advances=  1: pdf rel err 3.0e-15  cdf rel err 0.0e+00  worst state-component rel err 1.4e-14  worst occupancy rel err 7.8e-16  steps 105
+  rule=scalar advances= 50: pdf rel err 1.1e-14  cdf rel err 5.8e-16  worst state-component rel err 1.1e-14  worst occupancy rel err 6.7e-16  steps 1047
+  rule=comp   advances=  1: pdf rel err 3.0e-15  cdf rel err 0.0e+00  worst state-component rel err 1.4e-14  worst occupancy rel err 7.8e-16  steps 141
+  rule=comp   advances= 50: pdf rel err 1.1e-14  cdf rel err 5.8e-16  worst state-component rel err 1.1e-14  worst occupancy rel err 6.7e-16  steps 1272
+## no reachable absorbing vertex (2-cycle), plan rule "never before the first non-zero absorbed mass":
+  absorbed mass stays 0 forever -> rule never fires; the only exit is Poisson-tail underflow at k=217 for Lambda=3.0 (or the work ceiling)
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/experiments/fd_step_guard/v5/review_forward/r2_trunc.py", line 59, in <module>
+    k8 = int(poisson.isf(1e-16, lam)); k300 = int(poisson.isf(1e-300, lam))
+                                              ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: cannot convert float NaN to integer
+[runcap] exit 1, peak RSS 135 MB, 3s

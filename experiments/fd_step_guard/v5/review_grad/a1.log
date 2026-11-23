@@ -1,0 +1,10 @@
+## 1. single BetaPrior, theta_dim=1, positive_params=True
+   model sees param_transform(5.0) = 5.006715348489118 | prior._transform is sigmoid: True -> prior evaluates at 0.9933071490757153
+## 2. fixed values under positive_params (theta the model sees = param_transform(fixed_values))
+   fixed=0.0: phi=0.0 -> theta seen by model = 0.6931471805599453
+   fixed=1e-12: phi=-27.63093221929763 -> theta seen by model = 1e-09
+   fixed=1e-20: phi=-inf -> theta seen by model = 1e-09
+   fixed=0.3: phi=-1.0502256128148464 -> theta seen by model = 0.30000000000000004
+## 3. [Gauss, Beta] + exposure on the Beta slot: thetas reaching the model
+   max theta[1] seen by the model: 49.99957125304487 (declared (0,1) at SVGD level; > 1 inside the model)
+[runcap] exit 0, peak RSS 679 MB, 10s

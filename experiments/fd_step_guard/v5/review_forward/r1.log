@@ -1,0 +1,16 @@
+theta, dt | state rel err | cdf abs err | pdf rel err | avt rel err | steps
+[1.0, 1.0] dt=0.3 | 4.1e-16 | 2.8e-17 | 2.1e-16 | 2.5e-16 | 57  time=0.3
+[5000.0, 1.0] dt=0.01 | 2.4e-14 | 1.1e-16 | 2.4e-14 | 2.4e-16 | 321  time=0.31
+[0.0001, 2.0] dt=3 | 2.5e-14 | 1.1e-16 | 2.4e-14 | 2.4e-16 | 409  time=3.31
+[1.0, 1.0] dt=0 | 2.5e-14 | 1.1e-16 | 2.4e-14 | 2.4e-16 | 409  time=3.31
+[1e-09, 1e-09] dt=1 | 2.5e-14 | 1.1e-16 | 2.5e-14 | 2.4e-16 | 462  time=4.31
+[3.0, 1e-09] dt=0.5 | 3.5e-14 | 1.1e-16 | 1.5e-14 | 2.4e-16 | 530  time=4.81
+[200000.0, 7.0] dt=0.001 | 2.3e-14 | 0.0e+00 | 2.3e-14 | 2.4e-16 | 1221  time=4.811
+[1.0, 1.0] dt=2 | 2.3e-14 | 0.0e+00 | 2.2e-14 | 2.4e-16 | 1294  time=6.811
+per-absorbing-vertex mass (exact): [0.83728387 0.06271613]  -> context keeps only the scalar sum 0.8999999999999996
+update_weights([0,0]) accepted; max rate -0.0
+ advance(1.5) at zero rates: state unchanged True avt increment [2.23195664e-77 2.36924126e-77 1.97267905e-77] pdf 0.0  ; plan formula (1/G) sum ... with G = 1.02 x 0 -> division by zero
+density just before / just after a change point (same state): 1.8099814938106722e-77 1.5421466969354412e-76
+reward-transformed: vertices 5 ipv [0.         0.06363636 0.73636364 0.1        0.        ] absorbing [False False False  True  True] ipv sum 0.8999999999999999
+ advance x3 to t=2: cdf err 1.1102230246251565e-16 pdf rel err 0.0 | shipped pdf(2) rel err 0.00022706660981516925  atom at 0 (cdf(0)) = 0.1
+[runcap] exit 0, peak RSS 276 MB, 4s

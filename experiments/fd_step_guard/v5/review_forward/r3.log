@@ -1,0 +1,26 @@
+/Users/kmt/phasic/experiments/fd_step_guard/v5/review_forward/r3_trap.py:21: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+  cj = graph.joint_prob_graph(mutation_rate=1.0, reward_limit=2, discrete=False)
+JSP vertices 322 t-vertices 81
+## theta=[2.0, 1.0] T=0.7: loop edge weights [1.], max non-loop exit rate 25, ipv sum 1
+   loop rate 1.0 (shipped)   : G=25.5 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 0.0e+00; next-ipv diff 0.0e+00; split t/aux of 1st outcome 1.278e-01/3.845e-02
+   rate 0 / mass retained    : G=25.5 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 2.8e-17; next-ipv diff 2.8e-17; split t/aux of 1st outcome 1.663e-01/0.000e+00
+   loop rate = max rate      : G=25.5 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 2.1e-17; next-ipv diff 2.8e-17; split t/aux of 1st outcome 8.455e-02/8.175e-02
+   loop rate 1e6             : G=1.02e+06 Lambda=7.14e+05 approx steps 721192; max |collapsed - shipped-loop| 1.6e-12; next-ipv diff 1.6e-12; split t/aux of 1st outcome 8.315e-02/8.315e-02
+   shipped Euler cumulative_probs vs expm (loop 1.0): max abs diff 1.9e-04, max rel 1.7e-02
+## theta=[0.0001, 0.0001] T=7000: loop edge weights [1.], max non-loop exit rate 0.0015, ipv sum 1
+   loop rate 1.0 (shipped)   : G=1.02 Lambda=7140 approx steps 7868; max |collapsed - shipped-loop| 0.0e+00; next-ipv diff 0.0e+00; split t/aux of 1st outcome 2.078e-02/2.078e-02
+   rate 0 / mass retained    : G=0.00153 Lambda=10.71 approx steps 48; max |collapsed - shipped-loop| 3.9e-15; next-ipv diff 5.3e-15; split t/aux of 1st outcome 4.156e-02/0.000e+00
+   loop rate = max rate      : G=0.00153 Lambda=10.71 approx steps 48; max |collapsed - shipped-loop| 3.9e-15; next-ipv diff 5.3e-15; split t/aux of 1st outcome 2.191e-02/1.965e-02
+   loop rate 1e6             : G=1.02e+06 Lambda=7.14e+09 approx steps 7140718247; max |collapsed - shipped-loop| 1.5e-09; next-ipv diff 3.2e-09; split t/aux of 1st outcome 2.078e-02/2.078e-02
+   shipped Euler cumulative_probs vs expm (loop 1.0): max abs diff 4.2e-09, max rel 3.4e-06
+## theta=[300.0, 150.0] T=0.00466667: loop edge weights [1.], max non-loop exit rate 3750, ipv sum 1
+   loop rate 1.0 (shipped)   : G=3825 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 0.0e+00; next-ipv diff 0.0e+00; split t/aux of 1st outcome 1.659e-01/3.713e-04
+   rate 0 / mass retained    : G=3825 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 5.6e-17; next-ipv diff 5.6e-17; split t/aux of 1st outcome 1.663e-01/0.000e+00
+   loop rate = max rate      : G=3825 Lambda=17.85 approx steps 63; max |collapsed - shipped-loop| 5.6e-17; next-ipv diff 5.6e-17; split t/aux of 1st outcome 8.455e-02/8.175e-02
+   loop rate 1e6             : G=1.02e+06 Lambda=4760 approx steps 5356; max |collapsed - shipped-loop| 1.6e-14; next-ipv diff 1.6e-14; split t/aux of 1st outcome 8.315e-02/8.314e-02
+   shipped Euler cumulative_probs vs expm (loop 1.0): max abs diff 3.4e-03, max rel 3.8e-01
+existing stop_probability(2.0), outcome vertex with no edges: 0.000000 (exact retained mass 0.633475)
+existing stop_probability(2.0), outcome vertex with zero-weight edge: 0.633548 (exact retained mass 0.633475)
+self-loop rate 3: ERR Caught an unknown exception!
+self-loop rate 0: ERR Caught an unknown exception!
+[runcap] exit 0, peak RSS 356 MB, 26s

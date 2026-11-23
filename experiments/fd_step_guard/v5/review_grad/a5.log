@@ -1,0 +1,6 @@
+A then B on the SAME model object (same data shape):
+   A: data mean   0.2 -> theta_mean 3.9186  cache entries 1
+   B: data mean   2.0 -> theta_mean 3.9186  cache entries 1
+B alone (cache cleared):
+   B: data mean   2.0 -> theta_mean 0.5786  cache entries 1
+[runcap] exit 0, peak RSS 602 MB, 14s

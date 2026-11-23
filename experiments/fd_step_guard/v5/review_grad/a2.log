@@ -1,0 +1,23 @@
+### success probability = 1 * theta (upper bound theta < 1)
+ 1-c*theta=0.1: exact -2.66667e+01 | today: -2.66667e+01 (rel err 2.7e-16) | log-step s=1e-4: -2.66667e+01 (rel err 3.4e-08)
+ 1-c*theta=0.001: exact -2.99700e+03 | today: -2.99700e+03 (rel err 1.5e-10) | log-step s=1e-4: -2.99699e+03 (rel err 3.3e-06)
+ 1-c*theta=0.0002: exact -1.49970e+04 | today: -1.49970e+04 (rel err 7.1e-11) | log-step s=1e-4: -1.49967e+04 (rel err 1.7e-05)
+ 1-c*theta=9e-05: exact -3.33303e+04 | today: -3.33303e+04 (rel err 9.2e-11) | log-step s=1e-4: -3.33291e+04 (rel err 3.7e-05)
+ 1-c*theta=5e-05: exact -5.99970e+04 | today: -5.99970e+04 (rel err 1.2e-10) | log-step s=1e-4: -5.99930e+04 (rel err 6.7e-05)
+ 1-c*theta=1e-06: exact -3.00000e+06 | today: -3.00000e+06 (rel err 3.4e-09) | log-step s=1e-4: -2.99000e+06 (rel err 3.3e-03)
+ 1-c*theta=5e-08: exact -6.00000e+07 | today: -6.00000e+07 (rel err 6.6e-08) | log-step s=1e-4: -5.60000e+07 (rel err 6.7e-02)
+ forward ABOVE the bound (c*theta = 1+1e-05): [ 1.00001e+00 -1.00001e-05  1.00001e-10]
+RuntimeError: Expected vertex with index 1 (state 2) to have outgoing rate <= 1. Is '1.010000'. Are you sure this is a discrete phase-type distribution?
+ forward ABOVE the bound (c*theta = 1+0.01): RAISES XlaRuntimeError: 'INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):\n  File "/Users/kmt/phasic/experiments/f'
+### success probability = 3 * theta (upper bound theta < 0.3333)
+ 1-c*theta=0.1: exact -8.00000e+01 | today: -8.00000e+01 (rel err 6.0e-11) | log-step s=1e-4: -8.00000e+01 (rel err 3.4e-08)
+ 1-c*theta=0.001: exact -8.99099e+03 | today: -8.99099e+03 (rel err 5.8e-11) | log-step s=1e-4: -8.99096e+03 (rel err 3.3e-06)
+ 1-c*theta=0.0002: exact -4.49910e+04 | today: -4.49910e+04 (rel err 1.2e-10) | log-step s=1e-4: -4.49902e+04 (rel err 1.7e-05)
+ 1-c*theta=9e-05: exact -9.99910e+04 | today: -9.99910e+04 (rel err 3.4e-10) | log-step s=1e-4: -9.99873e+04 (rel err 3.7e-05)
+ 1-c*theta=5e-05: exact -1.79991e+05 | today: -1.79991e+05 (rel err 6.5e-10) | log-step s=1e-4: -1.79979e+05 (rel err 6.7e-05)
+ 1-c*theta=1e-06: exact -8.99999e+06 | today: -8.99999e+06 (rel err 3.0e-08) | log-step s=1e-4: -8.96999e+06 (rel err 3.3e-03)
+ 1-c*theta=5e-08: exact -1.80000e+08 | today: -1.80000e+08 (rel err 6.0e-07) | log-step s=1e-4: -1.68000e+08 (rel err 6.7e-02)
+ forward ABOVE the bound (c*theta = 1+1e-05): [ 1.00001e+00 -1.00001e-05  1.00001e-10]
+RuntimeError: Expected vertex with index 1 (state 2) to have outgoing rate <= 1. Is '1.010000'. Are you sure this is a discrete phase-type distribution?
+ forward ABOVE the bound (c*theta = 1+0.01): RAISES XlaRuntimeError: 'INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):\n  File "/Users/kmt/phasic/experiments/f'
+[runcap] exit 0, peak RSS 507 MB, 8s

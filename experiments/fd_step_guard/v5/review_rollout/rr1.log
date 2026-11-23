@@ -1,0 +1,11 @@
+coalescent n=4: V=5 E=4: 183 ns/step (incl. pybind call) = 45.9 ns/edge; at ceiling 1e11 edge-steps: steps=2.50e+10, time~76 min, scalar sequence 8B*steps=200.0 GB
+coalescent n=10: V=11 E=10: 192 ns/step (incl. pybind call) = 19.2 ns/edge; at ceiling 1e11 edge-steps: steps=1.00e+10, time~32 min, scalar sequence 8B*steps=80.0 GB
+coalescent n=30: V=31 E=30: 255 ns/step (incl. pybind call) = 8.5 ns/edge; at ceiling 1e11 edge-steps: steps=3.33e+09, time~14 min, scalar sequence 8B*steps=26.7 GB
+
+Shipped divergence-test model: coalescent n=4, times up to 2.0, rate = C(4,2)*theta
+  theta=1e+08: Lambda=1.2e+09 steps=1.22e+09 work=4.90e+09 edge-steps: UNDER ceiling -> computed; m_k cache=9.79 GB; today: fail-soft penalty (instant)
+  theta=1e+09: Lambda=1.2e+10 steps=1.22e+10 work=4.90e+10 edge-steps: UNDER ceiling -> computed; m_k cache=97.9 GB; today: fail-soft penalty (instant)
+  theta=1e+10: Lambda=1.2e+11 steps=1.22e+11 work=4.90e+11 edge-steps: over ceiling -> raises; m_k cache=979 GB; today: fail-soft penalty (instant)
+  theta=1e+15: Lambda=1.2e+16 steps=1.22e+16 work=4.90e+16 edge-steps: over ceiling -> raises; m_k cache=9.79e+07 GB; today: fail-soft penalty (instant)
+  theta=1e+31: Lambda=1.2e+32 steps=1.22e+32 work=4.90e+32 edge-steps: over ceiling -> raises; m_k cache=9.79e+23 GB; today: fail-soft penalty (instant)
+[runcap] exit 0, peak RSS 300 MB, 7s
