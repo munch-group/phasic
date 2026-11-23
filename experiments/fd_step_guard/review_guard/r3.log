@@ -1,0 +1,5 @@
+baseline maxRSS MB 271
+rate=2e+06 t=1.0 steps=4e+06 time=0.18s maxRSS=398MB  expected vectors=64MB
+rate=2e+06 t=5.0 steps=2e+07 time=0.70s maxRSS=910MB  expected vectors=320MB
+rate=2e+06 t=12.0 steps=4.8e+07 time=1.17s maxRSS=1080MB  expected vectors=768MB
+[runcap] exit 0, peak RSS 902 MB, 6s

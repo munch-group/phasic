@@ -1,0 +1,19 @@
+✨ Pixi task (install-dev): XLA_FFI_INCLUDE_DIR=$(python -c 'from jax import ffi; print(ffi.include_dir())') pip install --no-build-isolation --force-reinstall --no-deps .: (Install phasic in development mode with FFI support)
+Processing /Users/kmt/phasic-epochprior
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: phasic
+  Building wheel for phasic (pyproject.toml): started
+  Building wheel for phasic (pyproject.toml): finished with status 'done'
+  Created wheel for phasic: filename=phasic-0.32.2-cp313-cp313-macosx_27_0_arm64.whl size=1939354 sha256=3c1bc86a99e133def5fb19abd2cf5e789e8edbb08478c82926259b28fa3df038
+  Stored in directory: /Users/kmt/Library/Caches/pip/wheels/2c/3d/fd/ebe6485b9e69dfe3c342a6bdbb32d8a40d423355f6ace9f438
+Successfully built phasic
+Installing collected packages: phasic
+  Attempting uninstall: phasic
+    Found existing installation: phasic 0.32.2
+    Uninstalling phasic-0.32.2:
+      Successfully uninstalled phasic-0.32.2
+Successfully installed phasic-0.32.2
+
+[notice] A new release of pip is available: 25.2 -> 26.3
+[notice] To update, run: pip install --upgrade pip

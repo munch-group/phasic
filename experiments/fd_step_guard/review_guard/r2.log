@@ -1,0 +1,6 @@
+V=4000 k=1 E=4000: 0.858s  steps=5e+04  ns/edge-step=4.29  ns/vertex-step=4.29
+V=4000 k=4 E=15991: 3.446s  steps=5e+04  ns/edge-step=4.31  ns/vertex-step=17.23
+V=4000 k=16 E=63865: 12.923s  steps=5e+04  ns/edge-step=4.05  ns/vertex-step=64.62
+V=1000 k=16 E=15865: 3.040s  steps=5e+04  ns/edge-step=3.83  ns/vertex-step=60.80
+vectorized ascending 100 times to 0.5: 0.825s total; per-call steps_to_go ~500, total steps 5e+04
+[runcap] exit 0, peak RSS 299 MB, 24s

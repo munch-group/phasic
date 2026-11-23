@@ -1,0 +1,29 @@
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+00      0.011s  maxrate=33 steps~150 sum=0.999834 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+01      0.011s  maxrate=330 steps~150 sum=0.711688 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+02      0.033s  maxrate=3.3e+03 steps~990 sum=0.012481 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+03      0.271s  maxrate=3.3e+04 steps~9.9e+03 sum=0.011648 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+04      2.910s  maxrate=3.3e+05 steps~9.9e+04 sum=0.011648 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+05     27.670s  maxrate=3.3e+06 steps~9.9e+05 sum=0.011648 
+stop_probability joint n=6 (2808 v, dt=0.15) scale=   1e+06    270.854s  maxrate=3.3e+07 steps~9.9e+06 sum=0.011648 
+stop_probability joint n=6 (2808 v, dt=0.15): stopping (>60.0s)
+[runcap] exit 0, peak RSS 368 MB, 306s
+[runcap] exit 1, peak RSS 392 MB, 4s
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+00      0.039s  pmf=[0.0747156  0.15580741 0.19782767] 
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+01      0.040s  pmf=[1.00072237e+00 1.52165794e-01 4.89246515e-04] 
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+02      0.269s  pmf=[3.42212884e-07 1.67543922e-15 1.96619071e-40] 
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+03      2.581s  pmf=[5.53079098e-081 4.37633396e-164 0.00000000e+000] 
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+04     26.155s  pmf=[0. 0. 0.] 
+pmf_and_moments island n=10 (482 v), t<=2.5 scale=   1e+05    262.849s  pmf=[0. 0. 0.] 
+pmf_and_moments island n=10 (482 v), t<=2.5: stopping (>60.0s)
+[runcap] exit 0, peak RSS 649 MB, 295s
+pmf_and_moments island n=10 (482 v), t<=2.5: stopping (>60.0s)
+[runcap] exit 0, peak RSS 649 MB, 295s
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+00      0.030s  p=[0.37376195 0.1540568 ] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+01      0.029s  p=[0.87004841 0.0450272 ] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+02      0.063s  p=[0.9886663  0.00493208] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+03      0.436s  p=[9.98859167e-01 4.99315584e-04] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+04      3.788s  p=[9.99885842e-01 4.99931506e-05] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+05     37.108s  p=[9.99988583e-01 4.99993150e-06] 
+daisy forward joint n=6 (epoch-1 coal scaled) scale=   1e+06    365.373s  p=[9.99998858e-01 4.99999315e-07] 
+daisy forward joint n=6 (epoch-1 coal scaled): stopping (>40.0s)
+[runcap] exit 0, peak RSS 432 MB, 411s

@@ -1,0 +1,18 @@
+/private/tmp/claude-501/-Users-kmt-phasic/3666ba56-7958-4c29-a8b2-ec58b11551e2/scratchpad/fd/e11_jumps.py:13: RuntimeWarning: divide by zero encountered in log
+scale=20 maxrate=360 G=720: abs 1e-7  dF=nan ref(fixed G)=nan relerr=nan
+scale=20 maxrate=360 G=720: rel 3e-3  dF=nan ref(fixed G)=nan relerr=nan
+scale=20 maxrate=360 G=720: rel 1e-5  dF=nan ref(fixed G)=nan relerr=nan
+   jumps in a +-0.1% window: 0 (median |jump| 0.00e+00, typical step diff nan, |F|=inf)
+scale=200 maxrate=3600 G=7200: abs 1e-7  dF=-1.66574256e+04 ref(fixed G)=2.57984917e-02 relerr=6.46e+05
+scale=200 maxrate=3600 G=7200: rel 3e-3  dF=1.70888878e-02 ref(fixed G)=2.57984917e-02 relerr=3.38e-01
+scale=200 maxrate=3600 G=7200: rel 1e-5  dF=-8.06927097e-01 ref(fixed G)=2.57984917e-02 relerr=3.23e+01
+   jumps in a +-0.1% window: 12 (median |jump| 2.03e-04, typical step diff 5.22e-06, |F|=10.6)
+scale=2000 maxrate=3.6e+04 G=72000: abs 1e-7  dF=-1.52207493e+05 ref(fixed G)=-4.08969649e-03 relerr=3.72e+07
+scale=2000 maxrate=3.6e+04 G=72000: rel 3e-3  dF=-3.04768018e-03 ref(fixed G)=-4.08969649e-03 relerr=2.55e-01
+scale=2000 maxrate=3.6e+04 G=72000: rel 1e-5  dF=-7.65120390e-01 ref(fixed G)=-4.08969649e-03 relerr=1.86e+02
+   jumps in a +-0.1% window: 120 (median |jump| 1.71e-04, typical step diff 8.17e-06, |F|=8.19)
+[runcap] exit 0, peak RSS 405 MB, 6s
+scale=30 (maxrate~540): abs 1e-7 relerr median nan, 95th pct nan, max nan, fraction >1%: 0.000, >100%: 0.000
+scale=200 (maxrate~3.6e+03): abs 1e-7 relerr median 1.9e-07, 95th pct 5.8e-07, max 8.9e-07, fraction >1%: 0.000, >100%: 0.000
+scale=2000 (maxrate~3.6e+04): abs 1e-7 relerr median 3.0e-06, 95th pct 9.3e-06, max 1.4e-05, fraction >1%: 0.000, >100%: 0.000
+[runcap] exit 0, peak RSS 403 MB, 5s

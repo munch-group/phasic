@@ -1,0 +1,118 @@
+
+### joint_index_baked (mu small)
+  theta_i= 1.0e-05  fd= 4.999853e+05  ref= 4.999853e+05 (ref agree 3.3e-07)  relerr=3.95e-09  f(theta-1e-7)=-59.732206665514404    [0.6s]
+  theta_i= 1.0e-06  fd= 4.999985e+06  ref= 4.999985e+06 (ref agree 3.3e-07)  relerr=9.57e-09  f(theta-1e-7)=-71.72155049161458    [0.0s]
+  theta_i= 2.0e-07  fd= 2.499998e+07  ref= 2.499999e+07 (ref agree 3.3e-07)  relerr=3.45e-08  f(theta-1e-7)=-82.7076615971038    [0.0s]
+  theta_i= 1.5e-07  fd= 3.333332e+07  ref= 3.333332e+07 (ref agree 3.3e-07)  relerr=4.49e-08  f(theta-1e-7)=-86.17339676357878    [0.0s]
+  theta_i= 1.0e-07  fd= nan  ref= 4.999999e+07 (ref agree 3.3e-07)  relerr=nan  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 5.0e-08  fd= 9.999997e+07  ref= 9.999999e+07 (ref agree 3.3e-07)  relerr=1.28e-07  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 1.0e-08  fd= 4.999997e+08  ref= 5.000000e+08 (ref agree 3.3e-07)  relerr=6.26e-07  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 1.0e-09  fd= 4.999969e+09  ref= 5.000000e+09 (ref agree 3.3e-07)  relerr=6.23e-06  f(theta-1e-7)=nan    [0.0s]
+
+### joint_index_baked (coal small)
+  theta_i= 1.0e-05  fd= 3.278809e+01  ref= 3.278809e+01 (ref agree 2.2e-08)  relerr=1.65e-08  f(theta-1e-7)=-22.886970493679456    [0.0s]
+  theta_i= 1.0e-06  fd= 3.278925e+01  ref= 3.278926e+01 (ref agree 1.1e-07)  relerr=8.45e-08  f(theta-1e-7)=-22.887265591854476    [0.0s]
+  theta_i= 2.0e-07  fd= 3.278936e+01  ref= 3.278950e+01 (ref agree 4.6e-06)  relerr=4.53e-06  f(theta-1e-7)=-22.8872918233084    [0.0s]
+  theta_i= 1.5e-07  fd= 3.278936e+01  ref= 3.278942e+01 (ref agree 1.4e-06)  relerr=1.62e-06  f(theta-1e-7)=-22.887293462777006    [0.0s]
+  theta_i= 1.0e-07  fd= nan  ref= 3.278924e+01 (ref agree 4.3e-06)  relerr=nan  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 5.0e-08  fd= 3.278938e+01  ref= 3.278942e+01 (ref agree 2.2e-06)  relerr=1.23e-06  f(theta-1e-7)=-22.88729674171519    [0.0s]
+  theta_i= 1.0e-08  fd= 3.278938e+01  ref= 3.278799e+01 (ref agree 4.9e-05)  relerr=4.23e-05  f(theta-1e-7)=-22.88729805329082    [0.0s]
+  theta_i= 1.0e-09  fd= 3.278938e+01  ref= 3.279155e+01 (ref agree 5.4e-05)  relerr=6.60e-05  f(theta-1e-7)=-22.88729834839537    [0.0s]
+
+### joint_index_unbaked (mu small)
+  theta_i= 1.0e-05  fd= 4.999853e+05  ref= 4.999853e+05 (ref agree 3.3e-07)  relerr=3.95e-09  f(theta-1e-7)=-59.732206665514404    [0.1s]
+  theta_i= 1.0e-06  fd= 4.999985e+06  ref= 4.999985e+06 (ref agree 3.3e-07)  relerr=9.57e-09  f(theta-1e-7)=-71.72155049161458    [0.0s]
+  theta_i= 2.0e-07  fd= 2.499998e+07  ref= 2.499999e+07 (ref agree 3.3e-07)  relerr=3.45e-08  f(theta-1e-7)=-82.7076615971038    [0.0s]
+  theta_i= 1.5e-07  fd= 3.333332e+07  ref= 3.333332e+07 (ref agree 3.3e-07)  relerr=4.49e-08  f(theta-1e-7)=-86.17339676357878    [0.0s]
+  theta_i= 1.0e-07  fd= nan  ref= 4.999999e+07 (ref agree 3.3e-07)  relerr=nan  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 5.0e-08  fd= 9.999997e+07  ref= 9.999999e+07 (ref agree 3.3e-07)  relerr=1.28e-07  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 1.0e-08  fd= 4.999997e+08  ref= 5.000000e+08 (ref agree 3.3e-07)  relerr=6.26e-07  f(theta-1e-7)=nan    [0.0s]
+  theta_i= 1.0e-09  fd= 4.999969e+09  ref= 5.000000e+09 (ref agree 3.3e-07)  relerr=6.23e-06  f(theta-1e-7)=nan    [0.0s]
+
+### daisy (epoch-1 coal small)
+  theta_i= 1.0e-05  fd= 4.319740e-01  ref= 4.319736e-01 (ref agree 1.0e-06)  relerr=9.59e-07  f(theta-1e-7)=-11.988458050905255    [0.4s]
+  theta_i= 1.0e-06  fd= 4.319787e-01  ref= 4.319833e-01 (ref agree 1.0e-05)  relerr=1.08e-05  f(theta-1e-7)=-11.98846193869277    [0.0s]
+  theta_i= 2.0e-07  fd= 4.319791e-01  ref= 4.319212e-01 (ref agree 1.3e-04)  relerr=1.34e-04  f(theta-1e-7)=-11.988462284275933    [0.0s]
+  theta_i= 1.5e-07  fd= 4.319791e-01  ref= 4.319508e-01 (ref agree 5.5e-05)  relerr=6.57e-05  f(theta-1e-7)=-11.988462305874894    [0.0s]
+  theta_i= 1.0e-07  fd= 4.319792e-01  ref= 4.320100e-01 (ref agree 8.2e-05)  relerr=7.13e-05  f(theta-1e-7)=-11.988462327473853    [0.0s]
+  theta_i= 5.0e-08  fd= nan  ref= 4.316547e-01 (ref agree 7.4e-04)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A   [0.0s]
+  theta_i= 1.0e-08  fd= nan  ref= 4.316547e-01 (ref agree 6.2e-04)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+  theta_i= 1.0e-09  fd= nan  ref= 4.263256e-01 (ref agree 1.5e-02)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+
+### daisy (final coal small)
+  theta_i= 1.0e-05  fd= 3.448075e+02  ref= 3.448075e+02 (ref agree 5.2e-10)  relerr=4.47e-10  f(theta-1e-7)=-15.924320911042523    [0.0s]
+  theta_i= 1.0e-06  fd= 3.456846e+02  ref= 3.456846e+02 (ref agree 1.8e-08)  relerr=1.93e-08  f(theta-1e-7)=-15.927428210564248    [0.0s]
+  theta_i= 2.0e-07  fd= 3.457627e+02  ref= 3.457627e+02 (ref agree 3.9e-08)  relerr=6.14e-08  f(theta-1e-7)=-15.927704797272309    [0.0s]
+  theta_i= 1.5e-07  fd= 3.457676e+02  ref= 3.457675e+02 (ref agree 2.1e-07)  relerr=1.86e-07  f(theta-1e-7)=-15.927722086016994    [0.0s]
+  theta_i= 1.0e-07  fd= 3.457725e+02  ref= 3.457725e+02 (ref agree 7.7e-08)  relerr=7.38e-08  f(theta-1e-7)=-15.927739375005881    [0.0s]
+  theta_i= 5.0e-08  fd= nan  ref= 3.457776e+02 (ref agree 8.2e-07)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A   [0.0s]
+  theta_i= 1.0e-08  fd= nan  ref= 3.457803e+02 (ref agree 2.6e-06)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+  theta_i= 1.0e-09  fd= nan  ref= 3.457856e+02 (ref agree 1.0e-05)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+
+### daisy exp (epoch-1 coal small)
+  theta_i= 1.0e-05  fd= 2.406179e+00  ref= 2.406177e+00 (ref agree 5.9e-07)  relerr=5.74e-07  f(theta-1e-7)=-14.664402266339424    [0.2s]
+  theta_i= 1.0e-06  fd= 2.406212e+00  ref= 2.406209e+00 (ref agree 1.1e-06)  relerr=1.38e-06  f(theta-1e-7)=-14.664423922101161    [0.1s]
+  theta_i= 2.0e-07  fd= 2.406215e+00  ref= 2.406209e+00 (ref agree 0.0e+00)  relerr=2.60e-06  f(theta-1e-7)=-14.664425847072156    [0.1s]
+  theta_i= 1.5e-07  fd= 2.406215e+00  ref= 2.406194e+00 (ref agree 1.2e-05)  relerr=8.84e-06  f(theta-1e-7)=-14.664425967382922    [0.1s]
+  theta_i= 1.0e-07  fd= 2.406215e+00  ref= 2.405987e+00 (ref agree 9.6e-05)  relerr=9.50e-05  f(theta-1e-7)=-14.664426087693695    [0.1s]
+  theta_i= 5.0e-08  fd= nan  ref= 2.406431e+00 (ref agree 8.1e-05)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A   [0.0s]
+  theta_i= 1.0e-08  fd= nan  ref= 2.404299e+00 (ref agree 7.8e-04)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.1s]
+  theta_i= 1.0e-09  fd= nan  ref= 2.415845e+00 (ref agree 3.7e-03)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.1s]
+
+### daisy efg (epoch-1 coal small)
+  theta_i= 1.0e-05  fd= 4.319740e-01  ref= 4.319736e-01 (ref agree 1.0e-06)  relerr=9.59e-07  f(theta-1e-7)=-11.988458050905255    [0.1s]
+  theta_i= 1.0e-06  fd= 4.319787e-01  ref= 4.319833e-01 (ref agree 1.0e-05)  relerr=1.08e-05  f(theta-1e-7)=-11.98846193869277    [0.0s]
+  theta_i= 2.0e-07  fd= 4.319791e-01  ref= 4.319212e-01 (ref agree 1.3e-04)  relerr=1.34e-04  f(theta-1e-7)=-11.988462284275933    [0.0s]
+  theta_i= 1.5e-07  fd= 4.319791e-01  ref= 4.319508e-01 (ref agree 5.5e-05)  relerr=6.57e-05  f(theta-1e-7)=-11.988462305874894    [0.0s]
+  theta_i= 1.0e-07  fd= 4.319792e-01  ref= 4.320100e-01 (ref agree 8.2e-05)  relerr=7.13e-05  f(theta-1e-7)=-11.988462327473853    [0.0s]
+  theta_i= 5.0e-08  fd= nan  ref= 4.316547e-01 (ref agree 7.4e-04)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A   [0.0s]
+  theta_i= 1.0e-08  fd= nan  ref= 4.316547e-01 (ref agree 6.2e-04)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+  theta_i= 1.0e-09  fd= nan  ref= 4.263256e-01 (ref agree 1.5e-02)  relerr=nan  f(theta-1e-7)=ValueError  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A   [0.0s]
+
+### daisy efg (final coal small)
+  theta_i= 1.0e-05  fd= 3.448075e+02  ref= 3.448075e+02 (ref agree 5.2e-10)  relerr=4.47e-10  f(theta-1e-7)=-15.924320911042523    [0.0s]
+  theta_i= 1.0e-06  fd= 3.456846e+02  ref= 3.456846e+02 (ref agree 1.8e-08)  relerr=1.93e-08  f(theta-1e-7)=-15.927428210564248    [0.0s]
+  theta_i= 2.0e-07  fd= 3.457627e+02  ref= 3.457627e+02 (ref agree 3.9e-08)  relerr=6.14e-08  f(theta-1e-7)=-15.927704797272309    [0.0s]
+  theta_i= 1.5e-07  fd= 3.457676e+02  ref= 3.457675e+02 (ref agree 2.1e-07)  relerr=1.86e-07  f(theta-1e-7)=-15.927722086016994    [0.0s]
+  theta_i= 1.0e-07  fd= 3.457725e+02  ref= 3.457725e+02 (ref agree 7.7e-08)  relerr=7.38e-08  f(theta-1e-7)=-15.927739375005881    [0.0s]
+  theta_i= 5.0e-08  fd= 3.457773e+02  ref= 3.457776e+02 (ref agree 8.2e-07)  relerr=8.47e-07  f(theta-1e-7)=ValueError    [0.0s]
+  theta_i= 1.0e-08  fd= 3.457812e+02  ref= 3.457803e+02 (ref agree 2.6e-06)  relerr=2.75e-06  f(theta-1e-7)=ValueError    [0.0s]
+  theta_i= 1.0e-09  fd= 3.457821e+02  ref= 3.457856e+02 (ref agree 1.0e-05)  relerr=1.01e-05  f(theta-1e-7)=ValueError    [0.0s]
+
+### pmf_from_graph (mig small)
+  theta_i= 1.0e-05  fd=-1.266238e+01  ref=-1.266238e+01 (ref agree 2.6e-07)  relerr=1.75e-07  f(theta-1e-7)=-4.692264525421252    [0.2s]
+  theta_i= 1.0e-06  fd=-1.266314e+01  ref=-1.266318e+01 (ref agree 2.5e-06)  relerr=2.97e-06  f(theta-1e-7)=-4.692150560487267    [0.0s]
+  theta_i= 2.0e-07  fd=-1.266321e+01  ref=-1.266347e+01 (ref agree 2.2e-05)  relerr=2.08e-05  f(theta-1e-7)=-4.6921404299421265    [0.0s]
+  theta_i= 1.5e-07  fd=-1.266321e+01  ref=-1.266350e+01 (ref agree 2.4e-05)  relerr=2.28e-05  f(theta-1e-7)=-4.692139796781213    [0.0s]
+  theta_i= 1.0e-07  fd=-1.266322e+01  ref=-1.266276e+01 (ref agree 3.5e-05)  relerr=3.60e-05  f(theta-1e-7)=-4.692139163620091    [0.0s]
+  theta_i= 5.0e-08  fd=-1.266322e+01  ref=-1.266303e+01 (ref agree 7.0e-07)  relerr=1.53e-05  f(theta-1e-7)=-4.692138530458866    [0.0s]
+  theta_i= 1.0e-08  fd=-1.266322e+01  ref=-1.266098e+01 (ref agree 1.6e-04)  relerr=1.77e-04  f(theta-1e-7)=-4.692138023929777    [0.0s]
+  theta_i= 1.0e-09  fd=-1.266322e+01  ref=-1.268319e+01 (ref agree 1.5e-03)  relerr=1.57e-03  f(theta-1e-7)=-4.692137909960658    [0.0s]
+
+### pmf_and_moments pmf (mig small)
+  theta_i= 1.0e-05  fd=-1.266238e+01  ref=-1.266238e+01 (ref agree 2.6e-07)  relerr=1.75e-07  f(theta-1e-7)=-4.692264525421252    [0.4s]
+  theta_i= 1.0e-06  fd=-1.266314e+01  ref=-1.266318e+01 (ref agree 2.5e-06)  relerr=2.97e-06  f(theta-1e-7)=-4.692150560487267    [0.1s]
+  theta_i= 2.0e-07  fd=-1.266321e+01  ref=-1.266347e+01 (ref agree 2.2e-05)  relerr=2.08e-05  f(theta-1e-7)=-4.6921404299421265    [0.1s]
+  theta_i= 1.5e-07  fd=-1.266321e+01  ref=-1.266350e+01 (ref agree 2.4e-05)  relerr=2.28e-05  f(theta-1e-7)=-4.692139796781213    [0.1s]
+[ERROR] phasic.c: Computation produced NaN at vertex 10 (command 51: from=10 to=16 multiplier=nan result[to]=1.000000000000000e+00) - numerical catastrophe
+RuntimeError: Computation produced NaN at vertex 10 (command 51) - numerical catastrophe
+  theta_i= 1.0e-07  fd=-1.266322e+01  ref=-1.266276e+01 (ref agree 3.5e-05)  relerr=3.60e-05  f(theta-1e-7)=XlaRuntimeError    [0.1s]
+  theta_i= 5.0e-08  fd=-1.266322e+01  ref=-1.266303e+01 (ref agree 7.0e-07)  relerr=1.51e-05  f(theta-1e-7)=-4.692138530458866    [0.1s]
+  theta_i= 1.0e-08  fd=-1.266322e+01  ref=-1.266098e+01 (ref agree 1.6e-04)  relerr=1.76e-04  f(theta-1e-7)=-4.692138023929777    [0.1s]
+  theta_i= 1.0e-09  fd=-1.266322e+01  ref=-1.268319e+01 (ref agree 1.5e-03)  relerr=1.57e-03  f(theta-1e-7)=-4.692137909960658    [0.1s]
+
+### moments_from_graph (mig small)
+  BUILD FAILED RuntimeError JIT compilation requires the phasic C/C++ source tree on disk, but the following files are missing:
+  - /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/src/cpp/phasiccpp.cpp
+  - /Users/kmt/phasic/
+
+### reward_visit_prob (mig small)
+  theta_i= 1.0e-05  fd= 0.000000e+00  ref= 0.000000e+00 (ref agree 0.0e+00)  relerr=0.00e+00  f(theta-1e-7)=1.0    [0.2s]
+  theta_i= 1.0e-06  fd= 5.551115e-10  ref= 0.000000e+00 (ref agree 5.6e+292)  relerr=5.55e+290  f(theta-1e-7)=0.9999999999999999    [0.1s]
+  theta_i= 2.0e-07  fd= 5.551115e-10  ref= 0.000000e+00 (ref agree 2.8e+293)  relerr=5.55e+290  f(theta-1e-7)=0.9999999999999999    [0.2s]
+  theta_i= 1.5e-07  fd= 0.000000e+00  ref= 0.000000e+00 (ref agree 0.0e+00)  relerr=0.00e+00  f(theta-1e-7)=1.0    [0.1s]
+  theta_i= 1.0e-07  fd= 0.000000e+00  ref= 0.000000e+00 (ref agree 0.0e+00)  relerr=0.00e+00  f(theta-1e-7)=1.0    [0.1s]
+  theta_i= 5.0e-08  fd= 5.551115e-10  ref= 0.000000e+00 (ref agree 0.0e+00)  relerr=5.55e+290  f(theta-1e-7)=0.9999999999999999    [0.1s]
+  theta_i= 1.0e-08  fd= 0.000000e+00  ref=-5.551115e-05 (ref agree 1.0e+00)  relerr=1.00e+00  f(theta-1e-7)=1.0    [0.1s]
+  theta_i= 1.0e-09  fd= 0.000000e+00  ref= 0.000000e+00 (ref agree 0.0e+00)  relerr=0.00e+00  f(theta-1e-7)=1.0    [0.1s]
+[runcap] exit 0, peak RSS 682 MB, 11s

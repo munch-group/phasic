@@ -1,0 +1,31 @@
+## shipped pmf_and_moments (clamped FD), coal small; reference = d/dtheta via central FD h=theta*1e-3
+  exact_moment_grad=False theta=1e-09: grad=4.121199e+13 ref=1.200000e+10 relerr=3.43e+03
+  exact_moment_grad=False theta=1e-08: grad=4.884398e+10 ref=1.200000e+09 relerr=3.97e+01
+  exact_moment_grad=False theta=1e-07: grad=1.608039e+08 ref=1.200000e+08 relerr=3.40e-01
+  exact_moment_grad=False theta=1e-06: grad=1.203999e+07 ref=1.199999e+07 relerr=3.33e-03
+  exact_moment_grad=False theta=1e-05: grad=1.200027e+06 ref=1.199987e+06 relerr=3.30e-05
+  exact_moment_grad=True theta=1e-09: grad=4.121199e+13 ref=1.200000e+10 relerr=3.43e+03
+  exact_moment_grad=True theta=1e-08: grad=4.884398e+10 ref=1.200000e+09 relerr=3.97e+01
+  exact_moment_grad=True theta=1e-07: grad=1.608039e+08 ref=1.200000e+08 relerr=3.40e-01
+  exact_moment_grad=True theta=1e-06: grad=1.203999e+07 ref=1.199999e+07 relerr=3.33e-03
+  exact_moment_grad=True theta=1e-05: grad=1.200027e+06 ref=1.199987e+06 relerr=3.30e-05
+## joint_index near the 1e-7 pole (shipped FD)
+  slot 1 theta=1e-7*(1-0.001): grad=50050032.20193362
+  slot 1 theta=1e-7*(1-1e-06): grad=50000032.1581675
+  slot 1 theta=1e-7*(1-1e-09): grad=49999982.2081237
+  slot 1 theta=1e-7*(1+0): grad=nan
+  slot 1 theta=1e-7*(1+1e-09): grad=49999982.108123735
+  slot 1 theta=1e-7*(1+1e-06): grad=49999932.15817995
+  slot 1 theta=1e-7*(1+0.001): grad=49950032.11439507
+  slot 0 theta=1e-7*(1-0.001): grad=32.78936895943258
+  slot 0 theta=1e-7*(1-1e-06): grad=32.78936892631805
+  slot 0 theta=1e-7*(1-1e-09): grad=32.78936894376925
+  slot 0 theta=1e-7*(1+0): grad=nan
+  slot 0 theta=1e-7*(1+1e-09): grad=32.78936894520005
+  slot 0 theta=1e-7*(1+1e-06): grad=32.78936894677974
+  slot 0 theta=1e-7*(1+0.001): grad=32.7893689192924
+## joint_index exact vs FD values, mu small (5 mutations in the data)
+  mu=1e-09: FD=4.99996883e+09 exact=5.04040403e+09 loglikRichardson=4.99999998e+09 5/mu=5.00000000e+09
+  mu=1e-08: FD=4.99999674e+08 exact=5.00039989e+08 loglikRichardson=4.99999985e+08 5/mu=5.00000000e+08
+  mu=1e-07: FD=nan exact=5.00000253e+07 loglikRichardson=4.99999852e+07 5/mu=5.00000000e+07
+  mu=1e-06: FD=4.99998524e+06 exact=4.99998531e+06 loglikRichardson=4.99998527e+06 5/mu=5.00000000e+06

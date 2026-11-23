@@ -1,0 +1,11 @@
+=== daisy
+    raise ValueError(
+ValueError: Model returned NaN PMF values for valid observations. Check model implementation and parameter values. NaN count: 78
+jaxlib._jax.XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+ValueError: Model returned NaN PMF values for valid observations. Check model implementation and parameter values. NaN count: 78
+[runcap] exit 1, peak RSS 498 MB, 5s
+=== pmf
+final particle 0: [1.e+19]  others median: [2.03308061]
+theta_mean: [8.33333333e+17]  theta_std: [2.76385399e+18]
+warnings: []
+[runcap] exit 0, peak RSS 546 MB, 6s

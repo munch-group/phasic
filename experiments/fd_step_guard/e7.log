@@ -1,0 +1,32 @@
+=== old
+phasic from /Users/kmt/phasic-epochprior/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+daisy small ERROR INVALID_ARGUMENT: Buffer Definition Event: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most neg
+daisy mixed ERROR INVALID_ARGUMENT: Buffer Definition Event: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most neg
+daisy: vmap(grad) 32 particles median 21.0 ms
+daisy_exp small ERROR INVALID_ARGUMENT: Buffer Definition Event: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most neg
+daisy_exp mixed ERROR INVALID_ARGUMENT: Buffer Definition Event: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most neg
+daisy_exp: vmap(grad) 32 particles median 52.0 ms
+joint_index: vmap(grad) 32 particles median 1.1 ms
+pmf_and_moments: vmap(grad) 32 particles median 91.9 ms
+e2e: completed in 3.5s; particle0 epoch2 coal 1.03e-06, particle1 epoch1 coal 1.03e-06; mean [1.81019824 0.5        2.83798097 0.5       ]
+[runcap] exit 0, peak RSS 644 MB, 12s
+=== new
+phasic from /Users/kmt/phasic-epochprior/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+daisy: vmap(grad) 32 particles median 19.2 ms
+daisy_exp: vmap(grad) 32 particles median 56.4 ms
+joint_index: vmap(grad) 32 particles median 1.1 ms
+pmf_and_moments: vmap(grad) 32 particles median 91.9 ms
+e2e: completed in 3.5s; particle0 epoch2 coal 1.03e-06, particle1 epoch1 coal 1.03e-06; mean [1.81019824 0.5        2.83798097 0.5       ]
+[runcap] exit 0, peak RSS 644 MB, 9s
+daisy/normal                 bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.19e-15
+daisy/small                  bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy/mixed                  bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy_exp/normal             bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.20e-15
+daisy_exp/small              bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy_exp/mixed              bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+joint_index/normal           bit-identical=False  finite old=1.00 new=1.00  max rel diff=3.71e-16
+joint_index/small            bit-identical=False  finite old=1.00 new=1.00  max rel diff=2.97e+00
+joint_index/mixed            bit-identical=False  finite old=1.00 new=1.00  max rel diff=5.93e-05
+pmf_and_moments/normal       bit-identical=True  finite old=1.00 new=1.00  max rel diff=0.00e+00
+pmf_and_moments/small        bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.83e+03
+pmf_and_moments/mixed        bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.83e+03

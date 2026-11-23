@@ -1,0 +1,28 @@
+=== old
+daisy: vmap(grad) 32 particles median 20.6 ms
+daisy_exp: vmap(grad) 32 particles median 53.8 ms
+joint_index: vmap(grad) 32 particles median 0.9 ms
+pmf_and_moments: vmap(grad) 32 particles median 93.4 ms
+init theta check [5.e-08 1.e-09]
+e2e: FAILED after 1.0s: XlaRuntimeError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negative -- the solver's output would not be a probabilit
+[runcap] exit 0, peak RSS 522 MB, 8s
+=== new
+daisy: vmap(grad) 32 particles median 19.7 ms
+daisy_exp: vmap(grad) 32 particles median 52.0 ms
+joint_index: vmap(grad) 32 particles median 1.1 ms
+pmf_and_moments: vmap(grad) 32 particles median 99.8 ms
+init theta check [5.e-08 1.e-09]
+e2e: completed in 4.2s; particle0 epoch2 coal 5.17e-08, particle1 epoch1 coal 1.03e-09; mean [1.81019867 0.5        2.8379809  0.5       ]
+[runcap] exit 0, peak RSS 622 MB, 10s
+daisy/normal                 bit-identical=True  finite old=1.00 new=1.00  max rel diff=0.00e+00
+daisy/small                  bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy/mixed                  bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy_exp/normal             bit-identical=True  finite old=1.00 new=1.00  max rel diff=0.00e+00
+daisy_exp/small              bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+daisy_exp/mixed              bit-identical=False  finite old=0.00 new=1.00  max rel diff=nan
+joint_index/normal           bit-identical=True  finite old=1.00 new=1.00  max rel diff=0.00e+00
+joint_index/small            bit-identical=False  finite old=1.00 new=1.00  max rel diff=2.97e+00
+joint_index/mixed            bit-identical=False  finite old=1.00 new=1.00  max rel diff=5.93e-05
+pmf_and_moments/normal       bit-identical=True  finite old=1.00 new=1.00  max rel diff=0.00e+00
+pmf_and_moments/small        bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.83e+03
+pmf_and_moments/mixed        bit-identical=False  finite old=1.00 new=1.00  max rel diff=1.83e+03

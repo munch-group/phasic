@@ -1,0 +1,6 @@
+scale=1 maxrate=50 steps=2.5e+03 edges=2707 edge-steps=6.77e+06 time=0.03s ns/edge-step=4.08 maxRSS=368MB
+scale=100 maxrate=5e+03 steps=2.5e+04 edges=2707 edge-steps=6.77e+07 time=0.28s ns/edge-step=4.16 maxRSS=369MB
+scale=1000 maxrate=5e+04 steps=2.5e+05 edges=2707 edge-steps=6.77e+08 time=2.81s ns/edge-step=4.16 maxRSS=373MB
+scale=10000 maxrate=5e+05 steps=2.5e+06 edges=2707 edge-steps=6.77e+09 time=26.67s ns/edge-step=3.94 maxRSS=376MB
+scale=30000 maxrate=1.5e+06 steps=7.5e+06 edges=2707 edge-steps=2.03e+10 time=79.71s ns/edge-step=3.93 maxRSS=376MB
+[runcap] exit 0, peak RSS 382 MB, 115s
