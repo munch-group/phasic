@@ -5409,11 +5409,15 @@ class SVGD:
     Attributes
     ----------
     particles : array
-        Final posterior samples (n_particles, theta_dim)
+        Final posterior samples (n_particles, theta_dim) in the optimiser's
+        unconstrained space (e.g. softplus^-1 of the rates under
+        ``positive_params=True``); ``get_results()['particles']`` gives
+        them on the parameter scale
     theta_mean : array
-        Posterior mean estimate
+        Posterior mean on the parameter scale (equal to
+        ``get_results()['theta_mean']``)
     theta_std : array
-        Posterior standard deviation
+        Posterior standard deviation on the parameter scale
     history : list of arrays, optional
         Particle evolution over iterations (if fit was called with return_history=True)
     is_fitted : bool
@@ -7491,10 +7495,21 @@ class SVGD:
                     _H[:, :, _slave] = _H[:, :, _master]
                 results['history'] = _H
 
-        # Store results as attributes
+        # Store results as attributes. `particles` stay in the optimiser's
+        # (unconstrained) space -- get_results() and the plots transform them
+        # from there -- but `theta_mean`/`theta_std` are the posterior summary
+        # and are reported on the parameter (constrained) scale, the same
+        # values get_results() returns. They used to be the mean/std of the
+        # unconstrained particles, e.g. -9.028 = log(expm1(1.2e-4)) for a rate
+        # fixed at 1.2e-4.
         self.particles = results['particles']
-        self.theta_mean = results['theta_mean']
-        self.theta_std = results['theta_std']
+        if self.param_transform is not None:
+            _Pc = self._constrained_particles(self.particles)
+            self.theta_mean = _Pc.mean(axis=0)
+            self.theta_std = _Pc.std(axis=0)
+        else:
+            self.theta_mean = results['theta_mean']
+            self.theta_std = results['theta_std']
 
         if return_history:
             self.history = np.array(results['history'])
@@ -7514,6 +7529,28 @@ class SVGD:
 
         return self
 
+
+    def _constrained_particles(self, particles):
+        """Map unconstrained particles to the parameter (constrained) scale.
+
+        Transforms ALL dimensions, learnable and fixed: fixed dimensions are
+        stored in PHI space too (e.g. inv_softplus(1.0) = 0.541).
+
+        Tied slaves are then re-tied in CONSTRAINED space (F-010). The model
+        applies the tie AFTER the transform (theta_transformed[slave] =
+        theta_transformed[master], see _log_prob_unified), and a slave may
+        carry a DIFFERENT per-dim transform than its master -- e.g. a
+        BetaPrior master (sigmoid) vs a masked slave (default softplus) -- so
+        the unconstrained copy done in optimize() does NOT make the
+        constrained slave equal the master. Mirroring the model here makes
+        every constrained surface (theta_mean/std, HPD, particles) report the
+        master's value at the slave, matching what was fit.
+        """
+        pc = jnp.array([self.param_transform(p) for p in particles])
+        _s2m = (getattr(self.model, '_tying_info', None) or {}).get('slave_to_master', {})
+        for _sl, _ma in _s2m.items():
+            pc = pc.at[:, _sl].set(pc[:, _ma])
+        return pc
 
     def get_results(self) -> dict:
         """
@@ -7537,24 +7574,8 @@ class SVGD:
 
         # Transform particles to constrained space if transformation is active
         if self.param_transform is not None:
-            # Transform ALL dimensions (both learnable and fixed) from PHI space to THETA space
-            # Fixed dimensions are stored in PHI space (e.g., inv_softplus(1.0) = 0.541)
-            # and need to be transformed back to THETA space for reporting
-            particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
-
-            # Re-tie tied slaves in CONSTRAINED space (F-010). The model applies
-            # the tie AFTER the transform (theta_transformed[slave] =
-            # theta_transformed[master], see _log_prob_unified), and a slave may
-            # carry a DIFFERENT per-dim transform than its master -- e.g. a
-            # BetaPrior master (sigmoid) vs a masked slave (default softplus) --
-            # so the unconstrained copy done in optimize() does NOT make the
-            # constrained slave equal the master. Mirror the model here so every
-            # constrained surface (theta_mean/std, HPD, particles, history)
-            # reports the master's value at the slave, matching what was fit.
+            particles_constrained = self._constrained_particles(self.particles)
             _s2m = (getattr(self.model, '_tying_info', None) or {}).get('slave_to_master', {})
-            for _sl, _ma in _s2m.items():
-                particles_constrained = particles_constrained.at[:, _sl].set(
-                    particles_constrained[:, _ma])
 
             theta_mean = particles_constrained.mean(axis=0)
             theta_std = particles_constrained.std(axis=0)
