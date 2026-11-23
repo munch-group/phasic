@@ -1,6 +1,6 @@
 # Bug 4: discrete models accept row sums above 1 and return negative probabilities — fix plan
 
-**Status: v3, 2026-11-23 (v1 and v2 each returned CHANGES REQUIRED by all
+**Status: v3.1, 2026-11-23 (v1 and v2 each returned CHANGES REQUIRED by all
 three reviewers; §0b lists the v2 -> v3 changes). Branch `fix/discrete-negative-pmf`,
 worktree `/Users/kmt/phasic-bug4` (own pixi env). No source changed yet.
 Backward compatibility is not required (user decision). Native (C/C++)
@@ -115,16 +115,22 @@ and is five orders tighter than today.
 
 ### 2.2 The step: cap each outflow at the mass still present (discrete contexts only)
 
-The context struct gets `bool cap_outflow`.
-`_ptd_dph_probability_distribution_context_create` assigns it in BOTH
-branches (`true` when `dont_worry` is false, `false` otherwise)
-immediately after the `malloc` at `phasic.c:12848` — before the
-initialising step the creation function runs internally. (The struct is
+The context struct gets `bool cap_outflow` and
+`uint64_t validated_weight_version`.
+`_ptd_dph_probability_distribution_context_create` assigns
+`cap_outflow` in BOTH branches (`true` when `dont_worry` is false, `false`
+otherwise), and `validated_weight_version = graph->weight_version` and
+the existing `weight_version_at_creation` (today assigned only at
+`12922`, after the internal step), all immediately after the `malloc` at
+`phasic.c:12848` — before the initialising step the creation function
+runs internally at `12917`. (The struct is
 `malloc`'d; an unassigned flag would be the known
 uninitialised-field-on-Linux fault.)
 
 The increment loop (`phasic.c:12968-12973`) becomes:
 
+    size_t current_from = (size_t) -1;     /* no vertex has this index */
+    long double remaining = 0;             /* same type as the masses */
     for each increment inc (already grouped by source, in edge order):
         add = old_probability_at[inc.from] * (*inc.weight) * context->priv3;
         if (context->cap_outflow) {
@@ -167,11 +173,24 @@ capped to total 1.
 **Contexts held by the user.** The step reads weights through pointers,
 so a context created before `update_weights` steps with the new weights
 unvalidated (measured: pmf [0.75, -0.375, 0.1875] after updating 0.5 ->
-1.5, review1/r6.log). In a `cap_outflow` context the step compares the
-graph's weight version with the one stored at creation (one integer
-compare per step); when they differ it runs the whole-graph validation,
-returns nonzero with `ptd_err` set if it fails, and otherwise stores the
-new version. The C++ `step()` wrappers check the return value and throw.
+1.5, review1/r6.log). In a `cap_outflow` context the step, as its very
+first statements — before `context->jumps++`, `context->pmf = 0` and the
+allocation of the old-mass array (`12946-12951`), so a failure leaves the
+context untouched and leaks nothing — compares `graph->weight_version`
+with `validated_weight_version` (one integer compare per step). When they
+differ it runs the whole-graph validation, returns nonzero with `ptd_err`
+set if it fails, and otherwise stores the new version in
+`validated_weight_version`. `weight_version_at_creation` keeps its
+meaning (the C++ caches rebuild on it, `phasiccpp.h:1627, 1747`). The
+four C++ call sites that ignore the step's return value today
+(`phasiccpp.h:1644, 1759, 1787, 2356`) check it and throw via
+`PTD_THROW_AND_CLEAR()`.
+
+Not covered (existing behaviour, out of scope): changes made after a
+context was created that do not bump the weight version — structural
+edits (`add_edge`, auxiliary vertices; the context's arrays are sized at
+creation) and the in-place division in `ptd_dph_normalize_graph`
+(`phasic.c:2684`).
 
 ### 2.3 Which read-outs validate
 
