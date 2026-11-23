@@ -1,6 +1,6 @@
 # Bug 3: a BetaPrior's (0, 1) transform is not applied consistently — fix plan
 
-**Status: v3, 2026-11-23 (v2 + the re-review's additions: test 10b, branch selection, plot details; reviewers 1 and 2 signed off — reviewer 2 conditional on test 10b, added as written). v1 was reviewed by three independent agents
+**Status: v4, 2026-11-23 (reviewers 1 and 2 signed off — reviewer 2 conditional on test 10b, added as written; v4 adds reviewer 3's two changes: the clip in the custom-transform branch with an extended guard 14, and the slow tier run once in the gate). v1 was reviewed by three independent agents
 (diagnosis; fix design, with a full prototype; tests/impact). The core
 design survived; the diagnosis, three decisions, the function contract
 and most tests changed (section 8). Branch
@@ -123,13 +123,21 @@ never silently ignored.**
    unchanged. Branch selection in `BetaPrior.__call__`, stated explicitly:
    `_transform is None` → hard wall; `_transform` is the class's natural
    sigmoid → the unclipped form (summed over elements); any other
-   (custom) transform → the existing formula through that transform.
+   (custom) transform → the existing formula through that transform,
+   with theta clipped to [1e-9, 1 - 1e-9] before the logarithms (an
+   unclipped custom sigmoid such as the docstring's
+   `lambda x: jax.nn.sigmoid(x)` is exactly 1.0 at phi = 37, which gives a
+   -inf log-prior and a NaN gradient; today SVGD's single form avoids this
+   only because it hands the prior its own clipped sigmoid).
 4. **`plot_pairwise_hdr`** inverts each axis with its slot's inverse
    (inverse softplus or inverse sigmoid, taken from the resolver's
    per-slot information); with a custom transform and
    `unconstrained=False` it raises a clear error instead of inverting with
    softplus (the unconstrained view needs no inverse). Axis limits on a
-   (0, 1) slot are clipped to (0, 1).
+   (0, 1) slot are clipped to (0, 1). The per-slot inverses live on the
+   SVGD object (`self._slot_inverses`, set by the constructor from the
+   resolver's per-slot decision), since the elementwise callable carries
+   no per-slot information.
 5. **Docs**: BetaPrior docstring and the comment at `svgd.py:1585`; Prior
    base class (`svgd.py:664-676`); `param_transform` docstring
    (`svgd.py:5246-5249`); `positive_params` statements (`svgd.py:5239`,
@@ -188,19 +196,21 @@ Fail on master:
 7. SVGD with `positive_params=False` and a BetaPrior (single, list)
    raises, and the message names `positive_params=True`.
 8. `plot_pairwise_hdr` on a `[Gauss, Beta]` fit and on a single-BetaPrior
-   2-parameter fit: every model evaluation during the plot has the Beta
-   slot at the axis value it is plotted at (spy), within the grid's
-   (0, 1) range; with a custom transform the plot raises.
+   2-parameter fit, called with explicit limits inside (0, 1) on the Beta
+   axis (0.2, 0.8): the spy's Beta-slot values during the plot reach both
+   ends (max >= 0.75, min <= 0.25; master tops out at
+   sigmoid(inverse-softplus(0.8)) = 0.56); with a custom transform and
+   `unconstrained=False` the plot raises.
 9. `_transform` is reassigned on every construction: a prior object used
-   with `param_transform=exp` and then in a fit without a transform has
+   with `param_transform=exp` and then in an MCMC without a transform has
    `_transform is None`; a prior used by an SVGD and then given to an MCMC
    is wired per the MCMC's own rule.
 10. List prior with a custom transform: the BetaPrior's `_transform` is
     the custom function (today it is its sigmoid while the model gets the
     custom one).
 10b. The log-density itself (pins fix item 3; deterministic): for a
-    BetaPrior wired to its natural transform (alpha = 0.75 and 2.0), at
-    phi = ±25 and ±40, `prior(phi)` equals
+    BetaPrior wired to its natural transform (alpha = 0.5, 0.75 and 2.0),
+    at phi = ±25, ±40, ±50 and ±500, `prior(phi)` equals
     `alpha*log_sigmoid(phi) + beta*log_sigmoid(-phi)` (rtol 1e-12) and is
     strictly decreasing in |phi| (master is flat there: -15.5424 at
     phi = -21, -25, -30); for a 2-vector input the value is the sum over
@@ -221,9 +231,12 @@ Guards (pass on master and after):
     on the prior, in SVGD and MCMC; fits bit-identical to a reference
     computed in the same test run through the unchanged list/softplus
     path where one exists.
-14. Single BetaPrior + custom sigmoid `param_transform`
-    (`positive_params=False`): consistent (model and prior equal on a
-    grid), does not raise.
+14. BetaPrior + custom UNCLIPPED sigmoid `param_transform`
+    (`lambda x: jax.nn.sigmoid(x)`, `positive_params=False`), SVGD single
+    and list forms: model and prior agree on a phi grid that includes
+    ±40; the prior's log-density and its gradient are finite there; does
+    not raise. (The finite-at-±40 part fails on a build that wires the
+    custom function without the clip.)
 15. Single BetaPrior, dim 2, default preconditioner with a fixed slot:
     runs; free slot in (0, 1) (the elementwise transform works on the
     preconditioner's learnable subset).
@@ -260,7 +273,11 @@ Same tools and rules as bugs 1 and 2 (`gate2.sh`, `gate_compare.py
 `gate_rerun.sh`; DONE on both sides, equal file sets, usable results on
 both sides, passed stays passed, nothing disappears, new tests pass;
 isolated triple reruns), after rebasing onto master-with-bugs-1-and-2 and
-`pixi run install-dev`; baseline = bug 2's gate run.
+`pixi run install-dev`; baseline = bug 2's gate run. Because the gate
+runs `-m "not slow"`, the new file's slow tier (the multi-seed
+distributional checks of test 5 for the remaining prior forms) is run
+once explicitly, memory-capped, and its result reported with the gate.
+Fast-tier cost of the new file: about 2-3 minutes.
 
 ## 6. Risks
 

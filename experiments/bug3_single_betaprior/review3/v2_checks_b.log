@@ -4,3 +4,11 @@
    seed 1: ESS [915.0, 982.0] Gauss slot thinned KS p 0.229 (mu 2.75 sigma 1.15) Beta slot thinned KS p 0.012  z_gauss -0.93 z_beta -2.30
    seed 2: ESS [1002.0, 1008.0] Gauss slot thinned KS p 0.465 (mu 2.75 sigma 1.15) Beta slot thinned KS p 0.675  z_gauss -0.54 z_beta 0.71
 ## test 4: geometric likelihood (pure JAX), truth 0.3, n=200, BetaPrior(ci=(0.5,0.95)); |mean-exact| < 4 sd/sqrt(ESS)?
+   seed 0: mean 0.30159 exact 0.30171 sd 0.01779 exact sd 0.01743 ESS 1344 rhat 1.001 acc [0.35, 0.25, 0.15, 0.28] z -0.25 (bound 4)
+   seed 1: mean 0.30157 exact 0.30171 sd 0.01756 exact sd 0.01743 ESS 1720 rhat 1.003 acc [0.21, 0.38, 0.34, 0.4] z -0.35 (bound 4)
+   seed 2: mean 0.30079 exact 0.30171 sd 0.01703 exact sd 0.01743 ESS 1477 rhat 1.002 acc [0.33, 0.36, 0.25, 0.25] z -2.04 (bound 4)
+   seed 3: mean 0.30236 exact 0.30171 sd 0.01676 exact sd 0.01743 ESS 1601 rhat 1.000 acc [0.28, 0.26, 0.22, 0.39] z 1.49 (bound 4)
+## BetaPrior handed an UNCLIPPED custom sigmoid (v2 rule: custom transform -> prior._transform = custom)
+   Beta(2.0,5.0) log-prior and d/dphi at phi=5, 37, 40, -800: custom unclipped [(-25.05, -4.953), (-inf, nan), (-inf, nan), (-inf, nan)]  natural clipped [-25.05, -103.62, -103.62, -41.45]
+   Beta(2.0,1.0) log-prior and d/dphi at phi=5, 37, 40, -800: custom unclipped [(-5.02, -0.98), (nan, nan), (nan, nan), (-inf, nan)]  natural clipped [-5.02, -20.72, -20.72, -41.45]
+[runcap] exit 0, peak RSS 528 MB, 85s
