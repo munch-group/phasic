@@ -57,9 +57,20 @@ def test_empty_rejected(jpg_and_obs):
         probability_matching(jc, np.array([], dtype=np.int64), verbose=False)
 
 
-def test_mapped_indices_fit_ratio(jpg_and_obs):
-    """The wrapper path still works and recovers the identified ratio mu/c."""
+def test_mapped_indices_fit_with_one_rate_fixed(jpg_and_obs):
+    """The wrapper path works and, with mu fixed at its true value, recovers
+    the coalescence rate (data simulated at c=5, mu=3). Only the ratio mu/c
+    is identified by a joint table, so one rate must be fixed."""
     jc, obs = jpg_and_obs
-    r = jc.probability_matching(obs, verbose=False)
+    r = jc.probability_matching(obs, fixed=[(1, 3.0)], verbose=False)
     c, mu = np.ravel(r.theta)
-    assert abs(mu / c - 0.6) < 0.05
+    assert mu == 3.0
+    assert abs(c - 5.0) < 0.5
+
+
+def test_unfixed_scale_raises(jpg_and_obs):
+    """With nothing fixed the overall rate scale is not identified: raise
+    (this used to return an arbitrary scale with a huge standard error)."""
+    jc, obs = jpg_and_obs
+    with pytest.raises(ValueError, match="cannot determine the overall scale"):
+        jc.probability_matching(obs, verbose=False)

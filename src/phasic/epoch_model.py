@@ -38,10 +38,17 @@ class FreeEpochModel:
         Base ``(flat_idx, value)`` fixings (broadcast across epochs), or ``None``.
     n_epochs, param_length, t_eval, epoch_starts
         Epoch metadata.
+
+    When built with ``prior=None``, the default data-informed prior is built
+    at :meth:`fit` time from the base and fit-level ``fixed`` combined (a
+    parameter counts as fixed when it is fixed in every epoch), so a model
+    built with nothing fixed can still be fitted with an identifying
+    ``fixed``.
     """
 
     def __init__(self, *, model, theta_dim, observed_data, prior, fixed,
-                 n_epochs, param_length, t_eval, epoch_starts):
+                 n_epochs, param_length, t_eval, epoch_starts,
+                 default_prior_factory=None):
         self.model = model
         self.theta_dim = int(theta_dim)
         self.observed_data = observed_data
@@ -51,6 +58,9 @@ class FreeEpochModel:
         self.param_length = int(param_length)
         self.t_eval = t_eval
         self.epoch_starts = epoch_starts
+        # (flat_fixed, positive_params) -> (flat prior list, info); set by
+        # Graph.epoch_model when it was built with prior=None.
+        self._default_prior_factory = default_prior_factory
 
     def __repr__(self) -> str:
         return (
@@ -111,6 +121,26 @@ class FreeEpochModel:
         # entry at a fixed slot). Only a per-slot LIST needs this; a scalar
         # callable is auto-masked by SVGD, and None is left as-is (amendment 3).
         prior_use = prior if prior is not None else self.prior
+        from .svgd_config import assume
+        if prior_use is None and self._default_prior_factory is not None:
+            prior_use, _info = self._default_prior_factory(
+                merged or [], svgd_kwargs.get('positive_params', True))
+            if _info['exposure_binned']:
+                assume(
+                    "FreeEpochModel.fit: the default prior grouped the "
+                    f"exposure values into {_info['exposure_groups']} quantile "
+                    "bins (each at its mean exposure); this only affects the "
+                    "prior's centre and width.", stacklevel=2)
+        # Nothing pins the scale of the last epoch's rates unless one of its
+        # slots is fixed (this model has no tying).
+        _last = range((self.n_epochs - 1) * self.param_length,
+                      self.n_epochs * self.param_length)
+        if not any(k in merged_map for k in _last):
+            assume(
+                "FreeEpochModel.fit: none of the last epoch's rates is fixed, "
+                "so the data cannot determine their overall scale and it "
+                "follows the prior; fix a rate with fixed= to identify it.",
+                stacklevel=2)
         if isinstance(prior_use, list) and merged_map:
             prior_use = [
                 None if k in merged_map else p
