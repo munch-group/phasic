@@ -1,0 +1,7 @@
+after __init__: [(2.0, '__init__:6345')]
+  theta[1]=2  via optimize:7337 <- compute_scaling:3972 <- _find_moment_matching_reference:3900 <- _model_with_fixed:7332
+  theta[1]=2  via optimize:7337 <- compute_scaling:3986 <- _model_with_fixed:7332
+  theta[1]=2  via optimize:7337 <- compute_scaling:4002 <- _model_with_fixed:7332
+  theta[1]=2  via optimize:7337 <- compute_scaling:4003 <- _model_with_fixed:7332
+  theta[1]=2  via optimize:7405 <- _precompile_unified:7096 <- _log_prob_unified:6762
+  theta[1]=2  via optimize:7451 <- run_svgd:4958 <- _log_prob_unified:6762

@@ -1,0 +1,23 @@
+phasic from /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+## positive_params=True (default), tuple format
+  fixed=(1, 0): model saw theta[1] = [0.6931471805599453]; theta_mean[1] = 0.6931471805599453
+  fixed=(1, 1e-12): model saw theta[1] = [1e-09]; theta_mean[1] = 1e-09
+  fixed=(1, 1e-10): model saw theta[1] = [1e-09]; theta_mean[1] = 1e-09
+  fixed=(1, 1e-09): model saw theta[1] = [1.0000000822403715e-09]; theta_mean[1] = 1.0000000822403715e-09
+  fixed=(1, 1e-08): model saw theta[1] = [9.999999889225275e-09]; theta_mean[1] = 9.999999889225275e-09
+  fixed=(1, 0.3): model saw theta[1] = [0.30000000000000004]; theta_mean[1] = 0.30000000000000004
+  fixed=(1, 2): model saw theta[1] = [2.0]; theta_mean[1] = 2.0
+  fixed=(1, 50): model saw theta[1] = [50.0]; theta_mean[1] = 50.0
+  fixed=(1, 800): model saw theta[1] = [inf]; theta_mean[1] = inf
+  fixed=(1, -0.5): model saw theta[1] = [0.4740769841801067]; theta_mean[1] = 0.4740769841801067
+## binary mask format [0, 1] (documented as "fix at 1.0")
+  fixed=[0, 1]: model saw theta[1] = [1.0]; theta_mean[1] = 1.0
+## custom param_transform = exp (positive_params=False)
+  fixed=(1, 2), param_transform=exp: model saw theta[1] = [7.38905609893065]; theta_mean[1] = 7.38905609893065
+  fixed=(1, 0), param_transform=exp: model saw theta[1] = [1.0]; theta_mean[1] = 1.0
+## positive_params=False, no transform
+  fixed=(1, 0): model saw theta[1] = [0.0]; theta_mean[1] = 0.0
+  fixed=(1, -0.5): model saw theta[1] = [-0.5]; theta_mean[1] = -0.5
+  fixed=(1, 2): model saw theta[1] = [2.0]; theta_mean[1] = 2.0
+## per-dimension transforms: BetaPrior on slot 0, slot 1 fixed
+  fixed=(1, 0.25) with [BetaPrior, None]: model saw theta[1] = [0.24999999999999994]; theta_mean[1] = 0.24999999999999994
