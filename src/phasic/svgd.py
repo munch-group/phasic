@@ -8,9 +8,6 @@ from typing import Any, Callable, NamedTuple
 import warnings
 import matplotlib
 import numpy as np
-import pickle
-import hashlib
-import pathlib
 from itertools import zip_longest
 # Note: JAX environment (XLA_FLAGS, device count) is configured by
 # phasic.__init__.py before this module is imported.
@@ -5217,8 +5214,8 @@ class SVGD:
         Precompile model and gradient functions for faster execution.
         Implies jit=True for backward compatibility.
         First run will take longer (compilation time) but subsequent
-        iterations will be much faster. Compiled functions are cached
-        in memory and on disk (~/.phasic_cache/).
+        iterations will be much faster. The compiled gradient belongs to
+        one ``optimize()`` call; it is not cached between fits.
     compilation_config : CompilationConfig, dict, str, or Path, optional
         JAX compilation optimization configuration. Can be:
         - CompilationConfig object from phasic.CompilationConfig
@@ -5488,9 +5485,6 @@ class SVGD:
     >>> svgd.plot_posterior()
     >>> svgd.plot_trace()
     """
-
-    # Class-level cache for compiled models (shared across instances)
-    _compiled_cache = {}
 
     def __init__(self, model: Callable, observed_data: jnp.ndarray | SparseObservations,
                  prior: Prior | list[Prior | None] | DataPrior | None = None,
@@ -6429,13 +6423,9 @@ class SVGD:
         self.history_log_prob = None
         self.is_fitted = False
 
-        # Compiled model and gradient (set by _precompile_model if jit_enabled=True)
-        self.compiled_model = None
-        self.compiled_grad = None
-
-        # Precompilation now happens in optimize() based on regularization settings
-        # This allows caching for both regularized and non-regularized cases
-        # Old behavior: if self.jit_enabled: self._precompile_model()
+        # The gradient is compiled in optimize(), once per call; compiled
+        # functions are never shared between SVGD instances (they close over
+        # this instance's data, priors and transforms).
 
     def _log_prob(self, theta: jnp.ndarray) -> float:
         """
@@ -6823,144 +6813,6 @@ class SVGD:
             # No regularization: moments computed but not used
             return log_lik + log_pri
 
-    def _get_cache_path(self) -> pathlib.Path:
-        """Generate cache path for this model configuration."""
-        # Create cache key from model id and shapes
-        theta_shape = (self.theta_dim,)
-        if self._sparse_format:
-            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
-        else:
-            times_shape = self.observed_data.shape
-        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}"
-        cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
-
-        # Cache directory
-        cache_dir = pathlib.Path.home() / '.phasic_cache'
-        cache_dir.mkdir(exist_ok=True)
-
-        return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
-
-    def _get_cache_key_unified(self, nr_moments: int, regularization: float, rewards: tuple | None = None) -> str:
-        """
-        Generate cache key including regularization parameters.
-
-        Different regularization settings require different compiled gradients,
-        so we include nr_moments, regularization, and rewards in the cache key.
-
-        Parameters
-        ----------
-        nr_moments : int
-            Number of moments for regularization
-        regularization : float
-            Regularization strength
-        rewards : tuple or None, optional
-            Reward vector as tuple for hashing
-
-        Returns
-        -------
-        str
-            Cache hash for this configuration
-        """
-        theta_shape = (self.theta_dim,)
-        if self._sparse_format:
-            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
-        else:
-            times_shape = self.observed_data.shape
-        # Include nr_moments, regularization, and rewards in cache key
-        rewards_str = str(rewards) if rewards is not None else "None"
-        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}_{nr_moments}_{regularization}_{rewards_str}"
-        cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
-        return cache_hash
-
-    def _save_compiled(self, cache_path: pathlib.Path) -> None:
-        """Save compiled model and gradient to disk."""
-        try:
-            with open(cache_path, 'wb') as f:
-                pickle.dump({
-                    'model': self.compiled_model,
-                    'grad': self.compiled_grad
-                }, f)
-            if self.verbose:
-                print(f"  Saved compiled functions to cache: {cache_path.name}")
-        except Exception as e:
-            # Disk caching is best-effort; memory cache still works
-            # Pickling JIT functions with closures often fails - this is expected
-            pass
-
-    def _load_compiled(self, cache_path: pathlib.Path) -> bool:
-        """Load compiled model and gradient from disk."""
-        if cache_path.exists():
-            try:
-                with open(cache_path, 'rb') as f:
-                    cached = pickle.load(f)
-                self.compiled_model = cached['model']
-                self.compiled_grad = cached['grad']
-                if self.verbose:
-                    print(f"  Loaded compiled functions from cache: {cache_path.name}")
-                return True
-            except Exception as e:
-                if self.verbose:
-                    print(f"  Warning: Failed to load cache: {e}")
-                return False
-        return False
-
-    def _precompile_model(self) -> None:
-        """Precompile model and gradient for known shapes."""
-        # Generate cache key
-        theta_shape = (self.theta_dim,)
-        if self._sparse_format:
-            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
-        else:
-            times_shape = self.observed_data.shape
-        memory_cache_key = (id(self.model), theta_shape, times_shape)
-
-        # Check memory cache first
-        if memory_cache_key in SVGD._compiled_cache:
-            cached = SVGD._compiled_cache[memory_cache_key]
-            self.compiled_model = cached['model']
-            self.compiled_grad = cached['grad']
-            if self.verbose:
-                print(f"  Using cached compiled functions from memory")
-            return
-
-        # Check disk cache
-        cache_path = self._get_cache_path()
-        if self._load_compiled(cache_path):
-            # Store in memory cache for future instances
-            SVGD._compiled_cache[memory_cache_key] = {
-                'model': self.compiled_model,
-                'grad': self.compiled_grad
-            }
-            return
-
-        # Need to compile
-        if self.verbose:
-            print(f"\nPrecompiling gradient function...")
-            print(f"  Theta shape: {theta_shape}, Times shape: {times_shape}")
-            print(f"  This may take several minutes for large models...")
-
-        # Create dummy inputs with correct shapes
-        dummy_theta = jnp.zeros(theta_shape)
-
-        # JIT compile gradient (use jit without lower/compile so it can be vmapped/pmapped)
-        if self.verbose:
-            print(f"  JIT compiling gradient...")
-        start = time()
-        grad_fn = jax.grad(self._log_prob)
-        self.compiled_grad = jax.jit(grad_fn)
-        # Trigger compilation with dummy call
-        _ = self.compiled_grad(dummy_theta)
-        if self.verbose:
-            print(f"  Gradient JIT compiled in {time() - start:.1g}s")
-            print(f"  Precompilation complete!")
-
-        # Save to both caches
-        SVGD._compiled_cache[memory_cache_key] = {
-            'model': self.compiled_model,
-            'grad': self.compiled_grad
-        }
-        self._save_compiled(cache_path)
-
     def _create_log_prob_fn_with_regularization(self, regularization_value: float) -> Callable:
         """
         Create log_prob function with specific regularization value.
@@ -6991,8 +6843,8 @@ class SVGD:
         """
         Precompile gradient for unified log_prob with given regularization settings.
 
-        Handles caching (both memory and disk) for compiled gradients with different
-        regularization parameters.
+        The compiled function is built fresh on every call and is not
+        cached: it closes over this instance's data, priors and transforms.
 
         Parameters
         ----------
@@ -7008,7 +6860,7 @@ class SVGD:
             - 2D array (n_features, n_vertices): Reward matrix where rewards[j, :] is feature j's vector
         value_and_grad : bool, default=False
             If True, compile ``jax.value_and_grad`` of the log probability
-            instead of ``jax.grad`` (cached under separate keys), so the fit
+            instead of ``jax.grad``, so the fit
             can record each particle's log probability at no extra cost.
 
         Returns
@@ -7017,52 +6869,11 @@ class SVGD:
             JIT-compiled gradient function, or value-and-gradient function
             if ``value_and_grad=True``
         """
-        # Generate cache key including regularization params and rewards
-        # Convert rewards to hashable tuple (JAX arrays aren't hashable)
-        if rewards is not None:
-            import numpy as np
-            rewards_tuple = tuple(np.asarray(rewards).flatten())
-        else:
-            rewards_tuple = None
-        cache_hash = self._get_cache_key_unified(nr_moments, regularization, rewards_tuple)
         if self._sparse_format:
             obs_shape = (len(self.observed_data.values), self.observed_data.n_features)
         else:
             obs_shape = self.observed_data.shape
-        memory_cache_key = (id(self.model), self.theta_dim, obs_shape,
-                           nr_moments, regularization, rewards_tuple)
-        if value_and_grad:
-            memory_cache_key = memory_cache_key + ('value_and_grad',)
-            cache_hash = cache_hash + '_vg'
 
-        # Check memory cache first
-        if memory_cache_key in SVGD._compiled_cache:
-            cached = SVGD._compiled_cache[memory_cache_key]
-            compiled_grad = cached['grad']
-            if self.verbose:
-                print(f"  Using cached compiled gradient from memory")
-            return compiled_grad
-
-        # Check disk cache
-        cache_dir = pathlib.Path.home() / '.phasic_cache'
-        cache_dir.mkdir(exist_ok=True)
-        cache_path = cache_dir / f"compiled_svgd_{cache_hash}.pkl"
-
-        if cache_path.exists():
-            try:
-                with open(cache_path, 'rb') as f:
-                    cached = pickle.load(f)
-                compiled_grad = cached['grad']
-                if self.verbose:
-                    print(f"  Loaded compiled gradient from disk cache: {cache_path.name}")
-                # Store in memory cache
-                SVGD._compiled_cache[memory_cache_key] = {'grad': compiled_grad}
-                return compiled_grad
-            except Exception as e:
-                if self.verbose:
-                    print(f"  Warning: Failed to load cache: {e}")
-
-        # Need to compile
         if self.verbose:
             print(f"\nPrecompiling gradient function...")
             print(f"  Theta shape: {(self.theta_dim,)}, Times shape: {obs_shape}")
@@ -7098,17 +6909,10 @@ class SVGD:
             print(f"  Gradient JIT compiled in {time() - start:.1g}s")
             print(f"  Precompilation complete!")
 
-        # Save to both caches
-        SVGD._compiled_cache[memory_cache_key] = {'grad': compiled_grad}
-        try:
-            with open(cache_path, 'wb') as f:
-                pickle.dump({'grad': compiled_grad}, f)
-            if self.verbose:
-                print(f"  Saved compiled gradient to cache: {cache_path.name}")
-        except Exception:
-            # Disk caching is best-effort
-            pass
-
+        # Deliberately NOT cached across instances or on disk: the compiled
+        # function closes over this instance (data, prior list, transform),
+        # so sharing it by model identity and shapes returned another fit's
+        # gradient (bug1-compiled-cache-plan.md).
         return compiled_grad
 
     def effective_options(self, *names, file=None, return_dict: bool = False):
@@ -7222,7 +7026,7 @@ class SVGD:
         - Supports all JAX transformations: jit, grad, vmap, pmap
         - Supports multi-core parallelization via parallel='vmap'/'pmap'
         - Supports multi-machine distribution via initialize_distributed()
-        - Gradient compilation is cached (both memory and disk) for performance
+        - The gradient is compiled once per optimize() call (not cached between fits)
         - All functionality from fit() and fit_regularized() is preserved
         """
         # FIX: Use self.rewards if rewards parameter not provided

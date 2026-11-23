@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache, which no longer exists; it does not run on builds
+# that include the fix.
 """Bug 1 reproduction and scoping (run on unmodified code).
 (a) same model object, same data shape, different DATA
 (b) same model object and data, different PRIOR

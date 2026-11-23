@@ -1,3 +1,6 @@
+# NOTE (after the fix): this script documents the UNFIXED code and uses
+# SVGD._compiled_cache, which no longer exists; it does not run on builds
+# that include the fix.
 """What does a cache hit save?  Time SVGD.optimize() with 1 iteration (so
 compile dominates) on the same model object: cold, then cache hit."""
 import sys, time, warnings, random

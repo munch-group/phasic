@@ -1,0 +1,18 @@
+PASSED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_same_instance_optimize_twice_is_reproducible
+PASSED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_graph_svgd_calls_are_independent
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[default]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[no_history]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_data_same_shape[regularized]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_different_prior
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_mutated_data_then_optimize_again
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_prior_override
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_non_nested_fixed
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_nested_then_full
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_default_prior_with_different_fixed_values
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_epoch_model_full_then_nested_including_log_posterior
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_instance_is_released[default]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_instance_is_released[no_history]
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_fitted_epoch_instance_is_released
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_no_compiled_gradient_files_written_or_read
+FAILED ../phasic-bug1/tests/pytest/test_svgd_no_shared_compiled_grad.py::test_class_level_cache_is_gone
+15 failed, 2 passed, 1 warning in 35.85s

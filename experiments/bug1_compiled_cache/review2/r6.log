@@ -1,0 +1,50 @@
+=== clean, new file passes (expect PASS)
+GATE PASS
+=== new test fails (expect FAIL)
+FAIL: 1 new tests not passing
+GATE FAIL
+=== new test skipped (expect FAIL)
+FAIL: 1 new tests not passing
+GATE FAIL
+=== new file not declared (expect FAIL)
+FAIL: files only in candidate and not declared with --new-file: ['tests/pytest/test_new.py']
+note: new test ids in files not declared --new-file (e.g. new parametrisations): ['tests/pytest/test_new.py']
+GATE FAIL
+=== declared new file absent (expect FAIL)
+FAIL: --new-file not present in candidate: ['tests/pytest/test_new.py']
+GATE FAIL
+=== new file collects zero tests (exit 5) (expect FAIL wanted)
+GATE PASS
+=== new file collection error (exit 2, no xml) (expect FAIL)
+FAIL: no usable result: tests/pytest/test_new.py (baseline exit ok, candidate exit 2); rerun with gate_rerun.sh
+GATE FAIL
+=== baseline file killed, candidate fine (expect FAIL)
+FAIL: no usable result: tests/pytest/test_a.py (baseline exit 137, candidate exit ok); rerun with gate_rerun.sh
+GATE FAIL
+=== unusable both sides, no ack (expect FAIL)
+FAIL: unusable on both sides (exit 137); rerun or pass --ack-unusable: tests/pytest/test_a.py
+GATE FAIL
+=== unusable both sides, acked (expect PASS)
+unusable on both sides, identical exit code 137, acknowledged: tests/pytest/test_a.py
+GATE PASS
+=== unusable both sides, different exit codes, acked (expect FAIL)
+FAIL: no usable result: tests/pytest/test_a.py (baseline exit 137, candidate exit 2); rerun with gate_rerun.sh
+GATE FAIL
+=== candidate without DONE (expect FAIL)
+FAIL: ./r6_work/c9 has no DONE marker (run not finished)
+GATE FAIL
+=== regression (expect FAIL)
+FAIL: 1 regressions (passed -> not passed)
+GATE FAIL
+=== test disappeared (expect FAIL)
+FAIL: 1 tests disappeared
+GATE FAIL
+=== file missing in candidate (expect FAIL)
+FAIL: files only in baseline: ['tests/pytest/test_b.py']
+FAIL: 3 tests disappeared
+GATE FAIL
+=== new failing test id in an EXISTING file (expect FAIL)
+FAIL: 1 new tests not passing
+note: new test ids in files not declared --new-file (e.g. new parametrisations): ['tests/pytest/test_a.py']
+GATE FAIL
+=== rerun-style status edit keeps other lines:        3 lines, DONE kept: yes

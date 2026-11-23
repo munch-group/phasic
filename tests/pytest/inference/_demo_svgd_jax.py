@@ -603,32 +603,16 @@ PtDAlgorithms uses a three-layer caching architecture:
     print(f"  5. Future builds of same structure: instant")
 
     # -------------------------------------------------------------------------
-    # Test 7b: Layer 2 - SVGD Compilation Cache (Memory)
+    # Test 7b: Layer 2 - SVGD gradient compilation (no cross-fit cache)
     # -------------------------------------------------------------------------
-    print("\n\n7b. Layer 2: SVGD Compilation Cache Testing")
+    print("\n\n7b. Layer 2: SVGD gradient compilation")
     print("-" * 80)
 
-    print(f"\nSVGD compilation cache: In-memory dict + disk (best-effort)")
-    print(f"Note: SVGD cache testing skipped in this demo to avoid long compilation times")
-    print(f"      The cache works automatically within a Python session")
-
-    print(f"\nHow SVGD compilation cache works:")
-    print(f"  1. Generate cache key: (model_id, theta_shape, n_particles)")
-    print(f"  2. Check memory cache: SVGD._compiled_cache[key]")
-    print(f"  3. Hit: Reuse compiled gradient function (instant)")
-    print(f"  4. Miss: Check disk cache (unreliable, often fails)")
-    print(f"  5. Miss: Compile with jit(grad(log_prob)) (1-60s)")
-    print(f"  6. Save to memory cache for this session")
-    print(f"  7. Try to save to disk (often fails due to pickle limitations)")
-
-    print(f"\nTo test SVGD cache manually:")
-    print(f"  # First SVGD creation compiles (slow)")
-    print(f"  svgd1 = SVGD(model, data, theta_dim=1, n_particles=100)")
-    print(f"  ")
-    print(f"  # Second SVGD with same config uses cache (fast)")
-    print(f"  svgd2 = SVGD(model, data, theta_dim=1, n_particles=100)")
-    print(f"  ")
-    print(f"  # Speedup: typically 2-10x on second creation")
+    print(f"\nSVGD compiles jit(grad(log_prob)) once per optimize() call.")
+    print(f"Compiled gradients are NOT shared between SVGD instances or")
+    print(f"saved to disk: the compiled function closes over the instance's")
+    print(f"data, priors and transforms, so sharing it by model identity")
+    print(f"returned another fit's gradient (removed 2026-11).")
 
     # -------------------------------------------------------------------------
     # Test 7c: Layer 3 - JAX Compilation Cache
