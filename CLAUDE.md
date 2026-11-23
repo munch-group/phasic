@@ -227,6 +227,31 @@ touches another thread_local must do the same. Reproducer:
 `tests/pytest/test_thread_local_teardown.py` (reliable on macOS/libc++
 only).
 
+## Priors under positive_params; default epoch prior (2026-11-23)
+
+Merged `070728cd` + `357329ef` (plan `epoch-default-prior-and-truncated-gauss-plan.md`).
+
+- `GaussPrior(lower=0.0)` samples the Gaussian truncated to theta > 0
+  exactly (inverse CDF, no 1e-6 clip). Under `positive_params=True` SVGD
+  and MCMC REQUIRE `lower=0.0` on every GaussPrior and `lower=None` without
+  it (`svgd._check_gauss_prior_lower`); GammaPrior / LogGaussPrior /
+  HalfCauchyPrior require positive_params. The density is unnormalised, so
+  truncation changes sampling and plots only, not gradients.
+- Joint-probability tables are invariant to multiplying every rate by c
+  (exposure too), so with no rate fixed the scale is not identified:
+  `probability_matching` raises ("cannot determine the overall scale"), and
+  with it every default prior (DataPrior, svgd/mcmc `prior=None`, epoch).
+  Its former silent std fallbacks now raise.
+- Epoch fits with `prior=None` get `GaussPrior(m, max(5*se, |m|), lower)`
+  from a time-homogeneous `probability_matching` reference fit that uses the
+  user's `fixed` (differing per-epoch fixed values raise) and exposure
+  (binned above 100 distinct values, with a notice). Built in svgd /
+  FreeEpochModel.fit, not in `_daisy_chain_svgd_model`.
+- `SVGD.theta_mean/theta_std` are on the parameter scale (`bc851e2c`);
+  `SVGD.particles` remain unconstrained (phi).
+- Docs notebooks were NOT updated: cells with an untruncated GaussPrior
+  under positive_params now raise until the user adds `lower=0.0`.
+
 ## Build & environment
 
 The project is managed with **pixi** (conda-based). All commands run inside the pixi environment. The build stack is scikit-build-core + CMake + pybind11, compiling C and C++ into the `phasic_pybind` extension module. MPFR/GMP (high-precision arithmetic) are required on Linux/macOS; OpenMP and JAX/XLA-FFI headers are used when present.
