@@ -1,11 +1,12 @@
 # Scale-free continuous likelihood and gradients: plan
 
-**Status: v4, 2026-11-23. v3 (commit `150ec8ca`) went through adversarial
+**Status: v5, 2026-11-23. v3 (commit `150ec8ca`) went through adversarial
 review by three independent agents (maths of the forward; gradient rule;
 architecture/rollout/budget). The core idea survived; three blockers and
-ten majors changed the design and the order. Every finding is dispositioned
-in section 9. NO shipped code changed. Decisions in section 7 need
-sign-off.**
+ten majors changed the design and the order (v4, `c0ea7799`; dispositions
+in section 9). v5 adds an exact `advance(dt)` for time-inhomogeneous
+models (section 3.1a). v4/v5 have NOT yet been reviewed. NO shipped code
+changed. Decisions in section 7 need sign-off.**
 
 Evidence: `experiments/fd_step_guard/` (E1-E12, v2 reviews) and
 `experiments/fd_step_guard/v3/` (prototype `unif.py`, X1/X3/X4, and the
@@ -97,10 +98,54 @@ and multi-absorbing models, for G = 1x, 2x, 7x max rate):
   auxiliary edge; or a loop rate tied to the uniformization rate) —
   Batch 2a decides by experiment, with a unit-invariance test on the epoch
   path.
-- **The stepping API stays Euler**: `Graph.distribution_context().step()`
-  with `update_weights` between steps is the documented time-inhomogeneous
-  workflow and cannot be a per-time read-out. Kept, documented as the
-  Euler stepper, with tests pinned independent of the method.
+- **The stepping primitive `step()` stays Euler** (section 3.1a), with
+  tests pinned independent of the method; time-inhomogeneous models get an
+  exact `advance(dt)` next to it.
+
+### 3.1a Time-inhomogeneous models: exact `advance(dt)`
+
+Today's workflow (`docs/pages/tutorial/time-inhomogeneous.ipynb`, cell 6):
+`ctx = graph.distribution_context()`, then `ctx.step()` in a loop with
+`graph.update_weights(...)` at change points, reading `ctx.time()` /
+`ctx.cdf()` / `ctx.pdf()` / stop probabilities / accumulated visiting time
+after each step. `step()` advances time by 1/G with the Euler update; the
+tutorial itself calls the result an approximation (cell 11).
+
+`step()` cannot simply be made exact: under uniformization the k-th
+iterate is the state after k jumps of the uniformized chain, not the state
+at time k/G, and the Poisson mixture assumes constant rates over the whole
+sum. So one step has no exact time meaning and rates cannot change inside
+a sum.
+
+Rates that are constant BETWEEN change points are handled exactly by
+applying the read-out per interval and carrying the state vector across
+(Markov property) — which is what the epoch path already does. Proposed:
+
+- `ctx.advance(dt)`: replaces the context's state by
+  sum_k Poisson(k; G dt) (state P^k), with G from the CURRENT weights
+  (real-valued, 1.02 x max rate, recomputed per call so `update_weights`
+  between calls is honoured); exact for any dt >= 0; cost ∝ max_rate x dt
+  x edges, checked against the work ceiling (3.3).
+- After `advance`: `ctx.time()` is the sum of all advances (kept as its own
+  accumulator, not derived from a jump count); `ctx.cdf()` is the absorbed
+  mass; `ctx.pdf()` is the exact instantaneous density sum_v state(v) x
+  (rate from v into absorbing vertices) at the current weights;
+  `ctx.stop_probability()` is the state; `ctx.accumulated_visiting_time()`
+  adds the exact integral over the interval,
+  (1/G) sum_k (1 - PoissonCDF(k; G dt)) (state P^k).
+- `step()` is unchanged (Euler, 1/G of time) for existing code. Mixing
+  `step()` and `advance()` on one context is permitted (both act on the
+  same state vector) but documented as mixing an approximate and an exact
+  update.
+- Continuously varying rates remain a piecewise-constant approximation
+  chosen by the caller's grid of `advance` calls; the Euler error inside
+  each interval is gone.
+- The C++ `add_epoch` and Python `next_ipv` / `auto_t` callers, which
+  already work interval by interval through `stop_probability` /
+  `accumulated_visiting_time`, are covered by the read-outs above and need
+  no new API.
+- The tutorial's cells would use `advance` on the plotting grid; that is a
+  notebook edit for the user (listed, not made).
 
 Cost, honestly (predicted steps new/shipped at G = 1.02 x max rate R):
 
@@ -214,7 +259,10 @@ denormals) is unmeasured and is where production runs.
   scalar sequence, relative truncation, recursive weights); a method enum
   read at context creation and included in every context-cache guard
   (today's guards key on granularity and weight version only); the method
-  bound per model; the pybind replica of the epoch chain used by the exact
+  bound per model; `advance(dt)` on the distribution context (3.1a), with
+  tests against a closed-form piecewise-constant-rate model (e.g. an
+  exponential/Erlang whose rate changes at known times) and against the
+  epoch path on the same intervals; the pybind replica of the epoch chain used by the exact
   final-epoch gradient follows the same method; the work ceiling; epoch
   FFIs report native causes via the existing `BatchError` (both variants);
   the try/catch missing in the JIT `pmf_from_cpp` wrapper.
@@ -245,8 +293,8 @@ active only at the start (about n graph steps instead of C(n,2) x t).
 - Very short times cost more steps than today (table in 3.1).
 - Dominated gradient components stay inaccurate in relative terms under
   any finite difference.
-- The stepping API remains Euler; `graph.pdf(t)` and a context stepped to
-  t will differ by the Euler error after Batch 3.
+- `step()` remains Euler; `graph.pdf(t)` and a context STEPPED to t will
+  differ by the Euler error after Batch 3 (a context ADVANCED to t agrees).
 - Until Batch 3, continuous models keep the Euler forward's bias and
   jumps; Batch 1 only makes their gradients safe, not more accurate above
   rate 512.
@@ -282,6 +330,9 @@ and the silent errors without changing any undeclared caller.
 - **D6 — tests and docs.** As listed in Batches 1 and 3 [recommended].
 - **D7 — exact tangents / adaptive uniformization** as later plans: yes /
   no.
+- **D8 — `advance(dt)`** on the existing context class as in 3.1a
+  [recommended] / a separate exact-context class / leave the stepping API
+  Euler-only.
 
 ## 8. Carried over (still valid; `git show 0e08065a` for detail)
 
@@ -347,8 +398,8 @@ m1-m5. Stale docstrings/profile text; alternatives; risks; per-step mass;
 
 ## 10. Copy-paste prompt for a fresh session
 
-> Read `/Users/kmt/phasic/fd-step-and-slow-band-guard-plan.md` (v4) and
-> CLAUDE.md. My decisions on D1-D7 are: <fill in>. Start with Batch 1 on a
+> Read `/Users/kmt/phasic/fd-step-and-slow-band-guard-plan.md` (v5) and
+> CLAUDE.md. My decisions on D1-D8 are: <fill in>. Start with Batch 1 on a
 > branch: de-risk first (census of affected tests, s per forward family),
 > then implement, add the tests, run the gates through
 > `.git/claude-scratch/runcap.py`, and report before the next batch. Do
