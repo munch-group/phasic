@@ -1,0 +1,8 @@
+coalescent n=22 discretize(0.001): 2004 vertices, 8262 edges; 0.6 us per draw; mean jumps 21.0
+coalescent n=22 discretize(0.2): 2004 vertices, 8262 edges; 0.6 us per draw; mean jumps 21.8
+fresh discrete joint graph: is_discrete True was_dph True
+  fresh row sums: max 15.0
+  fresh expectation(): inf
+[ERROR] phasic.c: Computation produced NaN at vertex 0 (command 0: from=0 to=0 multiplier=-1.000000000000000e+00 result[to]=nan) - numerical catastrophe
+  fresh variance(): RuntimeError Computation produced NaN at vertex 0 (command 0) - numerical catastrophe
+[runcap] exit 0, peak RSS 416 MB, 4s

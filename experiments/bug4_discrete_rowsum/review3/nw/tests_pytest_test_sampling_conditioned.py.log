@@ -1,0 +1,10 @@
+...........                                                              [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_sampling_conditioned.py::TestBackwardProbabilities::test_joint_prob_graph
+tests/pytest/test_sampling_conditioned.py::TestConditionedPathSampling::test_joint_prob_graph_conditioned
+  /Users/kmt/phasic-bug4/tests/pytest/test_sampling_conditioned.py:61: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jg = g.joint_prob_graph(indexer, tot_reward_limit=3, mutation_rate=1.0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 2 warnings in 0.05s
+[runcap] exit 0, peak RSS 332 MB, 4s

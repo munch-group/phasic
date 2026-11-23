@@ -1,6 +1,8 @@
 # Bug 4: discrete models accept row sums above 1 and return negative probabilities — fix plan
 
-**Status: v3.1, 2026-11-23 (v1 and v2 each returned CHANGES REQUIRED by all
+**Status: v3.2, 2026-11-23 — SIGNED OFF by all three reviewers (v3/v3.1;
+v3.2 adds only their non-blocking notes).
+Previous line: v3.1 (v1 and v2 each returned CHANGES REQUIRED by all
 three reviewers; §0b lists the v2 -> v3 changes). Branch `fix/discrete-negative-pmf`,
 worktree `/Users/kmt/phasic-bug4` (own pixi env). No source changed yet.
 Backward compatibility is not required (user decision). Native (C/C++)
@@ -334,8 +336,9 @@ Fail on master:
 9b. Negative weight: native parameterized graph, `update_weights` giving
    weights [-0.5, 0.9] (row sum 0.4): `pdf`, `stop_probability`,
    `sample`, `expectation`, `variance` raise naming the weight (today:
-   stop_probability [0, 0.6, -0.5, 0], variance -13.5). A NaN weight
-   raises too.
+   stop_probability [0, 0.6, -0.5, 0], negative variance). A NaN weight
+   injected as a constant edge weight raises too (a NaN theta is already
+   rejected by `update_weights`; that half is a guard).
 9c. `pmf_and_moments_from_graph(discrete=True)` with an empty `times`
    array at 1 + 1e-5 and at 1.5, both `use_ffi` values: raises (today
    moments [0.667, 0.222] at 1.5).
@@ -414,4 +417,19 @@ recovery tests; no existing test relies on the window between 1 + 1e-9 and
   visible; the remedy is to normalise in float64.
 - A discrete graph updated to a negative weight now raises on step-based
   and the §2.3 elimination read-outs, where it returned negative
-  probabilities.
+  probabilities. This includes the lower bound in fits of native discrete
+  models: the pmf gradient is a central difference (theta +- 1e-7,
+  `src/phasic/__init__.py:3858-3863`), so a parameter below 1e-7, or a
+  particle that goes negative without a positivity constraint, now raises
+  (same class as test 9d; read from source, to be measured in the
+  implementation).
+
+## 6. Implementation notes from the sign-off round
+
+- `remaining` is `long double` (80-bit on x86 Linux; a `double` would
+  break the monotonicity argument).
+- The weight check rejects `< 0`, not `<= 0`: a legitimate pin case
+  (`constant_callback_zeros`) has a weight of exactly 0.
+- Legitimate graphs carry no negative or non-finite weights (155 graphs
+  scanned, review3/t18.log; 443,330 read-out calls across 44 test files
+  inspected, none affected).

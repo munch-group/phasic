@@ -1,0 +1,11 @@
+................................Basic from_matrices test passed (PDF at t=1.0: 0.516304)
+.Basic from_matrices test passed (PDF at t=1.0: 0.294976)
+.from_matrices with custom states test passed
+.from_matrices with multidimensional states test passed
+..Input validation test passed
+.Edge cases test passed
+.Performance test passed (n=10 states)
+..........ss.........s........... [ 61%]
+.............................................                            [100%]
+114 passed, 3 skipped in 0.15s
+[runcap] exit 0, peak RSS 333 MB, 3s

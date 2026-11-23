@@ -1,0 +1,86 @@
+  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.52it/s]                                               0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  6.87it/s]                                             SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               False                          inferred (from graph.is_discrete)
+    joint_index            None                           default
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            4                              set by user
+  * n_iterations           1                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+    preconditioner         None                           default
+    regularization         0.0                            default
+    nr_moments             2                              default
+  * exact_moment_grad      False                          set by user
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  'DataPrior(sd=5)'              inferred (default data-informed prior)
+    fixed                  None                           default
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               False                          inferred (from graph.is_discrete)
+    joint_index            None                           default
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            4                              set by user
+  * n_iterations           1                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+    preconditioner         None                           default
+    regularization         0.0                            default
+    nr_moments             2                              default
+  * exact_moment_grad      True                           set by user
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  'DataPrior(sd=5)'              inferred (default data-informed prior)
+    fixed                  None                           default
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+.  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  5.68it/s]                                             SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               False                          inferred (from graph.is_discrete)
+    joint_index            None                           default
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            4                              set by user
+  * n_iterations           1                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+    preconditioner         None                           default
+    regularization         0.0                            default
+    nr_moments             2                              default
+  * exact_moment_grad      False                          set by user
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  'DataPrior(sd=5)'              inferred (default data-informed prior)
+    fixed                  None                           default
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+......sss                                                               [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_svgd_exact_moment_grad_kwarg.py::TestR29Rejections::test_joint_prob_rejected
+tests/pytest/inference/test_svgd_exact_moment_grad_kwarg.py::TestR29Rejections::test_joint_stop_prob_rejected
+tests/pytest/inference/test_svgd_exact_moment_grad_kwarg.py::TestR29Rejections::test_epoch_starts_rejected
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_moment_grad_kwarg.py:86: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return base.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 3 skipped, 3 warnings in 8.94s
+[runcap] exit 0, peak RSS 1156 MB, 13s

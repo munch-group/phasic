@@ -1,0 +1,11 @@
+pin cases: smallest weight (0.0, 'constant_callback_zeros')
+joint n=5 [2.0, 0.05] min, #neg, #nonfinite, #zero, #edges = (0.004098360655737705, 0, 0, 0, 1585)
+joint n=5 [0.0001, 0.01] min, #neg, #nonfinite, #zero, #edges = (0.0033003300330033004, 0, 0, 0, 1585)
+joint n=5 [50.0, 1e-06] min, #neg, #nonfinite, #zero, #edges = (3.3333332888888893e-09, 0, 0, 0, 1585)
+coalescent n=10 [7.0] discretize 0.001 (2.2221728406035422e-05, 0, 0, 0, 197)
+coalescent n=10 [7.0] discretize 0.2 (0.004424778761061947, 0, 0, 0, 197)
+two-island n=8 [0.7, 0.3] discretize 0.001 (2.7777006194272385e-05, 0, 0, 0, 1235)
+two-island n=8 [0.7, 0.3] discretize 0.2 (0.0055248618784530384, 0, 0, 0, 1235)
+two-island n=8 [123.4, 0.017] discretize 0.001 (2.7777006194272385e-05, 0, 0, 0, 1235)
+two-island n=8 [123.4, 0.017] discretize 0.2 (0.0055248618784530384, 0, 0, 0, 1235)
+[runcap] exit 0, peak RSS 407 MB, 5s

@@ -1,0 +1,19 @@
+...s                                                                     [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_a_vs_c_bit_identical
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_a_vs_c_bit_identical
+tests/pytest/test_gate_moments_3way.py::test_g2_ffi_core_matches_direct_and_proves_ffi_path
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_discrete_now_bound
+  /Users/kmt/phasic-bug4/tests/pytest/test_gate_moments_3way.py:44: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [1.0, 0.0])
+
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_a_vs_c_bit_identical
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_a_vs_c_bit_identical
+tests/pytest/test_gate_moments_3way.py::test_g2_ffi_core_matches_direct_and_proves_ffi_path
+tests/pytest/test_gate_moments_3way.py::test_g2_moments_discrete_now_bound
+  /Users/kmt/phasic-bug4/tests/pytest/test_gate_moments_3way.py:45: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [0.0, 1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 1 skipped, 8 warnings in 0.06s
+[runcap] exit 0, peak RSS 358 MB, 3s

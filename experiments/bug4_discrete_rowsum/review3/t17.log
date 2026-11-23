@@ -1,0 +1,22 @@
+## test 9: user-held context
+  rc=   0 ctx at 0.5, update 1.5, 3 steps: pmf                       -> 'OK [1.5, -0.75, 0.375]'
+  rc=   0 ctx at 0.5, update 0.25, 3 steps: pmf                      -> 'OK [0.25, 0.1875, 0.140625]'
+## test 9b: negative / NaN weight on a native parameterized graph
+  rc=   0 theta=[-0.5, 0.9]: np.asarray(g.pdf(np.arange(1,4)))       -> 'OK [0.9   0.44  0.184]'
+  rc=   0 theta=[-0.5, 0.9]: g.stop_probability(1)                   -> 'OK [0.0, 0.6, -0.5, 0.0]'
+  rc=   0 theta=[-0.5, 0.9]: g.sample(3)                             -> 'OK [4. 1. 4.]'
+  rc=   0 theta=[-0.5, 0.9]: g.expectation()                         -> 'OK -3.75'
+  rc=   0 theta=[-0.5, 0.9]: g.variance()                            -> 'OK -91.5625'
+  rc=   0 theta=[-0.5, 0.9]: [e.weight() for e in g.vertex_at(1).edg -> 'OK [-0.5, 0.9]'
+  rc=   0 theta=[float("nan"), 0.3]: np.asarray(g.pdf(np.arange(1,4) -> 'RAISES ValueError theta contains NaN values'
+  rc=   0 theta=[float("nan"), 0.3]: g.stop_probability(1)           -> 'RAISES ValueError theta contains NaN values'
+  rc=   0 theta=[float("nan"), 0.3]: g.sample(3)                     -> 'RAISES ValueError theta contains NaN values'
+  rc=   0 theta=[float("nan"), 0.3]: g.expectation()                 -> 'RAISES ValueError theta contains NaN values'
+  rc=   0 theta=[float("nan"), 0.3]: g.variance()                    -> 'RAISES ValueError theta contains NaN values'
+  rc=   0 theta=[float("nan"), 0.3]: [e.weight() for e in g.vertex_a -> 'RAISES ValueError theta contains NaN values'
+## test 9c: empty times
+  rc=   0 pmf_and_moments(use_ffi=False) empty times theta=1+1e-5    -> 'OK [array([], dtype=float64), array([0.99999, 0.99997])]'
+  rc=   0 pmf_and_moments(use_ffi=False) empty times theta=1.5       -> 'OK [array([], dtype=float64), array([0.66666667, 0.22222222])]'
+  rc=   0 pmf_and_moments(use_ffi=True) empty times theta=1+1e-5     -> 'OK [array([], dtype=float64), array([0.99999, 0.99997])]'
+  rc=   0 pmf_and_moments(use_ffi=True) empty times theta=1.5        -> 'OK [array([], dtype=float64), array([0.66666667, 0.22222222])]'
+[runcap] exit 0, peak RSS 367 MB, 42s
