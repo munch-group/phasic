@@ -1,0 +1,11 @@
+joint n=6 cap3               V=  2808 E=   6730 E/V= 2.40:    27.76 us/step =   4.13 ns/edge =   2.91 ns/(edge+vertex)
+JSP n=6 cap3                 V=  3832 E=  10555 E/V= 2.75:   124.19 us/step =  11.77 ns/edge =   8.63 ns/(edge+vertex)
+coalescent n=20              V=   628 E=   3546 E/V= 5.65:    15.54 us/step =   4.38 ns/edge =   3.72 ns/(edge+vertex)
+coalescent n=40              V= 37339 E= 432938 E/V=11.59:  2583.49 us/step =   5.97 ns/edge =   5.49 ns/(edge+vertex)
+two_island n=6               V=    66 E=    241 E/V= 3.65:     1.18 us/step =   4.89 ns/edge =   3.84 ns/(edge+vertex)
+two_island n=9               V=   301 E=   1555 E/V= 5.17:     6.47 us/step =   4.16 ns/edge =   3.48 ns/(edge+vertex)
+least squares: 5.03 ns/edge + 10.92 ns/vertex per step
+  extrapolated V=20000 E=100000: 0.72 ms/step; Lambda=1e3 -> 0.9 s, 1e4 -> 7 s, 1e5 -> 72 s per forward
+  extrapolated V=60000 E=400000: 2.67 ms/step; Lambda=1e3 -> 3.5 s, 1e4 -> 27 s, 1e5 -> 267 s per forward
+  extrapolated V=600000 E=4000000: 26.66 ms/step; Lambda=1e3 -> 34.7 s, 1e4 -> 275 s, 1e5 -> 2674 s per forward
+[runcap] exit 0, peak RSS 509 MB, 26s

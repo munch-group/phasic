@@ -1,0 +1,12 @@
+sizeof(long double) on this machine: 8
+n=4: joint graph 168 v, JSP 232 v, param_length 2
+   theta=(1,1) T=1: model max rate 10, trap-loop rate 1 -> steps intrinsic 73 vs JSP-with-trap 73 (x1.0); shipped Euler 1024
+   theta=(0.0001,0.01) T=10000: model max rate 0.0406, trap-loop rate 1 -> steps intrinsic 637 vs JSP-with-trap 11030 (x17.3); shipped Euler 10240000
+   theta=(0.0001,0.0001) T=10000: model max rate 0.001, trap-loop rate 1 -> steps intrinsic 73 vs JSP-with-trap 11030 (x151.1); shipped Euler 10240000
+   theta=(1e-06,1e-08) T=1e+06: model max rate 6.04e-06, trap-loop rate 1 -> steps intrinsic 62 vs JSP-with-trap 1010030 (x16290.8); shipped Euler 1024000000
+n=6: joint graph 2808 v, JSP 3832 v, param_length 2
+   theta=(1,1) T=1: model max rate 21, trap-loop rate 1 -> steps intrinsic 97 vs JSP-with-trap 97 (x1.0); shipped Euler 1024
+   theta=(0.0001,0.01) T=10000: model max rate 0.0615, trap-loop rate 1 -> steps intrinsic 893 vs JSP-with-trap 11030 (x12.4); shipped Euler 10240000
+   theta=(0.0001,0.0001) T=10000: model max rate 0.0021, trap-loop rate 1 -> steps intrinsic 97 vs JSP-with-trap 11030 (x113.7); shipped Euler 10240000
+   theta=(1e-06,1e-08) T=1e+06: model max rate 1.51e-05, trap-loop rate 1 -> steps intrinsic 85 vs JSP-with-trap 1010030 (x11882.7); shipped Euler 1024000000
+[runcap] exit 0, peak RSS 372 MB, 5s

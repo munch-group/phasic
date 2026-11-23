@@ -1,0 +1,31 @@
+columns: Lambda | steps | rel err of f (lgamma, recursion) | |FD - exact| of dlogf/dlog(l1) and dlogf/dlog(l2) at s=1e-3, 1e-4 (lgamma | recursion)
+  Lambda=     102 n=      233: f relerr lgamma 2.1e-14 recur 0.0e+00 | FD err(l1/l2) s=1e-3,1e-4: lgamma ['1.2e-09/1.2e-07', '2.4e-10/1.2e-09'] | recur ['1.2e-09/1.2e-07', '9.5e-12/1.2e-09']
+  Lambda=1.02e+04 n=    11240: f relerr lgamma 4.3e-12 recur 0.0e+00 | FD err(l1/l2) s=1e-3,1e-4: lgamma ['6.7e-10/1.2e-07', '7.3e-08/1.2e-09'] | recur ['1.2e-11/1.2e-07', '6.9e-13/1.2e-09']
+  Lambda=1.02e+05 n=   105223: f relerr lgamma 5.9e-11 recur 1.8e-15 | FD err(l1/l2) s=1e-3,1e-4: lgamma ['6.9e-08/1.2e-07', '9.0e-07/1.2e-09'] | recur ['1.3e-12/1.2e-07', '4.9e-12/1.2e-09']
+  Lambda=1.02e+06 n=  1030129: f relerr lgamma 5.0e-11 recur 1.8e-15 | FD err(l1/l2) s=1e-3,1e-4: lgamma ['3.8e-07/1.2e-07', '6.8e-06/1.2e-09'] | recur ['4.3e-13/1.2e-07', '4.3e-13/1.2e-09']
+  Lambda=1.02e+07 n= 10231967: f relerr lgamma 9.7e-10 recur 3.6e-15 | FD err(l1/l2) s=1e-3,1e-4: lgamma ['4.4e-06/1.2e-07', '1.1e-05/1.2e-09'] | recur ['8.9e-13/1.2e-07', '6.2e-12/1.2e-09']
+## independence of G numerically: hypo(1,3), t=0.7, G = c * max rate
+  c=  1.0001 w_lgamma : rel err 2.2e-16 steps 49
+  c=  1.0001 w_recur  : rel err 2.2e-16 steps 49
+  c=    1.02 w_lgamma : rel err 2.2e-16 steps 49
+  c=    1.02 w_recur  : rel err 0.0e+00 steps 49
+  c=       2 w_lgamma : rel err 0.0e+00 steps 57
+  c=       2 w_recur  : rel err 0.0e+00 steps 57
+  c=     100 w_lgamma : rel err 6.8e-14 steps 385
+  c=     100 w_recur  : rel err 2.2e-16 steps 385
+  c=   10000 w_lgamma : rel err 9.2e-12 steps 22479
+  c=   10000 w_recur  : rel err 2.2e-16 steps 22479
+  c=   1e+06 w_lgamma : rel err 1.1e-09 steps 2114521
+  c=   1e+06 w_recur  : rel err 2.2e-16 steps 2114521
+## Lambda -> 0
+  t=0.001: log f -5.81114282365 exact -5.81114282365 steps 40
+  t=1e-08: log f -17.3220684753 exact -17.3220684769 steps 40
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/experiments/fd_step_guard/v3/review_math/r3_large_lambda.py", line 62, in <module>
+    print(f'  t={t:g}: log f {v:.12g} exact {exact_logf(3.0, 1.0, t):.12g} steps {n}')
+                                             ~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/experiments/fd_step_guard/v3/review_math/r3_large_lambda.py", line 9, in exact_logf
+    return math.log(l1 * l2 / (l1 - l2)) - l2 * t + math.log1p(-math.exp(-(l1 - l2) * t))
+                                                    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: math domain error
+[runcap] exit 1, peak RSS 753 MB, 7s

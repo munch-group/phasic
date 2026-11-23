@@ -1,0 +1,80 @@
+## hypo(1,3): unif.max_rate=3 true max exit rate=3
+  t=     0 G=     3 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t=     0 G=     6 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t=     0 G=    21 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t= 0.001 G=     3 n=    40: cdf abs 3.3e-17 pdf rel 4.3e-16 stop rel 4.3e-16 acc rel 1.6e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 1.5e-06
+  t= 0.001 G=     6 n=    40: cdf abs 3.3e-17 pdf rel 7.2e-16 stop rel 6.5e-16 acc rel 1.6e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 1.5e-06
+  t= 0.001 G=    21 n=    40: cdf abs 3.3e-17 pdf rel 5.8e-16 stop rel 6.5e-16 acc rel 1.6e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 1.5e-06
+  t=   0.3 G=     3 n=    44: cdf abs 1.1e-16 pdf rel 0.0e+00 stop rel 3.3e-16 acc rel 4.5e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 4.0e-04 cdf abs 2.0e-04
+  t=   0.3 G=     6 n=    48: cdf abs 9.7e-17 pdf rel 4.4e-16 stop rel 5.0e-16 acc rel 4.5e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 4.0e-04 cdf abs 2.0e-04
+  t=   0.3 G=    21 n=    63: cdf abs 1.4e-16 pdf rel 2.2e-16 stop rel 1.7e-16 acc rel 4.5e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 4.0e-04 cdf abs 2.0e-04
+  t=     2 G=     3 n=    62: cdf abs 1.1e-16 pdf rel 0.0e+00 stop rel 2.1e-16 acc rel 3.9e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.1e-04 cdf abs 1.9e-04
+  t=     2 G=     6 n=    78: cdf abs 4.4e-16 pdf rel 1.4e-16 stop rel 4.2e-16 acc rel 6.3e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.1e-04 cdf abs 1.9e-04
+  t=     2 G=    21 n=   137: cdf abs 5.8e-15 pdf rel 7.8e-15 stop rel 8.4e-15 acc rel 4.2e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.1e-04 cdf abs 1.9e-04
+  t=    40 G=     3 n=   260: cdf abs 7.7e-15 pdf rel 1.2e-01 stop rel 8.0e-15 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-02 cdf abs 3.6e-14
+  t=    40 G=     6 n=   425: cdf abs 6.2e-14 pdf rel 6.6e-01 stop rel 4.9e-14 acc rel 3.3e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-02 cdf abs 3.6e-14
+  t=    40 G=    21 n=  1160: cdf abs 7.5e-14 pdf rel 1.0e+00 stop rel 5.8e-14 acc rel 1.7e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-02 cdf abs 3.6e-14
+  prototype(rescaled) t=0.3: pdf rel 4.4e-16 cdf abs 8.3e-17 steps 49
+  prototype(rescaled) t=2.0: pdf rel 1.4e-16 cdf abs 2.2e-16 steps 79
+## cyclic 2 abs: unif.max_rate=2.2 true max exit rate=2.2
+  t=     0 G=     3 n=    40: cdf abs 0.0e+00 pdf rel 1.9e-15 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.9e-15 cdf abs 0.0e+00
+  t=     0 G=     5 n=    40: cdf abs 0.0e+00 pdf rel 1.8e-15 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.9e-15 cdf abs 0.0e+00
+  t=     0 G=    21 n=    40: cdf abs 0.0e+00 pdf rel 1.9e-15 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.9e-15 cdf abs 0.0e+00
+  t= 0.001 G=     3 n=    40: cdf abs 1.5e-16 pdf rel 1.9e-15 stop rel 4.7e-16 acc rel 1.7e-10 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.3e-03 cdf abs 2.5e-06
+  t= 0.001 G=     5 n=    40: cdf abs 1.5e-16 pdf rel 1.5e-15 stop rel 3.1e-16 acc rel 1.7e-10 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.3e-03 cdf abs 2.5e-06
+  t= 0.001 G=    21 n=    40: cdf abs 1.5e-16 pdf rel 1.9e-15 stop rel 0.0e+00 acc rel 1.7e-10 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.3e-03 cdf abs 2.5e-06
+  t=   0.3 G=     3 n=    44: cdf abs 1.0e-16 pdf rel 1.1e-15 stop rel 3.4e-16 acc rel 5.9e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.1e-04 cdf abs 6.2e-05
+  t=   0.3 G=     5 n=    47: cdf abs 1.1e-16 pdf rel 9.4e-16 stop rel 2.4e-16 acc rel 5.1e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.1e-04 cdf abs 6.2e-05
+  t=   0.3 G=    21 n=    63: cdf abs 9.7e-17 pdf rel 1.7e-15 stop rel 6.1e-16 acc rel 5.7e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.1e-04 cdf abs 6.2e-05
+  t=     2 G=     3 n=    62: cdf abs 5.0e-16 pdf rel 7.0e-16 stop rel 8.2e-16 acc rel 1.1e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.1e-04 cdf abs 5.2e-05
+  t=     2 G=     5 n=    73: cdf abs 6.7e-16 pdf rel 1.3e-15 stop rel 2.6e-15 acc rel 1.2e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.1e-04 cdf abs 5.2e-05
+  t=     2 G=    21 n=   137: cdf abs 2.7e-15 pdf rel 6.8e-15 stop rel 9.1e-15 acc rel 8.9e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 3.1e-04 cdf abs 5.2e-05
+  t=    40 G=     3 n=   260: cdf abs 7.0e-15 pdf rel 1.1e-10 stop rel 8.9e-15 acc rel 1.5e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-03 cdf abs 1.7e-09
+  t=    40 G=     5 n=   371: cdf abs 1.0e-13 pdf rel 1.0e-10 stop rel 1.0e-13 acc rel 1.4e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-03 cdf abs 1.7e-09
+  t=    40 G=    21 n=  1160: cdf abs 7.6e-14 pdf rel 7.8e-12 stop rel 6.0e-14 acc rel 1.4e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-03 cdf abs 1.7e-09
+  prototype(rescaled) t=0.3: pdf rel 1.1e-15 cdf abs 1.1e-16 steps 47
+  prototype(rescaled) t=2.0: pdf rel 2.8e-16 cdf abs 1.7e-16 steps 71
+## mixed 1e3/1e-2: unif.max_rate=1000 true max exit rate=1000
+  t=     0 G=  1000 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t=     0 G=  2000 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t=     0 G=  7000 n=    40: cdf abs 0.0e+00 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 0.0e+00
+  t= 0.001 G=  1000 n=    45: cdf abs 9.1e-17 pdf rel 0.0e+00 stop rel 1.2e-16 acc rel 6.2e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 8.7e-07
+  t= 0.001 G=  2000 n=    49: cdf abs 9.1e-17 pdf rel 1.9e-16 stop rel 4.0e-16 acc rel 6.2e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 8.7e-07
+  t= 0.001 G=  7000 n=    65: cdf abs 9.1e-17 pdf rel 9.6e-16 stop rel 1.4e-15 acc rel 6.2e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 8.7e-07
+  t=   0.3 G=  1000 n=   503: cdf abs 1.1e-14 pdf rel 8.6e-14 stop rel 8.7e-14 acc rel 1.9e-12 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e-05 cdf abs 3.0e-08
+  t=   0.3 G=  2000 n=   875: cdf abs 1.1e-14 pdf rel 9.4e-14 stop rel 9.4e-14 acc rel 1.9e-12 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e-05 cdf abs 3.0e-08
+  t=   0.3 G=  7000 n=  2588: cdf abs 1.2e-14 pdf rel 2.1e-14 stop rel 2.4e-14 acc rel 1.9e-12 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e-05 cdf abs 3.0e-08
+  t=     2 G=  1000 n=  2477: cdf abs 4.0e-14 pdf rel 2.2e-13 stop rel 2.2e-13 acc rel 7.7e-13 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.8e-06 cdf abs 1.9e-07
+  t=     2 G=  2000 n=  4662: cdf abs 3.7e-14 pdf rel 1.7e-12 stop rel 1.7e-12 acc rel 7.7e-13 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.8e-06 cdf abs 1.9e-07
+  t=     2 G=  7000 n= 15213: cdf abs 2.0e-13 pdf rel 5.8e-12 stop rel 5.8e-12 acc rel 7.7e-13 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 9.8e-06 cdf abs 1.9e-07
+  t=    40 G=  1000 n= 42030: cdf abs 2.9e-11 pdf rel 5.3e-11 stop rel 5.3e-11 acc rel 4.7e-13 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 6.0e-06 cdf abs 1.8e-06
+  t=    40 G=  2000 n= 82858: cdf abs 9.6e-12 pdf rel 1.8e-11 stop rel 1.9e-11 acc rel 4.9e-13 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 6.0e-06 cdf abs 1.8e-06
+  prototype(rescaled) t=0.3: pdf rel 9.3e-14 cdf abs 1.1e-14 steps 876
+  prototype(rescaled) t=2.0: pdf rel 1.7e-12 cdf abs 3.7e-14 steps 4663
+## defective+atom: unif.max_rate=3.5 true max exit rate=3.5
+  t=     0 G=     4 n=    40: cdf abs 2.8e-17 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 2.8e-17
+  t=     0 G=     7 n=    40: cdf abs 2.8e-17 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 2.8e-17
+  t=     0 G=    28 n=    40: cdf abs 2.8e-17 pdf rel 0.0e+00 stop rel 0.0e+00 acc rel 0.0e+00 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 0.0e+00 cdf abs 2.8e-17
+  t= 0.001 G=     4 n=    40: cdf abs 0.0e+00 pdf rel 8.5e-16 stop rel 9.1e-16 acc rel 1.4e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 9.0e-07
+  t= 0.001 G=     7 n=    40: cdf abs 1.4e-17 pdf rel 6.0e-16 stop rel 5.4e-16 acc rel 1.4e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 9.0e-07
+  t= 0.001 G=    28 n=    40: cdf abs 1.4e-17 pdf rel 1.2e-16 stop rel 1.9e-16 acc rel 1.4e-11 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.0e+00 cdf abs 9.0e-07
+  t=   0.3 G=     4 n=    46: cdf abs 1.1e-16 pdf rel 0.0e+00 stop rel 2.5e-16 acc rel 5.3e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-04 cdf abs 1.1e-04
+  t=   0.3 G=     7 n=    49: cdf abs 1.1e-16 pdf rel 2.0e-16 stop rel 4.9e-16 acc rel 5.3e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-04 cdf abs 1.1e-04
+  t=   0.3 G=    28 n=    69: cdf abs 5.6e-17 pdf rel 1.6e-15 stop rel 1.7e-15 acc rel 3.9e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 2.2e-04 cdf abs 1.1e-04
+  t=     2 G=     4 n=    68: cdf abs 1.1e-15 pdf rel 7.9e-16 stop rel 2.4e-15 acc rel 5.9e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-04 cdf abs 9.6e-05
+  t=     2 G=     7 n=    82: cdf abs 1.9e-15 pdf rel 3.3e-15 stop rel 4.0e-15 acc rel 3.7e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-04 cdf abs 9.6e-05
+  t=     2 G=    28 n=   161: cdf abs 8.1e-15 pdf rel 1.5e-14 stop rel 1.6e-14 acc rel 3.7e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.8e-04 cdf abs 9.6e-05
+  t=    40 G=     4 n=   316: cdf abs 6.2e-14 pdf rel 4.8e-03 stop rel 3.5e-14 acc rel 4.2e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.2e-02 cdf abs 4.1e-14
+  t=    40 G=     7 n=   477: cdf abs 9.6e-14 pdf rel 6.8e-03 stop rel 1.2e-13 acc rel 6.9e-16 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.2e-02 cdf abs 4.1e-14
+  t=    40 G=    28 n=  1484: cdf abs 1.8e-13 pdf rel 1.8e-02 stop rel 2.7e-13 acc rel 1.7e-15 (stop[0]=0.0e+00, abs-states stop=0.0e+00) | shipped pdf rel 1.2e-02 cdf abs 4.1e-14
+  prototype(rescaled) t=0.3: pdf rel 2.0e-16 cdf abs 1.1e-16 steps 50
+  prototype(rescaled) t=2.0: pdf rel 2.8e-15 cdf abs 1.9e-15 steps 83
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/experiments/fd_step_guard/v3/review_math/r1_formulas.py", line 55, in <module>
+    g, alpha, S, atom = build(nt, start, edges, nabs)
+                        ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/experiments/fd_step_guard/v3/review_math/r1_formulas.py", line 16, in build
+    for i, j, w in edges: V[i].add_edge(V[j], w)
+                          ~~~~~~~~~~~~~^^^^^^^^^
+RuntimeError: Caught an unknown exception!
+[runcap] exit 1, peak RSS 313 MB, 7s

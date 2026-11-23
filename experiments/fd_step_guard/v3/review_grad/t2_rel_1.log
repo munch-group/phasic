@@ -1,0 +1,71 @@
+/Users/kmt/phasic-epochprior/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+...................F.F..F...x..x....                                     [100%]
+=================================== FAILURES ===================================
+___________ test_fd_gradient_still_broken_at_mixed_scale_without_fix ___________
+
+    def test_fd_gradient_still_broken_at_mixed_scale_without_fix():
+        """Documents that the DEFAULT (finite-difference) backward remains defective
+        at mixed scale — the exact path is opt-in, so default behaviour is unchanged
+        and the FD error is what motivates B3."""
+        theta = [1.0, 1e-8]
+        fd = np.array(_grad_A(jnp.array(theta)))
+        rel = np.max(np.abs(fd - _oracle(theta)) / np.abs(_oracle(theta)))
+>       assert rel > 1e-3, f"expected FD to be grossly wrong at mixed scale, got rel={rel:.2e}"
+E       AssertionError: expected FD to be grossly wrong at mixed scale, got rel=5.76e-05
+E       assert np.float64(5.757808674289322e-05) > 0.001
+
+tests/pytest/inference/test_fd_gradient_mixed_scale.py:119: AssertionError
+______________ test_fd_second_moment_gradient_broken_without_fix _______________
+
+    def test_fd_second_moment_gradient_broken_without_fix():
+        """The DEFAULT FD backward is even worse on the second moment at mixed scale
+        (~359% error) — motivates extending the exact path to higher moments."""
+        theta = [1.0, 1e-8]
+        fd = np.array(jax.grad(lambda t: _MODEL_A(t, _TIMES)[1][1])(jnp.array(theta)))
+        rel = np.max(np.abs(fd - _oracle_m1(theta)) / np.abs(_oracle_m1(theta)))
+>       assert rel > 1e-2, f"expected FD 2nd-moment gradient grossly wrong, got rel={rel:.2e}"
+E       AssertionError: expected FD 2nd-moment gradient grossly wrong, got rel=1.00e-04
+E       assert np.float64(0.00010001999788948046) > 0.01
+
+tests/pytest/inference/test_fd_gradient_mixed_scale.py:138: AssertionError
+_____________________ test_daisy_fd_correct_at_mixed_scale _____________________
+[XPASS(strict)] daisy-chain FD gradient broken at mixed scale (B3): abs eps=1e-7 drives mu~1e-8 to a NEGATIVE transition -> DaisyChainSojournFfiImpl aborts the backward
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_joint_index.py:65: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [2.0, 0.1, 5.0, 1.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_joint_index.py:66: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v1, 0.0, [0.5, 3.0, 1.0, 7.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_joint_index.py:67: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v0, 0.0, [1.0, 2.0, 0.25, 3.0])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 40 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_joint_index.py:68: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v1.add_edge_parameterized(v0, 0.0, [4.0, 0.5, 2.0, 0.125])
+
+tests/pytest/inference/test_exact_grad_joint_index.py: 14 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_joint_index.py:50: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+tests/pytest/inference/test_fd_gradient_mixed_scale.py::test_daisy_fd_accurate_at_moderate_scale
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_fd_gradient_mixed_scale.py:193: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg_d = graph.joint_prob_graph(indexer, reward_limit=5, mutation_rate=mu)
+
+tests/pytest/inference/test_fd_gradient_mixed_scale.py::test_daisy_fd_accurate_at_moderate_scale
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_fd_gradient_mixed_scale.py:196: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(indexer, reward_limit=5, mutation_rate=mu, discrete=False)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/pytest/inference/test_fd_gradient_mixed_scale.py::test_fd_gradient_still_broken_at_mixed_scale_without_fix
+FAILED tests/pytest/inference/test_fd_gradient_mixed_scale.py::test_fd_second_moment_gradient_broken_without_fix
+FAILED tests/pytest/inference/test_fd_gradient_mixed_scale.py::test_daisy_fd_correct_at_mixed_scale
+3 failed, 31 passed, 2 xfailed, 176 warnings in 8.85s
+[runcap] exit 1, peak RSS 809 MB, 12s

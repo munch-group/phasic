@@ -1,0 +1,159 @@
+/Users/kmt/phasic-epochprior/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+.FF.................................                                     [100%]
+=================================== FAILURES ===================================
+_____ test_exact_grad_with_rewards_matches_fd_and_forward_central_diff[2] ______
+
+nr_moments = 2
+
+    @pytest.mark.parametrize("nr_moments", [1, 2, 3])
+    def test_exact_grad_with_rewards_matches_fd_and_forward_central_diff(nr_moments):
+        """Batch A REWORK: pre-A both models were FD (this compared a path to
+        itself); post-A exact-with-rewards is a genuinely different path and
+        this is a REAL exact-vs-FD comparison, at every supported K (the C
+        core's per-stage reward re-scaling runs inside the j=1..K loop, so
+        K=1 alone could not detect a seed-only-scaling bug -- K>=2 can).
+        Measured actuals (G4-fold probe): exact grads are exactly
+        K=1: [-2, -0.75], K=2: [-24, -8.25], K=3: [-267, -83.625];
+        rel vs FD <= 5.6e-10, rel vs central-diff <= 9.9e-11."""
+        theta = jnp.asarray([1.0, 2.0])
+        times = jnp.asarray([1.0, 2.0])
+        rewards = jnp.asarray([0.0, 2.0, 3.0, 0.5])
+    
+        model_exact = Graph.pmf_and_moments_from_graph(
+            _build_three_stage(), nr_moments=nr_moments, discrete=False,
+            theta_dim=2, exact_moment_grad=True)
+        model_fd = Graph.pmf_and_moments_from_graph(
+            _build_three_stage(), nr_moments=nr_moments, discrete=False,
+            theta_dim=2, exact_moment_grad=False)
+    
+        def loss(th, model):
+            _, moments = model(th, times, rewards)
+            return jnp.sum(moments)
+    
+        g_exact = np.asarray(jax.grad(lambda th: loss(th, model_exact))(theta))
+        g_fd = np.asarray(jax.grad(lambda th: loss(th, model_fd))(theta))
+        g_ref = _manual_central_diff_of_forward(model_fd, theta, times, rewards)
+    
+>       np.testing.assert_allclose(g_exact, g_fd, rtol=1e-8)
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-08, atol=0
+E       
+E       Mismatched elements: 2 / 2 (100%)
+E       Mismatch at indices:
+E        [0]: -24.0 (ACTUAL), -24.000000400020017 (DESIRED)
+E        [1]: -8.25 (ACTUAL), -8.250000127484135 (DESIRED)
+E       Max absolute difference among violations: 4.00020017e-07
+E       Max relative difference among violations: 1.66675004e-08
+E        ACTUAL: array([-24.  ,  -8.25])
+E        DESIRED: array([-24.  ,  -8.25])
+
+tests/pytest/inference/test_exact_grad_rewards.py:122: AssertionError
+_____ test_exact_grad_with_rewards_matches_fd_and_forward_central_diff[3] ______
+
+nr_moments = 3
+
+    @pytest.mark.parametrize("nr_moments", [1, 2, 3])
+    def test_exact_grad_with_rewards_matches_fd_and_forward_central_diff(nr_moments):
+        """Batch A REWORK: pre-A both models were FD (this compared a path to
+        itself); post-A exact-with-rewards is a genuinely different path and
+        this is a REAL exact-vs-FD comparison, at every supported K (the C
+        core's per-stage reward re-scaling runs inside the j=1..K loop, so
+        K=1 alone could not detect a seed-only-scaling bug -- K>=2 can).
+        Measured actuals (G4-fold probe): exact grads are exactly
+        K=1: [-2, -0.75], K=2: [-24, -8.25], K=3: [-267, -83.625];
+        rel vs FD <= 5.6e-10, rel vs central-diff <= 9.9e-11."""
+        theta = jnp.asarray([1.0, 2.0])
+        times = jnp.asarray([1.0, 2.0])
+        rewards = jnp.asarray([0.0, 2.0, 3.0, 0.5])
+    
+        model_exact = Graph.pmf_and_moments_from_graph(
+            _build_three_stage(), nr_moments=nr_moments, discrete=False,
+            theta_dim=2, exact_moment_grad=True)
+        model_fd = Graph.pmf_and_moments_from_graph(
+            _build_three_stage(), nr_moments=nr_moments, discrete=False,
+            theta_dim=2, exact_moment_grad=False)
+    
+        def loss(th, model):
+            _, moments = model(th, times, rewards)
+            return jnp.sum(moments)
+    
+        g_exact = np.asarray(jax.grad(lambda th: loss(th, model_exact))(theta))
+        g_fd = np.asarray(jax.grad(lambda th: loss(th, model_fd))(theta))
+        g_ref = _manual_central_diff_of_forward(model_fd, theta, times, rewards)
+    
+>       np.testing.assert_allclose(g_exact, g_fd, rtol=1e-8)
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-08, atol=0
+E       
+E       Mismatched elements: 2 / 2 (100%)
+E       Mismatch at indices:
+E        [0]: -267.0 (ACTUAL), -267.00000691014804 (DESIRED)
+E        [1]: -83.625 (ACTUAL), -83.62500185984644 (DESIRED)
+E       Max absolute difference among violations: 6.91014804e-06
+E       Max relative difference among violations: 2.58807036e-08
+E        ACTUAL: array([-267.   ,  -83.625])
+E        DESIRED: array([-267.000007,  -83.625002])
+
+tests/pytest/inference/test_exact_grad_rewards.py:122: AssertionError
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_rewards.py::test_exact_grad_without_rewards_unaffected
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_rewards.py:139: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py: 22 warnings
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:40: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:60: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [1.0, 0.5, 2.0])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:61: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [2.0, 1.0, 0.5])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:91: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [2.0, 0.1, 5.0, 1.0])     # prod c = 1.0
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:92: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v1, 0.0, [0.5, 3.0, 1.0, 7.0])     # prod c = 10.5 (branch)
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:93: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v0, 0.0, [1.0, 2.0, 0.25, 3.0])    # prod c = 1.5
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:94: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v1.add_edge_parameterized(v0, 0.0, [4.0, 0.5, 2.0, 0.125])   # prod c = 0.5
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_log_mode_discrete_combo_declines_and_logs
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_log_weight_mode.py:280: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/pytest/inference/test_exact_grad_rewards.py::test_exact_grad_with_rewards_matches_fd_and_forward_central_diff[2]
+FAILED tests/pytest/inference/test_exact_grad_rewards.py::test_exact_grad_with_rewards_matches_fd_and_forward_central_diff[3]
+2 failed, 34 passed, 46 warnings in 133.99s (0:02:13)
+[runcap] exit 1, peak RSS 2824 MB, 138s

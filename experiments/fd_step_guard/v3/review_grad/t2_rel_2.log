@@ -1,0 +1,76 @@
+/Users/kmt/phasic-epochprior/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+..F.........................                                             [100%]
+=================================== FAILURES ===================================
+_________________________ test_false_path_is_plain_fd __________________________
+
+jpg = <Graph (59 vertices)>, obs = [4, 8, 11, 14, 17]
+
+    def test_false_path_is_plain_fd(jpg, obs):
+        """exact_final_grad=False must be the untouched FD backward: (a) the
+        kwarg default and explicit False produce BITWISE-equal gradients
+        (same code path, same XLA program); (b) the gradient matches a
+        manually-recomputed central difference of the model forward to
+        float round-off (different XLA program -> 1-ULP wiggle is legitimate,
+        so rtol 1e-12, NOT bitwise). The cross-install golden byte-identity
+        (C default path AND the daisy False-path gradient) lives in
+        experiments/dr_batchH_i1_gate.py micro-gates (a)/(a2)."""
+        model_f, _ = _models(jpg, obs, exact_final_grad=False)
+        model_d, _ = _models(jpg, obs)  # kwarg default
+        th = jnp.asarray(THETA_BENIGN)
+        cot = jnp.asarray(np.linspace(0.5, 1.5, len(obs)))
+    
+        def loss_of(m):
+            return lambda t: jnp.sum(cot * m(t, None)[0])
+    
+        g_f = np.asarray(jax.grad(loss_of(model_f))(th))
+        g_d = np.asarray(jax.grad(loss_of(model_d))(th))
+        np.testing.assert_array_equal(g_f, g_d)
+    
+        # epoch-normalization plan v2: the FD backward differentiates the
+        # RAW joint-probability vector (unchanged path); the per-observation
+        # normalisation raw[pos] / sum(raw) sits outside the custom_vjp and
+        # is differentiated analytically by JAX. Reference: central
+        # difference of the raw forward (via the _raw_forward seam) pushed
+        # through the same quotient rule -- equal to float round-off.
+        eps = 1e-7
+        tvi = [int(x) for x in jpg.joint_stop_prob_graph()._t_vertex_indices]
+        pos = np.asarray([tvi.index(o) for o in obs])
+        raw0 = np.asarray(model_f._raw_forward(th))
+        Z0 = raw0.sum()
+        y0 = raw0[pos] / Z0
+        ref = np.empty(th.shape[0])
+        for i in range(th.shape[0]):
+            tp = th.at[i].add(eps); tm = th.at[i].add(-eps)
+            d_raw = (np.asarray(model_f._raw_forward(tp))
+                     - np.asarray(model_f._raw_forward(tm))) / (2 * eps)
+            dy = (d_raw[pos] - y0 * d_raw.sum()) / Z0
+            ref[i] = float(np.sum(np.asarray(cot) * dy))
+>       np.testing.assert_allclose(g_f, ref, rtol=1e-12, atol=0)
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-12, atol=0
+E       
+E       Mismatched elements: 3 / 4 (75%)
+E       Mismatch at indices:
+E        [0]: -9.757568390946361e-05 (ACTUAL), -9.75756824813213e-05 (DESIRED)
+E        [1]: 3.752911047798912e-05 (ACTUAL), 3.752911015597896e-05 (DESIRED)
+E        [2]: -5.199781653307758 (ACTUAL), -5.199802400312688 (DESIRED)
+E       Max absolute difference among violations: 2.07470049e-05
+E       Max relative difference among violations: 3.98996026e-06
+E        ACTUAL: array([-9.757568e-05,  3.752911e-05, -5.199782e+00,  1.999916e+00])
+E        DESIRED: array([-9.757568e-05,  3.752911e-05, -5.199802e+00,  1.999916e+00])
+
+tests/pytest/inference/test_exact_grad_daisy_final.py:237: AssertionError
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_daisy_final.py::test_composed_jacobian_matches_oracle[benign]
+tests/pytest/inference/test_exact_grad_daisy_final.py::test_construction_declines_loudly
+  /Users/kmt/phasic-epochprior/tests/pytest/inference/test_exact_grad_daisy_final.py:54: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return graph.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/pytest/inference/test_exact_grad_daisy_final.py::test_false_path_is_plain_fd
+1 failed, 27 passed, 2 warnings in 19.62s
+[runcap] exit 1, peak RSS 1307 MB, 23s
