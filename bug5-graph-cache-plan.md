@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.9, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.0, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -17,6 +17,13 @@ change, objects pickled by reference, a source file edited after import, a
 module globals and lets the user name the entry.
 
 **User decisions (2026-11-24):**
+- D3 (after four independent reviews each found a wrong-result case in
+  the generic "key any object by content" machinery): NARROW what the key
+  accepts automatically. No user-defined protocol (`to_dict()`) is
+  trusted; only plain values, numpy arrays, containers of those,
+  functions/closures (recursively) and phasic's own `StateIndexer` /
+  `Property`. Anything else raises `GraphCacheKeyError` with the advice
+  to pass plain values.
 - D1: caching happens only when the user names the entry with
   `Graph(..., cache_key="...")`. `graph_cache=` is removed.
 - D2: the global switch (`phasic.configure(graph_cache=...)`,
@@ -199,8 +206,8 @@ function already visited contributes a back-reference token)
   the very same object. User-defined classes are mutable heap types and
   stay refused (so the `__class__` cell of a `super()` call is still
   refused).
-- anything else callable (other class, callable instance without
-  `to_dict`): NOT FINGERPRINTABLE.
+- anything else callable (other class, callable instance): NOT
+  FINGERPRINTABLE.
 - a MODULE object (not callable; for example the cell a local
   `import numpy as np` inside a factory creates): module-name token,
   ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
@@ -210,8 +217,9 @@ function already visited contributes a back-reference token)
   index; a revisit contributes a back-reference token carrying that
   index, so different recursion shapes give different streams. The map
   is keyed by `id()` but HOLDS A STRONG REFERENCE to every visited
-  function, and every `to_dict()` result is kept alive in a list, both
-  until the key computation finishes, so a temporary freed mid-walk can
+  function until the key computation finishes (since v3.0 every walked
+  object is reachable from the call's arguments, so temporaries no longer
+  arise; the strong references stay as a guard), so a temporary freed mid-walk can
   never have its id reused by a different function (which would turn it
   into a back-reference and give two different inputs one stream,
   review D d7).
@@ -274,30 +282,28 @@ longer used, so callbacks without accessible source can be cached.
 7. a class object (`isinstance(x, type)`): the immutable-compiled-type
    token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
-   is refused explicitly, never called through an unbound `to_dict`);
-8. any other object with a callable `to_dict()` (including `dict`/`list`
-   subclasses that have one), EXCEPT pandas objects (class module
-   starting with `pandas`): their `to_dict()` silently collapses
-   duplicate index labels and duplicate columns, so two different frames
-   share a result (review D d3); they are NOT FINGERPRINTABLE, with the
-   advice to pass `.to_numpy()` (plus labels as a list) or an explicit
-   dict. The `cache_key` docstring states the protocol's requirement: a
-   `to_dict()` must be one-to-one on everything the callback reads.
-   Keyed as: class module + qualified name, then the
-   VALUE FINGERPRINT of what `to_dict()` returns; any `Exception` (not
-   `BaseException`: `KeyboardInterrupt` / `SystemExit` pass through)
-   raised inside `to_dict()` is re-raised as `GraphCacheKeyError` with
-   the path and the original exception chained. This is the protocol
-   the docs already describe for objects passed to a callback
-   (`docs/pages/tutorial/state-space.ipynb` cell 44) and that
-   `StateIndexer` implements (`state_indexing.py:1850`, which covers the
-   same structure as its `__eq__`/`__hash__`, review4);
-9. anything else: NOT FINGERPRINTABLE. This includes dataclass
-   instances without `to_dict()` (for example phasic's own `HexCell`;
-   `HexGrid` has no `to_dict` either): the error advises adding a
-   `to_dict()` (for a dataclass, `dataclasses.asdict(self)` is enough).
+   is refused explicitly);
+8. phasic's own value types, EXACT class only: `StateIndexer` (class
+   token, then the VALUE FINGERPRINT of its `to_dict()`, which phasic
+   controls and which covers the same structure as its `__eq__` /
+   `__hash__`: property sets, properties with min/max, slots,
+   pset/slot/entity order; `state_indexing.py:1850`, review 4) and
+   `Property` (frozen dataclass: name, `min_value`, `max_value`, after
+   the deprecated `offset` is folded in by `__post_init__`). Exceptions
+   from `StateIndexer.to_dict()` are re-raised as `GraphCacheKeyError`
+   (path chained). NO other object is keyed through `to_dict()` or any
+   other user-defined method: a user's `to_dict()` cannot be checked to
+   be one-to-one (pandas' is not: it collapses duplicate index labels,
+   review D d3);
+9. anything else: NOT FINGERPRINTABLE. This includes user class
+   instances (with or without `to_dict()`), pandas objects, dataclass
+   instances (phasic's `HexCell` / `HexGrid` too) and bound methods of
+   such instances. The error advises passing the values the callback
+   needs as plain values (numbers, strings, lists, dicts, numpy arrays),
+   for example `model.to_dict()` or `df.to_numpy()` plus labels as lists,
+   or building without `cache_key`.
 Recursion is bounded: a depth limit of 100, and a cycle check against the
-ids of the containers / `to_dict()` objects on the CURRENT PATH from the
+ids of the containers / `StateIndexer` objects on the CURRENT PATH from the
 root only (pushed on entry, popped on exit). A process-wide seen-set is
 wrong: it flags a list referenced twice, an ipv reusing one state list,
 and freed temporaries whose ids are reused (review 5 q2). Both limits
@@ -348,9 +354,10 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
 
 - `GraphCacheKeyError(ValueError)`, exported from `phasic`: the key
   cannot be computed. The message names the path to the offending value
-  (for example `kwargs['model'] -> to_dict()['rates'][2]` or
+  (for example `kwargs['model']` or
   `callback -> closure 'helper' -> defaults[0]`), its type, and the ways
-  out: pass plain values, give the object a `to_dict()`, move the value
+  out: pass plain values (for example `model.to_dict()` instead of
+  `model`), move the value
   to a module global and change `cache_key` yourself, or build without
   `cache_key`.
 - `clear_all_graph_caches` is added to the `phasic` namespace
@@ -556,7 +563,7 @@ caches by default):
 8. Closure: a factory `make(rate)` called with 1.0 and 5.0, same
    `cache_key`: miss, both correct (review4 p1 C). Default-bound loop
    idiom `def cb(state, rate=n)`: miss when `n` changes. Closure holding
-   an object without `to_dict()`: `GraphCacheKeyError` naming
+   a user-class instance: `GraphCacheKeyError` naming
    `closure '<name>'`. The factory idiom with a local
    `all_pairs = partial(combinations_with_replacement, r=2)` captured in
    the closure: hits on rebuild (immutable compiled type admitted).
@@ -564,20 +571,20 @@ caches by default):
    running code is keyed).
 10. `indexer=StateIndexer(...)` built afresh with the same layout: hit;
     a different property range: miss.
-11. Object with `to_dict()`: hit when equal, miss when a field differs.
-    Object without `to_dict()`, a `set`, a masked array, a cyclic
-    `to_dict()`, a class object with a `to_dict` attribute, a `to_dict()`
-    that raises, a closure cell holding `{}.get` or an `np.frompyfunc`
-    ufunc, a structured-dtype array, a structured array with an object
-    field, an `np.void` scalar: `GraphCacheKeyError` (not
-    `RecursionError` / `TypeError`),
-    callback not called, no file written. Not cycles: a list referenced
-    twice in one kwarg, an ipv reusing one state list, a list of 200
-    `to_dict()` objects: these hash and hit. A bound-method callback
-    calling `super()`, on an instance that HAS a valid `to_dict()` (so
-    `__self__` is fingerprintable): `GraphCacheKeyError` whose path names
-    the `__class__` cell (proves the refusal comes from the class rule,
-    not from `__self__`).
+11. Refused with `GraphCacheKeyError` (not `RecursionError` /
+    `TypeError` / `AttributeError`), callback not called, no file
+    written: a user-class instance WITH a valid `to_dict()` (the docs'
+    `MyModel`) as a kwarg and in a closure cell; a pandas DataFrame and a
+    Series; a dataclass instance; a user class passed as a kwarg (error
+    path names the class); a bound method of a user instance as a cell;
+    a `set`; a masked array; a list containing itself; a closure cell
+    holding `{}.get` or an `np.frompyfunc` ufunc; a structured-dtype
+    array; a structured array with an object field; an `np.void` scalar.
+    Not cycles (hash and hit): a list referenced twice in one kwarg, an
+    ipv reusing one state list, a list of 200 `StateIndexer` objects.
+    `Property` kwargs: hit when equal, miss when `max_value` differs; a
+    `Property` built with the deprecated `offset` equals the
+    `min_value` form (same key).
 12. Values the key accepts that the old entry format could not store
     (`np.bool_`, complex, bytes keyword arguments) and an int above 4300
     digits held INSIDE a list kwarg and as a closure default (a top-level
@@ -664,15 +671,10 @@ caches by default):
     `GraphCacheKeyError` (not `AttributeError`). `with_ipv([5])(partial(model,
     k=2.0))`: saves (callback_name fallback) and hits.
 
-26. Two pandas DataFrames with duplicate index labels and different
-    values (identical `to_dict()`), as a kwarg and in a closure cell, and
-    a duplicate-index Series: `GraphCacheKeyError`. `[M(1.0), M(5.0)]`
-    vs `[M(1.0), M(1.0)]` where `M.to_dict()` returns a fresh lambda
-    closing over its rate: different keys. A `partial` subclass
-    overriding `__call__`: refused. A user kwarg named `callback`: keyed
-    normally (no `TypeError`). A callback with mixed coefficient lengths
-    under `cache_key`: the save error carries `e.graph` and the "cannot
-    be cached" note.
+26. A `partial` subclass overriding `__call__`: refused. A user kwarg
+    named `callback`: keyed normally (no `TypeError`).
+    A callback with mixed coefficient lengths under `cache_key`: the save
+    error carries `e.graph` and the "cannot be cached" note.
 
 Contract pin (documents the user's responsibility):
 21. Same `cache_key`, a MODULE-LEVEL helper changed between builds: the
@@ -778,11 +780,17 @@ Cells that raise after the change:
   `tutorial/trace-and-jax-caching-c-path.ipynb` cells 8, 10, 12:
   `graph_cache=True` -> `cache_key="two-locus-arg"` (`dummy=42` vs
   `dummy=99` still give separate entries).
-- `tutorial/state-space.ipynb` cells 36, 38, 45: `graph_cache=True` ->
-  `cache_key=...`. Cell 45's `MyModel` works through `to_dict()`; its
-  `__repr__` is no longer needed.
+- `tutorial/state-space.ipynb` cells 36, 38: `graph_cache=True` ->
+  `cache_key=...`.
+- `tutorial/state-space.ipynb` cell 45: `Graph(callback, model=model,
+  graph_cache=True)` with a user `MyModel` object. After the change a
+  user object cannot be keyed (D3): pass `model.to_dict()` (and read it
+  as a dict in the callback) with `cache_key=...`, or drop caching.
 Text to revise (not raising):
-- `tutorial/state-space.ipynb` cells 31, 39, 44.
+- `tutorial/state-space.ipynb` cells 31, 39, 44 (cell 44 describes the
+  `to_dict()` / deterministic-`__repr__` protocol for custom objects,
+  which no longer applies: only plain values, numpy arrays and phasic's
+  `StateIndexer` / `Property` are keyed).
 - `tutorial/python_trace-and-jax-caching.ipynb` cells 1, 7 and
   `tutorial/trace-and-jax-caching-c-path.ipynb` cells 1, 7 (the
   cache-correctness sentence must state the user-key contract).
@@ -813,12 +821,11 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
 - A user who changes a module-level helper and keeps the key gets the old
   graph: the documented contract, pinned by test 21; no worse than today,
   where it happens with no key at all.
-- `to_dict()` that omits a field the callback uses gives a stale hit for
-  that field; the protocol docstring says it must describe everything the
-  callback reads from the object.
-- Callbacks that capture unfingerprintable objects in closures can no
-  longer be cached (explicit error with ways out); notably dataclass
-  instances without `to_dict()` (phasic's `HexCell` / `HexGrid`).
+- Callbacks that take or capture user objects (class instances,
+  dataclasses incl. phasic's `HexCell` / `HexGrid`, pandas objects) can
+  no longer be cached as they are (explicit error; pass plain values).
+  This is the price of D3, which removes the class of stale hits a
+  user-defined `to_dict()` can cause.
 - A docstring edit misses (constant in the code object): extra build,
   never a stale graph.
 - Callbacks capturing a `scipy.special` ufunc (or any compiled callable
@@ -914,3 +921,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   13 resets the memo; B5 "cannot be cached" note for unserialisable
   graphs; B6 Python-version wording, no dtype-string example, json
   RecursionError sentence. New test 26.
+- v3.0 (user decision D3): generic `to_dict()` protocol removed; rule 8
+  admits only phasic's `StateIndexer` / `Property`; user objects, pandas
+  and dataclasses refused with plain-value advice; tests 8, 11, 26 and
+  the notebook list (state-space cell 45 now raises) updated. Review D's
+  A1/A2 are subsumed (no user `to_dict()` results are walked).
