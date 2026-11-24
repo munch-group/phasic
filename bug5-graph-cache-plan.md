@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.2, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.3, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -89,8 +89,12 @@ changes. The `cache_key` docstring states this with an example.
     nothing is built, nothing written;
   - lookup: `GraphCache().load(entry_key)` returns a separate, fully
     built `Graph` or `None` (missing file), or raises
-    `GraphCacheEntryError` (unreadable: bad JSON, wrong `format`,
-    `from_serialized` failure). ONLY that call is inside a `try`, and
+    `GraphCacheEntryError` (unreadable: bad JSON or encoding, wrong
+    shape, wrong `format`; exact classes in §2.6). An exception from
+    `from_serialized` itself is NOT an entry error and propagates: the
+    build id guarantees the same phasic build wrote the entry, so a
+    well-formed entry that fails to load is a phasic bug or tampering,
+    and must not be hidden behind a rebuild. ONLY that call is inside a `try`, and
     only `GraphCacheEntryError` is caught: `warnings.warn(UserWarning)`
     naming the file and reason, then treated as a miss. The broad
     `except Exception` is removed. Nothing after
@@ -143,7 +147,13 @@ function already visited contributes a back-reference token)
   bound methods of instances (`{}.get`, `Random(1).random`, which carry
   state in `__self__`) and `np.frompyfunc` ufuncs ("<lambda>
   (vectorized)"), which would otherwise share a name token (review 5 q1
-  D).
+  D). It also refuses every `scipy.special` ufunc (`gamma`, `binom`:
+  their `__module__` is `None`, review 6 A); the error advises moving
+  such a function to a module global (then covered by the user's
+  `cache_key`, as for any imported object). Note the asymmetry, which is
+  consistent with the contract: compiled dispatchers are keyed by name,
+  while Python-level library functions reached through a cell (for
+  example `scipy.special.comb`) are keyed by their code.
 - anything else callable (class, callable instance without `to_dict`):
   NOT FINGERPRINTABLE.
 - Recursion: the visited set maps each function to its first-visit
@@ -188,9 +198,10 @@ longer used, so callbacks without accessible source can be cached.
    refused explicitly, never called through an unbound `to_dict`);
 8. any other object with a callable `to_dict()` (including `dict`/`list`
    subclasses that have one): class module + qualified name, then the
-   VALUE FINGERPRINT of what `to_dict()` returns; any exception raised
-   inside `to_dict()` is re-raised as `GraphCacheKeyError` with the path
-   and the original exception chained. This is the protocol
+   VALUE FINGERPRINT of what `to_dict()` returns; any `Exception` (not
+   `BaseException`: `KeyboardInterrupt` / `SystemExit` pass through)
+   raised inside `to_dict()` is re-raised as `GraphCacheKeyError` with
+   the path and the original exception chained. This is the protocol
    the docs already describe for objects passed to a callback
    (`docs/pages/tutorial/state-space.ipynb` cell 44) and that
    `StateIndexer` implements (`state_indexing.py:1850`, which covers the
@@ -205,9 +216,13 @@ raise `GraphCacheKeyError` (never `RecursionError`).
 
 #### 2.2.3 Build id
 
-At `import phasic`, `graph_cache` records `(relative path, size,
-mtime_ns)` for the extension module `phasic_pybind*.so` and every `*.py`
-file in the installed package directory (a few dozen `stat` calls; no
+At `import phasic`, `graph_cache` records `(path, size, mtime_ns)` for
+the extension module located by `phasic.phasic_pybind.__file__` (not by
+globbing; if it has no `__file__` or the file is missing, the first key
+computation raises `GraphCacheKeyError`, so an editable or source-tree
+layout can never silently leave the extension out of the id) and every
+`*.py` file in the package directory of `phasic.__file__` (a few dozen
+`stat` calls; no
 reading). EVERY key computation re-stats those files (measured 2.1 ms,
 review 5) and compares with the record; if any stat changed since import
 (for example `install-dev` ran under a live kernel), `GraphCacheKeyError`:
@@ -274,10 +289,12 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
   key already encodes the parameters, and serialising them could fail
   after the build for values the key accepts (np.bool_, complex, bytes:
   review4 p1 E).
-- Write: `tempfile.mkstemp(dir=<cache dir>, prefix=".tmp-",
-  suffix=".partial")` (unique per writer, never matching `*.json`), write,
-  `os.fchmod` to `0o666 & ~umask` (mkstemp creates 0600, which would make
-  entries unreadable to the rest of a shared group directory), close,
+- Write: `os.open(<cache dir>/f".tmp-{secrets.token_hex(8)}.partial",
+  O_CREAT | O_EXCL | O_WRONLY, 0o666)` (unique per writer, never matching
+  `*.json`; the kernel applies the process umask and any default ACL of
+  the directory, as for today's `open()`, so no umask is read or changed
+  (reading it with `os.umask` would briefly change it process-wide while
+  JAX/OpenMP threads run), and no `mkstemp` 0600 mode), write, close,
   `os.replace` to `<entry_key>.json`; on any exception the
   temporary file is removed before the error propagates. Two concurrent
   writers each replace atomically; a reader sees a complete file or none
@@ -285,12 +302,24 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
   `distributed.ipynb` cell 31).
 - On load, `format` must equal `GRAPH_CACHE_FORMAT`, otherwise
   `GraphCacheEntryError`.
-- Read errors are classed as: `FileNotFoundError` -> `None` (miss);
-  invalid JSON, wrong or missing fields, wrong `format`,
-  `from_serialized` failure -> `GraphCacheEntryError` (warn, rebuild,
-  overwrite); any other `OSError` (for example `PermissionError` on
-  another user's entry) PROPAGATES, so two users can never overwrite
-  each other's entries back and forth silently.
+- Read errors are classed exactly as:
+  - `FileNotFoundError` on open -> `None` (miss);
+  - from `json.load`: `ValueError` (covers `JSONDecodeError` and
+    `UnicodeDecodeError` from invalid UTF-8, review 6 B) ->
+    `GraphCacheEntryError`;
+  - shape checks done explicitly before use: top level not a `dict`,
+    a required field missing or of the wrong type, `format` not equal to
+    `GRAPH_CACHE_FORMAT` -> `GraphCacheEntryError` (implemented as
+    explicit checks, so no `KeyError`/`TypeError` escapes raw);
+  - `_deserialize_value` and `from_serialized`: NOT caught, propagate
+    (§2.1);
+  - any other `OSError` (for example `PermissionError` on an entry another
+    user wrote under umask 077, common on HPC) PROPAGATES, re-raised with
+    a message naming the file, its owner (`pwd.getpwuid(st_uid)`, uid if
+    unknown) and the two ways out (another `cache_key`, or another cache
+    directory via `configure(cache_dir=...)`). Two users therefore never
+    overwrite each other's entries back and forth silently.
+  `GraphCacheEntryError` -> warn, rebuild, overwrite (§2.1).
 
 ### 2.7 `Graph.clear_from_cache(graph_cache=True, ...)`
 
@@ -354,7 +383,10 @@ Expected to fail on master:
     callback not called, no file written. Not cycles: a list referenced
     twice in one kwarg, an ipv reusing one state list, a list of 200
     `to_dict()` objects: these hash and hit. A bound-method callback
-    calling `super()` (`__class__` cell): `GraphCacheKeyError`.
+    calling `super()`, on an instance that HAS a valid `to_dict()` (so
+    `__self__` is fingerprintable): `GraphCacheKeyError` whose path names
+    the `__class__` cell (proves the refusal comes from the class rule,
+    not from `__self__`).
 12. Values the key accepts that the old entry format could not store
     (`np.bool_`, complex, bytes keyword arguments): build, save and hit
     work.
@@ -364,16 +396,22 @@ Expected to fail on master:
     key computation and after one: `GraphCacheKeyError` mentioning
     restart.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`.
-15. Corrupt entry (truncated JSON; wrong `format`): `UserWarning`,
+15. Corrupt entry (truncated JSON; invalid UTF-8 bytes; a valid JSON
+    list; a dict missing `graph_data`; wrong `format`): `UserWarning`,
     correct graph, file rewritten and then hit. A hit whose attribute
     restore raises: a FORMULA-mode entry is written by hand under the
     computed key (a graph with `weight_formula` set, serialised and
     passed to `GraphCache.save`, since `Graph.__init__` only ever saves
     linear-mode graphs and the tape restore at `__init__.py:1716` runs in
-    formula mode only), then `_set_weight_tape` is monkeypatched to
-    raise: the error propagates (no silent rebuild). An unreadable entry
-    file (`chmod 000`, skipped when running as root) propagates
-    `PermissionError`.
+    formula mode only). `_set_weight_tape` is monkeypatched to pass
+    through on its FIRST call (the one inside `from_serialized`,
+    `_graph_serialize.py:733-741`, review 6 D) and raise on its SECOND
+    (the restore on the live graph); the test asserts that the second
+    call happened, that the error propagates, and that no `UserWarning`
+    was emitted (no silent rebuild). A well-formed entry whose
+    `from_serialized` raises (monkeypatched): the error propagates, no
+    warning. An unreadable entry file (`chmod 000`, skipped when running
+    as root) propagates `PermissionError` whose message names the file.
 16. Write failure (`os.replace` monkeypatched to raise): `OSError` with
     the path, and no `.partial` file left in the directory.
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
@@ -486,6 +524,9 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   longer be cached (explicit error with ways out).
 - A docstring edit misses (constant in the code object): extra build,
   never a stale graph.
+- Callbacks capturing a `scipy.special` ufunc (or any compiled callable
+  that does not resolve back to itself by name) in a closure cell are
+  refused; such functions must be module globals to be cached.
 - A shared, group-writable cache directory can be poisoned: anyone who
   can compute an entry key can plant a JSON graph there. It is data, not
   code execution (unlike pickle caches), but a peer could plant a wrong
@@ -511,3 +552,10 @@ design -> §3 preamble, `**kw`, subprocess isolation, delenv, T6 rewrite,
 `_graph_cache_entry` -> §2.1, §2.7, test 19. 12 warning site -> §2.4,
 test 20. 13 missing references -> §2.4, §3 edits and grep gate.
 14 hygiene -> §4.
+- Review 6 findings -> v2.3: 1 test 15 (second-call raise, no-warning
+  assertion); 2 `os.open(O_EXCL, 0o666)` instead of `mkstemp`+`fchmod`
+  §2.6; 3 exact read-error classes incl. `UnicodeDecodeError` and shape
+  checks §2.6, test 15; 4 `from_serialized` failures propagate §2.1/§2.6;
+  5 scipy.special refusal documented §2.2.1/§6; 6 extension located by
+  `__file__` §2.2.3, `Exception` not `BaseException` rule 8, permission
+  message §2.6; 7 test 11 `super()` case with a valid `to_dict()`.

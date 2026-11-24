@@ -1,0 +1,37 @@
+
+=== A. §2.2.1 builtin identity rule applied to candidates
+  len                    admitted=True  type=builtin_function_or_method   module=builtins name=len self=module
+  math.sqrt              admitted=True  type=builtin_function_or_method   module=math name=sqrt self=module
+  operator.add           admitted=True  type=builtin_function_or_method   module=_operator name=add self=module
+  functools.reduce       admitted=True  type=builtin_function_or_method   module=_functools name=reduce self=module
+  np.exp                 admitted=True  type=ufunc                        module=numpy name=exp self=NoneType
+  np.linalg.solve        admitted=True  type=_ArrayFunctionDispatcher     module=numpy.linalg name=solve self=NoneType
+  np.linspace            admitted=True  type=_ArrayFunctionDispatcher     module=numpy name=linspace self=NoneType
+  np.random.rand         admitted=False type=method                       module=numpy.random name=RandomState.rand self=RandomState
+  random.random          admitted=False type=builtin_function_or_method   module=None name=Random.random self=Random
+  {}.get                 admitted=False type=builtin_function_or_method   module=None name=dict.get self=dict
+  frompyfunc             admitted=False type=ufunc                        module=None name=<lambda> (vectorized) self=NoneType
+  dict.fromkeys          admitted=False type=builtin_function_or_method   module=None name=dict.fromkeys self=type
+  np.add.reduce          admitted=False type=builtin_function_or_method   module=None name=ufunc.reduce self=ufunc
+  sps.gamma              admitted=False type=ufunc                        module=None name=gamma self=NoneType
+  sps.binom              admitted=False type=ufunc                        module=None name=binom self=NoneType
+  sps.comb(py fn)        admitted=True  type=function                     module=scipy.special._basic name=comb self=NoneType
+  time.time              admitted=True  type=builtin_function_or_method   module=time name=time self=module
+  np.random.default_rng  admitted=True  type=cython_function_or_method    module=numpy.random name=default_rng self=NoneType
+  math.comb              admitted=True  type=builtin_function_or_method   module=math name=comb self=module
+
+=== B. read-error classes: invalid UTF-8 in the entry file
+  json.load raised UnicodeDecodeError | is JSONDecodeError: False | is ValueError: True | is OSError: False
+  valid JSON list, entry['format'] -> TypeError
+
+=== C. umask has no read-only API
+  os.umask signature needs a mask (set-and-return): Set the current numeric umask and return the previous umask.
+
+=== D. test 15: where does a monkeypatched _set_weight_tape fire on a FORMULA-mode hit? (master)
+[ERROR] phasic.graph_cache: Failed to load cached graph d08294ff2cef1c92: boom
+  live graph weight_mode: formula
+  entry graph_data has weight_formula_tape: True
+  construction returned (master swallows); calls inside from_serialized: [True]
+
+cleaned
+[runcap] exit 0, peak RSS 312 MB, 5s
