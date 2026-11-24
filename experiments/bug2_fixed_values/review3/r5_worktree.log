@@ -1,0 +1,33 @@
+    defs: {'N': [(6, '1000.0'), (6, 'N,'), (18, '1000.0,')]}
+phasic-bug2/docs/pages/popgen/coalescent-derived.ipynb [cell 14] fixed=[(0, pop_size)],
+phasic-bug2/docs/pages/popgen/coalescent-derived.ipynb [cell 29] #   fixed=[(2, mutation_rate)],
+phasic-bug2/docs/pages/popgen/coalescent-derived.ipynb [cell 40] # fixed=[(2, mutation_rate)],
+    defs: {'N': [(3, 'int(N)'), (3, 'int(round(N))'), (8, 'int(round(N))')], 'pop_size': [(3, '5')], 'mutation_rate': [(3, '0.5'), (35, 'mutation_rate)'), (36, 'mutation_rate)')]}
+phasic-bug2/docs/pages/popgen/ghost.ipynb [cell 11] fixed=[(4, rec_rate), (5, mutation_rate)],
+    defs: {'rec_rate': [(3, '5')], 'mutation_rate': [(4, '1'), (4, 'mutation_rate'), (11, 'mutation_rate,')]}
+phasic-bug2/docs/pages/popgen/moran-coalescent-derived.ipynb [cell 19] fixed=[(0, N)], # the last three are just to fix the padding of empty slots to make theta same length of coefficients
+    defs: {'N': [(2, 'int(N)'), (2, '100')]}
+    defs: {'N': [(4, 'int(N)'), (4, '10'), (8, '10'), (19, 'int(round(N))')], 'mutation_rate': [(46, 'mutation_rate)'), (47, 'mutation_rate)')]}
+    defs: {'mut_rate': [(4, '1.2e-8'), (8, '5e-10')], 'rec_rate': [(4, '1e-8'), (8, '1e-8')]}
+    defs: {'mutation_rate': [(4, '1.2e-4'), (4, 'mutation_rate)'), (6, '1.2e-4'), (6, 'mutation_rate'), (12, '1.2e-4'), (12, 'mutation_rate'), (32, '1.2e-4'), (32, 'mutation_rate'), (40, '1'), (40, 'mutation_rate')], 'mut_rate': [(15, '5e-10'), (43, '5e-10')],
+    defs: {'mutation_rate': [(62, '1.0')]}
+    defs: {'mutation_rate': [(17, '0.3')]}
+    defs: {'mutation_rate': [(6, '0.1')]}
+phasic-bug2/docs/pages/tutorial/method-of-moments.ipynb [cell 35] fixed=[(1, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/method-of-moments.ipynb [cell 40] fixed=[(1, mutation_rate)],
+    defs: {'mutation_rate': [(31, '1.0')]}
+phasic-bug2/docs/pages/tutorial/model-selection.ipynb [cell 7] fixed=[(3, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/model-selection.ipynb [cell 13] fixed=[(1, 0), (3, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/model-selection.ipynb [cell 26] fixed=[(3, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/model-selection.ipynb [cell 30] fixed=[(3, mutation_rate)],
+    defs: {'mutation_rate': [(2, '0.1'), (3, 'mutation_rate)'), (6, 'mutation_rate)'), (24, 'mutation_rate,')]}
+    defs: {'N': [(22, 'int(N)')], 'pop_size': [(22, '10')], 'mutation_rate': [(22, '0.5')]}
+    defs: {'N': [(61, '1, R=1,')]}
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 26] fixed=[(1, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 34] fixed=[(1, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 40] fixed=[(1, mut_rate)],
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 45] fixed=[(1, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 50] fixed=[(1, mutation_rate)],
+phasic-bug2/docs/pages/tutorial/svgd-joint-prob.ipynb [cell 63] fixed=[(2, mutation_rate)],
+    defs: {'mutation_rate': [(9, '1'), (10, 'mutation_rate)'), (34, 'mutation_rate,'), (39, 'mut_rate, discrete=False'), (59, '1'), (59, 'mutation_rate')], 'mut_rate': [(39, '1.0e-8'), (74, '5e-10')], 'rec_rate': [(39, '1e-8'), (74, '1e-8')]}
+    defs: {'N': [(3, '10000'), (6, '1'), (42, 'pop_sizes[-1]')], 'mutation_rate': [(32, '1')]}

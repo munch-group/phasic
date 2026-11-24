@@ -1,0 +1,127 @@
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:12716: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 8 samples; result may be unreliable.
+  warnings.warn(
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:66: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+  free = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1.0)], prior=[gauss(), None], **EKW)
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:66: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+  free = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1.0)], prior=[gauss(), None], **EKW)
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:67: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+  tied = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1.0)], tied=[(0,[0,1])], prior=[gauss(), None], **EKW)
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:67: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+  tied = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1.0)], tied=[(0,[0,1])], prior=[gauss(), None], **EKW)
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 4 samples; result may be unreliable.
+  warnings.warn(
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:78: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+  s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1e-10)], prior=[gauss(), None], n_particles=4, n_iterations=2, learning_rate=0.01, progress=False, seed=1); report(s,[1,3])
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s3_mcmc_lrt.py:78: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+  s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 1e-10)], prior=[gauss(), None], n_particles=4, n_iterations=2, learning_rate=0.01, progress=False, seed=1); report(s,[1,3])
+phasic from /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+
+=== C1 Graph.mcmc (vmap) fixed 1e-10
+  parallel: vmap
+  seen=[1.e-10] uniq=[1.e-10] mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10)) ncalls=424 acc=[0.76666667 0.80833333 0.79166667]
+  hpd_intervals(0.5): (array([1.92347031e+00, 1.00000000e-10]), array([3.10898463e+00, 1.00000000e-10]))
+  free mean 2.5892951639897084
+
+MCMC Summary (3 chains, 120 samples/chain)
+----------------------------------------------------------------------
+Param          Mean        Std HPD 95% lo HPD 95% hi    R-hat      ESS
+----------------------------------------------------------------------
+theta[0]      2.5893     0.8035     1.0466     3.7685   1.1312     11.3
+theta[1] (fixed)     0.0000     0.0000     0.0000     0.0000      nan    360.0
+----------------------------------------------------------------------
+Acceptance rates: 0.767, 0.808, 0.792
+
+=== C1 Graph.mcmc (vmap) fixed 0.3
+  parallel: vmap
+  seen=[0.3] uniq=[0.3] mean=0.3 std=0.0 hpd=(np.float64(0.3),np.float64(0.3)) ncalls=424 acc=[0.76666667 0.80833333 0.79166667]
+  hpd_intervals(0.5): (array([1.92347031, 0.3       ]), array([3.10898463, 0.3       ]))
+  free mean 2.5892951639897084
+
+MCMC Summary (3 chains, 120 samples/chain)
+----------------------------------------------------------------------
+Param          Mean        Std HPD 95% lo HPD 95% hi    R-hat      ESS
+----------------------------------------------------------------------
+theta[0]      2.5893     0.8035     1.0466     3.7685   1.1312     11.3
+theta[1] (fixed)     0.3000     0.0000     0.3000     0.3000      nan    360.0
+----------------------------------------------------------------------
+Acceptance rates: 0.767, 0.808, 0.792
+
+=== C1 Graph.mcmc (vmap) fixed 0.0
+  parallel: vmap
+  seen=[0.] uniq=[0.] mean=0.0 std=0.0 hpd=(np.float64(0.0),np.float64(0.0)) ncalls=424 acc=[0.76666667 0.80833333 0.79166667]
+  hpd_intervals(0.5): (array([1.92347031, 0.        ]), array([3.10898463, 0.        ]))
+  free mean 2.5892951639897084
+
+MCMC Summary (3 chains, 120 samples/chain)
+----------------------------------------------------------------------
+Param          Mean        Std HPD 95% lo HPD 95% hi    R-hat      ESS
+----------------------------------------------------------------------
+theta[0]      2.5893     0.8035     1.0466     3.7685   1.1312     11.3
+theta[1] (fixed)     0.0000     0.0000     0.0000     0.0000      nan    360.0
+----------------------------------------------------------------------
+Acceptance rates: 0.767, 0.808, 0.792
+
+=== C2 MCMC sequential (parallel='none')
+  parallel: none
+  seen=[1.e-10] uniq=[1.e-10] mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10)) ncalls=424 acc=[0.76666667 0.85       0.69166667]
+  hpd_intervals(0.5): (array([2.63634445e+00, 1.00000000e-10]), array([3.61280893e+00, 1.00000000e-10]))
+  free mean 2.6333017858280043
+
+=== C2b MCMC 1 chain adaptive
+  parallel: None
+  seen=[1.e-10] uniq=[1.e-10] mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10)) ncalls=322 acc=[0.39]
+  hpd_intervals(0.5): (array([1.38808242e+00, 1.00000000e-10]), array([2.02659233e+00, 1.00000000e-10]))
+  free mean 1.9662714367493181
+
+=== C2c MCMC vmap adaptive
+  seen=[1.e-10] uniq=[1.e-10] mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10)) ncalls=424 acc=[0.50833333 0.54166667 0.56666667]
+  hpd_intervals(0.5): (array([1.53230801e+00, 1.00000000e-10]), array([2.21478141e+00, 1.00000000e-10]))
+  free mean 2.0501351777583174
+
+=== C3 MCMC theta_init / mask / no transform
+  seen=[0.25] uniq=[0.25] mean=0.25 std=0.0 hpd=(np.float64(0.25),np.float64(0.25)) ncalls=424 acc=[0.85833333 0.9        0.88333333]
+  hpd_intervals(0.5): (array([1.56763883, 0.25      ]), array([1.87296663, 0.25      ]))
+  free mean 1.7771998675461598
+  seen=[0.25 1.  ] uniq=[1.] mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0)) ncalls=848 acc=[0.76666667 0.80833333 0.79166667]
+  hpd_intervals(0.5): (array([1.92347031, 1.        ]), array([3.10898463, 1.        ]))
+  free mean 2.5892951639897084
+  mask dtype float64
+  no-transform: param_transform None fixed_values [ 1. -0.]
+
+=== C4 MCMC validation
+  all fixed RAISED ValueError All parameters are fixed! At least one must be learnable.
+  coupled RAISED ValueError MCMC: param_transform couples parameters (a fixed parameter's unconstrained value changes a free par
+
+=== D1 FreeEpochModel LRT full vs nested
+  slot 1: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  slot 3: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  all finite: True  n model calls: 175
+  slot 1: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  slot 2: seen=[1.19826994 1.2004989  1.20272498 1.20494819 1.20716854 1.20938605] particles_uniq=[6.] mean=6.0 attr_mean=6.0 std=0.0 hpd=(np.float64(6.0),np.float64(6.0))
+  slot 3: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  all finite: True  n model calls: 348
+  RAISED ValueError: LL_nested (-210.8343) > LL_full (-210.8556). A true nested restriction cannot exceed the full model's likelihood; check that the fits share data/graph and have converged.
+
+=== D2 tied vs free LRT
+   likelihood_ratio_test LRTResult(statistic=0.8068, df=1, p_value=0.3691, ll_full=-210.8556, ll_nested=-211.2590, k_full=2, k_nested=1, n=199)
+   likelihood_ratio_test_at LRTResult(statistic=0.8068, df=1, p_value=0.3691, ll_full=-210.8556, ll_nested=-211.2590, k_full=2, k_nested=1, n=199)
+
+=== D3 FreeEpochModel fixed 1e-10 (deviation claim: <1e-7 raises negative-rate)
+  RAISED XlaRuntimeError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negative -- the solver's output would not be a probability distribution. Under 'linear' weights this means some theta component went below zero.
+
+=== D3 FreeEpochModel fixed 0.0 (deviation claim: <1e-7 raises negative-rate)
+  RAISED XlaRuntimeError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negative -- the solver's output would not be a probability distribution. Under 'linear' weights this means some theta component went below zero.
+
+=== D3 FreeEpochModel fixed 1e-06 (deviation claim: <1e-7 raises negative-rate)
+  slot 1: seen=[1.e-06] particles_uniq=[1.e-06] mean=1e-06 attr_mean=1e-06 std=0.0 hpd=(np.float64(1e-06),np.float64(1e-06))
+  slot 3: seen=[1.e-06] particles_uniq=[1.e-06] mean=1e-06 attr_mean=1e-06 std=0.0 hpd=(np.float64(1e-06),np.float64(1e-06))
+  all finite: True  n model calls: 19
+
+=== D4 Graph.svgd epoch fixed 1e-10 no exposure
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  slot 3: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 19
+  ll -1969.0025628524197
+[runcap] exit 0, peak RSS 1033 MB, 21s

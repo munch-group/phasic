@@ -1,0 +1,32 @@
+## (a) tied epoch fit
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:01<00:02,  1.24s/it] 67%|██████▋   | 2/3 [00:01<00:00,  1.72it/s]                                                patched=False homogeneous slave 2 <- master 0: phi-eq=True theta-eq=True hist-eq=True mean np.float64(5.874569569196493e-05) vs np.float64(5.874569569196493e-05); attr np.float64(5.874569569196493e-05) vs np.float64(5.874569569196493e-05)
+      map_from_particles slave=5.283874150266358e-05 master=5.283874150266358e-05
+      map_with_optimization RAISED TypeError: logaddexp requires ndarray or scalar arguments, got <class 'list'> at position 0.
+      log_likelihood=-8.573336370598815 refine=-8.591345349292203
+      user-fixed slots [1, 3]: mean=[0.00010000000000004333, 0.00010000000000004333] (given 1e-4)
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  3.77it/s]100%|██████████| 3/3 [00:00<00:00,  9.31it/s]                                                patched=False mixed Beta master slave 2 <- master 0: phi-eq=True theta-eq=True hist-eq=True mean np.float64(0.5839983568089464) vs np.float64(0.5839983568089464); attr np.float64(0.5839983568089464) vs np.float64(0.5839983568089464)
+      map_from_particles slave=0.5565586511287574 master=0.5565586511287574
+      map_with_optimization RAISED TypeError: list indices must be integers or slices, not tuple
+      log_likelihood=-17.1388377168438 refine=-17.015613716624788
+      user-fixed slots [1, 3]: mean=[0.00010000000000004333, 0.00010000000000004333] (given 1e-4)
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  4.04it/s]100%|██████████| 3/3 [00:00<00:00,  9.58it/s]                                                patched=True homogeneous slave 2 <- master 0: phi-eq=True theta-eq=True hist-eq=True mean np.float64(5.8745695691962724e-05) vs np.float64(5.8745695691962724e-05); attr np.float64(5.8745695691962724e-05) vs np.float64(5.8745695691962724e-05)
+      map_from_particles slave=5.2838741502659734e-05 master=5.2838741502659734e-05
+      map_with_optimization RAISED TracerArrayConversionError: The numpy.ndarray conversion method __array__() was called on traced array with shape float64[]
+See 
+      log_likelihood=-8.573336370599066 refine=-8.591345349292217
+      user-fixed slots [1, 3]: mean=[0.00010000000000000002, 0.00010000000000000002] (given 1e-4)
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:00,  3.70it/s]100%|██████████| 3/3 [00:00<00:00,  9.12it/s]                                                patched=True mixed Beta master slave 2 <- master 0: phi-eq=True theta-eq=True hist-eq=True mean np.float64(0.5839983568127857) vs np.float64(0.5839983568127857); attr np.float64(0.5839983568127857) vs np.float64(0.5839983568127857)
+      map_from_particles slave=0.5565586511284879 master=0.5565586511284879
+      map_with_optimization RAISED TracerArrayConversionError: The numpy.ndarray conversion method __array__() was called on traced array with shape float64[]
+See 
+      log_likelihood=-17.138837716843746 refine=-17.0156137166194
+      user-fixed slots [1, 3]: mean=[0.00010000000000000002, 0.00010000000000000002] (given 1e-4)
+## (b) Graph.svgd on a real graph, rate fixed at 0 / tiny (linear weights, FD backward)
+   fixed=0: free finite=True free mean=2.8152 fixed mean=0.0
+   fixed=1e-12: free finite=True free mean=2.8152 fixed mean=9.999999999999998e-13
+   fixed=1e-08: free finite=True free mean=2.8152 fixed mean=9.999999999999999e-09
+   fixed=0.3: free finite=True free mean=2.8152 fixed mean=0.3
+## (c) confirm the stale 0.3 in t4(a) is the compiled-gradient cache: clear between fits
+   clear_between=False: during optimize() the model saw slot1 = fit1 [0.3], fit2 [0.3, 2.0]
+   clear_between=True: during optimize() the model saw slot1 = fit1 [0.3], fit2 [2.0]
+[runcap] exit 0, peak RSS 1148 MB, 41s

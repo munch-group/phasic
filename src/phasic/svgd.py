@@ -4542,8 +4542,10 @@ def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel,
         # Create wrapped log_prob that handles projection
         def log_prob_fn_reduced(theta_learnable):
             # Expand to full space: learnable → full
-            # NOTE: Fixed dims initialized to values from fixed_values (untransformed space)
-            # If param_transform is active (e.g., softplus), these will be transformed
+            # NOTE: fixed dims are pinned at `fixed_values`: the values
+            # themselves when no transform is active, a placeholder otherwise
+            # (the model-facing transform then overwrites those slots with the
+            # exact fixed values).
             # IMPORTANT: Must create fresh array copy for JAX gradient tracing
             if fixed_values is not None:
                 theta_full = jnp.array(fixed_values)  # Create fresh copy
@@ -5102,6 +5104,120 @@ def _reject_svgd_only_kwargs(unexpected: dict) -> None:
     )
 
 
+# Unconstrained-space placeholder stored at fixed slots while a parameter
+# transform is active. The model-facing transform overwrites those slots with
+# the exact fixed value (see _fixed_value_transform), so nothing reads the
+# placeholder as a value.
+_FIXED_PLACEHOLDER = 0.0
+
+
+def _parse_fixed(fixed, theta_dim, where):
+    """Parse a ``fixed=`` argument.
+
+    Returns ``(mask, fixed_theta)``: ``mask`` is the 0/1 array the optimiser
+    uses, ``fixed_theta`` a float64 numpy array holding the user's values in
+    PARAMETER space at the fixed slots (1.0 elsewhere). ``(None, None)`` when
+    nothing is fixed. A non-finite fixed value raises; any finite value,
+    including 0 and negative values, is accepted and delivered exactly.
+    """
+    if fixed is None:
+        return None, None
+    if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+        mask = np.zeros(theta_dim)
+        vals = np.ones(theta_dim, dtype=np.float64)
+        seen_idx = set()
+        for idx, value in fixed:
+            if isinstance(idx, (bool, np.bool_)) or not isinstance(idx, (int, np.integer)):
+                raise TypeError(f"Parameter index must be integer, got {type(idx)}")
+            if idx < 0 or idx >= theta_dim:
+                raise ValueError(
+                    f"Invalid parameter index {idx}, must be in [0, {theta_dim})"
+                )
+            if int(idx) in seen_idx:
+                raise ValueError(
+                    f"{where}: parameter {int(idx)} appears more than once in fixed=."
+                )
+            seen_idx.add(int(idx))
+            v = float(value)
+            if not np.isfinite(v):
+                raise ValueError(
+                    f"{where}: the fixed value for parameter {idx} must be "
+                    f"finite, got {value!r}."
+                )
+            mask[idx] = 1
+            vals[idx] = v
+        return jnp.asarray(mask), vals
+    # Binary mask [0, 1, 0, ...]: 1 means "fixed at exactly 1.0".
+    fixed_array = jnp.array(fixed)
+    if len(fixed_array) != theta_dim:
+        raise ValueError(
+            f"fixed must have length {theta_dim} (theta_dim), got {len(fixed_array)}"
+        )
+    if not jnp.all((fixed_array == 0) | (fixed_array == 1)):
+        raise ValueError(
+            "fixed must contain only 0 (optimize) or 1 (fix at 1.0). "
+            f"Got values: {jnp.unique(fixed_array)}"
+        )
+    return fixed_array, np.ones(theta_dim, dtype=np.float64)
+
+
+def _fixed_value_transform(base, fixed_mask, fixed_theta, theta_dim,
+                           check_custom, where):
+    """Model-facing transform that delivers fixed values exactly.
+
+    ``base`` maps the unconstrained vector to parameters; the returned
+    function does the same and then overwrites the fixed slots with
+    ``fixed_theta``, so a fixed parameter never passes through a transform
+    (softplus(inverse_softplus(v)) is not v: 0 came out as 0.693, values
+    below 1e-9 as 1e-9, values above ~700 as inf, and a custom transform was
+    applied to the raw value). It takes full-length vectors only.
+
+    With ``check_custom`` (a user-supplied transform) the base is probed at
+    two different placeholder values: it must be finite at the placeholder
+    and must not let a fixed slot's unconstrained value change a free slot's
+    output (a transform that couples dimensions cannot be combined with
+    ``fixed``).
+    """
+    mask_np = np.asarray(fixed_mask) == 1
+    mask_b = jnp.asarray(mask_np)
+    fixed_j = jnp.asarray(np.asarray(fixed_theta, dtype=np.float64))
+    if check_custom:
+        pa = np.full(theta_dim, 0.3)
+        pb = pa.copy()
+        pa[mask_np] = _FIXED_PLACEHOLDER
+        pb[mask_np] = _FIXED_PLACEHOLDER + 1.0
+        ta = np.asarray(base(jnp.asarray(pa)))
+        tb = np.asarray(base(jnp.asarray(pb)))
+        if not np.all(np.isfinite(ta[mask_np])):
+            raise ValueError(
+                f"{where}: param_transform is not finite at "
+                f"{_FIXED_PLACEHOLDER}, the unconstrained placeholder used for "
+                "fixed parameters; it cannot be combined with fixed=."
+            )
+        if not np.array_equal(ta[~mask_np], tb[~mask_np], equal_nan=True):
+            raise ValueError(
+                f"{where}: param_transform couples parameters (a fixed "
+                "parameter's unconstrained value changes a free parameter); "
+                "it cannot be combined with fixed=. Use a per-parameter "
+                "transform."
+            )
+
+    def with_fixed(phi):
+        phi = jnp.asarray(phi)
+        if phi.shape[-1] != theta_dim:
+            raise ValueError(
+                f"{where}: the parameter transform with fixed values needs a "
+                f"full parameter vector (last axis {theta_dim}), got shape "
+                f"{phi.shape}."
+            )
+        return jnp.where(mask_b, fixed_j, base(phi))
+
+    per_dim = getattr(base, '_per_dim_fns', None)
+    if per_dim is not None:
+        with_fixed._per_dim_fns = per_dim
+    return with_fixed
+
+
 class SVGD:
     r"""
     Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
@@ -5150,6 +5266,12 @@ class SVGD:
         - Single callable: prior(theta) -> scalar, applied to entire theta vector
         - List of Prior objects: One prior per parameter dimension.
           Use None for fixed parameters: prior=[GaussPrior(...), None, GaussPrior(...)]
+
+        A single callable is evaluated on the whole unconstrained vector,
+        fixed slots included; at a fixed slot it sees a constant placeholder
+        (not the fixed value). For a prior that is a sum over parameters (all
+        built-in priors) that only adds a constant; a prior that couples
+        parameters should be given per dimension instead.
 
         If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
 
@@ -5267,7 +5389,10 @@ class SVGD:
 
         **(a) Index/value tuples** (recommended) —
         ``[(idx, value), ...]``. Each tuple pins parameter ``idx`` at
-        ``value``. Values may be any positive number (not just 1.0)::
+        ``value``. Values are in parameter space and reach the model exactly as
+        given: a fixed parameter does not pass through any transform, so 0,
+        values of any magnitude and negative values are delivered unchanged
+        (a non-finite value raises). For example::
 
             fixed=[(1, 0.01)]              # theta[1] = 0.01, rest learned
             fixed=[(0, 2.5), (2, 0.1)]     # theta[0]=2.5, theta[2]=0.1
@@ -5409,7 +5534,11 @@ class SVGD:
         Final posterior samples (n_particles, theta_dim) in the optimiser's
         unconstrained space (e.g. softplus^-1 of the rates under
         ``positive_params=True``); ``get_results()['particles']`` gives
-        them on the parameter scale
+        them on the parameter scale. At FIXED slots the unconstrained
+        particles (and every ``unconstrained=True`` result) hold a constant
+        placeholder (0.0) whenever a transform is active, because fixed
+        values do not pass through the transform; the parameter-scale
+        results hold the fixed value exactly
     theta_mean : array
         Posterior mean on the parameter scale (equal to
         ``get_results()['theta_mean']``)
@@ -6140,94 +6269,45 @@ class SVGD:
             if verbose:
                 print(f"Using provided initial particles: {self.theta_init.shape}")
 
-        # Validate and store fixed parameter mask
-        if fixed is not None:
-            # Detect format: list of tuples [(index, value), ...] vs binary mask [0, 1, ...]
-            if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
-                # Format: [(index, value), ...] - fix specific parameters at specific values
-                self.fixed_mask = jnp.zeros(self.theta_dim)
-                self.fixed_values = jnp.ones(self.theta_dim)  # Default to 1.0 for non-fixed
-
-                for idx, value in fixed:
-                    if not isinstance(idx, (int, jnp.integer)):
-                        raise TypeError(f"Parameter index must be integer, got {type(idx)}")
-                    if idx < 0 or idx >= self.theta_dim:
-                        raise ValueError(
-                            f"Invalid parameter index {idx}, must be in [0, {self.theta_dim})"
-                        )
-                    self.fixed_mask = self.fixed_mask.at[idx].set(1)
-                    # CRITICAL: Fixed values are specified in THETA space (constrained).
-                    # But SVGD operates in PHI space (unconstrained), and log_prob_fn applies
-                    # param_transform (e.g., softplus) to convert phi -> theta.
-                    # So we must store fixed values in PHI space, i.e., apply inverse transform.
-                    # inv_softplus(theta) = log(exp(theta) - 1) for theta > 0
-                    if positive_params and value > 0:
-                        # Apply inverse softplus to convert theta -> phi
-                        phi_value = float(jnp.log(jnp.exp(value) - 1))
-                        self.fixed_values = self.fixed_values.at[idx].set(phi_value)
-                    else:
-                        # No transform or value <= 0 (edge case)
-                        self.fixed_values = self.fixed_values.at[idx].set(value)
-
-                n_fixed = len(fixed)
-                n_learnable = self.theta_dim - n_fixed
-                if verbose:
-                    print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at custom values")
-                    for idx, value in fixed:
-                        print(f"  θ_{idx} fixed at {value}")
-                    print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
-                    if n_learnable == 0:
-                        raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
-
-                # Initialize fixed dimensions to their specified values (in PHI space)
-                if theta_init is None:
-                    for idx, value in fixed:
-                        if positive_params and value > 0:
-                            # Convert theta -> phi
-                            phi_value = float(jnp.log(jnp.exp(value) - 1))
-                            self.theta_init = self.theta_init.at[:, idx].set(phi_value)
-                        else:
-                            self.theta_init = self.theta_init.at[:, idx].set(value)
-            else:
-                # Format: [0, 1, 0, ...] - binary mask (backward compatible)
-                fixed_array = jnp.array(fixed)
-                if len(fixed_array) != self.theta_dim:
-                    raise ValueError(
-                        f"fixed must have length {self.theta_dim} (theta_dim), got {len(fixed_array)}"
-                    )
-                if not jnp.all((fixed_array == 0) | (fixed_array == 1)):
-                    raise ValueError(
-                        "fixed must contain only 0 (optimize) or 1 (fix at 1.0). "
-                        f"Got values: {jnp.unique(fixed_array)}"
-                    )
-                self.fixed_mask = fixed_array
-                # Fixed values default to theta=1.0, but we need to store in phi space
-                if positive_params:
-                    # inv_softplus(1.0) = log(exp(1) - 1) ≈ 0.5413
-                    phi_one = float(jnp.log(jnp.exp(1.0) - 1))
-                    self.fixed_values = jnp.full(self.theta_dim, phi_one)
-                else:
-                    self.fixed_values = jnp.ones(self.theta_dim)  # All fixed values = 1.0
-                n_fixed = int(jnp.sum(fixed_array))
-                n_learnable = self.theta_dim - n_fixed
-                if verbose:
-                    print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at 1.0")
-                    print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
-                    if n_learnable == 0:
-                        raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
-
-                # Initialize fixed dimensions to phi value corresponding to theta=1.0
-                if theta_init is None:
-                    fixed_indices = jnp.where(fixed_array == 1)[0]
-                    if positive_params:
-                        # inv_softplus(1.0) ≈ 0.5413
-                        phi_one = float(jnp.log(jnp.exp(1.0) - 1))
-                        self.theta_init = self.theta_init.at[:, fixed_indices].set(phi_one)
-                    else:
-                        self.theta_init = self.theta_init.at[:, fixed_indices].set(1.0)
-        else:
-            self.fixed_mask = None
+        # Fixed parameters. The user's values are kept in PARAMETER space
+        # (self.fixed_theta) and reach the model unchanged: when a transform
+        # is active the model-facing transform overwrites the fixed slots
+        # with them, and the unconstrained particles carry a placeholder
+        # there. Without a transform the particles carry the values
+        # themselves. self._free_transform is the transform without that
+        # overwrite (priors and the preconditioner's learnable-subset path
+        # use it).
+        self.fixed_mask, _fixed_theta = _parse_fixed(fixed, self.theta_dim, "SVGD")
+        self._free_transform = self.param_transform
+        if self.fixed_mask is None:
+            self.fixed_theta = None
             self.fixed_values = None
+        else:
+            _mask_np = np.asarray(self.fixed_mask) == 1
+            self.fixed_theta = jnp.asarray(_fixed_theta)
+            if self.param_transform is None:
+                self.fixed_values = jnp.asarray(np.where(_mask_np, _fixed_theta, 1.0))
+            else:
+                self.param_transform = _fixed_value_transform(
+                    self._free_transform, self.fixed_mask, _fixed_theta,
+                    self.theta_dim, check_custom=(param_transform is not None),
+                    where="SVGD")
+                self.fixed_values = jnp.asarray(
+                    np.where(_mask_np, _FIXED_PLACEHOLDER, 1.0))
+            n_fixed = int(_mask_np.sum())
+            n_learnable = self.theta_dim - n_fixed
+            if verbose:
+                print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed")
+                for _i in np.where(_mask_np)[0]:
+                    print(f"  θ_{int(_i)} fixed at {float(_fixed_theta[_i])}")
+                print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
+            if n_learnable == 0:
+                raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+            # Pin the fixed columns of the initial particles, also when the
+            # user supplied theta_init.
+            _fixed_idx = jnp.asarray(np.where(_mask_np)[0])
+            self.theta_init = self.theta_init.at[:, _fixed_idx].set(
+                self.fixed_values[_fixed_idx])
 
         # Store regularization settings and handle regularization schedule (backward compatible)
         if isinstance(regularization, RegularizationSchedule):
@@ -7083,7 +7163,10 @@ class SVGD:
                         return jnp.concatenate(parts, axis=-1)
                     preconditioner_param_transform = _learnable_param_transform
                 else:
-                    preconditioner_param_transform = self.param_transform
+                    # Learnable-subset vectors: use the transform WITHOUT
+                    # the fixed-slot overwrite (that one needs full vectors).
+                    preconditioner_param_transform = getattr(
+                        self, '_free_transform', self.param_transform)
 
                 preconditioner_kwargs = dict(
                     model=self.model,
@@ -7278,8 +7361,8 @@ class SVGD:
         # `_daisy_chain_svgd_model` locks each tied *slave* flat index at a 0.0
         # sentinel and only copies master->slave INSIDE the forward pass (a
         # scatter on a copy, never persisted). So run_svgd's particles/history
-        # still carry 0.0 at slave columns -- and softplus(0)=0.693 makes every
-        # downstream surface (theta_mean, get_results, history) ~8000x wrong.
+        # still carry the slave's placeholder at slave columns, which every
+        # downstream surface (theta_mean, get_results, history) would report.
         # Only summary() resolves them today (via slave_to_master). Resolve them
         # once here, at the single result-finalization point, so ALL surfaces
         # agree. Copy is in UNCONSTRAINED space: the shared per-dim transform
@@ -7314,6 +7397,8 @@ class SVGD:
         else:
             self.theta_mean = results['theta_mean']
             self.theta_std = results['theta_std']
+        self.theta_mean, self.theta_std = self._pin_fixed_summaries(
+            self.theta_mean, self.theta_std)
 
         if return_history:
             self.history = np.array(results['history'])
@@ -7334,11 +7419,44 @@ class SVGD:
         return self
 
 
+    def _user_fixed_indices(self):
+        """Slots the USER fixed (tied slaves, which Graph.svgd also locks
+        through the fixed mechanism, are excluded: they follow their master)."""
+        fixed_theta = getattr(self, 'fixed_theta', None)
+        if getattr(self, 'fixed_mask', None) is None or fixed_theta is None:
+            return np.zeros(0, dtype=int)
+        idx = np.where(np.asarray(self.fixed_mask) == 1)[0]
+        slaves = (getattr(self.model, '_tying_info', None) or {}).get(
+            'slave_to_master', {})
+        return np.array([int(i) for i in idx if int(i) not in slaves], dtype=int)
+
+    def _pin_fixed_summaries(self, mean, std, hpd_lower=None, hpd_upper=None):
+        """Report user-fixed parameters exactly: mean = the fixed value,
+        std = 0, HPD = (value, value). The mean of n identical floats is in
+        general not that float, so these are assigned, not computed."""
+        idx = self._user_fixed_indices()
+        if idx.size == 0:
+            return (mean, std) if hpd_lower is None else (mean, std, hpd_lower, hpd_upper)
+        vals = np.asarray(self.fixed_theta, dtype=np.float64)[idx]
+        mean = np.array(mean, dtype=np.float64)
+        std = np.array(std, dtype=np.float64)
+        mean[idx] = vals
+        std[idx] = 0.0
+        mean, std = jnp.asarray(mean), jnp.asarray(std)
+        if hpd_lower is None:
+            return mean, std
+        hpd_lower = np.array(hpd_lower, dtype=np.float64)
+        hpd_upper = np.array(hpd_upper, dtype=np.float64)
+        hpd_lower[idx] = vals
+        hpd_upper[idx] = vals
+        return mean, std, hpd_lower, hpd_upper
+
     def _constrained_particles(self, particles):
         """Map unconstrained particles to the parameter (constrained) scale.
 
-        Transforms ALL dimensions, learnable and fixed: fixed dimensions are
-        stored in PHI space too (e.g. inv_softplus(1.0) = 0.541).
+        Goes through ``self.param_transform``, which overwrites fixed slots
+        with the user's exact values (their unconstrained columns only hold a
+        placeholder).
 
         Tied slaves are then re-tied in CONSTRAINED space (F-010). The model
         applies the tie AFTER the transform (theta_transformed[slave] =
@@ -7391,6 +7509,8 @@ class SVGD:
                 hpd_lower[i], hpd_upper[i] = _compute_hpd(
                     np.asarray(particles_constrained[:, i])
                 )
+            theta_mean, theta_std, hpd_lower, hpd_upper = self._pin_fixed_summaries(
+                theta_mean, theta_std, hpd_lower, hpd_upper)
 
             results = {
                 'particles': particles_constrained,
@@ -7418,6 +7538,8 @@ class SVGD:
                 hpd_lower[i], hpd_upper[i] = _compute_hpd(
                     np.asarray(self.particles[:, i])
                 )
+            _, _, hpd_lower, hpd_upper = self._pin_fixed_summaries(
+                self.theta_mean, self.theta_std, hpd_lower, hpd_upper)
 
             results = {
                 'particles': self.particles,

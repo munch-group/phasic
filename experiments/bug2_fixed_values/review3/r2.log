@@ -1,0 +1,82 @@
+## A. round trip today: maximum(softplus(log(exp(v)-1)), 1e-9) == v ?
+  v=             0.5  ->  0.5                      exact
+  v=             0.7  ->  0.7000000000000001       rel err 1.59e-16
+  v=             1.0  ->  1.0                      exact
+  v=             1.5  ->  1.5                      exact
+  v=             2.0  ->  2.0                      exact
+  v=             3.0  ->  3.0                      exact
+  v=             4.0  ->  4.0                      exact
+  v=             5.0  ->  4.999999999999999        rel err 1.78e-16
+  v=             8.0  ->  8.0                      exact
+  v=            50.0  ->  50.0                     exact
+  v=             0.3  ->  0.30000000000000004      rel err 1.85e-16
+  v=            0.25  ->  0.24999999999999994      rel err 2.22e-16
+  v=             0.1  ->  0.10000000000000006      rel err 5.55e-16
+  v=            0.01  ->  0.009999999999999893     rel err 1.08e-14
+  v=    0.0123456789  ->  0.01234567889999994      rel err 4.92e-15
+  v=            0.01  ->  0.009999999999999893     rel err 1.08e-14
+  v=           0.001  ->  0.001000000000000043     rel err 4.29e-14
+  v=          0.0001  ->  0.00010000000000004335   rel err 4.33e-13
+  v=         0.00012  ->  0.00012000000000003291   rel err 2.74e-13
+  v=           1e-05  ->  9.999999999902978e-06    rel err 9.70e-12
+  v=           1e-06  ->  9.999999999620165e-07    rel err 3.80e-11
+  v=           1e-07  ->  9.999999994336792e-08    rel err 5.66e-10
+  v=           1e-08  ->  9.999999889225275e-09    rel err 1.11e-08
+  v=         2.5e-08  ->  2.4999999979652415e-08   rel err 8.14e-10
+  v=           1e-09  ->  1.0000000822403715e-09   rel err 8.22e-08
+  v=            37.0  ->  37.0                     exact
+  v=            40.0  ->  40.0                     exact
+  v=           100.0  ->  100.0                    exact
+  v=           700.0  ->  700.0                    exact
+  v=           710.0  ->  inf                      rel err inf
+## B. real model at theta1 in {0, 1e-12, 1e-9, 0.693}: pdf vs closed form 1.5*exp(-1.5 t)
+  theta1=0: pdf=[1.11391832 0.52588852 0.21348143]  rel err vs reduced closed form=2.42e-03  moments=[0.66666667 0.88888889]
+      grad of sum log pdf = [-0.198533    0.15579317]   (closed form d/dtheta0 = -0.200000)
+  theta1=1e-12: pdf=[1.11391832 0.52588852 0.21348143]  rel err vs reduced closed form=2.42e-03  moments=[0.66666667 0.88888889]
+      grad of sum log pdf = [-0.19853298  0.15579314]   (closed form d/dtheta0 = -0.200000)
+  theta1=1e-09: pdf=[1.11391832 0.52588852 0.21348143]  rel err vs reduced closed form=2.42e-03  moments=[0.66666667 0.88888889]
+      grad of sum log pdf = [-0.19853303  0.15579319]   (closed form d/dtheta0 = -0.200000)
+  theta1=0.693147: pdf=[1.21776    0.56393622 0.18341978]  rel err vs reduced closed form=1.41e-01  moments=[0.56131621 0.58211557]
+      grad of sum log pdf = [-0.63802126 -0.09216973]   (closed form d/dtheta0 = -0.200000)
+## C. plan test 7: free-slot particles, unmodified vs prototype fix
+  v=2: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+  v=50: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+  v=0.3: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+  v=0.0001: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+  v=1e-08: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+## C2. run-to-run determinism of the UNMODIFIED build (same seed, fresh model)
+  identical: True
+## C3. fixed at exactly 0 with the prototype fix, real model; reference = reduced 1-parameter model
+  prototype fixed=(1,0) RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+  reduced model         : free particles [3.48372  2.738305 3.478378 2.263251 1.696402 2.951003 3.644552 1.814833]
+  log_likelihood(): -18.36418179450782
+  UNMODIFIED fixed=(1,0): free particles [3.469142 2.722033 3.463756 2.247344 1.683942 2.934575 3.631545 1.800995]  fixed col [0.6931471805599453]
+  log_likelihood(): -18.652262891177685
+## D. real-model check without a spy: log_likelihood of the fit vs the model evaluated by hand at the exact fixed value
+  v=0.3: fit.log_likelihood()=-18.301546553279096  best by-hand at exact v=-18.30154656826257
+  v=1e-10: fit.log_likelihood()=-18.37031345130199  best by-hand at exact v=-18.30665295204122
+[ERROR] phasic.c: Computation produced NaN at vertex 1 (command 1: from=1 to=1 multiplier=nan result[to]=nan) - numerical catastrophe
+ERROR:2026-11-23 16:06:32,728:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 1 (command 1) - numerical catastrophe
+  v=800: RAISED ValueError: Model validation failed. Error: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/review3/r2_real_model.py",
+[runcap] exit 0, peak RSS 907 MB, 19s

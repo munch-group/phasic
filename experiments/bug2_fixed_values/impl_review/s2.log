@@ -1,0 +1,147 @@
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:12716: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 6 samples; result may be unreliable.
+  warnings.warn(
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:8314: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:8127: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:10239: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:8781: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:8553: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/experiments/bug2_fixed_values/impl_review/s2_direct.py:46: DeprecationWarning: plot_hdr() is deprecated; use plot_pairwise_hdr() instead. It will be removed no earlier than phasic 0.34.0.
+  getattr(s, name)(); print(f"  {name}: ok; fixed slot seen during plot: {col(1)}")
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:8439: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+phasic from /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+
+=== B1 regularization=1.0
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 44
+
+=== B2 regularization schedule
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 43
+
+=== B3 preconditioner='jacobian'
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+
+=== B3 preconditioner='fisher'
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+
+=== B3 preconditioner='none'
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 32
+
+=== B3 preconditioner=None
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+
+=== B3b jacobian + beta composite
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+
+=== B3c fisher + custom exp transform
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+
+=== B4 return_history=False
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 44
+  history: None
+
+=== B5 exports/plots, 40 particles, fixed 1e-10
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 220
+  MAP ([1.6993058411697302, 1e-10], -6.053461814557821) MAP unc ([1.4974217238047958, 0.0], -6.053461814557821)
+  ll -5.432732262701403 refine -5.439511799157906 ll(theta) -5.691255946834358
+  dof None
+  hpd50 [1.64346419e+00 1.00000000e-10] [2.8571011e+00 1.0000000e-10]
+  hpd50 unc [1.42864933 0.        ] [2.79795069 0.        ]
+Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             1.699      2.736      1.107      0.7143       4.536       
+1          Yes            1e-10      NA         NA         NA           NA          
+
+Particles: 40, Iterations: 4
+
+  plot_trace: ok; fixed slot seen during plot: []
+  plot_posterior: ok; fixed slot seen during plot: []
+  plot_pairwise: ok; fixed slot seen during plot: []
+  plot_ci: ok; fixed slot seen during plot: []
+  plot_convergence: ok; fixed slot seen during plot: []
+  plot_hdr: RAISED ValueError: Less than two parameters to plot
+  plot_pairwise_hdr: RAISED ValueError: Less than two parameters to plot
+  plot_trace_accel: ok; fixed slot seen during plot: []
+  plot_trace(unconstrained=True): ok
+  plot_posterior(unconstrained=True): ok
+  plot_pairwise(unconstrained=True): ok
+  plot_ci(unconstrained=True): ok
+
+=== B6 scalar prior + fixed 0.3
+  slot 1: seen=[0.3] particles_uniq=[0.3] mean=0.3 attr_mean=0.3 std=0.0 hpd=(np.float64(0.3),np.float64(0.3))
+  all finite: True  n model calls: 50
+  free particles [1.40066961 2.88804509 1.78739327 2.77832634 2.63775528 1.62036466]
+
+=== B7 custom transform with infinite derivative at placeholder
+  slot 0: seen=[0.1        0.80710678 1.1        1.14985691 1.32320938 1.32486613] particles_uniq=[1.32978111 1.58188003 1.7548246  1.82396201] mean=1.740603695445782 attr_mean=1.740603695445782 std=0.22821651697540501 hpd=(np.float64(1.3297811149785217),np.float64(1.9772930205446195))
+  slot 1: seen=[0.3] particles_uniq=[0.3] mean=0.3 attr_mean=0.3 std=0.0 hpd=(np.float64(0.3),np.float64(0.3))
+  all finite: True  n model calls: 50
+
+=== B8 parse edge cases
+  no fixed: fixed_theta None free_transform is param_transform True
+  fixed=[(1.0, 0.3)] RAISED TypeError: Parameter index must be integer, got <class 'float'>
+  fixed=[(np.int64(1), 0.3)] -> mask [0. 1.] theta [1.  0.3]
+  fixed=[(True, 0.3)] -> mask [1. 1.] theta [0.3 0.3]
+  fixed=[(1, Array(0.3, dtype=float64, weak_type=True))] -> mask [0. 1.] theta [1.  0.3]
+  fixed=[(1, np.float32(0.3))] -> mask [0. 1.] theta [1.         0.30000001]
+  fixed=[(1, 0.3), (1, 0.4)] -> mask [0. 1.] theta [1.  0.4]
+  fixed=[[1, 0.3]] RAISED SvgdConfigError: fixed mask must be 1D; got shape (1, 2).
+  fixed=((1, 0.3),) RAISED ValueError: prior[1] is None but theta[1] is not fixed.
+Use None in prior list only for fixed parameters.
+Fixed indices: []
+Example: prior=[GaussPrior(...), None,
+  fixed=[] RAISED ValueError: prior[1] is None but theta[1] is not fixed.
+Use None in prior list only for fixed parameters.
+Fixed indices: []
+Example: prior=[GaussPrior(...), None,
+
+=== B9 all fixed
+  all fixed verbose=False: constructed
+  all fixed verbose=False RAISED ValueError: zero-size array to reduction operation min which has no identity
+Auto-selected parallel='vmap' (svgd_strategy='auto', 1 devices)
+Using softplus transformation to constrain parameters to positive domain
+Initialized 6 particles with theta_dim=2 from per-parameter priors:
+    θ[0]: (fixed parameter)
+    θ[1]: (fixed parameter)
+Fixed parameters: 2/2 parameters fixed
+  θ_0 fixed at 1.0
+  θ_1 fixed at 0.3
+  Learnable: 0, Fixed: 2
+  all fixed verbose=True RAISED ValueError: All parameters are fixed! At least one parameter must be learnable.
+
+=== B10 theta_init + no transform
+  RAISED ValueError: SVGD: prior[0] is a GaussPrior N(2.8, 1.1²) truncated to θ > 0, but positive_params=False leaves the parameter unconstrained, so nothing keeps particles positive. Pass GaussPrior(..., lower=None), or use positive_params=True.
+
+=== B11 mask dtypes
+  slot 1: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  all finite: True  n model calls: 50
+  mask dtype bool
+  slot 1: seen=[1.] particles_uniq=[1.] mean=1.0 attr_mean=1.0 std=0.0 hpd=(np.float64(1.0),np.float64(1.0))
+  all finite: True  n model calls: 100
+  mask dtype int64
+
+=== B12 parallel none / jit False
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 50
+  slot 1: seen=[1.e-10] particles_uniq=[1.e-10] mean=1e-10 attr_mean=1e-10 std=0.0 hpd=(np.float64(1e-10),np.float64(1e-10))
+  all finite: True  n model calls: 100
+[runcap] exit 0, peak RSS 1966 MB, 42s

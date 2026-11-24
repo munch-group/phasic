@@ -1,0 +1,92 @@
+## A. default softplus, jacobian preconditioner (default)
+  [plan] fixed=(1,0): saw=[0.0, 1.0]; mean=0.0; std=0.0; hist=[0.0]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+  [plan] fixed=(1,1e-12): saw=[1e-12, 1.0]; mean=9.999999999999998e-13; std=2.0194839173657902e-28; hist=[1e-12]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+  [plan] fixed=(1,0.3): saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+      map_from_particles: [1.697264415500114, 0.3]  model_saw=[0.3]
+Rewards not yet implemented
+      map_with_opt: RAISED TracerArrayConversionError: The numpy.ndarray conversion method __array__() was called on traced array with shape float64[]
+See https://docs.jax.dev/en/latest/errors.html#jax.errors.TracerArrayConversionError
+      loglik: -9.171445916653532  model_saw=[0.3]
+      loglik_refine: -8.162970201642079  model_saw=[0.3]
+      hpd: [np.float64(0.3), np.float64(0.3)]  model_saw=[]
+      theta_mean_attr: 0.3  model_saw=[]
+  [plan] fixed=(1,800): saw=[1.0, 800.0]; mean=800.0; std=0.0; hist=[800.0]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+## A2. same with STRICT wrapper (what breaks if the implementer forgets a call site)
+  [strict] fixed=(1,0.3) strict: RAISED ValueError: with_fixed: wrong-length input (1,), theta_dim=2
+## A3. NAIVE wrapper, no shape check (silent misbehaviour?)
+  [naive] fixed=(1,0.3) naive: RAISED ValueError: Incompatible shapes for broadcasting: (2,) and requested shape (1,)
+## B. preconditioners
+  [plan] preconditioner=fisher: saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+  [strict] preconditioner=fisher strict: RAISED ValueError: with_fixed: wrong-length input (1,), theta_dim=2
+  [plan] preconditioner=none: saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(2,)]
+  [strict] preconditioner=none strict: saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(2,)]
+## C. regularization > 0
+  [plan] regularization=1: saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+## D. composite transform [Beta, None] and [None, Beta]
+  [plan] [Beta, None] fixed=(1,0.25): saw=[0.25, 1.0]; mean=0.25; std=0.0; hist=[0.25]; free_finite=True
+      wrapper input shapes: [(2,)]
+      map_from_particles: [0.7754647273709585, 0.25]  model_saw=[0.25]
+Rewards not yet implemented
+      map_with_opt: RAISED TracerArrayConversionError: The numpy.ndarray conversion method __array__() was called on traced array with shape float64[]
+See https://docs.jax.dev/en/latest/errors.html#jax.errors.TracerArrayConversionError
+      loglik: -8.15556167207169  model_saw=[0.25]
+      loglik_refine: -8.228814141304602  model_saw=[0.25]
+      hpd: [np.float64(0.25), np.float64(0.25)]  model_saw=[]
+      theta_mean_attr: 0.25  model_saw=[]
+  [plan] [None, Beta] fixed=(0,0.25): saw=[0.25, 1.0]; mean=0.25; std=0.0; hist=[0.25]; free_finite=True
+      wrapper input shapes: [(2,)]
+  [strict] [None, Beta] fixed=(0,0.25) strict: saw=[0.25, 1.0]; mean=0.25; std=0.0; hist=[0.25]; free_finite=True
+      wrapper input shapes: [(2,)]
+## E. custom transform exp
+  [plan] exp fixed=(1,2.0): saw=[2.0, 2.7182818284590455]; mean=2.0; std=0.0; hist=[2.0]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+      map_from_particles: [4.242001887135986, 2.0]  model_saw=[2.0]
+Rewards not yet implemented
+      map_with_opt: RAISED TracerArrayConversionError: The numpy.ndarray conversion method __array__() was called on traced array with shape float64[]
+See https://docs.jax.dev/en/latest/errors.html#jax.errors.TracerArrayConversionError
+      loglik: -21.981285978143475  model_saw=[2.0]
+      loglik_refine: -8.083346111012766  model_saw=[2.0]
+      hpd: [np.float64(2.0), np.float64(2.0)]  model_saw=[]
+      theta_mean_attr: 2.0  model_saw=[]
+  [plan] exp fixed=(1,0.0): saw=[0.0, 2.7182818284590455]; mean=0.0; std=0.0; hist=[0.0]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+## F. single (broadcast) prior, fixed slot
+  [plan] single GaussPrior fixed=(1,0.3): saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+## G. binary mask
+  [plan] mask [0,1]: saw=[1.0]; mean=1.0; std=0.0; hist=[1.0]; free_finite=True
+      wrapper input shapes: [(1,), (2,)]
+## H. no transform (positive_params=False)
+[ERROR] phasic.c: Computation produced NaN at vertex 2 (command 4: from=2 to=3 multiplier=nan result[to]=0.000000000000000e+00) - numerical catastrophe
+ERROR:2026-11-23 16:05:46,903:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 2 (command 4) - numerical catastrophe
+  [plan] no transform fixed=(1,0.3): saw=[0.3, 1.0]; mean=0.3; std=0.0; hist=[0.3]; free_finite=True
+      wrapper input shapes: []
+[runcap] exit 0, peak RSS 2105 MB, 45s

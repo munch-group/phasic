@@ -6188,7 +6188,11 @@ extern "C" {{
             optimises the *learnable* dimensions. Equivalent to a
             point-mass prior at ``value`` on the pinned slots, with
             those positions removed from the kernel and the gradient
-            computation. Two accepted forms:
+            computation. Values are in parameter space and reach the
+            model exactly as given: a fixed parameter does not pass
+            through any transform, so 0, values of any magnitude and
+            negative values are delivered unchanged (a non-finite value
+            raises). Two accepted forms:
 
             **(a) Index/value tuples** (recommended) —
             ``[(idx, value), ...]``. Each tuple pins parameter ``idx``
@@ -7207,6 +7211,10 @@ extern "C" {{
             Reward vector/matrix for multivariate distributions.
         fixed : list or array, optional
             Fixed parameters: [(index, value), ...] or binary mask.
+            Values are in parameter space and reach the model exactly as
+            given: a fixed parameter does not pass through any transform, so 0,
+            values of any magnitude and negative values are delivered unchanged
+            (a non-finite value raises).
 
         Returns
         -------

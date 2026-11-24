@@ -1,0 +1,22 @@
+## C. free-slot particles, unmodified vs prototype fix (default preconditioner, real model, 15 iterations, 8 particles)
+  v=2: bit-identical=True  max abs diff=0.000e+00  max rel=0.000e+00  fixed col before=[2.0] after=[2.0]
+  v=50: bit-identical=True  max abs diff=0.000e+00  max rel=0.000e+00  fixed col before=[50.0] after=[50.0]
+  v=1: bit-identical=True  max abs diff=0.000e+00  max rel=0.000e+00  fixed col before=[1.0] after=[1.0]
+  v=0.5: bit-identical=True  max abs diff=0.000e+00  max rel=0.000e+00  fixed col before=[0.5] after=[0.5]
+  v=0.3: bit-identical=False  max abs diff=2.130e-10  max rel=9.656e-11  fixed col before=[0.30000000000000004] after=[0.3]
+  v=0.7: bit-identical=False  max abs diff=5.922e-10  max rel=2.018e-10  fixed col before=[0.7000000000000001] after=[0.7]
+  v=5: bit-identical=False  max abs diff=5.134e-10  max rel=2.921e-10  fixed col before=[4.999999999999999] after=[5.0]
+  v=0.0001: bit-identical=False  max abs diff=1.476e-10  max rel=5.373e-11  fixed col before=[0.00010000000000004335] after=[0.0001]
+  v=1e-08: bit-identical=False  max abs diff=1.894e-10  max rel=5.444e-11  fixed col before=[9.999999889225275e-09] after=[1e-08]
+## C1b. same with a full-vector callable prior (non-separable) -- does the placeholder phi leak into free slots?
+  v=2: bit-identical=False  max abs diff=4.857e-03  means 1.27365 -> 1.27736
+## C3. fixed at exactly 0 with the prototype fix, real model; reference = reduced 1-parameter model
+  prototype fixed=(1,0): free [3.48372  2.738305 3.478378 2.263251 1.696402 2.951003 3.644552 1.814833]  fixed col [0.0] finite: True
+    log_likelihood(): -18.36418179450782  refine: -18.337335394812595
+    theta_mean attr: [2.75880539 0.        ]  map_estimate: [1.8148325198740094, 0.0]
+  prototype fixed=(1,1e-12): free [3.48372  2.738305 3.478378 2.263251 1.696402 2.951003 3.644552 1.814833]  fixed col [1e-12] finite: True
+    log_likelihood(): -18.36418179452366  refine: -18.337335393877858
+    theta_mean attr: [2.75880539e+00 1.00000000e-12]  map_estimate: [1.8148325198866133, 1e-12]
+  reduced model            : free [3.48372  2.738305 3.478378 2.263251 1.696402 2.951003 3.644552 1.814833]
+    log_likelihood(): -18.36418179450782
+[runcap] exit 0, peak RSS 1538 MB, 46s

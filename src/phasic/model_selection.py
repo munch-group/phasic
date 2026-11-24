@@ -21,6 +21,7 @@ Example
 -------
 >>> model = Graph.pmf_and_moments_from_graph(graph)
 >>> full   = SVGD(model, data, theta_dim=2).optimize()
+>>> # fixed values reach the model exactly: this nested model has theta[1] = 0
 >>> nested = SVGD(model, data, theta_dim=2, fixed=[(1, 0.0)]).optimize()
 >>> import phasic.model_selection as ms
 >>> print(ms.likelihood_ratio_test(full, nested))
@@ -181,7 +182,7 @@ def _check_nested_fixed(
     full: "SVGD", nested: "SVGD", strict: bool
 ) -> None:
     """Verify nested.fixed_mask is a strict superset of full.fixed_mask
-    and that shared fixed values match in PHI space."""
+    and that shared fixed values match (in parameter space)."""
     d = full.theta_dim
     mask_f = (
         np.zeros(d, dtype=np.int32)
@@ -217,12 +218,16 @@ def _check_nested_fixed(
 
     shared = np.where((mask_f == 1) & (mask_n == 1))[0]
     if len(shared) > 0:
-        vals_f = (
-            np.asarray(full.fixed_values) if full.fixed_values is not None else None
-        )
-        vals_n = (
-            np.asarray(nested.fixed_values) if nested.fixed_values is not None else None
-        )
+        # Compare the values the MODELS receive (parameter space). The
+        # optimiser's pin vector `fixed_values` holds a placeholder at fixed
+        # slots whenever a transform is active, so it cannot be compared.
+        def _fixed_in_theta(fit):
+            ft = getattr(fit, 'fixed_theta', None)
+            if ft is not None:
+                return np.asarray(ft)
+            return np.asarray(fit.fixed_values) if fit.fixed_values is not None else None
+        vals_f = _fixed_in_theta(full)
+        vals_n = _fixed_in_theta(nested)
         if vals_f is None or vals_n is None:
             _violate(
                 strict,
@@ -232,13 +237,13 @@ def _check_nested_fixed(
             return
         for i in shared:
             if not math.isclose(
-                float(vals_f[i]), float(vals_n[i]), rel_tol=1e-9, abs_tol=1e-12
+                float(vals_f[i]), float(vals_n[i]), rel_tol=1e-9, abs_tol=0.0
             ):
                 _violate(
                     strict,
                     f"Parameter {int(i)} is fixed in both models but at different "
-                    f"values: full={float(vals_f[i]):.6g} vs "
-                    f"nested={float(vals_n[i]):.6g} (PHI space). LRT requires the "
+                    f"values: full={float(vals_f[i])!r} vs "
+                    f"nested={float(vals_n[i])!r} (parameter space). LRT requires the "
                     f"nested restriction to lie inside the full parameter space.",
                 )
                 return

@@ -541,20 +541,18 @@ def test_svgd_end_to_end_with_exposure_and_epoch_starts():
         f"particles contain non-finite values:\n{svgd.particles}"
     )
 
-    # The fixed mu slot in each epoch (flat indices 1, 3, 5) must be at
-    # softplus^{-1}(1e-8) ≈ -18.42 in PHI space. SVGD's projection
-    # holds these constant by construction.
-    expected_phi_for_mu = float(np.log(np.exp(mut_rate) - 1.0))  # ≈ -18.42
+    # The fixed mu slot in each epoch (flat indices 1, 3, 5) is exactly
+    # mut_rate on the parameter scale (fixed values do not pass through the
+    # transform); the unconstrained particles carry a constant placeholder
+    # there, held by SVGD's projection.
+    from phasic.svgd import _FIXED_PLACEHOLDER
+    constrained = np.asarray(svgd.get_results()['particles'])
     for fixed_flat_idx in (1, 3, 5):
-        np.testing.assert_allclose(
-            svgd.particles[:, fixed_flat_idx],
-            expected_phi_for_mu,
-            rtol=1e-5,
-            err_msg=(
-                f"fixed mu slot at flat index {fixed_flat_idx} drifted "
-                f"from softplus^-1(mut_rate)={expected_phi_for_mu:.4f}"
-            ),
-        )
+        np.testing.assert_array_equal(
+            constrained[:, fixed_flat_idx], mut_rate,
+            err_msg=f"fixed mu slot at flat index {fixed_flat_idx} is not mut_rate")
+        np.testing.assert_array_equal(
+            np.asarray(svgd.particles)[:, fixed_flat_idx], _FIXED_PLACEHOLDER)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,3 @@
+patched=False: RAISED TypeError: cannot pickle 'phasic.phasic_pybind.parameterized.GraphBuilder' object
+patched=True: RAISED TypeError: cannot pickle 'phasic.phasic_pybind.parameterized.GraphBuilder' object
+[runcap] exit 0, peak RSS 480 MB, 5s

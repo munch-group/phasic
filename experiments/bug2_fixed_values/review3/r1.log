@@ -1,0 +1,58 @@
+phasic from /Users/kmt/phasic-bug2/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+## TEST 1  SVGD positive_params
+  svgd fixed=(1,0)                           FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[0.6931471805599453] n_evals=32
+  svgd fixed=(1,1e-12)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[1e-09] n_evals=32
+  svgd fixed=(1,1e-10)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[1e-09] n_evals=32
+  svgd fixed=(1,1e-09)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[1.0000000822403715e-09] n_evals=32
+  svgd fixed=(1,1e-08)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[9.999999889225275e-09] n_evals=32
+  svgd fixed=(1,0.3)                         FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[0.30000000000000004] n_evals=32
+  svgd fixed=(1,2)                           PASS  failing=[]  model_saw=[2.0] n_evals=32
+  svgd fixed=(1,50)                          PASS  failing=[]  model_saw=[50.0] n_evals=32
+  svgd fixed=(1,800)                         FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'std0', 'history']  model_saw=[inf] n_evals=32
+  svgd fixed=(1,1e+06)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'std0', 'history']  model_saw=[inf] n_evals=32
+## TEST 1b same, n_particles=7 (mean of constants)
+  svgd n=7 fixed=(1,0.3)                     FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[0.30000000000000004] n_evals=41
+  svgd n=7 fixed=(1,2)                       PASS  failing=[]  model_saw=[2.0] n_evals=41
+  svgd n=7 fixed=(1,50)                      PASS  failing=[]  model_saw=[50.0] n_evals=41
+## TEST 2  custom transform exp / BetaPrior list
+  svgd exp fixed=(1,2)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[7.38905609893065] n_evals=32
+  svgd exp fixed=(1,0)                       FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[1.0] n_evals=32
+  svgd exp fixed=(1,0.3)                     FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[1.3498588075760032] n_evals=32
+  svgd [Beta,None] fixed=(1,0.25)            FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[0.24999999999999994] n_evals=32
+  svgd [Beta,None] fixed=(1,0.5)             PASS  failing=[]  model_saw=[0.5] n_evals=32
+  svgd [Beta,None] fixed=(1,0.3)             FAIL  failing=['model', 'theta_mean', 'attr_mean', 'particles', 'hpd', 'history']  model_saw=[0.30000000000000004] n_evals=32
+## TEST 3  positive_params=False, no transform (guard)
+  svgd nopos fixed=(1,0)                     PASS  failing=[]  model_saw=[0.0] n_evals=32
+  svgd nopos fixed=(1,-0.5)                  PASS  failing=[]  model_saw=[-0.5] n_evals=32
+  svgd nopos fixed=(1,0.3)                   PASS  failing=[]  model_saw=[0.3] n_evals=32
+## TEST 5  MCMC
+  mcmc fixed=(1,0)                           FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[0.6931471805599453] n_evals=73
+  mcmc fixed=(1,1e-12)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[1e-09] n_evals=73
+  mcmc fixed=(1,1e-10)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[1e-09] n_evals=73
+  mcmc fixed=(1,1e-09)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[1.0000000822403715e-09] n_evals=73
+  mcmc fixed=(1,1e-08)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[9.999999889225275e-09] n_evals=73
+  mcmc fixed=(1,0.3)                         FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[0.30000000000000004] n_evals=73
+  mcmc fixed=(1,2)                           PASS  failing=[]  model_saw=[2.0] n_evals=73
+  mcmc fixed=(1,50)                          PASS  failing=[]  model_saw=[50.0] n_evals=73
+  mcmc fixed=(1,800)                         FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[inf] n_evals=73
+  mcmc fixed=(1,1e+06)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[inf] n_evals=73
+  mcmc exp fixed=(1,2)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[7.38905609893065] n_evals=73
+  mcmc exp fixed=(1,0)                       FAIL  failing=['model', 'theta_mean', 'particles', 'hpd']  model_saw=[1.0] n_evals=73
+  mcmc [Beta,None] fixed=(1,0.25)            FAIL  failing=['model', 'theta_mean', 'particles', 'hpd', 'std0']  model_saw=[0.24999999999999994] n_evals=73
+  mcmc nopos fixed=(1,-0.5)                  PASS  failing=[]  model_saw=[-0.5] n_evals=73
+## TEST 6  validation (expect raises AFTER fix)
+  svgd fixed=(1,-0.5) constructed: NO ERROR (test would FAIL today)
+  svgd fixed=(1,nan) constructed: NO ERROR (test would FAIL today)
+  svgd fixed=(1,inf) constructed: NO ERROR (test would FAIL today)
+  svgd fixed=(1,-inf) constructed: NO ERROR (test would FAIL today)
+  mcmc fixed=(1,-0.5) constructed: NO ERROR (test would FAIL today)
+  mcmc fixed=(1,nan) constructed: NO ERROR (test would FAIL today)
+  mcmc fixed=(1,inf) constructed: NO ERROR (test would FAIL today)
+  mcmc fixed=(1,-inf) constructed: NO ERROR (test would FAIL today)
+## mean-of-constants check (numpy / jax), is mean(full(n, v)) == v and std == 0?
+  v=0.3: numpy fails for 115 of 199 n (e.g. [10, 11, 12, 13, 14, 15]); jax fails for 123 (e.g. [3, 5, 6, 9, 10, 11])
+  v=0.1: numpy fails for 172 of 199 n (e.g. [3, 6, 7, 12, 13, 14]); jax fails for 190 (e.g. [6, 7, 8, 9, 10, 11])
+  v=1e-08: numpy fails for 154 of 199 n (e.g. [3, 6, 7, 11, 12, 15]); jax fails for 190 (e.g. [6, 7, 8, 9, 10, 11])
+  v=0.00012: numpy fails for 160 of 199 n (e.g. [5, 10, 11, 12, 13, 14]); jax fails for 175 (e.g. [5, 9, 10, 11, 12, 13])
+  v=0.7: numpy fails for 164 of 199 n (e.g. [3, 6, 7, 11, 12, 15]); jax fails for 194 (e.g. [3, 5, 6, 7, 8, 9])
+[runcap] exit 0, peak RSS 1235 MB, 32s

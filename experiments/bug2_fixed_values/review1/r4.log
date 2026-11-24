@@ -1,0 +1,12 @@
+  pmf_and_moments_from_graph exact_moment_grad=True, no fixed_mask theta=[1.5, 0.3]: loglik=-2.404567 grad=[-0.4971149  -0.82354932]
+  pmf_and_moments_from_graph exact_moment_grad=True, no fixed_mask theta=[1.5, 0.0]: loglik=-2.205177 grad=[-0.08867865 -0.47863399]
+  pmf_and_moments_from_graph exact_moment_grad=True, fixed_mask=[0,1] theta=[1.5, 0.3]: loglik=-2.404567 grad=[-0.4971149  0.       ]
+  pmf_and_moments_from_graph exact_moment_grad=True, fixed_mask=[0,1] theta=[1.5, 0.0]: loglik=-2.205177 grad=[-0.08867865  0.        ]
+  pmf_and_moments_from_graph exact_moment_grad=False, no fixed_mask theta=[1.5, 0.3]: loglik=-2.404567 grad=[-0.4971149  -0.82354932]
+  pmf_and_moments_from_graph exact_moment_grad=False, no fixed_mask theta=[1.5, 0.0]: loglik=-2.205177 grad=[-0.08867865 -0.47863399]
+  pmf_and_moments_from_graph exact_moment_grad=False, fixed_mask=[0,1] theta=[1.5, 0.3]: loglik=-2.404567 grad=[-0.4971149  0.       ]
+  pmf_and_moments_from_graph exact_moment_grad=False, fixed_mask=[0,1] theta=[1.5, 0.0]: loglik=-2.205177 grad=[-0.08867865  0.        ]
+  pmf_from_graph: XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4)
+Diagnostics:
+Wrong buffer dtype: expected F64 but got F32
+[runcap] exit 0, peak RSS 488 MB, 5s

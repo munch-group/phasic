@@ -44,8 +44,15 @@ def test_fixed_slots_report_the_fixed_value(epoch_fit):
     assert tm.shape == (4,)
     np.testing.assert_allclose(tm[[1, 3]], MU, rtol=1e-9)
     np.testing.assert_allclose(np.asarray(epoch_fit.theta_std)[[1, 3]], 0.0, atol=1e-12)
-    # The old (unconstrained) value was log(expm1(MU)), about -4.43.
-    assert np.all(np.asarray(epoch_fit.particles)[:, [1, 3]] < -4)
+    # Fixed values no longer pass through the transform: theta_mean is the
+    # fixed value exactly, the constrained particles hold it, and the
+    # unconstrained particles carry a placeholder at fixed slots.
+    np.testing.assert_array_equal(tm[[1, 3]], MU)
+    np.testing.assert_array_equal(
+        np.asarray(epoch_fit.get_results()['particles'])[:, [1, 3]], MU)
+    from phasic.svgd import _FIXED_PLACEHOLDER
+    np.testing.assert_array_equal(
+        np.asarray(epoch_fit.particles)[:, [1, 3]], _FIXED_PLACEHOLDER)
 
 
 def test_attributes_equal_get_results(epoch_fit):

@@ -1,0 +1,1599 @@
+/Users/kmt/phasic/.pixi/envs/default/bin/pytest:10: PytestRemovedIn10Warning: pytest.console_main() is deprecated and will be removed in pytest 10.
+It was never intended for programmatic use; use pytest.main() instead.
+See https://docs.pytest.org/en/stable/deprecations.html#console-main
+  sys.exit(console_main())
+FFFFFFFFFFssFssFssssssFssFssssFFFFF.F....FFFFFFFFFFFFFFFFFFF.FFF.F.FFFFF [ 84%]
+FFFFFFFF..F.F                                                            [100%]
+=================================== FAILURES ===================================
+____________ test_svgd_positive_params_delivers_fixed_value[4-0.0] _____________
+
+v = 0.0, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [4]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 0.69314718
+E       Max relative difference among violations: inf
+E        ACTUAL: array([0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,
+E              0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,
+E              0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,...
+E        DESIRED: array(0.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[4-1e-12] ____________
+
+v = 1e-12, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E       Max absolute difference among violations: 9.99e-10
+E       Max relative difference among violations: 999.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09])
+E        DESIRED: array(1.e-12)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[4-1e-10] ____________
+
+v = 1e-10, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09])
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[4-1e-09] ____________
+
+v = 1e-09, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [1]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [2]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [3]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [4]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E       Max absolute difference among violations: 8.22403715e-17
+E       Max relative difference among violations: 8.22403715e-08
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09])
+E        DESIRED: array(1.e-09)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[4-1e-08] ____________
+
+v = 1e-08, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [1]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [2]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [3]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [4]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E       Max absolute difference among violations: 1.10774726e-16
+E       Max relative difference among violations: 1.10774726e-08
+E        ACTUAL: array([1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,
+E              1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,
+E              1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,
+E              1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08])
+E        DESIRED: array(1.e-08)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+____________ test_svgd_positive_params_delivers_fixed_value[4-0.3] _____________
+
+v = 0.3, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 1.85037171e-16
+E        ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+____________ test_svgd_positive_params_delivers_fixed_value[4-5.0] _____________
+
+v = 5.0, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [1]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [2]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [3]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [4]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E       Max absolute difference among violations: 8.8817842e-16
+E       Max relative difference among violations: 1.77635684e-16
+E        ACTUAL: array([5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.,
+E              5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.])
+E        DESIRED: array(5.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[4-800.0] ____________
+
+v = 800.0, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       inf location mismatch:
+E        ACTUAL: array([inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf])
+E        DESIRED: array(800.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+_________ test_svgd_positive_params_delivers_fixed_value[4-1000000.0] __________
+
+v = 1000000.0, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       inf location mismatch:
+E        ACTUAL: array([inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf])
+E        DESIRED: array(1000000.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+____________ test_svgd_positive_params_delivers_fixed_value[4--0.5] ____________
+
+v = -0.5, n_particles = 4
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [1]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [2]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [3]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [4]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E       Max absolute difference among violations: 0.97407698
+E       Max relative difference among violations: 1.94815397
+E        ACTUAL: array([0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,
+E              0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,
+E              0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,...
+E        DESIRED: array(-0.5)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[40-1e-10] ___________
+
+v = 1e-10, n_particles = 40
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 140 / 140 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+____________ test_svgd_positive_params_delivers_fixed_value[40-0.3] ____________
+
+v = 0.3, n_particles = 40
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 140 / 140 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 1.85037171e-16
+E        ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,...
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+___________ test_svgd_positive_params_delivers_fixed_value[50-1e-10] ___________
+
+v = 1e-10, n_particles = 50
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 170 / 170 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+____________ test_svgd_positive_params_delivers_fixed_value[50-0.3] ____________
+
+v = 0.3, n_particles = 50
+
+    @pytest.mark.parametrize("v", VALUES)
+    @pytest.mark.parametrize("n_particles", [4, 40, 50])
+    def test_svgd_positive_params_delivers_fixed_value(v, n_particles):
+        if n_particles != 4 and v not in (0.3, 1e-10):
+            pytest.skip("particle-count variants only for values whose mean rounds")
+        s, seen = svgd_fit([(1, v)], n_particles=n_particles)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 170 / 170 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 1.85037171e-16
+E        ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,...
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:83: AssertionError
+_____________ test_svgd_custom_transform_delivers_fixed_value[2.0] _____________
+
+v = 2.0
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_svgd_custom_transform_delivers_fixed_value(v):
+        s, seen = svgd_fit([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [1]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [2]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [3]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [4]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E       Max absolute difference among violations: 5.3890561
+E       Max relative difference among violations: 2.69452805
+E        ACTUAL: array([7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,
+E              7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,
+E              7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,...
+E        DESIRED: array(2.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:92: AssertionError
+_____________ test_svgd_custom_transform_delivers_fixed_value[0.0] _____________
+
+v = 0.0
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_svgd_custom_transform_delivers_fixed_value(v):
+        s, seen = svgd_fit([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [4]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 1.
+E       Max relative difference among violations: inf
+E        ACTUAL: array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+E              1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+E        DESIRED: array(0.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:92: AssertionError
+_____________ test_svgd_custom_transform_delivers_fixed_value[0.3] _____________
+
+v = 0.3
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_svgd_custom_transform_delivers_fixed_value(v):
+        s, seen = svgd_fit([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 1.04985881
+E       Max relative difference among violations: 3.49952936
+E        ACTUAL: array([1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,
+E              1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,
+E              1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,...
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:92: AssertionError
+____________ test_svgd_per_dim_transform_delivers_fixed_value[0.25] ____________
+
+v = 0.25
+
+    @pytest.mark.parametrize("v", [0.25, 0.3])
+    def test_svgd_per_dim_transform_delivers_fixed_value(v):
+        s, seen = svgd_fit([(1, v)], prior=[BetaPrior(ci=(0.05, 0.95)), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [1]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [2]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [3]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [4]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 2.22044605e-16
+E        ACTUAL: array([0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+E              0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
+E              0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25])
+E        DESIRED: array(0.25)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:99: AssertionError
+____________ test_svgd_per_dim_transform_delivers_fixed_value[0.3] _____________
+
+v = 0.3
+
+    @pytest.mark.parametrize("v", [0.25, 0.3])
+    def test_svgd_per_dim_transform_delivers_fixed_value(v):
+        s, seen = svgd_fit([(1, v)], prior=[BetaPrior(ci=(0.05, 0.95)), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 1.85037171e-16
+E        ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:99: AssertionError
+___________________ test_binary_mask_means_exactly_one[exp] ____________________
+
+kw = {'positive_params': False, 'param_transform': <function <lambda> at 0x1471c2160>, 'prior': [<phasic.svgd.GaussPrior object at 0x1471b3390>, None]}
+
+    @pytest.mark.parametrize("kw", [
+        dict(),
+        dict(positive_params=False, param_transform=lambda phi: jnp.exp(phi),
+             prior=[GaussPrior(ci=[0.5, 5]), None]),
+        dict(prior=[BetaPrior(ci=(0.05, 0.95)), None]),
+    ], ids=["softplus", "exp", "beta"])
+    def test_binary_mask_means_exactly_one(kw):
+        s, seen = svgd_fit([0, 1], **kw)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1.0)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [1]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [2]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [3]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [4]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E       Max absolute difference among violations: 1.71828183
+E       Max relative difference among violations: 1.71828183
+E        ACTUAL: array([2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,
+E              2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,
+E              2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,...
+E        DESIRED: array(1.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:111: AssertionError
+_______________ test_user_theta_init_fixed_column_is_overwritten _______________
+
+    def test_user_theta_init_fixed_column_is_overwritten():
+        init = np.full((4, 2), 3.0)
+        s, seen = svgd_fit([(1, 0.25)], theta_init=init)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 0.25)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 32 / 32 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 3.048587351573742 (ACTUAL), 0.25 (DESIRED)
+E        [1]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [2]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [3]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E        [4]: 0.24999999999999994 (ACTUAL), 0.25 (DESIRED)
+E       Max absolute difference among violations: 2.79858735
+E       Max relative difference among violations: 11.19434941
+E        ACTUAL: array([3.048587, 0.25    , 0.25    , 0.25    , 0.25    , 0.25    ,
+E              0.25    , 0.25    , 0.25    , 0.25    , 0.25    , 0.25    ,
+E              0.25    , 0.25    , 0.25    , 0.25    , 0.25    , 0.25    ,...
+E        DESIRED: array(0.25)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:128: AssertionError
+__________________ test_exposure_scales_the_exact_fixed_value __________________
+
+    def test_exposure_scales_the_exact_fixed_value():
+        alpha = np.array([1.0, 10.0, 100.0, 1000.0])
+        for v in (1e-10, 0.0, 2.0):
+            s, seen = svgd_fit([(1, v)], exposure=alpha, exposure_param_index=1)
+            got = np.unique(np.concatenate([x[:, 1] for x in seen]))
+>           np.testing.assert_array_equal(np.sort(got), np.unique(alpha * v))
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 4 / 4 (100%)
+E           Mismatch at indices:
+E            [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E            [1]: 1e-08 (ACTUAL), 1e-09 (DESIRED)
+E            [2]: 1.0000000000000001e-07 (ACTUAL), 1e-08 (DESIRED)
+E            [3]: 1.0000000000000002e-06 (ACTUAL), 1.0000000000000001e-07 (DESIRED)
+E           Max absolute difference among violations: 9.e-07
+E           Max relative difference among violations: 9.
+E            ACTUAL: array([1.e-09, 1.e-08, 1.e-07, 1.e-06])
+E            DESIRED: array([1.e-10, 1.e-09, 1.e-08, 1.e-07])
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:138: AssertionError
+_____________ test_pairwise_hdr_plot_evaluates_at_the_fixed_value ______________
+
+    def test_pairwise_hdr_plot_evaluates_at_the_fixed_value():
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        spy3, seen = None, []
+    
+        def spy(theta, times, rewards=None):
+            jax.debug.callback(
+                lambda t: seen.append(np.atleast_2d(np.asarray(t)).copy()), theta)
+            return jnp.exp(-0.1 * jnp.sum(theta[..., :2])) * jnp.ones_like(times), jnp.zeros(2)
+    
+        s = SVGD(model=spy, observed_data=DATA, theta_dim=3,
+                 prior=[gauss(), gauss(), None], fixed=[(2, 1e-8)], n_particles=8,
+                 n_iterations=3, progress=False, seed=1)
+        s.optimize()
+        seen.clear()
+        try:
+            s.plot_pairwise_hdr()
+        finally:
+            plt.close("all")
+>       np.testing.assert_array_equal(seen_at(seen, 2), 1e-8)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 549 / 549 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.0000000000000004e-06 (ACTUAL), 1e-08 (DESIRED)
+E        [1]: 1.0000000000000004e-06 (ACTUAL), 1e-08 (DESIRED)
+E        [2]: 1.0000000000000004e-06 (ACTUAL), 1e-08 (DESIRED)
+E        [3]: 1.0000000000000004e-06 (ACTUAL), 1e-08 (DESIRED)
+E        [4]: 1.0000000000000004e-06 (ACTUAL), 1e-08 (DESIRED)
+E       Max absolute difference among violations: 9.9e-07
+E       Max relative difference among violations: 99.
+E        ACTUAL: array([1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,...
+E        DESIRED: array(1.e-08)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:161: AssertionError
+_______ test_same_model_object_fits_with_different_fixed_values_and_sets _______
+
+    def test_same_model_object_fits_with_different_fixed_values_and_sets():
+        # Needs fits to be independent of earlier fits on the same model object.
+        spy, seen = make_spy()
+        for fixed, slot, v in (([(1, 0.3)], 1, 0.3), ([(1, 2.0)], 1, 2.0),
+                               ([(0, 0.7)], 0, 0.7)):
+            seen.clear()
+            prior = [gauss(), None] if slot == 1 else [None, gauss()]
+            s = SVGD(model=spy, observed_data=DATA, theta_dim=2, prior=prior,
+                     fixed=fixed, n_particles=4, n_iterations=2, progress=False,
+                     seed=1)
+            s.optimize()
+>           np.testing.assert_array_equal(seen_at(seen, slot), v)
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 32 / 32 (100%)
+E           First 5 mismatches are at indices:
+E            [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E            [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E            [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E            [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E            [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E           Max absolute difference among violations: 5.55111512e-17
+E           Max relative difference among violations: 1.85037171e-16
+E            ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E                  0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E                  0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
+E            DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:175: AssertionError
+_____________ test_mcmc_positive_params_delivers_fixed_value[0.0] ______________
+
+v = 0.0
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E        [4]: 0.6931471805599453 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 0.69314718
+E       Max relative difference among violations: inf
+E        ACTUAL: array([0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,
+E              0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,
+E              0.693147, 0.693147, 0.693147, 0.693147, 0.693147, 0.693147,...
+E        DESIRED: array(0.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+____________ test_mcmc_positive_params_delivers_fixed_value[1e-12] _____________
+
+v = 1e-12
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-12 (DESIRED)
+E       Max absolute difference among violations: 9.99e-10
+E       Max relative difference among violations: 999.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-12)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+____________ test_mcmc_positive_params_delivers_fixed_value[1e-10] _____________
+
+v = 1e-10
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+____________ test_mcmc_positive_params_delivers_fixed_value[1e-09] _____________
+
+v = 1e-09
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [1]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [2]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [3]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E        [4]: 1.0000000822403715e-09 (ACTUAL), 1e-09 (DESIRED)
+E       Max absolute difference among violations: 8.22403715e-17
+E       Max relative difference among violations: 8.22403715e-08
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-09)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+____________ test_mcmc_positive_params_delivers_fixed_value[1e-08] _____________
+
+v = 1e-08
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [1]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [2]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [3]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E        [4]: 9.999999889225275e-09 (ACTUAL), 1e-08 (DESIRED)
+E       Max absolute difference among violations: 1.10774726e-16
+E       Max relative difference among violations: 1.10774726e-08
+E        ACTUAL: array([1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,
+E              1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,
+E              1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08, 1.e-08,...
+E        DESIRED: array(1.e-08)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+_____________ test_mcmc_positive_params_delivers_fixed_value[0.3] ______________
+
+v = 0.3
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 0.30000000000000004 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 5.55111512e-17
+E       Max relative difference among violations: 1.85037171e-16
+E        ACTUAL: array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,
+E              0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3,...
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+_____________ test_mcmc_positive_params_delivers_fixed_value[5.0] ______________
+
+v = 5.0
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [1]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [2]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [3]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E        [4]: 4.999999999999999 (ACTUAL), 5.0 (DESIRED)
+E       Max absolute difference among violations: 8.8817842e-16
+E       Max relative difference among violations: 1.77635684e-16
+E        ACTUAL: array([5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.,
+E              5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.,
+E              5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.,...
+E        DESIRED: array(5.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+____________ test_mcmc_positive_params_delivers_fixed_value[800.0] _____________
+
+v = 800.0
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       inf location mismatch:
+E        ACTUAL: array([inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,...
+E        DESIRED: array(800.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+__________ test_mcmc_positive_params_delivers_fixed_value[1000000.0] ___________
+
+v = 1000000.0
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       inf location mismatch:
+E        ACTUAL: array([inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,
+E              inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf,...
+E        DESIRED: array(1000000.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+_____________ test_mcmc_positive_params_delivers_fixed_value[-0.5] _____________
+
+v = -0.5
+
+    @pytest.mark.parametrize("v", VALUES)
+    def test_mcmc_positive_params_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [1]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [2]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [3]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E        [4]: 0.4740769841801067 (ACTUAL), -0.5 (DESIRED)
+E       Max absolute difference among violations: 0.97407698
+E       Max relative difference among violations: 1.94815397
+E        ACTUAL: array([0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,
+E              0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,
+E              0.474077, 0.474077, 0.474077, 0.474077, 0.474077, 0.474077,...
+E        DESIRED: array(-0.5)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:207: AssertionError
+_____________ test_mcmc_custom_transform_delivers_fixed_value[2.0] _____________
+
+v = 2.0
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_mcmc_custom_transform_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [1]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [2]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [3]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E        [4]: 7.38905609893065 (ACTUAL), 2.0 (DESIRED)
+E       Max absolute difference among violations: 5.3890561
+E       Max relative difference among violations: 2.69452805
+E        ACTUAL: array([7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,
+E              7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,
+E              7.389056, 7.389056, 7.389056, 7.389056, 7.389056, 7.389056,...
+E        DESIRED: array(2.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:216: AssertionError
+_____________ test_mcmc_custom_transform_delivers_fixed_value[0.0] _____________
+
+v = 0.0
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_mcmc_custom_transform_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E        [4]: 1.0 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 1.
+E       Max relative difference among violations: inf
+E        ACTUAL: array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+E              1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+E              1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,...
+E        DESIRED: array(0.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:216: AssertionError
+_____________ test_mcmc_custom_transform_delivers_fixed_value[0.3] _____________
+
+v = 0.3
+
+    @pytest.mark.parametrize("v", [2.0, 0.0, 0.3])
+    def test_mcmc_custom_transform_delivers_fixed_value(v):
+        m, seen = mcmc_run([(1, v)], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [1]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [2]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [3]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E        [4]: 1.3498588075760032 (ACTUAL), 0.3 (DESIRED)
+E       Max absolute difference among violations: 1.04985881
+E       Max relative difference among violations: 3.49952936
+E        ACTUAL: array([1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,
+E              1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,
+E              1.349859, 1.349859, 1.349859, 1.349859, 1.349859, 1.349859,...
+E        DESIRED: array(0.3)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:216: AssertionError
+___________________ test_mcmc_binary_mask_means_exactly_one ____________________
+
+    def test_mcmc_binary_mask_means_exactly_one():
+        m, seen = mcmc_run([0, 1], positive_params=False,
+                           param_transform=lambda phi: jnp.exp(phi),
+                           prior=[GaussPrior(ci=[0.5, 5]), None])
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1.0)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 142 / 142 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [1]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [2]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [3]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E        [4]: 2.7182818284590455 (ACTUAL), 1.0 (DESIRED)
+E       Max absolute difference among violations: 1.71828183
+E       Max relative difference among violations: 1.71828183
+E        ACTUAL: array([2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,
+E              2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,
+E              2.718282, 2.718282, 2.718282, 2.718282, 2.718282, 2.718282,...
+E        DESIRED: array(1.)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:224: AssertionError
+_________________ test_fixed_at_zero_equals_the_reduced_model __________________
+
+    def test_fixed_at_zero_equals_the_reduced_model():
+        init1 = np.linspace(-0.5, 1.5, 6).reshape(6, 1)
+        init2 = np.concatenate([init1, np.zeros((6, 1))], axis=1)
+        full = SVGD(model=Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2),
+                    observed_data=REAL_DATA, theta_dim=2, prior=[gauss(), None],
+                    fixed=[(1, 0.0)], theta_init=init2, **REAL_KW)
+        full.optimize()
+        red = SVGD(model=Graph.pmf_and_moments_from_graph(chain1(), nr_moments=2, theta_dim=1),
+                   observed_data=REAL_DATA, theta_dim=1, prior=gauss(),
+                   theta_init=init1, **REAL_KW)
+        red.optimize()
+        pf = np.asarray(full.get_results()['particles'])
+        pr = np.asarray(red.get_results()['particles'])
+>       assert np.all(np.isfinite(pf)) and np.all(pf[:, 1] == 0.0)
+E       AssertionError: assert (np.True_ and np.False_)
+E        +  where np.True_ = <function all at 0x1061a7cf0>(array([[ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True]]))
+E        +    where <function all at 0x1061a7cf0> = np.all
+E        +    and   array([[ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True],\n       [ True,  True]]) = <ufunc 'isfinite'>(array([[0.57221484, 0.69314718],\n       [0.7745784 , 0.69314718],\n       [0.98140044, 0.69314718],\n       [1.1981953 , 0.69314718],\n       [1.43069638, 0.69314718],\n       [1.69257481, 0.69314718]]))
+E        +      where <ufunc 'isfinite'> = np.isfinite
+E        +  and   np.False_ = <function all at 0x1061a7cf0>(array([0.69314718, 0.69314718, 0.69314718, 0.69314718, 0.69314718,\n       0.69314718]) == 0.0)
+E        +    where <function all at 0x1061a7cf0> = np.all
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:272: AssertionError
+___________________ test_fixed_equals_hard_coded_value[0.3] ____________________
+
+v = 0.3
+
+    @pytest.mark.parametrize("v", [2.0, 0.3, 5.0])
+    def test_fixed_equals_hard_coded_value(v):
+        def hard_coded():
+            base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
+    
+            def model(theta, times, rewards=None):
+                return base(jnp.asarray(theta).at[..., 1].set(v), times)
+            return model
+    
+        a = SVGD(model=Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2),
+                 observed_data=REAL_DATA, theta_dim=2, prior=[gauss(), None],
+                 fixed=[(1, v)], **REAL_KW)
+        a.optimize()
+        b = SVGD(model=hard_coded(), observed_data=REAL_DATA, theta_dim=2,
+                 prior=[gauss(), None], fixed=[(1, 7.0)], **REAL_KW)
+        b.optimize()
+>       np.testing.assert_array_equal(np.asarray(a.get_results()['particles'])[:, 0],
+                                      np.asarray(b.get_results()['particles'])[:, 0])
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 6 / 6 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 3.3256821587632355 (ACTUAL), 3.325682159793129 (DESIRED)
+E        [1]: 2.6479318270948804 (ACTUAL), 2.6479318270161722 (DESIRED)
+E        [2]: 3.3202647805164447 (ACTUAL), 3.3202647815422366 (DESIRED)
+E        [3]: 2.232242704916612 (ACTUAL), 2.2322427047862874 (DESIRED)
+E        [4]: 1.707865534062556 (ACTUAL), 1.70786553424152 (DESIRED)
+E       Max absolute difference among violations: 1.0298935e-09
+E       Max relative difference among violations: 3.09678873e-10
+E        ACTUAL: array([3.325682, 2.647932, 3.320265, 2.232243, 1.707866, 2.831656])
+E        DESIRED: array([3.325682, 2.647932, 3.320265, 2.232243, 1.707866, 2.831656])
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:293: AssertionError
+___________________ test_fixed_equals_hard_coded_value[5.0] ____________________
+
+v = 5.0
+
+    @pytest.mark.parametrize("v", [2.0, 0.3, 5.0])
+    def test_fixed_equals_hard_coded_value(v):
+        def hard_coded():
+            base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
+    
+            def model(theta, times, rewards=None):
+                return base(jnp.asarray(theta).at[..., 1].set(v), times)
+            return model
+    
+        a = SVGD(model=Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2),
+                 observed_data=REAL_DATA, theta_dim=2, prior=[gauss(), None],
+                 fixed=[(1, v)], **REAL_KW)
+        a.optimize()
+        b = SVGD(model=hard_coded(), observed_data=REAL_DATA, theta_dim=2,
+                 prior=[gauss(), None], fixed=[(1, 7.0)], **REAL_KW)
+        b.optimize()
+>       np.testing.assert_array_equal(np.asarray(a.get_results()['particles'])[:, 0],
+                                      np.asarray(b.get_results()['particles'])[:, 0])
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 6 / 6 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 3.3256821588139838 (ACTUAL), 3.3256821595076147 (DESIRED)
+E        [1]: 2.6479318270038994 (ACTUAL), 2.6479318269481555 (DESIRED)
+E        [2]: 3.3202647805652425 (ACTUAL), 3.3202647812564745 (DESIRED)
+E        [3]: 2.23224270482168 (ACTUAL), 2.2322427047293463 (DESIRED)
+E        [4]: 1.7078655337005089 (ACTUAL), 1.7078655337662132 (DESIRED)
+E       Max absolute difference among violations: 6.9363093e-10
+E       Max relative difference among violations: 2.08568016e-10
+E        ACTUAL: array([3.325682, 2.647932, 3.320265, 2.232243, 1.707866, 2.831656])
+E        DESIRED: array([3.325682, 2.647932, 3.320265, 2.232243, 1.707866, 2.831656])
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:293: AssertionError
+_______________ test_epoch_model_receives_the_fixed_value[1e-06] _______________
+
+joint_rows = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+v = 1e-06
+
+    @pytest.mark.parametrize("v", [1e-6, 2.0])
+    def test_epoch_model_receives_the_fixed_value(joint_rows, v):
+        jc, rows = joint_rows
+        em, seen = spied_epoch_model(jc, rows)
+        em.fit(fixed=[(1, v), (3, v)], prior=[gauss(), None] * 2, **EKW)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 19 / 19 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [1]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [2]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [3]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [4]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E       Max absolute difference among violations: 3.79834985e-17
+E       Max relative difference among violations: 3.79834985e-11
+E        ACTUAL: array([1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06])
+E        DESIRED: array(1.e-06)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:342: AssertionError
+________ test_epoch_model_with_exposure_receives_the_fixed_value[1e-06] ________
+
+joint_rows = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+v = 1e-06
+
+    @pytest.mark.parametrize("v", [1e-6, 2.0])
+    def test_epoch_model_with_exposure_receives_the_fixed_value(joint_rows, v):
+        # On the epoch path the exposure scaling happens inside the model, so the
+        # model INPUT is the unscaled fixed value.
+        jc, rows = joint_rows
+        alpha = np.linspace(1.0, 3.0, len(rows))
+        em, seen = spied_epoch_model(jc, rows, exposure=alpha, exposure_param_index=1)
+        em.fit(fixed=[(1, v), (3, v)], prior=[gauss(), None] * 2, **EKW)
+>       np.testing.assert_array_equal(seen_at(seen, 1), v)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 19 / 19 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [1]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [2]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [3]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E        [4]: 9.999999999620165e-07 (ACTUAL), 1e-06 (DESIRED)
+E       Max absolute difference among violations: 3.79834985e-17
+E       Max relative difference among violations: 3.79834985e-11
+E        ACTUAL: array([1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06, 1.e-06,
+E              1.e-06, 1.e-06, 1.e-06])
+E        DESIRED: array(1.e-06)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:354: AssertionError
+_________________ test_tied_epochs_still_export_master_values __________________
+
+joint_rows = (<Graph (12 vertices)>, [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], ...])
+
+    def test_tied_epochs_still_export_master_values(joint_rows):
+        jc, rows = joint_rows
+        s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 0.3)], tied=[(0, [0, 1])],
+                    prior=[gauss(), None], n_particles=6, n_iterations=3,
+                    learning_rate=0.01, progress=False, seed=1)
+        s2m = s.model._tying_info['slave_to_master']
+        assert s2m
+        r = s.get_results()
+        P = np.asarray(r['particles'])
+        for slave, master in s2m.items():
+            np.testing.assert_array_equal(P[:, slave], P[:, master])
+            assert float(np.asarray(r['theta_mean'])[slave]) == pytest.approx(
+                float(np.asarray(r['theta_mean'])[master]), rel=1e-12)
+            assert float(np.asarray(s.theta_mean)[slave]) == pytest.approx(
+                float(np.asarray(s.theta_mean)[master]), rel=1e-12)
+        for slot in (1, 3):                      # user-fixed in both epochs
+>           assert float(np.asarray(r['theta_mean'])[slot]) == 0.3
+E           assert 0.30000000000000004 == 0.3
+E            +  where 0.30000000000000004 = float(np.float64(0.30000000000000004))
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:374: AssertionError
+____ test_preconditioner_evaluations_see_the_fixed_value[softplus-jacobian] ____
+
+precond = 'jacobian', prior = 'softplus'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 38 / 38 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+_____ test_preconditioner_evaluations_see_the_fixed_value[softplus-fisher] _____
+
+precond = 'fisher', prior = 'softplus'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 38 / 38 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+______ test_preconditioner_evaluations_see_the_fixed_value[softplus-none] ______
+
+precond = 'none', prior = 'softplus'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 20 / 20 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09])
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+______ test_preconditioner_evaluations_see_the_fixed_value[beta-jacobian] ______
+
+precond = 'jacobian', prior = 'beta'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 38 / 38 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+_______ test_preconditioner_evaluations_see_the_fixed_value[beta-fisher] _______
+
+precond = 'fisher', prior = 'beta'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 38 / 38 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,...
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+________ test_preconditioner_evaluations_see_the_fixed_value[beta-none] ________
+
+precond = 'none', prior = 'beta'
+
+    @pytest.mark.parametrize("precond", ['jacobian', 'fisher', 'none'])
+    @pytest.mark.parametrize("prior", ["softplus", "beta"])
+    def test_preconditioner_evaluations_see_the_fixed_value(precond, prior):
+        pr = [gauss(), None] if prior == "softplus" else [BetaPrior(ci=(0.05, 0.95)), None]
+        s, seen = svgd_fit([(1, 1e-10)], prior=pr, preconditioner=precond,
+                           n_particles=6)
+>       np.testing.assert_array_equal(seen_at(seen, 1), 1e-10)
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 20 / 20 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [1]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [2]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [3]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E        [4]: 1e-09 (ACTUAL), 1e-10 (DESIRED)
+E       Max absolute difference among violations: 9.e-10
+E       Max relative difference among violations: 9.
+E        ACTUAL: array([1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09, 1.e-09,
+E              1.e-09, 1.e-09, 1.e-09, 1.e-09])
+E        DESIRED: array(1.e-10)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:386: AssertionError
+____________________ test_map_and_refine_keep_fixed_values _____________________
+
+    def test_map_and_refine_keep_fixed_values():
+        base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
+        s = SVGD(model=base, observed_data=REAL_DATA, theta_dim=2,
+                 prior=[gauss(), None], fixed=[(1, 1e-10)], **REAL_KW)
+        s.optimize()
+        theta_map, _ = s.map_estimate_from_particles()
+>       assert float(theta_map[1]) == 1e-10
+E       assert 1e-09 == 1e-10
+E        +  where 1e-09 = float(1e-09)
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:395: AssertionError
+___________________ test_non_finite_fixed_value_raises[nan] ____________________
+
+bad = nan
+
+    @pytest.mark.parametrize("bad", [float('nan'), float('inf'), -float('inf')])
+    def test_non_finite_fixed_value_raises(bad):
+        spy, _ = make_spy()
+>       with pytest.raises(ValueError, match="must be finite"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:403: Failed
+___________________ test_non_finite_fixed_value_raises[inf] ____________________
+
+bad = inf
+
+    @pytest.mark.parametrize("bad", [float('nan'), float('inf'), -float('inf')])
+    def test_non_finite_fixed_value_raises(bad):
+        spy, _ = make_spy()
+>       with pytest.raises(ValueError, match="must be finite"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:403: Failed
+___________________ test_non_finite_fixed_value_raises[-inf] ___________________
+
+bad = -inf
+
+    @pytest.mark.parametrize("bad", [float('nan'), float('inf'), -float('inf')])
+    def test_non_finite_fixed_value_raises(bad):
+        spy, _ = make_spy()
+>       with pytest.raises(ValueError, match="must be finite"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:403: Failed
+_______________ test_coupled_custom_transform_with_fixed_raises ________________
+
+    def test_coupled_custom_transform_with_fixed_raises():
+        spy, _ = make_spy()
+>       with pytest.raises(ValueError, match="couples parameters"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:414: Failed
+____________ test_custom_transform_non_finite_at_placeholder_raises ____________
+
+    def test_custom_transform_non_finite_at_placeholder_raises():
+        spy, _ = make_spy()
+>       with pytest.raises(ValueError, match="not finite"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:424: Failed
+_____ test_nested_fixed_check_compares_parameter_values[800.0-900.0-False] _____
+
+a = 800.0, b = 900.0, ok = False
+
+    @pytest.mark.parametrize("a, b, ok", [(2.0, 2.0, True), (2.0, 3.0, False),
+                                          (800.0, 900.0, False), (800.0, 800.0, True)])
+    def test_nested_fixed_check_compares_parameter_values(a, b, ok):
+        full = _fit3([(1, a)])
+        nested = _fit3([(1, b), (2, 1.0)])       # a strict superset of fixed slots
+        if ok:
+            _check_nested_fixed(full, nested, strict=True)
+        else:
+>           with pytest.raises(ValueError, match="different values"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ValueError
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:449: Failed
+________________ test_placeholder_does_not_influence_free_slots ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1684da060>
+
+    def test_placeholder_does_not_influence_free_slots(monkeypatch):
+        import phasic.svgd as svgd_mod
+    
+        def run():
+            base = Graph.pmf_and_moments_from_graph(chain2(), nr_moments=2, theta_dim=2)
+            s = SVGD(model=base, observed_data=REAL_DATA, theta_dim=2,
+                     prior=[gauss(), None], fixed=[(1, 2.0)], **REAL_KW)
+            s.optimize()
+            return np.asarray(s.get_results()['particles'])[:, 0]
+    
+        ref = run()
+>       monkeypatch.setattr(svgd_mod, '_FIXED_PLACEHOLDER', 0.7)
+E       AttributeError: <module 'phasic.svgd' from '/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py'> has no attribute '_FIXED_PLACEHOLDER'
+
+../phasic-bug2/tests/pytest/test_fixed_values_exact.py:464: AttributeError
+=============================== warnings summary ===============================
+tests/pytest/test_fixed_values_exact.py::test_binary_mask_means_exactly_one[softplus]
+tests/pytest/test_fixed_values_exact.py::test_binary_mask_means_exactly_one[beta]
+tests/pytest/test_fixed_values_exact.py::test_no_transform_regime_unchanged[0.0]
+tests/pytest/test_fixed_values_exact.py::test_no_transform_regime_unchanged[-0.5]
+tests/pytest/test_fixed_values_exact.py::test_no_transform_regime_unchanged[0.3]
+  /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 4 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_fixed_values_exact.py::test_pairwise_hdr_plot_evaluates_at_the_fixed_value
+  /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 8 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_fixed_values_exact.py::test_pairwise_hdr_plot_evaluates_at_the_fixed_value
+  /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:9321: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/pytest/test_fixed_values_exact.py::test_fixed_at_zero_equals_the_reduced_model
+tests/pytest/test_fixed_values_exact.py::test_fixed_equals_hard_coded_value[2.0]
+tests/pytest/test_fixed_values_exact.py::test_fixed_equals_hard_coded_value[0.3]
+tests/pytest/test_fixed_values_exact.py::test_fixed_equals_hard_coded_value[5.0]
+tests/pytest/test_fixed_values_exact.py::test_tied_epochs_still_export_master_values
+tests/pytest/test_fixed_values_exact.py::test_placeholder_does_not_influence_free_slots
+  /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 6 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_fixed_values_exact.py::test_tied_epochs_still_export_master_values
+  /Users/kmt/phasic-bug2/tests/pytest/test_fixed_values_exact.py:360: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 0.3)], tied=[(0, [0, 1])],
+
+tests/pytest/test_fixed_values_exact.py::test_tied_epochs_still_export_master_values
+  /Users/kmt/phasic-bug2/tests/pytest/test_fixed_values_exact.py:360: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jc.svgd(rows, epoch_starts=EPOCHS, fixed=[(1, 0.3)], tied=[(0, [0, 1])],
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-0.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-1e-12]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-1e-10]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-1e-09]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-1e-08]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-5.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-800.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4-1000000.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[4--0.5]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[40-1e-10]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[40-0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[50-1e-10]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_positive_params_delivers_fixed_value[50-0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_custom_transform_delivers_fixed_value[2.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_custom_transform_delivers_fixed_value[0.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_custom_transform_delivers_fixed_value[0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_per_dim_transform_delivers_fixed_value[0.25]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_svgd_per_dim_transform_delivers_fixed_value[0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_binary_mask_means_exactly_one[exp]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_user_theta_init_fixed_column_is_overwritten
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_exposure_scales_the_exact_fixed_value
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_pairwise_hdr_plot_evaluates_at_the_fixed_value
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_same_model_object_fits_with_different_fixed_values_and_sets
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[0.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[1e-12]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[1e-10]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[1e-09]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[1e-08]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[5.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[800.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[1000000.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_positive_params_delivers_fixed_value[-0.5]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_custom_transform_delivers_fixed_value[2.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_custom_transform_delivers_fixed_value[0.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_custom_transform_delivers_fixed_value[0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_mcmc_binary_mask_means_exactly_one
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_fixed_at_zero_equals_the_reduced_model
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_fixed_equals_hard_coded_value[0.3]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_fixed_equals_hard_coded_value[5.0]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_epoch_model_receives_the_fixed_value[1e-06]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_epoch_model_with_exposure_receives_the_fixed_value[1e-06]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_tied_epochs_still_export_master_values
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[softplus-jacobian]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[softplus-fisher]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[softplus-none]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[beta-jacobian]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[beta-fisher]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_preconditioner_evaluations_see_the_fixed_value[beta-none]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_map_and_refine_keep_fixed_values
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_non_finite_fixed_value_raises[nan]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_non_finite_fixed_value_raises[inf]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_non_finite_fixed_value_raises[-inf]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_coupled_custom_transform_with_fixed_raises
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_custom_transform_non_finite_at_placeholder_raises
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_nested_fixed_check_compares_parameter_values[800.0-900.0-False]
+FAILED ../phasic-bug2/tests/pytest/test_fixed_values_exact.py::test_placeholder_does_not_influence_free_slots
+58 failed, 11 passed, 16 skipped, 15 warnings in 81.83s (0:01:21)
+[runcap] exit 1, peak RSS 2412 MB, 89s

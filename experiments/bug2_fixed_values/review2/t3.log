@@ -1,0 +1,69 @@
+## placeholder phi[fixed] = 0.0
+   softplus+floor                             theta=[1.10318605 0.25       1.54100845] grad=[1.6413178  0.         2.61841545] free_finite=True fixed_exact0=True vmap_same=True
+   sigmoid                                    theta=[0.66818777 0.25       0.78583498] grad=[0.35171988 0.         0.30658407] free_finite=True fixed_exact0=True vmap_same=True
+   exp                                        theta=[2.01375271 0.25       3.66929667] grad=[ 8.61383811  0.         27.84480024] free_finite=True fixed_exact0=True vmap_same=True
+   log (domain phi>0)                         theta=[-0.35667494  0.25        0.26236426] grad=[-0.66192841         nan  0.59594502] free_finite=True fixed_exact0=False vmap_same=True
+   1/phi                                      theta=[1.42857143 0.25       0.76923077] grad=[-6.34110787         nan -1.05826127] free_finite=True fixed_exact0=False vmap_same=True
+   sqrt                                       theta=[0.83666003 0.25       1.14017543] grad=[1.14940358        nan 1.10963225] free_finite=True fixed_exact0=False vmap_same=True
+   exp(1/phi)                                 theta=[4.17273388 0.25       2.15810553] grad=[-73.19714204          nan  -5.83098543] free_finite=True fixed_exact0=False vmap_same=True
+   cumsum(exp) [ordered, non-elementwise]     theta=[2.01375271 0.25       6.68304938] grad=[36.03329383 13.61609875 49.96150577] free_finite=True fixed_exact0=False vmap_same=True
+   softmax [simplex, non-elementwise]         theta=[0.30132243 0.25       0.54904527] grad=[-0.04352268 -0.14919593  0.19271861] free_finite=True fixed_exact0=False vmap_same=True
+   phi/sum(phi) [non-elementwise]             theta=[0.35 0.25 0.65] grad=[-0.195 -0.67   0.105] free_finite=True fixed_exact0=False vmap_same=True
+   log then cumsum [bad domain + coupled]     theta=[-0.35667494  0.25              -inf] grad=[-inf -inf -inf] free_finite=False fixed_exact0=False vmap_same=True
+## placeholder phi[fixed] = inf
+   softplus+floor                             theta=[1.10318605 0.25       1.54100845] grad=[1.6413178  0.         2.61841545] free_finite=True fixed_exact0=True vmap_same=True
+   sigmoid                                    theta=[0.66818777 0.25       0.78583498] grad=[0.35171988 0.         0.30658407] free_finite=True fixed_exact0=True vmap_same=True
+   exp                                        theta=[2.01375271 0.25       3.66929667] grad=[ 8.61383811         nan 27.84480024] free_finite=True fixed_exact0=False vmap_same=True
+   log (domain phi>0)                         theta=[-0.35667494  0.25        0.26236426] grad=[-0.66192841  0.          0.59594502] free_finite=True fixed_exact0=True vmap_same=True
+   1/phi                                      theta=[1.42857143 0.25       0.76923077] grad=[-6.34110787 -0.         -1.05826127] free_finite=True fixed_exact0=True vmap_same=True
+   sqrt                                       theta=[0.83666003 0.25       1.14017543] grad=[1.14940358 0.         1.10963225] free_finite=True fixed_exact0=True vmap_same=True
+   exp(1/phi)                                 theta=[4.17273388 0.25       2.15810553] grad=[-73.19714204  -0.          -5.83098543] free_finite=True fixed_exact0=True vmap_same=True
+   cumsum(exp) [ordered, non-elementwise]     theta=[2.01375271 0.25              inf] grad=[inf inf inf] free_finite=False fixed_exact0=False vmap_same=True
+   softmax [simplex, non-elementwise]         theta=[ nan 0.25  nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   phi/sum(phi) [non-elementwise]             theta=[0.   0.25 0.  ] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   log then cumsum [bad domain + coupled]     theta=[-0.35667494  0.25               inf] grad=[inf nan inf] free_finite=False fixed_exact0=False vmap_same=True
+## placeholder phi[fixed] = -inf
+   softplus+floor                             theta=[1.10318605 0.25       1.54100845] grad=[1.6413178  0.         2.61841545] free_finite=True fixed_exact0=True vmap_same=True
+   sigmoid                                    theta=[0.66818777 0.25       0.78583498] grad=[0.35171988 0.         0.30658407] free_finite=True fixed_exact0=True vmap_same=True
+   exp                                        theta=[2.01375271 0.25       3.66929667] grad=[ 8.61383811  0.         27.84480024] free_finite=True fixed_exact0=True vmap_same=True
+   log (domain phi>0)                         theta=[-0.35667494  0.25        0.26236426] grad=[-0.66192841 -0.          0.59594502] free_finite=True fixed_exact0=True vmap_same=True
+   1/phi                                      theta=[1.42857143 0.25       0.76923077] grad=[-6.34110787 -0.         -1.05826127] free_finite=True fixed_exact0=True vmap_same=True
+   sqrt                                       theta=[0.83666003 0.25       1.14017543] grad=[1.14940358        nan 1.10963225] free_finite=True fixed_exact0=False vmap_same=True
+   exp(1/phi)                                 theta=[4.17273388 0.25       2.15810553] grad=[-73.19714204  -0.          -5.83098543] free_finite=True fixed_exact0=True vmap_same=True
+   cumsum(exp) [ordered, non-elementwise]     theta=[2.01375271 0.25       5.68304938] grad=[32.00578842  0.         42.62291243] free_finite=True fixed_exact0=True vmap_same=True
+   softmax [simplex, non-elementwise]         theta=[0.35434369 0.25       0.64565631] grad=[-0.13329547 -0.          0.13329547] free_finite=True fixed_exact0=True vmap_same=True
+   phi/sum(phi) [non-elementwise]             theta=[-0.    0.25 -0.  ] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   log then cumsum [bad domain + coupled]     theta=[-0.35667494  0.25               nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+## placeholder phi[fixed] = nan
+   softplus+floor                             theta=[1.10318605 0.25       1.54100845] grad=[1.6413178         nan 2.61841545] free_finite=True fixed_exact0=False vmap_same=True
+   sigmoid                                    theta=[0.66818777 0.25       0.78583498] grad=[0.35171988        nan 0.30658407] free_finite=True fixed_exact0=False vmap_same=True
+   exp                                        theta=[2.01375271 0.25       3.66929667] grad=[ 8.61383811         nan 27.84480024] free_finite=True fixed_exact0=False vmap_same=True
+   log (domain phi>0)                         theta=[-0.35667494  0.25        0.26236426] grad=[-0.66192841         nan  0.59594502] free_finite=True fixed_exact0=False vmap_same=True
+   1/phi                                      theta=[1.42857143 0.25       0.76923077] grad=[-6.34110787         nan -1.05826127] free_finite=True fixed_exact0=False vmap_same=True
+   sqrt                                       theta=[0.83666003 0.25       1.14017543] grad=[1.14940358        nan 1.10963225] free_finite=True fixed_exact0=False vmap_same=True
+   exp(1/phi)                                 theta=[4.17273388 0.25       2.15810553] grad=[-73.19714204          nan  -5.83098543] free_finite=True fixed_exact0=False vmap_same=True
+   cumsum(exp) [ordered, non-elementwise]     theta=[2.01375271 0.25              nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   softmax [simplex, non-elementwise]         theta=[ nan 0.25  nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   phi/sum(phi) [non-elementwise]             theta=[ nan 0.25  nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+   log then cumsum [bad domain + coupled]     theta=[-0.35667494  0.25               nan] grad=[nan nan nan] free_finite=False fixed_exact0=False vmap_same=True
+## placeholder phi[fixed] = 800.0
+   softplus+floor                             theta=[1.10318605 0.25       1.54100845] grad=[1.6413178  0.         2.61841545] free_finite=True fixed_exact0=True vmap_same=True
+   sigmoid                                    theta=[0.66818777 0.25       0.78583498] grad=[0.35171988 0.         0.30658407] free_finite=True fixed_exact0=True vmap_same=True
+   exp                                        theta=[2.01375271 0.25       3.66929667] grad=[ 8.61383811         nan 27.84480024] free_finite=True fixed_exact0=False vmap_same=True
+   log (domain phi>0)                         theta=[-0.35667494  0.25        0.26236426] grad=[-0.66192841  0.          0.59594502] free_finite=True fixed_exact0=True vmap_same=True
+   1/phi                                      theta=[1.42857143 0.25       0.76923077] grad=[-6.34110787 -0.         -1.05826127] free_finite=True fixed_exact0=True vmap_same=True
+   sqrt                                       theta=[0.83666003 0.25       1.14017543] grad=[1.14940358 0.         1.10963225] free_finite=True fixed_exact0=True vmap_same=True
+   exp(1/phi)                                 theta=[4.17273388 0.25       2.15810553] grad=[-73.19714204  -0.          -5.83098543] free_finite=True fixed_exact0=True vmap_same=True
+   cumsum(exp) [ordered, non-elementwise]     theta=[2.01375271 0.25              inf] grad=[inf inf inf] free_finite=False fixed_exact0=False vmap_same=True
+   softmax [simplex, non-elementwise]         theta=[0.   0.25 0.  ] grad=[0. 0. 0.] free_finite=True fixed_exact0=True vmap_same=True
+   phi/sum(phi) [non-elementwise]             theta=[0.00087282 0.25       0.00162095] grad=[ 3.13111491e-04 -7.85810426e-07  3.14977151e-04] free_finite=True fixed_exact0=False vmap_same=True
+   log then cumsum [bad domain + coupled]     theta=[-0.35667494  0.25        6.59030105] grad=[1.85246460e+01 1.67882526e-02 1.03312324e+01] free_finite=True fixed_exact0=False vmap_same=True
+## does the free-slot theta depend on the placeholder under a coupled transform?
+    cumsum(exp) [ordered, non-elementwise] [[2.0138, 0.25, 6.683], [2.0138, 0.25, 8.4013], [2.0138, 0.25, 5.7328]]
+    softmax [simplex, non-elementwise] [[0.3013, 0.25, 0.549], [0.2397, 0.25, 0.4368], [0.3513, 0.25, 0.64]]
+## NaN cotangent arriving at the fixed slot (FD backward with a negative probe): dropped by where?
+   wrapper   softplus+floor [0.66818777 0.         0.78583498]
+   today     softplus+floor [0.66818777        nan 0.78583498]
+   wrapper   exp [2.01375271 0.         3.66929667]
+   today     exp [2.01375271        nan 3.66929667]
+[runcap] exit 0, peak RSS 348 MB, 4s

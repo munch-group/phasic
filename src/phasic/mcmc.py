@@ -125,6 +125,10 @@ class MCMC:
     fixed : list of tuples or array, optional
         Fixed parameters. Same format as SVGD:
         - [(index, value), ...] or binary mask [0, 1, 0, ...]
+        Values are in parameter space and reach the model exactly as
+        given: a fixed parameter does not pass through any transform, so 0,
+        values of any magnitude and negative values are delivered unchanged
+        (a non-finite value raises).
     likelihood_correction : callable, optional
         Additive correction to the log-likelihood, with signature
         ``likelihood_correction(theta) -> scalar``. Added after the model
@@ -315,45 +319,36 @@ class MCMC:
                 f"prior list length ({len(self.prior_list)}) must match theta_dim ({self.theta_dim})"
             )
 
-        # Fixed parameters (same logic as SVGD)
-        self.fixed_mask = None
-        self.fixed_values = None
-        if fixed is not None:
-            if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
-                self.fixed_mask = jnp.zeros(self.theta_dim)
-                self.fixed_values = jnp.zeros(self.theta_dim)
-
-                for idx, value in fixed:
-                    if idx < 0 or idx >= self.theta_dim:
-                        raise ValueError(
-                            f"Invalid parameter index {idx}, must be in [0, {self.theta_dim})"
-                        )
-                    self.fixed_mask = self.fixed_mask.at[idx].set(1)
-                    if positive_params and value > 0:
-                        phi_value = float(jnp.log(jnp.exp(value) - 1))
-                        self.fixed_values = self.fixed_values.at[idx].set(phi_value)
-                    else:
-                        self.fixed_values = self.fixed_values.at[idx].set(value)
-
-                n_fixed = len(fixed)
-                n_learnable = self.theta_dim - n_fixed
-                if n_learnable == 0:
-                    raise ValueError("All parameters are fixed! At least one must be learnable.")
-                if verbose:
-                    print(f"Fixed parameters: {n_fixed}/{self.theta_dim}")
-                    for idx, value in fixed:
-                        print(f"  theta[{idx}] fixed at {value}")
+        # Fixed parameters: the user's values are kept in PARAMETER space
+        # (self.fixed_theta) and reach the model unchanged -- same design as
+        # SVGD (see svgd._fixed_value_transform).
+        from .svgd import (_parse_fixed, _fixed_value_transform,
+                           _FIXED_PLACEHOLDER)
+        self.fixed_mask, _fixed_theta = _parse_fixed(fixed, self.theta_dim, "MCMC")
+        self._free_transform = self.param_transform
+        if self.fixed_mask is None:
+            self.fixed_theta = None
+            self.fixed_values = None
+        else:
+            self.fixed_mask = self.fixed_mask.astype(float)
+            _mask_np = np.asarray(self.fixed_mask) == 1
+            n_fixed = int(_mask_np.sum())
+            if self.theta_dim - n_fixed == 0:
+                raise ValueError("All parameters are fixed! At least one must be learnable.")
+            self.fixed_theta = jnp.asarray(_fixed_theta)
+            if self.param_transform is None:
+                self.fixed_values = jnp.asarray(np.where(_mask_np, _fixed_theta, 1.0))
             else:
-                fixed_array = jnp.array(fixed)
-                if len(fixed_array) != self.theta_dim:
-                    raise ValueError(
-                        f"fixed must have length {self.theta_dim}, got {len(fixed_array)}"
-                    )
-                self.fixed_mask = fixed_array.astype(float)
-                if positive_params:
-                    self.fixed_values = _inverse_softplus(jnp.ones(self.theta_dim))
-                else:
-                    self.fixed_values = jnp.ones(self.theta_dim)
+                self.param_transform = _fixed_value_transform(
+                    self._free_transform, self.fixed_mask, _fixed_theta,
+                    self.theta_dim, check_custom=(param_transform is not None),
+                    where="MCMC")
+                self.fixed_values = jnp.asarray(
+                    np.where(_mask_np, _FIXED_PLACEHOLDER, 1.0))
+            if verbose:
+                print(f"Fixed parameters: {n_fixed}/{self.theta_dim}")
+                for _i in np.where(_mask_np)[0]:
+                    print(f"  theta[{int(_i)}] fixed at {float(_fixed_theta[_i])}")
 
         # Initialize chain starting positions
         key = jax.random.PRNGKey(seed)
@@ -863,6 +858,16 @@ class MCMC:
         hpd_upper = np.empty(self.theta_dim)
         for i in range(self.theta_dim):
             hpd_lower[i], hpd_upper[i] = _compute_hpd(all_samples[:, i])
+
+        # Fixed parameters are reported exactly (the mean of n identical
+        # floats is in general not that float): assigned, not computed.
+        if self.fixed_mask is not None and getattr(self, 'fixed_theta', None) is not None:
+            _fx = np.where(np.asarray(self.fixed_mask) == 1)[0]
+            _fv = np.asarray(self.fixed_theta, dtype=np.float64)[_fx]
+            theta_mean[_fx] = _fv
+            theta_std[_fx] = 0.0
+            hpd_lower[_fx] = _fv
+            hpd_upper[_fx] = _fv
 
         results = {
             'particles': jnp.array(all_samples),

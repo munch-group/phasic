@@ -1,0 +1,14 @@
+  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:01<00:02,  1.47s/it] 67%|██████▋   | 2/3 [00:01<00:00,  1.46it/s]                                             theta_dim 4 fixed_mask [0. 1. 1. 1.] slave_to_master {'slave_to_master': {2: 0}}
+fixed_values (phi): [ 1.         -9.21029037  0.         -9.21029037]
+param_transform(fixed_values) = model INPUT at fixed/slave slots: [1.31326169e+00 1.00000000e-04 6.93147181e-01 1.00000000e-04]
+theta_mean (exported): [5.87456957e-05 1.00000000e-04 5.87456957e-05 1.00000000e-04]
+mutation given 1e-4; exported theta_mean[1] - 1e-4 = 4.332742931795197e-17  [3]-1e-4 = 4.332742931795197e-17
+model output identical for slave input in {0, 0.693, 123, -5, nan}: True
+d loglik / d theta (slave slot 2 must be 0): [-6500.64393311     0.             0.             0.        ]
+Rewards not yet implemented
+map_estimate_with_optimization today: TypeError logaddexp requires ndarray or scalar arguments, got <class 'list'> at position 0
+EMULATED get_results theta_mean: [5.87456957e-05 1.00000000e-04 5.87456957e-05 1.00000000e-04]  [1]==1e-4: False  std[1]: 1.3552527156068805e-20
+EMULATED map_estimate_from_particles: [5.283874150266358e-05, 0.0001, 5.283874150266358e-05, 0.0001]
+EMULATED raw param_transform(particles[0]) (what a user / new code calling the transform directly gets): [6.03311613e-05 1.00000000e-04 0.00000000e+00 1.00000000e-04]
+EMULATED log_likelihood(): -8.573336370599028
+[runcap] exit 0, peak RSS 679 MB, 10s

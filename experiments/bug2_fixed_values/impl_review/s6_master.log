@@ -1,0 +1,23 @@
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:12707: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:511: UserWarning: HPD interval computed from only 6 samples; result may be unreliable.
+  warnings.warn(
+phasic from /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+
+=== E1 multivariate 2-D rewards via Graph.svgd, fixed 1e-10
+  RAISED TypeError: observed_data must be a 1-D array or SparseObservations. For multivariate data, use dense_to_sparse().
+
+=== E2 sparse observations, fixed 1e-10
+  slot 1: seen=[1.e-09] particles_uniq=[1.e-09] mean=9.999999999999999e-10 attr_mean=9.999999999999999e-10 std=2.0679515313825692e-25 hpd=(np.float64(1e-09),np.float64(1e-09))
+  all finite: True  n model calls: 50
+
+=== E3 scalar vs list prior, fixed 2.0 (compare across builds)
+  prior scalar free particles array([1.42308111, 2.77254549, 1.77715128, 2.66710278, 2.53541089,
+       1.62675284])
+  prior list free particles array([3.32568216, 2.64793183, 3.32026478, 2.2322427 , 1.70786553,
+       2.83165594])
+
+=== E4 Graph.svgd regularization+fisher+no history
+  slot 1: seen=[0.3] particles_uniq=[0.3] mean=0.30000000000000004 attr_mean=0.30000000000000004 std=0.0 hpd=(np.float64(0.30000000000000004),np.float64(0.30000000000000004))
+  all finite: True  n model calls: 44
+[runcap] exit 0, peak RSS 847 MB, 12s

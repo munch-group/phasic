@@ -1,0 +1,10 @@
+## (a) binary mask [0,1] ("fix at exactly 1.0")
+  svgd positive: model saw [1.0]
+  svgd exp transform: model saw [2.7182818284590455]
+  svgd no transform: model saw [1.0]
+  mcmc positive: model saw [1.0]
+  mcmc exp transform: model saw [2.7182818284590455]
+## (b) LRT guard "fixed in both models but at different values" (model_selection._check_nested_fixed reads fixed_values)
+  patched=False: RAISED ValueError: Parameter 1 is fixed in both models but at different values: full=1.85459 vs nested=2.94893 (PHI space). LRT requires th
+  patched=True: NO ERROR (mismatch 2.0 vs 3.0 not detected)
+[runcap] exit 0, peak RSS 689 MB, 10s

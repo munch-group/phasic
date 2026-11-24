@@ -1,0 +1,21 @@
+## (a) unmodified build: map_estimate_with_optimization
+    RAISED on master: TypeError logaddexp requires ndarray or scalar arguments, got <class 'list'> at position 0.
+## (b) free-slot bit identity, fixed=2.0
+    prior list, jacobian: identical=True maxdiff=0.000e+00
+    prior list, none: identical=True maxdiff=0.000e+00
+    single prior: identical=True maxdiff=0.000e+00
+    fisher: identical=True maxdiff=0.000e+00
+    regularized: identical=True maxdiff=0.000e+00
+## (c) reported mean/std of a fixed slot (patched), by n_particles
+    v=1e-12 n=6: get_results mean=9.999999999999998e-13 std=2.0194839173657902e-28; attr mean=9.999999999999998e-13 std=2.0194839173657902e-28
+    v=1e-12 n=7: get_results mean=9.999999999999998e-13 std=2.0194839173657902e-28; attr mean=9.999999999999998e-13 std=2.0194839173657902e-28
+    v=0.3 n=40: get_results mean=0.29999999999999993 std=5.551115123125783e-17; attr mean=0.29999999999999993 std=5.551115123125783e-17
+    v=0.1 n=6: get_results mean=0.09999999999999999 std=1.3877787807814457e-17; attr mean=0.09999999999999999 std=1.3877787807814457e-17
+    v=0.1 n=7: get_results mean=0.09999999999999999 std=1.3877787807814457e-17; attr mean=0.09999999999999999 std=1.3877787807814457e-17
+    v=0.1 n=10: get_results mean=0.09999999999999999 std=1.3877787807814457e-17; attr mean=0.09999999999999999 std=1.3877787807814457e-17
+    v=0.1 n=40: get_results mean=0.10000000000000003 std=2.7755575615628914e-17; attr mean=0.10000000000000003 std=2.7755575615628914e-17
+    v=1e-09 n=6: get_results mean=9.999999999999999e-10 std=2.0679515313825692e-25; attr mean=9.999999999999999e-10 std=2.0679515313825692e-25
+    v=1e-09 n=7: get_results mean=9.999999999999999e-10 std=2.0679515313825692e-25; attr mean=9.999999999999999e-10 std=2.0679515313825692e-25
+    v=1e-09 n=10: get_results mean=1.0000000000000003e-09 std=2.0679515313825692e-25; attr mean=1.0000000000000003e-09 std=2.0679515313825692e-25
+    (only mismatches printed)
+[runcap] exit 0, peak RSS 1542 MB, 312s

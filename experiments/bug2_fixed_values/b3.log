@@ -1,0 +1,4 @@
+## isolated: positive_params=False, fixed=(1, 2.0)
+  alone: model saw [2.0]
+## same call AFTER a positive_params=True fit that used the same prior-free config
+  after another fit (fresh spy, fresh priors): model saw [2.0]
