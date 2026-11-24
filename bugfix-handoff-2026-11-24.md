@@ -77,7 +77,12 @@ end with the Co-Authored-By line; the user pushes.
    Branch rebased on master (`5ef0d76c`), env rebuilt. Plan v2 committed
    (`d94cef2c`), including the notebook cell list (§5); one Opus
    reviewer running (evidence to `experiments/bug5_graph_cache/review4/`).
-   Gate baseline: `/Users/kmt/phasic-bug4/.gate_bug4`.
+   Gate baseline: `/Users/kmt/phasic-bug4/.gate_bug4`. Plan now v2.2
+   (`abeb620f`) after two REVISE rounds (review4, review5), not yet
+   re-reviewed. User decided (2026-11-24) to keep the full v2.2 design
+   (inference features rely on closures). USER RULES: once a reviewer
+   signs off with no issues, run two more independent reviewers; DO NOT
+   IMPLEMENT until the user says go.
 
 ## To report to the user at the end
 
