@@ -1,0 +1,4 @@
+constant           differences fresh vs from_serialized: none
+param 2 coeffs     differences fresh vs from_serialized: none
+param theta_dim=1  differences fresh vs from_serialized: none
+[runcap] exit 0, peak RSS 301 MB, 4s

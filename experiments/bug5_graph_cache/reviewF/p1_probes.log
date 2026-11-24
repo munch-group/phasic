@@ -1,0 +1,21 @@
+OMP_NUM_THREADS in env before import: False
+(a) first phasic_pybind import: OMP set = False
+     /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewF/p1_probes.py:25
+     phasic/__init__.py:53
+     phasic/graph_cache.py:29
+     phasic/logging_config.py:253
+     phasic/logging_config.py:200
+     /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewF/p1_probes.py:17
+(b) fresh PropertySet vars: ['_bases', '_radix_powers', 'name', 'properties', 'property_dict']
+    after index_to_props:   ['_bases', '_props_dataclass', '_radix_powers', 'name', 'properties', 'property_dict']
+    fresh StateIndexer vars: ['_entity_order', '_offsets', '_property_sets', '_pset_order', '_result_class', '_slot_order', '_slots', '_total_state_length']
+(c) to_dict equal: True | vars sets equal: True
+    state_length A, B: 4 6
+    A.lineage.index_to_props(4): IndexError Provided index 4 out of range for property set of size 4
+    B.lineage.index_to_props(4): {'a': 4}
+    append case: to_dict equal: True state_length C, D: 4 8
+(d) numpy 2.4.3
+    dtype.str StringDType() hasobject True fields None type is ndarray True
+    tobytes equal for different 40-char strings: True
+    tobytes equal for different short strings: False
+[runcap] exit 0, peak RSS 325 MB, 4s

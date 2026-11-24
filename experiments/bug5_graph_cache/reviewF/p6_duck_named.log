@@ -1,0 +1,2 @@
+lru_cache function     type=_lru_cache_wrapper     module=__main__ qualname=rate __self__=None resolves_to_itself=True is_builtin_type=False
+update_wrapper object  type=Wrapped                module=__main__ qualname=rate2 __self__=None resolves_to_itself=True is_builtin_type=False

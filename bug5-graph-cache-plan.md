@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.1, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.2, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -81,8 +81,12 @@ responsibility: change `cache_key` when it changes. The key also
 reflects arguments and captured state AT CALL TIME, so a callback must
 not change its arguments or captured state in ways that affect the graph
 (for example mutating one kwarg and reading an alias of it: aliases are
-keyed by content). The `cache_key` docstring states all this with an
-example.
+keyed by content). On a hit the callback does NOT run, so any side
+effect it has (filling a passed container such as a state-to-label map)
+does not happen; and a callback whose output order depends on hash
+randomisation (iterating a set of strings) gets the WRITER's vertex
+order on a hit, an isomorphic graph with different vertex indices. The
+`cache_key` docstring states all this with an example.
 
 ### 2.1 `Graph(..., cache_key=None)`
 
@@ -104,7 +108,8 @@ example.
     error instead of today's `AttributeError` (review E 7d);
   - the ENTRY KEY (§2.2) is computed once. A key error propagates:
     nothing is built, nothing written;
-  - lookup: `GraphCache().load(entry_key)` returns a separate, fully
+  - lookup: `cache = GraphCache()` once per call, then
+    `cache.load(entry_key)` returns a separate, fully
     built `Graph`, or `None` (missing file), or raises (§2.6). ONE policy
     for every entry that exists but cannot be used (malformed JSON or
     encoding, wrong shape or `format`, a non-ndarray type tag,
@@ -129,7 +134,9 @@ example.
     `Path.resolve()`, so a relative `PHASIC_CACHE_DIR` plus a later
     `chdir` cannot break it, and so
     `clear_from_cache` finds it even if `PHASIC_CACHE_DIR` changes later);
-  - miss: build as today, then `GraphCache().save(self, entry_key, meta)`;
+  - miss: build as today, then `cache.save(self, entry_key, meta)` on the
+    SAME `GraphCache` instance `cache` used for the lookup (one per call,
+    §2.6);
     only after it returns, `self._graph_cache_entry = <entry path>`. ANY
     `Exception` from `save()` (an `OSError` from the write, or for example
     `serialize()` failing or a `MemoryError` while encoding a 600k-vertex
@@ -191,7 +198,14 @@ function already visited contributes a back-reference token)
 - `functools.partial`, EXACT type only (`type(x) is functools.partial`;
   a subclass may override `__call__` and falls through to the later
   rules or is refused): function, `args`, `keywords`.
-- builtin function, numpy ufunc / array-function dispatcher: module +
+- builtin function, numpy ufunc / array-function dispatcher, gated on
+  EXACT type first: `type(x) is types.BuiltinFunctionType`,
+  `type(x) is np.ufunc`, or `type(x) is type(np.sum)`
+  (`numpy._ArrayFunctionDispatcher`); any other object (for example a
+  module-level `functools.lru_cache` function, or an object made with
+  `functools.update_wrapper`, both of which satisfy the conditions below
+  and would otherwise be keyed by NAME, review F p6) is NOT
+  FINGERPRINTABLE. For these exact types: module +
   qualified name token, ONLY IF `__self__` is `None` or a module AND
   resolving `__module__` + `__qualname__` (or `__name__` for ufuncs)
   through `sys.modules` returns the very same object. This admits
@@ -266,9 +280,11 @@ longer used, so callbacks without accessible source can be cached.
 
 #### 2.2.2 VALUE FINGERPRINT (exact types checked first, in this order)
 
-1. `None`, `bool`, `str`, `bytes` (exact types): type name + canonical
-   repr; `int` via `hex()` (no 4300-digit `repr` limit); `float` via
-   `float.hex`; `complex` via the hex of both parts;
+1. EXACT types only (`type(x) is ...`): `None`, `bool`, `str`, `bytes`:
+   type name + canonical repr; `int` via `hex()` (no 4300-digit `repr`
+   limit); `float` via `float.hex`; `complex` via the hex of both parts.
+   Subclasses do not match here: `np.float64` (a `float` subclass) goes
+   to rule 2, and `IntEnum` members and other subclasses are refused;
 2. numpy scalar (`np.generic` subclass): `x.dtype.str` + `tobytes()`;
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
    refused;
@@ -302,28 +318,41 @@ longer used, so callbacks without accessible source can be cached.
      fields (`name`, `min_value`, `max_value`, `offset`), since `offset`
      takes part in `__eq__` and is readable by a callback
      (`state_indexing.py:97`).
-   - `StateIndexer`: `type(ix) is StateIndexer` AND `set(vars(ix))` is a
-     subset of its known attributes (the allow-list is the attribute set
-     of a freshly built indexer, measured at implementation time and
-     pinned by a test; today `_property_sets`, `_slots`, `_offsets`,
-     `_pset_order`, `_slot_order`, `_entity_order`, `_result_class`,
-     `_total_state_length`) AND every PropertySet in it has
+   - `StateIndexer`: admitted only if ALL of:
+     (a) `type(ix) is StateIndexer`, every PropertySet has
      `type(ps) is PropertySet` or `type(ps) is StateSpace`
-     (`state_indexing.py:220`, `:2204`) with `set(vars(ps))` inside its
-     own allow-list (measured the same way; today `name`, `properties`,
-     `property_dict`, `_bases`, `_radix_powers`, `_props_dataclass`)
-     AND every Property in it passes the Property rule. Keyed as class
-     token, PropertySet class names in order, then the VALUE FINGERPRINT
-     of `to_dict()` (property sets, properties with min/max, slots,
-     pset/slot/entity order; `state_indexing.py:1850`) with each
-     Property's `offset` added. Anything else (an extra attribute set
-     through `StateIndexer.__setattr__`, `:1005-1011`, or on a
-     PropertySet, a PropertySet or Property subclass, e.g. one
-     overriding `encode_value`) is NOT FINGERPRINTABLE: `to_dict()`
-     would not show it, and two indexers equal under `to_dict()` and
-     `==` could build different graphs (measured, review E e3).
-     Exceptions from `to_dict()` are re-raised as `GraphCacheKeyError`
-     (path chained).
+     (`state_indexing.py:220`, `:2204`), and every Property passes the
+     Property rule;
+     (b) attribute NAMES within allow-lists: for the indexer and for each
+     PropertySet, the attributes of a freshly built object PLUS the
+     documented lazily added ones (`_props_dataclass`, added on the first
+     `index_to_props`, `state_indexing.py:427-434`; any other lazy
+     attribute found at implementation time is listed the same way). The
+     pin test compares the allow-lists with `set(vars(...))` of an object
+     that has been USED (after `index_to_props`), so it neither misses a
+     lazy attribute nor refuses an indexer a build has already used
+     (review F 4);
+     (c) BEHAVIOURAL STATE equal to a canonical rebuild: let
+     `c = StateIndexer.from_dict(ix.to_dict())`; then `ix._offsets`,
+     `ix._total_state_length`, the order lists, and for each PropertySet
+     its `properties` list, `list(property_dict.items())`, `_bases`,
+     `_radix_powers` and (if present) the field names of
+     `_props_dataclass` / `_result_class` must equal those of `c`. This
+     catches every route by which `to_dict()` and behaviour drift apart:
+     a property list edited after construction (`PropertySet` keeps the
+     caller's list uncopied, `:280`, while `property_dict`, `_bases`,
+     `_radix_powers`, `_offsets` and `_total_state_length` are computed
+     once, `:281`, `:288-289`, `:906-924`; measured: equal `to_dict()`,
+     5 vs 7 vertices, review F p3) or allow-listed values overwritten.
+     Keyed as: class token, PropertySet class names in order, then the
+     VALUE FINGERPRINT of `to_dict()` with each Property's `offset`
+     added (which, by (c), now determines the behaviour). Anything that
+     fails (a)-(c) is NOT FINGERPRINTABLE, with an error naming the
+     failing check (an extra attribute, a subclass, or "indexer state
+     differs from its to_dict(); was its property list changed after
+     construction?"). Exceptions from `to_dict()` / `from_dict()` are
+     re-raised as `GraphCacheKeyError` (path chained). Cost: one
+     `from_dict` per key computation, negligible next to a build.
    NO other object is keyed through `to_dict()` or any other
    user-defined method: a user's `to_dict()` cannot be checked to be
    one-to-one (pandas' is not: it collapses duplicate index labels,
@@ -335,7 +364,10 @@ longer used, so callbacks without accessible source can be cached.
    needs as plain values (numbers, strings, lists, dicts, numpy arrays),
    for example `model.to_dict()` or `df.to_numpy()` plus labels as lists,
    or building without `cache_key`.
-Recursion is bounded: a depth limit of 100, and a cycle check against the
+Recursion is bounded in EVERY recursive arm (values, functions, code
+objects and their constants, `to_dict()` results), and `cache_entry_key`
+additionally catches `RecursionError` at its top level and re-raises it
+as `GraphCacheKeyError`. Limits: a depth limit of 100, and a cycle check against the
 ids of the containers / `StateIndexer` objects on the CURRENT PATH from the
 root only (pushed on entry, popped on exit). A process-wide seen-set is
 wrong: it flags a list referenced twice, an ipv reusing one state list,
@@ -409,7 +441,9 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
   and the convention comment (`:444`, the
   convention text that cites it); the from-env read (`:325-326`); the
   env-var lists (`:201`, `:930`); the report entry (`:914`); the
-  docstring mentions at `:239`, `:308`, `:607-609`; the inverted-bool
+  docstring mentions at `:239`, `:308`; the cache-layout comment at
+  `:607-609` is REWORDED (it still holds, minus the "graph_cache" field
+  name), not deleted; the inverted-bool
   example comment at `:1040-1041` (reworded to a remaining field).
 - `phasic.configure(graph_cache=...)`: the existing unknown-option path
   raises `PTDConfigError` (`exceptions.py:14`; NOT a `ValueError`), with
@@ -439,8 +473,9 @@ and NOT by importing `phasic.cache`: that module imports
 (`cache.py:48-50`, `trace_serialization.py:47-48`), and `graph_cache` is
 imported at `__init__.py:53`, before `OMP_NUM_THREADS` is set (review B
 p1). Same rule as `cache.py:73-74` and the C side,
-`phasic.c:3891`, which treat an empty value as unset; written by `configure(cache_dir=...)` via `validate()`,
-`config.py:819-845`, and read by the C caches), otherwise the module
+`phasic.c:3891`, which treat an empty value as unset. (The variable is
+written by `configure(cache_dir=...)` via `validate()`,
+`config.py:819-845`, and read by the C caches.) Otherwise the module
 attribute `DEFAULT_CACHE_DIR`, read at call time. Tests isolate with
 `monkeypatch.setenv("PHASIC_CACHE_DIR", <tmp>)`, which also redirects
 the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_graph_cache_stats`,
@@ -635,7 +670,13 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     attribute (`ix.rate = 2`), one whose PropertySet carries an extra
     attribute, one built from a PropertySet subclass other than
     `StateSpace`, one holding a `Property` subclass overriding
-    `encode_value`, and a `Property` subclass as a kwarg. A
+    `encode_value`, a `Property` subclass as a kwarg, an indexer whose
+    caller-owned property list was edited after construction (element
+    replaced; element appended), an indexer with `_bases` overwritten,
+    a module-level `functools.lru_cache` function and an
+    `update_wrapper` object as kwargs/cells, an `IntEnum` member. An
+    indexer already used by a build (`index_to_props` called): hits.
+    `np.float64(1.0)` vs `1.0` inside a list: different keys. A
     `StateSpace`-based indexer: hits. The allow-lists equal
     `set(vars(...))` of freshly built objects (pins them against future
     attribute additions in `state_indexing.py`).
@@ -906,7 +947,13 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   key computation §2.2.3, test 13; 8 this risk. Tests 11, 13, 15
   extended.
 
-## 7. Review 4 findings -> v2.1
+## 7. Review history
+
+Entries are historical; where they disagree with §2-§6, the current text
+wins (e.g. review 5's `fchmod` was replaced by `os.open(0o666)` in v2.3,
+and review A's `cache._cache_root` by the inline rule in v2.7).
+
+Review 4 findings -> v2.1
 
 1 closures/defaults/self -> §2.2.1, tests 8. 2 broad except -> §2.1,
 test 15. 3 source vs running code -> code-object fingerprint §2.2.1, build
@@ -997,3 +1044,13 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   6 saved-output notebook list completed; 7 derived graphs documented in
   §2.7, absolute entry path, HOME patched in test 14, `getattr` for
   `__name__`, library versions in the contract.
+- Independent review F -> v3.2: 1 `StateIndexer` admitted only if its
+  behavioural state equals a canonical `from_dict(to_dict())` rebuild
+  (catches edited property lists and overwritten internals); 2 builtin
+  arm gated on exact types (no name-keying of `lru_cache` /
+  `update_wrapper` objects); 3 exact numeric types; 4 allow-lists include
+  lazy attributes, pinned on a used object; 5 cosmetics (§2.5
+  parenthesis, one `GraphCache` instance in §2.1, `:607-609` reworded,
+  §7 marked historical); 6-7 no side effects on a hit and hash-seed
+  vertex order documented; 8 recursion bounded in every arm plus a
+  top-level `RecursionError` catch.
