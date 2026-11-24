@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.5, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.6, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -196,7 +196,11 @@ streams. Components in order:
 function already visited contributes a back-reference token)
 
 - Python function `f`, EXACT type only (`type(f) is
-  types.FunctionType`): CODE FINGERPRINT of `f.__code__`; VALUE
+  types.FunctionType`): `f.__module__` (so two same-bodied callbacks
+  from different modules, each reading its own module global, are kept
+  apart even under one `cache_key`; it is `'__main__'` in notebooks, so
+  notebook hits are unaffected; `co_filename` stays excluded); CODE
+  FINGERPRINT of `f.__code__`; VALUE
   FINGERPRINT of `f.__defaults__`, `f.__kwdefaults__` and `f.__dict__`
   (function attributes, e.g. `cb.rate = r` read back through the
   function's own cell; phasic's wrapper attributes `__wrapped__` and
@@ -313,7 +317,9 @@ longer used, so callbacks without accessible source can be cached.
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
    refused;
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
-   subclasses are refused): `x.dtype.str`, shape, C-order bytes. Refused:
+   subclasses are refused): `x.dtype.str`, shape, C-order bytes (hashed
+   from a memoryview of `np.ascontiguousarray(x)`, which copies only
+   non-contiguous arrays, not via `tobytes()`). Refused:
    `dtype.hasobject` (covers object dtype AND structured dtypes with an
    object field, whose bytes are pointers) and `dtype.fields is not
    None` (structured dtypes: different field layouts share
@@ -448,46 +454,51 @@ handler setup left to the existing package-level call. (In this env
 libomp is already loaded by numpy/pandas, so the guarded property is the
 order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
-(`__init__.py:279`), a call `callback_hash._record_build_stats()` at the end
-of `phasic/__init__.py` (which NEVER raises at import: any failure, for
-example a file vanishing between listing and `stat`, is stored and
-raised as `GraphCacheKeyError` by the first key computation, so
-`import phasic` cannot break for users who never cache; a missing
-record, for example after `importlib.reload(phasic.callback_hash)`, also
-raises `GraphCacheKeyError` rather than skipping the check). `ctime`,
-inode and device are included because tools that preserve size and mtime
-(`rsync -a`, `cp -p`, fixed-timestamp packaging) cannot preserve them:
-both replace-by-rename and rewrite change `ctime`, so a reinstall between
-import and the first key computation (when the content hash is read)
-is detected (review I 2). It records
-`(path, size, mtime_ns, ctime_ns, ino, dev)` for
-the extension module located by `phasic.phasic_pybind.__file__` (not by
-globbing; if it has no `__file__` or the file is missing, the first key
-computation raises `GraphCacheKeyError`, so an editable or source-tree
-layout can never silently leave the extension out of the id) and every
-`*.py` file in the package directory of `phasic.__file__` (a few dozen
-`stat` calls; no
-reading). EVERY key computation RE-LISTS the package directory and
-re-stats the files (measured 2.1 ms for the stats, review 5) and compares
-with the record; if a file was added or removed, or any stat changed
-since import
-(for example `install-dev` ran under a live kernel), `GraphCacheKeyError`:
+(`__init__.py:279`), a call `callback_hash._record_build_stats()` at the
+end of `phasic/__init__.py` records, for the extension module located by
+`phasic.phasic_pybind.__file__` (not by globbing; no `__file__` or a
+missing file is a recording failure, so an editable or source-tree layout
+can never silently leave the extension out of the id) and every `*.py`
+file in the package directory of `phasic.__file__`:
+(i) a stat record `(path, size, mtime_ns, ctime_ns, ino, dev)` per file,
+and (ii) the CONTENT HASH of those files, computed right there, at import
+(measured 11.9 ms for 52 .py + the .so, 3.49 MB, review 4; paid by every
+`import phasic`, accepted as the price of an unambiguous id). The content
+hash uses the same counted, length-prefixed framing as the key: for each
+file in sorted relative-path order its relative path, its size and its
+bytes, so moving text across a file boundary (an extraction refactor)
+changes it. This content hash IS `_phasic_build_id()`: it describes the
+code the process actually imported, by construction, so no reinstall
+between import and the first key computation can go unnoticed (review I
+2).
+Recording NEVER raises at import: any failure (a file vanishing between
+listing and reading, a missing extension file) is stored and raised as
+`GraphCacheKeyError` by the first key computation, so `import phasic`
+cannot break for users who never cache; a missing record (for example
+after `importlib.reload(phasic.callback_hash)`) also raises
+`GraphCacheKeyError` rather than skipping the check.
+On EVERY key computation the package directory is re-listed and the files
+re-stat'ed (measured 2.1 ms, review 5). If nothing changed, the import
+hash is used. If a file was added or removed: `GraphCacheKeyError`
 "phasic was reinstalled after it was imported; restart the interpreter".
+If only stats changed (any of size, mtime, ctime, inode, device), the
+files are RE-HASHED and compared with the import hash: equal means the
+bytes are unchanged (for example a hard-linked file in a shared conda /
+pixi package cache whose `ctime` moved because another environment
+linked or unlinked it, or an xattr write on Lustre/GPFS, review J p5),
+and the stat record is refreshed silently; different means a reinstall,
+and `GraphCacheKeyError` as above. So a harmless metadata change never
+produces a spurious "restart" error, and a real one is always caught.
 Recording in `graph_cache`'s module body would be wrong: that module is
 imported at `__init__.py:53`, before `OMP_NUM_THREADS` is set at
 `:107-108`, and touching `phasic_pybind` there would load the native
-library and libomp too early (review A F). Only the content hash (measured: 52 .py + the .so, 3.49 MB, 11.9 ms;
-review 4) is memoised, computed on the first key computation. It is
-computed with the same counted, length-prefixed framing as the key: for
-each file in sorted relative-path order its relative path, its size and
-its bytes, so moving text from the end of one module to the start of the
-next (an extraction refactor) changes the id. OWNERSHIP: the build id
-lives in `callback_hash` (`_record_build_stats`, `_phasic_build_id`,
-the recorded table), which imports nothing from `graph_cache`;
-`graph_cache` imports `callback_hash` (as today, `graph_cache.py:26`),
-so there is no import cycle. `.cpp` /
-`.h` files shipped in the package directory are not part of the id
-(graph construction goes through the compiled extension only).
+library and libomp too early (review A F). OWNERSHIP: the build id lives
+in `callback_hash` (`_record_build_stats`, `_phasic_build_id`, the
+recorded table), which imports nothing from `graph_cache`; `graph_cache`
+imports `callback_hash` (as today, `graph_cache.py:26`), so there is no
+import cycle. `.cpp` / `.h` files shipped in the package directory are
+not part of the id (graph construction goes through the compiled
+extension only).
 
 ### 2.3 Errors
 
@@ -539,7 +550,9 @@ so there is no import cycle. `.cpp` /
 
 ### 2.5 Cache location
 
-`GraphCache()` with no argument resolves its directory when constructed:
+`GraphCache()` with no argument resolves its directory when constructed
+and makes it ABSOLUTE (`Path.absolute()`), so a `chdir` by the callback
+or another thread during a long build cannot send `save()` elsewhere:
 `Path(env) / "graphs"` when `PHASIC_CACHE_DIR` is set AND
 non-empty, implemented INLINE in `graph_cache` (3 lines, with a comment)
 and NOT by importing `phasic.cache`: that module imports
@@ -575,7 +588,8 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
   the save side is symmetric with the restricted decoder and no entry
   can be written that every later lookup would refuse. Deleted:
   `_deserialize_value` (see below). `Graph.__init__` constructs ONE `GraphCache()` per
-  call, so lookup and save resolve the same directory.
+  call, whose directory is absolute (§2.5), so lookup and save use the
+  same directory.
   `clear()` / `clear_graph_cache()` (and through them
   `clear_all_graph_caches` and `model_export.clear_caches`) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
@@ -661,8 +675,12 @@ DERIVED from a cached graph (`discretize`, widening, `laplace_transform`,
 not inherit `_graph_cache_entry`, so `clear_from_cache()` on them reports
 0. On master the same call re-hashed the copied `_callback` and deleted
 the BASE graph's entry; the new behaviour is intended (a derived graph
-has no entry of its own) and documented. A graph not built from a
-callback still raises as today.
+has no entry of its own) and documented. `clone()` / `copy()`
+(`__init__.py:10063-10077`) construct via `Graph(super().clone())`, so
+their `_callback` is `None` and `clear_from_cache()` on them RAISES "not
+built from a callback", as on master, as for any graph not built from a
+callback. The `graph_cache.py` docstrings at `:7`, `:52`, `:86`
+(`~/.phasic_cache/graphs/`) are reworded to name `PHASIC_CACHE_DIR`.
 
 ### 2.8 Old entries
 
@@ -782,18 +800,18 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     1743-1745`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
-13. `callback_hash._phasic_build_id()` (the memoised content hash of
-    §2.2.3, named here) monkeypatched to another value: miss. A recorded
-    stat changed after import, simulated by monkeypatching the RECORDED
-    stat table (never by touching installed files), both before the first
-    key computation (the content-hash memo is monkeypatched back to
-    `None` first, since an earlier test may have filled it) and after
-    one: `GraphCacheKeyError` mentioning restart. A failure stored by
+13. `callback_hash._phasic_build_id()` (the import-time content hash of
+    §2.2.3) monkeypatched to another value: miss. With the recorded stat
+    table monkeypatched (never touching installed files): a changed stat
+    whose re-hash equals the import hash (only `ctime_ns` differs, the
+    hard-link case) is ACCEPTED, the record refreshed, and the key
+    unchanged; a changed stat with the re-hash helper monkeypatched to
+    return different content: `GraphCacheKeyError` mentioning restart. A
+    module file added to the directory listing (monkeypatched):
+    `GraphCacheKeyError`. A recording failure stored by
     `_record_build_stats` (monkeypatched) and a missing record: both
     `GraphCacheKeyError` at the first key computation, while
-    `import phasic` itself succeeded. A module file added to the package
-    directory after import (simulated by monkeypatching the directory
-    listing): `GraphCacheKeyError`. The content hash differs when bytes
+    `import phasic` itself succeeded. The content hash differs when bytes
     move across a file boundary (two temporary files, unit test of the
     hashing helper). `numpy.__version__` monkeypatched: miss.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
@@ -869,10 +887,7 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     k=2.0))`: saves (callback_name fallback) and hits.
 
 26. Two captured partials identical in func/args/keywords but differing
-    in a hand-set attribute the callback reads: different keys. A
-    reinstall simulated between import and the first key computation
-    (recorded table with the same size/mtime but a different `ctime_ns`):
-    `GraphCacheKeyError`. An unwritable cache directory: `OSError` naming
+    in a hand-set attribute the callback reads: different keys. An unwritable cache directory: `OSError` naming
     it, callback not called. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
     named `dtype` as a kwarg: keyed normally. A `partial` subclass
@@ -1192,3 +1207,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   exact check; 4 `mkdir` errors specified, `save()` recreates a removed
   directory; 5 order lists named; 6 §7 order note; docs list of common
   refusals extended (numba / `jax.jit` / `np.vectorize`); CRLF note.
+- Independent review J -> v3.6 (no wrong-result case found): 1 build id
+  = content hash computed at import; stat changes trigger a re-hash and
+  are accepted when the bytes are unchanged (no spurious "restart" on
+  hard-linked conda / pixi installs), a real change still raises;
+  2 cache directory made absolute; 3 `f.__module__` keyed; 4 `clone()` /
+  `copy()` and `graph_cache.py` docstrings in §2.7; 5 arrays hashed from
+  a memoryview.
