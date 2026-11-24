@@ -1,0 +1,5 @@
+writer.dyn_ordering = False | serialized: False
+hit (from_serialized+copy).dyn_ordering = False | fresh build in B: False
+expectation hit=1.9333333333333327 fresh=1.9333333333333327 bit-identical=True
+moments(4) max rel diff = 0.000e+00
+[runcap] exit 0, peak RSS 366 MB, 3s

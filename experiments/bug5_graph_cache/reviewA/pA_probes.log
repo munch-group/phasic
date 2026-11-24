@@ -1,0 +1,41 @@
+Matplotlib is building the font cache; this may take a moment.
+HOME = /private/tmp/claude-501/-Users-kmt-phasic/c3f361f0-c1bf-476e-a943-8c5641e4a00a/scratchpad/reviewA/home  PHASIC_CACHE_DIR = None
+
+[A] partial(combinations_with_replacement) func is a class:
+   isinstance(cwr, type) = True ; partial.func is cwr: True
+
+[B] builtin/ufunc/dispatcher attributes:
+   len              type=builtin_function_or_method __self__=module     (module, qualname, resolves) = ('builtins', 'len', True)
+   math.sqrt        type=builtin_function_or_method __self__=module     (module, qualname, resolves) = ('math', 'sqrt', True)
+   np.exp           type=ufunc                    __self__=NoneType   (module, qualname, resolves) = ('numpy', 'exp', True)
+   np.linalg.solve  type=_ArrayFunctionDispatcher __self__=NoneType   (module, qualname, resolves) = ('numpy.linalg', 'solve', True)
+   np.sum           type=_ArrayFunctionDispatcher __self__=NoneType   (module, qualname, resolves) = ('numpy', 'sum', True)
+   np.where         type=_ArrayFunctionDispatcher __self__=NoneType   (module, qualname, resolves) = ('numpy', 'where', True)
+   np.zeros         type=builtin_function_or_method __self__=module     (module, qualname, resolves) = ('numpy', 'zeros', True)
+   np.array         type=builtin_function_or_method __self__=module     (module, qualname, resolves) = ('numpy', 'array', True)
+   np.isclose       type=_ArrayFunctionDispatcher __self__=NoneType   (module, qualname, resolves) = ('numpy', 'isclose', True)
+
+[C] structured dtype: dtype.str vs str(dtype), identical bytes:
+   a.dtype.str = |V16  b.dtype.str = |V16  same bytes: True
+   str(a.dtype) = [('x', '<i8'), ('y', '<f8')] | str(b.dtype) = [('p', '<f8'), ('q', '<i8')]
+
+[D] int repr limit:
+   repr(10**5000) raises ValueError: Exceeds the limit (4300 digits) for integer string conversion; use sys
+
+[E] clear_caches() with DEFAULT_CACHE_DIR monkeypatched only:
+  Removed 1 file(s), preserved directory structure
+  Removed 1 file(s), preserved directory structure
+   ~/.phasic_cache/other/sentinel exists after: False
+   ~/.jax_cache/sentinel exists after: False
+
+[F] module import order: is phasic_pybind imported when graph_cache's body runs?
+   __init__.py:53: from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
+   __init__.py:108: os.environ["OMP_NUM_THREADS"] = str(_detect_omp_num_threads())
+   __init__.py:279: from .phasic_pybind import *
+
+[G] Graph callback name check on a partial / callable instance:
+   Graph(partial, ipv=[1]) -> AttributeError 'functools.partial' object has no attribute '__name__'
+
+[H] int kwarg reaches callback as float (key sees int, graph sees float):
+   callback received n=2.0 flag=1.0
+[runcap] exit 0, peak RSS 321 MB, 17s
