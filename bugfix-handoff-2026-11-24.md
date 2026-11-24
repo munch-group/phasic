@@ -79,7 +79,9 @@ end with the Co-Authored-By line; the user pushes.
    reviewer running (evidence to `experiments/bug5_graph_cache/review4/`).
    Gate baseline: `/Users/kmt/phasic-bug4/.gate_bug4`. Plan now v2.2
    (`abeb620f`) after two REVISE rounds (review4, review5), not yet
-   re-reviewed. User decided (2026-11-24) to keep the full v2.2 design
+   re-reviewed (since then: v2.6-v2.9 after independent reviews A-D, each
+   finding wrong-result cases; user decision D3 narrowed the key, no
+   generic to_dict(); plan v3.0 `d55fe87f`, fresh review next). User decided (2026-11-24) to keep the full v2.2 design
    (inference features rely on closures). USER RULES: once a reviewer
    signs off with no issues, run two more independent reviewers; DO NOT
    IMPLEMENT until the user says go.
