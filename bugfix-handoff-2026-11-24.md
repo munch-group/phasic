@@ -53,11 +53,14 @@ end with the Co-Authored-By line; the user pushes.
    value outside (0, 1) freezes (the hard wall sees the fixed value;
    found-defects item A territory).
 4. **Discrete models accept row sums above 1 / negative probabilities** —
-   `/Users/kmt/phasic-bug4`, branch `fix/discrete-negative-pmf`. Plan
-   `bug4-discrete-rowsum-plan.md` v3.2 signed off by three reviewers.
-   Next step: rebase onto master (bug 3 merged), implement (native rebuild), follow the
-   plan's gate section (bit-identity dump, pin procedure, timing), one
-   implementation review, suite comparison.
+   MERGED (`195ab396`); main environment rebuilt. Suite run (baseline for
+   bug 5): `/Users/kmt/phasic-bug4/.gate_bug4` (GATE PASS vs bug 3: 2912
+   passed, the same 4 test_plot_ci failures; 64 new tests). Gate evidence
+   in `experiments/bug4_discrete_rowsum/` (bit-identity, pdf-only pin
+   refresh, timing pdf +3-7% / sampler +5-6%). Before merging, the branch
+   was rewritten (unpushed) to drop ~95 MB of plan-review-3 scratch
+   (`review3/nw/negw.jsonl`, `review3/patched/`); both remain on disk,
+   untracked, in the bug 4 worktree.
 5. **On-disk graph cache returns stale graphs** —
    `/Users/kmt/phasic-bug5`, branch `fix/graph-cache-stale`. Plan
    `bug5-graph-cache-plan.md` v1 REJECTED by reviewer 1 (evidence in
