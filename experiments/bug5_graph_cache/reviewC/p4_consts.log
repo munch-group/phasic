@@ -1,0 +1,8 @@
+3.13.13
+f1 [('NoneType', None), ('tuple', (Ellipsis, 0))]
+f2 [('NoneType', None), ('int', 1), ('int', 3), ('int', 0)]
+f3 [('NoneType', None), ('int', 0)]
+mk [('NoneType', None), ('code', <code object inner at 0x1008be4f0, file "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewC/p4_consts.py", line 11>), ('tuple', ((Ellipsis, 0),))]
+f4 [('NoneType', None), ('frozenset', frozenset({(1, 2), (3, 4)}))]
+inner defaults ((Ellipsis, 0),)
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -1,0 +1,33 @@
+python 3.13.13 numpy 2.4.3
+immutable combinations_with_replacement True itertools
+immutable product True itertools
+immutable partial True functools
+immutable ndarray True numpy
+immutable float64 True numpy
+immutable int True builtins
+scipy 'numpy.ufunc' object has no attribute '__module__'
+co_code stable after 2000 calls: True
+edit b co_code equal: False exctable equal: True consts equal: True
+edit c co_code equal: True exctable equal: True consts equal: True
+edit d co_code equal: False exctable equal: True consts equal: True
+builtin len builtin_function_or_method mod builtins qual len self module resolves True
+builtin math.sqrt builtin_function_or_method mod math qual sqrt self module resolves True
+builtin np.exp ufunc mod numpy qual exp self <none> resolves True
+builtin np.linalg.solve _ArrayFunctionDispatcher mod numpy.linalg qual solve self <none> resolves True
+builtin np.random.random method mod numpy.random qual RandomState.random self RandomState resolves False
+builtin np.add.reduce builtin_function_or_method mod None qual ufunc.reduce self ufunc resolves False
+builtin np.sum _ArrayFunctionDispatcher mod numpy qual sum self <none> resolves True
+builtin np.random.default_rng().random method mod numpy.random._generator qual Generator.random self Generator resolves False
+builtin str.join method_descriptor mod None qual str.join self <none> resolves False
+builtin 'x'.join builtin_function_or_method mod None qual str.join self str resolves False
+builtin dict.fromkeys builtin_function_or_method mod None qual dict.fromkeys self type resolves False
+builtin int.from_bytes builtin_function_or_method mod None qual int.from_bytes self type resolves False
+builtin np.ufunc.reduce method_descriptor mod None qual ufunc.reduce self <none> resolves False
+builtin math.prod builtin_function_or_method mod math qual prod self module resolves True
+builtin operator.mul builtin_function_or_method mod _operator qual mul self module resolves True
+StringDType str StringDType() hasobject True fields None
+StringDType tobytes equal for different content: True
+StringDType tobytes equal for same content: True
+IntEnum exact int? False
+super cell freevars ('__class__',)
+[runcap] exit 0, peak RSS 89 MB, 1s

@@ -1,0 +1,39 @@
+3.13.13
+blank lines + comment        co_code equal: True
+indent 2 spaces              co_code equal: True
+spaces around ops            co_code equal: True
+split binop across lines     co_code equal: False
+split tuple across lines     co_code equal: True
+split call args              co_code equal: False
+--- base
+  1           RESUME                   0
+
+  2           LOAD_FAST_LOAD_FAST      1 (s, k)
+              LOAD_CONST               1 (3)
+              BINARY_OP                5 (*)
+              BINARY_OP                0 (+)
+              STORE_FAST               2 (r)
+
+  3           LOAD_FAST_LOAD_FAST     32 (r, s)
+              LOAD_FAST                1 (k)
+              BUILD_TUPLE              2
+              BUILD_LIST               2
+              RETURN_VALUE
+--- split binop
+  1           RESUME                   0
+
+  2           LOAD_FAST                0 (s)
+
+  3           LOAD_FAST                1 (k)
+              LOAD_CONST               1 (3)
+              BINARY_OP                5 (*)
+
+  2           BINARY_OP                0 (+)
+              STORE_FAST               2 (r)
+
+  4           LOAD_FAST_LOAD_FAST     32 (r, s)
+              LOAD_FAST                1 (k)
+              BUILD_TUPLE              2
+              BUILD_LIST               2
+              RETURN_VALUE
+[runcap] exit 0, peak RSS 2 MB, 1s

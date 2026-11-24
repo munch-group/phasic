@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.7, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.8, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -92,8 +92,8 @@ changes. The `cache_key` docstring states this with an example.
     for every entry that exists but cannot be used (malformed JSON or
     encoding, wrong shape or `format`, a non-ndarray type tag,
     `from_serialized` failing): `GraphCacheLoadError` naming the file and
-    the ways out. Rationale: writes are atomic and durable (`fsync`
-    before the rename, §2.6) and the format and the phasic build are
+    the ways out. Rationale: writes are atomic with best-effort
+    durability (§2.6) and the format and the phasic build are
     inside the key, so an unusable entry can only come from disk or
     file-system corruption, tampering or a phasic bug; none of these should
     be hidden behind a silent rebuild, and the user decides (delete the
@@ -102,7 +102,12 @@ changes. The `cache_key` docstring states this with an example.
     anything from `load()`; the broad `except Exception` is removed.
     Nothing after `super().__init__(cached_graph)` is inside a `try`: an
     error while restoring attributes on a hit propagates;
-  - hit: the current restore sequence (`:1689-1723`) runs, plus
+  - hit: the current restore sequence (`:1689-1723`) runs; then
+    `self.dyn_ordering = os.environ.get("PHASIC_DYN_ORDERING") is not
+    None`, mirroring the C rule applied at graph creation
+    (`phasic.c:2996`), because `serialize()` persists the WRITER's flag
+    (`_graph_serialize.py:222`, restored at `:698`) and a hit must behave
+    like a fresh build in the reader's environment (review C p9); plus
     `self._graph_cache_entry = <entry path>` (the resolved file path, so
     `clear_from_cache` finds it even if `PHASIC_CACHE_DIR` changes later);
   - miss: build as today, then `GraphCache().save(self, entry_key, meta)`;
@@ -149,7 +154,10 @@ streams. Components in order:
 function already visited contributes a back-reference token)
 
 - Python function `f`: CODE FINGERPRINT of `f.__code__`; VALUE
-  FINGERPRINT of `f.__defaults__` and `f.__kwdefaults__`; for each name in
+  FINGERPRINT of `f.__defaults__`, `f.__kwdefaults__` and `f.__dict__`
+  (function attributes, e.g. `cb.rate = r` read back through the
+  function's own cell; phasic's wrapper attributes `__wrapped__` and
+  `__ipv__` are fingerprintable); for each name in
   `co_freevars`, the cell contents (empty cell -> token `empty`) by VALUE
   FINGERPRINT, where a cell holding a function is fingerprinted as a
   function (so decorator wrappers and captured helpers are covered).
@@ -165,7 +173,10 @@ function already visited contributes a back-reference token)
   state in `__self__`) and `np.frompyfunc` ufuncs ("<lambda>
   (vectorized)"), which would otherwise share a name token (review 5 q1
   D). It also refuses every `scipy.special` ufunc (`gamma`, `binom`:
-  their `__module__` is `None`, review 6 A); the error advises moving
+  they have NO `__module__` / `__qualname__` attribute, review C p8, so
+  every attribute in these rules is read with `getattr(obj, name, None)`
+  and a missing one means refusal with `GraphCacheKeyError`, never an
+  `AttributeError`); the error advises moving
   such a function to a module global (then covered by the user's
   `cache_key`, as for any imported object). Note the asymmetry, which is
   consistent with the contract: compiled dispatchers are keyed by name,
@@ -195,17 +206,24 @@ CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
 `co_posonlyargcount`, `co_kwonlyargcount`, `co_flags`, `co_name`, and
 `co_consts` element by element (nested code objects by CODE FINGERPRINT;
-`frozenset` constants by their elements' fingerprints, sorted; `Ellipsis`
-token; `slice` constants (3.14 folds constant slices) by start/stop/step;
-other constants by VALUE FINGERPRINT; a constant type none of these
+`frozenset` constants by their elements' fingerprints, sorted; `tuple`
+constants element by element under these same CONSTANT rules (so
+`state[..., 0]`, whose constant is `(Ellipsis, 0)`, and on 3.14
+`M[1:3, 0]` are covered, review C p4); `Ellipsis` token; `slice`
+constants by start/stop/step; other constants by VALUE FINGERPRINT
+(which also has the `Ellipsis` and `slice` rules, so a default
+`idx=(..., 0)` is covered); a constant type none of these
 covers raises `GraphCacheKeyError`, never a crash). `co_exceptiontable`
 is read with `getattr(co, "co_exceptiontable", b"")` (absent before
 3.11; `requires-python >= 3.10`, pixi pins < 3.14; only 3.13 is
 tested here). Excluded: `co_filename`,
 `co_firstlineno`, `co_linetable`, `co_qualname`. Consequences (all
 tested): this is the code that RUNS, so editing the file on disk without
-reloading changes nothing (review4 p1 D); comment and whitespace edits
-hit; a docstring edit misses (docstrings are constants; a harmless miss);
+reloading changes nothing (review4 p1 D); comment lines, blank lines,
+indentation and spacing within a line hit, but splitting an expression
+or call across lines can change `co_code` on 3.13 (line boundaries stop
+instruction fusion such as `LOAD_FAST_LOAD_FAST`, review C p2) and then
+misses (harmless); a docstring edit misses (docstrings are constants; a harmless miss);
 two lambdas on one line get distinct keys; `inspect.getsource` is no
 longer used, so callbacks without accessible source can be cached.
 
@@ -224,8 +242,15 @@ longer used, so callbacks without accessible source can be cached.
    None` (structured dtypes: different field layouts share
    `dtype.str == '|V16'` and bytes, review A C);
 4. exact `list` / `tuple`: type + element fingerprints in order;
-5. exact `dict`: entries in INSERTION order (a callback iterating a dict
-   sees that order, so it can change the graph); keys must be `str`;
+5. exact `dict`: entry count, then entries in INSERTION order (a
+   callback iterating a dict sees that order, so it can change the
+   graph); each key by VALUE FINGERPRINT (any fingerprintable key: tuple
+   state keys, ints from pandas `to_dict()`), then its value. The key
+   reflects captured state AT CALL TIME: a closure-captured memo dict
+   that the build fills is keyed as it was before that build (stated in
+   the docstring);
+5b. `Ellipsis` (token) and exact `slice` (start, stop, step by these
+   rules);
 6. any callable that §2.2.1 admits (Python function, bound method,
    partial, and builtins/ufuncs under exactly §2.2.1's conditions):
    FUNCTION FINGERPRINT; §2.2.1 and this rule are one rule;
@@ -257,6 +282,18 @@ raise `GraphCacheKeyError` (never `RecursionError`).
 
 #### 2.2.3 Build id
 
+Neither `graph_cache` nor the rewritten `callback_hash` may run anything
+at module level that loads `phasic_pybind`. On master this already
+happens: `graph_cache.py:29` calls `get_logger(__name__)` at module
+level, whose first use runs `setup_logging()`
+(`logging_config.py:252-253`), which imports `phasic_pybind`
+(`:200`), before `OMP_NUM_THREADS` is set at `__init__.py:107` (review C
+p6; a pre-existing defect fixed here). Both modules therefore use a lazy
+logger: `logging.getLogger("phasic.graph_cache")` /
+`("phasic.callback_hash")` at module level (stdlib only), with phasic's
+handler setup left to the existing package-level call. (In this env
+libomp is already loaded by numpy/pandas, so the guarded property is the
+order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
 (`__init__.py:279`), a call `graph_cache._record_build_stats()` at the end
 of `phasic/__init__.py` records `(path, size, mtime_ns)` for
@@ -287,6 +324,10 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
   out: pass plain values, give the object a `to_dict()`, move the value
   to a module global and change `cache_key` yourself, or build without
   `cache_key`.
+- `clear_all_graph_caches` is added to the `phasic` namespace
+  (`__init__.py:53` imports only `GraphCache`, `get_graph_cache_stats`,
+  `print_graph_cache_info` today, so the advice below and
+  `_graph_cache_mgmt.py:60` name a function users cannot reach, review C).
 - `GraphCacheLoadError(RuntimeError)`, exported: an entry exists but
   cannot be used (§2.1, §2.6); names the file and the ways out (delete
   the file, `phasic.clear_all_graph_caches()`, or another `cache_key`),
@@ -295,7 +336,8 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
 ### 2.4 Global configuration removed
 
 - `config.py`: field `graph_cache` (`:611`) and its documentation
-  (`:549-555`); the env-table row (`:465`) and its comment (`:444`, the
+  (`:549-555`); the env-table row (`:465`) with its comment (`:463`),
+  and the convention comment (`:444`, the
   convention text that cites it); the from-env read (`:325-326`); the
   env-var lists (`:201`, `:930`); the report entry (`:914`); the
   docstring mentions at `:239`, `:308`, `:607-609`; the inverted-bool
@@ -339,7 +381,9 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 ### 2.6 `GraphCache` API and entry file
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
-  `get_cache_stats()`, `_serialize_value` / `_deserialize_value`.
+  `get_cache_stats()`, `_serialize_value` (`_deserialize_value` is
+  deleted, see below). `Graph.__init__` constructs ONE `GraphCache()` per
+  call, so lookup and save resolve the same directory.
   `clear()` / `clear_graph_cache()` (and through them
   `clear_all_graph_caches` and `model_export.clear_caches`) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
@@ -353,8 +397,10 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 - Removed: `get_or_build`, `hash_callback`, `_detect_closures`,
   `_normalize_ast`.
 - Entry content: `format`, `phasic_version`, `created_at`, `cache_key`,
-  `callback_name` (the user function's name, `__wrapped__.__name__`
-  through phasic's wrapper, not `'wrapper'`), `graph_data`. `construction_params` is DROPPED: the
+  `callback_name` (informational: the user function's name through
+  phasic's wrapper, `getattr(getattr(cb, "__wrapped__", cb), "__name__",
+  None)`, falling back to the type name, so a wrapped `partial` does not
+  crash at save time, review C p10), `graph_data`. `construction_params` is DROPPED: the
   key already encodes the parameters, and serialising them could fail
   after the build for values the key accepts (np.bool_, complex, bytes:
   review4 p1 E).
@@ -364,8 +410,16 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
   the directory, as for today's `open()`, so no umask is read or changed
   (reading it with `os.umask` would briefly change it process-wide while
   JAX/OpenMP threads run), and no `mkstemp` 0600 mode), write,
-  `os.fsync(fd)`, close, `os.replace` to `<entry_key>.json`; on any exception the
-  temporary file is removed before the error propagates. Two concurrent
+  `os.fsync(fd)`, close, `os.replace` to `<entry_key>.json`. The
+  temporary file is removed in a `finally` that covers `BaseException`
+  too (a Ctrl-C during a minute-long 600k-vertex save must not leave a
+  ~0.85 GB `.partial` behind for an hour). Durability is best effort: no
+  directory `fsync`, and macOS `fsync` is not `F_FULLFSYNC`; the worst
+  outcome of a crash is a miss or a `GraphCacheLoadError`, never a wrong
+  graph. A save error is amended IN PLACE: the same exception object is
+  re-raised with `e.graph` set and `e.add_note(...)` naming the path and
+  `e.graph` (phasic already requires Python 3.11: `from typing import
+  Self`, `__init__.py:11`). Two concurrent
   writers each replace atomically; a reader sees a complete file or none
   (shared SLURM directories are a documented use,
   `distributed.ipynb` cell 31).
@@ -390,10 +444,14 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
     `Exception` from `from_serialized` other than `MemoryError` and
     `RecursionError`, which say nothing about the file and propagate
     unchanged, as do `BaseException`s such as `KeyboardInterrupt`.
-    Chaining uses `raise ... from e` (not `add_note`, Python 3.11+).
+    The restricted decoder wraps EVERY `Exception` it meets (unknown tag,
+    `__type__` without `__data__`, ragged `__data__` making numpy raise,
+    wrong dtype string), except `MemoryError` / `RecursionError`, in
+    `GraphCacheLoadError`. Chaining uses `raise ... from e`.
   The general `_deserialize_value` (which imports the module a tag names
-  and calls its `from_dict`, review 7 A) is no longer used on the load
-  path.
+  and calls its `from_dict`, review 7 A) is DELETED (no caller remains;
+  `test_serialize_is_aux.py` moves to the restricted decoder), and
+  `_serialize_value` stays for the save path.
 
 ### 2.7 `Graph.clear_from_cache(graph_cache=True, ...)`
 
@@ -437,7 +495,11 @@ harmlessly and the outcome recorded on master reflects the real
 behaviour (on master `cache_key` is just ignored, and the default cache
 is on).
 
-Expected to fail on master:
+Expected to fail on master (tests 3, 4 and 6 are REGRESSION GUARDS that
+also pass on master, which already puts `cache_key` into `repr(kwargs)`
+and the ipv into its key, `callback_hash.py:95-103,142-160`; they are
+listed here to keep the numbering and are labelled as guards in the
+file):
 1. Default build is uncached: a module-level variable changed between two
    builds gives the correct second graph, and no file appears.
 2. `graph_cache=True` and `graph_cache=False` raise `TypeError`
@@ -454,7 +516,8 @@ Expected to fail on master:
    `[[[3,0]],1]`): miss, and correct.
 6. ipv changed (`ipv=` and `with_ipv` forms): miss.
 7. Callback body changed (new function object from source with one
-   constant changed): miss. Comment- and whitespace-only edit: hit.
+   constant changed): miss. Comment-line, blank-line and in-line spacing
+   edits: hit (no line splits, see §2.2.1).
    Two lambdas defined on one line: distinct keys.
 8. Closure: a factory `make(rate)` called with 1.0 and 5.0, same
    `cache_key`: miss, both correct (review4 p1 C). Default-bound loop
@@ -488,7 +551,8 @@ Expected to fail on master:
     1743-1745`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
-13. `_phasic_build_id` monkeypatched to another value: miss. A recorded
+13. `graph_cache._phasic_build_id()` (the memoised content hash of
+    §2.2.3, named here) monkeypatched to another value: miss. A recorded
     stat changed after import, simulated by monkeypatching the RECORDED
     stat table (never by touching installed files), both before the first
     key computation and after one: `GraphCacheKeyError` mentioning
@@ -525,7 +589,9 @@ Expected to fail on master:
     `PermissionError` whose message names the file; with the directory
     made non-searchable instead (permissions restored in a `finally`,
     skipped as root), the message says "owner unknown" and the original
-    is chained.
+    is chained. A ragged `__data__` and a `__type__` without `__data__`:
+    `GraphCacheLoadError`. The advice's way out works: after
+    `phasic.clear_all_graph_caches()` the same call rebuilds and saves.
 16. Write failure (`os.replace` monkeypatched to raise
     `PermissionError`): the same `PermissionError` subclass, the path in
     the message, `e.graph` equal to a fresh build (same `serialize()`),
@@ -548,6 +614,18 @@ Expected to fail on master:
     `UserWarning`. `PHASIC_DISABLE_CACHE=1` with `cache_key`: the entry
     is still written and hit.
 
+22. `PHASIC_DYN_ORDERING`: an entry written in a subprocess with the
+    variable set and read in a subprocess without it: the hit has
+    `dyn_ordering` False, like a fresh build there (and vice versa).
+23. Function attributes: a factory setting `cb.rate = r` that the
+    callback reads through its own cell: miss when `r` changes.
+24. A dict kwarg with tuple keys and one with int keys: hit when equal,
+    miss when one entry differs.
+25. `state[..., 0]` in the callback and a default `idx=(..., 0)`: key
+    computed, hit on rebuild. `scipy.special.gamma` captured in a cell:
+    `GraphCacheKeyError` (not `AttributeError`). `with_ipv([5])(partial(model,
+    k=2.0))`: saves (callback_name fallback) and hits.
+
 Contract pin (documents the user's responsibility):
 21. Same `cache_key`, a MODULE-LEVEL helper changed between builds: the
     cached graph is returned. Expected on master: also the cached graph.
@@ -568,7 +646,11 @@ callback (not called), so a silent miss can no longer pass (review B 12):
   the load-time format check: write a valid entry, rewrite its `format`
   field to `"1"`, assert `GraphCacheLoadError` naming the file; after
   deleting the file, the rebuild is a CONSTANT graph. Fixture `tmp_cache`
-  gains `setenv("PHASIC_CACHE_DIR", tmp)`.
+  (today `tmp_path/"graphs"`) sets `PHASIC_CACHE_DIR` to `tmp_path` (so
+  entries land in `tmp_path/graphs`, not `graphs/graphs`), its
+  `delenv("PHASIC_DISABLE_GRAPH_CACHE")` at `:68` is removed, and T1's
+  `any(tmp_cache.iterdir())` becomes a check for a `*.json` file (a bare
+  directory would pass vacuously).
 - `test_theta_layout.py::test_graph_cache_hit_gets_default_layout`,
   `test_from_serialized_find_vertex.py::test_joint_prob_graph_via_warm_graph_cache`
   (spy moves to `GraphCache.load`; its callback also captures a local
@@ -761,3 +843,16 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   keyed by name, dataclass refusal documented; 11 grep list and SLURM
   `clear_caches` callers; 12 hit spies in edited tests; 13 entry path
   stored; 14 new names imported inside tests.
+- Independent review C -> v2.8: 1 lazy stdlib loggers in `graph_cache`
+  and `callback_hash` (fixes the pre-existing early `phasic_pybind`
+  import; test 14 now meaningful); 2 `dyn_ordering` set from the reader's
+  env on a hit, test 22; 3 `clear_all_graph_caches` exported, test 15;
+  4 tuple constants recursed, Ellipsis/slice value rules, test 25;
+  5 `callback_name` fallback; 6 whitespace claim narrowed, test 7;
+  7 scipy.special attributes absent, `getattr` everywhere; 8 save errors
+  amended in place with `add_note` (phasic needs 3.11), `finally` covers
+  BaseException, durability worded as best effort; 9 decoder wraps every
+  Exception; 10 tests 3/4/6 labelled guards; 11 `f.__dict__` keyed,
+  test 23; 12 any fingerprintable dict key, call-time semantics, test 24;
+  nits (fixture paths, `:68`, `:463`, `_phasic_build_id` named,
+  `_deserialize_value` deleted, one `GraphCache()` per call).

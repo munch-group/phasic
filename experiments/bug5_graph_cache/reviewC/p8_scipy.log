@@ -1,0 +1,8 @@
+scipy 1.17.1
+gamma f.__module__ raises AttributeError: 'numpy.ufunc' object has no attribute '__module__'
+   getattr default: '<absent>' hasattr __qualname__: False
+binom f.__module__ raises AttributeError: 'numpy.ufunc' object has no attribute '__module__'
+   getattr default: '<absent>' hasattr __qualname__: False
+exp f.__module__ = 'numpy'
+   getattr default: 'numpy' hasattr __qualname__: True
+[runcap] exit 0, peak RSS 2 MB, 1s
