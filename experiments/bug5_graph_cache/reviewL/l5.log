@@ -1,0 +1,17 @@
+f8     mod=numpy.dtypes   str=<f8      hasobject=False fields=None
+i4     mod=numpy.dtypes   str=<i4      hasobject=False fields=None
+?      mod=numpy.dtypes   str=|b1      hasobject=False fields=None
+U5     mod=numpy.dtypes   str=<U5      hasobject=False fields=None
+S3     mod=numpy.dtypes   str=|S3      hasobject=False fields=None
+V8     mod=numpy.dtypes   str=|V8      hasobject=False fields=None
+M8[s]  mod=numpy.dtypes   str=<M8[s]   hasobject=False fields=None
+m8[D]  mod=numpy.dtypes   str=<m8[D]   hasobject=False fields=None
+c16    mod=numpy.dtypes   str=<c16     hasobject=False fields=None
+g      mod=numpy.dtypes   str=<f8      hasobject=False fields=None
+O      mod=numpy.dtypes   str=|O       hasobject=True fields=None
+np.float64 scalar dtype mod: numpy.dtypes
+longdouble itemsize 8
+g vs f8: str <f8/<f8 equal_dtype=True type_same=False char g/d bytes_equal= True
+q vs l: str <i8/<i8 equal_dtype=True type_same=False char q/l bytes_equal= 
+G vs c16: str <c16/<c16 equal_dtype=True type_same=False char G/D bytes_equal= True
+[runcap] exit 0, peak RSS 2 MB, 1s

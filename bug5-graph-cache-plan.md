@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.7, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.8, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -105,10 +105,10 @@ deterministic functions of their inputs). The
   - non-`str` -> `TypeError`, empty -> `ValueError`; `arg` not callable ->
     `ValueError` ("cache_key applies to graphs built from a callback");
   - ALL argument validation for a callback runs first: the
-    ipv/decorator checks now at `:1747-1755` move above the lookup (for
+    ipv/decorator checks now at `:1750-1759` move above the lookup (for
     every call, cached or not; same errors, raised earlier). They read
     `getattr(arg, "__name__", None)` instead of `arg.__name__`
-    (`:1670`, `:1750`), so a `partial` callback gets the normal ipv
+    (`:1669`, `:1753`), so a `partial` callback gets the normal ipv
     error instead of today's `AttributeError` (review E 7d);
   - the ENTRY KEY (§2.2) is computed once. A key error propagates:
     nothing is built, nothing written;
@@ -142,7 +142,10 @@ deterministic functions of their inputs). The
     SAME `GraphCache` instance `cache` used for the lookup (one per call,
     §2.6);
     only after it returns, `self._graph_cache_entry = <entry path>`. ANY
-    `Exception` from `save()` (an `OSError` from the write, or for example
+    exception from `save()`, including `BaseException`s such as a
+    `KeyboardInterrupt` aimed at a slow 600k-vertex save, gets `e.graph`
+    and the note attached before it propagates (an `OSError` from the
+    write, or for example
     `serialize()` failing or a `MemoryError` while encoding a 600k-vertex
     graph) propagates with its type unchanged (an `OSError` keeps its
     subclass and gains a message naming the path), with the built graph
@@ -436,7 +439,16 @@ longer used, so callbacks without accessible source can be cached.
    a surprise: `range`, `frozenset`, `defaultdict` / `OrderedDict`
    values, `pathlib.Path`, `jax.Array`, `operator.itemgetter`, a local
    `lru_cache` helper in a closure, numba `@njit` / `jax.jit` helpers
-   and `np.vectorize` objects in a closure, nesting deeper than 100.
+   and `np.vectorize` objects in a closure, `collections.namedtuple`
+   instances (pass `nt._asdict()` or a tuple), `np.memmap` arrays (pass
+   `np.asarray(mm)`; note this reads the file to hash it), the class
+   `collections.Counter` captured in a cell, phasic's own
+   `index_to_props` results (precompute lookup tables as plain ints or
+   dicts), nesting deeper than 100. The docstring also says that entries
+   are never evicted: every distinct argument set under one `cache_key`
+   writes its own file (22-75 MB at typical sizes, §4), so a parameter
+   sweep under one name accumulates files; clear them with
+   `phasic.clear_all_graph_caches()` or `Graph.clear_from_cache()`.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
@@ -653,6 +665,8 @@ here).
     unknown" and never raises from the handler) and the ways out
     (another `cache_key`, or another directory via
     `configure(cache_dir=...)`);
+  - (entries are opened with `encoding="utf-8"`, so the classification
+    below does not depend on the locale)
   - `GraphCacheLoadError` (original chained) for: `json.load` raising
     `ValueError` (covers `JSONDecodeError` and `UnicodeDecodeError`);
     explicit shape checks failing (top level not a `dict`, a required
@@ -734,13 +748,18 @@ pass on master and are labelled as guards in the file: tests 3, 4 and 6
 (master already puts `cache_key` into `repr(kwargs)` and the ipv into
 its key, `callback_hash.py:95-103,142-160`), test 24 (master's
 `repr(kwargs)` is exact for small dicts with tuple or int keys), the
-`state[..., 0]` part of test 25 (master hashes the AST), and the
+`state[..., 0]` part of test 25 (master hashes the AST; the guard is
+spy-observed: hit on rebuild, not a key-level assertion), and the
 `PHASIC_DISABLE_CACHE` half of test 20 (master ignores `cache_key` but
 caches by default; this half and test 3 prove the hit with a spy on the
 callback, not by looking for a file under `$PHASIC_CACHE_DIR/graphs`,
 which master ignores), test 10 (master's `StateIndexer.__repr__` is exact
 for ranges and layout, `state_indexing.py:1570-1593`), and the
-`Property` and "not cycles" parts of test 11:
+`Property` hit/miss and "not cycles" parts of test 11, phrased as
+spy-observed hit/miss; the key-level assertions of test 11 (for example
+`Property(min_value=1, offset=0)` vs `offset=3` giving different keys)
+use `cache_entry_key` and are expected to FAIL on master (no such
+function):
 1. Default build is uncached: a module-level variable changed between two
    builds gives the correct second graph, and no file appears.
 2. `graph_cache=True` and `graph_cache=False` raise `TypeError`
@@ -813,7 +832,7 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     (`np.bool_`, complex, bytes keyword arguments) and an int above 4300
     digits held INSIDE a list kwarg and as a closure default (a top-level
     int kwarg is converted to float before the callback, `__init__.py:
-    1743-1745`, which overflows with or without a cache): build, save and
+    1745-1747`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
 13. `callback_hash._phasic_build_id()` (the import-time content hash of
@@ -915,7 +934,9 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     installed). A `datetime64` array, a `timedelta64` array and a 0-d
     array: keyed, hit on rebuild, miss when one value differs. An indexer
     whose `_slots` attribute was deleted: `GraphCacheKeyError` (not
-    `AttributeError`). A `partial` subclass
+    `AttributeError`). A `KeyboardInterrupt` raised inside `save()`
+    (monkeypatched): propagates with `e.graph` attached, no `.partial`
+    left. A `partial` subclass
     overriding `__call__`: refused. A user kwarg
     named `callback`: keyed normally (no `TypeError`).
     A callback with mixed coefficient lengths under `cache_key`: the save
@@ -1246,3 +1267,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   wrapping covers all of the StateIndexer checks (a)-(c); 4 test 26
   unwritable-directory cases split; 5 wording: `clear_caches` scope,
   `.stem`, guard tests use spies, recursive build-id listing.
+- Independent review L -> v3.8 (no wrong result or data loss found):
+  1 more common refusals in the docstring (namedtuple, `np.memmap`,
+  `Counter` class, `index_to_props` results); 2 guard tests phrased as
+  spy-observed, key-level parts expected to fail on master; 3 `e.graph`
+  attached to any exception from `save()`, including KeyboardInterrupt;
+  4 no-eviction note; 5 line references updated (1669, 1753, 1750-1759,
+  1745-1747); 6 entries opened with `encoding="utf-8"`.
