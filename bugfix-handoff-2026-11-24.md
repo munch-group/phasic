@@ -4,12 +4,12 @@ Written so a fresh session can continue without the earlier conversation.
 
 ## Copy-paste prompt
 
-> Continue the bug-fix series described in `bugfix-handoff-2026-11-24.md`.
-> Work one thing at a time (no reviewers alongside test runs), run
-> reviewers on Opus not Fable, one reviewer per round, and merge a bug
-> when its suite comparison shows no new failures. Do not change
-> notebooks. Start with whatever the "Next step" line of the first
-> unfinished bug says.
+Continue the bug-fix series described in `bugfix-handoff-2026-11-24.md`.
+Work one thing at a time (no reviewers alongside test runs), run
+reviewers on Opus not Fable, one reviewer per round, and merge a bug
+when its suite comparison shows no new failures. Do not change
+notebooks. Start with whatever the "Next step" line of the first
+unfinished bug says.
 
 ## Recipe (user's, as scaled down on 2026-11-24)
 
@@ -44,15 +44,18 @@ end with the Co-Authored-By line; the user pushes.
 2. **Fixed parameter values altered before reaching the model** — MERGED
    (`39154082`); main environment rebuilt. Suite run (baseline for bug 3):
    `/Users/kmt/phasic-bug2/.gate_bug2`.
-3. **Single BetaPrior uses mismatched transforms** —
-   `/Users/kmt/phasic-bug3`, branch `fix/single-betaprior-transform`. Plan
-   `bug3-betaprior-transform-plan.md` v4 signed off by three reviewers.
-   Next step: rebase on master after bug 2 merges, install-dev, implement,
-   one implementation review, suite comparison (baseline = bug 2's run).
+3. **Single BetaPrior uses mismatched transforms** — MERGED (`b1203728`);
+   main environment rebuilt. Suite run (baseline for bug 4):
+   `/Users/kmt/phasic-bug3/.gate_bug3` (GATE PASS; the 4 test_plot_ci
+   failures are on both sides, deterministic). Slow tier of the new file
+   run once: 44/44. Found by the implementation review, pre-existing, not
+   fixed: MCMC with positive_params=False, a single BetaPrior and a fixed
+   value outside (0, 1) freezes (the hard wall sees the fixed value;
+   found-defects item A territory).
 4. **Discrete models accept row sums above 1 / negative probabilities** —
    `/Users/kmt/phasic-bug4`, branch `fix/discrete-negative-pmf`. Plan
    `bug4-discrete-rowsum-plan.md` v3.2 signed off by three reviewers.
-   Next step: rebase after bug 3, implement (native rebuild), follow the
+   Next step: rebase onto master (bug 3 merged), implement (native rebuild), follow the
    plan's gate section (bit-identity dump, pin procedure, timing), one
    implementation review, suite comparison.
 5. **On-disk graph cache returns stale graphs** —
