@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.1, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.2, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -136,16 +136,31 @@ function already visited contributes a back-reference token)
   `__self__`.
 - `functools.partial`: function, `args`, `keywords`.
 - builtin function, numpy ufunc / array-function dispatcher: module +
-  qualified name token (installed compiled code).
+  qualified name token, ONLY IF `__self__` is `None` or a module AND
+  resolving `__module__` + `__qualname__` (or `__name__` for ufuncs)
+  through `sys.modules` returns the very same object. This admits
+  `math.sqrt`, `len`, `np.exp`, `np.linalg.solve` and refuses builtin
+  bound methods of instances (`{}.get`, `Random(1).random`, which carry
+  state in `__self__`) and `np.frompyfunc` ufuncs ("<lambda>
+  (vectorized)"), which would otherwise share a name token (review 5 q1
+  D).
 - anything else callable (class, callable instance without `to_dict`):
   NOT FINGERPRINTABLE.
+- Recursion: the visited set maps each function to its first-visit
+  index; a revisit contributes a back-reference token carrying that
+  index, so different recursion shapes give different streams.
 
 CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
 `co_posonlyargcount`, `co_kwonlyargcount`, `co_flags`, `co_name`, and
 `co_consts` element by element (nested code objects by CODE FINGERPRINT;
 `frozenset` constants by their elements' fingerprints, sorted; `Ellipsis`
-token; other constants by VALUE FINGERPRINT). Excluded: `co_filename`,
+token; `slice` constants (3.14 folds constant slices) by start/stop/step;
+other constants by VALUE FINGERPRINT; a constant type none of these
+covers raises `GraphCacheKeyError`, never a crash). `co_exceptiontable`
+is read with `getattr(co, "co_exceptiontable", b"")` (absent before
+3.11; `requires-python >= 3.10`, pixi pins < 3.14; only 3.13 is
+tested here). Excluded: `co_filename`,
 `co_firstlineno`, `co_linetable`, `co_qualname`. Consequences (all
 tested): this is the code that RUNS, so editing the file on disk without
 reloading changes nothing (review4 p1 D); comment and whitespace edits
@@ -165,30 +180,42 @@ longer used, so callbacks without accessible source can be cached.
 4. exact `list` / `tuple`: type + element fingerprints in order;
 5. exact `dict`: entries in INSERTION order (a callback iterating a dict
    sees that order, so it can change the graph); keys must be `str`;
-6. a Python function, bound method or partial: FUNCTION FINGERPRINT;
-7. any other object with a callable `to_dict()` (including `dict`/`list`
+6. any callable that §2.2.1 admits (Python function, bound method,
+   partial, and builtins/ufuncs under exactly §2.2.1's conditions):
+   FUNCTION FINGERPRINT; §2.2.1 and this rule are one rule;
+7. a class object (`isinstance(x, type)`): NOT FINGERPRINTABLE (so a
+   `__class__` cell from `super()` or a class passed as an argument is
+   refused explicitly, never called through an unbound `to_dict`);
+8. any other object with a callable `to_dict()` (including `dict`/`list`
    subclasses that have one): class module + qualified name, then the
-   VALUE FINGERPRINT of what `to_dict()` returns. This is the protocol
+   VALUE FINGERPRINT of what `to_dict()` returns; any exception raised
+   inside `to_dict()` is re-raised as `GraphCacheKeyError` with the path
+   and the original exception chained. This is the protocol
    the docs already describe for objects passed to a callback
    (`docs/pages/tutorial/state-space.ipynb` cell 44) and that
    `StateIndexer` implements (`state_indexing.py:1850`, which covers the
    same structure as its `__eq__`/`__hash__`, review4);
-8. anything else: NOT FINGERPRINTABLE.
-Recursion is bounded: a depth limit of 100 and an id-based cycle check on
-containers and `to_dict()` results; both raise `GraphCacheKeyError`
-(never `RecursionError`).
+9. anything else: NOT FINGERPRINTABLE.
+Recursion is bounded: a depth limit of 100, and a cycle check against the
+ids of the containers / `to_dict()` objects on the CURRENT PATH from the
+root only (pushed on entry, popped on exit). A process-wide seen-set is
+wrong: it flags a list referenced twice, an ipv reusing one state list,
+and freed temporaries whose ids are reused (review 5 q2). Both limits
+raise `GraphCacheKeyError` (never `RecursionError`).
 
 #### 2.2.3 Build id
 
 At `import phasic`, `graph_cache` records `(relative path, size,
 mtime_ns)` for the extension module `phasic_pybind*.so` and every `*.py`
 file in the installed package directory (a few dozen `stat` calls; no
-reading). The first key computation in a process hashes those files'
-contents (measured: 52 .py + the .so, 3.49 MB, 11.9 ms; review4) after
-re-checking the recorded stats. If any stat changed since import (for
-example `install-dev` ran under a live kernel), `GraphCacheKeyError`:
+reading). EVERY key computation re-stats those files (measured 2.1 ms,
+review 5) and compares with the record; if any stat changed since import
+(for example `install-dev` ran under a live kernel), `GraphCacheKeyError`:
 "phasic was reinstalled after it was imported; restart the interpreter".
-The id is then memoised for the process.
+Only the content hash (measured: 52 .py + the .so, 3.49 MB, 11.9 ms;
+review 4) is memoised, computed on the first key computation. `.cpp` /
+`.h` files shipped in the package directory are not part of the id
+(graph construction goes through the compiled extension only).
 
 ### 2.3 Errors
 
@@ -248,14 +275,22 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
   after the build for values the key accepts (np.bool_, complex, bytes:
   review4 p1 E).
 - Write: `tempfile.mkstemp(dir=<cache dir>, prefix=".tmp-",
-  suffix=".partial")` (unique per writer, never matching `*.json`), write
-  and close, `os.replace` to `<entry_key>.json`; on any exception the
+  suffix=".partial")` (unique per writer, never matching `*.json`), write,
+  `os.fchmod` to `0o666 & ~umask` (mkstemp creates 0600, which would make
+  entries unreadable to the rest of a shared group directory), close,
+  `os.replace` to `<entry_key>.json`; on any exception the
   temporary file is removed before the error propagates. Two concurrent
   writers each replace atomically; a reader sees a complete file or none
   (shared SLURM directories are a documented use,
   `distributed.ipynb` cell 31).
 - On load, `format` must equal `GRAPH_CACHE_FORMAT`, otherwise
   `GraphCacheEntryError`.
+- Read errors are classed as: `FileNotFoundError` -> `None` (miss);
+  invalid JSON, wrong or missing fields, wrong `format`,
+  `from_serialized` failure -> `GraphCacheEntryError` (warn, rebuild,
+  overwrite); any other `OSError` (for example `PermissionError` on
+  another user's entry) PROPAGATES, so two users can never overwrite
+  each other's entries back and forth silently.
 
 ### 2.7 `Graph.clear_from_cache(graph_cache=True, ...)`
 
@@ -313,18 +348,32 @@ Expected to fail on master:
     a different property range: miss.
 11. Object with `to_dict()`: hit when equal, miss when a field differs.
     Object without `to_dict()`, a `set`, a masked array, a cyclic
-    `to_dict()`: `GraphCacheKeyError` (not `RecursionError`), callback
-    not called, no file written.
+    `to_dict()`, a class object with a `to_dict` attribute, a `to_dict()`
+    that raises, a closure cell holding `{}.get` or an `np.frompyfunc`
+    ufunc: `GraphCacheKeyError` (not `RecursionError` / `TypeError`),
+    callback not called, no file written. Not cycles: a list referenced
+    twice in one kwarg, an ipv reusing one state list, a list of 200
+    `to_dict()` objects: these hash and hit. A bound-method callback
+    calling `super()` (`__class__` cell): `GraphCacheKeyError`.
 12. Values the key accepts that the old entry format could not store
     (`np.bool_`, complex, bytes keyword arguments): build, save and hit
     work.
 13. `_phasic_build_id` monkeypatched to another value: miss. A recorded
-    stat changed after import: `GraphCacheKeyError` mentioning restart.
+    stat changed after import, simulated by monkeypatching the RECORDED
+    stat table (never by touching installed files), both before the first
+    key computation and after one: `GraphCacheKeyError` mentioning
+    restart.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`.
 15. Corrupt entry (truncated JSON; wrong `format`): `UserWarning`,
     correct graph, file rewritten and then hit. A hit whose attribute
-    restore raises (monkeypatched `_set_weight_tape`): the error
-    propagates (no silent rebuild).
+    restore raises: a FORMULA-mode entry is written by hand under the
+    computed key (a graph with `weight_formula` set, serialised and
+    passed to `GraphCache.save`, since `Graph.__init__` only ever saves
+    linear-mode graphs and the tape restore at `__init__.py:1716` runs in
+    formula mode only), then `_set_weight_tape` is monkeypatched to
+    raise: the error propagates (no silent rebuild). An unreadable entry
+    file (`chmod 000`, skipped when running as root) propagates
+    `PermissionError`.
 16. Write failure (`os.replace` monkeypatched to raise): `OSError` with
     the path, and no `.partial` file left in the directory.
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
@@ -437,6 +486,17 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   longer be cached (explicit error with ways out).
 - A docstring edit misses (constant in the code object): extra build,
   never a stale graph.
+- A shared, group-writable cache directory can be poisoned: anyone who
+  can compute an entry key can plant a JSON graph there. It is data, not
+  code execution (unlike pickle caches), but a peer could plant a wrong
+  graph; this is existing behaviour, and the `cache_key` docstring says
+  to share a cache directory only with trusted users.
+- Review 5 findings -> v2.2: 1 builtin arm §2.2.1; 2 classes and
+  `to_dict()` errors §2.2.2 rules 7-8; 3 current-path cycle check and
+  indexed back-references; 4 `fchmod` and read-error classes §2.6;
+  5 test 15 rewritten; 6 version portability §2.2.1; 7 stat check per
+  key computation §2.2.3, test 13; 8 this risk. Tests 11, 13, 15
+  extended.
 
 ## 7. Review 4 findings -> v2.1
 
