@@ -1,0 +1,72 @@
+............................  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:01<00:01,  1.25s/it]100%|██████████| 2/2 [00:01<00:00,  1.74it/s]                                             .....
+  [baseline] t_single=15.3ms  t_vmap8=33.8ms  ratio=2.22  (omp_threads=8, bound=50×)
+.
+  [SVGD-fused] t_single=18.2ms  t_vmap8=37.4ms  ratio=2.05  (omp_threads=8, bound=40×)
+.s                                     [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_daisy_chain_c_path.py: 17 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:75: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jp = g.joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestAdaptiveTeval::test_resolve_auto_returns_numeric
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:457: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jp = g.joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestPerEpochFixed::test_scalar_value_broadcasts
+tests/pytest/test_daisy_chain_c_path.py::TestPerEpochFixed::test_per_epoch_list_fixes_different_values
+tests/pytest/test_daisy_chain_c_path.py::TestPerEpochFixed::test_mixed_scalar_and_list_entries
+tests/pytest/test_daisy_chain_c_path.py::TestPerEpochFixed::test_per_epoch_list_wrong_length_raises
+tests/pytest/test_daisy_chain_c_path.py::TestPerEpochFixed::test_per_epoch_value_accepts_numpy_array
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:505: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return g.joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTied::test_tied_extends_broadcast_fixed_with_slaves
+tests/pytest/test_daisy_chain_c_path.py::TestTied::test_tied_attaches_info_to_model
+tests/pytest/test_daisy_chain_c_path.py::TestTied::test_tied_none_yields_empty_info
+tests/pytest/test_daisy_chain_c_path.py::TestTied::test_tied_with_existing_fixed_keeps_both
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:621: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return g.joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_forward_matches_explicit_replication
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_gradient_sums_per_epoch_partials
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_plus_fixed_partition
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_summary_shows_tied_label
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:725: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return g.joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_plus_fixed_partition
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:870: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    disc_jp = Graph(cb, indexer=indexer).joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_plus_fixed_partition
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:880: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jp.svgd(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_plus_fixed_partition
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:880: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 3 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    svgd = jp.svgd(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_summary_shows_tied_label
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:925: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    disc_jp = Graph(cb, indexer=indexer).joint_prob_graph(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_summary_shows_tied_label
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:934: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jp.svgd(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_summary_shows_tied_label
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:934: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    svgd = jp.svgd(
+
+tests/pytest/test_daisy_chain_c_path.py::TestTiedGradient::test_tied_summary_shows_tied_label
+  /Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:514: UserWarning: HPD interval computed from only 4 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_daisy_chain_c_path.py::TestDaisyChainParticleVmapFusion::test_vmap_fuses_into_one_ffi_call
+tests/pytest/test_daisy_chain_c_path.py::TestDaisyChainParticleVmapFusion::test_vmap_perf_smoke
+  /Users/kmt/phasic-bug4/tests/pytest/test_daisy_chain_c_path.py:90: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return g.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+35 passed, 1 skipped, 40 warnings in 10.22s
+[runcap] exit 0, peak RSS 1005 MB, 14s

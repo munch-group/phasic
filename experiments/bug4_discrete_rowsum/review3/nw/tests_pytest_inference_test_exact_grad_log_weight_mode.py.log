@@ -1,0 +1,53 @@
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_log_weight_mode.py: 22 warnings
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:40: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:60: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [1.0, 0.5, 2.0])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_native_cd_log_mode_three_params
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:61: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [2.0, 1.0, 0.5])
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:91: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v2, 0.0, [2.0, 0.1, 5.0, 1.0])     # prod c = 1.0
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:92: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v3.add_edge_parameterized(v1, 0.0, [0.5, 3.0, 1.0, 7.0])     # prod c = 10.5 (branch)
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:93: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v0, 0.0, [1.0, 2.0, 0.25, 3.0])    # prod c = 1.5
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_exact_grad_matches_closed_form_branching_distinguishable_edges
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:94: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v1.add_edge_parameterized(v0, 0.0, [4.0, 0.5, 2.0, 0.125])   # prod c = 0.5
+
+tests/pytest/inference/test_exact_grad_log_weight_mode.py::test_log_mode_discrete_combo_declines_and_logs
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_log_weight_mode.py:280: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 45 warnings in 2.86s
+[runcap] exit 0, peak RSS 627 MB, 6s

@@ -1,0 +1,76 @@
+#### B. pmf_from_graph(discrete=True) (no use_ffi kwarg exists)
+## theta = 1 + 0
+    pmf: OK array([1., 0., 0.])
+    vmap pmf: OK array([[1., 0., 0.],
+       [1., 0., 0.]])
+    grad sum log|pmf[0]|: OK array([1.])
+## theta = 1 + 1e-12
+    pmf: OK array([ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24])
+    vmap pmf: OK array([[ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24],
+       [ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24]])
+    grad sum log|pmf[0]|: OK array([1.])
+## theta = 1 + 1e-05
+    pmf: OK array([ 1.00001e+00, -1.00001e-05,  1.00001e-10])
+    vmap pmf: OK array([[ 1.00001e+00, -1.00001e-05,  1.00001e-10],
+       [ 1.00001e+00, -1.00001e-05,  1.00001e-10]])
+    grad sum log|pmf[0]|: OK array([1.])
+## theta = 1 + 0.0001
+    pmf: OK array([ 1.0001e+00, -1.0001e-04,  1.0001e-08])
+    vmap pmf: OK array([[ 1.0001e+00, -1.0001e-04,  1.0001e-08],
+       [ 1.0001e+00, -1.0001e-04,  1.0001e-08]])
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000100'. Are you sure this is a discrete phase-type distribution?
+
+    grad sum log|pmf[0]|: RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000100'
+## theta = 1 + 0.0002
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you sure this is a discrete phase-type distribution?
+
+    pmf: RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'
+    vmap pmf: RAISES ValueError: INVALID_ARGUMENT: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you sure this is a discrete phase-type distribution?
+
+    grad sum log|pmf[0]|: RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'
+#### B2. FD probe crossing: theta exactly 1.0 (valid model), gradient
+    theta=1.0 grad pmf[0]: OK array([1.])
+    theta=1.0 grad E[N^2] (moments): OK array([-3.])
+    theta=0.99999995 grad pmf[0]: OK array([1.])
+    theta=0.99999995 grad E[N^2] (moments): OK array([-3.0000005])
+    theta=0.9999998 grad pmf[0]: OK array([1.])
+    theta=0.9999998 grad E[N^2] (moments): OK array([-3.000002])
+    theta=0.999 grad pmf[0]: OK array([1.])
+    theta=0.999 grad E[N^2] (moments): OK array([-3.01002104])
+#### C. stale context: valid weights -> pdf -> update to invalid -> pdf
+    pdf at 0.5: OK array([0.5  , 0.25 , 0.125])
+    pdf at 1.5 after update: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    pdf at 1+1e-5 after update: OK array([ 1.00001e+00, -1.00001e-05,  1.00001e-10])
+#### D. joint_prob_graph discrete: flags and row sums vs theta
+## n=3 rl=2 v=25 is_discrete=True was_dph=True
+   theta=[1e-09, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/23; table min=1.250e-11 neg=0 sum-1=-1.000e+00
+   theta=[0.0001, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/23; table min=1.852e-02 neg=0 sum-1=-3.627e-01
+   theta=[0.0002, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/23; table min=1.534e-02 neg=0 sum-1=-1.363e-01
+   theta=[5e-05, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/23; table min=1.067e-02 neg=0 sum-1=-6.454e-01
+   theta=[1.0, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/23; table min=9.990e-16 neg=0 sum-1=-4.998e-12
+   theta=[50.0, 0.01]: max row-1=+0.00e+00 min row-1=-2.22e-16 rows>1: 0/23; table min=1.600e-22 neg=0 sum-1=+0.000e+00
+   theta=[10000.0, 0.01]: max row-1=+2.22e-16 min row-1=-1.11e-16 rows>1: 8/23; table min=1.000e-31 neg=0 sum-1=+0.000e+00
+   theta=[0.00010010000000000001, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/23; table min=1.853e-02 neg=0 sum-1=-3.623e-01
+   theta=[2.0, 0.05]: max row-1=+0.00e+00 min row-1=-2.22e-16 rows>1: 0/23; table min=3.896e-14 neg=0 sum-1=-7.805e-11
+## n=4 rl=2 v=79 is_discrete=True was_dph=True
+   theta=[1e-09, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/77; table min=1.389e-17 neg=0 sum-1=-1.000e+00
+   theta=[0.0001, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/77; table min=2.058e-04 neg=0 sum-1=-4.402e-01
+   theta=[0.0002, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/77; table min=1.286e-04 neg=0 sum-1=-1.728e-01
+   theta=[5e-05, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/77; table min=1.505e-04 neg=0 sum-1=-7.423e-01
+   theta=[1.0, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/77; table min=1.365e-24 neg=0 sum-1=-7.515e-12
+   theta=[50.0, 0.01]: max row-1=+0.00e+00 min row-1=-2.22e-16 rows>1: 0/77; table min=8.744e-35 neg=0 sum-1=-1.110e-16
+   theta=[10000.0, 0.01]: max row-1=+2.22e-16 min row-1=-1.11e-16 rows>1: 24/77; table min=1.366e-48 neg=0 sum-1=+2.220e-16
+   theta=[0.00010010000000000001, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/77; table min=2.057e-04 neg=0 sum-1=-4.397e-01
+   theta=[2.0, 0.05]: max row-1=+0.00e+00 min row-1=-2.22e-16 rows>1: 0/77; table min=3.325e-22 neg=0 sum-1=-1.173e-10
+## n=5 rl=3 v=680 is_discrete=True was_dph=True
+   theta=[1e-09, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/678; table min=3.616e-25 neg=0 sum-1=-1.000e+00
+   theta=[0.0001, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/678; table min=3.810e-09 neg=0 sum-1=-2.734e-01
+   theta=[0.0002, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/678; table min=3.489e-10 neg=0 sum-1=-6.543e-02
+   theta=[5e-05, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/678; table min=9.751e-09 neg=0 sum-1=-6.316e-01
+   theta=[1.0, 0.01]: max row-1=+0.00e+00 min row-1=+0.00e+00 rows>1: 0/678; table min=9.271e-51 neg=0 sum-1=-7.772e-16
+   theta=[50.0, 0.01]: max row-1=+2.22e-16 min row-1=-2.22e-16 rows>1: 15/678; table min=3.805e-71 neg=0 sum-1=+0.000e+00
+   theta=[10000.0, 0.01]: max row-1=+2.22e-16 min row-1=-1.11e-16 rows>1: 300/678; table min=9.289e-99 neg=0 sum-1=+2.220e-16
+   theta=[0.00010010000000000001, 0.01]: max row-1=+0.00e+00 min row-1=-1.11e-16 rows>1: 0/678; table min=3.801e-09 neg=0 sum-1=-2.730e-01
+   theta=[2.0, 0.05]: max row-1=+0.00e+00 min row-1=-2.22e-16 rows>1: 0/678; table min=5.510e-46 neg=0 sum-1=-2.409e-14
+[runcap] exit 0, peak RSS 485 MB, 4s

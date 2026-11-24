@@ -1,0 +1,9 @@
+probe mv_ok
+[[1. 1.]
+ [2. 2.]]
+[runcap] exit 0, peak RSS 322 MB, 3s
+probe ctx
+created
+[runcap] exit -11, peak RSS 320 MB, 3s
+probe mv
+[runcap] exit -11, peak RSS 316 MB, 3s

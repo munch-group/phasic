@@ -1,0 +1,51 @@
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_cpp_add_epoch_lossless.py::test_constant_edge_survives_cpp_add_epoch
+  /Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/setuptools/config/_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+  !!
+  
+          ********************************************************************************
+          Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+  
+          By 2027-Feb-18, you need to update your project and remove deprecated calls
+          or your builds will no longer be supported.
+  
+          See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+          ********************************************************************************
+  
+  !!
+    corresp(dist, value, root_dir)
+
+tests/pytest/test_cpp_add_epoch_lossless.py::test_constant_edge_survives_cpp_add_epoch
+  /Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/setuptools/config/_apply_pyprojecttoml.py:61: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+  !!
+  
+          ********************************************************************************
+          Please consider removing the following classifiers in favor of a SPDX license expression:
+  
+          License :: OSI Approved :: MIT License
+  
+          See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+          ********************************************************************************
+  
+  !!
+    dist._finalize_license_expression()
+
+tests/pytest/test_cpp_add_epoch_lossless.py::test_constant_edge_survives_cpp_add_epoch
+  /Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/setuptools/dist.py:765: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+  !!
+  
+          ********************************************************************************
+          Please consider removing the following classifiers in favor of a SPDX license expression:
+  
+          License :: OSI Approved :: MIT License
+  
+          See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+          ********************************************************************************
+  
+  !!
+    self._finalize_license_expression()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 3 warnings in 5.91s
+[runcap] exit 0, peak RSS 515 MB, 365s

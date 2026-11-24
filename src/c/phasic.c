@@ -6687,6 +6687,105 @@ struct ptd_graph *ptd_graph_reward_transform(struct ptd_graph *graph, double *re
     return res;
 }
 
+/*
+ * Discrete phase-type validity (bug 4, bug4-discrete-rowsum-plan.md §2.1).
+ * In a discrete model a vertex's outgoing weights are per-step transition
+ * probabilities and the remainder stays put. A row is valid when every
+ * weight is finite and >= 0 and the weights sum to at most
+ * 1 + PTD_DPH_ROW_SUM_TOL (rounding headroom only: legitimate float64
+ * graphs measured at most ~2e-12 above 1). Nothing is rescaled.
+ */
+#define PTD_DPH_ROW_SUM_TOL 1e-9
+
+static void ptd_dph_vertex_label(struct ptd_graph *graph, struct ptd_vertex *vertex,
+                                 int *debug_index, char *starting_vertex,
+                                 char *state, size_t state_len) {
+    size_t idx = vertex->index;
+    if (PTD_DEBUG_1_INDEX) {
+        idx++;
+    }
+    *debug_index = (int) idx;
+    if (vertex != graph->starting_vertex) {
+        starting_vertex[0] = '\0';
+    }
+    ptd_vertex_to_s(vertex, state, state_len - 1);
+}
+
+static int ptd_dph_check_vertex(struct ptd_graph *graph, struct ptd_vertex *vertex) {
+    /* Fast path (the samplers call this at every visited vertex): one pass
+     * that sums and notes a negative weight. With no weight negative, the
+     * sum is finite iff every weight is (an inf or NaN weight makes the sum
+     * inf or NaN), so a finite sum <= 1 + tol proves the row valid. Only a
+     * failing row is scanned again, to name the offending edge. */
+    double fast_sum = 0;
+    bool any_negative = false;
+
+    for (size_t j = 0; j < vertex->edges_length; ++j) {
+        double w = vertex->edges[j]->weight;
+        fast_sum += w;
+        any_negative |= (w < 0.0);
+    }
+
+    if (!any_negative && isfinite(fast_sum)
+        && fast_sum <= 1.0 + PTD_DPH_ROW_SUM_TOL) {
+        return 0;
+    }
+
+    double sum = 0;
+
+    for (size_t j = 0; j < vertex->edges_length; ++j) {
+        double w = vertex->edges[j]->weight;
+
+        if (!isfinite(w) || w < 0.0) {
+            int debug_index;
+            char state[1024] = {'\0'};
+            char starting_vertex[] = " (starting vertex)";
+            ptd_dph_vertex_label(graph, vertex, &debug_index, starting_vertex,
+                                 state, sizeof(state));
+            size_t to_index = vertex->edges[j]->to->index;
+            if (PTD_DEBUG_1_INDEX) {
+                to_index++;
+            }
+            snprintf(
+                    (char *) ptd_err,
+                    sizeof(ptd_err),
+                    "Expected vertex with index %i%s (state %s) to have finite, non-negative outgoing weights. The edge to vertex %i has %s weight %.17g. Are you sure this is a discrete phase-type distribution?\n",
+                    debug_index, starting_vertex, state, (int) to_index,
+                    isfinite(w) ? "negative" : "non-finite", w
+            );
+            return 1;
+        }
+
+        sum += w;
+    }
+
+    if (!(sum <= 1.0 + PTD_DPH_ROW_SUM_TOL)) {
+        int debug_index;
+        char state[1024] = {'\0'};
+        char starting_vertex[] = " (starting vertex)";
+        ptd_dph_vertex_label(graph, vertex, &debug_index, starting_vertex,
+                             state, sizeof(state));
+        snprintf(
+                (char *) ptd_err,
+                sizeof(ptd_err),
+                "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%.17g'. Are you sure this is a discrete phase-type distribution?\n",
+                debug_index, starting_vertex, state, sum
+        );
+        return 1;
+    }
+
+    return 0;
+}
+
+int ptd_dph_validate_row_sums(struct ptd_graph *graph) {
+    for (size_t i = 0; i < graph->vertices_length; ++i) {
+        if (ptd_dph_check_vertex(graph, graph->vertices[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *rewards) {
     if (ptd_validate_graph(_graph)) {
         return NULL;
@@ -6706,35 +6805,7 @@ struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *
             continue;
         }
 
-        double rate = 0;
-
-        for (size_t j = 0; j < vertex->edges_length; ++j) {
-            rate += vertex->edges[j]->weight;
-        }
-
-        if (rate > 1.0001) {
-            size_t debug_index = vertex->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (vertex != _graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(vertex, state, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                    (int) debug_index, starting_vertex, state, (float) rate
-            );
-
+        if (ptd_dph_check_vertex(_graph, vertex)) {
             return NULL;
         }
     }
@@ -6815,38 +6886,18 @@ struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *
             continue;
         }
 
+        if (ptd_dph_check_vertex(graph, vertex)) {
+            free(non_zero_rewards);
+            free(new_graph_indices);
+            free(vertices);
+            ptd_graph_destroy(graph);
+            return NULL;
+        }
+
         double rate = 0;
 
         for (size_t j = 0; j < vertex->edges_length; ++j) {
             rate += vertex->edges[j]->weight;
-        }
-
-        if (rate > 1.0001) {
-            size_t debug_index = vertex->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (vertex != graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(vertex, state, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                    (int) debug_index, starting_vertex, state, (float) rate
-            );
-
-            free(non_zero_rewards);
-
-            return NULL;
         }
 
         struct ptd_vertex **auxiliary_vertices = (struct ptd_vertex **) calloc(
@@ -12533,36 +12584,7 @@ long double ptd_dph_random_sample(struct ptd_graph *graph, double *rewards) {
         long double weight_sum = 0;
         int edge_index = -1;
 
-        double rate = 0;
-
-        for (size_t i = 0; i < vertex->edges_length; ++i) {
-            long double edge_weight = vertex->edges[i]->weight;
-            rate += edge_weight;
-        }
-
-        if (rate > 1.0001) {
-            size_t debug_index = vertex->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (vertex != graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(vertex, state, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                    (int) debug_index, starting_vertex, state, (float) rate
-            );
-
+        if (ptd_dph_check_vertex(graph, vertex)) {
             return NAN;
         }
 
@@ -12605,38 +12627,8 @@ long double *ptd_mdph_random_sample(struct ptd_graph *graph, double *rewards, si
         long double draw_direction = (long double) rand() / (long double) RAND_MAX;
         long double weight_sum = 0;
         int edge_index = -1;
-        double rate = 0;
-
-        for (size_t i = 0; i < vertex->edges_length; ++i) {
-            long double edge_weight = vertex->edges[i]->weight;
-            rate += edge_weight;
-        }
-
-        if (rate > 1.0001) {
-            size_t debug_index = vertex->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (vertex != graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(vertex, state, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                    (int) debug_index, starting_vertex, state, (float) rate
-            );
-
+        if (ptd_dph_check_vertex(graph, vertex)) {
             free(jumps);
-
             return NULL;
         }
 
@@ -12723,36 +12715,7 @@ struct ptd_vertex *ptd_dph_random_sample_stop_vertex(struct ptd_graph *graph, in
         long double weight_sum = 0;
         int edge_index = -1;
 
-        double rate = 0;
-
-        for (size_t i = 0; i < vertex->edges_length; ++i) {
-            long double edge_weight = vertex->edges[i]->weight;
-            rate += edge_weight;
-        }
-
-        if (rate > 1.0001) {
-            size_t debug_index = vertex->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (vertex != graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(vertex, state, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                    (int) debug_index, starting_vertex, state, (float) rate
-            );
-
+        if (ptd_dph_check_vertex(graph, vertex)) {
             return NULL;
         }
 
@@ -12806,46 +12769,17 @@ struct ptd_dph_probability_distribution_context *_ptd_dph_probability_distributi
         struct ptd_graph *graph,
         bool dont_worry
 ) {
-    if (!dont_worry) {
-        for (size_t i = 0; i < graph->vertices_length; ++i) {
-            double rate = 0;
-
-            struct ptd_vertex *vertex = graph->vertices[i];
-
-            for (size_t j = 0; j < vertex->edges_length; ++j) {
-                rate += vertex->edges[j]->weight;
-            }
-
-            if (rate > 1.0001) {
-                size_t debug_index = vertex->index;
-
-                if (PTD_DEBUG_1_INDEX) {
-                    debug_index++;
-                }
-
-                char state[1024] = {'\0'};
-                char starting_vertex[] = " (starting vertex)";
-
-                if (vertex != graph->starting_vertex) {
-                    starting_vertex[0] = '\0';
-                }
-
-                ptd_vertex_to_s(vertex, state, 1023);
-
-                snprintf(
-                        (char *) ptd_err,
-                        sizeof(ptd_err),
-                        "Expected vertex with index %i%s (state %s) to have outgoing rate <= 1. Is '%f'. Are you sure this is a discrete phase-type distribution?\n",
-                        (int) debug_index, starting_vertex, state, (float) rate
-                );
-
-                return NULL;
-            }
-        }
+    if (!dont_worry && ptd_dph_validate_row_sums(graph)) {
+        return NULL;
     }
 
     struct ptd_dph_probability_distribution_context *res =
             (struct ptd_dph_probability_distribution_context *) malloc(sizeof(*res));
+
+    /* Assigned before the internal initialising step below reads them. */
+    res->cap_outflow = !dont_worry;
+    res->validated_weight_version = graph->weight_version;
+    res->weight_version_at_creation = graph->weight_version;
 
     res->graph = graph;
     res->probability_at = (long double *) calloc(
@@ -12943,6 +12877,17 @@ void ptd_dph_probability_distribution_context_destroy(struct ptd_dph_probability
 int ptd_dph_probability_distribution_step(
         struct ptd_dph_probability_distribution_context *context
 ) {
+    /* A context the user holds steps through pointers to the live weights:
+     * re-validate when they changed since the last validation. Done first,
+     * so a failure leaves the context untouched. */
+    if (context->cap_outflow
+        && context->graph->weight_version != context->validated_weight_version) {
+        if (ptd_dph_validate_row_sums(context->graph)) {
+            return 1;
+        }
+        context->validated_weight_version = context->graph->weight_version;
+    }
+
     context->jumps++;
     context->pmf = 0;
 
@@ -12965,9 +12910,27 @@ int ptd_dph_probability_distribution_step(
         }
     }
 
+    /* Increments are grouped by source vertex, in edge order. With
+     * cap_outflow each outflow is capped at the mass still present at its
+     * source (remaining), so no mass goes negative, exactly: rows that sum
+     * to 1 (or within rounding of it) otherwise leave a -1e-16 residual.
+     * With no cap firing the arithmetic is exactly the uncapped one. */
+    size_t current_from = (size_t) -1;     /* no vertex has this index */
+    long double remaining = 0;             /* same type as the masses */
+
     for (size_t i = 0; i < context->priv2; ++i) {
         struct dph_prob_increment inc = ((struct dph_prob_increment *) (context->priv))[i];
         long double add = old_probability_at[inc.from] * (*inc.weight) * context->priv3;
+        if (context->cap_outflow) {
+            if (inc.from != current_from) {
+                current_from = inc.from;
+                remaining = old_probability_at[inc.from];
+            }
+            if (add > remaining) {
+                add = remaining;
+            }
+            remaining -= add;
+        }
         context->probability_at[inc.to] += add;
         context->probability_at[inc.from] -= add;
     }

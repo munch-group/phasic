@@ -1,0 +1,12 @@
+machine arm64  long double mantissa bits: 52
+  row [0.1, 0.2, 0.7000000000000001]: sum-1 = +0.00e+00; after dividing by sum: sum-1 = +0.00e+00; scale-then-multiply sum(w*(1/sum))-1 = +0.00e+00
+      : 5 v, max row excess +0.00e+00; over 3 steps: min stop_probability entry -1.110e-16 (2 negative entries), min pmf -1.110e-16, cdf 0.99999999999999989
+  row [0.3333333333333333, 0.3333333333333333, 0.3333333333333334]: sum-1 = +0.00e+00; after dividing by sum: sum-1 = +0.00e+00; scale-then-multiply sum(w*(1/sum))-1 = +0.00e+00
+      : 5 v, max row excess +0.00e+00; over 3 steps: min stop_probability entry +0.000e+00 (0 negative entries), min pmf +0.000e+00, cdf 1
+  row [0.3, 0.3, 0.3, 0.1]: sum-1 = -1.11e-16; after dividing by sum: sum-1 = +2.22e-16; scale-then-multiply sum(w*(1/sum))-1 = +2.22e-16
+      : 6 v, max row excess -1.11e-16; over 3 steps: min stop_probability entry -2.776e-17 (2 negative entries), min pmf -2.776e-17, cdf 0.99999999999999989
+  random 3-edge rows: after w/sum, 8029/200000 rows still sum > 1; after w*(1/sum), 13487/200000
+  joint_prob n=5 [2.0,0.05]: 680 v, max row excess +2.22e-16; over 400 steps: min stop_probability entry -2.220e-16 (7553 negative entries), min pmf -3.291e-37, cdf 0.99999781032318824
+  two-island n=8 discretize(0.5): 369 v, max row excess +0.00e+00; over 400 steps: min stop_probability entry -1.561e-17 (137 negative entries), min pmf +0.000e+00, cdf 0.99999999999999956
+  coalescent n=22 discretize(1): 2004 v, max row excess +2.22e-16; over 400 steps: min stop_probability entry -1.908e-17 (165111 negative entries), min pmf +0.000e+00, cdf 0.99999999999999967
+[runcap] exit 0, peak RSS 413 MB, 4s

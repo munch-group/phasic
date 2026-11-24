@@ -1,0 +1,9 @@
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_exact_grad_rewards.py::test_exact_grad_without_rewards_unaffected
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_exact_grad_rewards.py:139: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+    v2.add_edge_parameterized(v1, 0.0, [1.0])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 1 warning in 3.03s
+[runcap] exit 0, peak RSS 676 MB, 6s

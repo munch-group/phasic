@@ -1,0 +1,422 @@
+phasic from /Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+#### TEST 1/2/3: every read-out vs excess
+## p = 1 + 0   (p-1 as stored = 0.000e+00)
+    pdf: OK array([1., 0., 0., 0., 0.])
+    pdf_discrete: OK 0.0
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261783, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([1., 0., 0., 0., 0.])
+    expectation: OK 1.0
+    variance: OK 0.0
+    moments: OK [1.0, 2.0]
+    moments(discrete=True): OK array([1., 1.])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 1.0, 0.0]
+    expected_waiting_time: OK [1.0, 1.0, 0.0]
+    stop_probability(2): OK [0.0, 0.0, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 1.0
+    expectation_discrete?: OK 1.0
+    variance_discrete?: OK 0.0
+    SUMMARY min pmf=0.000e+00 sum-1=0.000e+00 max cdf-1=0.000e+00 cdf monotone=True var=0.000e+00
+## p = 1 + 2.22e-16   (p-1 as stored = 2.220e-16)
+    pdf: OK array([ 1.00000000e+00, -2.22044605e-16,  4.93038066e-32, -1.09476443e-47,
+        2.43086534e-63])
+    pdf_discrete: OK -2.2204460492503136e-16
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261783, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([ 1.00000000e+00, -2.22044605e-16,  4.93038066e-32, -1.09476443e-47,
+        2.43086534e-63])
+    expectation: OK 0.9999999999999998
+    variance: OK -2.2204460492503136e-16
+    moments: OK [0.9999999999999998, 1.9999999999999991]
+    moments(discrete=True): OK array([1., 1.])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999999999999998, 0.0]
+    expected_waiting_time: OK [0.9999999999999998, 0.9999999999999998, 0.0]
+    stop_probability(2): OK [0.0, 4.930380657631324e-32, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999999999999998
+    expectation_discrete?: OK 0.9999999999999998
+    variance_discrete?: OK -2.220446049250313e-16
+    SUMMARY min pmf=-2.220e-16 sum-1=0.000e+00 max cdf-1=2.220e-16 cdf monotone=False var=-2.220e-16
+## p = 1 + 1e-15   (p-1 as stored = 1.110e-15)
+    pdf: OK array([ 1.00000000e+00, -1.11022302e-15,  1.18329136e-30, -1.40129846e-45,
+        1.55575382e-60])
+    pdf_discrete: OK -1.1102230246251577e-15
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261783, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([ 1.00000000e+00, -1.11022302e-15,  1.18329136e-30, -1.40129846e-45,
+        1.55575382e-60])
+    expectation: OK 0.9999999999999989
+    variance: OK -1.1102230246251577e-15
+    moments: OK [0.9999999999999989, 1.9999999999999956]
+    moments(discrete=True): OK array([1., 1.])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999999999999989, 0.0]
+    expected_waiting_time: OK [0.9999999999999989, 0.9999999999999989, 0.0]
+    stop_probability(2): OK [0.0, 1.1832913578315177e-30, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999999999999989
+    expectation_discrete?: OK 0.9999999999999989
+    variance_discrete?: OK -1.1102230246251565e-15
+    SUMMARY min pmf=-1.110e-15 sum-1=0.000e+00 max cdf-1=1.110e-15 cdf monotone=False var=-1.110e-15
+## p = 1 + 1e-12   (p-1 as stored = 1.000e-12)
+    pdf: OK array([ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24, -1.00027222e-36,
+        1.00028219e-48])
+    pdf_discrete: OK -1.0000889005833413e-12
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261783, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24, -1.00027222e-36,
+        1.00028219e-48])
+    expectation: OK 0.9999999999989999
+    variance: OK -1.0000889005833413e-12
+    moments: OK [0.9999999999989999, 1.9999999999959996]
+    moments(discrete=True): OK array([1., 1.])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999999999989999, 0.0]
+    expected_waiting_time: OK [0.9999999999989999, 0.9999999999989999, 0.0]
+    stop_probability(2): OK [0.0, 1.0002503842712759e-24, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999999999989999
+    expectation_discrete?: OK 0.9999999999989999
+    variance_discrete?: OK -1.000088900582341e-12
+    SUMMARY min pmf=-1.000e-12 sum-1=0.000e+00 max cdf-1=1.000e-12 cdf monotone=False var=-1.000e-12
+## p = 1 + 1e-09   (p-1 as stored = 1.000e-09)
+    pdf: OK array([ 1.00000000e+00, -1.00000008e-09,  1.00000015e-18, -1.00000022e-27,
+        1.00000031e-36])
+    pdf_discrete: OK -1.0000000837403711e-09
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261783, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([ 1.00000000e+00, -1.00000008e-09,  1.00000015e-18, -1.00000022e-27,
+        1.00000031e-36])
+    expectation: OK 0.9999999989999999
+    variance: OK -1.0000000837403711e-09
+    moments: OK [0.9999999989999999, 1.9999999959999997]
+    moments(discrete=True): OK array([1., 1.])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999999989999999, 0.0]
+    expected_waiting_time: OK [0.9999999989999999, 0.9999999989999999, 0.0]
+    stop_probability(2): OK [0.0, 1.0000001492112815e-18, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999999989999999
+    expectation_discrete?: OK 0.9999999989999999
+    variance_discrete?: OK -1.000000082740371e-09
+    SUMMARY min pmf=-1.000e-09 sum-1=0.000e+00 max cdf-1=1.000e-09 cdf monotone=False var=-1.000e-09
+## p = 1 + 2e-09   (p-1 as stored = 2.000e-09)
+    pdf: OK array([ 1.00000000e+00, -1.99999995e-09,  3.99999978e-18, -7.99999946e-27,
+        1.59999992e-35])
+    pdf_discrete: OK -1.999999947436137e-09
+    cdf: OK array([1., 1., 1., 1., 1.])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261782, 0.28517979, 1.720071  ]])
+    rtd.pdf: OK array([ 1.00000000e+00, -1.99999995e-09,  3.99999978e-18, -7.99999946e-27,
+        1.59999992e-35])
+    expectation: OK 0.9999999980000001
+    variance: OK -1.999999947436137e-09
+    moments: OK [0.9999999980000001, 1.9999999920000002]
+    moments(discrete=True): OK array([1.        , 0.99999999])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999999980000001, 0.0]
+    expected_waiting_time: OK [0.9999999980000001, 0.9999999980000001, 0.0]
+    stop_probability(2): OK [0.0, 3.9999997696645136e-18, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999999980000001
+    expectation_discrete?: OK 0.9999999980000001
+    variance_discrete?: OK -1.999999943436137e-09
+    SUMMARY min pmf=-2.000e-09 sum-1=0.000e+00 max cdf-1=2.000e-09 cdf monotone=False var=-2.000e-09
+## p = 1 + 1e-06   (p-1 as stored = 1.000e-06)
+    pdf: OK array([ 1.000001e+00, -1.000001e-06,  1.000001e-12, -1.000001e-18,
+        1.000001e-24])
+    pdf_discrete: OK -1.0000009999177332e-06
+    cdf: OK array([1.000001, 1.      , 1.      , 1.      , 1.      ])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97261685, 0.28517951, 1.72006928]])
+    rtd.pdf: OK array([ 1.000001e+00, -1.000001e-06,  1.000001e-12, -1.000001e-18,
+        1.000001e-24])
+    expectation: OK 0.9999990000010001
+    variance: OK -9.999979999820985e-07
+    moments: OK [0.9999990000010001, 1.9999960000060002]
+    moments(discrete=True): OK array([0.999999, 0.999997])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999990000010001, 0.0]
+    expected_waiting_time: OK [0.9999990000010001, 0.9999990000010001, 0.0]
+    stop_probability(2): OK [0.0, 9.999999998158455e-13, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9999990000010001
+    expectation_discrete?: OK 0.9999990000010001
+    variance_discrete?: OK -9.999979999619768e-07
+    SUMMARY min pmf=-1.000e-06 sum-1=0.000e+00 max cdf-1=1.000e-06 cdf monotone=False var=-1.000e-06
+## p = 1 + 1e-05   (p-1 as stored = 1.000e-05)
+    pdf: OK array([ 1.00001e+00, -1.00001e-05,  1.00001e-10, -1.00001e-15,
+        1.00001e-20])
+    pdf_discrete: OK -1.0000100000065514e-05
+    cdf: OK array([1.00001, 1.     , 1.     , 1.     , 1.     ])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.9726081 , 0.28517694, 1.7200538 ]])
+    rtd.pdf: OK array([ 1.00001e+00, -1.00001e-05,  1.00001e-10, -1.00001e-15,
+        1.00001e-20])
+    expectation: OK 0.9999900000999989
+    variance: OK -9.999800003036725e-06
+    moments: OK [0.9999900000999989, 1.9999600005999918]
+    moments(discrete=True): OK array([0.99999, 0.99997])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999900000999989, 0.0]
+    expected_waiting_time: OK [0.9999900000999989, 0.9999900000999989, 0.0]
+    stop_probability(2): OK [0.0, 1.0000000000191334e-10, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.999990000099999
+    expectation_discrete?: OK 0.9999900000999989
+    variance_discrete?: OK -9.999800003046566e-06
+    SUMMARY min pmf=-1.000e-05 sum-1=0.000e+00 max cdf-1=1.000e-05 cdf monotone=False var=-1.000e-05
+## p = 1 + 0.0001   (p-1 as stored = 1.000e-04)
+    pdf: OK array([ 1.0001e+00, -1.0001e-04,  1.0001e-08, -1.0001e-12,  1.0001e-16])
+    pdf_discrete: OK -0.00010000999999998898
+    cdf: OK array([1.0001    , 0.99999999, 1.        , 1.        , 1.        ])
+    sample: OK array([1., 1., 1., 1., 1.])
+    sample_discrete?: OK [1.0, 1.0, 1.0, 1.0, 1.0]
+    sample_multivariate: OK array([[0.97252057, 0.28515128, 1.71989901]])
+    rtd.pdf: OK array([ 1.0001e+00, -1.0001e-04,  1.0001e-08, -1.0001e-12,  1.0001e-16])
+    expectation: OK 0.9999000099990001
+    variance: OK -9.998000299958351e-05
+    moments: OK [0.9999000099990001, 1.999600059992001]
+    moments(discrete=True): OK array([0.99990001, 0.99970005])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9999000099990001, 0.0]
+    expected_waiting_time: OK [0.9999000099990001, 0.9999000099990001, 0.0]
+    stop_probability(2): OK [0.0, 9.999999999994822e-09, 0.0]
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.999900009999
+    expectation_discrete?: OK 0.9999000099990001
+    variance_discrete?: OK -9.998000299960008e-05
+    SUMMARY min pmf=-1.000e-04 sum-1=0.000e+00 max cdf-1=1.000e-04 cdf monotone=False var=-9.998e-05
+## p = 1 + 0.0002   (p-1 as stored = 2.000e-04)
+    pdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    pdf_discrete: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    cdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    sample: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    sample_discrete?: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    sample_multivariate: OK array([[0.97242334, 0.28512277, 1.71972706]])
+    rtd.pdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    expectation: OK 0.9998000399920016
+    variance: OK -0.00019992002399362991
+    moments: OK [0.9998000399920016, 1.999200239936016]
+    moments(discrete=True): OK array([0.99980004, 0.9994002 ])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.9998000399920016, 0.0]
+    expected_waiting_time: OK [0.9998000399920016, 0.9998000399920016, 0.0]
+    stop_probability(2): RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you 
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.9998000399920017
+    expectation_discrete?: OK 0.9998000399920016
+    variance_discrete?: OK -0.00019992002399360498
+    SUMMARY raises
+## p = 1 + 0.5   (p-1 as stored = 5.000e-01)
+    pdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    pdf_discrete: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    cdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    sample: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    sample_discrete?: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    sample_multivariate: OK array([[0.64841188, 0.19011986, 1.146714  ]])
+    rtd.pdf: RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    expectation: OK 0.6666666666666666
+    variance: OK -0.22222222222222218
+    moments: OK [0.6666666666666666, 0.8888888888888888]
+    moments(discrete=True): OK array([0.66666667, 0.22222222])
+    expected_visits?: OK 'n/a'
+    expected_sojourn_time: OK [0.0, 0.6666666666666666, 0.0]
+    expected_waiting_time: OK [0.6666666666666666, 0.6666666666666666, 0.0]
+    stop_probability(2): RAISES RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you 
+    accumulated_visits? : OK 'n/a'
+    covariance_discrete?: OK 0.6666666666666667
+    expectation_discrete?: OK 0.6666666666666666
+    variance_discrete?: OK -0.2222222222222222
+    SUMMARY raises
+#### TEST 5: parameterized paths, c*theta = 1+ex
+## theta = 1 + 0
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=False): OK [array([1., 0., 0.]), array([1., 1.])]
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=False): OK array([-3.])
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): OK [array([1., 0., 0.]), array([1., 1.])]
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): OK array([-3.])
+## theta = 1 + 1e-12
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=False): OK [array([ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24]), array([1., 1.])]
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=False): OK array([-3.])
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): OK [array([ 1.00000000e+00, -1.00008890e-12,  1.00025038e-24]), array([1., 1.])]
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): OK array([-3.])
+## theta = 1 + 1e-09
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=False): OK [array([ 1.00000000e+00, -1.00000008e-09,  1.00000015e-18]), array([1., 1.])]
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=False): OK array([-2.99999999])
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): OK [array([ 1.00000000e+00, -1.00000008e-09,  1.00000015e-18]), array([1., 1.])]
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): OK array([-2.99999999])
+## theta = 1 + 1e-05
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=False): OK [array([ 1.00001e+00, -1.00001e-05,  1.00001e-10]), array([0.99999, 0.99997])]
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=False): OK array([-2.9999])
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): OK [array([ 1.00001e+00, -1.00001e-05,  1.00001e-10]), array([0.99999, 0.99997])]
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): OK array([-2.9999])
+## theta = 1 + 0.0001
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=False): OK [array([ 1.0001e+00, -1.0001e-04,  1.0001e-08]), array([0.99990001, 0.99970005])]
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+ERROR:2026-11-23 20:08:26,247:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000100'. Are you sure this is a discrete phase-type distribution?
+
+    grad pmf_and_moments (use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): OK [array([ 1.0001e+00, -1.0001e-04,  1.0001e-08]), array([0.99990001, 0.99970005])]
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000100'
+## theta = 1 + 0.0002
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+ERROR:2026-11-23 20:08:26,293:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you sure this is a discrete phase-type distribution?
+
+    pmf_and_moments(discrete, use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+ERROR:2026-11-23 20:08:26,307:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'. Are you sure this is a discrete phase-type distribution?
+
+    grad pmf_and_moments (use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.000200'
+## theta = 1 + 0.5
+    pmf_from_graph(discrete, use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+ERROR:2026-11-23 20:08:26,334:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?
+
+    pmf_and_moments(discrete, use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+    vmap pmf (use_ffi=False): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+ERROR:2026-11-23 20:08:26,348:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?
+
+    grad pmf_and_moments (use_ffi=False): RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+    pmf_from_graph(discrete, use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    pmf_and_moments(discrete, use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'
+    vmap pmf (use_ffi=True): RAISES TypeError: Graph.pmf_from_graph() got an unexpected keyword argument 'use_ffi'
+    grad pmf_and_moments (use_ffi=True): RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'
+[runcap] exit 0, peak RSS 439 MB, 8s

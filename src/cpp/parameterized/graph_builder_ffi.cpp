@@ -48,7 +48,7 @@ namespace ffi = xla::ffi;
 // The loop bodies can throw from several places -- GraphBuilder::build() (theta
 // length mismatch; a non-positive 'log' product; a negative/non-finite 'formula'
 // weight), compute_moments_impl(), the rewards parsing, and the C layer (a DPH
-// row sum > 1.0001 makes pdf()/dph_pmf() throw). So the WHOLE loop body is
+// row sum > 1 + 1e-9 makes pdf()/dph_pmf() throw). So the WHOLE loop body is
 // wrapped, not just build().
 //
 // Measured BEFORE this fix, with jax.vmap over 2 elements (SVGD vmaps over its
@@ -729,6 +729,14 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                     rewards_vec.assign(rewards_b, rewards_b + n_rewards);
                 }
 
+                // A native discrete graph is validated before the moments: the pmf
+                // loop (which validates through dph_pmf) is skipped for empty times
+                // (bug4-discrete-rowsum-plan.md §2.3, test 9c).
+                if (is_disc && !g.c_graph()->was_dph
+                    && ptd_dph_validate_row_sums(g.c_graph()) != 0) {
+                    PTD_THROW_AND_CLEAR();
+                }
+
                 std::vector<double> moments_vec;
                 if (!rewards_vec.empty()) {
                     // Reward-transform once; PMF and moments both read from it.
@@ -795,6 +803,14 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
             std::vector<double> rewards_vec;
             if (n_rewards > 0) {
                 rewards_vec.assign(rewards_data, rewards_data + n_rewards);
+            }
+
+            // A native discrete graph is validated before the moments: the pmf
+            // loop (which validates through dph_pmf) is skipped for empty times
+            // (bug4-discrete-rowsum-plan.md §2.3, test 9c).
+            if (is_disc && !g.c_graph()->was_dph
+                && ptd_dph_validate_row_sums(g.c_graph()) != 0) {
+                PTD_THROW_AND_CLEAR();
             }
 
             std::vector<double> moments_vec;

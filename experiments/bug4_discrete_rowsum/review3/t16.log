@@ -1,0 +1,5 @@
+coalescent n=22 discretize(0.01): V=2004 E=8262; sample(20000) today 10.4 ms = 520 ns/draw, mean jumps/draw 21.0
+   one full-graph validation ~ E adds = 8262 (>= ~8262 ns at 1 ns/edge); per DRAW that is 15.9x today's draw cost; per VISITED VERTEX 334x
+joint n=6 rl=3 [5,0.01]: V=2808 E=6730; sample(20000) today 2.2 ms = 111 ns/draw, mean jumps/draw 6.0
+   one full-graph validation ~ E adds = 6730 (>= ~6730 ns at 1 ns/edge); per DRAW that is 60.6x today's draw cost; per VISITED VERTEX 364x
+[runcap] exit 0, peak RSS 414 MB, 5s

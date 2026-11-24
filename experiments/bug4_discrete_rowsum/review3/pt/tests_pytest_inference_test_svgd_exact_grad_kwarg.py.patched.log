@@ -1,0 +1,84 @@
+..  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.51it/s]                                             .  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  8.40it/s]                                             ..  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.96it/s]                                             .  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  8.09it/s]                                             ..  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  1.47it/s]                                             .  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.73it/s]                                               0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.90it/s]                                             .  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.73it/s]                                               0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.97it/s]                                             SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               True                           inferred (joint-index model)
+  * joint_index            True                           inferred (graph built with joint-probability support)
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            4                              set by user
+  * n_iterations           1                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+  * preconditioner         'auto' -> 'jacobian'           inferred (joint-probability model)
+    regularization         0.0                            default
+    nr_moments             2                              default
+    exact_moment_grad      None                           default
+    exact_final_grad       None                           default
+    exact_grad             None                           default
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  svgd.GaussPrior                set by user
+    fixed                  None                           default
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+SVGD options in effect (* = non-default, ! = forced/overriding):
+    option                 value                          status
+  --------------------------------------------------------------------------
+  * discrete               True                           inferred (joint-index model)
+  * joint_index            True                           inferred (graph built with joint-probability support)
+  * theta_dim              2                              inferred (from graph.param_length())
+  * n_particles            4                              set by user
+  * n_iterations           1                              set by user
+  * learning_rate          0.001                          inferred (default step size)
+    optimizer              None                           default
+    bandwidth              'median_per_dim'               default
+  * preconditioner         'auto' -> 'jacobian'           inferred (joint-probability model)
+    regularization         0.0                            default
+    nr_moments             2                              default
+    exact_moment_grad      None                           default
+    exact_final_grad       None                           default
+  * exact_grad             True                           set by user
+    positive_params        True                           default
+    param_transform        None                           default
+  * prior                  svgd.GaussPrior                set by user
+    fixed                  None                           default
+    tied                   None                           default
+    epoch_starts           None                           default
+    exposure               None                           default
+    exposure_param_index   None                           default
+..  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.89it/s]                                               0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  8.13it/s]                                             .  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.73it/s]                                             [WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[0.0001, 0.0001] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[0.0001, 0.0001] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+.  0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  8.03it/s]                                               0%|          | 0/1 [00:00<?, ?it/s]100%|██████████| 1/1 [00:00<00:00,  7.64it/s]                                             ..                                                         [100%]
+=============================== warnings summary ===============================
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_r31_rejections
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_grad_kwarg.py:50: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg_d = graph.joint_prob_graph(indexer, reward_limit=4, mutation_rate=MU)
+
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_r31_rejections
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_grad_kwarg.py:56: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(indexer, reward_limit=4, mutation_rate=MU,
+
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_none_never_raises[joint_prob]
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_none_never_raises[jpg_default]
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_none_never_raises[epoch]
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_forwarding_discrimination
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_ledger_default_vs_user
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_frontdoor_commit_and_value
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_svgd_decline_falls_back_to_fd_with_warning
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_explicit_false_bitwise_equals_default
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_grad_kwarg.py:72: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    return g.svgd(obs, **kw)
+
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_none_never_raises[epoch]
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_grad_kwarg.py:72: SvgdAssumptionWarning: svgd: no rate is fixed and none of the last epoch's rates is tied to an earlier epoch, so the data cannot determine the overall scale of the last epoch's rates and it follows the prior; fix a rate with fixed= to identify it. See .effective_options('fixed') on the returned SVGD object.
+    return g.svgd(obs, **kw)
+
+tests/pytest/inference/test_svgd_exact_grad_kwarg.py::test_none_never_raises[epoch]
+  /Users/kmt/phasic-bug4/tests/pytest/inference/test_svgd_exact_grad_kwarg.py:72: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    return g.svgd(obs, **kw)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+16 passed, 12 warnings in 12.27s
+[runcap] exit 0, peak RSS 1018 MB, 16s

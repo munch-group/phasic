@@ -1,0 +1,25 @@
+.ERROR:2026-11-23 20:45:03,271:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review3/patched/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 3) to have outgoing rate <= 1. Is '2.000000'. Are you sure this is a discrete phase-type distribution?
+
+.                                                                       [100%]
+2 passed, 6 deselected in 0.10s
+[runcap] exit 0, peak RSS 368 MB, 4s

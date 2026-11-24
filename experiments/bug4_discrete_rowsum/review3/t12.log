@@ -1,0 +1,68 @@
+#### 1. bit-exact pins: pdf(1..5) under the capped step
+  param_fixed                replica==lib: True | capA: 2/5 rel 2.2e-01 caps 4 | capB: 2/5 rel 2.2e-01 caps 4 | capM: 1/5 rel 9.2e-16 caps 4
+  param_fixed_theta2         replica==lib: True | capA: 2/5 rel 3.8e-02 caps 10 | capB: 2/5 rel 3.8e-02 caps 10 | capM: 2/5 rel 6.8e-01 caps 10
+  param_callback             replica==lib: True | capA: 2/5 rel 1.8e-16 caps 3 | capB: 2/5 rel 1.8e-16 caps 3 | capM: 2/5 rel 1.8e-16 caps 4
+  param_callback_zeros       replica==lib: True | capA: 2/5 rel 4.6e+00 caps 2 | capB: 2/5 rel 4.6e+00 caps 2 | capM: 2/5 rel 6.6e+00 caps 4
+  param_callback_slicing     replica==lib: True | capA: 1/5 rel 1.8e+00 caps 7 | capB: 1/5 rel 1.8e+00 caps 7 | capM: 1/5 rel 1.0e+00 caps 5
+  param_callback_kwargs      replica==lib: True | capA: 2/5 rel 1.1e+00 caps 10 | capB: 2/5 rel 1.1e+00 caps 10 | capM: 2/5 rel 1.0e+00 caps 6
+  param_skip_existing        replica==lib: True | capA: 2/5 rel 2.2e-01 caps 4 | capB: 2/5 rel 2.2e-01 caps 4 | capM: 1/5 rel 9.2e-16 caps 4
+  param_skip_existing_fresh  replica==lib: True | capA: 2/5 rel 2.2e-01 caps 4 | capB: 2/5 rel 2.2e-01 caps 4 | capM: 1/5 rel 9.2e-16 caps 4
+  param_two_thetas           replica==lib: True | capA: 2/5 rel 3.8e-02 caps 10 | capB: 2/5 rel 3.8e-02 caps 10 | capM: 2/5 rel 6.8e-01 caps 10
+  param_int_rate             replica==lib: True | capA: 2/5 rel 1.9e-16 caps 2 | capB: 2/5 rel 1.9e-16 caps 2 | capM: 1/5 rel 1.9e-16 caps 1
+  param_callback_np_int      replica==lib: True | capA: 0/5 rel 0.0e+00 caps 0 | capB: 0/5 rel 0.0e+00 caps 0 | capM: 0/5 rel 0.0e+00 caps 0
+  param_callback_py_int      replica==lib: True | capA: 2/5 rel 1.9e-16 caps 2 | capB: 2/5 rel 1.9e-16 caps 2 | capM: 1/5 rel 1.9e-16 caps 1
+  param_callback_0d_array    replica==lib: True | capA: 2/5 rel 2.2e+00 caps 8 | capB: 2/5 rel 2.2e+00 caps 8 | capM: 2/5 rel 3.0e+00 caps 6
+  two_param_chain            replica==lib: True | capA: 2/5 rel 1.4e-17 caps 0 | capB: 2/5 rel 1.4e-17 caps 0 | capM: 0/5 rel 0.0e+00 caps 0
+  constant_fixed             replica==lib: True | capA: 2/5 rel 2.2e-01 caps 4 | capB: 2/5 rel 2.2e-01 caps 4 | capM: 1/5 rel 9.2e-16 caps 4
+  constant_callback          replica==lib: True | capA: 2/5 rel 1.8e-16 caps 3 | capB: 2/5 rel 1.8e-16 caps 3 | capM: 2/5 rel 1.8e-16 caps 4
+  constant_callback_zeros    replica==lib: True | capA: 2/5 rel 4.6e+00 caps 2 | capB: 2/5 rel 4.6e+00 caps 2 | capM: 2/5 rel 6.6e+00 caps 4
+  constant_skip_existing     replica==lib: True | capA: 2/5 rel 2.2e-01 caps 4 | capB: 2/5 rel 2.2e-01 caps 4 | capM: 1/5 rel 9.2e-16 caps 4
+  epoch_then_discretize      replica==lib: True | capA: 1/5 rel 1.2e-15 caps 10 | capB: 1/5 rel 1.2e-15 caps 10 | capM: 1/5 rel 4.5e-16 caps 7
+  indexed_param              replica==lib: True | capA: 2/5 rel 2.4e-01 caps 1 | capB: 2/5 rel 2.4e-01 caps 1 | capM: 0/5 rel 0.0e+00 caps 0
+  indexed_constant           replica==lib: True | capA: 2/5 rel 2.4e-01 caps 1 | capB: 2/5 rel 2.4e-01 caps 1 | capM: 0/5 rel 0.0e+00 caps 0
+#### 2. legitimate graphs, 400 jumps
+  precondition joint n=5: rows above 1 = 375
+  joint n=5 rl=3 [2,0.05] LIBRARY today: neg pmf 9 min -3.29e-37; cdf monotone True max cdf-1 -2.19e-06; stop_probability at 8 jump counts: neg entries 242 min -2.22e-16
+    [today] neg pmf 9 min pmf -3.29e-37 | neg vertex masses 7553 min -2.22e-16 | cdf monotone True max cdf-1 -2.19e-06 final cdf-1 -2.19e-06 | caps fired 0 replica==lib True
+    [capA ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -2.19e-06 final cdf-1 -2.19e-06 | caps fired 7390
+    [capB ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -2.19e-06 final cdf-1 -2.19e-06 | caps fired 7390
+    [capM ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -2.19e-06 final cdf-1 -2.19e-06 | caps fired 5115
+  coalescent n=10 discretize(0.001) LIBRARY today: neg pmf 104 min -1.77e-16; cdf monotone False max cdf-1 -2.22e-16; stop_probability at 8 jump counts: neg entries 113 min -2.15e-16
+    [today] neg pmf 104 min pmf -1.77e-16 | neg vertex masses 5537 min -2.48e-16 | cdf monotone False max cdf-1 -2.22e-16 final cdf-1 -2.22e-16 | caps fired 0 replica==lib True
+    [capA ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -2.22e-16 final cdf-1 -2.22e-16 | caps fired 4247
+    [capB ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -2.22e-16 final cdf-1 -2.22e-16 | caps fired 4244
+    [capM ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -4.44e-16 final cdf-1 -4.44e-16 | caps fired 2886
+  two-island n=8 discretize(0.001) LIBRARY today: neg pmf 1 min -3.03e-18; cdf monotone False max cdf-1 -1.11e-16; stop_probability at 8 jump counts: neg entries 14 min -1.40e-16
+    [today] neg pmf 1 min pmf -3.03e-18 | neg vertex masses 54 min -1.40e-16 | cdf monotone False max cdf-1 -1.11e-16 final cdf-1 -1.11e-16 | caps fired 0 replica==lib True
+    [capA ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 +0.00e+00 final cdf-1 +0.00e+00 | caps fired 26074
+    [capB ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -5.55e-16 final cdf-1 -5.55e-16 | caps fired 25974
+    [capM ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 -3.33e-16 final cdf-1 -3.33e-16 | caps fired 26071
+    [today] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 7195 min -3.99e-17 | cdf monotone True max cdf-1 +0.00e+00 final cdf-1 +0.00e+00 | caps fired 0
+    [capA ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 +2.22e-16 final cdf-1 +2.22e-16 | caps fired 6283
+    [capB ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 +2.22e-16 final cdf-1 +2.22e-16 | caps fired 6297
+    [capM ] neg pmf 0 min pmf +0.00e+00 | neg vertex masses 0 min +0.00e+00 | cdf monotone True max cdf-1 +0.00e+00 final cdf-1 +0.00e+00 | caps fired 6605
+#### 3. geometric chains (tests 3, 5, 10)
+  p-1=+2.2e-16 ipv-1=+0.0e+00 [today] pdf(1)=np.float64(1.0000000000000002) min pmf -2.2e-16 max cdf-1 +2.22e-16 neg masses 10
+  p-1=+2.2e-16 ipv-1=+0.0e+00 [capA ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+2.2e-16 ipv-1=+0.0e+00 [capM ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+1.1e-15 ipv-1=+0.0e+00 [today] pdf(1)=np.float64(1.000000000000001) min pmf -1.1e-15 max cdf-1 +1.11e-15 neg masses 11
+  p-1=+1.1e-15 ipv-1=+0.0e+00 [capA ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+1.1e-15 ipv-1=+0.0e+00 [capM ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+1.0e-12 ipv-1=+0.0e+00 [today] pdf(1)=np.float64(1.000000000001) min pmf -1.0e-12 max cdf-1 +1.00e-12 neg masses 13
+  p-1=+1.0e-12 ipv-1=+0.0e+00 [capA ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+1.0e-12 ipv-1=+0.0e+00 [capM ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+9.0e-10 ipv-1=+0.0e+00 [today] pdf(1)=np.float64(1.0000000009) min pmf -9.0e-10 max cdf-1 +9.00e-10 neg masses 18
+  p-1=+9.0e-10 ipv-1=+0.0e+00 [capA ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=+9.0e-10 ipv-1=+0.0e+00 [capM ] pdf(1)=np.float64(1.0) min pmf +0.0e+00 max cdf-1 +0.00e+00 neg masses 0
+  p-1=-5.0e-01 ipv-1=+1.0e-12 [today] pdf(1)=np.float64(0.5000000000005) min pmf +6.2e-61 max cdf-1 +1.00e-12 neg masses 0
+  p-1=-5.0e-01 ipv-1=+1.0e-12 [capA ] pdf(1)=np.float64(0.5) min pmf +6.2e-61 max cdf-1 +0.00e+00 neg masses 0
+  p-1=-5.0e-01 ipv-1=+1.0e-12 [capM ] pdf(1)=np.float64(0.5) min pmf +6.2e-61 max cdf-1 +0.00e+00 neg masses 0
+  p-1=-5.0e-01 ipv-1=+9.0e-10 [today] pdf(1)=np.float64(0.50000000045) min pmf +6.2e-61 max cdf-1 +9.00e-10 neg masses 0
+  p-1=-5.0e-01 ipv-1=+9.0e-10 [capA ] pdf(1)=np.float64(0.5) min pmf +6.2e-61 max cdf-1 +0.00e+00 neg masses 0
+  p-1=-5.0e-01 ipv-1=+9.0e-10 [capM ] pdf(1)=np.float64(0.5) min pmf +6.2e-61 max cdf-1 +0.00e+00 neg masses 0
+  guard 10 p=0.1: today: pmf abs 1.4e-17 cdf abs 4.4e-16 | capA: pmf abs 1.4e-17 cdf abs 4.4e-16 | capB: pmf abs 1.4e-17 cdf abs 4.4e-16 | capM: pmf abs 1.4e-17 cdf abs 4.4e-16
+  guard 10 p=0.3: today: pmf abs 2.8e-17 cdf abs 3.3e-16 | capA: pmf abs 2.8e-17 cdf abs 3.3e-16 | capB: pmf abs 2.8e-17 cdf abs 3.3e-16 | capM: pmf abs 2.8e-17 cdf abs 3.3e-16
+  guard 10 p=0.5: today: pmf abs 0.0e+00 cdf abs 0.0e+00 | capA: pmf abs 0.0e+00 cdf abs 0.0e+00 | capB: pmf abs 0.0e+00 cdf abs 0.0e+00 | capM: pmf abs 0.0e+00 cdf abs 0.0e+00
+  guard 10 p=0.9: today: pmf abs 2.2e-19 cdf abs 1.1e-16 | capA: pmf abs 2.2e-19 cdf abs 1.1e-16 | capB: pmf abs 2.2e-19 cdf abs 1.1e-16 | capM: pmf abs 2.2e-19 cdf abs 1.1e-16
+  guard 10 p=1.0: today: pmf abs 0.0e+00 cdf abs 0.0e+00 | capA: pmf abs 0.0e+00 cdf abs 0.0e+00 | capB: pmf abs 0.0e+00 cdf abs 0.0e+00 | capM: pmf abs 0.0e+00 cdf abs 0.0e+00
+[runcap] exit 0, peak RSS 406 MB, 6s

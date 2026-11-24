@@ -333,15 +333,29 @@ double _covariance(phasic::Graph &graph,
 
 }
 
+// Native discrete graphs (was_dph == false): the row sums ARE the model
+// (the remainder is the stay probability), so an invalid row raises before
+// any elimination read-out. Graphs from discretize()/joint_prob_graph
+// (was_dph == true) may hold un-normalised rows the elimination does not
+// depend on, and are not validated here (bug4-discrete-rowsum-plan.md §2.3).
+static void _validate_native_dph(phasic::Graph &graph) {
+    struct ptd_graph *g = graph.c_graph();
+    if (!g->was_dph && ptd_dph_validate_row_sums(g) != 0) {
+        PTD_THROW_AND_CLEAR();
+    }
+}
+
 double _expectation_discrete(
   phasic::Graph &graph, 
   const std::vector<double> &rewards = vector<double>()) {
+    _validate_native_dph(graph);
     return _moments(graph, 1, rewards)[0];
 }
 
 double _variance_discrete(
   phasic::Graph &graph, 
   const std::vector<double> &rewards = vector<double>()) {
+    _validate_native_dph(graph);
 
     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
       char message[1024];
@@ -385,6 +399,7 @@ double _variance_discrete(
 double _covariance_discrete(phasic::Graph &graph, 
   const std::vector<double> &rewards1 = vector<double>(),
   const std::vector<double> &rewards2 = vector<double>()) {
+    _validate_native_dph(graph);
 
     std::vector<double> rw1(rewards1);
     std::vector<double> rw2(rewards2);
@@ -2509,6 +2524,11 @@ str
     
         for (int i = 0; i < n; i++) {
             long double *res = ptd_mdph_random_sample(graph.c_graph(), vrewards, (size_t) rewards.cols());
+
+            if (res == NULL) {
+                free(vrewards);
+                PTD_THROW_AND_CLEAR();
+            }
     
             for (int j = 0; j < rewards.cols(); j++) {
                 mat_res(j, i) = res[j];
@@ -3099,6 +3119,13 @@ str
     --------
     >>> graph = Graph(4)
     >>> graph.cdf_discrete(3) # => CDF value at 3 jumps
+      )delim")
+
+    .def("_validate_dph_row_sums", &_validate_native_dph, R"delim(
+    Raise if this NATIVE discrete graph (not one produced by discretize() or
+    joint_prob_graph) has a negative or non-finite edge weight, or a vertex
+    whose outgoing weights sum to more than 1 + 1e-9. A no-op on converted
+    graphs (was_dph). Internal; used by Graph.moments(discrete=True).
       )delim")
 
     .def("expectation_discrete", &_expectation_discrete,

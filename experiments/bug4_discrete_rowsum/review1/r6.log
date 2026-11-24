@@ -1,0 +1,67 @@
+## A. flag propagation
+# discretize() result: is_discrete=True was_dph=True
+    clone(): is_discrete=True was_dph=True
+    copy(): is_discrete=True was_dph=True
+    copy.copy: TypeError: cannot pickle 'Graph' object
+    copy.deepcopy: TypeError: cannot pickle 'Graph' object
+    pickle round trip: TypeError: cannot pickle 'Graph' object
+    from_serialized(serialize()): is_discrete=True was_dph=True
+    from_serialized without was_dph key (old cache): is_discrete=True was_dph=True
+    reward_transform_discrete(r): is_discrete=True was_dph=True
+    reward_transform(r): is_discrete=True was_dph=True
+    Graph(g) re-wrap: is_discrete=False was_dph=True
+# fresh joint_prob_graph(discrete): is_discrete=True was_dph=True
+    clone(): is_discrete=True was_dph=True
+    copy(): is_discrete=True was_dph=True
+    copy.copy: TypeError: cannot pickle 'Graph' object
+    copy.deepcopy: TypeError: cannot pickle 'Graph' object
+    pickle round trip: TypeError: cannot pickle 'Graph' object
+    from_serialized(serialize()): is_discrete=True was_dph=True
+    from_serialized without was_dph key (old cache): is_discrete=True was_dph=True
+    reward_transform_discrete(r): RuntimeError: Expected vertex with index 1 (state 3 0 0 0 0 0) to have outgoing rate <= 1. Is '6.000000'. Are you sure this 
+    reward_transform(r): RuntimeError: Expected vertex with index 1 (state 3 0 0 0 0 0) to have outgoing rate <= 1. Is '6.000000'. Are you sure this 
+    Graph(g) re-wrap: is_discrete=False was_dph=True
+# native parameterized: is_discrete=True was_dph=False
+    clone(): is_discrete=True was_dph=False
+    copy(): is_discrete=True was_dph=False
+    copy.copy: TypeError: cannot pickle 'Graph' object
+    copy.deepcopy: TypeError: cannot pickle 'Graph' object
+    pickle round trip: TypeError: cannot pickle 'Graph' object
+    from_serialized(serialize()): is_discrete=True was_dph=False
+    from_serialized without was_dph key (old cache): is_discrete=True was_dph=True
+    reward_transform_discrete(r): is_discrete=True was_dph=False
+    reward_transform(r): is_discrete=True was_dph=False
+    Graph(g) re-wrap: is_discrete=False was_dph=False
+# native constant: is_discrete=True was_dph=False
+    clone(): is_discrete=True was_dph=False
+    copy(): is_discrete=True was_dph=False
+    copy.copy: TypeError: cannot pickle 'Graph' object
+    copy.deepcopy: TypeError: cannot pickle 'Graph' object
+    pickle round trip: TypeError: cannot pickle 'Graph' object
+    from_serialized(serialize()): is_discrete=True was_dph=False
+    from_serialized without was_dph key (old cache): is_discrete=True was_dph=True
+    reward_transform_discrete(r): is_discrete=True was_dph=False
+    reward_transform(r): is_discrete=True was_dph=False
+    Graph(g) re-wrap: is_discrete=False was_dph=False
+## A2. elimination read-outs on a converted graph whose rows are NOT normalised (exempt under v2 2.3)
+    discretize(1.0) of rate-3 chain rows: [[1.0], [0.75, 0.25], [], [1.0]]
+    expectation / variance (normalised): (1.6666666666666665, 1.7777777777777781)
+## B. negative edge weights
+    constant add_edge(-0.5): build: RuntimeError: Edge weight evaluates to non-positive value '-0.500000'. Vertex index 1 (state 1). Weight must be strictly lar
+    constant: stop_probability(1): RuntimeError: Edge weight evaluates to non-positive value '-0.500000'. Vertex index 1 (state 1). Weight must be strictly lar
+    constant: pdf(1..3): RuntimeError: Edge weight evaluates to non-positive value '-0.500000'. Vertex index 1 (state 1). Weight must be strictly lar
+    linear update_weights([-0.5, 0.9]): build: [[1.0], [-0.5, 0.9], [0.45], []]
+    param: stop_probability(1)  (vertex 2 is transient): [0.0, 0.6, -0.5, 0.0]
+    param: pdf(1..3): [0.9, 0.31500000000000006, 0.06524999999999986]
+    param: expectation, variance: (-0.2777777777777779, -13.533950617283951)
+## C. stale contexts on master
+    accumulated_visits(3) valid: [0.0, 1.875, 0.0]
+    accumulated_visits(5) after update_weights([1.5])  (v2 test 9, listed as failing on master): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discr
+    pdf valid: 0.25
+    pdf after update (v2 guard 12): RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discr
+    user-held distribution_context stepped after update_weights([1.5])  (not addressed in v2): [0.75, -0.375, 0.1875]
+    user-held context after update_weights([-0.5]): [-0.25, -0.375, -0.5625]
+## D. cost of a whole-graph row-sum pass relative to one discrete sample (helper placement in the samplers)
+    coalescent n=40 discretize: V=74676 E=507612; sample(2000) takes 8.7 ms = 4.3 us/sample; mean path length 39 jumps
+    a pass over E=507612 edges per SAMPLE would add about 761 us/sample (1.5 ns/edge assumed) -> at 60,000 vertices / ~300,000 edges ~450 us/sample
+[runcap] exit 0, peak RSS 574 MB, 15s

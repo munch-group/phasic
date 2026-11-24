@@ -1,0 +1,9 @@
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_prior_fallback_raises.py::test_epoch_path_raises_when_probability_matching_fails
+  /Users/kmt/phasic-bug4/tests/pytest/test_prior_fallback_raises.py:50: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    j.svgd(obs, epoch_starts=[0.0, 0.5], fixed=[(1, 0.5)], n_particles=4,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 1 warning in 0.58s
+[runcap] exit 0, peak RSS 426 MB, 4s

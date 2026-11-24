@@ -1,0 +1,14 @@
+## discretize()
+  coalescent n=10 discretize(None): TypeError: Graph.discretize() missing 1 required positional argument: 'rate'
+  coalescent n=10 theta=[7.0] discretize(0.001): 82 rows, max row sum - 1 = +2.220e-16, rows > 1: 5, rows within 1e-12 of 1: 82
+  coalescent n=22 discretize(None): TypeError: Graph.discretize() missing 1 required positional argument: 'rate'
+  coalescent n=22 theta=[0.37] discretize(0.001): 2002 rows, max row sum - 1 = +2.220e-16, rows > 1: 40, rows within 1e-12 of 1: 2002
+  two-island n=8 discretize(None): TypeError: Graph.discretize() missing 1 required positional argument: 'rate'
+  two-island n=8 theta=[0.7, 0.3] discretize(0.001): 366 rows, max row sum - 1 = +2.220e-16, rows > 1: 12, rows within 1e-12 of 1: 366
+  two-island n=8 discretize(None): TypeError: Graph.discretize() missing 1 required positional argument: 'rate'
+  two-island n=8 theta=[123.4, 0.017] discretize(0.001): 366 rows, max row sum - 1 = +2.220e-16, rows > 1: 12, rows within 1e-12 of 1: 366
+## joint_prob_graph(discrete=True)
+  n=4 theta=[0.0001, 0.01]: 166 rows, max row sum - 1 = +0.000e+00, rows > 1: 0, rows within 1e-12 of 1: 166
+  n=5 theta=[2.0, 0.05]: 678 rows, max row sum - 1 = +2.220e-16, rows > 1: 375, rows within 1e-12 of 1: 678
+  n=5 theta=[0.3, 0.00012]: 678 rows, max row sum - 1 = +0.000e+00, rows > 1: 0, rows within 1e-12 of 1: 678
+  n=6 theta=[5.0, 0.01]: 2806 rows, max row sum - 1 = +2.220e-16, rows > 1: 1344, rows within 1e-12 of 1: 2806

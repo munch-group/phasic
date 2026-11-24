@@ -1,0 +1,36 @@
+.ERROR:2026-11-23 21:15:53,158:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8341, in _cb
+    pmf, moments = _compute_callback(t_np, tm_np, rw_np)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8292, in _compute_callback
+    concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 887, in _apply_weight_callback
+    weight = _check_weight(
+        float(callback(theta, coeffs)),
+        theta, coeffs,
+        where=f"edge {from_idx} -> {to_idx}",
+    )
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 869, in _check_weight
+    raise ValueError(
+    ...<9 lines>...
+    )
+ValueError: weight_callback returned a non-finite value (nan) for edge 1 -> 2.
+  theta = [1.0]
+  coefficients = [1.0]
+Phase-type edge weights must be finite non-negative floats. Inspect your weight_callback for branches that produce NaN/inf at typical theta values (e.g. binomial pmf called with p outside [0, 1], division by near-zero, log of non-positive).
+..                                                                      [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_joint_index_callback.py::test_joint_index_with_callback_builds_on_discrete_joint_prob
+  /Users/kmt/phasic-bug4/tests/pytest/test_joint_index_callback.py:71: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    return base.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 1 warning in 0.20s
+[runcap] exit 0, peak RSS 398 MB, 3s

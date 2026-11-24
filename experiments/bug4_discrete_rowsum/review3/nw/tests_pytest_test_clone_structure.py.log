@@ -1,0 +1,9 @@
+.........                                                                [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_clone_structure.py::test_clone_is_exact_structural_copy[joint]
+  /Users/kmt/phasic-bug4/tests/pytest/test_clone_structure.py:40: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    "joint": lambda: (lambda g: g.joint_prob_graph(g._indexer, reward_limit=1,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 1 warning in 0.03s
+[runcap] exit 0, peak RSS 328 MB, 3s

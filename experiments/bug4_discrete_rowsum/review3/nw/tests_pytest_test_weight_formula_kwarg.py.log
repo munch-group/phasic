@@ -1,0 +1,466 @@
+....  0%|          | 0/25 [00:00<?, ?it/s]  4%|▍         | 1/25 [00:00<00:16,  1.49it/s] 64%|██████▍   | 16/25 [00:00<00:00, 27.40it/s]                                                 0%|          | 0/25 [00:00<?, ?it/s]  4%|▍         | 1/25 [00:00<00:03,  7.64it/s] 64%|██████▍   | 16/25 [00:00<00:00, 81.22it/s]                                               .  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:00<00:01,  1.75it/s]                                             .ERROR:2026-11-23 21:19:46,717:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,743:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,760:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,774:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,788:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,802:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,818:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,834:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,849:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,866:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,881:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,897:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,913:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,929:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,944:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,960:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,976:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:46,991:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:47,007:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:47,024:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+ERROR:2026-11-23 21:19:47,040:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: weight_formula produced a non-finite or negative edge weight
+.  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:00<00:00,  8.54it/s]                                             ..  0%|          | 0/3 [00:00<?, ?it/s] 33%|███▎      | 1/3 [00:00<00:01,  1.16it/s] 67%|██████▋   | 2/3 [00:00<00:00,  2.30it/s]                                             ..                                                              [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_weight_formula_kwarg.py::test_svgd_formula_kwarg_allowed_with_epoch_starts
+  /Users/kmt/phasic-bug4/tests/pytest/test_weight_formula_kwarg.py:200: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg_disc = graph.joint_prob_graph(
+
+tests/pytest/test_weight_formula_kwarg.py::test_svgd_formula_kwarg_allowed_with_epoch_starts
+  /Users/kmt/phasic-bug4/tests/pytest/test_weight_formula_kwarg.py:218: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(
+
+tests/pytest/test_weight_formula_kwarg.py::test_svgd_formula_kwarg_allowed_with_epoch_starts
+  /Users/kmt/phasic-bug4/tests/pytest/test_weight_formula_kwarg.py:220: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    svgd = jpg.svgd(
+
+tests/pytest/test_weight_formula_kwarg.py::test_svgd_formula_kwarg_allowed_with_epoch_starts
+  /Users/kmt/phasic-bug4/tests/pytest/test_weight_formula_kwarg.py:220: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    svgd = jpg.svgd(
+
+tests/pytest/test_weight_formula_kwarg.py::test_svgd_callback_kwarg_still_rejected_with_epoch_starts
+  /Users/kmt/phasic-bug4/tests/pytest/test_weight_formula_kwarg.py:232: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    jpg = graph.joint_prob_graph(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+11 passed, 5 warnings in 11.54s
+[runcap] exit 0, peak RSS 1227 MB, 15s

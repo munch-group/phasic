@@ -1,0 +1,21 @@
+...                                                                      [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_c_core_fixes.py::test_joint_stop_prob_graph_refuses_a_discrete_joint_graph
+  /Users/kmt/phasic-bug4/tests/pytest/test_c_core_fixes.py:34: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    discrete = g.joint_prob_graph(g._indexer, reward_limit=1, mutation_rate=1.0)
+
+tests/pytest/test_c_core_fixes.py::test_joint_stop_prob_graph_refuses_a_discrete_joint_graph
+  /Users/kmt/phasic-bug4/tests/pytest/test_c_core_fixes.py:38: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    cont = g.joint_prob_graph(g._indexer, reward_limit=1, mutation_rate=1.0, discrete=False)
+
+tests/pytest/test_c_core_fixes.py::test_joint_sojourn_graph_refuses_a_discrete_joint_graph
+  /Users/kmt/phasic-bug4/tests/pytest/test_c_core_fixes.py:45: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    discrete = g.joint_prob_graph(g._indexer, reward_limit=1, mutation_rate=1.0)
+
+tests/pytest/test_c_core_fixes.py::test_joint_sojourn_graph_refuses_a_discrete_joint_graph
+  /Users/kmt/phasic-bug4/tests/pytest/test_c_core_fixes.py:48: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+    cont = g.joint_prob_graph(g._indexer, reward_limit=1, mutation_rate=1.0, discrete=False)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 4 warnings in 0.03s
+[runcap] exit 0, peak RSS 330 MB, 4s

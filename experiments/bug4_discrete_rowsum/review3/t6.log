@@ -1,0 +1,6 @@
+p=0.1: pmf abs 1.39e-17 rel 5.84e-15 | cdf abs 4.44e-16 | E=10.0 (true 10.0) abs 0.00e+00 | var=90.0 true (1-p)/p^2=89.99999999999999 abs 1.42e-14 rel 1.58e-16 | moments(2,discrete)=[ 10. 190.] moments(2)=[10.0, 200.0]
+p=0.3: pmf abs 2.78e-17 rel 1.61e-14 | cdf abs 3.33e-16 | E=3.3333333333333335 (true 3.3333333333333335) abs 0.00e+00 | var=7.77777777777778 true (1-p)/p^2=7.777777777777778 abs 2.66e-15 rel 3.43e-16 | moments(2,discrete)=[ 3.33333333 18.88888889] moments(2)=[3.3333333333333335, 22.222222222222225]
+p=0.5: pmf abs 0.00e+00 rel 0.00e+00 | cdf abs 0.00e+00 | E=2.0 (true 2.0) abs 0.00e+00 | var=2.0 true (1-p)/p^2=2.0 abs 0.00e+00 rel 0.00e+00 | moments(2,discrete)=[2. 6.] moments(2)=[2.0, 8.0]
+p=0.9: pmf abs 2.17e-19 rel 8.72e-15 | cdf abs 1.11e-16 | E=1.1111111111111112 (true 1.1111111111111112) abs 0.00e+00 | var=0.12345679012345694 true (1-p)/p^2=0.12345679012345676 abs 1.80e-16 rel 1.46e-15 | moments(2,discrete)=[1.11111111 1.35802469] moments(2)=[1.1111111111111112, 2.469135802469136]
+p=1.0: pmf abs 0.00e+00 rel 0.00e+00 | cdf abs 0.00e+00 | E=1.0 (true 1.0) abs 0.00e+00 | var=0.0 true (1-p)/p^2=0.0 abs 0.00e+00 rel 0.00e+00 | moments(2,discrete)=[1. 1.] moments(2)=[1.0, 2.0]
+[runcap] exit 0, peak RSS 316 MB, 3s

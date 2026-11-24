@@ -1,0 +1,62 @@
+BAD  cases/constant_callback/has_callback: False (False) -> True (True)
+ok   cases/constant_callback/pdf/3: 0x0.0p+0 (0.0) -> 0x1.e000000000000p-55 (5.204170427930421e-17)
+ok   cases/constant_callback/pdf/4: 0x1.3ce59345831d2p-2 (0.30946951019066404) -> 0x1.3ce59345831d1p-2 (0.309469510190664)
+BAD  cases/constant_callback_zeros/has_callback: False (False) -> True (True)
+ok   cases/constant_callback_zeros/pdf/3: 0x1.89d89d89d89d8p-57 (1.0675221390626504e-17) -> 0x1.7627627627627p-54 (8.113168256876143e-17)
+ok   cases/constant_callback_zeros/pdf/4: 0x1.1cb99716292e1p-2 (0.27805172035941267) -> 0x1.1cb99716292dfp-2 (0.27805172035941256)
+BAD  cases/constant_fixed/has_callback: False (False) -> True (True)
+ok   cases/constant_fixed/pdf/4: 0x1.eeaa3453fd556p-4 (0.12076778832109389) -> 0x1.eeaa3453fd54ep-4 (0.12076778832109378)
+BAD  cases/constant_skip_existing/has_callback: False (False) -> True (True)
+ok   cases/constant_skip_existing/pdf/4: 0x1.eeaa3453fd556p-4 (0.12076778832109389) -> 0x1.eeaa3453fd54ep-4 (0.12076778832109378)
+ok   cases/epoch_then_discretize/pdf/4: 0x1.f87fadc4a2b6ap-6 (0.03079215974370745) -> 0x1.f87fadc4a2b66p-6 (0.030792159743707435)
+BAD  cases/indexed_constant/has_callback: False (False) -> True (True)
+BAD  cases/indexed_constant/indexer_state_length: None (None) -> 3 (3)
+ok   cases/param_callback/pdf/3: 0x0.0p+0 (0.0) -> 0x1.e000000000000p-55 (5.204170427930421e-17)
+ok   cases/param_callback/pdf/4: 0x1.3ce59345831d2p-2 (0.30946951019066404) -> 0x1.3ce59345831d1p-2 (0.309469510190664)
+ok   cases/param_callback_0d_array/pdf/3: 0x1.4000000000000p-55 (3.469446951953614e-17) -> 0x1.4000000000000p-53 (1.3877787807814457e-16)
+ok   cases/param_callback_0d_array/pdf/4: 0x1.94c963e55c6fep-3 (0.19764974635796045) -> 0x1.94c963e55c6fap-3 (0.19764974635796034)
+ok   cases/param_callback_kwargs/pdf/3: -0x1.9b6db6db6db6ep-54 (-8.921435019309294e-17) -> 0x0.0p+0 (0.0)
+ok   cases/param_callback_kwargs/pdf/4: 0x1.3291d6fcc9c5ep-2 (0.2993844596662195) -> 0x1.3291d6fcc9c5cp-2 (0.2993844596662194)
+ok   cases/param_callback_py_int/pdf/4: 0x1.25e0a72f05397p-2 (0.2869897959183673) -> 0x1.25e0a72f05396p-2 (0.28698979591836726)
+ok   cases/param_callback_slicing/pdf/3: -0x1.e78356d1408e8p-55 (-5.2856270085415064e-17) -> 0x0.0p+0 (0.0)
+ok   cases/param_callback_zeros/pdf/3: 0x1.89d89d89d89d8p-57 (1.0675221390626504e-17) -> 0x1.7627627627627p-54 (8.113168256876143e-17)
+ok   cases/param_callback_zeros/pdf/4: 0x1.1cb99716292e1p-2 (0.27805172035941267) -> 0x1.1cb99716292dfp-2 (0.27805172035941256)
+ok   cases/param_fixed/pdf/4: 0x1.eeaa3453fd556p-4 (0.12076778832109389) -> 0x1.eeaa3453fd54ep-4 (0.12076778832109378)
+ok   cases/param_fixed_theta2/pdf/3: 0x1.bce0c7ce0c7cfp-54 (9.646754939578343e-17) -> 0x1.76a2576a2576bp-53 (1.6247166214026683e-16)
+ok   cases/param_fixed_theta2/pdf/4: 0x1.2281087b373e7p-5 (0.03546191841608231) -> 0x1.2281087b373dap-5 (0.03546191841608222)
+ok   cases/param_int_rate/pdf/4: 0x1.25e0a72f05397p-2 (0.2869897959183673) -> 0x1.25e0a72f05396p-2 (0.28698979591836726)
+BAD  cases/param_skip_existing/edges/1/0/1: 0x1.8000000000000p+2 (6.0) -> 0x1.f79b47582192fp-1 (0.9836065573770493)
+BAD  cases/param_skip_existing/edges/1/1/1: 0x1.999999999999ap-4 (0.1) -> 0x1.0c9714fbcda3bp-6 (0.01639344262295082)
+BAD  cases/param_skip_existing/edges/2/0/1: 0x1.0000000000000p+0 (1.0) -> 0x1.4a5294a5294a5p-2 (0.3225806451612903)
+BAD  cases/param_skip_existing/edges/2/1/1: 0x1.0000000000000p+1 (2.0) -> 0x1.4a5294a5294a5p-1 (0.6451612903225806)
+BAD  cases/param_skip_existing/edges/2/2/1: 0x1.999999999999ap-4 (0.1) -> 0x1.0842108421084p-5 (0.03225806451612903)
+BAD  cases/param_skip_existing/edges/3/0/1: 0x1.0000000000000p+0 (1.0) -> 0x1.d1745d1745d17p-1 (0.9090909090909091)
+BAD  cases/param_skip_existing/edges/3/1/1: 0x1.999999999999ap-4 (0.1) -> 0x1.745d1745d1746p-4 (0.09090909090909091)
+BAD  cases/param_skip_existing/edges/4/0/1: 0x1.0000000000000p+0 (1.0) -> 0x1.d1745d1745d17p-1 (0.9090909090909091)
+BAD  cases/param_skip_existing/edges/4/1/1: 0x1.999999999999ap-4 (0.1) -> 0x1.745d1745d1746p-4 (0.09090909090909091)
+ok   cases/param_skip_existing/pdf/4: 0x1.eeaa3453fd556p-4 (0.12076778832109389) -> 0x1.eeaa3453fd54ep-4 (0.12076778832109378)
+ok   cases/param_skip_existing_fresh/pdf/4: 0x1.eeaa3453fd556p-4 (0.12076778832109389) -> 0x1.eeaa3453fd54ep-4 (0.12076778832109378)
+ok   cases/param_two_thetas/pdf/3: 0x1.bce0c7ce0c7cfp-54 (9.646754939578343e-17) -> 0x1.76a2576a2576bp-53 (1.6247166214026683e-16)
+ok   cases/param_two_thetas/pdf/4: 0x1.2281087b373e7p-5 (0.03546191841608231) -> 0x1.2281087b373dap-5 (0.03546191841608222)
+BAD  roundtrip/constant_fixed/is_aux/6: False (False) -> True (True)
+BAD  roundtrip/constant_fixed/is_aux/7: False (False) -> True (True)
+BAD  roundtrip/constant_fixed/is_aux/8: False (False) -> True (True)
+BAD  roundtrip/constant_fixed/is_aux/9: False (False) -> True (True)
+BAD  roundtrip/param_fixed/is_aux/6: False (False) -> True (True)
+BAD  roundtrip/param_fixed/is_aux/7: False (False) -> True (True)
+BAD  roundtrip/param_fixed/is_aux/8: False (False) -> True (True)
+BAD  roundtrip/param_fixed/is_aux/9: False (False) -> True (True)
+48 differing entries; 2 of them negative before
+STOP
+[runcap] exit 0, peak RSS 316 MB, 4s
+
+--- Disposition (2026-11-24) ---
+The 23 BAD entries are not caused by this fix: the identical set appears on
+the master build (pins_diff_master.log), and every one is a documented
+intended change of the discretize refactor (EXPECTED_CHANGES /
+ROUNDTRIP_EXPECTED_CHANGES in tests/pytest/_discretize_pins.py) whose OLD
+value the records keep on purpose (the pin tests assert it). The fix's own
+changes are the 25 'ok' pdf entries: all |new - old| <= 5e-16, none negative;
+two values that were negative (-8.92e-17, -5.29e-17) are now exactly 0.
+Only those pdf fields were refreshed (pins_patch_pdf.py); everything else
+in discretize_pins.json is unchanged. test_gate_discretize_pins.py: 63 passed.

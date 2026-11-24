@@ -1,0 +1,75 @@
+## (a) pinned pdf(1..5): record vs replica of today (A) vs plan step (P1) vs in-place cap (I)
+constant_callback: rows above 1: 1/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 0.0  plan-step 3.3360066845707833e-17  in-place 5.204170427930421e-17
+     pdf(5): today 0.30946951019066404  plan-step 0.309469510190664  in-place 0.309469510190664
+constant_callback_zeros: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 1.0675221390626504e-17  plan-step 5.960331943099797e-17  in-place 8.113168256876143e-17
+     pdf(5): today 0.27805172035941267  plan-step 0.2780517203594126  in-place 0.27805172035941256
+constant_fixed: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 5.67727683046955e-17  plan-step 6.898196578957626e-17  in-place 5.67727683046955e-17
+     pdf(5): today 0.12076778832109389  plan-step 0.12076778832109378  in-place 0.12076778832109378
+constant_skip_existing: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 5.67727683046955e-17  plan-step 6.898196578957626e-17  in-place 5.67727683046955e-17
+     pdf(5): today 0.12076778832109389  plan-step 0.12076778832109378  in-place 0.12076778832109378
+epoch_then_discretize: rows above 1: 0/16; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(5): today 0.03079215974370745  plan-step 0.030792159743707487  in-place 0.030792159743707435
+indexed_constant: rows above 1: 0/4; record == replica A: True; P1 changes pin: True; I changes pin: False
+     pdf(3): today 1.3877787807814457e-16  plan-step 1.1110369711241483e-16  in-place 1.3877787807814457e-16
+     pdf(5): today 1.4193192076173876e-17  plan-step 1.7665033427194355e-17  in-place 1.4193192076173876e-17
+indexed_param: rows above 1: 0/4; record == replica A: True; P1 changes pin: True; I changes pin: False
+     pdf(3): today 1.3877787807814457e-16  plan-step 1.1110369711241483e-16  in-place 1.3877787807814457e-16
+     pdf(5): today 1.4193192076173876e-17  plan-step 1.7665033427194355e-17  in-place 1.4193192076173876e-17
+param_callback: rows above 1: 1/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 0.0  plan-step 3.3360066845707833e-17  in-place 5.204170427930421e-17
+     pdf(5): today 0.30946951019066404  plan-step 0.309469510190664  in-place 0.309469510190664
+param_callback_0d_array: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 3.469446951953614e-17  plan-step 1.1174277229326407e-16  in-place 1.3877787807814457e-16
+     pdf(5): today 0.19764974635796045  plan-step 0.19764974635796034  in-place 0.19764974635796034
+param_callback_kwargs: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today -8.921435019309294e-17  plan-step 7.288754100742887e-18  in-place 0.0
+     pdf(5): today 0.2993844596662195  plan-step 0.2993844596662194  in-place 0.2993844596662194
+param_callback_np_int: rows above 1: 0/8; record == replica A: True; P1 changes pin: False; I changes pin: False
+param_callback_py_int: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 0.0  plan-step 1.7842870038618585e-17  in-place 0.0
+     pdf(5): today 0.2869897959183673  plan-step 0.28698979591836726  in-place 0.28698979591836726
+param_callback_slicing: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today -5.2856270085415064e-17  plan-step 4.134078280428159e-17  in-place 0.0
+param_callback_zeros: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 1.0675221390626504e-17  plan-step 5.960331943099797e-17  in-place 8.113168256876143e-17
+     pdf(5): today 0.27805172035941267  plan-step 0.2780517203594126  in-place 0.27805172035941256
+param_fixed: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 5.67727683046955e-17  plan-step 6.898196578957626e-17  in-place 5.67727683046955e-17
+     pdf(5): today 0.12076778832109389  plan-step 0.12076778832109378  in-place 0.12076778832109378
+param_fixed_theta2: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 9.646754939578343e-17  plan-step 9.276613197885678e-17  in-place 1.6247166214026683e-16
+     pdf(5): today 0.03546191841608231  plan-step 0.03546191841608222  in-place 0.03546191841608222
+param_int_rate: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 0.0  plan-step 1.7842870038618585e-17  in-place 0.0
+     pdf(5): today 0.2869897959183673  plan-step 0.28698979591836726  in-place 0.28698979591836726
+param_skip_existing: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 5.67727683046955e-17  plan-step 6.898196578957626e-17  in-place 5.67727683046955e-17
+     pdf(5): today 0.12076778832109389  plan-step 0.12076778832109378  in-place 0.12076778832109378
+param_skip_existing_fresh: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 5.67727683046955e-17  plan-step 6.898196578957626e-17  in-place 5.67727683046955e-17
+     pdf(5): today 0.12076778832109389  plan-step 0.12076778832109378  in-place 0.12076778832109378
+param_two_thetas: rows above 1: 0/8; record == replica A: True; P1 changes pin: True; I changes pin: True
+     pdf(4): today 9.646754939578343e-17  plan-step 9.276613197885678e-17  in-place 1.6247166214026683e-16
+     pdf(5): today 0.03546191841608231  plan-step 0.03546191841608222  in-place 0.03546191841608222
+two_param_chain: rows above 1: 0/4; record == replica A: True; P1 changes pin: True; I changes pin: False
+     pdf(3): today 0.0  plan-step 8.651088503572648e-18  in-place 0.0
+     pdf(5): today 0.0  plan-step 1.443720613907903e-17  in-place 0.0
+## pinned cases whose pdf record changes: plan step 20/21, in-place cap 17/21
+## (b,c) native graph
+  self-loop edge refused at construction: RuntimeError Caught an unknown exception!
+  negative edge weight refused: RuntimeError Edge weight evaluates to non-positive value '-0.500000'. Vertex index 0 (startin
+native 41v rows <= 0.6: 41v selfloops=0 | replica A == library bitwise: 200/200 | A: neg pmf 0, neg mass 0 | P1: neg pmf 0, neg mass 0, caps fired 0, pmf bits changed 178/200, max rel(>1e-14) 9.9e-16, cdf-1 -1.3e-01 | P2: neg pmf 0, neg mass 0, caps fired 0, pmf bits changed 190/200, max rel(>1e-14) 1.0e-15, cdf-1 -1.3e-01 | I: neg pmf 0, neg mass 0, caps fired 0, pmf bits changed 0/200, max rel(>1e-14) 0.0e+00, cdf-1 -1.3e-01
+## (d) sampler cost today
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug4/experiments/bug4_discrete_rowsum/review2/r4_details.py", line 61, in <module>
+    for _ in range(200): float(d.pdf(1)); d.update_weights([0.37])
+                                          ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/Users/kmt/phasic-bug4/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 2187, in update_weights
+    return super().update_weights(theta, log=log)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+RuntimeError: Parameter length mismatch: graph expects 2 parameters, got 1
+[runcap] exit 1, peak RSS 413 MB, 4s
