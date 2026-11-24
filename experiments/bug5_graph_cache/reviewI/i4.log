@@ -1,0 +1,57 @@
+== popgen/ghost.ipynb
+   (1, 'c', '#from phasic import GraphCache')
+   (1, 'c', 'graph_cache = ph.GraphCache()')
+   (3, 'c', '# graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer')
+== popgen/moran-coalescent-derived.ipynb
+   (1, 'c', 'graph_cache=True,')
+== popgen/old-moran-coalescent-derived.ipynb
+   (4, 'c', 'graph_cache=False,')
+== popgen/two-locus-island.ipynb
+   (1, 'c', 'GraphCache, clear_caches, clear_jax_cache, clear_model_cache,')
+   (1, 'c', 'from phasic import GraphCache')
+   (1, 'c', 'graph_cache = GraphCache()')
+   (11, 'c', '# graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer')
+   (29, 'c', '# graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer')
+   (37, 'c', '# graph_cache.save_graph(graph, two_locus_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer)')
+== tutorial/configuration.ipynb
+   (6, 'm', '| `cache_enabled` | `bool` | `True` | Use the on-disk caches under `cache_dir`. | `PHASIC_DISABLE_CACHE` (inve')
+   (29, 'm', 'The reverse mapping is asymmetric on purpose: some env vars carry inverted polarity (`PHASIC_DISABLE_CACHE=1` ')
+== tutorial/distributed.ipynb
+   (31, 'm', 'return Graph(coalescent, graph_cache=True)')
+   (31, 'm', 'Using `graph_cache=True` ensures that each graph is built only once and loaded from cache on subsequent runs.')
+   (36, 'm', '| `PHASIC_DISABLE_CACHE` | `1` disables on-disk caching (equivalent to `cache_enabled=False`) |')
+   (37, 'm', '**Graph construction scaling**: Graph construction is CPU-bound and single-threaded. For very large state spac')
+== tutorial/matrix-solve.ipynb
+   (2, 'c', 'phasic.configure(graph_cache=True)')
+== tutorial/python_trace-and-jax-caching.ipynb
+   (2, 'c', 'get_graph_cache_stats, print_graph_cache_info,')
+   (7, 'm', 'Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback ')
+   (8, 'c', 'graph_cache=True)')
+   (10, 'c', 'graph_cache=True, dummy=42)')
+   (12, 'c', 'graph_cache=True, dummy=99)')
+   (20, 'm', 'You can disable the cache entirely with `PHASIC_DISABLE_CACHE=1` or by `phasic.configure(cache_enabled=False)`')
+   (35, 'c', 'print_graph_cache_info()')
+== tutorial/scc-decomposition.ipynb
+   (26, 'c', 'g_arg.clear_from_cache(graph_cache=False) # keep graph cache')
+   (29, 'c', 'g_arg.clear_from_cache(graph_cache=False) # keep graph cache')
+== tutorial/state-space.ipynb
+   (32, 'c', 'Graph, with_ipv, GraphCache,')
+   (32, 'c', 'print_graph_cache_info, get_graph_cache_stats')
+   (33, 'c', 'cache = GraphCache()')
+   (36, 'c', 'graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)')
+   (38, 'c', 'graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)')
+   (39, 'm', 'If `graph_cache=True` is not passed, the graph is built from scratch:')
+   (42, 'c', 'print_graph_cache_info()')
+   (43, 'c', 'get_graph_cache_stats()')
+   (45, 'c', 'graph = Graph(callback, model=model, graph_cache=True)')
+== tutorial/svgd-joint-prob.ipynb
+   (78, 'c', '#   graph_cache=True,')
+== tutorial/trace-and-jax-caching-c-path.ipynb
+   (2, 'c', 'get_graph_cache_stats, print_graph_cache_info,')
+   (7, 'm', 'Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback ')
+   (8, 'c', 'graph_cache=True)')
+   (10, 'c', 'graph_cache=True, dummy=42)')
+   (12, 'c', 'graph_cache=True, dummy=99)')
+   (26, 'm', 'Like all phasic on-disk caches, the PRC cache honours `PHASIC_DISABLE_CACHE=1` (or `phasic.configure(cache_ena')
+   (33, 'c', 'print_graph_cache_info()')
+[runcap] exit 0, peak RSS 1 MB, 1s

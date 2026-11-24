@@ -1,0 +1,5 @@
+param weight_mode linear non-builtin scalar types: none
+const weight_mode linear non-builtin scalar types: none
+formula? weight_mode linear non-builtin scalar types: none
+discretized weight_mode linear non-builtin scalar types: none
+[runcap] exit 0, peak RSS 307 MB, 4s

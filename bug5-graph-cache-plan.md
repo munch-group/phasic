@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.4, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.5, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -214,7 +214,9 @@ function already visited contributes a back-reference token)
   would keep its key.
 - `functools.partial`, EXACT type only (`type(x) is functools.partial`;
   a subclass may override `__call__` and falls through to the later
-  rules or is refused): function, `args`, `keywords`.
+  rules or is refused): function, `args`, `keywords`, and `vars(p)`
+  (a partial accepts attributes that a callback can read back through
+  the cell holding it, review I i5; keyed like a function's `__dict__`).
 - builtin function, numpy ufunc / array-function dispatcher, gated on
   EXACT type first: `type(x) is types.BuiltinFunctionType`,
   `type(x) is np.ufunc`, or `type(x) is type(np.sum)`
@@ -302,7 +304,10 @@ longer used, so callbacks without accessible source can be cached.
    limit); `float` via `float.hex`; `complex` via the hex of both parts.
    Subclasses do not match here: `np.float64` (a `float` subclass) goes
    to rule 2, and `IntEnum` members and other subclasses are refused;
-2. numpy scalar, EXACT type only (`type(x) is x.dtype.type`; a Python
+2. numpy scalar: gated on `isinstance(x, np.generic)` FIRST (so `.dtype`
+   is never read from an arbitrary object, e.g. a `StateIndexer` whose
+   PropertySet is named `dtype`, or an object whose `dtype` property
+   raises), then EXACT type only (`type(x) is x.dtype.type`; a Python
    subclass of a numpy scalar can override arithmetic and carries a
    `__dict__`, review H p6, and is refused): `x.dtype.str` + `tobytes()`;
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
@@ -361,7 +366,8 @@ longer used, so callbacks without accessible source can be cached.
      (review F 4);
      (c) BEHAVIOURAL STATE equal to a canonical rebuild: let
      `c = StateIndexer.from_dict(ix.to_dict())`; then `ix._offsets`,
-     `ix._total_state_length`, the order lists, and for each PropertySet
+     `ix._total_state_length`, `_pset_order`, `_slot_order`,
+     `_entity_order`, and for each PropertySet
      `[(p.name, p.min_value, p.max_value) for p in ps.properties]`
      (compared as lists, so a caller's TUPLE of properties is admitted,
      and on folded values only, so a deprecated `offset`, which
@@ -415,7 +421,8 @@ longer used, so callbacks without accessible source can be cached.
    `cache_key`. The docstring lists the common refusals so they are not
    a surprise: `range`, `frozenset`, `defaultdict` / `OrderedDict`
    values, `pathlib.Path`, `jax.Array`, `operator.itemgetter`, a local
-   `lru_cache` helper in a closure, nesting deeper than 100.
+   `lru_cache` helper in a closure, numba `@njit` / `jax.jit` helpers
+   and `np.vectorize` objects in a closure, nesting deeper than 100.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
@@ -447,8 +454,13 @@ example a file vanishing between listing and `stat`, is stored and
 raised as `GraphCacheKeyError` by the first key computation, so
 `import phasic` cannot break for users who never cache; a missing
 record, for example after `importlib.reload(phasic.callback_hash)`, also
-raises `GraphCacheKeyError` rather than skipping the check) records
-`(path, size, mtime_ns)` for
+raises `GraphCacheKeyError` rather than skipping the check). `ctime`,
+inode and device are included because tools that preserve size and mtime
+(`rsync -a`, `cp -p`, fixed-timestamp packaging) cannot preserve them:
+both replace-by-rename and rewrite change `ctime`, so a reinstall between
+import and the first key computation (when the content hash is read)
+is detected (review I 2). It records
+`(path, size, mtime_ns, ctime_ns, ino, dev)` for
 the extension module located by `phasic.phasic_pybind.__file__` (not by
 globbing; if it has no `__file__` or the file is missing, the first key
 computation raises `GraphCacheKeyError`, so an editable or source-tree
@@ -547,7 +559,15 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 ### 2.6 `GraphCache` API and entry file
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
-  `get_cache_stats()`. EDITED: `_serialize_value`
+  `get_cache_stats()`. The constructor's `mkdir(parents=True,
+  exist_ok=True)` (`graph_cache.py:88-89`) failing re-raises the same
+  `OSError` subclass with a message naming the directory and the ways
+  out (another directory via `configure(cache_dir=...)`, or no
+  `cache_key`); this happens before the lookup, so nothing is built.
+  `save()` repeats `mkdir(exist_ok=True)` before `os.open`, so a
+  directory removed during a long build (for example by
+  `phasic.clear_caches()`, `model_export.py:120-138`) is recreated
+  rather than failing after the build. EDITED: `_serialize_value`
   (`graph_cache.py:304-378`) loses its generic `to_dict()` arm (which tags
   any object with `__type__: module.Class`) and its docstring/error text
   advertising the `to_dict()`/`from_dict()` protocol; it encodes plain
@@ -848,7 +868,15 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     `GraphCacheKeyError` (not `AttributeError`). `with_ipv([5])(partial(model,
     k=2.0))`: saves (callback_name fallback) and hits.
 
-26. A `partial` subclass overriding `__call__`: refused. A user kwarg
+26. Two captured partials identical in func/args/keywords but differing
+    in a hand-set attribute the callback reads: different keys. A
+    reinstall simulated between import and the first key computation
+    (recorded table with the same size/mtime but a different `ctime_ns`):
+    `GraphCacheKeyError`. An unwritable cache directory: `OSError` naming
+    it, callback not called. The cache directory deleted between lookup
+    and save: the save succeeds. A `StateIndexer` with a PropertySet
+    named `dtype` as a kwarg: keyed normally. A `partial` subclass
+    overriding `__call__`: refused. A user kwarg
     named `callback`: keyed normally (no `TypeError`).
     A callback with mixed coefficient lengths under `cache_key`: the save
     error carries `e.graph` and the "cannot be cached" note.
@@ -920,6 +948,10 @@ SLURM and outside this fix, listed in `found-defects` instead;
 `docs/api/Graph.qmd`, `configure.qmd`, `get_config.qmd`,
 `PhasicConfig.qmd` are generated (regenerated with `pixi run api` if that
 runs cleanly in the worktree; otherwise listed for the user).
+
+Implementation note: `graph_cache.py` (and other files in this repo)
+use CRLF line endings; edits must preserve them (binary-mode edits, as
+in bug 4) so the diff stays readable.
 
 ## 4. Gate
 
@@ -1131,7 +1163,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   §7 marked historical); 6-7 no side effects on a hit and hash-seed
   vertex order documented; 8 recursion bounded in every arm plus a
   top-level `RecursionError` catch.
-- Review 5 findings -> v2.2: 1 builtin arm §2.2.1; 2 classes and
+- (Out of chronological order; belongs after review 4.) Review 5
+  findings -> v2.2: 1 builtin arm §2.2.1; 2 classes and
   `to_dict()` errors §2.2.2 rules 7-8; 3 current-path cycle check and
   indexed back-references; 4 `fchmod` and read-error classes §2.6;
   5 test 15 rewritten; 6 version portability §2.2.1; 7 stat check per
@@ -1153,3 +1186,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   docstring, DataFrame advice corrected; 6 build id owned by
   `callback_hash` (no import cycle); 7 offsets as a counted list after
   `to_dict()`; 8 `cache_key` keyword-only.
+- Independent review I -> v3.5 (no ordinary-code wrong result found):
+  1 a partial's `__dict__` keyed; 2 build-id stat tuple adds `ctime_ns`,
+  inode, device; 3 rule 2 gated on `isinstance(np.generic)` before the
+  exact check; 4 `mkdir` errors specified, `save()` recreates a removed
+  directory; 5 order lists named; 6 §7 order note; docs list of common
+  refusals extended (numba / `jax.jit` / `np.vectorize`); CRLF note.

@@ -1,0 +1,23 @@
+python 3.13.13 numpy 2.4.3
+StringDType str 'StringDType()' hasobject True fields None type(a) is ndarray True
+short 'ab' bytes: b'ab\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00b'
+long bytes a: 01000000000000002900000000000040
+long bytes b: 01000000000000002900000000000040
+long content in bytes? False
+same content, equal bytes? True
+a[0] type <class 'str'>
+ufunc numpy exp exp NoneType
+ufunc numpy add add NoneType
+_ArrayFunctionDispatcher numpy sum sum NoneType
+_ArrayFunctionDispatcher numpy.linalg solve solve NoneType
+builtin_function_or_method math sqrt sqrt module
+builtin_function_or_method builtins len len module
+<class 'itertools.combinations_with_replacement'> True itertools combinations_with_replacement
+<class 'functools.partial'> True functools partial
+<class 'numpy.float64'> True numpy float64
+<class 'numpy.ndarray'> True numpy ndarray
+<class 'dict'> True builtins dict
+<class 'numpy.random._generator.Generator'> True numpy.random._generator Generator
+<class 'types.SimpleNamespace'> True types SimpleNamespace
+longdouble itemsize 8 equal bytes True
+[runcap] exit 0, peak RSS 2 MB, 1s
