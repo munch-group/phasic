@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.3, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.4, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -241,6 +241,8 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
   out: pass plain values, give the object a `to_dict()`, move the value
   to a module global and change `cache_key` yourself, or build without
   `cache_key`.
+- `GraphCacheLoadError(RuntimeError)`, exported: a well-formed entry
+  failed in `from_serialized` (§2.6); names the file and the ways out.
 - `GraphCacheEntryError(Exception)`, internal to `graph_cache`: an entry
   file is unreadable (caught only as described in §2.1).
 
@@ -279,6 +281,11 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
   `get_cache_stats()`, `_serialize_value` / `_deserialize_value`.
+  `clear()` / `clear_graph_cache()` (and through them
+  `clear_all_graph_caches` and `model_export.clear_caches`) also remove
+  leftover `.tmp-*.partial` files, which a writer killed between
+  `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
+  behind (review 7 C); `get_cache_stats` still counts only `*.json`.
 - Replaced: `save_graph(graph, callback, **params)` /
   `load_graph(callback, **params)` -> `save(graph, entry_key, meta)` /
   `load(entry_key)`.
@@ -311,12 +318,26 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
     a required field missing or of the wrong type, `format` not equal to
     `GRAPH_CACHE_FORMAT` -> `GraphCacheEntryError` (implemented as
     explicit checks, so no `KeyError`/`TypeError` escapes raw);
-  - `_deserialize_value` and `from_serialized`: NOT caught, propagate
-    (§2.1);
+  - `graph_data` is decoded by a RESTRICTED decoder: plain JSON values
+    plus the `{"__type__": "ndarray", ...}` tag only (the only tag
+    `serialize()` output needs now that `construction_params` is gone).
+    Any other `__type__` tag -> `GraphCacheEntryError` naming the file and
+    the tag, WITHOUT importing anything. The general `_deserialize_value`
+    (which imports the module a tag names and calls its `from_dict`,
+    review 7 A) is no longer used on the load path; it stays only for
+    `test_serialize_is_aux.py`;
+  - `from_serialized`: NOT caught as an entry error (§2.1). It is
+    re-raised as `GraphCacheLoadError(RuntimeError)` (exported), whose
+    message names the entry file and the ways out (delete that file, run
+    `phasic.clear_all_graph_caches()`, or change `cache_key`), with the
+    original exception chained (`raise ... from e`; not `add_note`,
+    which needs Python 3.11);
   - any other `OSError` (for example `PermissionError` on an entry another
-    user wrote under umask 077, common on HPC) PROPAGATES, re-raised with
-    a message naming the file, its owner (`pwd.getpwuid(st_uid)`, uid if
-    unknown) and the two ways out (another `cache_key`, or another cache
+    user wrote under umask 077, common on HPC) PROPAGATES, re-raised as
+    the same `OSError` subclass with the original chained, and a message
+    naming the file, its owner (best effort: `os.stat` or `pwd.getpwuid`
+    failing, for example in a non-searchable directory, gives "owner
+    unknown" and never raises from the handler) and the two ways out (another `cache_key`, or another cache
     directory via `configure(cache_dir=...)`). Two users therefore never
     overwrite each other's entries back and forth silently.
   `GraphCacheEntryError` -> warn, rebuild, overwrite (§2.1).
@@ -408,12 +429,21 @@ Expected to fail on master:
     `_graph_serialize.py:733-741`, review 6 D) and raise on its SECOND
     (the restore on the live graph); the test asserts that the second
     call happened, that the error propagates, and that no `UserWarning`
-    was emitted (no silent rebuild). A well-formed entry whose
-    `from_serialized` raises (monkeypatched): the error propagates, no
-    warning. An unreadable entry file (`chmod 000`, skipped when running
-    as root) propagates `PermissionError` whose message names the file.
+    was emitted (no silent rebuild). An unreadable entry file (`chmod 000`, skipped when running
+    as root) propagates `PermissionError` whose message names the file;
+    with the directory made non-searchable instead, the message says
+    "owner unknown" and the original error is chained. A
+    well-formed entry whose `from_serialized` raises (monkeypatched)
+    gives `GraphCacheLoadError` naming the file, original chained, and no
+    `UserWarning`. An entry
+    whose `graph_data` carries `{"__type__": "<module>.<Class>"}` for a
+    module not yet imported (a throwaway module written to `tmp_path` on
+    `sys.path`): `UserWarning` + rebuild, and that module is NOT in
+    `sys.modules` afterwards.
 16. Write failure (`os.replace` monkeypatched to raise): `OSError` with
-    the path, and no `.partial` file left in the directory.
+    the path, and no `.partial` file left in the directory. A stray
+    `.tmp-x.partial` file is removed by `GraphCache().clear()` and not
+    counted by `get_cache_stats()`.
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
@@ -528,9 +558,10 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   that does not resolve back to itself by name) in a closure cell are
   refused; such functions must be module globals to be cached.
 - A shared, group-writable cache directory can be poisoned: anyone who
-  can compute an entry key can plant a JSON graph there. It is data, not
-  code execution (unlike pickle caches), but a peer could plant a wrong
-  graph; this is existing behaviour, and the `cache_key` docstring says
+  can compute an entry key can plant a JSON graph there. With the
+  restricted decoder (§2.6) it is data only, never an import or a call
+  (unlike pickle caches, and unlike today's loader, which imports any
+  module an entry names), but a peer could plant a wrong graph; this is existing behaviour, and the `cache_key` docstring says
   to share a cache directory only with trusted users.
 - Review 5 findings -> v2.2: 1 builtin arm §2.2.1; 2 classes and
   `to_dict()` errors §2.2.2 rules 7-8; 3 current-path cycle check and
@@ -559,3 +590,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   5 scipy.special refusal documented §2.2.1/§6; 6 extension located by
   `__file__` §2.2.3, `Exception` not `BaseException` rule 8, permission
   message §2.6; 7 test 11 `super()` case with a valid `to_dict()`.
+- Review 7 findings -> v2.4: 1 restricted decoder for `graph_data`
+  (no imports), §2.6, §6, test 15; 2 best-effort owner lookup, chained
+  error, §2.6, test 15; 3 `.partial` cleanup in `clear()`, test 16;
+  4 `GraphCacheLoadError` naming the file and ways out, test 15.

@@ -1,0 +1,14 @@
+
+=== A. _deserialize_value on graph_data imports an arbitrary module named in the entry
+  'this' imported before: False | after: True | module import side effect printed 857 chars | result: TypeError: Cannot deserialize this.NoSuchClass: module 'this' has no attribute 'NoSuchClass
+  arbitrary installed class .from_dict called? -> OrderedDict has no from_dict (TypeError path)
+  pandas.DataFrame.from_dict invoked from an entry: DataFrame
+
+=== B. owner lookup when the directory is not searchable
+  open: PermissionError
+  os.stat: PermissionError
+  pwd.getpwuid(unknown uid) -> KeyError (plan: falls back to uid)
+
+=== C. leftover .partial files are not removed by clear_graph_cache (glob *.json)
+  removed: 0 | .partial left: ['.tmp-deadbeefdeadbeef.partial']
+[runcap] exit 0, peak RSS 324 MB, 4s
