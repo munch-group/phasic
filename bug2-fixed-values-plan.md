@@ -408,3 +408,13 @@ is CRLF again (8 insertions / 2 deletions against master); the placeholder
 test uses a full-vector prior; in-test skips replaced by explicit
 parameter lists. New test file: 78 passed.
 
+
+## 10. Result (2026-11-24)
+
+Implementation review: SIGN-OFF (round 2, commit `f228cc7e`). Suite
+comparison against bug 1's run (`gate_compare.py`): GATE PASS — 2807
+passed, 4 failed (the same four `inference/test_plot_ci.py` tests as the
+baseline), 201 files, 78 new tests pass.
+`inference/test_model_selection.py` was killed for memory in the first
+pass (reviewers were running alongside) and passed when rerun alone
+(34 passed).
