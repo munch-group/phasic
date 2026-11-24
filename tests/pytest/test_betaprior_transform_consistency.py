@@ -328,11 +328,12 @@ def test_fixed_slot_exact_free_slot_in_unit_mcmc(name, mk, fixed, slot, v):
 
 
 # ------------------------------- test 7: SVGD refuses an unconfined Beta
-@pytest.mark.parametrize("prior", [beta(), [gauss(), beta()]],
+@pytest.mark.parametrize("prior", [beta(), [gauss_free(), beta()]],
                          ids=["single", "list"])
 def test_svgd_refuses_betaprior_without_transform(prior):
     spy, _ = make_spy()
-    with pytest.raises(ValueError, match=r"positive_params=True"):
+    with pytest.raises(ValueError,
+                       match=r"BetaPrior.*bounded interval.*positive_params=True"):
         SVGD(model=spy, observed_data=DATA, theta_dim=1 if not
              isinstance(prior, list) else 2, prior=prior,
              positive_params=False, n_particles=4, progress=False)
@@ -498,8 +499,10 @@ def test_unbounded_priors_get_plain_softplus(name):
 def test_no_prior_gets_plain_softplus():
     s, _ = svgd(None, 2)
     assert same_on_grid(s.param_transform, softplus_ref, 2)
+    assert not hasattr(s.param_transform, '_per_dim_fns')
     m = mcmc(None, 2, n_samples=10, burn_in=5)
     assert same_on_grid(m.param_transform, softplus_ref, 2)
+    assert not hasattr(m.param_transform, '_per_dim_fns')
 
 
 def test_data_prior_gets_plain_softplus():
@@ -517,6 +520,14 @@ def test_data_prior_gets_plain_softplus():
     assert not hasattr(s.param_transform, '_per_dim_fns')
     assert all(same_on_grid(p._transform, softplus_ref, 1)
                for p in s.prior_list if p is not None)
+    dp2 = DataPrior(g, data)
+    m = MCMC(model=Graph.pmf_from_graph(g), observed_data=data, prior=dp2,
+             theta_dim=1, n_samples=10, n_chains=2, burn_in=5,
+             verbose=False, progress=False, seed=0)
+    assert same_on_grid(m.param_transform, softplus_ref, 1)
+    assert not hasattr(m.param_transform, '_per_dim_fns')
+    assert all(same_on_grid(p._transform, softplus_ref, 1)
+               for p in m.prior_list if p is not None)
 
 
 # ----------- guard 14: custom unclipped sigmoid, model and prior agree

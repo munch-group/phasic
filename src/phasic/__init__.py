@@ -6066,7 +6066,7 @@ extern "C" {{
             SVGD operates in unconstrained space, but model receives positive parameters.
             A BetaPrior applies its own sigmoid instead (to its own parameter
             in a prior list; to every parameter as a single prior) and
-            requires positive_params=True.
+            requires positive_params=True (or a custom param_transform).
         param_transform : callable, optional
             Custom parameter transformation function: transform(theta_unconstrained) -> theta_constrained.
             If provided, SVGD optimizes in unconstrained space and applies this transformation
