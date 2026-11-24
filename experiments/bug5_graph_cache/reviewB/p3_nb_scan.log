@@ -1,0 +1,94 @@
+pages/popgen/coalescent-derived.ipynb cell 2 [OUTPUT match]
+pages/popgen/ghost.ipynb cell 1 [code]: #from phasic import GraphCache
+pages/popgen/ghost.ipynb cell 1 [code]: graph_cache = ph.GraphCache()
+pages/popgen/ghost.ipynb cell 3 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+pages/popgen/moran-coalescent-derived.ipynb cell 1 [code]: graph_cache=True,
+pages/popgen/moran-coalescent-derived.ipynb cell 1 [code]: clear_caches()
+pages/popgen/moran-coalescent-derived.ipynb cell 4 [OUTPUT match]
+pages/popgen/old-moran-coalescent-derived.ipynb cell 2 [code]: clear_caches()
+pages/popgen/old-moran-coalescent-derived.ipynb cell 4 [code]: graph_cache=False,
+pages/popgen/old-moran-coalescent-derived.ipynb cell 5 [code]: clear_caches()
+pages/popgen/two-locus-island.ipynb cell 1 [code]: GraphCache, clear_caches, clear_jax_cache, clear_model_cache,
+pages/popgen/two-locus-island.ipynb cell 1 [code]: from phasic import GraphCache
+pages/popgen/two-locus-island.ipynb cell 1 [code]: graph_cache = GraphCache()
+pages/popgen/two-locus-island.ipynb cell 1 [OUTPUT match]
+pages/popgen/two-locus-island.ipynb cell 3 [OUTPUT match]
+pages/popgen/two-locus-island.ipynb cell 11 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+pages/popgen/two-locus-island.ipynb cell 11 [OUTPUT match]
+pages/popgen/two-locus-island.ipynb cell 29 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+pages/popgen/two-locus-island.ipynb cell 37 [code]: #clear_caches(verbose=True)
+pages/popgen/two-locus-island.ipynb cell 37 [code]: # graph_cache.save_graph(graph, two_locus_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer)
+pages/tutorial/configuration.ipynb cell 4 [OUTPUT match]
+pages/tutorial/configuration.ipynb cell 5 [markdown]: - `cache_enabled=True`, `cache_dir=None` — caches live under `~/.phasic_cache/`.
+pages/tutorial/configuration.ipynb cell 6 [markdown]: | `cache_enabled` | `bool` | `True` | Use the on-disk caches under `cache_dir`. | `PHASIC_DISABLE_CACHE` (inve
+pages/tutorial/configuration.ipynb cell 19 [OUTPUT match]
+pages/tutorial/configuration.ipynb cell 29 [markdown]: The reverse mapping is asymmetric on purpose: some env vars carry inverted polarity (`PHASIC_DISABLE_CACHE=1` 
+pages/tutorial/distributed.ipynb cell 31 [markdown]: return Graph(coalescent, graph_cache=True)
+pages/tutorial/distributed.ipynb cell 31 [markdown]: Using `graph_cache=True` ensures that each graph is built only once and loaded from cache on subsequent runs.
+pages/tutorial/distributed.ipynb cell 36 [markdown]: | `PHASIC_DISABLE_CACHE` | `1` disables on-disk caching (equivalent to `cache_enabled=False`) |
+pages/tutorial/distributed.ipynb cell 37 [markdown]: **Graph construction scaling**: Graph construction is CPU-bound and single-threaded. For very large state spac
+pages/tutorial/matrix-solve.ipynb cell 2 [code]: phasic.configure(graph_cache=True)
+pages/tutorial/mcmc.ipynb cell 2 [code]: clear_caches()
+pages/tutorial/mcmc.ipynb cell 2 [OUTPUT match]
+pages/tutorial/mcmc.ipynb cell 4 [OUTPUT match]
+pages/tutorial/model-selection.ipynb cell 1 [code]: phasic.configure(parallel_elimination=True, reward_compute_cache=True)
+pages/tutorial/mpfr.ipynb cell 6 [OUTPUT match]
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 2 [code]: get_graph_cache_stats, print_graph_cache_info,
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 6 [code]: clear_caches(verbose=True)
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 7 [markdown]: Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback 
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 8 [code]: graph_cache=True)
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 10 [code]: graph_cache=True, dummy=42)
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 12 [code]: graph_cache=True, dummy=99)
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 13 [code]: clear_caches(verbose=True)
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 20 [markdown]: You can disable the cache entirely with `PHASIC_DISABLE_CACHE=1` or by `phasic.configure(cache_enabled=False)`
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 35 [code]: print_graph_cache_info()
+pages/tutorial/python_trace-and-jax-caching.ipynb cell 39 [markdown]: | `clear_caches()` | All cache layers |
+pages/tutorial/scc-decomposition.ipynb cell 26 [code]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+pages/tutorial/scc-decomposition.ipynb cell 26 [OUTPUT match]
+pages/tutorial/scc-decomposition.ipynb cell 29 [code]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+pages/tutorial/state-space.ipynb cell 32 [code]: Graph, with_ipv, GraphCache,
+pages/tutorial/state-space.ipynb cell 32 [code]: print_graph_cache_info, get_graph_cache_stats
+pages/tutorial/state-space.ipynb cell 33 [code]: cache = GraphCache()
+pages/tutorial/state-space.ipynb cell 36 [code]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+pages/tutorial/state-space.ipynb cell 38 [code]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+pages/tutorial/state-space.ipynb cell 39 [markdown]: If `graph_cache=True` is not passed, the graph is built from scratch:
+pages/tutorial/state-space.ipynb cell 42 [code]: print_graph_cache_info()
+pages/tutorial/state-space.ipynb cell 43 [code]: get_graph_cache_stats()
+pages/tutorial/state-space.ipynb cell 45 [code]: graph = Graph(callback, model=model, graph_cache=True)
+pages/tutorial/svgd-basics.ipynb cell 2 [code]: clear_caches()
+pages/tutorial/svgd-basics.ipynb cell 2 [OUTPUT match]
+pages/tutorial/svgd-basics.ipynb cell 6 [OUTPUT match]
+pages/tutorial/svgd-basics.ipynb cell 62 [OUTPUT match]
+pages/tutorial/svgd-joint-prob.ipynb cell 1 [code]: clear_caches()
+pages/tutorial/svgd-joint-prob.ipynb cell 78 [code]: #   graph_cache=True,
+pages/tutorial/svgd-learning-rate.ipynb cell 2 [code]: clear_caches()
+pages/tutorial/svgd-learning-rate.ipynb cell 2 [OUTPUT match]
+pages/tutorial/svgd-learning-rate.ipynb cell 3 [OUTPUT match]
+pages/tutorial/svgd-multi-feature.ipynb cell 1 [code]: clear_caches()
+pages/tutorial/svgd-multi-feature.ipynb cell 1 [OUTPUT match]
+pages/tutorial/svgd-multi-feature.ipynb cell 2 [OUTPUT match]
+pages/tutorial/svgd-multi-feature.ipynb cell 12 [OUTPUT match]
+pages/tutorial/svgd-multi-feature.ipynb cell 24 [OUTPUT match]
+pages/tutorial/svgd-multi-param.ipynb cell 2 [code]: clear_caches()
+pages/tutorial/svgd-multi-param.ipynb cell 2 [OUTPUT match]
+pages/tutorial/svgd-multi-param.ipynb cell 3 [OUTPUT match]
+pages/tutorial/svgd-priors.ipynb cell 2 [code]: clear_caches()
+pages/tutorial/svgd-priors.ipynb cell 2 [OUTPUT match]
+pages/tutorial/svgd-priors.ipynb cell 12 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 2 [code]: get_graph_cache_stats, print_graph_cache_info,
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 6 [code]: clear_caches(verbose=True)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 6 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 7 [markdown]: Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback 
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 8 [code]: graph_cache=True)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 8 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 10 [code]: graph_cache=True, dummy=42)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 10 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 12 [code]: graph_cache=True, dummy=99)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 12 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 13 [code]: clear_caches(verbose=True)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 13 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 15 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 16 [OUTPUT match]
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 26 [markdown]: Like all phasic on-disk caches, the PRC cache honours `PHASIC_DISABLE_CACHE=1` (or `phasic.configure(cache_ena
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 33 [code]: print_graph_cache_info()
+pages/tutorial/trace-and-jax-caching-c-path.ipynb cell 41 [markdown]: | `clear_caches()` | Legacy umbrella: graph, trace, JAX caches |

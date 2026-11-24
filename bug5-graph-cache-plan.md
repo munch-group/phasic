@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.6, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.7, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -92,9 +92,10 @@ changes. The `cache_key` docstring states this with an example.
     for every entry that exists but cannot be used (malformed JSON or
     encoding, wrong shape or `format`, a non-ndarray type tag,
     `from_serialized` failing): `GraphCacheLoadError` naming the file and
-    the ways out. Rationale: writes are atomic and the format and the
-    phasic build are inside the key, so an unusable entry can only come
-    from disk corruption, tampering or a phasic bug; none of these should
+    the ways out. Rationale: writes are atomic and durable (`fsync`
+    before the rename, §2.6) and the format and the phasic build are
+    inside the key, so an unusable entry can only come from disk or
+    file-system corruption, tampering or a phasic bug; none of these should
     be hidden behind a silent rebuild, and the user decides (delete the
     file, clear the cache, or change `cache_key`). There is no
     warn-and-rebuild path. Nothing inside `Graph.__init__` catches
@@ -102,13 +103,17 @@ changes. The `cache_key` docstring states this with an example.
     Nothing after `super().__init__(cached_graph)` is inside a `try`: an
     error while restoring attributes on a hit propagates;
   - hit: the current restore sequence (`:1689-1723`) runs, plus
-    `self._graph_cache_entry = entry_key`;
-  - miss: build as today, then `GraphCache().save(self, entry_key, meta)`
-    and `self._graph_cache_entry = entry_key`. A write failure raises
-    `OSError` naming the path (the graph built correctly, but caching
-    was requested and could not happen). The built graph is attached to
-    the exception as `e.graph` and the message says so, so an hours-long
-    build is not lost (still an error, not a silent fallback).
+    `self._graph_cache_entry = <entry path>` (the resolved file path, so
+    `clear_from_cache` finds it even if `PHASIC_CACHE_DIR` changes later);
+  - miss: build as today, then `GraphCache().save(self, entry_key, meta)`;
+    only after it returns, `self._graph_cache_entry = <entry path>`. ANY
+    `Exception` from `save()` (an `OSError` from the write, or for example
+    `serialize()` failing or a `MemoryError` while encoding a 600k-vertex
+    graph) propagates with its type unchanged (an `OSError` keeps its
+    subclass and gains a message naming the path), with the built graph
+    attached as `e.graph` and the message saying so, so an hours-long
+    build is not lost (still an error, not a silent fallback);
+    `self._graph_cache_entry` stays `None` on that object.
 - `cache_key` is never passed to the callback.
 
 ### 2.2 The entry key (`callback_hash.py`, rewritten)
@@ -116,7 +121,16 @@ changes. The `cache_key` docstring states this with an example.
 `cache_entry_key(cache_key, callback, **params) -> str`: the first 32 hex
 characters of SHA-256 over a TOKEN STREAM. Every token is written as
 `<tag>:<len>:<payload>` with the payload's byte length, so no two token
-sequences can produce the same bytes. Components in order:
+sequences can produce the same bytes. That alone does not make the
+VALUE -> token-sequence map one-to-one (a literal implementation gives
+`[[1],2]` and `[[1,2]]` the same stream, review B p2), so EVERY composite
+token carries its element count before its elements: list, tuple, dict
+(entry count), frozenset constant, `co_consts`, `co_names` and the other
+tuple fields of a code object, `__defaults__`, `__kwdefaults__`, the
+closure (cell count), partial `args` / `keywords`, the kwargs block and
+an array's shape (dimension count). Together with the tags this makes
+the stream prefix-free, so distinct structures always give distinct
+streams. Components in order:
 1. `GRAPH_CACHE_FORMAT = "2"` (replaces `PHASIC_CALLBACK_VERSION`);
 2. Python `sys.version_info[:2]` (bytecode is version-specific);
 3. the phasic build id (§2.2.3);
@@ -168,6 +182,11 @@ function already visited contributes a back-reference token)
   refused).
 - anything else callable (other class, callable instance without
   `to_dict`): NOT FINGERPRINTABLE.
+- a MODULE object (not callable; for example the cell a local
+  `import numpy as np` inside a factory creates): module-name token,
+  ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
+  module global, whose contents are the user's responsibility under the
+  contract. (Value rule 6b below.)
 - Recursion: the visited set maps each function to its first-visit
   index; a revisit contributes a back-reference token carrying that
   index, so different recursion shapes give different streams.
@@ -210,6 +229,7 @@ longer used, so callbacks without accessible source can be cached.
 6. any callable that §2.2.1 admits (Python function, bound method,
    partial, and builtins/ufuncs under exactly §2.2.1's conditions):
    FUNCTION FINGERPRINT; §2.2.1 and this rule are one rule;
+   6b. a module object under §2.2.1's module rule: module-name token;
 7. a class object (`isinstance(x, type)`): the immutable-compiled-type
    token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
@@ -224,7 +244,10 @@ longer used, so callbacks without accessible source can be cached.
    (`docs/pages/tutorial/state-space.ipynb` cell 44) and that
    `StateIndexer` implements (`state_indexing.py:1850`, which covers the
    same structure as its `__eq__`/`__hash__`, review4);
-9. anything else: NOT FINGERPRINTABLE.
+9. anything else: NOT FINGERPRINTABLE. This includes dataclass
+   instances without `to_dict()` (for example phasic's own `HexCell`;
+   `HexGrid` has no `to_dict` either): the error advises adding a
+   `to_dict()` (for a dataclass, `dataclasses.asdict(self)` is enough).
 Recursion is bounded: a depth limit of 100, and a cycle check against the
 ids of the containers / `to_dict()` objects on the CURRENT PATH from the
 root only (pushed on entry, popped on exit). A process-wide seen-set is
@@ -285,10 +308,12 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
   at `import phasic`, next to the import-time `get_config()`
   (`__init__.py:133`), saying it no longer has an effect.
 - `graph_cache.is_graph_cache_disabled` is deleted.
-- `PHASIC_DISABLE_CACHE` (still read by `trace_serialization.is_cache_disabled`
-  and set temporarily by `profile.py:158-173`) does NOT affect
-  `cache_key`: an explicit `cache_key` always caches. Stated in the
-  `cache_key` docstring.
+- `PHASIC_DISABLE_CACHE` is read NOWHERE in `src/` (only set by
+  `profile.py:158-173`, mentioned in comments at `api/c/phasic.h:1021,
+  1034, 1326`; `trace_serialization.is_cache_disabled` reads
+  `PHASIC_REWARD_COMPUTE_CACHE`, `:85-102`). It therefore does not affect
+  `cache_key`, which always caches; the docstring says so and the test
+  only guards against a future reader.
 - While the `Graph.__init__` docstring is edited: its examples at
   `:1579-1581` use a nonexistent `cache=True`; they are corrected.
 - `cache.py:26-28` docstring ("on by default") reworded.
@@ -296,8 +321,13 @@ review 4) is memoised, computed on the first key computation. `.cpp` /
 ### 2.5 Cache location
 
 `GraphCache()` with no argument resolves its directory when constructed:
-`cache._cache_root() / "graphs"` when `PHASIC_CACHE_DIR` is set AND
-non-empty (the same rule as `cache.py:73-74` and the C side,
+`Path(env) / "graphs"` when `PHASIC_CACHE_DIR` is set AND
+non-empty, implemented INLINE in `graph_cache` (3 lines, with a comment)
+and NOT by importing `phasic.cache`: that module imports
+`trace_serialization` at module level, which imports `phasic_pybind`
+(`cache.py:48-50`, `trace_serialization.py:47-48`), and `graph_cache` is
+imported at `__init__.py:53`, before `OMP_NUM_THREADS` is set (review B
+p1). Same rule as `cache.py:73-74` and the C side,
 `phasic.c:3891`, which treat an empty value as unset; written by `configure(cache_dir=...)` via `validate()`,
 `config.py:819-845`, and read by the C caches), otherwise the module
 attribute `DEFAULT_CACHE_DIR`, read at call time. Tests isolate with
@@ -333,8 +363,8 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
   `*.json`; the kernel applies the process umask and any default ACL of
   the directory, as for today's `open()`, so no umask is read or changed
   (reading it with `os.umask` would briefly change it process-wide while
-  JAX/OpenMP threads run), and no `mkstemp` 0600 mode), write, close,
-  `os.replace` to `<entry_key>.json`; on any exception the
+  JAX/OpenMP threads run), and no `mkstemp` 0600 mode), write,
+  `os.fsync(fd)`, close, `os.replace` to `<entry_key>.json`; on any exception the
   temporary file is removed before the error propagates. Two concurrent
   writers each replace atomically; a reader sees a complete file or none
   (shared SLURM directories are a documented use,
@@ -369,7 +399,8 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 
 (`_graph_cache_mgmt.py:70-91`; this parameter selects which cache to
 clear and is unrelated to the removed option, so it stays.) Uses
-`getattr(self, "_graph_cache_entry", None)`. No entry (built without
+`getattr(self, "_graph_cache_entry", None)`, which holds the entry's
+file PATH resolved at construction (not just the key). No entry (built without
 `cache_key`) -> `removed["graph_cache"] = 0`, documented. A graph not
 built from a callback still raises as today.
 
@@ -389,7 +420,14 @@ and additionally monkeypatches `graph_cache.DEFAULT_CACHE_DIR` to another
 `tmp_path` directory as a backstop. Test 14 checks both resolutions
 explicitly. Every subprocess gets `HOME` and `PHASIC_CACHE_DIR` pointing
 into `tmp_path`, so the gate (which runs with the real HOME) never
-touches the real cache. No test calls `phasic.clear_caches()` (it wipes
+touches the real cache. All subprocesses share one session-scoped
+`MPLCONFIGDIR` (from `tmp_path_factory`), so a fresh HOME does not
+rebuild matplotlib's font cache in each (15 s per import against 1.9 s,
+review B p4) and its stderr notice cannot interfere with output checks.
+The new names (`GraphCacheKeyError`, `GraphCacheLoadError`,
+`cache_entry_key`, ...) are imported INSIDE the tests, so on master the
+file collects and each test records its own outcome (test 21 can show
+its master pass). No test calls `phasic.clear_caches()` (it wipes
 `$HOME/.phasic_cache` and `$HOME/.jax_cache` regardless of
 `PHASIC_CACHE_DIR`, `model_export.py:49,72`). A hit is
 proven by a spy on the callback (not called); "stale" is judged on
@@ -410,8 +448,10 @@ Expected to fail on master:
    isolated subprocesses (`PYTHONHASHSEED` 0 and 1) too.
 4. Different `cache_key`: miss.
 5. Keyword argument changed (int); long numpy array differing in one
-   middle element; dict with the same items in another insertion order:
-   miss, and correct.
+   middle element; dict with the same items in another insertion order;
+   nested structures with equal flattenings (`[[1],2]` vs `[[1,2]]`,
+   `{'a':{'b':1},'c':2}` vs `{'a':{'b':1,'c':2}}`, `[[[3,0],1]]` vs
+   `[[[3,0]],1]`): miss, and correct.
 6. ipv changed (`ipv=` and `with_ipv` forms): miss.
 7. Callback body changed (new function object from source with one
    constant changed): miss. Comment- and whitespace-only edit: hit.
@@ -443,7 +483,11 @@ Expected to fail on master:
     not from `__self__`).
 12. Values the key accepts that the old entry format could not store
     (`np.bool_`, complex, bytes keyword arguments) and an int above 4300
-    digits: build, save and hit work.
+    digits held INSIDE a list kwarg and as a closure default (a top-level
+    int kwarg is converted to float before the callback, `__init__.py:
+    1743-1745`, which overflows with or without a cache): build, save and
+    hit work. A module captured in a closure cell (local
+    `import numpy as np` in a factory): hits.
 13. `_phasic_build_id` monkeypatched to another value: miss. A recorded
     stat changed after import, simulated by monkeypatching the RECORDED
     stat table (never by touching installed files), both before the first
@@ -451,10 +495,15 @@ Expected to fail on master:
     restart.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
     and with it set to `""`: entry under the monkeypatched
-    `DEFAULT_CACHE_DIR` (never a relative `graphs/`). `import phasic` in
-    a subprocess: `graph_cache` does not import `phasic_pybind` before
-    `OMP_NUM_THREADS` is set (checked by an import hook recording the
-    order).
+    `DEFAULT_CACHE_DIR` (never a relative `graphs/`). Import order: a
+    subprocess whose env has `OMP_NUM_THREADS` REMOVED (the pytest process
+    has it set by phasic, `__init__.py:107-108`, and children inherit it)
+    runs `import phasic` with a `sys.meta_path` hook that records, when
+    `phasic.phasic_pybind` is first imported by anyone, whether
+    `OMP_NUM_THREADS` is already set; the test asserts it is. The check is
+    shown to work by running the same hook once on a deliberate violation
+    (a stubbed package importing `phasic.cache` first, as in review B p1),
+    where it must report the violation.
 15. Unusable entries raise `GraphCacheLoadError` naming the file, with
     the original chained, the callback NOT called and the file left in
     place: truncated JSON; invalid UTF-8 bytes; a valid JSON list; a dict
@@ -477,9 +526,12 @@ Expected to fail on master:
     made non-searchable instead (permissions restored in a `finally`,
     skipped as root), the message says "owner unknown" and the original
     is chained.
-16. Write failure (`os.replace` monkeypatched to raise): `OSError` with
-    the path and `e.graph` equal to a fresh build (same `serialize()`),
-    and no `.partial` file left in the directory. A stray
+16. Write failure (`os.replace` monkeypatched to raise
+    `PermissionError`): the same `PermissionError` subclass, the path in
+    the message, `e.graph` equal to a fresh build (same `serialize()`),
+    `e.graph._graph_cache_entry is None`, and no `.partial` file left in
+    the directory. `serialize` monkeypatched to raise `RuntimeError`
+    during save: `RuntimeError` with `e.graph` set. A stray
     `.tmp-x.partial` file with an mtime two hours old is removed by
     `GraphCache().clear()`; one with a current mtime is kept; neither is
     counted by `get_cache_stats()`.
@@ -490,7 +542,8 @@ Expected to fail on master:
 19. `clear_from_cache()` removes the entry of a `cache_key` graph (built
     on a miss and on a hit) and reports 0 for a graph without one (its
     `parameterized_reward_compute` half runs against the redirected
-    `PHASIC_CACHE_DIR`).
+    `PHASIC_CACHE_DIR`); after changing `PHASIC_CACHE_DIR` between build
+    and clear, the entry is still found and removed (path stored).
 20. `PHASIC_DISABLE_GRAPH_CACHE=1`: subprocess `import phasic` emits the
     `UserWarning`. `PHASIC_DISABLE_CACHE=1` with `cache_key`: the entry
     is still written and hit.
@@ -500,7 +553,9 @@ Contract pin (documents the user's responsibility):
     cached graph is returned. Expected on master: also the cached graph.
 
 Existing tests edited (asserted behaviour unchanged; only the way the
-cache is requested and isolated changes):
+cache is requested and isolated changes). Each edited test that relies on
+a HIT gains a spy on `GraphCache.load` (non-`None` result) or on the
+callback (not called), so a silent miss can no longer pass (review B 12):
 - `test_graph_cache.py::TestCacheHitPreservesCallback` (2 tests):
   `graph_cache=True` -> `cache_key=...`, `graph_cache=False` -> removed,
   plus `setenv("PHASIC_CACHE_DIR", tmp)`. The first test's callback
@@ -547,7 +602,12 @@ behaviour and is never edited. The only remaining hits allowed are the new API,
 `per_thread_graph_cache` / `param_compute_graph_cache`,
 `clear_from_cache(graph_cache=...)`, and module/function names of the
 graph-cache helpers. Known now: `experiments/dr_discretize_cpp_sizes.py:26`
-and `experiments/dr_d1_e0_scale.py:424-426` (drop the argument);
+(drop the argument) and `experiments/dr_d1_e0_scale.py:371` and
+`:424-426` (`PHASIC_DISABLE_GRAPH_CACHE` in an env-var list and in
+`prep_env`: remove the variable, otherwise the child prints the new
+import warning). `tests/pytest/test_slurm_multi_node_ffi.py:311, 328,
+367, 384` also call `phasic.clear_caches()`; they are skipped without
+SLURM and outside this fix, listed in `found-defects` instead;
 `docs/api/Graph.qmd`, `configure.qmd`, `get_config.qmd`,
 `PhasicConfig.qmd` are generated (regenerated with `pixi run api` if that
 runs cleanly in the worktree; otherwise listed for the user).
@@ -565,9 +625,12 @@ and 5,823 vertices (b2 models) AND at a typical size (coalescent
 ~18k and ~53k vertices; review A measured on master's JSON format:
 build 3.2 s / 11.3 s, save 1.4 s / 4.6 s, entry 22 MB / 75 MB, load
 0.75 s / 2.7 s, peak RSS 0.47 / 0.8 GB), plus the import-time stat
-recording on its own. Expectation stated in the docstring: roughly
-linear, about 0.9 GB and ~35 s per load at 600k sparse vertices, more
-for dense (two-locus) models.
+recording on its own. Expectation stated in the docstring, with file
+size and memory given separately: roughly linear; at 600k sparse
+vertices an entry file of about 0.85 GB, ~35 s per load, and a load-time
+process peak of about 5 GB (extrapolated from 0.8 GB at 53k, review B 8);
+more for dense (two-locus) models. The 53k measurement is repeated on the
+new format and reported.
 The untracked `fakehome*` and `review3` directories are never committed
 (review evidence is committed only as scripts + logs, under 1 MB).
 
@@ -597,7 +660,11 @@ Text to revise (not raising):
   `tutorial/python_trace-and-jax-caching.ipynb` cell 20 and
   `tutorial/configuration.ipynb` cell 29, which describe
   `PHASIC_DISABLE_CACHE` / a nonexistent `cache_enabled` field as
-  disabling on-disk caching (should say it does not affect `cache_key`).
+  disabling on-disk caching; also `tutorial/configuration.ipynb` cells 5
+  and 6 (text and table row) and
+  `tutorial/trace-and-jax-caching-c-path.ipynb` cell 26 ("honours
+  PHASIC_DISABLE_CACHE=1"). The variable has no effect anywhere in
+  phasic; the text should say so.
 - Saved OUTPUTS only (harmless, refreshed on re-run):
   `tutorial/configuration.ipynb` cells 4, 19 and `tutorial/mpfr.ipynb`
   cell 6 show `graph_cache` in printed configuration.
@@ -620,7 +687,8 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   that field; the protocol docstring says it must describe everything the
   callback reads from the object.
 - Callbacks that capture unfingerprintable objects in closures can no
-  longer be cached (explicit error with ways out).
+  longer be cached (explicit error with ways out); notably dataclass
+  instances without `to_dict()` (phasic's `HexCell` / `HexGrid`).
 - A docstring edit misses (constant in the code object): extra build,
   never a stale graph.
 - Callbacks capturing a `scipy.special` ufunc (or any compiled callable
@@ -682,3 +750,14 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   SIMPLIFICATION beyond the findings: every unusable entry now raises
   `GraphCacheLoadError` (no warn-and-rebuild path; `GraphCacheEntryError`
   removed), for the reason stated in §2.1.
+- Independent review B -> v2.7: 1 element counts in every composite
+  token (prefix-free stream), test 5 nested cases; 2 cache-dir rule
+  inlined, `phasic.cache` not imported by `graph_cache`; 3 import-order
+  test without inherited `OMP_NUM_THREADS`, with a negative control;
+  4 big int inside a list / default; 5 `PHASIC_DISABLE_CACHE` is read
+  nowhere, three more notebook cells; 6 `e.graph` on any `Exception`
+  from `save`, entry stays `None`; 7 shared `MPLCONFIGDIR`; 8 file size
+  vs peak RSS at 600k; 9 `fsync` before rename; 10 modules in cells
+  keyed by name, dataclass refusal documented; 11 grep list and SLURM
+  `clear_caches` callers; 12 hit spies in edited tests; 13 entry path
+  stored; 14 new names imported inside tests.

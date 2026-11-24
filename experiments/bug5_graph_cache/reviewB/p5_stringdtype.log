@@ -1,0 +1,8 @@
+numpy 2.4.3
+dtype.str: 'StringDType()' hasobject: True fields: None kind: T itemsize: 16
+long strings, different content -> same tobytes(): True
+long strings, same content, new array -> same tobytes(): True
+short strings, different content -> same tobytes(): False
+example bytes (long a): 01000000000000002800000000000040
+example bytes (long b): 01000000000000002800000000000040
+[runcap] exit 0, peak RSS 2 MB, 1s
