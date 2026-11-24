@@ -1,0 +1,16 @@
+phasic from /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+A direct pdf(2): RAISE RuntimeError: "Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?\n"
+A rt[0,0,1,0] pdf(1..4): OK -> [0.25, 0.125, 0.0625, 0.03125]
+A rt[0,0,1,0] row sums: OK -> [1.0, 0.5, 0]
+A2 neg weight direct pdf: OK -> 0.25
+A2 neg rt[0,0,1,0] pdf: RAISE RuntimeError: 'Failed to clone edge at vertex 1'
+B direct pdf: RAISE RuntimeError: "Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?\n"
+B rt ones pdf/cdf: RAISE RuntimeError: "Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?\n"
+B rt [0,1,1,0] cdf100: RAISE RuntimeError: "Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?\n"
+B rt [0,2,1,0] cdf100: RAISE RuntimeError: "Expected vertex with index 0 (starting vertex) (state 0) to have outgoing rate <= 1. Is '1.500000'. Are you sure this is a discrete phase-type distribution?\n"
+B expectation: OK -> 2.6666666666666665
+C random rows: neg_pmf=0 neg_stop=372 maxcdf-1=4.441e-16
+D grad at 5e-8: OK -> [59999997.00000004]
+D grad at 0.5: OK -> [-1.66533454e-09]
+E huge weights pdf: RAISE RuntimeError: "Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is 'inf'. Are you sure this is a discrete phase-type distribution?\n"
+[runcap] exit 0, peak RSS 394 MB, 4s
