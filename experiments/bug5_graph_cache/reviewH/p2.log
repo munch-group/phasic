@@ -1,0 +1,10 @@
+numpy 2.4.3
+a type is ndarray: True dtype.str: 'StringDType()' hasobject: True fields: None kind: T
+   tobytes: 01000000000000001c0000000000004078000000000000000000000000000061
+b type is ndarray: True dtype.str: 'StringDType()' hasobject: True fields: None kind: T
+   tobytes: 01000000000000001c0000000000004079000000000000000000000000000061
+rule-3 fingerprints equal for different content: False
+arrays equal: False
+short strings fp equal: False
+element type: <class 'str'> is np.generic: False
+[runcap] exit 0, peak RSS 3 MB, 1s

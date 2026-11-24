@@ -1,0 +1,14 @@
+## master
+first OMP set: False
+     p3_import_order.py:29 <module>
+     __init__.py:53 <module>
+     graph_cache.py:29 <module>
+     logging_config.py:253 get_logger
+     logging_config.py:200 setup_logging
+[runcap] exit 0, peak RSS 317 MB, 4s
+## simfix
+BLOCKED (graph_cache body) OMP set: None
+first OMP set: True
+     p3_import_order.py:29 <module>
+     __init__.py:279 <module>
+[runcap] exit 0, peak RSS 324 MB, 3s

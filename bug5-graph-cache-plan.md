@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.3, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.4, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -93,7 +93,8 @@ deterministic functions of their inputs). The
 
 ### 2.1 `Graph(..., cache_key=None)`
 
-- Signature: `Graph(arg, ipv=None, cache_key=None, **kwargs)`; the
+- Signature: `Graph(arg, ipv=None, *, cache_key=None, **kwargs)`
+  (`cache_key` keyword-only); the
   `graph_cache` parameter is removed. `self._graph_cache_entry = None`
   is set at the top of `__init__`.
 - `graph_cache=` passed: `TypeError` saying it was removed and that
@@ -173,7 +174,13 @@ the stream prefix-free, so distinct structures always give distinct
 streams. Components in order:
 1. `GRAPH_CACHE_FORMAT = "2"` (replaces `PHASIC_CALLBACK_VERSION`);
 2. Python `sys.version_info[:2]` (bytecode is version-specific);
-3. the phasic build id (§2.2.3);
+3. the phasic build id (§2.2.3) and `numpy.__version__` (the state
+   arrays the callback receives are numpy arrays phasic creates, and
+   scalar promotion changed between numpy 1.x and 2.x, NEP 50, while the
+   same phasic build can run against either). Bit-equality of a hit with
+   a fresh build is otherwise only promised on the same machine type
+   (numpy's SIMD math can differ by a few ULPs between CPUs); stated in
+   the docstring;
 4. `cache_key`;
 5. FUNCTION FINGERPRINT of the callback as passed to the C builder, i.e.
    after the `_callback(ipv)` wrapping (`:1666-1671`). The wrapper's
@@ -295,7 +302,9 @@ longer used, so callbacks without accessible source can be cached.
    limit); `float` via `float.hex`; `complex` via the hex of both parts.
    Subclasses do not match here: `np.float64` (a `float` subclass) goes
    to rule 2, and `IntEnum` members and other subclasses are refused;
-2. numpy scalar (`np.generic` subclass): `x.dtype.str` + `tobytes()`;
+2. numpy scalar, EXACT type only (`type(x) is x.dtype.type`; a Python
+   subclass of a numpy scalar can override arithmetic and carries a
+   `__dict__`, review H p6, and is refused): `x.dtype.str` + `tobytes()`;
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
    refused;
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
@@ -324,15 +333,23 @@ longer used, so callbacks without accessible source can be cached.
    is refused explicitly);
 8. phasic's own value types, EXACT class only, and only in their
    plain, unextended form:
-   - `Property`: `type(p) is Property`; keyed by ALL four dataclass
+   - `Property` (standalone or inside an indexer, same rule everywhere):
+     `type(p) is Property` AND `set(vars(p))` equal to its four dataclass
+     fields (a frozen dataclass still has a `__dict__`, so an instance
+     attribute such as an `encode_value` override set via
+     `object.__setattr__` is otherwise invisible); keyed by ALL four
      fields (`name`, `min_value`, `max_value`, `offset`), since `offset`
      takes part in `__eq__` and is readable by a callback
      (`state_indexing.py:97`).
    - `StateIndexer`: admitted only if ALL of:
      (a) `type(ix) is StateIndexer`, every PropertySet has
      `type(ps) is PropertySet` or `type(ps) is StateSpace`
-     (`state_indexing.py:220`, `:2204`), and every Property passes the
-     Property rule;
+     (`state_indexing.py:220`, `:2204`), and EVERY Property the indexer
+     can reach passes the Property rule: the entries of each
+     `properties` list AND the values of each `property_dict` (which
+     `props_to_index` validates through, `:533`); every slot reachable
+     through `_slots` has `type(slot) is Slot`, `set(vars(slot))` equal
+     to that of a fresh `Slot`, and `slot.name` equal to its key;
      (b) attribute NAMES within allow-lists: for the indexer and for each
      PropertySet, the attributes of a freshly built object PLUS the
      documented lazily added ones (`_props_dataclass`, added on the first
@@ -357,9 +374,9 @@ longer used, so callbacks without accessible source can be cached.
      `[p.name for p in ps.properties]`. Each Property must have
      `set(vars(p))` equal to its four dataclass fields (a frozen
      dataclass still has a `__dict__`, so extra attributes are
-     otherwise invisible), and each slot in `_slots` must have
-     `type(slot) is Slot` (`state_indexing.py:193`; subclasses are
-     accepted by the constructor at `:855-862`). Any exception raised
+     otherwise invisible; same check as (a)), and each slot is checked as
+     in (a) (`state_indexing.py:193`; subclasses are accepted by the
+     constructor at `:855-862`). Any exception raised
      while running (c) (for example `AttributeError` for a missing
      attribute on an old pickled indexer, since `__getattr__` raises for
      `_` names, `:996-998`) is re-raised as `GraphCacheKeyError` (path
@@ -373,9 +390,10 @@ longer used, so callbacks without accessible source can be cached.
      once, `:281`, `:288-289`, `:906-924`; measured: equal `to_dict()`,
      5 vs 7 vertices, review F p3) or the compared values overwritten.
      Keyed as: class token, PropertySet class names in order, then the
-     VALUE FINGERPRINT of `to_dict()` with each Property's `offset`
-     added separately (behaviour is fixed by the folded min/max that
-     (c) checks; `offset` is keyed because a callback can read it). Anything that
+     VALUE FINGERPRINT of `to_dict()`, followed by a counted list of
+     every Property's `offset` in `to_dict()` property order (behaviour
+     is fixed by the folded min/max that (c) checks; `offset` is keyed
+     because a callback can read it). Anything that
      fails (a)-(c) is NOT FINGERPRINTABLE, with an error naming the
      failing check (an extra attribute, a subclass, or "indexer state
      differs from its to_dict(); was its property list changed after
@@ -391,8 +409,13 @@ longer used, so callbacks without accessible source can be cached.
    instances (phasic's `HexCell` / `HexGrid` too) and bound methods of
    such instances. The error advises passing the values the callback
    needs as plain values (numbers, strings, lists, dicts, numpy arrays),
-   for example `model.to_dict()` or `df.to_numpy()` plus labels as lists,
-   or building without `cache_key`.
+   for example `model.to_dict()`, or numeric DataFrame columns via
+   `to_numpy()` with labels as lists (a mixed or string frame's
+   `to_numpy()` is an object array, refused), or building without
+   `cache_key`. The docstring lists the common refusals so they are not
+   a surprise: `range`, `frozenset`, `defaultdict` / `OrderedDict`
+   values, `pathlib.Path`, `jax.Array`, `operator.itemgetter`, a local
+   `lru_cache` helper in a closure, nesting deeper than 100.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
@@ -418,12 +441,12 @@ handler setup left to the existing package-level call. (In this env
 libomp is already loaded by numpy/pandas, so the guarded property is the
 order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
-(`__init__.py:279`), a call `graph_cache._record_build_stats()` at the end
+(`__init__.py:279`), a call `callback_hash._record_build_stats()` at the end
 of `phasic/__init__.py` (which NEVER raises at import: any failure, for
 example a file vanishing between listing and `stat`, is stored and
 raised as `GraphCacheKeyError` by the first key computation, so
 `import phasic` cannot break for users who never cache; a missing
-record, for example after `importlib.reload(phasic.graph_cache)`, also
+record, for example after `importlib.reload(phasic.callback_hash)`, also
 raises `GraphCacheKeyError` rather than skipping the check) records
 `(path, size, mtime_ns)` for
 the extension module located by `phasic.phasic_pybind.__file__` (not by
@@ -432,15 +455,25 @@ computation raises `GraphCacheKeyError`, so an editable or source-tree
 layout can never silently leave the extension out of the id) and every
 `*.py` file in the package directory of `phasic.__file__` (a few dozen
 `stat` calls; no
-reading). EVERY key computation re-stats those files (measured 2.1 ms,
-review 5) and compares with the record; if any stat changed since import
+reading). EVERY key computation RE-LISTS the package directory and
+re-stats the files (measured 2.1 ms for the stats, review 5) and compares
+with the record; if a file was added or removed, or any stat changed
+since import
 (for example `install-dev` ran under a live kernel), `GraphCacheKeyError`:
 "phasic was reinstalled after it was imported; restart the interpreter".
 Recording in `graph_cache`'s module body would be wrong: that module is
 imported at `__init__.py:53`, before `OMP_NUM_THREADS` is set at
 `:107-108`, and touching `phasic_pybind` there would load the native
 library and libomp too early (review A F). Only the content hash (measured: 52 .py + the .so, 3.49 MB, 11.9 ms;
-review 4) is memoised, computed on the first key computation. `.cpp` /
+review 4) is memoised, computed on the first key computation. It is
+computed with the same counted, length-prefixed framing as the key: for
+each file in sorted relative-path order its relative path, its size and
+its bytes, so moving text from the end of one module to the start of the
+next (an extraction refactor) changes the id. OWNERSHIP: the build id
+lives in `callback_hash` (`_record_build_stats`, `_phasic_build_id`,
+the recorded table), which imports nothing from `graph_cache`;
+`graph_cache` imports `callback_hash` (as today, `graph_cache.py:26`),
+so there is no import cycle. `.cpp` /
 `.h` files shipped in the package directory are not part of the id
 (graph construction goes through the compiled extension only).
 
@@ -708,7 +741,11 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     `update_wrapper` object as kwargs/cells, an `IntEnum` member. An
     indexer already used by a build (`index_to_props` called): hits.
     `np.float64(1.0)` vs `1.0` inside a list: different keys. A
-    `StateSpace`-based indexer: hits. Admitted and hit: an indexer with
+    `StateSpace`-based indexer: hits. Refused: a Python subclass of
+    `np.float64` (alone and in a list), a `Property` subclass placed in a
+    `property_dict` with the same triple, a standalone `Property` kwarg
+    with an instance attribute set via `object.__setattr__`, a slot whose
+    `name` differs from its key. Admitted and hit: an indexer with
     a deprecated `offset` Property, one built from a TUPLE of
     properties, `a + b` composition with an interleaved slot,
     `append(prefix_other=...)`, and the `add_epoch` / `joint_prob_graph`
@@ -725,7 +762,7 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     1743-1745`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
-13. `graph_cache._phasic_build_id()` (the memoised content hash of
+13. `callback_hash._phasic_build_id()` (the memoised content hash of
     §2.2.3, named here) monkeypatched to another value: miss. A recorded
     stat changed after import, simulated by monkeypatching the RECORDED
     stat table (never by touching installed files), both before the first
@@ -734,7 +771,11 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     one: `GraphCacheKeyError` mentioning restart. A failure stored by
     `_record_build_stats` (monkeypatched) and a missing record: both
     `GraphCacheKeyError` at the first key computation, while
-    `import phasic` itself succeeded.
+    `import phasic` itself succeeded. A module file added to the package
+    directory after import (simulated by monkeypatching the directory
+    listing): `GraphCacheKeyError`. The content hash differs when bytes
+    move across a file boundary (two temporary files, unit test of the
+    hashing helper). `numpy.__version__` monkeypatched: miss.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
     and with it set to `""` (HOME also monkeypatched to `tmp_path` for
     these cases, so nothing can reach the real HOME): entry under the
@@ -784,7 +825,8 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. `cache_key=3`, `cache_key=""`, `Graph(3, cache_key="x")` raise.
+18. `cache_key=3`, `cache_key=""`, `Graph(3, cache_key="x")` raise;
+    `Graph(cb, ipv, "name")` (positional) raises `TypeError`.
 19. `clear_from_cache()` removes the entry of a `cache_key` graph (built
     on a miss and on a hit) and reports 0 for a graph without one (its
     `parameterized_reward_compute` half runs against the redirected
@@ -1102,3 +1144,12 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   exceptions; 5 bare PropertySet refusal in §6; 6 hash-randomised
   callbacks outside the contract; 7 pin test on used objects, review-5
   history moved out of §6, line 1670; 8 `_graph_cache_mgmt.py:21, 81-83`.
+- Independent review H -> v3.4: 1 numpy scalars exact type only
+  (`type(x) is x.dtype.type`); 2 the Property / Slot checks cover every
+  reachable object (`property_dict` values, slots) and a standalone
+  Property; 3 build id hashed per file with path and size framing,
+  directory re-listed on every check; 4 `numpy.__version__` in the key,
+  machine-type caveat documented; 5 common refusals listed in the
+  docstring, DataFrame advice corrected; 6 build id owned by
+  `callback_hash` (no import cycle); 7 offsets as a counted list after
+  `to_dict()`; 8 `cache_key` keyword-only.

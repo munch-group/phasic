@@ -1,0 +1,31 @@
+len                                        type=builtin_function_or_method   arm=builtin    module='builtins'             qual='len'                          self=module     immutable=None resolves_same=True
+math.sqrt                                  type=builtin_function_or_method   arm=builtin    module='math'                 qual='sqrt'                         self=module     immutable=None resolves_same=True
+operator.add                               type=builtin_function_or_method   arm=builtin    module='_operator'            qual='add'                          self=module     immutable=None resolves_same=True
+np.exp                                     type=ufunc                        arm=ufunc      module='numpy'                qual='exp'                          self=absent     immutable=None resolves_same=True
+np.add                                     type=ufunc                        arm=ufunc      module='numpy'                qual='add'                          self=absent     immutable=None resolves_same=True
+np.sum                                     type=_ArrayFunctionDispatcher     arm=dispatcher module='numpy'                qual='sum'                          self=absent     immutable=None resolves_same=True
+np.linalg.solve                            type=_ArrayFunctionDispatcher     arm=dispatcher module='numpy.linalg'         qual='solve'                        self=absent     immutable=None resolves_same=True
+np.where                                   type=_ArrayFunctionDispatcher     arm=dispatcher module='numpy'                qual='where'                        self=absent     immutable=None resolves_same=True
+np.array                                   type=builtin_function_or_method   arm=builtin    module='numpy'                qual='array'                        self=module     immutable=None resolves_same=True
+np.zeros                                   type=builtin_function_or_method   arm=builtin    module='numpy'                qual='zeros'                        self=module     immutable=None resolves_same=True
+np.arange                                  type=builtin_function_or_method   arm=builtin    module='numpy'                qual='arange'                       self=module     immutable=None resolves_same=True
+np.random.rand                             type=method                       arm=other      module='numpy.random'         qual='RandomState.rand'             self=RandomState immutable=None resolves_same=False
+frompyfunc                                 type=ufunc                        arm=ufunc      module=None                   qual=None                           self=absent     immutable=None resolves_same=False
+itertools.combinations_with_replacement    type=type                         arm=class      module='itertools'            qual='combinations_with_replacement' self=absent     immutable=True resolves_same=True
+itertools.product                          type=type                         arm=class      module='itertools'            qual='product'                      self=absent     immutable=True resolves_same=True
+itertools.combinations                     type=type                         arm=class      module='itertools'            qual='combinations'                 self=absent     immutable=True resolves_same=True
+dict                                       type=type                         arm=class      module='builtins'             qual='dict'                         self=absent     immutable=True resolves_same=True
+np.int64                                   type=type                         arm=class      module='numpy'                qual='int64'                        self=absent     immutable=True resolves_same=True
+np.ndarray                                 type=type                         arm=class      module='numpy'                qual='ndarray'                      self=absent     immutable=True resolves_same=True
+functools.partial (type)                   type=type                         arm=class      module='functools'            qual='partial'                      self=absent     immutable=True resolves_same=True
+functools.reduce                           type=builtin_function_or_method   arm=builtin    module='_functools'           qual='reduce'                       self=module     immutable=None resolves_same=True
+operator.itemgetter(1)                     type=itemgetter                   arm=other      module='operator'             qual=None                           self=absent     immutable=None resolves_same=False
+math.comb                                  type=builtin_function_or_method   arm=builtin    module='math'                 qual='comb'                         self=module     immutable=None resolves_same=True
+min                                        type=builtin_function_or_method   arm=builtin    module='builtins'             qual='min'                          self=module     immutable=None resolves_same=True
+sorted                                     type=builtin_function_or_method   arm=builtin    module='builtins'             qual='sorted'                       self=module     immutable=None resolves_same=True
+range (type)                               type=type                         arm=class      module='builtins'             qual='range'                        self=absent     immutable=True resolves_same=True
+scipy.special.gamma                        type=ufunc                        arm=ufunc      module=None                   qual=None                           self=absent     immutable=None resolves_same=False
+scipy.special.comb                         type=function                     arm=other      module='scipy.special._basic' qual='comb'                         self=absent     immutable=None resolves_same=True
+scipy.special.binom                        type=ufunc                        arm=ufunc      module=None                   qual=None                           self=absent     immutable=None resolves_same=False
+pandas is_scalar type: cython_function_or_method is FunctionType: False has __code__: True
+[runcap] exit 0, peak RSS 87 MB, 1s
