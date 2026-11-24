@@ -69,14 +69,15 @@ end with the Co-Authored-By line; the user pushes.
    objects pickled by reference, two lambdas on one line, source edited
    after import) and refuses any callback using a `StateIndexer` (not
    picklable). Reviewers 2 and 3 were cut off; partial evidence may be in
-   `review2/`, `review3/`. Next step: redesign more simply — candidate:
-   drop the callback-keyed cache and offer an explicit user-supplied
-   `cache_key=` (or explicit save/load of a built graph) — write plan v2,
-   one reviewer. Also from review 1: `config.py:465` encodes the default
-   too; the graph cache ignores `cache_dir`; compute the key once per
-   construction; tests must monkeypatch `graph_cache.DEFAULT_CACHE_DIR`.
-   Open user decision: what explicit `graph_cache=True` does when the cache
-   is disabled globally (raise / warn / silent).
+   `review2/`, `review3/`. USER DECISIONS 2026-11-24: D1 caching only via
+   a user-named entry `Graph(cb, ipv, cache_key="...")` (key = user string
+   + callback AST + kwargs/ipv by value incl. `to_dict()` objects + phasic
+   build id); `graph_cache=` removed. D2 the global switch
+   (`configure(graph_cache=)`, `PHASIC_DISABLE_GRAPH_CACHE`) removed.
+   Branch rebased on master (`5ef0d76c`), env rebuilt. Plan v2 committed
+   (`d94cef2c`), including the notebook cell list (§5); one Opus
+   reviewer running (evidence to `experiments/bug5_graph_cache/review4/`).
+   Gate baseline: `/Users/kmt/phasic-bug4/.gate_bug4`.
 
 ## To report to the user at the end
 
@@ -85,11 +86,11 @@ end with the Co-Authored-By line; the user pushes.
   with a slot fixed at 0 now raises the negative-rate error. Bug 3 — SVGD
   refuses BetaPrior with `positive_params=False`, MCMC keeps accepting it.
   Bug 4 — negative/non-finite weights and row sums above 1 + 1e-9 raise;
-  native discrete fits raise within 1e-7 of a bound. Bug 5 — cache becomes
-  opt-in.
+  native discrete fits raise within 1e-7 of a bound. Bug 5 — user-named
+  `cache_key=` replaces `graph_cache=`; global switch removed (D1, D2).
 - Defects found but not approved for fixing: `found-defects-2026-11-23.md`
   (plus the out-of-scope lists in the bug 4 plan §2.3).
 - Notebook cells needing the user's edits (model-selection.ipynb cell 13;
-  bug 5 list still to be produced).
+  bug 5 list in `bug5-graph-cache-plan.md` §5).
 - Parked: `fd-step-and-slow-band-guard-plan.md` v5, to be split into Plan A
   (gradient step) and Plan B (forward replacement) after the bugs.
