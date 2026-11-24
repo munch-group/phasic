@@ -1,0 +1,4 @@
+tags seen: {'ndarray'} | tape keys: ['consts', 'n_coeff', 'n_theta', 'ops', 'src', 'stack_depth']
+_set_weight_tape calls during from_serialized: 1 weight_mode: formula
+E fresh-with-formula / round-trip: 0.5531135531135529 0.5531135531135529
+[runcap] exit 0, peak RSS 301 MB, 4s

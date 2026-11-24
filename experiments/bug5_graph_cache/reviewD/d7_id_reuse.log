@@ -1,0 +1,4 @@
+rate 1.0 id 0x10499d4e0 closure [1.0]
+rate 5.0 id 0x10499d4e0 closure [5.0]
+same id for two different functions: True
+[runcap] exit 0, peak RSS 2 MB, 1s

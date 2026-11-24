@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.8, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.9, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -118,12 +118,18 @@ changes. The `cache_key` docstring states this with an example.
     subclass and gains a message naming the path), with the built graph
     attached as `e.graph` and the message saying so, so an hours-long
     build is not lost (still an error, not a silent fallback);
-    `self._graph_cache_entry` stays `None` on that object.
+    `self._graph_cache_entry` stays `None` on that object. When the
+    failure comes from `serialize()` itself (for example a callback
+    returning edges with mixed coefficient lengths builds but cannot be
+    serialised, review D d2), the note says this graph cannot be cached
+    and to drop `cache_key`.
 - `cache_key` is never passed to the callback.
 
 ### 2.2 The entry key (`callback_hash.py`, rewritten)
 
-`cache_entry_key(cache_key, callback, **params) -> str`: the first 32 hex
+`cache_entry_key(cache_key, callback, /, **params) -> str` (the first two
+parameters positional-only, so a user kwarg named `callback` or
+`cache_key` cannot collide with them): the first 32 hex
 characters of SHA-256 over a TOKEN STREAM. Every token is written as
 `<tag>:<len>:<payload>` with the payload's byte length, so no two token
 sequences can produce the same bytes. That alone does not make the
@@ -163,7 +169,9 @@ function already visited contributes a back-reference token)
   function (so decorator wrappers and captured helpers are covered).
 - bound method: FUNCTION FINGERPRINT of `__func__` + VALUE FINGERPRINT of
   `__self__`.
-- `functools.partial`: function, `args`, `keywords`.
+- `functools.partial`, EXACT type only (`type(x) is functools.partial`;
+  a subclass may override `__call__` and falls through to the later
+  rules or is refused): function, `args`, `keywords`.
 - builtin function, numpy ufunc / array-function dispatcher: module +
   qualified name token, ONLY IF `__self__` is `None` or a module AND
   resolving `__module__` + `__qualname__` (or `__name__` for ufuncs)
@@ -198,9 +206,15 @@ function already visited contributes a back-reference token)
   ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
   module global, whose contents are the user's responsibility under the
   contract. (Value rule 6b below.)
-- Recursion: the visited set maps each function to its first-visit
+- Recursion: the visited map maps each function to its first-visit
   index; a revisit contributes a back-reference token carrying that
-  index, so different recursion shapes give different streams.
+  index, so different recursion shapes give different streams. The map
+  is keyed by `id()` but HOLDS A STRONG REFERENCE to every visited
+  function, and every `to_dict()` result is kept alive in a list, both
+  until the key computation finishes, so a temporary freed mid-walk can
+  never have its id reused by a different function (which would turn it
+  into a back-reference and give two different inputs one stream,
+  review D d7).
 
 CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
@@ -215,8 +229,10 @@ constants by start/stop/step; other constants by VALUE FINGERPRINT
 `idx=(..., 0)` is covered); a constant type none of these
 covers raises `GraphCacheKeyError`, never a crash). `co_exceptiontable`
 is read with `getattr(co, "co_exceptiontable", b"")` (absent before
-3.11; `requires-python >= 3.10`, pixi pins < 3.14; only 3.13 is
-tested here). Excluded: `co_filename`,
+3.11; harmless defensiveness: `pyproject.toml:29` says
+`requires-python >= 3.10` but phasic already needs 3.11 to import
+(`from typing import Self`, `__init__.py:11`); pixi pins < 3.14; only
+3.13 is tested here). Excluded: `co_filename`,
 `co_firstlineno`, `co_linetable`, `co_qualname`. Consequences (all
 tested): this is the code that RUNS, so editing the file on disk without
 reloading changes nothing (review4 p1 D); comment lines, blank lines,
@@ -245,7 +261,7 @@ longer used, so callbacks without accessible source can be cached.
 5. exact `dict`: entry count, then entries in INSERTION order (a
    callback iterating a dict sees that order, so it can change the
    graph); each key by VALUE FINGERPRINT (any fingerprintable key: tuple
-   state keys, ints from pandas `to_dict()`), then its value. The key
+   state keys, int keys), then its value. The key
    reflects captured state AT CALL TIME: a closure-captured memo dict
    that the build fills is keyed as it was before that build (stated in
    the docstring);
@@ -260,7 +276,14 @@ longer used, so callbacks without accessible source can be cached.
    `__class__` cell from `super()` or a user class passed as an argument
    is refused explicitly, never called through an unbound `to_dict`);
 8. any other object with a callable `to_dict()` (including `dict`/`list`
-   subclasses that have one): class module + qualified name, then the
+   subclasses that have one), EXCEPT pandas objects (class module
+   starting with `pandas`): their `to_dict()` silently collapses
+   duplicate index labels and duplicate columns, so two different frames
+   share a result (review D d3); they are NOT FINGERPRINTABLE, with the
+   advice to pass `.to_numpy()` (plus labels as a list) or an explicit
+   dict. The `cache_key` docstring states the protocol's requirement: a
+   `to_dict()` must be one-to-one on everything the callback reads.
+   Keyed as: class module + qualified name, then the
    VALUE FINGERPRINT of what `to_dict()` returns; any `Exception` (not
    `BaseException`: `KeyboardInterrupt` / `SystemExit` pass through)
    raised inside `to_dict()` is re-raised as `GraphCacheKeyError` with
@@ -296,7 +319,13 @@ libomp is already loaded by numpy/pandas, so the guarded property is the
 order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
 (`__init__.py:279`), a call `graph_cache._record_build_stats()` at the end
-of `phasic/__init__.py` records `(path, size, mtime_ns)` for
+of `phasic/__init__.py` (which NEVER raises at import: any failure, for
+example a file vanishing between listing and `stat`, is stored and
+raised as `GraphCacheKeyError` by the first key computation, so
+`import phasic` cannot break for users who never cache; a missing
+record, for example after `importlib.reload(phasic.graph_cache)`, also
+raises `GraphCacheKeyError` rather than skipping the check) records
+`(path, size, mtime_ns)` for
 the extension module located by `phasic.phasic_pybind.__file__` (not by
 globbing; if it has no `__file__` or the file is missing, the first key
 computation raises `GraphCacheKeyError`, so an editable or source-tree
@@ -445,9 +474,11 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
     `RecursionError`, which say nothing about the file and propagate
     unchanged, as do `BaseException`s such as `KeyboardInterrupt`.
     The restricted decoder wraps EVERY `Exception` it meets (unknown tag,
-    `__type__` without `__data__`, ragged `__data__` making numpy raise,
-    wrong dtype string), except `MemoryError` / `RecursionError`, in
-    `GraphCacheLoadError`. Chaining uses `raise ... from e`.
+    `__type__` without `__data__`, ragged `__data__` making numpy raise),
+    except `MemoryError` / `RecursionError`, in `GraphCacheLoadError`
+    (a deeply nested tampered file can make `json.load` raise
+    `RecursionError`, which therefore propagates raw, by the same
+    exception rule). Chaining uses `raise ... from e`.
   The general `_deserialize_value` (which imports the module a tag names
   and calls its `from_dict`, review 7 A) is DELETED (no caller remains;
   `test_serialize_is_aux.py` moves to the restricted decoder), and
@@ -495,11 +526,14 @@ harmlessly and the outcome recorded on master reflects the real
 behaviour (on master `cache_key` is just ignored, and the default cache
 is on).
 
-Expected to fail on master (tests 3, 4 and 6 are REGRESSION GUARDS that
-also pass on master, which already puts `cache_key` into `repr(kwargs)`
-and the ipv into its key, `callback_hash.py:95-103,142-160`; they are
-listed here to keep the numbering and are labelled as guards in the
-file):
+Expected to fail on master, EXCEPT these REGRESSION GUARDS that also
+pass on master and are labelled as guards in the file: tests 3, 4 and 6
+(master already puts `cache_key` into `repr(kwargs)` and the ipv into
+its key, `callback_hash.py:95-103,142-160`), test 24 (master's
+`repr(kwargs)` is exact for small dicts with tuple or int keys), the
+`state[..., 0]` part of test 25 (master hashes the AST), and the
+`PHASIC_DISABLE_CACHE` half of test 20 (master ignores `cache_key` but
+caches by default):
 1. Default build is uncached: a module-level variable changed between two
    builds gives the correct second graph, and no file appears.
 2. `graph_cache=True` and `graph_cache=False` raise `TypeError`
@@ -555,8 +589,12 @@ file):
     §2.2.3, named here) monkeypatched to another value: miss. A recorded
     stat changed after import, simulated by monkeypatching the RECORDED
     stat table (never by touching installed files), both before the first
-    key computation and after one: `GraphCacheKeyError` mentioning
-    restart.
+    key computation (the content-hash memo is monkeypatched back to
+    `None` first, since an earlier test may have filled it) and after
+    one: `GraphCacheKeyError` mentioning restart. A failure stored by
+    `_record_build_stats` (monkeypatched) and a missing record: both
+    `GraphCacheKeyError` at the first key computation, while
+    `import phasic` itself succeeded.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
     and with it set to `""`: entry under the monkeypatched
     `DEFAULT_CACHE_DIR` (never a relative `graphs/`). Import order: a
@@ -625,6 +663,16 @@ file):
     computed, hit on rebuild. `scipy.special.gamma` captured in a cell:
     `GraphCacheKeyError` (not `AttributeError`). `with_ipv([5])(partial(model,
     k=2.0))`: saves (callback_name fallback) and hits.
+
+26. Two pandas DataFrames with duplicate index labels and different
+    values (identical `to_dict()`), as a kwarg and in a closure cell, and
+    a duplicate-index Series: `GraphCacheKeyError`. `[M(1.0), M(5.0)]`
+    vs `[M(1.0), M(1.0)]` where `M.to_dict()` returns a fresh lambda
+    closing over its rate: different keys. A `partial` subclass
+    overriding `__call__`: refused. A user kwarg named `callback`: keyed
+    normally (no `TypeError`). A callback with mixed coefficient lengths
+    under `cache_key`: the save error carries `e.graph` and the "cannot
+    be cached" note.
 
 Contract pin (documents the user's responsibility):
 21. Same `cache_key`, a MODULE-LEVEL helper changed between builds: the
@@ -856,3 +904,13 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   test 23; 12 any fingerprintable dict key, call-time semantics, test 24;
   nits (fixture paths, `:68`, `:463`, `_phasic_build_id` named,
   `_deserialize_value` deleted, one `GraphCache()` per call).
+- Independent review D -> v2.9: A1 pandas objects refused in rule 8
+  (`to_dict()` collapses duplicate labels), one-to-one requirement on
+  `to_dict()` documented; A2 visited map holds strong references,
+  `to_dict()` results kept alive; A3 exact `partial` only; B1 build-stat
+  recording never raises at import, failures and missing records raise
+  at first key computation; B2 positional-only `cache_entry_key`
+  parameters; B3 guards relabelled (tests 20 half, 24, 25 part); B4 test
+  13 resets the memo; B5 "cannot be cached" note for unserialisable
+  graphs; B6 Python-version wording, no dtype-string example, json
+  RecursionError sentence. New test 26.

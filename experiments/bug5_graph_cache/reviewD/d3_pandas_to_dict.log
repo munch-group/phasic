@@ -1,0 +1,6 @@
+pandas 3.0.2
+dup index: a.to_dict() {'rate': {'p1': 2.0, 'p2': 3.0}}  b.to_dict() {'rate': {'p1': 2.0, 'p2': 3.0}}  equal: True  frames equal: False
+dup columns: c {'x': {0: 2.0}}  d {'x': {0: 2.0}}  equal: True  warnings: ['DataFrame columns are not unique, some columns will be omitt', 'DataFrame columns are not unique, some columns will be omitt', 'DataFrame columns are not unique, some columns will be omitt', 'DataFrame columns are not unique, some columns will be omitt']
+Series dup index: {0: 5.0} {0: 5.0} True
+row order: e {'r': {0: 1.0, 1: 2.0}}  f {'r': {1: 2.0, 0: 1.0}}  dict insertion order lists: [(0, 1.0), (1, 2.0)] [(1, 2.0), (0, 1.0)]
+[runcap] exit 0, peak RSS 2 MB, 1s

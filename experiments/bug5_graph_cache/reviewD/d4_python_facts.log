@@ -1,0 +1,28 @@
+3.13.13 | packaged by conda-forge | (main, Apr  8 2026, 02:29:07) [Clang 19.1.7 ]
+len              type=builtin_function_or_method   __self__=module       resolve=('builtins', 'len', True)
+math.sqrt        type=builtin_function_or_method   __self__=module       resolve=('math', 'sqrt', True)
+np.exp           type=ufunc                        __self__=<absent>     resolve=('numpy', 'exp', True)
+np.linalg.solve  type=_ArrayFunctionDispatcher     __self__=<absent>     resolve=('numpy.linalg', 'solve', True)
+np.array         type=builtin_function_or_method   __self__=module       resolve=('numpy', 'array', True)
+random.random    type=builtin_function_or_method   __self__=Random       resolve=(None, 'Random.random', False)
+{}.get           type=builtin_function_or_method   __self__=dict         resolve=(None, 'dict.get', False)
+frompyfunc       type=ufunc                        __self__=<absent>     resolve=(None, '<lambda> (vectorized)', False)
+np.random.rand   type=method                       __self__=RandomState  resolve=('numpy.random', 'RandomState.rand', False)
+operator.mul     type=builtin_function_or_method   __self__=module       resolve=('_operator', 'mul', True)
+np.sum           type=_ArrayFunctionDispatcher     __self__=<absent>     resolve=('numpy', 'sum', True)
+np.where         type=_ArrayFunctionDispatcher     __self__=<absent>     resolve=('numpy', 'where', True)
+np.isclose       type=_ArrayFunctionDispatcher     __self__=<absent>     resolve=('numpy', 'isclose', True)
+scipy.special.gamma ufunc has __module__: False has __qualname__: False __self__: NoneType
+scipy.special.binom ufunc has __module__: False has __qualname__: False __self__: NoneType
+scipy.special.comb function has __module__: True has __qualname__: True __self__: NoneType
+combinations_with_replacement  immutable=True resolve=('itertools', 'combinations_with_replacement', True)
+int                            immutable=True resolve=('builtins', 'int', True)
+np.ndarray                     immutable=True resolve=('numpy', 'ndarray', True)
+np.float64                     immutable=True resolve=('numpy', 'float64', True)
+user class                     immutable=False resolve=('__main__', 'U', True)
+functools.partial              immutable=True resolve=('functools', 'partial', True)
+dict                           immutable=True resolve=('builtins', 'dict', True)
+f consts (None, (Ellipsis, 0))
+g consts (None, 1, 3, 0)
+co_code equal src1/src2 (comment+spacing): True  src1/src3 (split line): False
+[runcap] exit 0, peak RSS 2 MB, 1s

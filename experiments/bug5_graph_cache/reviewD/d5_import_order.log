@@ -1,0 +1,4 @@
+master phasic from ['python3.13', 'site-packages', 'phasic'] | OMP_NUM_THREADS at first phasic_pybind import: None | importer: ['graph_cache.py:29', 'logging_config.py:253', 'logging_config.py:200']
+[runcap] exit 0, peak RSS 324 MB, 3s
+patched phasic from ['reviewD', 'pkg', 'phasic'] | OMP_NUM_THREADS at first phasic_pybind import: 8 | importer: ['d5_import_order.py:17', '__init__.py:279']
+[runcap] exit 0, peak RSS 330 MB, 3s
