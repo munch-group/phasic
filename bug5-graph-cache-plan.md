@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v2.4, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v2.5, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -91,7 +91,8 @@ changes. The `cache_key` docstring states this with an example.
     built `Graph` or `None` (missing file), or raises
     `GraphCacheEntryError` (unreadable: bad JSON or encoding, wrong
     shape, wrong `format`; exact classes in §2.6). An exception from
-    `from_serialized` itself is NOT an entry error and propagates: the
+    `from_serialized` itself is NOT an entry error: it is re-raised as
+    `GraphCacheLoadError` naming the file (§2.6) and propagates: the
     build id guarantees the same phasic build wrote the entry, so a
     well-formed entry that fails to load is a phasic bug or tampering,
     and must not be hidden behind a rebuild. ONLY that call is inside a `try`, and
@@ -285,7 +286,9 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
   `clear_all_graph_caches` and `model_export.clear_caches`) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
   `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
-  behind (review 7 C); `get_cache_stats` still counts only `*.json`.
+  behind (review 7 C), but ONLY those whose mtime is more than one hour
+  old, so a concurrent writer's in-flight file in a shared directory is
+  never removed under it (review 8); `get_cache_stats` still counts only `*.json`.
 - Replaced: `save_graph(graph, callback, **params)` /
   `load_graph(callback, **params)` -> `save(graph, entry_key, meta)` /
   `load(entry_key)`.
@@ -326,8 +329,11 @@ var takes precedence. `get_cache_dir`, `get_graph_cache_stats`,
     (which imports the module a tag names and calls its `from_dict`,
     review 7 A) is no longer used on the load path; it stays only for
     `test_serialize_is_aux.py`;
-  - `from_serialized`: NOT caught as an entry error (§2.1). It is
-    re-raised as `GraphCacheLoadError(RuntimeError)` (exported), whose
+  - `from_serialized`: NOT caught as an entry error (§2.1). An
+    `Exception` from it, other than `MemoryError` and `RecursionError`
+    (which say nothing about the file and propagate unchanged, as do
+    `BaseException`s such as `KeyboardInterrupt`), is re-raised as
+    `GraphCacheLoadError(RuntimeError)` (exported), whose
     message names the entry file and the ways out (delete that file, run
     `phasic.clear_all_graph_caches()`, or change `cache_key`), with the
     original exception chained (`raise ... from e`; not `add_note`,
@@ -431,8 +437,11 @@ Expected to fail on master:
     call happened, that the error propagates, and that no `UserWarning`
     was emitted (no silent rebuild). An unreadable entry file (`chmod 000`, skipped when running
     as root) propagates `PermissionError` whose message names the file;
-    with the directory made non-searchable instead, the message says
-    "owner unknown" and the original error is chained. A
+    with the directory made non-searchable instead (permissions restored
+    in a `finally`, skipped when running as root), the message says
+    "owner unknown" and the original error is chained. A `MemoryError`
+    raised from a monkeypatched `from_serialized` propagates unchanged
+    (not wrapped). A
     well-formed entry whose `from_serialized` raises (monkeypatched)
     gives `GraphCacheLoadError` naming the file, original chained, and no
     `UserWarning`. An entry
@@ -442,7 +451,8 @@ Expected to fail on master:
     `sys.modules` afterwards.
 16. Write failure (`os.replace` monkeypatched to raise): `OSError` with
     the path, and no `.partial` file left in the directory. A stray
-    `.tmp-x.partial` file is removed by `GraphCache().clear()` and not
+    `.tmp-x.partial` file with an mtime two hours old is removed by
+    `GraphCache().clear()`; one with a current mtime is kept; neither is
     counted by `get_cache_stats()`.
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
@@ -594,3 +604,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   (no imports), §2.6, §6, test 15; 2 best-effort owner lookup, chained
   error, §2.6, test 15; 3 `.partial` cleanup in `clear()`, test 16;
   4 `GraphCacheLoadError` naming the file and ways out, test 15.
+- Review 8 findings -> v2.5: 1 `GraphCacheLoadError` wraps `Exception`
+  except `MemoryError`/`RecursionError`; 2 `.partial` cleanup only after
+  one hour; 3 §2.1 names `GraphCacheLoadError`; 4 test 15 permission
+  restore and root skip. Restricted decoder measured sufficient for all
+  graph kinds (review 8 t1).
