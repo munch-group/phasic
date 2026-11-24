@@ -1,0 +1,13 @@
+phasic from /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+## SVGD
+  single BetaPrior, dim 1: param_transform(phi=5) = [5.0067]; prior._transform(5) = [0.9933071490757153]; model saw theta in ([0.1269], [12.5])
+  single BetaPrior, dim 2: param_transform(phi=5) = [5.0067, 5.0067]; prior._transform(5) = [0.9933071490757153]; model saw theta in ([0.1269, 0.009], [12.5, 12.5])
+  [BetaPrior]: param_transform(phi=5) = [0.9933]; prior._transform(5) = [0.9933071490757153]; model saw theta in ([0.0815], [1.0])
+  [BetaPrior, BetaPrior]: param_transform(phi=5) = [0.9933, 0.9933]; prior._transform(5) = [0.9933071490757153, 0.9933071490757153]; model saw theta in ([0.0815, 0.1192], [1.0, 1.0])
+  [GaussPrior, BetaPrior]: param_transform(phi=5) = [5.0067, 0.9933]; prior._transform(5) = [5.006715348489118, 0.9933071490757153]; model saw theta in ([0.1269, 0.1192], [12.5, 1.0])
+  single BetaPrior, positive_params=False: param_transform(phi=5) = None; prior._transform(5) = [None]; model saw theta in ([-2.0], [12.5])
+  [BetaPrior], positive_params=False: param_transform(phi=5) = None; prior._transform(5) = [None]; model saw theta in ([-2.0], [12.5])
+## MCMC
+  single BetaPrior, dim 1: model saw theta in ([0.0001], [7.6756]); samples min [0.0053] max [1.3092] mean [0.8346] (Beta(ci 0.05-0.95) mean 0.5)
+  [BetaPrior]: model saw theta in ([0.0018], [4.96]); samples min [0.0255] max [1.7423] mean [1.0712] (Beta(ci 0.05-0.95) mean 0.5)
+  [GaussPrior, BetaPrior]: model saw theta in ([0.0037, 0.0037], [8.7686, 4.7136]); samples min [0.1073, 0.0146] max [5.3017, 1.7703] mean [2.7265, 1.0821] (Beta(ci 0.05-0.95) mean 0.5)

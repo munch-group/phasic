@@ -1,0 +1,79 @@
+pmf check: [0.3       0.21      0.147     0.0352947] closed form [0.3       0.21      0.147     0.0352947]
+prior Beta(9.005,2.727); prior 95% interval (0.500,0.950); P(theta<=TRUE)=4.08e-04
+exact conjugate posterior: mean 0.3017 sd 0.0174 95% (0.2681,0.3364); MLE 0.2937
+ERROR:2026-11-23 16:28:21,300:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.600894'. Are you sure this is a discrete phase-type distribution?
+
+  single BetaPrior (plan test 8, today) seed 1: ValueError: Model validation failed. Error: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/experiments/bug3_single_betaprior/review3/r8_geometric.p
+ERROR:2026-11-23 16:28:21,329:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.426956'. Are you sure this is a discrete phase-type distribution?
+
+  single BetaPrior (plan test 8, today) seed 2: ValueError: Model validation failed. Error: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/experiments/bug3_single_betaprior/review3/r8_geometric.p
+ERROR:2026-11-23 16:28:21,349:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8604, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8537, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.705184'. Are you sure this is a discrete phase-type distribution?
+
+  single BetaPrior (plan test 8, today) seed 3: ValueError: Model validation failed. Error: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/experiments/bug3_single_betaprior/review3/r8_geometric.p
+  [BetaPrior] (correct today = emulates the fix) seed 1: particles in (0,1): True [min 0.2622 max 0.3268] mean 0.2992 sd 0.0109 HPD (0.2875,0.3268) truth in HPD: True; |mean-exact|/sd_exact = 0.14
+  [BetaPrior] (correct today = emulates the fix) seed 2: particles in (0,1): True [min 0.2796 max 0.3256] mean 0.3012 sd 0.0149 HPD (0.2796,0.3244) truth in HPD: True; |mean-exact|/sd_exact = 0.03
+  [BetaPrior] (correct today = emulates the fix) seed 3: particles in (0,1): True [min 0.2865 max 0.3042] mean 0.2994 sd 0.0056 HPD (0.2866,0.3040) truth in HPD: True; |mean-exact|/sd_exact = 0.13
+[runcap] exit 0, peak RSS 694 MB, 17s

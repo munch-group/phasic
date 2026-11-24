@@ -1,0 +1,20 @@
+/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:12707: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+{'alpha': 1.35, 'beta': 1.35} | max |new-cur| for |phi|<=20: value 4.85e-08 (rel 1.79e-09), grad 2.66e-15
+   tails phi=[-25,-40,-700,25,40,700]: current [-27.976, -27.976, -27.976, -27.976, -27.976, -27.976] grad [0.0, 0.0, 0.0, -0.0, -0.0, -0.0]
+                                       new     [-33.75, -54.0, -945.0, -33.75, -54.0, -945.0] grad [1.35, 1.35, 1.35, -1.35, -1.35, -1.35] all finite: True
+   2-vector: current -4.232621821878 new -4.232621821878
+{'alpha': 2.0, 'beta': 5.0} | max |new-cur| for |phi|<=20: value 1.79e-07 (rel 1.79e-09), grad 8.88e-15
+   tails phi=[-25,-40,-700,25,40,700]: current [-41.447, -41.447, -41.447, -103.616, -103.616, -103.616] grad [0.0, 0.0, 0.0, -0.0, -0.0, -0.0]
+                                       new     [-50.0, -80.0, -1400.0, -125.0, -200.0, -3500.0] grad [2.0, 2.0, 2.0, -5.0, -5.0, -5.0] all finite: True
+   2-vector: current -9.623463982646 new -9.623463982646
+{'alpha': 0.1, 'beta': 0.1} | max |new-cur| for |phi|<=20: value 3.59e-09 (rel 1.79e-09), grad 2.22e-16
+   tails phi=[-25,-40,-700,25,40,700]: current [-2.072, -2.072, -2.072, -2.072, -2.072, -2.072] grad [0.0, 0.0, 0.0, -0.0, -0.0, -0.0]
+                                       new     [-2.5, -4.0, -70.0, -2.5, -4.0, -70.0] grad [0.1, 0.1, 0.1, -0.1, -0.1, -0.1] all finite: True
+   2-vector: current -0.313527542361 new -0.313527542361
+{'alpha': 0.75, 'beta': 3.0} | max |new-cur| for |phi|<=20: value 1.08e-07 (rel 1.79e-09), grad 5.33e-15
+   tails phi=[-25,-40,-700,25,40,700]: current [-15.542, -15.542, -15.542, -62.17, -62.17, -62.17] grad [0.0, 0.0, 0.0, -0.0, -0.0, -0.0]
+                                       new     [-18.75, -30.0, -525.0, -75.0, -120.0, -2100.0] grad [0.75, 0.75, 0.75, -3.0, -3.0, -3.0] all finite: True
+   2-vector: current -4.866141419275 new -4.866141419275
+no-transform branch (must stay): p(0.3)=-2.630673 p(1.2)=-inf p(-0.1)=-inf
+[runcap] exit 0, peak RSS 431 MB, 7s

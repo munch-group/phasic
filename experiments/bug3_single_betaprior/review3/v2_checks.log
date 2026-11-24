@@ -1,0 +1,23 @@
+## test 5, alpha < 1 form: BetaPrior(ci=(0.01,0.99)), 2000x4, burn 500, 5 seeds
+   seed 0: alpha 0.749 beta 0.749 init lp finite True acc [0.34, 0.33, 0.37, 0.34] ESS 1944 range [1.79e-05,0.999977] thinned KS p 0.815 z -0.70 max|phi| 10.9
+   seed 1: alpha 0.749 beta 0.749 init lp finite True acc [0.34, 0.35, 0.33, 0.37] ESS 1786 range [4.37e-05,0.999991] thinned KS p 0.991 z -0.37 max|phi| 11.6
+   seed 2: alpha 0.749 beta 0.749 init lp finite True acc [0.36, 0.36, 0.37, 0.33] ESS 1778 range [2.01e-08,0.999965] thinned KS p 0.203 z -1.20 max|phi| 17.7
+   seed 3: alpha 0.749 beta 0.749 init lp finite True acc [0.35, 0.34, 0.35, 0.35] ESS 1816 range [7.10e-06,0.999991] thinned KS p 0.847 z 0.38 max|phi| 11.9
+   seed 4: alpha 0.749 beta 0.749 init lp finite True acc [0.37, 0.32, 0.37, 0.37] ESS 1722 range [8.14e-05,0.999944] thinned KS p 0.962 z -0.98 max|phi| 9.8
+   median p 0.847  (49s)
+## test 5, [GaussPrior, BetaPrior] form, 3 seeds
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug3/experiments/bug3_single_betaprior/review3/v2_checks.py", line 37, in <module>
+    m = MCMC(log_prob_fn=lambda t: 0.0 * jnp.sum(t), prior=[g, b], theta_dim=2, n_samples=2000, n_chains=4, burn_in=500,
+             proposal_scale=1.0, positive_params=False, param_transform=comp, verbose=False, progress=False, seed=seed)
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/mcmc.py", line 290, in __init__
+    _check_gauss_prior_lower(self.prior, self.prior_list,
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                             positive_params, "MCMC")
+                             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py", line 1010, in _check_gauss_prior_lower
+    raise ValueError(
+    ...<4 lines>...
+    )
+ValueError: MCMC: prior[0] is a GaussPrior N(2.8, 1.1²) truncated to θ > 0, but positive_params=False leaves the parameter unconstrained, so nothing keeps particles positive. Pass GaussPrior(..., lower=None), or use positive_params=True.
+[runcap] exit 1, peak RSS 491 MB, 52s

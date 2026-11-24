@@ -1,0 +1,3 @@
+  single Beta dim2 [processes]: OK; samples min [0.0148, 0.0244] max [0.7589, 0.7818] mean [0.286, 0.2837]
+  [Gauss, Beta] [processes]: OK; samples min [0.2161, 0.0197] max [5.9023, 0.7858] mean [2.7585, 0.2746]
+[runcap] exit 0, peak RSS 1290 MB, 13s

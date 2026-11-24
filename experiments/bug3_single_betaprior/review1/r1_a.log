@@ -1,0 +1,60 @@
+phasic from /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+Beta params 1.3498029699829526 1.3498029699829535
+
+## E1 BetaPrior.__call__ when handed softplus (what MCMC does)
+  phi=-3.00 theta=softplus=0.0486 logp=-4.149563531953389
+  phi= 0.00 theta=softplus=0.6931 logp=-2.089359993530925
+  phi= 0.50 theta=softplus=0.9741 logp=-4.965775301749954
+  phi= 0.55 theta=softplus=1.0055 logp=nan
+  phi= 1.00 theta=softplus=1.3133 logp=nan
+  phi= 3.00 theta=softplus=3.0486 logp=nan
+  sample() with softplus _transform returns logit(beta draw):  [-0.471  1.213  2.649 -4.824]
+
+## E1b MCMC positive_params=True: per-chain behaviour (flat likelihood)
+  single seed 0: init theta [0.488, 1.309, 0.346, 1.236] init logp [-1.872, nan, -2.006, nan] acc [0.35, 0.0, 0.371, 0.0] n_unique/chain [526, 1, 557, 1] chain max [0.935, 1.309, 0.915, 1.236] chain mean [0.385, 1.309, 0.378, 1.236]
+  single seed 1: init theta [3.15, 0.539, 1.45, 0.079] init logp [nan, -1.879, nan, -3.532] acc [0.0, 0.365, 0.0, 0.341] n_unique/chain [1, 547, 1, 512] chain max [3.15, 0.97, 1.45, 0.949] chain mean [3.15, 0.382, 1.45, 0.376]
+  single seed 2: init theta [2.47, 0.187, 1.496, 1.773] init logp [nan, -2.541, nan, nan] acc [0.0, 0.358, 0.0, 0.0] n_unique/chain [1, 538, 1, 1] chain max [2.47, 0.939, 1.496, 1.773] chain mean [2.47, 0.385, 1.496, 1.773]
+  single seed 3: init theta [2.002, 2.422, 2.301, 0.365] init logp [nan, nan, nan, -1.973] acc [0.0, 0.0, 0.0, 0.349] n_unique/chain [1, 1, 1, 525] chain max [2.002, 2.422, 2.301, 0.964] chain mean [2.002, 2.422, 2.301, 0.406]
+  [Beta] seed 0: init theta [1.742, 0.475, 0.646, 1.035] init logp [nan, -1.875, -1.992, nan] acc [0.0, 0.377, 0.367, 0.0] n_unique/chain [1, 566, 552, 1] chain max [1.742, 0.979, 0.92, 1.035] chain mean [1.742, 0.389, 0.369, 1.035]
+  [Beta] seed 1: init theta [0.263, 0.596, 1.866, 0.277] init logp [-2.213, -1.922, nan, -2.172] acc [0.421, 0.373, 0.0, 0.346] n_unique/chain [632, 560, 1, 520] chain max [0.941, 0.983, 1.866, 0.995] chain mean [0.395, 0.377, 1.866, 0.399]
+  [Beta] seed 2: init theta [1.495, 3.092, 0.826, 0.283] init logp [nan, nan, -2.62, -2.153] acc [0.0, 0.0, 0.383, 0.376] n_unique/chain [1, 1, 574, 564] chain max [1.495, 3.092, 0.945, 0.973] chain mean [1.495, 3.092, 0.411, 0.366]
+  [Beta] seed 3: init theta [1.45, 4.293, 1.135, 0.198] init logp [nan, nan, nan, -2.486] acc [0.0, 0.0, 0.0, 0.347] n_unique/chain [1, 1, 1, 522] chain max [1.45, 4.293, 1.135, 0.965] chain mean [1.45, 4.293, 1.135, 0.408]
+  expected mean of moving chains if target is Beta(a,b)*theta(1-theta)/(1-exp(-theta)) on (0,1): 0.3882 (Beta mean 0.5 )
+
+## E2 MCMC positive_params=False with BetaPrior: does the untransformed path sample Beta?
+  single: min 0.0026 max 0.9980 mean 0.4890 acc [0.377, 0.386]
+  single: KS p-values vs Beta (thinned x40) [0.821, 0.689, 0.288, 0.653, 0.692]
+  [Beta]: min 0.0005 max 0.9975 mean 0.4937 acc [0.375, 0.388]
+  [Beta]: KS p-values vs Beta (thinned x40) [0.677, 0.585, 0.504, 0.377, 0.81]
+
+## E3/E4 SVGD: range of the PARTICLES (not preconditioner probes); preconditioner grid shown separately
+  single Beta dim1: constrained particles min 0.0099 max 0.8238 mean 0.6307; n>1: 0/20; n<0: 0; all model inputs range [0.0090, 12.5000]
+  [Beta] dim1: constrained particles min 0.1310 max 0.9400 mean 0.5109; n>1: 0/20; n<0: 0; all model inputs range [0.0815, 1.0000]
+  single Beta dim1 pos=False: constrained particles min -0.4818 max 0.6430 mean 0.3551; n>1: 0/20; n<0: 4; all model inputs range [-2.0000, 12.5000]
+[WARNING] phasic.svgd: svgd_step: clipped 6/20 particle gradient norm(s) exceeding 10000x the healthy batch median (a loss singularity or a diverging particle was encountered) -- inference for those particles is damped, not exact, for this step.
+[WARNING] phasic.svgd: svgd_step: clipped 6/20 particle gradient norm(s) exceeding 10000x the healthy batch median (a loss singularity or a diverging particle was encountered) -- inference for those particles is damped, not exact, for this step.
+[WARNING] phasic.svgd: svgd_step: clipped 6/20 particle gradient norm(s) exceeding 10000x the healthy batch median (a loss singularity or a diverging particle was encountered) -- inference for those particles is damped, not exact, for this step.
+  [Beta] dim1 pos=False: constrained particles min -0.8359 max 1.9227 mean 0.3865; n>1: 5/20; n<0: 9; all model inputs range [-2.0000, 12.5000]
+  single Beta dim1 preconditioner=none: constrained particles min 0.0099 max 0.8238 mean 0.6307; n>1: 0/20; n<0: 0; all model inputs range [0.0090, 1.5022]
+  single Beta pos=False preconditioner=none: constrained particles min -0.4818 max 0.6430 mean 0.3551; n>1: 0/20; n<0: 4; all model inputs range [-0.5476, 1.1258]
+
+## E5 custom param_transform
+  [Gauss(lower=None), Beta] + exp: model transform(0.7)=[2.0138, 2.0138]; prior._transform(0.7)=[2.0138, 0.6682]; init constrained range [1.029, 0.134]..[121.712, 15.229]; final max [3.692, 14.188]
+  [Beta] + exp: model transform(0.7)=[2.0138]; prior._transform(0.7)=[0.6682]; init constrained range [0.089]..[22.343]; final max [20.837]
+  single Beta + exp: model transform(0.7)=[2.0138]; prior._transform(0.7)=[0.6682]; init constrained range [0.009]..[3.492]; final max [3.085]
+  single Beta + custom sigmoid: model transform(0.7)=[0.6682]; prior._transform(0.7)=[0.6682]; init constrained range [0.009]..[0.777]; final max [0.755]
+  [Beta] + custom sigmoid: model transform(0.7)=[0.6682]; prior._transform(0.7)=[0.6682]; init constrained range [0.082]..[0.957]; final max [0.954]
+  single Gauss(lower=None) + exp: model transform(0.7)=[2.0138]; prior._transform(0.7)=[2.0138]; init constrained range [2.311]..[73.608]; final max [3.134]
+  GaussPrior with exp transform: logp=-0.608845; N(theta)+log|exp Jacobian|=0.494341; N(theta)+softplus Jacobian=-0.608845
+  GaussPrior(exp transform).sample -> exp(phi) mean 28.047 (prior mu 2.750); softplus(phi) mean 2.732
+
+## E6 is single == list at initialisation? (plan test 2 asserts particles array-equal)
+  Gauss dim 1: theta_init equal: False; max abs diff 2.4391
+  Gauss dim 2: theta_init equal: False; max abs diff 3.4201
+  MCMC Gauss dim 1: theta_init equal: False
+
+## E7 stale _transform on a reused prior object
+  after SVGD list fit (positive): _transform is sigmoid: True
+  after constructing an MCMC with the same object: _transform(5)= 5.006715348489118  -> the earlier SVGD object now evaluates its prior with softplus; svgd.param_transform(5)= [0.9933071490757153]
+  then SVGD(positive_params=False) with the same object: param_transform None ; prior._transform still set: True ; theta_init range -2.422 3.107
+[runcap] exit 0, peak RSS 884 MB, 161s

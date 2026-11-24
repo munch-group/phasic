@@ -117,8 +117,14 @@ class MCMC:
         JIT-compile the log-probability function. If None, uses config default.
     positive_params : bool, default=True
         If True, constrains parameters to positive domain using softplus.
+        A prior with its own transform (:class:`BetaPrior`, sigmoid to
+        (0, 1)) applies that transform instead: in a prior list to its own
+        parameter, as a single prior to EVERY parameter. With False and no
+        ``param_transform`` there is no transform; a BetaPrior then rejects
+        proposals outside (0, 1).
     param_transform : callable, optional
-        Custom parameter transformation. Overrides positive_params.
+        Custom parameter transformation, used for the model and every
+        prior. Requires positive_params=False.
     rewards : np.ndarray, optional
         Reward vector/matrix for multivariate phase-type distributions.
         Only used in model mode.
@@ -263,32 +269,15 @@ class MCMC:
         self.prior = prior
         self.prior_list = list(prior) if isinstance(prior, (list, tuple, DataPrior)) else None
 
-        # Parameter transformation (same as SVGD)
-        if positive_params and param_transform is not None:
-            raise ValueError(
-                "Cannot specify both positive_params=True and param_transform. "
-                "Use positive_params=True for automatic softplus transformation, "
-                "or provide a custom param_transform function."
-            )
-
+        # Parameter transformation: the same per-slot decision as SVGD,
+        # shared by the model, the priors and the initial points. Unlike
+        # SVGD, a bounded prior (BetaPrior) is accepted without a transform:
+        # its hard wall rejects proposals outside its domain.
         self.positive_params = positive_params
-        if positive_params:
-            self.param_transform = lambda phi: jnp.maximum(jax.nn.softplus(phi), 1e-9)
-        elif param_transform is not None:
-            if not callable(param_transform):
-                raise ValueError("param_transform must be a callable function")
-            self.param_transform = param_transform
-        else:
-            self.param_transform = None
-
-        # Wrap priors with transformation (same as SVGD)
-        if self.param_transform is not None:
-            if self.prior_list is not None:
-                for prior_i in self.prior_list:
-                    if hasattr(prior_i, '_transform'):
-                        prior_i._transform = self.param_transform
-            elif self.prior is not None and hasattr(self.prior, '_transform'):
-                self.prior._transform = self.param_transform
+        from .svgd import _resolve_param_transform
+        self.param_transform, _ = _resolve_param_transform(
+            self.prior, self.prior_list, positive_params, param_transform,
+            "MCMC")
 
         from .svgd import _check_gauss_prior_lower
         _check_gauss_prior_lower(self.prior, self.prior_list,

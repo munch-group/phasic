@@ -1,0 +1,14 @@
+PROTO_OFF = None
+  single Beta(ci) dim1 seed=0 acc=[0.34, 0.33, 0.34, 0.36] (40s): slot0 Beta(1.35,1.35): mean 0.4990 (true 0.5000) KS D=0.0128 p=0.824 frac at clip=0.0000 max|phi|=6.7
+  single Beta(ci) dim1 seed=1 acc=[0.34, 0.34, 0.33, 0.34] (33s): slot0 Beta(1.35,1.35): mean 0.4924 (true 0.5000) KS D=0.0196 p=0.31 frac at clip=0.0000 max|phi|=7.7
+  single Beta(ci) dim1 seed=2 acc=[0.35, 0.34, 0.34, 0.35] (34s): slot0 Beta(1.35,1.35): mean 0.4927 (true 0.5000) KS D=0.0240 p=0.124 frac at clip=0.0000 max|phi|=7.9
+  [Beta(2,5)] seed=0 acc=[0.35, 0.34, 0.35, 0.35] (34s): slot0 Beta(2,5): mean 0.2867 (true 0.2857) KS D=0.0125 p=0.846 frac at clip=0.0000 max|phi|=5.9
+  [Gauss, Beta(2,5)] seed=0 acc=[0.28, 0.29, 0.28, 0.28] (36s): slot1 Beta(2,5): mean 0.2878 (true 0.2857) KS D=0.0121 p=0.866 frac at clip=0.0000 max|phi|=5.5 | slot0 truncGauss(2.75,1.15): mean 2.7407 KS D=0.0199 p=0.296
+  single Beta(2,5) dim2 seed=0 acc=[0.28, 0.28, 0.28, 0.29] (34s): slot0 Beta(2,5): mean 0.2833 (true 0.2857) KS D=0.0198 p=0.297 frac at clip=0.0000 max|phi|=5.7 | slot1 Beta(2,5): mean 0.2940 (true 0.2857) KS D=0.0294 p=0.0305 frac at clip=0.0000 max|phi|=4.9
+  [Beta(2,5)] seed=1 acc=[0.34, 0.35, 0.33, 0.35] (35s): slot0 Beta(2,5): mean 0.2872 (true 0.2857) KS D=0.0142 p=0.709 frac at clip=0.0000 max|phi|=6.3
+  [Gauss, Beta(2,5)] seed=1 acc=[0.28, 0.28, 0.28, 0.28] (33s): slot1 Beta(2,5): mean 0.2906 (true 0.2857) KS D=0.0215 p=0.216 frac at clip=0.0000 max|phi|=6.2 | slot0 truncGauss(2.75,1.15): mean 2.7850 KS D=0.0183 p=0.395
+  single Beta(2,5) dim2 seed=1 acc=[0.3, 0.28, 0.28, 0.3] (34s): slot0 Beta(2,5): mean 0.2901 (true 0.2857) KS D=0.0255 p=0.0858 frac at clip=0.0000 max|phi|=5.3 | slot1 Beta(2,5): mean 0.2898 (true 0.2857) KS D=0.0209 p=0.242 frac at clip=0.0000 max|phi|=5.6
+  single Beta(0.1,0.1) dim1 seed=0 acc=[0.61, 0.6, 0.61, 0.6] (80s): slot0 Beta(0.1,0.1): mean 0.4997 (true 0.5000) KS D=0.4365 p=0 frac at clip=1.0000 max|phi|=inf
+  single Beta(0.05,0.05) dim1 seed=0 acc=[0.6, 0.6, 0.6, 0.6] (78s): slot0 Beta(0.05,0.05): mean 0.5007 (true 0.5000) KS D=0.3226 p=0 frac at clip=1.0000 max|phi|=inf
+  single Beta(0.1,0.1) dim1 seed=1 acc=[0.61, 0.63, 0.59, 0.59] (79s): slot0 Beta(0.1,0.1): mean 0.5965 (true 0.5000) KS D=0.5326 p=0 frac at clip=1.0000 max|phi|=inf
+[runcap] KILLED: timeout 600s

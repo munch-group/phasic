@@ -1,0 +1,17 @@
+## G1 Graph.svgd (non-epoch), theta_dim 2
+  single BetaPrior: model transform per slot ['softplus', 'softplus']; prior._transform ['sigmoid']; constrained particles max [2.057, 3.7494]
+  [Beta, Beta]: model transform per slot ['sigmoid', 'sigmoid']; prior._transform ['sigmoid', 'sigmoid']; constrained particles max [0.7943, 0.8068]
+  single BetaPrior + fixed=[(0, 5.0)]: model transform per slot ['softplus', 'softplus']; prior._transform ['sigmoid']; constrained particles max [5.0, 2.461]
+  [None, Beta] + fixed=[(0, 5.0)]: model transform per slot ['softplus', 'sigmoid']; prior._transform ['sigmoid']; constrained particles max [5.0, 0.6952]
+
+## G2 SVGD-level exposure on a BetaPrior slot (spy sees per-observation theta)
+  [Gauss, Beta], exposure on slot 1: model saw slot-1 theta in [0.1322, 938.4] (a "probability" times alpha); slots ['softplus', 'sigmoid']
+
+## G3 plot_pairwise_hdr on [Gauss, Beta]: which theta is the model evaluated at for the Beta axis?
+  requested Beta-axis range (0.2, 0.8); model evaluated Beta slot in [0.1213, 0.9343]; sigmoid(inv_softplus(0.2))=0.1813, sigmoid(inv_softplus(0.8))=0.5507; Gauss slot range [0.7272, 4.7788] (requested 1..3)
+
+## G4 epoch path: a SINGLE BetaPrior is broadcast to a per-slot list (so it already gets sigmoid there)
+  single BetaPrior, 2 epochs: SVGD.prior_list types ['BetaPrior', None, 'BetaPrior', None]; model transform per slot ['sigmoid', 'softplus', 'sigmoid', 'softplus']; constrained particle max [0.7698, 0.3, 0.7625, 0.3]
+  single BetaPrior, 2 epochs, tied: SVGD.prior_list types ['BetaPrior', None, None, None]; model transform per slot ['sigmoid', 'softplus', 'softplus', 'softplus']; constrained particle max [0.8994, 0.3, 0.8994, 0.3]
+  single LogGaussPrior, 2 epochs (control): SVGD.prior_list types ['LogGaussPrior', None, 'LogGaussPrior', None]; model transform per slot ['softplus', 'softplus', 'softplus', 'softplus']; constrained particle max [1.3074, 0.3, 1.0522, 0.3]
+[runcap] exit 0, peak RSS 1296 MB, 26s

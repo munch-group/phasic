@@ -1,0 +1,14 @@
+SVGD single Beta fixed=(0,5.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: [0.5]
+MCMC single Beta fixed=(0,5.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+SVGD [None, Beta] fixed=(0,5.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: composite -> uses _per_dim_fns[1]: [0.5]
+MCMC [None, Beta] fixed=(0,5.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+SVGD single Beta fixed=(0,0.25): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: [0.5]
+MCMC single Beta fixed=(0,0.25): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+SVGD [None, Beta] fixed=(0,0.25): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: composite -> uses _per_dim_fns[1]: [0.5]
+MCMC [None, Beta] fixed=(0,0.25): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+SVGD single Beta fixed=(0,0.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: [0.5]
+MCMC single Beta fixed=(0,0.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+SVGD [None, Beta] fixed=(0,0.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True; prior._transform is sigmoid: True; _free_transform works on learnable subset: composite -> uses _per_dim_fns[1]: [0.5]
+MCMC [None, Beta] fixed=(0,0.0): model slot0 all == v: True; slot1 in (0,1): True; results slot0 == v: True
+plot_pairwise_hdr inverse (svgd.py:9345) on a sigmoid slot: display 0.5 -> 0.3934693402873666 ; display 0.9 -> 0.5934303402594009
+[runcap] exit 0, peak RSS 668 MB, 14s

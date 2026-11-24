@@ -6064,6 +6064,9 @@ extern "C" {{
             If True, applies softplus transformation to ensure all parameters are positive.
             Recommended for phase-type models where parameters represent rates.
             SVGD operates in unconstrained space, but model receives positive parameters.
+            A BetaPrior applies its own sigmoid instead (to its own parameter
+            in a prior list; to every parameter as a single prior) and
+            requires positive_params=True (or a custom param_transform).
         param_transform : callable, optional
             Custom parameter transformation function: transform(theta_unconstrained) -> theta_constrained.
             If provided, SVGD optimizes in unconstrained space and applies this transformation
@@ -7204,9 +7207,11 @@ extern "C" {{
         jit : bool or None, default=None
             JIT-compile log-probability function.
         positive_params : bool, default=True
-            Constrain parameters to positive domain via softplus.
+            Constrain parameters to positive domain via softplus. A
+            BetaPrior applies its own sigmoid instead (to its own parameter
+            in a prior list; to every parameter as a single prior).
         param_transform : callable, optional
-            Custom parameter transformation.
+            Custom parameter transformation (requires positive_params=False).
         rewards : array, optional
             Reward vector/matrix for multivariate distributions.
         fixed : list or array, optional

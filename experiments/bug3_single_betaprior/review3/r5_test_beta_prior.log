@@ -1,0 +1,13 @@
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_beta_prior.py::test_svgd_with_betaprior_in_mixed_list_keeps_param_in_unit
+  /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:514: UserWarning: HPD interval computed from only 8 samples; result may be unreliable.
+    warnings.warn(
+
+tests/pytest/test_beta_prior.py::test_svgd_callback_mode_with_betaprior_and_fixed_dim_runs_end_to_end
+  /Users/kmt/phasic-bug3/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py:514: UserWarning: HPD interval computed from only 4 samples; result may be unreliable.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 2 warnings in 18.59s
+[runcap] exit 0, peak RSS 1076 MB, 24s

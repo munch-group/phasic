@@ -1,0 +1,41 @@
+## (a) test 2 repaired: identical theta_init, emulated-single vs list form
+  dim 1: array_equal True  max|diff| 0
+  dim 2: array_equal True  max|diff| 0
+## (b) initial particles (constrained) for the single form today, and HPD / theta_mean range
+  single dim1: init theta range [0.3258,1.3706]  results particles range [0.4660,0.9903] hpd_lower [0.466] hpd_upper [0.9903] theta_mean [0.7368]
+  single dim2: init theta range [0.0090,1.3706]  results particles range [0.0115,1.0540] hpd_lower [0.211, 0.0115] hpd_upper [0.8597, 1.054] theta_mean [0.6872, 0.6044]
+  [Beta,Beta]: init theta range [0.0815,0.9572]  results particles range [0.1360,0.9330] hpd_lower [0.136, 0.1792] hpd_upper [0.933, 0.9005] theta_mean [0.5368, 0.5244]
+## (c) plot_pairwise_hdr on a sigmoid-transformed fit ([Beta,Beta] today = what a single BetaPrior dim-2 fit becomes)
+  axis theta        : [0.05, 0.3, 0.5, 0.9, 0.99]
+  evaluated at theta: [0.0488, 0.2592, 0.3935, 0.5934, 0.6284]  (= sigmoid(inverse_softplus(theta)), svgd.py:9345 + 9402)
+  particles (display) range dim0 [0.136,0.933] dim1 [0.179,0.901]
+  model evaluated by the plot on theta dim0 [0.000,0.933] dim1 [0.000,0.901]  (591 evaluations)
+  plot_posterior: ok
+  plot_trace: ok
+  plot_ci: ok
+  plot_pairwise: ok
+  plot_convergence: ok
+  single dim1 plot_posterior: ok
+  single dim1 plot_trace: ok
+  single dim1 plot_ci: ok
+Parameter  Fixed          MAP        Mean       SD         HPD 95% lo   HPD 95% hi  
+0          No             0.7342     0.7368     0.1929     0.466        0.9903      
+
+Particles: 8, Iterations: 3
+## (d) fixed slots
+  SVGD single BetaPrior, dim 2, fixed=[(0, 5.0)]: model saw dim0 [5.0000,5.0000] dim1 [0.0090,12.5000]
+  MCMC single BetaPrior, dim 2, fixed=[(0, 5.0)]: model saw dim0 [5.0000,5.0000] dim1 [0.1373,4.3971]
+  SVGD [None, BetaPrior], fixed=[(0, 5.0)]: model saw dim0 [5.0000,5.0000] dim1 [0.1192,1.0000]
+  MCMC [None, BetaPrior], fixed=[(0, 5.0)]: model saw dim0 [5.0000,5.0000] dim1 [0.0013,4.5198]
+  SVGD [BetaPrior, None], fixed=[(1, 5.0)]: model saw dim0 [0.0815,1.0000] dim1 [5.0000,5.0000]
+  MCMC [BetaPrior, None], fixed=[(1, 5.0)]: model saw dim0 [0.0020,4.9600] dim1 [5.0000,5.0000]
+  emulated all-sigmoid transform applied to the stored fixed value for 5.0 (what "every slot uses the natural transform" gives without bug 2's wrapper): 0.9932620530009145
+## (e) default / non-natural priors: transform identity today (guard reference)
+  SVGD prior=None: param_transform(5)=5.006715 has _per_dim_fns=False
+  SVGD GaussPrior single: param_transform(5)=5.006715 has _per_dim_fns=False
+  SVGD [GaussPrior]: param_transform(5)=5.006715 has _per_dim_fns=False
+  [Gauss,Beta] has _per_dim_fns: True
+## (f) BetaPrior target in phi is flat beyond the sigmoid clip (improper tails): log prior(phi) for U-shaped Beta(0.5,0.5) and Beta(2,5)
+  Beta(0.5,0.5): {0.0: -0.693, 10.0: -5.0, 20.0: -10.0, 25.0: -10.362, 50.0: -10.362, 500.0: -10.362}
+  Beta(2.0,5.0): {0.0: -4.852, 10.0: -50.0, 20.0: -100.0, 25.0: -103.616, 50.0: -103.616, 500.0: -103.616}
+[runcap] exit 0, peak RSS 1416 MB, 27s

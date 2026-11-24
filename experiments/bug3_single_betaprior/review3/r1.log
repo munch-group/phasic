@@ -1,0 +1,27 @@
+## TEST 1: single BetaPrior, model input in [1e-9,1-1e-9]; param_transform == prior._transform
+  dim 1: model-input-in-range=False (max 12.5); transform==prior transform: False  -> test FAILS today
+  dim 2: model-input-in-range=False (max 12.5); transform==prior transform: False  -> test FAILS today
+## TEST 2: single vs list form: initial particles and final particles array-equal?
+  dim 1: theta_init equal: False; max|diff| init 2.987
+     single init[:3] [0.4693, -0.3442, 0.0083]  list init[:3] [3.1065, 1.2382, -1.4432]
+     final particles equal: False
+  dim 2: theta_init equal: False; max|diff| init 6.344
+     single init[:3] [0.4693, -0.3442, 0.0083, 1.0777, 0.3634, -0.9541]  list init[:3] [3.1065, -1.8817, 1.2382, 0.395, -1.4432, 0.7087]
+     final particles equal: False
+  prior.sample(key,(8,1)) vs prior.sample(split(key)[1],(8,1)) equal: False
+## TEST 5: BetaPrior + positive_params=False raises?
+[WARNING] phasic.svgd: svgd_step: clipped 3/8 particle gradient norm(s) exceeding 10000x the healthy batch median (a loss singularity or a diverging particle was encountered) -- inference for those particles is damped, not exact, for this step.
+  SVGD single, no transform: NO RAISE  -> test FAILS today
+  MCMC single, no transform: NO RAISE  -> test FAILS today
+  SVGD single, custom exp: NO RAISE  -> test FAILS today
+  MCMC single, custom exp: NO RAISE  -> test FAILS today
+  SVGD single, custom sigmoid: NO RAISE  -> test FAILS today
+  MCMC single, custom sigmoid: NO RAISE  -> test FAILS today
+[WARNING] phasic.svgd: svgd_step: clipped 3/8 particle gradient norm(s) exceeding 10000x the healthy batch median (a loss singularity or a diverging particle was encountered) -- inference for those particles is damped, not exact, for this step.
+  SVGD list, no transform: NO RAISE  -> test FAILS today
+  MCMC list, no transform: NO RAISE  -> test FAILS today
+  SVGD list, custom exp: NO RAISE  -> test FAILS today
+  MCMC list, custom exp: NO RAISE  -> test FAILS today
+  SVGD list, custom sigmoid: NO RAISE  -> test FAILS today
+  MCMC list, custom sigmoid: NO RAISE  -> test FAILS today
+[runcap] exit 0, peak RSS 670 MB, 14s
