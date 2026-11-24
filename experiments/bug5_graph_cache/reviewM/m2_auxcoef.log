@@ -1,0 +1,8 @@
+edge methods: ['coefficients_length']
+fresh param_length 2 coefficients_length 3 coefficients None
+fresh serialize param_edges shape (3, 5)
+fresh callback-mode expectation 0.38257575757575757
+hit param_length 2 coefficients_length 3 coefficients None
+hit serialize param_edges shape (3, 5)
+hit callback-mode expectation 0.38257575757575757
+[runcap] exit 0, peak RSS 312 MB, 3s

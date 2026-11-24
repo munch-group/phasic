@@ -1,0 +1,14 @@
+numpy 2.4.3
+StringDType a module numpy.dtypes hasobject True fields None str StringDType() admitted False
+   digest raises TypeError Cannot change data-type for array of references.
+StringDType b module numpy.dtypes hasobject True fields None str StringDType() admitted False
+   digest raises TypeError Cannot change data-type for array of references.
+StringDType {} str StringDType() repr StringDType() hasobject True
+StringDType {'na_object': None} str StringDType(na_object=None) repr StringDType(na_object=None) hasobject True
+StringDType {'coerce': False} str StringDType(coerce=False) repr StringDType(coerce=False) hasobject True
+StringDType {'na_object': nan} str StringDType(na_object=nan) repr StringDType(na_object=nan) hasobject True
+dtype('<M8[ns]') str <M8[ns]
+dtype('<M8[2ns]') str <M8[2ns]
+dtype('<m8[D]') str <m8[D]
+dtype('<m8[7D]') str <m8[7D]
+[runcap] exit 0, peak RSS 2 MB, 1s

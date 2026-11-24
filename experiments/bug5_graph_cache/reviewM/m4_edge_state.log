@@ -1,0 +1,17 @@
+/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewM/m4_edge_state.py:31: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+  v.add_edge_parameterized(w, 0.0, [1.0])
+== constant: identical=True
+  parameterized: fresh=False
+  param_length: fresh=1
+  edges: fresh=[((np.int32(0),), (np.int32(4),), 1, 1.0), ((np.int32(0),), (np.int32(4),), 1, 1.0), ((np.int32(4),), (np.int32(3),), 1, 6.0), ((np.int32(3),), (np.int32(2),), 1, 3.0), ((np.int32(2),), (np.int32(1),), 1, 1.0)]
+  update_weights([2.0])+E: fresh=ERR RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca
+  add_edge_parameterized: fresh=ERR RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-I
+  add_edge const: fresh=ok
+== parameterized: identical=True
+  parameterized: fresh=True
+  param_length: fresh=1
+  edges: fresh=[((np.int32(0),), (np.int32(4),), 1, 1.0), ((np.int32(0),), (np.int32(4),), 1, 1.0), ((np.int32(4),), (np.int32(3),), 1, 6.0), ((np.int32(3),), (np.int32(2),), 1, 3.0), ((np.int32(2),), (np.int32(1),), 1, 1.0)]
+  update_weights([2.0])+E: fresh=0.75
+  add_edge_parameterized: fresh=ok
+  add_edge const: fresh=ERR RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first 
+[runcap] exit 0, peak RSS 315 MB, 4s

@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.8, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.9, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -73,7 +73,10 @@ everything it can read exactly from the call: the callback function object
 (its running bytecode, constants, defaults, closure contents, bound
 `self`, recursively), the keyword arguments and initial vector BY VALUE,
 and the phasic build. What the callback reaches through MODULE GLOBALS
-(helper functions, module variables, imported objects), installed
+(helper functions, module variables, imported objects) or through a
+MODULE captured in a closure cell (keyed by its name only, so its
+attributes, and edits followed by `importlib.reload`, are not seen),
+installed
 library versions (numpy, scipy, ...: compiled functions are keyed by
 name, Python functions captured in a cell by their code, never by the
 module globals they read), files and the environment is the user's
@@ -199,7 +202,11 @@ streams. Components in order:
 function already visited contributes a back-reference token)
 
 - Python function `f`, EXACT type only (`type(f) is
-  types.FunctionType`): `f.__module__` (so two same-bodied callbacks
+  types.FunctionType`): `f.__module__` encoded through the VALUE
+  FINGERPRINT (it can be `None`, for example for functions made by
+  `exec(src, {})` or `types.FunctionType(code, {})`, review M m5; the
+  same applies to every other name-like token, and `cache_key` itself
+  goes through the `str` value rule) (so two same-bodied callbacks
   from different modules, each reading its own module global, are kept
   apart even under one `cache_key`; it is `'__main__'` in notebooks, so
   notebook hits are unaffected; `co_filename` stays excluded); CODE
@@ -264,7 +271,13 @@ function already visited contributes a back-reference token)
   `import numpy as np` inside a factory creates): module-name token,
   ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
   module global, whose contents are the user's responsibility under the
-  contract. (Value rule 6b below.)
+  contract. (Value rule 6b below.) Admitted ONLY inside closure cells: a
+  module passed as a keyword argument or inside the ipv is NOT
+  FINGERPRINTABLE, because there the contract promises keying BY VALUE
+  and a module's attributes can change (`mod.RATE = 4.0`) or be reloaded
+  (`importlib.reload` keeps the same object and name) without changing
+  the token (measured: E[T] 1.6 / 0.4 / 0.16 under one token, review M
+  m6). The error advises passing the needed values as plain kwargs.
 - Recursion: the visited map maps each function to its first-visit
   index; a revisit contributes a back-reference token carrying that
   index, so different recursion shapes give different streams. The map
@@ -348,7 +361,9 @@ longer used, so callbacks without accessible source can be cached.
 6. any callable that §2.2.1 admits (Python function, bound method,
    partial, and builtins/ufuncs under exactly §2.2.1's conditions):
    FUNCTION FINGERPRINT; §2.2.1 and this rule are one rule;
-   6b. a module object under §2.2.1's module rule: module-name token;
+   6b. a module object under §2.2.1's module rule, and only when it sits
+   in a closure cell: module-name token (in the kwargs block or the ipv
+   it is refused, see §2.2.1);
 7. a class object (`isinstance(x, type)`): the immutable-compiled-type
    token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
@@ -390,8 +405,12 @@ longer used, so callbacks without accessible source can be cached.
      and on folded values only, so a deprecated `offset`, which
      `to_dict()` drops after `__post_init__` folded it into min/max,
      `state_indexing.py:99-106`, does not cause a refusal), the same
-     triples for `property_dict.items()` with their keys, `_bases` and
-     `_radix_powers` must equal those of `c`; `_result_class`'s field
+     triples for `property_dict.items()` with their keys, and `_bases`
+     and `_radix_powers` must equal those of `c`, where equal for these
+     numpy arrays means same `type`, `dtype` and `shape` and
+     `np.array_equal` (a bare `!=` would raise on multi-element arrays,
+     and value-only equality would admit a float array with different
+     behaviour); `_result_class`'s field
      names must equal `c`'s; `_props_dataclass`, if present (it is
      created lazily, so `c` never has it), must have field names
      `[p.name for p in ps.properties]`. Each Property must have
@@ -452,7 +471,11 @@ longer used, so callbacks without accessible source can be cached.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
-as `GraphCacheKeyError`. Limits: a depth limit of 100, and a cycle check against the
+as `GraphCacheKeyError`. Limits: a depth limit of 100; a TOTAL node
+budget of 10^7 visited objects per key computation (a DAG of shared
+containers such as `a = [a, a]` nested k times would otherwise be
+walked 2^k times and hang, review M 7), exceeding it raises
+`GraphCacheKeyError`; and a cycle check against the
 ids of the containers / `StateIndexer` objects on the CURRENT PATH from the
 root only (pushed on entry, popped on exit). A process-wide seen-set is
 wrong: it flags a list referenced twice, an ipv reusing one state list,
@@ -489,10 +512,14 @@ and (ii) the CONTENT HASH of those files, computed right there, at import
 hash uses the same counted, length-prefixed framing as the key: for each
 file in sorted relative-path order its relative path, its size and its
 bytes, so moving text across a file boundary (an extraction refactor)
-changes it. This content hash IS `_phasic_build_id()`: it describes the
-code the process actually imported, by construction, so no reinstall
-between import and the first key computation can go unnoticed (review I
-2).
+changes it. This content hash IS `_phasic_build_id()`. To make sure it
+describes the code the process actually imported, a stdlib-only stat
+snapshot of the same files is taken at the TOP of `phasic/__init__.py`,
+before any submodule or `phasic_pybind` import; at the end the files are
+re-stat'ed, and if anything changed during the import (a concurrent
+reinstall on a shared cluster), a recording failure is stored (raised at
+the first key computation). So no reinstall during or after import can
+go unnoticed (review I 2, review M 3).
 Recording NEVER raises at import: any failure (a file vanishing between
 listing and reading, a missing extension file) is stored and raised as
 `GraphCacheKeyError` by the first key computation, so `import phasic`
@@ -524,6 +551,9 @@ extension only).
 
 ### 2.3 Errors
 
+- Both cache exceptions are DEFINED in `callback_hash` (which imports
+  nothing from `graph_cache`; `graph_cache` imports them from there) and
+  re-exported from `phasic`.
 - `GraphCacheKeyError(ValueError)`, exported from `phasic`: the key
   cannot be computed. The message names the path to the offending value
   (for example `kwargs['model']` or
@@ -616,8 +646,12 @@ here).
   `_deserialize_value` (see below). `Graph.__init__` constructs ONE `GraphCache()` per
   call, whose directory is absolute (§2.5), so lookup and save use the
   same directory.
-  `clear()` / `clear_graph_cache()` (and through them
-  `clear_all_graph_caches` and `model_export.clear_caches`) also remove
+  `clear()` / `clear_graph_cache()` delete ONLY files whose names match
+  `^[0-9a-f]{32}\.json$` (entry names, old and new; the directory may now
+  be user-chosen via `PHASIC_CACHE_DIR`, so other JSON files there must
+  survive, review M 6); `get_cache_stats` counts the same pattern. They
+  (and through them `clear_all_graph_caches` and
+  `model_export.clear_caches`) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
   `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
   behind (review 7 C), but ONLY those whose mtime is more than one hour
@@ -628,7 +662,9 @@ here).
   `load(entry_key)`.
 - Removed: `get_or_build`, `hash_callback`, `_detect_closures`,
   `_normalize_ast`.
-- Entry content: `format`, `phasic_version`, `created_at`, `cache_key`,
+- Entry content: `entry_digest` (the FULL SHA-256 hex of the key token
+  stream; the file name holds its first 32 characters), `format`,
+  `phasic_version`, `created_at`, `cache_key`,
   `callback_name` (informational: the user function's name through
   phasic's wrapper, `getattr(getattr(cb, "__wrapped__", cb), "__name__",
   None)`, falling back to the type name, so a wrapped `partial` does not
@@ -655,6 +691,10 @@ here).
   writers each replace atomically; a reader sees a complete file or none
   (shared SLURM directories are a documented use,
   `distributed.ipynb` cell 31).
+- On load, `entry_digest` must equal the digest recomputed for this call;
+  a mismatch is a `GraphCacheLoadError` naming the file (a file copied or
+  planted under the wrong name, or a truncated-name collision, would
+  otherwise be loaded silently as a wrong graph, review M 2).
 - Load errors are classed exactly as:
   - `FileNotFoundError` on open -> `None` (miss);
   - any other `OSError` on open/read (for example `PermissionError` on an
@@ -846,7 +886,9 @@ function):
     `GraphCacheKeyError`. A recording failure stored by
     `_record_build_stats` (monkeypatched) and a missing record: both
     `GraphCacheKeyError` at the first key computation, while
-    `import phasic` itself succeeded. The content hash differs when bytes
+    `import phasic` itself succeeded. A file change between the top-of-
+    import snapshot and the end of import (monkeypatched snapshot):
+    recording failure, `GraphCacheKeyError` at first use. The content hash differs when bytes
     move across a file boundary (two temporary files, unit test of the
     hashing helper). `numpy.__version__` monkeypatched: miss.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
@@ -934,7 +976,15 @@ function):
     installed). A `datetime64` array, a `timedelta64` array and a 0-d
     array: keyed, hit on rebuild, miss when one value differs. An indexer
     whose `_slots` attribute was deleted: `GraphCacheKeyError` (not
-    `AttributeError`). A `KeyboardInterrupt` raised inside `save()`
+    `AttributeError`). A module passed as a kwarg and one inside the ipv:
+    `GraphCacheKeyError`; a module in a closure cell: keyed by name (a
+    contract-pin case: after `mod.RATE` changes, the hit returns the old
+    graph, as documented). A function made by `exec(src, {})`
+    (`__module__` is `None`): keyed. A copied entry file renamed to
+    another call's entry name: `GraphCacheLoadError`. A JSON file with a
+    non-entry name in the cache directory survives `GraphCache().clear()`.
+    A shared-container DAG nested 40 deep: `GraphCacheKeyError` (budget)
+    within seconds. A `KeyboardInterrupt` raised inside `save()`
     (monkeypatched): propagates with `e.graph` attached, no `.partial`
     left. A `partial` subclass
     overriding `__call__`: refused. A user kwarg
@@ -1274,3 +1324,11 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   attached to any exception from `save()`, including KeyboardInterrupt;
   4 no-eviction note; 5 line references updated (1669, 1753, 1750-1759,
   1745-1747); 6 entries opened with `encoding="utf-8"`.
+- Independent review M -> v3.9: 1 modules admitted only in closure cells
+  (refused in kwargs / ipv, where by-value keying is promised), contract
+  says cell modules are keyed by name; 2 full digest stored in the entry
+  and checked on load; 3 top-of-import stat snapshot closes the import
+  window; 4 `__module__` via the value rule (can be `None`); exceptions
+  defined in `callback_hash`; 5 array equality in the StateIndexer check
+  specified; 6 `clear()` deletes only entry-named files; 7 total node
+  budget for the key walk.
