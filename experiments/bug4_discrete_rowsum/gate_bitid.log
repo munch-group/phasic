@@ -1,0 +1,16 @@
+Bug 4 gate step 2 (bit-identity), 2026-11-24.
+Dumps: bitid_master.txt, bitid_master2.txt (master build b1203728, run twice),
+bitid_fix.txt, bitid_fix_scribble.txt (fix build, second with MallocScribble=1).
+
+29 of 35 lines (coalescent6, two_island4, two_locus3 continuous pdf/cdf/
+stop_probability/accumulated_visiting_time; pmf_from_graph coalescent6;
+safe native discrete graph pdf/cdf(1..200), stop_probability,
+accumulated_visits): sha of those lines identical in all four dumps
+(79786b5c9fbce041). PASS.
+
+The 6 coalescent6_rewarded lines (continuous reward_transform) are NOT
+reproducible on master itself: master run 1 vs run 2 differ by up to 7.0e-16
+relative; master vs fix by up to 9.1e-16 (same order). Pre-existing run-to-run
+nondeterminism of the continuous reward transform, untouched by this fix (the
+fix edits only ptd_graph_dph_reward_transform); to be logged in
+found-defects-2026-11-23.md.

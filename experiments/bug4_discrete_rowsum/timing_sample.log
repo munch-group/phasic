@@ -1,0 +1,12 @@
+master	discretized coalescent (2004 v)	sample200000 0.1033 s
+master	discrete joint graph (7959 v)	sample200000 0.0234 s
+fix	discretized coalescent (2004 v)	sample200000 0.1150 s
+fix	discrete joint graph (7959 v)	sample200000 0.0234 s
+master	discretized coalescent (2004 v)	sample200000 0.1049 s
+master	discrete joint graph (7959 v)	sample200000 0.0231 s
+fix	discretized coalescent (2004 v)	sample200000 0.1135 s
+fix	discrete joint graph (7959 v)	sample200000 0.0229 s
+master	discretized coalescent (2004 v)	sample200000 0.1021 s
+master	discrete joint graph (7959 v)	sample200000 0.0228 s
+fix	discretized coalescent (2004 v)	sample200000 0.1125 s
+fix	discrete joint graph (7959 v)	sample200000 0.0233 s

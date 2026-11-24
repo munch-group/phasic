@@ -2345,6 +2345,9 @@ class Graph(_Graph):
             # is unbound); the C layer only computes continuous waiting-time
             # moments. Convert them to discrete raw moments -- the same identity
             # variance_discrete uses (m[1]-m[0]-m[0]^2), generalised. Exact for a DPH.
+            # A native discrete graph is validated first (row sums <= 1 + 1e-9,
+            # finite non-negative weights), as expectation/variance are.
+            self._validate_dph_row_sums()
             cont = super().moments(power, rewards=rewards, **kwargs)
             return _continuous_to_discrete_moments(cont)
         else:

@@ -1641,9 +1641,11 @@ namespace phasic {
 
             if (jumps > this->rf_graph->dph_context->jumps) {
                 for (int i = this->rf_graph->dph_context->jumps; i < jumps; ++i) {
-                    ptd_dph_probability_distribution_step(
+                    if (ptd_dph_probability_distribution_step(
                             this->rf_graph->dph_context
-                    );
+                    ) != 0) {
+                        PTD_THROW_AND_CLEAR();
+                    }
                     _dph_pmf.push_back(this->rf_graph->dph_context->pmf);
                     _dph_cdf.push_back(this->rf_graph->dph_context->cdf);
                 }
@@ -1756,9 +1758,11 @@ namespace phasic {
             }
 
             while (jumps > this->rf_graph->dph_context_markov->jumps) {
-                ptd_dph_probability_distribution_step(
+                if (ptd_dph_probability_distribution_step(
                         this->rf_graph->dph_context_markov
-                );
+                ) != 0) {
+                    PTD_THROW_AND_CLEAR();
+                }
             }
 
             std::vector<double> ret(this->rf_graph->dph_context_markov->graph->vertices_length);
@@ -1772,7 +1776,8 @@ namespace phasic {
 
         std::vector<double> dph_accumulated_visits(int jumps) {
             if (this->rf_graph->dph_context_markov == NULL
-                || this->rf_graph->dph_context_markov->jumps > jumps) {
+                || this->rf_graph->dph_context_markov->jumps > jumps
+                || this->rf_graph->dph_context_markov->weight_version_at_creation != c_graph()->weight_version) {
                 if (this->rf_graph->dph_context_markov != NULL) {
                     ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context_markov);
                 }
@@ -1784,9 +1789,11 @@ namespace phasic {
             }
 
             while (jumps > this->rf_graph->dph_context_markov->jumps) {
-                ptd_dph_probability_distribution_step(
+                if (ptd_dph_probability_distribution_step(
                         this->rf_graph->dph_context_markov
-                );
+                ) != 0) {
+                    PTD_THROW_AND_CLEAR();
+                }
             }
 
             std::vector<double> ret(this->rf_graph->dph_context_markov->graph->vertices_length);
@@ -2344,6 +2351,9 @@ namespace phasic {
     public:
         DPHProbabilityDistributionContext(Graph &graph) : graph(graph) {
             context = ptd_dph_probability_distribution_context_create(graph.c_graph());
+            if (context == NULL) {
+                PTD_THROW_AND_CLEAR();
+            }
             _discrete = true;
         }
 
@@ -2353,7 +2363,9 @@ namespace phasic {
         }
 
         void step() {
-            ptd_dph_probability_distribution_step(context);
+            if (ptd_dph_probability_distribution_step(context) != 0) {
+                PTD_THROW_AND_CLEAR();
+            }
         }
 
         double pmf() {

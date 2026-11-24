@@ -1518,7 +1518,19 @@ struct ptd_dph_probability_distribution_context {
     /* graph->weight_version snapshot at creation; see same field on
      * ptd_probability_distribution_context for the rationale. */
     uint64_t weight_version_at_creation;
+    /* Discrete contexts (bug 4): cap each outflow at the mass still present
+     * at its source, so stepping never produces negative mass. False for the
+     * internal contexts the continuous Euler stepper builds. */
+    bool cap_outflow;
+    /* graph->weight_version the row sums were last validated at; a step on a
+     * cap_outflow context re-validates when the graph's weights changed. */
+    uint64_t validated_weight_version;
 };
+
+/* Discrete phase-type validity: every weight finite and >= 0, every row
+ * (starting vertex included) summing to at most 1 + 1e-9. Returns nonzero
+ * with ptd_err set on the first violating vertex. */
+int ptd_dph_validate_row_sums(struct ptd_graph *graph);
 
 struct ptd_dph_probability_distribution_context *ptd_dph_probability_distribution_context_create(
         struct ptd_graph *graph

@@ -933,6 +933,16 @@ GraphBuilder::compute_pmf_and_moments(
         // discrete moment correction -- not their continuous counterparts.
         bool is_disc = discrete || is_discrete_;
 
+        // A native discrete graph is validated once here, before the
+        // moments: the pmf loop below (which validates through dph_pmf) is
+        // skipped for empty or all-NaN times, and the moments alone would
+        // otherwise be returned for an invalid model
+        // (bug4-discrete-rowsum-plan.md §2.3).
+        if (is_disc && !g.c_graph()->was_dph
+            && ptd_dph_validate_row_sums(g.c_graph()) != 0) {
+            PTD_THROW_AND_CLEAR();
+        }
+
         if (is_2d_rewards) {
             // === MULTIVARIATE CASE: Compute PDF per feature ===
             pmf_2d.resize(n_times, std::vector<double>(n_features));

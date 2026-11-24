@@ -5,7 +5,7 @@ THE BUG
 The batched FFI handlers run `#pragma omp parallel for` over the batch. Their loop
 bodies can throw -- GraphBuilder::build() (theta-length mismatch; a non-positive
 'log' product; a negative/non-finite 'formula' weight), compute_moments_impl(), the
-rewards parsing, and the C layer (a DPH row sum > 1.0001 makes pdf()/dph_pmf() throw).
+rewards parsing, and the C layer (a DPH row sum > 1 + 1e-9 makes pdf()/dph_pmf() throw).
 
 The OpenMP spec requires a throw inside a parallel region to be caught by the same
 thread INSIDE that region. Letting one escape calls std::terminate:
@@ -114,7 +114,7 @@ def test_compute_pmf_handler_does_not_abort():
 
 
 def test_compute_pmf_handler_does_not_abort_on_dph_row_sum():
-    """A different throw site: the C layer rejects a DPH row sum > 1.0001, so the
+    """A different throw site: the C layer rejects a DPH row sum > 1 + 1e-9, so the
     throw comes from dph_pmf(), not from build()."""
     res = _run("""
         m = Graph.pmf_from_graph(chain('linear'), discrete=True)
