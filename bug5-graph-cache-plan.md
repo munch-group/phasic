@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.0, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.1, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -73,9 +73,16 @@ everything it can read exactly from the call: the callback function object
 (its running bytecode, constants, defaults, closure contents, bound
 `self`, recursively), the keyword arguments and initial vector BY VALUE,
 and the phasic build. What the callback reaches through MODULE GLOBALS
-(helper functions, module variables, imported objects), files and the
-environment is the user's responsibility: change `cache_key` when it
-changes. The `cache_key` docstring states this with an example.
+(helper functions, module variables, imported objects), installed
+library versions (numpy, scipy, ...: compiled functions are keyed by
+name, Python functions captured in a cell by their code, never by the
+module globals they read), files and the environment is the user's
+responsibility: change `cache_key` when it changes. The key also
+reflects arguments and captured state AT CALL TIME, so a callback must
+not change its arguments or captured state in ways that affect the graph
+(for example mutating one kwarg and reading an alias of it: aliases are
+keyed by content). The `cache_key` docstring states all this with an
+example.
 
 ### 2.1 `Graph(..., cache_key=None)`
 
@@ -91,7 +98,10 @@ changes. The `cache_key` docstring states this with an example.
     `ValueError` ("cache_key applies to graphs built from a callback");
   - ALL argument validation for a callback runs first: the
     ipv/decorator checks now at `:1747-1755` move above the lookup (for
-    every call, cached or not; same errors, raised earlier);
+    every call, cached or not; same errors, raised earlier). They read
+    `getattr(arg, "__name__", None)` instead of `arg.__name__`
+    (`:1667`, `:1750`), so a `partial` callback gets the normal ipv
+    error instead of today's `AttributeError` (review E 7d);
   - the ENTRY KEY (§2.2) is computed once. A key error propagates:
     nothing is built, nothing written;
   - lookup: `GraphCache().load(entry_key)` returns a separate, fully
@@ -115,7 +125,9 @@ changes. The `cache_key` docstring states this with an example.
     (`phasic.c:2996`), because `serialize()` persists the WRITER's flag
     (`_graph_serialize.py:222`, restored at `:698`) and a hit must behave
     like a fresh build in the reader's environment (review C p9); plus
-    `self._graph_cache_entry = <entry path>` (the resolved file path, so
+    `self._graph_cache_entry = <entry path>` (the ABSOLUTE file path,
+    `Path.resolve()`, so a relative `PHASIC_CACHE_DIR` plus a later
+    `chdir` cannot break it, and so
     `clear_from_cache` finds it even if `PHASIC_CACHE_DIR` changes later);
   - miss: build as today, then `GraphCache().save(self, entry_key, meta)`;
     only after it returns, `self._graph_cache_entry = <entry path>`. ANY
@@ -217,9 +229,10 @@ function already visited contributes a back-reference token)
   index; a revisit contributes a back-reference token carrying that
   index, so different recursion shapes give different streams. The map
   is keyed by `id()` but HOLDS A STRONG REFERENCE to every visited
-  function until the key computation finishes (since v3.0 every walked
-  object is reachable from the call's arguments, so temporaries no longer
-  arise; the strong references stay as a guard), so a temporary freed mid-walk can
+  function until the key computation finishes (since v3.0 the only
+  temporaries walked are the dicts `StateIndexer.to_dict()` returns,
+  which hold no functions; the strong references stay as a guard), so a
+  temporary freed mid-walk can
   never have its id reused by a different function (which would turn it
   into a back-reference and give two different inputs one stream,
   review D d7).
@@ -283,17 +296,37 @@ longer used, so callbacks without accessible source can be cached.
    token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
    is refused explicitly);
-8. phasic's own value types, EXACT class only: `StateIndexer` (class
-   token, then the VALUE FINGERPRINT of its `to_dict()`, which phasic
-   controls and which covers the same structure as its `__eq__` /
-   `__hash__`: property sets, properties with min/max, slots,
-   pset/slot/entity order; `state_indexing.py:1850`, review 4) and
-   `Property` (frozen dataclass: name, `min_value`, `max_value`, after
-   the deprecated `offset` is folded in by `__post_init__`). Exceptions
-   from `StateIndexer.to_dict()` are re-raised as `GraphCacheKeyError`
-   (path chained). NO other object is keyed through `to_dict()` or any
-   other user-defined method: a user's `to_dict()` cannot be checked to
-   be one-to-one (pandas' is not: it collapses duplicate index labels,
+8. phasic's own value types, EXACT class only, and only in their
+   plain, unextended form:
+   - `Property`: `type(p) is Property`; keyed by ALL four dataclass
+     fields (`name`, `min_value`, `max_value`, `offset`), since `offset`
+     takes part in `__eq__` and is readable by a callback
+     (`state_indexing.py:97`).
+   - `StateIndexer`: `type(ix) is StateIndexer` AND `set(vars(ix))` is a
+     subset of its known attributes (the allow-list is the attribute set
+     of a freshly built indexer, measured at implementation time and
+     pinned by a test; today `_property_sets`, `_slots`, `_offsets`,
+     `_pset_order`, `_slot_order`, `_entity_order`, `_result_class`,
+     `_total_state_length`) AND every PropertySet in it has
+     `type(ps) is PropertySet` or `type(ps) is StateSpace`
+     (`state_indexing.py:220`, `:2204`) with `set(vars(ps))` inside its
+     own allow-list (measured the same way; today `name`, `properties`,
+     `property_dict`, `_bases`, `_radix_powers`, `_props_dataclass`)
+     AND every Property in it passes the Property rule. Keyed as class
+     token, PropertySet class names in order, then the VALUE FINGERPRINT
+     of `to_dict()` (property sets, properties with min/max, slots,
+     pset/slot/entity order; `state_indexing.py:1850`) with each
+     Property's `offset` added. Anything else (an extra attribute set
+     through `StateIndexer.__setattr__`, `:1005-1011`, or on a
+     PropertySet, a PropertySet or Property subclass, e.g. one
+     overriding `encode_value`) is NOT FINGERPRINTABLE: `to_dict()`
+     would not show it, and two indexers equal under `to_dict()` and
+     `==` could build different graphs (measured, review E e3).
+     Exceptions from `to_dict()` are re-raised as `GraphCacheKeyError`
+     (path chained).
+   NO other object is keyed through `to_dict()` or any other
+   user-defined method: a user's `to_dict()` cannot be checked to be
+   one-to-one (pandas' is not: it collapses duplicate index labels,
    review D d3);
 9. anything else: NOT FINGERPRINTABLE. This includes user class
    instances (with or without `to_dict()`), pandas objects, dataclass
@@ -417,8 +450,14 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 ### 2.6 `GraphCache` API and entry file
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
-  `get_cache_stats()`, `_serialize_value` (`_deserialize_value` is
-  deleted, see below). `Graph.__init__` constructs ONE `GraphCache()` per
+  `get_cache_stats()`. EDITED: `_serialize_value`
+  (`graph_cache.py:304-378`) loses its generic `to_dict()` arm (which tags
+  any object with `__type__: module.Class`) and its docstring/error text
+  advertising the `to_dict()`/`from_dict()` protocol; it encodes plain
+  JSON values plus the `ndarray` tag only and raises on anything else, so
+  the save side is symmetric with the restricted decoder and no entry
+  can be written that every later lookup would refuse. Deleted:
+  `_deserialize_value` (see below). `Graph.__init__` constructs ONE `GraphCache()` per
   call, so lookup and save resolve the same directory.
   `clear()` / `clear_graph_cache()` (and through them
   `clear_all_graph_caches` and `model_export.clear_caches`) also remove
@@ -489,7 +528,7 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
   The general `_deserialize_value` (which imports the module a tag names
   and calls its `from_dict`, review 7 A) is DELETED (no caller remains;
   `test_serialize_is_aux.py` moves to the restricted decoder), and
-  `_serialize_value` stays for the save path.
+  `_serialize_value` stays for the save path, edited as described above.
 
 ### 2.7 `Graph.clear_from_cache(graph_cache=True, ...)`
 
@@ -497,8 +536,14 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 clear and is unrelated to the removed option, so it stays.) Uses
 `getattr(self, "_graph_cache_entry", None)`, which holds the entry's
 file PATH resolved at construction (not just the key). No entry (built without
-`cache_key`) -> `removed["graph_cache"] = 0`, documented. A graph not
-built from a callback still raises as today.
+`cache_key`) -> `removed["graph_cache"] = 0`, documented. Graphs
+DERIVED from a cached graph (`discretize`, widening, `laplace_transform`,
+`add_epoch`: `__init__.py:3445-3447, 10136-10138, 3003-3005, 3276`) do
+not inherit `_graph_cache_entry`, so `clear_from_cache()` on them reports
+0. On master the same call re-hashed the copied `_callback` and deleted
+the BASE graph's entry; the new behaviour is intended (a derived graph
+has no entry of its own) and documented. A graph not built from a
+callback still raises as today.
 
 ### 2.8 Old entries
 
@@ -540,7 +585,9 @@ its key, `callback_hash.py:95-103,142-160`), test 24 (master's
 `repr(kwargs)` is exact for small dicts with tuple or int keys), the
 `state[..., 0]` part of test 25 (master hashes the AST), and the
 `PHASIC_DISABLE_CACHE` half of test 20 (master ignores `cache_key` but
-caches by default):
+caches by default), test 10 (master's `StateIndexer.__repr__` is exact
+for ranges and layout, `state_indexing.py:1570-1593`), and the
+`Property` and "not cycles" parts of test 11:
 1. Default build is uncached: a module-level variable changed between two
    builds gives the correct second graph, and no file appears.
 2. `graph_cache=True` and `graph_cache=False` raise `TypeError`
@@ -582,9 +629,16 @@ caches by default):
     array; a structured array with an object field; an `np.void` scalar.
     Not cycles (hash and hit): a list referenced twice in one kwarg, an
     ipv reusing one state list, a list of 200 `StateIndexer` objects.
-    `Property` kwargs: hit when equal, miss when `max_value` differs; a
-    `Property` built with the deprecated `offset` equals the
-    `min_value` form (same key).
+    `Property` kwargs: hit when equal, miss when `max_value` differs;
+    `Property(min_value=1, offset=0)` vs `Property(min_value=1,
+    offset=3)`: different keys. Refused: a `StateIndexer` with an extra
+    attribute (`ix.rate = 2`), one whose PropertySet carries an extra
+    attribute, one built from a PropertySet subclass other than
+    `StateSpace`, one holding a `Property` subclass overriding
+    `encode_value`, and a `Property` subclass as a kwarg. A
+    `StateSpace`-based indexer: hits. The allow-lists equal
+    `set(vars(...))` of freshly built objects (pins them against future
+    attribute additions in `state_indexing.py`).
 12. Values the key accepts that the old entry format could not store
     (`np.bool_`, complex, bytes keyword arguments) and an int above 4300
     digits held INSIDE a list kwarg and as a closure default (a top-level
@@ -603,8 +657,10 @@ caches by default):
     `GraphCacheKeyError` at the first key computation, while
     `import phasic` itself succeeded.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
-    and with it set to `""`: entry under the monkeypatched
-    `DEFAULT_CACHE_DIR` (never a relative `graphs/`). Import order: a
+    and with it set to `""` (HOME also monkeypatched to `tmp_path` for
+    these cases, so nothing can reach the real HOME): entry under the
+    monkeypatched `DEFAULT_CACHE_DIR` (never a relative `graphs/`). A
+    relative `PHASIC_CACHE_DIR`: `_graph_cache_entry` is absolute. Import order: a
     subprocess whose env has `OMP_NUM_THREADS` REMOVED (the pytest process
     has it set by phasic, `__init__.py:107-108`, and children inherit it)
     runs `import phasic` with a `sys.meta_path` hook that records, when
@@ -804,8 +860,14 @@ Text to revise (not raising):
   PHASIC_DISABLE_CACHE=1"). The variable has no effect anywhere in
   phasic; the text should say so.
 - Saved OUTPUTS only (harmless, refreshed on re-run):
-  `tutorial/configuration.ipynb` cells 4, 19 and `tutorial/mpfr.ipynb`
-  cell 6 show `graph_cache` in printed configuration.
+  `tutorial/configuration.ipynb` cells 4, 19, `tutorial/mpfr.ipynb`
+  cell 6 and `popgen/coalescent-derived.ipynb` cell 2 show `graph_cache`
+  in printed configuration; logged "Saved graph to cache / Cache hit /
+  Cleared" lines appear in `tutorial/svgd-basics.ipynb` (2, 6, 62),
+  `tutorial/svgd-multi-feature.ipynb` (1, 2, 12, 24),
+  `tutorial/svgd-learning-rate.ipynb`, `tutorial/svgd-multi-param.ipynb`,
+  and the untracked `tutorial/mcmc.ipynb` (2, 4) and
+  `tutorial/svgd-priors.ipynb` (cell indices 0-based).
 - Commented-out lines only: `popgen/ghost.ipynb` cell 3,
   `popgen/two-locus-island.ipynb` cells 11, 29, 37
   (`graph_cache.save_graph`), `tutorial/svgd-joint-prob.ipynb` cell 78.
@@ -925,4 +987,13 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   admits only phasic's `StateIndexer` / `Property`; user objects, pandas
   and dataclasses refused with plain-value advice; tests 8, 11, 26 and
   the notebook list (state-space cell 45 now raises) updated. Review D's
-  A1/A2 are subsumed (no user `to_dict()` results are walked).
+  A1/A2 are subsumed (no user `to_dict()` results are walked; only
+  `StateIndexer.to_dict()` results are).
+- Independent review E -> v3.1: 1 `StateIndexer` / `Property` admitted
+  only in plain form (exact classes, attribute allow-lists, `offset`
+  keyed), refusals in test 11; 2 alias/mutation and library-version
+  responsibility in the contract; 3 `_serialize_value` made symmetric
+  with the decoder; 4 temporaries wording; 5 more guards labelled;
+  6 saved-output notebook list completed; 7 derived graphs documented in
+  §2.7, absolute entry path, HOME patched in test 14, `getattr` for
+  `__name__`, library versions in the contract.
