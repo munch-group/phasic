@@ -665,12 +665,15 @@ class Prior:
     callable ``φ → θ``) to declare the constraint they want on their
     own parameter dimension. ``None`` (the default) means "use SVGD's
     global choice" (typically softplus when ``positive_params=True``).
-    When ``Graph.svgd(prior=[...])`` is called with a list of priors,
-    SVGD assembles a per-dimension composite ``param_transform``
-    using each prior's natural transform; priors that say ``None``
-    fall back to the global default. Use this to mix positive
-    parameters (Gauss/LogGauss/HalfCauchy → softplus) with probability
-    parameters (:class:`BetaPrior` → sigmoid) in a single fit.
+    When ``Graph.svgd(prior=[...])`` (or MCMC) is called with a list of
+    priors and ``positive_params=True``, a per-dimension composite
+    ``param_transform`` is assembled from each prior's natural transform;
+    priors that say ``None`` fall back to softplus. Use this to mix
+    positive parameters (Gauss/LogGauss/HalfCauchy → softplus) with
+    probability parameters (:class:`BetaPrior` → sigmoid) in a single
+    fit. A single prior with a natural transform applies it to every
+    parameter. The model, the prior's ``_transform`` and the initial
+    points always use the same function (``_resolve_param_transform``).
     """
 
     # Per-dimension natural θ ← φ transform. ``None`` defers to SVGD's
@@ -1536,7 +1539,15 @@ class BetaPrior(Prior):
                BetaPrior(ci=[0.05, 0.5])] # in (0, 1): sigmoid
 
     SVGD then assembles a composite ``param_transform`` that applies
-    each prior's natural transform to its own slice of θ.
+    each prior's natural transform to its own slice of θ. Passed as a
+    single prior, a ``BetaPrior`` confines EVERY parameter (rates
+    included) to (0, 1); an exposure on such a parameter scales the value
+    after the transform.
+
+    The transform requires ``positive_params=True``: SVGD refuses a
+    ``BetaPrior`` with ``positive_params=False`` and no
+    ``param_transform`` (a gradient method cannot stay inside (0, 1)
+    otherwise). MCMC accepts it and rejects proposals outside (0, 1).
 
     Can be specified via (alpha, beta), a credible interval, or a
     mean + concentration. Use ``mean=0.5, concentration=2.0`` for a
@@ -1580,7 +1591,8 @@ class BetaPrior(Prior):
     """
 
     # Declare the natural θ ← φ transform for this prior's dimension.
-    # SVGD composes per-dim transforms when a prior list is supplied.
+    # _resolve_param_transform uses it for this prior's slot (list form) or
+    # every slot (single form), for the model and for this prior alike.
     _natural_transform = staticmethod(_sigmoid)
 
     def __init__(
@@ -1652,11 +1664,29 @@ class BetaPrior(Prior):
 
     def __call__(self, phi: jnp.ndarray) -> float:
         """Log-probability of φ under the Beta prior in θ-space, with
-        Jacobian correction for the sigmoid θ ← φ transform.
+        the Jacobian of the θ ← φ transform.
+
+        Three cases, by the transform the prior is wired to:
+
+        - none: φ is θ itself; -inf outside (0, 1) (a hard wall);
+        - its own sigmoid: ``α·log σ(φ) + β·log σ(-φ)``, the Beta
+          log-density plus the log-Jacobian, written without clipping so it
+          is proper for every α, β > 0 (the clipped form is flat beyond
+          |φ| ≈ 20.7, which lets a sampler drift off when α or β < 1);
+        - a custom transform: the Beta log-density at the transformed θ,
+          clipped to [1e-9, 1 - 1e-9], plus log θ + log(1 - θ) as the
+          Jacobian (exact only for a sigmoid).
         """
+        if self._transform is not None and self._transform is self._natural_transform:
+            phi = jnp.asarray(phi)
+            return jnp.sum(
+                self.alpha * jax.nn.log_sigmoid(phi)
+                + self.beta * jax.nn.log_sigmoid(-phi)
+            )
         if self._transform is not None:
-            # φ → θ via this prior's natural sigmoid transform.
-            theta = self._transform(phi)
+            # Custom transform: clip so an unclipped sigmoid that rounds to
+            # exactly 0 or 1 does not give -inf and a NaN gradient.
+            theta = jnp.clip(self._transform(phi), 1e-9, 1.0 - 1e-9)
             log_theta = jnp.log(theta)
             log_one_minus = jnp.log1p(-theta)
             # Beta log-density (drop the normalising constant — it is
@@ -5218,6 +5248,125 @@ def _fixed_value_transform(base, fixed_mask, fixed_theta, theta_dim,
     return with_fixed
 
 
+def _softplus_transform(phi):
+    """Default positive transform: softplus with a 1e-9 floor, so edge
+    weights handed to the C code stay strictly positive."""
+    return jnp.maximum(jax.nn.softplus(phi), 1e-9)
+
+
+# Inverse of each transform the resolver can choose, used to map displayed
+# (parameter-scale) values back to the unconstrained scale.
+_KNOWN_INVERSES = {
+    _softplus_transform: _inverse_softplus,
+    _sigmoid: _inverse_sigmoid,
+}
+
+
+def _resolve_param_transform(prior, prior_list, positive_params,
+                             param_transform, where):
+    """Decide, for every parameter slot, the unconstrained -> parameter map.
+
+    The model, the priors and the initial points all use the function
+    decided here (a single BetaPrior used to give the model softplus while
+    the prior used its own sigmoid). Used by ``SVGD.__init__`` and
+    ``MCMC.__init__``.
+
+    Rules
+    -----
+    - ``param_transform`` given (``positive_params`` must be False): the
+      custom function, for the model and for every prior.
+    - ``positive_params=True``, list prior with at least one prior that has
+      a natural transform: slot i uses its prior's natural transform, else
+      softplus; the composite carries ``_per_dim_fns``.
+    - ``positive_params=True``, single prior with a natural transform: that
+      transform on every slot.
+    - ``positive_params=True`` otherwise: softplus.
+    - ``positive_params=False`` without a custom transform: no transform.
+      SVGD (``where == "SVGD"``) refuses a prior with a natural transform,
+      because a gradient method cannot keep it inside its bounded domain;
+      MCMC accepts it (the prior's hard wall rejects proposals outside).
+
+    ``_transform`` is assigned on every prior object, unconditionally
+    (including ``None``), so a prior reused across fits never keeps a stale
+    wiring.
+
+    Returns
+    -------
+    (transform, inverse)
+        ``transform`` is the model-facing callable or None. ``inverse`` is
+        None when there is no transform or no known inverse (custom
+        transforms), a callable applied elementwise, or a tuple with one
+        inverse per slot (None for a slot whose transform has no known
+        inverse).
+    """
+    if positive_params and param_transform is not None:
+        raise ValueError(
+            "Cannot specify both positive_params=True and param_transform. "
+            "Use positive_params=True for automatic softplus transformation, "
+            "or provide a custom param_transform function."
+        )
+    if param_transform is not None and not callable(param_transform):
+        raise ValueError("param_transform must be a callable function")
+
+    items = list(prior_list) if prior_list is not None else [prior]
+
+    def _natural(p):
+        return None if p is None else getattr(p, '_natural_transform', None)
+
+    def _wire(p, fn):
+        if p is not None and hasattr(p, '_transform'):
+            p._transform = fn
+
+    if param_transform is not None:
+        for p in items:
+            _wire(p, param_transform)
+        return param_transform, None
+
+    if not positive_params:
+        if where == "SVGD":
+            for i, p in enumerate(items):
+                if _natural(p) is not None:
+                    slot = f"prior[{i}]" if prior_list is not None else "prior"
+                    raise ValueError(
+                        f"{where}: {slot} ({type(p).__name__}) confines its "
+                        "parameter to a bounded interval, which needs its own "
+                        "transform; it cannot be used with "
+                        "positive_params=False and no param_transform. Use "
+                        "positive_params=True (the prior's own transform is "
+                        "then applied to its parameter)."
+                    )
+        for p in items:
+            _wire(p, None)
+        return None, None
+
+    if prior_list is not None:
+        if any(_natural(p) is not None for p in prior_list):
+            fns = tuple(_natural(p) if _natural(p) is not None
+                        else _softplus_transform for p in prior_list)
+
+            def _composite_transform(phi, _fns=fns):
+                # phi is (theta_dim,) or (n, theta_dim); apply each slot's
+                # transform on the last axis.
+                parts = [_fns[i](phi[..., i:i + 1]) for i in range(len(_fns))]
+                return jnp.concatenate(parts, axis=-1)
+
+            # The preconditioner's learnable-subset path and the fixed-value
+            # wrapper read the per-slot functions from here.
+            _composite_transform._per_dim_fns = fns
+            for p, fn in zip(prior_list, fns):
+                _wire(p, fn)
+            return (_composite_transform,
+                    tuple(_KNOWN_INVERSES.get(fn) for fn in fns))
+        for p in prior_list:
+            _wire(p, _softplus_transform)
+        return _softplus_transform, _inverse_softplus
+
+    natural = _natural(prior)
+    fn = natural if natural is not None else _softplus_transform
+    _wire(prior, fn)
+    return fn, _KNOWN_INVERSES.get(fn)
+
+
 class SVGD:
     r"""
     Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
@@ -5357,15 +5506,23 @@ class SVGD:
     positive_params : bool, default=True
         If True, constrains parameters to positive domain using softplus transformation.
         SVGD operates in unconstrained space (can be negative) but results are
-        transformed to positive values.
+        transformed to positive values. A prior with its own transform
+        (:class:`BetaPrior`, sigmoid to (0, 1)) applies that transform
+        instead: in a prior list to its own parameter, as a single prior to
+        EVERY parameter (rates included). Such a prior requires
+        ``positive_params=True`` (or a custom ``param_transform``).
 
         DEFAULT=True because phase-type distribution parameters (rates) must be positive.
         Set to False only if you have a specific reason to allow negative parameters
         (e.g., regression coefficients, log-space parameterization).
     param_transform : callable, optional
-        Custom parameter transformation function. Overrides positive_params if provided.
-        Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
-        for parameters in [0,1]). Cannot be used together with positive_params=True.
+        Custom parameter transformation function, mapping unconstrained space
+        to constrained space (e.g., lambda x: jax.nn.sigmoid(x) for parameters
+        in (0, 1)). Requires positive_params=False. It is used for the model
+        and handed to every prior, which computes its log-density through it
+        (the built-in priors' Jacobians assume their own default transform).
+        ``plot_pairwise_hdr`` needs ``unconstrained=True`` with a custom
+        transform.
     regularization : float or RegularizationSchedule, default=0.0
         Moment-based regularization strength. Can be:
         - float: constant regularization (0.0 = no regularization, >0.0 = regularized SVGD)
@@ -6033,117 +6190,25 @@ class SVGD:
         self.precompile = precompile
         self.compilation_config = compilation_config
 
-        # Handle parameter transformation
-        if positive_params and param_transform is not None:
-            raise ValueError(
-                "Cannot specify both positive_params=True and param_transform. "
-                "Use positive_params=True for automatic softplus transformation, "
-                "or provide a custom param_transform function."
-            )
-
-        if positive_params:
-            # Default per-dim transform when a prior doesn't declare its
-            # own. softplus(φ) clamped to a tiny floor so edge weights
-            # passed to the C code stay strictly positive (the C side
-            # treats -0.0 / sub-epsilon weights as numerical errors).
-            default_pos_transform = lambda phi: jnp.maximum(
-                jax.nn.softplus(phi), 1e-9,
-            )
-            # If `prior` is a per-dim list AND at least one prior
-            # declares its own natural transform (`_natural_transform`,
-            # e.g. `BetaPrior` → sigmoid), assemble a vector-valued
-            # composite that applies each prior's natural transform
-            # to its own slice of φ. Priors without an override keep
-            # softplus on their dimension. This lets a user mix
-            # positive params (Gauss/HalfCauchy → softplus) with
-            # probability params (BetaPrior → sigmoid) in one fit.
-            if self.prior_list is not None and any(
-                getattr(p, '_natural_transform', None) is not None
-                for p in self.prior_list if p is not None
-            ):
-                per_dim_transforms = []
-                for prior_i in self.prior_list:
-                    if (
-                        prior_i is not None
-                        and getattr(prior_i, '_natural_transform', None)
-                        is not None
-                    ):
-                        per_dim_transforms.append(prior_i._natural_transform)
-                    else:
-                        per_dim_transforms.append(default_pos_transform)
-
-                _per_dim_fns_tuple = tuple(per_dim_transforms)
-
-                def _composite_transform(phi, _fns=_per_dim_fns_tuple):
-                    # Expect φ to be shape (theta_dim,) or
-                    # (n_particles, theta_dim). Apply each per-dim
-                    # transform on the last axis.
-                    parts = [
-                        _fns[i](phi[..., i:i+1])
-                        for i in range(len(_fns))
-                    ]
-                    return jnp.concatenate(parts, axis=-1)
-
-                # Expose the per-dim functions on the closure itself
-                # so downstream code (e.g. the preconditioner's
-                # learnable-subset wrapper) can build a slice of the
-                # full transform.
-                _composite_transform._per_dim_fns = _per_dim_fns_tuple
-                self.param_transform = _composite_transform
-                if verbose:
-                    nat_names = ", ".join(
-                        "sigmoid" if getattr(p, '_natural_transform', None) is _sigmoid
-                        else "softplus"
-                        for p in self.prior_list
-                    )
-                    print(
-                        f"Using per-dimension parameter transforms: "
-                        f"[{nat_names}]"
-                    )
-            else:
-                self.param_transform = default_pos_transform
-                if verbose:
-                    print("Using softplus transformation to constrain parameters to positive domain")
-        elif param_transform is not None:
-            if not callable(param_transform):
-                raise ValueError("param_transform must be a callable function")
-            self.param_transform = param_transform
-            if verbose:
+        # Parameter transformation: one decision per slot, shared by the
+        # model, the priors (their ``_transform``) and the initial points.
+        self.param_transform, self._transform_inverse = _resolve_param_transform(
+            self.prior, self.prior_list, positive_params, param_transform,
+            "SVGD")
+        if verbose:
+            _per_dim = getattr(self.param_transform, '_per_dim_fns', None)
+            if _per_dim is not None:
+                _names = ", ".join(
+                    "sigmoid" if f is _sigmoid else
+                    "softplus" if f is _softplus_transform else
+                    getattr(f, '__name__', 'custom') for f in _per_dim)
+                print(f"Using per-dimension parameter transforms: [{_names}]")
+            elif self.param_transform is _sigmoid:
+                print("Using sigmoid transformation to constrain parameters to (0, 1)")
+            elif self.param_transform is _softplus_transform:
+                print("Using softplus transformation to constrain parameters to positive domain")
+            elif self.param_transform is not None:
                 print("Using custom parameter transformation")
-        else:
-            self.param_transform = None
-
-        # Wrap priors with transformation info for Jacobian correction.
-        # The transform a prior sees here is the one it must use to
-        # convert its own φ slice to θ — so we hand each prior in
-        # ``prior_list`` its declared natural transform (or the global
-        # default if it has none). This keeps the per-dim Jacobian
-        # consistent with the per-dim θ ← φ map used by
-        # ``param_transform``.
-        if self.param_transform is not None:
-            if self.prior_list is not None:
-                # Pick a fallback transform — the one that would have
-                # been used for any single prior without a declared
-                # natural transform.
-                if positive_params:
-                    fallback_transform = lambda phi: jnp.maximum(
-                        jax.nn.softplus(phi), 1e-9,
-                    )
-                else:
-                    fallback_transform = self.param_transform
-                for prior_i in self.prior_list:
-                    if prior_i is None or not hasattr(prior_i, '_transform'):
-                        continue
-                    natural = getattr(prior_i, '_natural_transform', None)
-                    prior_i._transform = (
-                        natural if natural is not None else fallback_transform
-                    )
-            elif self.prior is not None and hasattr(self.prior, '_transform'):
-                # Single-prior case: hand it the global transform.
-                natural = getattr(self.prior, '_natural_transform', None)
-                self.prior._transform = (
-                    natural if natural is not None else self.param_transform
-                )
 
         _check_gauss_prior_lower(self.prior, self.prior_list,
                                  positive_params, "SVGD")
@@ -9079,6 +9144,34 @@ class SVGD:
             hide_fixed=hide_fixed, show_marginal_hpd=show_hpd,
             marginal_hpd_level=hpd_alpha)
 
+    def _display_inverse(self):
+        """Parameter-scale -> unconstrained map for plotting, slot by slot.
+
+        Raises for a custom ``param_transform`` (its inverse is not known);
+        the unconstrained view needs no inverse.
+        """
+        inv = getattr(self, '_transform_inverse', None)
+        if inv is None or (isinstance(inv, tuple) and any(f is None for f in inv)):
+            raise ValueError(
+                "plot_pairwise_hdr: the parameter transform of this fit has no "
+                "known inverse (a custom param_transform), so the plot cannot "
+                "be drawn on the parameter scale. Use unconstrained=True."
+            )
+        if not isinstance(inv, tuple):
+            return inv
+
+        def _per_slot_inverse(x, _inv=inv):
+            return jnp.concatenate(
+                [_inv[i](x[..., i:i + 1]) for i in range(len(_inv))], axis=-1)
+        return _per_slot_inverse
+
+    def _is_unit_interval_slot(self, i):
+        """True when slot ``i`` is mapped to (0, 1) by a sigmoid."""
+        inv = getattr(self, '_transform_inverse', None)
+        if isinstance(inv, tuple):
+            return inv[i] is _inverse_sigmoid
+        return inv is _inverse_sigmoid
+
     def plot_pairwise_hdr(self, levels: tuple[float, ...] = (0.95, 0.5),
                           idx: list[int] | None = None,
                           figsize: tuple[float, float] = (5, 4), hexgrid: bool = True,
@@ -9267,25 +9360,35 @@ class SVGD:
         if not unconstrained and self.param_transform is not None:
             particles_display = results['particles']  # Already transformed
             theta_mean_display = jnp.mean(particles_display, axis=0)
-            # Need inverse transform for log_prob evaluation
-            inv_transform = _inverse_softplus
+            # Need inverse transform for log_prob evaluation: each slot's
+            # own inverse (softplus or sigmoid).
+            inv_transform = self._display_inverse()
+            unit_x = self._is_unit_interval_slot(idx[0])
+            unit_y = self._is_unit_interval_slot(idx[1])
         else:
             particles_display = self.particles
             theta_mean_display = jnp.mean(self.particles, axis=0)
             inv_transform = lambda x: x  # Identity
+            unit_x = unit_y = False
+
+        def _clip_unit(lim, unit):
+            # A (0, 1) slot's axis never extends past its domain.
+            if not unit:
+                return lim
+            return (max(float(lim[0]), 0.0), min(float(lim[1]), 1.0))
 
         # Determine data limits from display-space particles
         if xlim is None:
             x_min, x_max = particles_display[:, idx[0]].min(), particles_display[:, idx[0]].max()
             _margin = (x_max - x_min) * margin
-            xlim = (x_min - _margin, x_max + _margin)
+            xlim = _clip_unit((x_min - _margin, x_max + _margin), unit_x)
         else:
             x_min, x_max = xlim
 
         if ylim is None:
             y_min, y_max = particles_display[:, idx[1]].min(), particles_display[:, idx[1]].max()
             _margin = (y_max - y_min) * margin
-            ylim = (y_min - _margin, y_max + _margin)
+            ylim = _clip_unit((y_min - _margin, y_max + _margin), unit_y)
         else:
             y_min, y_max = ylim
 
@@ -9315,6 +9418,8 @@ class SVGD:
                     max(xlim[1], mode_x + (mode_x - xlim[0])/2))
             ylim = (min(ylim[0], mode_y - (ylim[1] - mode_y)/2),
                     max(ylim[1], mode_y + (mode_y - ylim[0])/2))
+            xlim = _clip_unit(xlim, unit_x)
+            ylim = _clip_unit(ylim, unit_y)
             x_min, x_max = xlim
             y_min, y_max = ylim
 
