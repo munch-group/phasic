@@ -1,0 +1,3 @@
+first init ok, vertices 1
+second init: no error; state_length now 3 vertices 1
+[runcap] exit 0, peak RSS 324 MB, 4s
