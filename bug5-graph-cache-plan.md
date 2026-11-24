@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.6, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v3.7, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -313,13 +313,21 @@ longer used, so callbacks without accessible source can be cached.
    PropertySet is named `dtype`, or an object whose `dtype` property
    raises), then EXACT type only (`type(x) is x.dtype.type`; a Python
    subclass of a numpy scalar can override arithmetic and carries a
-   `__dict__`, review H p6, and is refused): `x.dtype.str` + `tobytes()`;
+   `__dict__`, review H p6, and is refused), with a BUILT-IN numpy dtype
+   (`type(x.dtype).__module__ == "numpy.dtypes"`; user-defined dtypes
+   such as `ml_dtypes`' float8 / int4 / bfloat16, installed alongside
+   jax, all report `dtype.str` `<V1` / `<V2`, so two of them with equal
+   bytes would collide, review K k3, and are refused):
+   `x.dtype.str` + `tobytes()`;
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
    refused;
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
    subclasses are refused): `x.dtype.str`, shape, C-order bytes (hashed
-   from a memoryview of `np.ascontiguousarray(x)`, which copies only
-   non-contiguous arrays, not via `tobytes()`). Refused:
+   from `memoryview(np.ascontiguousarray(x).reshape(-1).view(np.uint8))`,
+   which copies only non-contiguous arrays and also works for datetime /
+   timedelta kinds `M` / `m`, which numpy's buffer protocol rejects, and
+   for 0-d arrays, via `reshape(-1)`; not via `tobytes()`). Refused: a
+   dtype that is not built in (the same `numpy.dtypes` gate as rule 2),
    `dtype.hasobject` (covers object dtype AND structured dtypes with an
    object field, whose bytes are pointers) and `dtype.fields is not
    None` (structured dtypes: different field layouts share
@@ -389,7 +397,7 @@ longer used, so callbacks without accessible source can be cached.
      otherwise invisible; same check as (a)), and each slot is checked as
      in (a) (`state_indexing.py:193`; subclasses are accepted by the
      constructor at `:855-862`). Any exception raised
-     while running (c) (for example `AttributeError` for a missing
+     while running ANY of (a), (b) and (c) (for example `AttributeError` for a missing
      attribute on an old pickled indexer, since `__getattr__` raises for
      `_` names, `:996-998`) is re-raised as `GraphCacheKeyError` (path
      chained). `_result_class` / `_props_dataclass` are generated classes
@@ -459,7 +467,9 @@ end of `phasic/__init__.py` records, for the extension module located by
 `phasic.phasic_pybind.__file__` (not by globbing; no `__file__` or a
 missing file is a recording failure, so an editable or source-tree layout
 can never silently leave the extension out of the id) and every `*.py`
-file in the package directory of `phasic.__file__`:
+file under the package directory of `phasic.__file__`, RECURSIVELY,
+excluding `__pycache__` (the package is flat today, 52 files, but a
+future subpackage must not fall out of the id silently):
 (i) a stat record `(path, size, mtime_ns, ctime_ns, ino, dev)` per file,
 and (ii) the CONTENT HASH of those files, computed right there, at import
 (measured 11.9 ms for 52 .py + the .so, 3.49 MB, review 4; paid by every
@@ -567,7 +577,11 @@ attribute `DEFAULT_CACHE_DIR`, read at call time. Tests isolate with
 `monkeypatch.setenv("PHASIC_CACHE_DIR", <tmp>)`, which also redirects
 the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_graph_cache_stats`,
 `print_graph_cache_info`, `clear_all_graph_caches` and
-`model_export.clear_caches` use the same resolution.
+the GRAPH-CACHE part of `model_export.clear_caches` use the same
+resolution (its `clear_model_cache` part still `rmtree`s
+`$HOME/.phasic_cache` regardless of `PHASIC_CACHE_DIR`,
+`model_export.py:72`; pre-existing, found-defects item P, unchanged
+here).
 
 ### 2.6 `GraphCache` API and entry file
 
@@ -722,7 +736,9 @@ its key, `callback_hash.py:95-103,142-160`), test 24 (master's
 `repr(kwargs)` is exact for small dicts with tuple or int keys), the
 `state[..., 0]` part of test 25 (master hashes the AST), and the
 `PHASIC_DISABLE_CACHE` half of test 20 (master ignores `cache_key` but
-caches by default), test 10 (master's `StateIndexer.__repr__` is exact
+caches by default; this half and test 3 prove the hit with a spy on the
+callback, not by looking for a file under `$PHASIC_CACHE_DIR/graphs`,
+which master ignores), test 10 (master's `StateIndexer.__repr__` is exact
 for ranges and layout, `state_indexing.py:1570-1593`), and the
 `Property` and "not cycles" parts of test 11:
 1. Default build is uncached: a module-level variable changed between two
@@ -887,10 +903,19 @@ for ranges and layout, `state_indexing.py:1570-1593`), and the
     k=2.0))`: saves (callback_name fallback) and hits.
 
 26. Two captured partials identical in func/args/keywords but differing
-    in a hand-set attribute the callback reads: different keys. An unwritable cache directory: `OSError` naming
-    it, callback not called. The cache directory deleted between lookup
+    in a hand-set attribute the callback reads: different keys. A cache directory that does not exist under a read-only
+    parent (skipped as root): `mkdir` fails, `OSError` naming
+    it, callback not called. An EXISTING read-only cache directory
+    (skipped as root): `mkdir(exist_ok=True)` passes, the build runs, and
+    `save()` raises the `OSError` with `e.graph` attached. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
-    named `dtype` as a kwarg: keyed normally. A `partial` subclass
+    named `dtype` as a kwarg: keyed normally. `ml_dtypes` arrays
+    `float8_e4m3fn` vs `float8_e4m3b11fnuz` with equal bytes, and an
+    `int4` scalar: `GraphCacheKeyError` (skipped if `ml_dtypes` is not
+    installed). A `datetime64` array, a `timedelta64` array and a 0-d
+    array: keyed, hit on rebuild, miss when one value differs. An indexer
+    whose `_slots` attribute was deleted: `GraphCacheKeyError` (not
+    `AttributeError`). A `partial` subclass
     overriding `__call__`: refused. A user kwarg
     named `callback`: keyed normally (no `TypeError`).
     A callback with mixed coefficient lengths under `cache_key`: the save
@@ -912,7 +937,8 @@ callback (not called), so a silent miss can no longer pass (review B 12):
   test body is otherwise unchanged (review A 1).
 - `test_serialize_constant_roundtrip.py`: `:106-113`, `:134` use
   `cache_key`; `load_graph(callback)` at `:111` -> `load(entry_key)`
-  (from `g._graph_cache_entry`). T6 (`:219-240`) is rewritten to exercise
+  (`Path(g._graph_cache_entry).stem`, since the attribute holds the
+  file path). T6 (`:219-240`) is rewritten to exercise
   the load-time format check: write a valid entry, rewrite its `format`
   field to `"1"`, assert `GraphCacheLoadError` naming the file; after
   deleting the file, the rebuild is a CONSTANT graph. Fixture `tmp_cache`
@@ -1214,3 +1240,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   2 cache directory made absolute; 3 `f.__module__` keyed; 4 `clone()` /
   `copy()` and `graph_cache.py` docstrings in §2.7; 5 arrays hashed from
   a memoryview.
+- Independent review K -> v3.7 (no ordinary-code wrong result found):
+  1 only built-in numpy dtypes keyed (`ml_dtypes` refused); 2 arrays
+  hashed via a uint8 view (datetime / timedelta / 0-d work); 3 exception
+  wrapping covers all of the StateIndexer checks (a)-(c); 4 test 26
+  unwritable-directory cases split; 5 wording: `clear_caches` scope,
+  `.stem`, guard tests use spies, recursive build-id listing.
