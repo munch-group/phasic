@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -314,9 +314,10 @@ CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
 `co_posonlyargcount`, `co_kwonlyargcount`, `co_flags`, `co_name`, and
 `co_consts` element by element (nested code objects by CODE FINGERPRINT;
-`frozenset` constants by their elements' SUB-DIGESTS (§2.2.2, computed
-from content alone, so independent of the hash-seed-dependent iteration
-order and of object sharing), sorted; `tuple`
+`frozenset` constants by their elements' TOKEN BYTES (a scalar's token,
+or a container's sub-digest token, §2.2.2; computed from content alone,
+so independent of the hash-seed-dependent iteration order and of object
+sharing), sorted by those bytes; `tuple`
 constants element by element under these same CONSTANT rules (so
 `state[..., 0]`, whose constant is `(Ellipsis, 0)`, and on 3.14
 `M[1:3, 0]` are covered, review C p4); `Ellipsis` token; `slice`
@@ -377,7 +378,11 @@ longer used, so callbacks without accessible source can be cached.
    state keys, int keys), then its value. The key
    reflects captured state AT CALL TIME: a closure-captured memo dict
    that the build fills is keyed as it was before that build (stated in
-   the docstring);
+   the docstring, with the consequence spelled out: closure state that
+   the build itself changes, such as a hand-written memo dict or a
+   `nonlocal` call counter, makes every repeat call in the same process
+   MISS and write a new entry; keep such memo state in a module global,
+   which is not keyed);
 5b. `Ellipsis` (token) and exact `slice` (start, stop, step by these
    rules);
 6. any callable that §2.2.1 admits (Python function, bound method,
@@ -465,7 +470,9 @@ longer used, so callbacks without accessible source can be cached.
      differs from its to_dict(); was its property list changed after
      construction?"). Exceptions from `to_dict()` / `from_dict()` are
      re-raised as `GraphCacheKeyError` (path chained). Cost: one
-     `from_dict` per key computation, negligible next to a build.
+     `from_dict` per DISTINCT indexer per key computation (indexers are
+     memoised after their checks pass, §2.2.2), negligible next to a
+     build.
    NO other object is keyed through `to_dict()` or any other
    user-defined method: a user's `to_dict()` cannot be checked to be
    one-to-one (pandas' is not: it collapses duplicate index labels,
@@ -514,25 +521,44 @@ bound method and partial is represented in its parent's stream by ONE
 fixed-length token: its SUB-DIGEST, the SHA-256 of its own token stream,
 in which its children are in turn sub-digests. A sub-digest therefore
 depends only on the object's content, never on where else the object
-occurs, on how objects are shared, or on the order of the walk. Within
-one key computation sub-digests are memoised by `id()`, the memo holding
+occurs or on how objects are shared. (Inside a recursion group of
+functions, a member's digest can depend on which member the walk entered
+first, because a memo hit yields a deeper but equally valid unfolding;
+the same input is always walked in the same order, so this costs at most
+a miss between differently arranged but equivalent structures, never a
+shared key.) Within one key computation sub-digests are memoised by
+`id()` in ONE memo shared by values and code constants, the memo holding
 a strong reference to each object until the computation ends (so a
-freed temporary's id is never reused); each distinct object is hashed
-once, so the walk is linear in the number of distinct objects (a DAG
-such as `a = [a, a]` nested k times takes k steps, and shared state
-tuples cost nothing extra; no budget is needed). Order of checks at each
+freed temporary's id is never reused). Memoised kinds: containers,
+functions / bound methods / partials, numpy ARRAYS (so 200 references to
+one large array hash it once), and `StateIndexer` objects AFTER their
+rule-8 checks have passed (those checks do not depend on position). Each
+memoised object is hashed once, so outside recursion groups the walk is
+linear in the number of distinct objects (a DAG such as `a = [a, a]`
+nested k times takes k steps, and shared state tuples cost nothing
+extra). Recursion groups are the exception: open subtrees are not
+memoised (below), so a densely cyclic group of k nested helpers is
+re-walked along every simple path (measured: 2.9 s at k = 9, 28 s at
+k = 10, review Q p1). A cap of 10^5 re-walks of open subtrees per key
+computation therefore raises `GraphCacheKeyError` (advice: move the
+helpers to module level, where they are globals and not walked). Order of checks at each
 container: (1) the current-path cycle check (a container on the current
 path, such as `a = [a]`, is REFUSED with `GraphCacheKeyError`, as test 11
-expects), (2) the memo lookup, (3) the walk. Functions are the one place
-where cycles are legitimate (a nested function that calls itself, mutual
-recursion through closure cells): a function found on the current path
+expects), (2) the memo lookup, (3) the walk. Functions, bound methods
+and partials are the one place where cycles are legitimate (a nested
+function that calls itself, mutual recursion through closure cells): a
+function, bound method or partial found on the current path
 contributes a RELATIVE back-reference token (its distance up the current
 path, a structural property, not a visit order), and any sub-digest whose
 subtree contains a back-reference pointing ABOVE that subtree is used
 only in place and NOT memoised (it would mean something else in another
-context). Modules (direct cell content only) and `StateIndexer` objects
-are never memoised: their admission depends on position (§2.2.1) and on
-the checks of rule 8, which run at every occurrence. The tags of the
+context). A cycle that passes through a CONTAINER (a dispatch table
+`table = {}` holding functions that look each other up in `table`, or a
+partial held in a list that the partial's function reads) hits the
+container cycle check and is refused; this is listed among the
+documented refusals (advice: make the table a module global). Modules
+(direct cell content only) are never memoised: their admission depends
+on position (§2.2.1). The tags of the
 different token kinds (sub-digest, back-reference, scalar kinds) are
 distinct, so no two kinds can produce equal tokens.
 Limits: a depth limit of 100, and the current-path cycle check above (a
@@ -594,8 +620,10 @@ Recording NEVER raises at import: any failure (a file vanishing between
 listing and reading, a missing extension file) is stored and raised as
 `GraphCacheKeyError` by the first key computation, so `import phasic`
 cannot break for users who never cache; a missing record (for example
-after `importlib.reload(phasic.callback_hash)`) also raises
-`GraphCacheKeyError` rather than skipping the check.
+if the record attribute on the extension module was deleted, or
+`_record_build_stats` never ran because `phasic/__init__.py` failed
+part-way) also raises `GraphCacheKeyError` rather than skipping the
+check.
 On EVERY key computation the package directory is re-listed and the files
 re-stat'ed (measured 2.1 ms, review 5). If nothing changed, the import
 hash is used. If a file was added or removed: `GraphCacheKeyError`
@@ -1003,7 +1031,7 @@ function):
     raises: a FORMULA-mode entry is written by hand under the computed key
     (a graph with `weight_formula` set, serialised and passed to
     `GraphCache.save`, since `Graph.__init__` only ever saves linear-mode
-    graphs and the tape restore at `__init__.py:1716` runs in formula
+    graphs and the tape restore at `__init__.py:1719` runs in formula
     mode only); `_set_weight_tape` passes through on its FIRST call (the
     one inside `from_serialized`, `_graph_serialize.py:733-741`) and
     raises on its SECOND (the restore on the live graph); the test asserts
@@ -1074,9 +1102,16 @@ function):
     subprocesses under `PYTHONHASHSEED` 0-3; editing the reused element
     to `("c",3)` gives a DIFFERENT digest. A self-recursive nested
     function and two mutually recursive closures: keyed, hit on rebuild,
-    miss when either body changes. `importlib.reload(phasic)` after the
-    package files change (monkeypatched re-hash): the next key
-    computation raises `GraphCacheKeyError` (restart). Module positions: direct
+    miss when either body changes. In a SUBPROCESS (a reload inside the
+    pytest process replaces `phasic.Graph` and breaks later tests,
+    review Q p5): `importlib.reload(phasic)` after the package files
+    change (monkeypatched re-hash) makes the next key computation raise
+    `GraphCacheKeyError` (restart). A densely mutually recursive group
+    of 10 nested helpers: `GraphCacheKeyError` (re-walk cap) within a
+    few seconds. A dispatch-table closure (`table` dict holding
+    functions that index it): `GraphCacheKeyError`. 200 references to
+    one 8 MB array in a kwarg: hashed once (timing well under the cost
+    of hashing it 200 times). Module positions: direct
     cell content keyed; module as a default, inside a container in a
     cell, and inside the ipv refused. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
@@ -1470,3 +1505,11 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `to_dict()` fingerprinted before the canonical check; 5 cycle check
   before memo lookup; 7-8 docs (functions keyed by code everywhere,
   `__signature__` refusal).
+- Independent review Q -> v4.3 (no wrong result or data loss found):
+  1 re-walk cap (10^5) for dense recursion groups, "no budget" claim
+  removed; 2 reload test in a subprocess; 3 partials / bound methods get
+  back-references, container-mediated recursion refused and documented;
+  4 closure-state misses documented; 5 walk-order sentence corrected;
+  6 stale reload example replaced; 7 arrays and checked StateIndexers
+  memoised, cost statements corrected; 8 frozenset sorted by token
+  bytes, one shared memo, line 1719.

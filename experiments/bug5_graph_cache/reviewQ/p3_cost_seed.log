@@ -1,0 +1,12 @@
+seed=0 d=616b50fa95ae9454 edited=d35ff97223b19a5e differ=True
+[runcap] exit 0, peak RSS 2 MB, 1s
+seed=1 d=616b50fa95ae9454 edited=d35ff97223b19a5e differ=True
+[runcap] exit 0, peak RSS 2 MB, 1s
+seed=2 d=616b50fa95ae9454 edited=d35ff97223b19a5e differ=True
+[runcap] exit 0, peak RSS 2 MB, 1s
+seed=3 d=616b50fa95ae9454 edited=d35ff97223b19a5e differ=True
+[runcap] exit 0, peak RSS 6 MB, 1s
+600k dict of 3-tuples: 3.18s visits=600001
+60k x 20 shared-tuple adjacency: 1.16s visits=120001
+200 refs to one 8 MB array, hashed per occurrence: 0.65s (1.6 GB)
+[runcap] exit 0, peak RSS 430 MB, 6s

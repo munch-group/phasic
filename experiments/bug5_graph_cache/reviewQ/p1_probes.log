@@ -1,0 +1,19 @@
+== P1 clique of k mutually recursive closures (each calls all others)
+k= 3 composite walks=       11 time=   0.000s digest=e2cfcb1c988a
+k= 4 composite walks=       33 time=   0.000s digest=b75c8e030d2e
+k= 5 composite walks=      131 time=   0.001s digest=62df97822661
+k= 6 composite walks=      653 time=   0.007s digest=0ebe92357254
+k= 7 composite walks=     3915 time=   0.046s digest=3b206dfafed7
+k= 8 composite walks=    27401 time=   0.346s digest=1b7967ad8734
+k= 9 composite walks=   219203 time=   2.913s digest=94fa71ea4ffa
+k=10 composite walks=  1972821 time=  27.963s digest=06bd688507ad
+== P2 dispatch-table recursion through a dict in a closure
+REFUSED: cycle through container dict
+== P3 closed digest depends on walk/memo order (plan: never)
+g as root            : d10d8105094ab63a
+g after f was walked : 50302378bcb63af5 DIFFERENT
+== P4 same input, same digest across repeated computations
+fresh closures equal: True
+== P5 recursion through a partial (plan: functions only get back-refs)
+REFUSED: cycle through container partial
+[runcap] exit 0, peak RSS 356 MB, 32s
