@@ -1,0 +1,15 @@
+lazy-simulation: False
+OMP set when phasic_pybind first imported: False
+import chain (phasic frames):
+    /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewW/w3_pybind_import_order.py:48
+    phasic/__init__.py:53
+    phasic/graph_cache.py:29
+    phasic/logging_config.py:253
+    phasic/logging_config.py:200
+[runcap] exit 0, peak RSS 315 MB, 4s
+lazy-simulation: True
+OMP set when phasic_pybind first imported: True
+import chain (phasic frames):
+    /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewW/w3_pybind_import_order.py:48
+    phasic/__init__.py:279
+[runcap] exit 0, peak RSS 326 MB, 3s

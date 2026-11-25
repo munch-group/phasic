@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.8, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.9, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -144,9 +144,11 @@ deterministic functions of their inputs). The
     Nothing after `super().__init__(cached_graph)` is inside a `try`: an
     error while restoring attributes on a hit propagates;
   - hit: the current restore sequence (`:1689-1723`) runs; then
-    `self.dyn_ordering = os.environ.get("PHASIC_DYN_ORDERING") is not
-    None`, mirroring the C rule applied at graph creation
-    (`phasic.c:2996`), because `serialize()` persists the WRITER's flag
+    `self.dyn_ordering` is set to the flag of a freshly created native
+    graph (`_Graph(1).dyn_ordering`), which applies the C rule at graph
+    creation exactly (`phasic.c:2996`, C `getenv`, which `os.environ`
+    can diverge from after `os.putenv` or a C library's `setenv`, review
+    W 2), because `serialize()` persists the WRITER's flag
     (`_graph_serialize.py:222`, restored at `:698`) and a hit must behave
     like a fresh build in the reader's environment (review C p9); plus
     `self._graph_cache_entry = <entry path>` (the ABSOLUTE file path,
@@ -637,11 +639,16 @@ finder and trip test 14's import hook); at the end of import,
 outside the package directory, e.g. an editable install); use `pixi run
 install-dev` or a normal pip install", and the docstring lists editable
 installs among the refusals; scikit-build-core's editable redirect mode
-places the `.so` outside `src/phasic`); at the end the files are
-re-stat'ed, and if anything changed during the import (a concurrent
-reinstall on a shared cluster), a recording failure is stored (raised at
-the first key computation). So no reinstall during or after import can
-go unnoticed (review I 2, review M 3).
+places the `.so` outside `src/phasic`). ORDER at the end of import:
+first the content hash H is computed from all the files, THEN they are
+re-stat'ed (S1); S1 must equal the top-of-import snapshot S0, otherwise a
+recording failure is stored (raised at the first key computation); the
+stored record is (S0, H). Hashing before the final stat closes the window
+in which a concurrent reinstall could change a file after its last stat
+but before it is read, which would record a hash of code the process is
+not running and let the later "stats changed, bytes equal" rule accept
+it (review W 1). So no reinstall during or after import can go
+unnoticed (review I 2, review M 3, review W 1).
 Recording NEVER raises at import: any failure (a file vanishing between
 listing and reading, a missing extension file) is stored and raised as
 `GraphCacheKeyError` by the first key computation, so `import phasic`
@@ -763,7 +770,7 @@ here).
   without `mkdir` (a constructor flag `create=False`), so a missing
   directory gives 0 removed / empty stats and a read-only or missing HOME
   never makes them fail or creates a directory as a side effect
-  (pre-existing on master, `graph_cache.py:88-89, 483, 523`, review U 1).
+  (pre-existing on master, `graph_cache.py:88-89, 485, 523`, review U 1).
   The constructor's `mkdir(parents=True,
   exist_ok=True)` (`graph_cache.py:88-89`) failing re-raises the same
   `OSError` subclass with a message naming the directory and the ways
@@ -1075,7 +1082,9 @@ function):
     `GraphCacheKeyError` at the first key computation, while
     `import phasic` itself succeeded. A file change between the top-of-
     import snapshot and the end of import (monkeypatched snapshot):
-    recording failure, `GraphCacheKeyError` at first use. The content hash differs when bytes
+    recording failure, `GraphCacheKeyError` at first use. A file
+    "changed" between the end-of-import hash and the final stat
+    (monkeypatched, subprocess): recording failure. The content hash differs when bytes
     move across a file boundary (two temporary files, unit test of the
     hashing helper). `numpy.__version__` monkeypatched: miss.
 14. `PHASIC_CACHE_DIR=<tmp>`: entry in `<tmp>/graphs`. With it unset,
@@ -1645,3 +1654,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   1 every type gate uses `type(x)` / `issubclass(type(x), ...)`, never
   `isinstance`; 2 `cache_key` must be exactly `str`; 3 reload wording;
   4 multiprocessing globals note.
+- Independent review W -> v4.9 (no realistic wrong result or data loss):
+  1 end-of-import order fixed (hash, then final stat equal to the
+  top-of-import snapshot; record = (S0, H)); 2 hit-path `dyn_ordering`
+  read from a freshly created native graph; 3 line 485.

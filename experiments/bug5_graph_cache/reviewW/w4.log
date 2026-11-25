@@ -1,0 +1,21 @@
+python 3.13.13 numpy 2.4.3
+type(np.sum): <class 'numpy._ArrayFunctionDispatcher'> np.linalg.solve same type: True resolves: True
+np.exp ufunc exact: True resolves by __name__: True
+np.abs name: absolute True
+frompyfunc ufunc: True module: None name: <lambda> (vectorized) missing attr (module=None, name='<lambda> (vectorized)')
+math.sqrt builtin exact: True self: <module 'math' from '/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/lib-dynload/math.cpython-313-darwin.so'> True
+{}.get exact builtin: True self type: dict
+cwr immutable flag: True True
+user class immutable flag: False
+lru_cache type: _lru_cache_wrapper is builtin fn: False
+scalar f8: exact=True dtype-module=numpy.dtypes str=<f8
+scalar M8: exact=True dtype-module=numpy.dtypes str=<M8[D]
+scalar U: exact=True dtype-module=numpy.dtypes str=<U1
+scalar void: exact=True dtype-module=numpy.dtypes str=|V2
+StringDType module: numpy.dtypes hasobject: True str: StringDType()
+ml_dtypes float8_e4m3fn: dtype-module=numpy str=<V1
+ml_dtypes bfloat16: dtype-module=numpy str=<V2
+ml_dtypes int4: dtype-module=numpy str=<V1
+scipy.special.gamma type: ufunc exact ufunc: True module: <absent> resolves: missing attr (module=None, name='gamma')
+co_varnames same object across accesses: True co_code same object: True co_names same: True
+[runcap] exit 0, peak RSS 2 MB, 1s

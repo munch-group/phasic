@@ -1,0 +1,6 @@
+type G2 vertices 6
+expectation 1.6
+ref expectation 1.6
+serialize keys ['constant_edges', 'dyn_ordering', 'edges', 'is_aux']
+after gc vertices 6
+[runcap] exit 0, peak RSS 322 MB, 4s

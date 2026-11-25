@@ -1,0 +1,35 @@
+--- a constant edges, no theta_dim
+  fresh: {'param_length': 1, 'parameterized': False, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 1, 'parameterized': False, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: ['RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca', 'RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca']
+--- b 3 coeffs, theta_dim=2
+  fresh: {'param_length': 2, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 2, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: ['RuntimeError: Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-ca', 'RuntimeError: Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-ca']
+--- c parameterized
+  fresh: {'param_length': 1, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 1, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: [0.75, 0.75]
+--- d parallel parameterized edges
+  fresh: {'param_length': 2, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 2, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: [1.0, 1.0]
+--- e parallel constant edges
+  fresh: {'param_length': 1, 'parameterized': False, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 1, 'parameterized': False, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+--- f multi-start ipv
+  fresh: {'param_length': 1, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 1, 'parameterized': True, 'n': 5, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: [0.611111111111, 0.611111111111]
+--- g zero-coefficient edge
+  fresh: {'param_length': 2, 'parameterized': True, 'n': 6, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  hit  : {'param_length': 2, 'parameterized': True, 'n': 6, 'dyn': False, 'is_discrete': False, 'was_dph': False}
+  edges equal: True
+  update_weights+expectation fresh/hit: [1.083333333333, 1.083333333333]
+[runcap] exit 0, peak RSS 318 MB, 3s
