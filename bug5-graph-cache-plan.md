@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -211,8 +211,11 @@ VALUE -> token-sequence map one-to-one (a literal implementation gives
 token carries its element count before its elements: list, tuple, dict
 (entry count), frozenset constant, `co_consts`, `co_names` and the other
 tuple fields of a code object, `__defaults__`, `__kwdefaults__`, the
-closure (cell count), partial `args` / `keywords`, the kwargs block and
-an array's shape (dimension count). Together with the tags this makes
+closure (cell count), partial `args` / `keywords`, the kwargs block,
+an array's shape (dimension count), and the fixed-arity composites
+`slice` (one token with its own kind tag and the 3 fields) and `Property`
+(one token with its own kind tag and the 4 fields), so a composite's
+fields can never be read as neighbouring values (review AK 2). Together with the tags this makes
 the stream prefix-free, so distinct structures always give distinct
 streams. Components in order:
 1. `GRAPH_CACHE_FORMAT = "2"` (replaces `PHASIC_CALLBACK_VERSION`);
@@ -220,10 +223,15 @@ streams. Components in order:
 3. the phasic build id (§2.2.3) and `numpy.__version__` (the state
    arrays the callback receives are numpy arrays phasic creates, and
    scalar promotion changed between numpy 1.x and 2.x, NEP 50, while the
-   same phasic build can run against either). Bit-equality of a hit with
-   a fresh build is otherwise only promised on the same machine type
-   (numpy's SIMD math can differ by a few ULPs between CPUs); stated in
-   the docstring;
+   same phasic build can run against either). What a hit promises is the
+   SAME GRAPH (identical `serialize()` output, vertex and edge order);
+   numerical results computed from it equal a fresh build's up to
+   rounding, not bit for bit: fresh uncached builds of the same constant
+   model already differ in the last bit of `expectation()` between
+   instances in one process (measured 1-3e-16 relative, review AK p6/p7;
+   a pre-existing non-determinism, found-defects item Q), and numpy's
+   SIMD math can differ by a few ULPs between CPUs. Stated in the
+   docstring;
 4. `cache_key`;
 5. FUNCTION FINGERPRINT of the callback as passed to the C builder, i.e.
    after the `_callback(ipv)` wrapping (`:1666-1671`). The wrapper's
@@ -471,8 +479,8 @@ a tag, whatever the payloads.)
    `nonlocal` call counter, makes every repeat call in the same process
    MISS and write a new entry; keep such memo state in a module global,
    which is not keyed);
-5b. `Ellipsis` (token) and exact `slice` (start, stop, step by these
-   rules);
+5b. `Ellipsis` (token) and exact `slice` (ONE token with the slice kind
+   tag and its start, stop, step by these rules, §2.2);
 6. any callable that §2.2.1 admits (Python function, bound method,
    partial, and builtins/ufuncs under exactly §2.2.1's conditions):
    FUNCTION FINGERPRINT; §2.2.1 and this rule are one rule;
@@ -1145,13 +1153,16 @@ spy-observed hit/miss; the key-level assertions of test 11 (for example
 `Property(min_value=1, offset=0)` vs `offset=3` giving different keys)
 use `cache_entry_key` and are expected to FAIL on master (no such
 function):
+(Throughout, numerical comparisons between a hit and a fresh build use a
+1e-14 relative tolerance; graph identity is asserted on `serialize()`.)
 1. Default build is uncached: a module-level variable changed between two
    builds gives the correct second graph, and no file appears.
 2. `graph_cache=True` and `graph_cache=False` raise `TypeError`
    mentioning `cache_key`; `configure(graph_cache=True)` raises
    `PTDConfigError` mentioning `cache_key`.
 3. Same `cache_key`, same everything: hit (spy not called), identical
-   vertex count, `expectation()` and `serialize()` arrays; across two
+   vertex count and `serialize()` arrays (exact), `expectation()` equal
+   within 1e-14 relative (not bitwise: see §2.2 item 3); across two
    isolated subprocesses (`PYTHONHASHSEED` 0 and 1) too.
 4. Different `cache_key`: miss.
 5. Keyword argument changed (int); long numpy array differing in one
@@ -1959,3 +1970,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   listed as changed behaviour; 3 bound-method `__func__` through the
   callable rules; 4 how tests obtain digests; 5-7 source-file list, CRLF
   list, config comment wording.
+- Independent review AK -> v6.4 (no wrong graph or data loss): 1 hit
+  promise reworded to "same graph, numerics equal up to rounding" (fresh
+  builds of constant models already differ in the last bit), tests
+  compare `serialize()` exactly and numbers within 1e-14; 2 `slice` and
+  `Property` emitted as single tagged fixed-arity tokens.

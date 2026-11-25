@@ -1,0 +1,33 @@
+builtin len                      type=builtin_function_or_method   -> ADMIT
+builtin math_sqrt                type=builtin_function_or_method   -> ADMIT
+builtin math_comb                type=builtin_function_or_method   -> ADMIT
+builtin np_exp                   type=ufunc                        -> ADMIT
+builtin np_sum                   type=_ArrayFunctionDispatcher     -> ADMIT
+builtin np_zeros                 type=builtin_function_or_method   -> ADMIT
+builtin np_array                 type=builtin_function_or_method   -> ADMIT
+builtin np_where                 type=_ArrayFunctionDispatcher     -> ADMIT
+builtin np_linalg_solve          type=_ArrayFunctionDispatcher     -> ADMIT
+builtin np_isclose               type=_ArrayFunctionDispatcher     -> ADMIT
+builtin operator_add             type=builtin_function_or_method   -> ADMIT
+builtin functools_reduce         type=builtin_function_or_method   -> ADMIT
+builtin np_random_default_rng    type=cython_function_or_method    -> not-exact-type
+builtin np_random_rand           type=method                       -> not-exact-type
+builtin np_frompyfunc            type=ufunc                        -> refused:missing mod=None qn='<lambda> (vectorized)'
+builtin sp_gamma                 type=ufunc                        -> refused:missing mod=None qn='gamma'
+builtin dict_get                 type=builtin_function_or_method   -> refused:__self__
+builtin np_concatenate           type=_ArrayFunctionDispatcher     -> ADMIT
+builtin np_dot                   type=_ArrayFunctionDispatcher     -> ADMIT
+builtin np_maximum               type=ufunc                        -> ADMIT
+builtin np_add_reduce            type=builtin_function_or_method   -> refused:__self__
+builtin math_lgamma              type=builtin_function_or_method   -> ADMIT
+builtin np_log                   type=ufunc                        -> ADMIT
+type    range                    -> ADMIT
+type    int                      -> ADMIT
+type    comb_wr                  -> ADMIT
+type    product                  -> ADMIT
+type    np_float64               -> ADMIT
+type    np_ndarray               -> ADMIT
+type    Counter                  -> refused:mutable
+type    partial                  -> ADMIT
+type    defaultdict              -> ADMIT
+[runcap] exit 0, peak RSS 2 MB, 1s

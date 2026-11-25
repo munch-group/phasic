@@ -1,0 +1,3 @@
+const V 25 25 edge order identical: True serialize identical: True [] E bitwise: True pdf bitwise: True param_length 1 1 parameterized False False
+param V 25 25 edge order identical: True serialize identical: True [] E bitwise: True pdf bitwise: True param_length 2 2 parameterized True True
+[runcap] exit 0, peak RSS 324 MB, 3s

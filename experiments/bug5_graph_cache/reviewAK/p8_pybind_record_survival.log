@@ -1,0 +1,4 @@
+after reload: same module object True record R
+after purge+reimport: same module object True record R
+same Graph class True
+[runcap] exit 0, peak RSS 328 MB, 3s

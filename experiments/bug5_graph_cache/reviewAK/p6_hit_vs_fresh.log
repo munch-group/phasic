@@ -1,0 +1,4 @@
+const           V=   25 E hit==fresh False (rel 2.79e-16)  Var hit==fresh False (rel 1.14e-15)  pdf bitwise True  miss==fresh E False
+param           V=   25 E hit==fresh True (rel 0.00e+00)  Var hit==fresh True (rel 0.00e+00)  pdf bitwise True  miss==fresh E True
+island40_const  V=  861 E hit==fresh False (rel 3.26e-16)  Var hit==fresh False (rel 3.99e-16)  pdf bitwise True  miss==fresh E False
+[runcap] exit 0, peak RSS 330 MB, 3s

@@ -1,0 +1,7 @@
+fresh_a 12.727909184994495 repeat: 12.727909184994495
+fresh_b 12.727909184994495 repeat: 12.727909184994495
+rt 12.727909184994493 repeat: 12.727909184994493
+dyn False False
+fresh_b vs fresh_a rel diff 0.0
+rt vs fresh_a rel diff 1.3956391529682484e-16
+[runcap] exit 0, peak RSS 323 MB, 3s
