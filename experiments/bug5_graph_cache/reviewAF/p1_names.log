@@ -1,0 +1,35 @@
+Matplotlib is building the font cache; this may take a moment.
+numpy 2.4.3 python 3.13.13
+pkg /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic
+_Graph(1).get_dyn_ordering: False True
+Graph has dyn_ordering prop: True
+phasic_pybind.__file__ /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+EXTENSION_SUFFIXES ['.cpython-313-darwin.so', '.abi3.so', '.so']
+phasic.* modules not inside pkg: []
+n phasic.* modules 35
+non-py files: ['include/c/phasic.h', 'include/c/phasic_hash.h', 'include/c/phasic_log.h', 'include/cpp/phasiccpp.cpp', 'include/cpp/phasiccpp.h', 'include/cpp/scc_graph.cpp', 'include/cpp/scc_graph.h', 'include/cpp/user_model.h', 'phasic.h', 'phasic_pybind.cpython-313-darwin.so']
+subdirs with .py: []
+metaclass StateIndexer True
+metaclass Property True
+metaclass PropertySet True
+metaclass StateSpace True
+metaclass Slot True
+metaclass float64 True
+metaclass ndarray True
+metaclass ufunc True
+metaclass _ArrayFunctionDispatcher True
+metaclass partial True
+metaclass function True
+allow-set: ['bool', 'bytes_', 'complex128', 'complex64', 'datetime64', 'float16', 'float32', 'float64', 'int16', 'int32', 'int64', 'int8', 'longlong', 'str_', 'timedelta64', 'uint16', 'uint32', 'uint64', 'uint8', 'ulonglong']
+builtin exp ufunc numpy exp NoneType resolves: True
+builtin sum _ArrayFunctionDispatcher numpy sum NoneType resolves: True
+builtin solve _ArrayFunctionDispatcher numpy.linalg solve NoneType resolves: True
+builtin sqrt builtin_function_or_method math sqrt module resolves: True
+builtin len builtin_function_or_method builtins len module resolves: True
+builtin cumprod _ArrayFunctionDispatcher numpy cumprod NoneType resolves: True
+builtin comb builtin_function_or_method math comb module resolves: True
+cwr immutable: True
+immutable int True
+immutable int64 True
+immutable ndarray True
+[runcap] exit 0, peak RSS 301 MB, 19s

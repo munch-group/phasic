@@ -1,0 +1,39 @@
+=== _result_class: ref=IndexResult cand=IndexResult same_obj=False
+   key sets equal: True
+   val __annotations__: NEITHER identical NOR fingerprintable: typing._UnionGenericAlias
+   val __dataclass_fields__: NEITHER identical NOR fingerprintable: dataclasses.Field
+   val __dataclass_params__: NEITHER identical NOR fingerprintable: dataclasses._DataclassParams
+   fn  __delattr__: cells=[('FrozenInstanceError', 'NOT FINGERPRINTABLE: builtins.type'), ('cls', 'REF CLASS (special-cased)')]
+   val __dict__: NEITHER identical NOR fingerprintable: builtins.getset_descriptor
+   val __doc__: value-fingerprintable
+   fn  __eq__: cells=[]
+   fn  __hash__: cells=[]
+   fn  __init__: cells=[('__dataclass_builtins_object__', 'ok')]
+   val __match_args__: value-fingerprintable
+   val __module__: identical
+   fn  __replace__: cells=[]
+   fn  __repr__: cells=[('fillvalue', 'ok'), ('repr_running', 'NOT FINGERPRINTABLE: builtins.set'), ('user_function', 'ok')]
+   fn  __setattr__: cells=[('FrozenInstanceError', 'NOT FINGERPRINTABLE: builtins.type'), ('cls', 'REF CLASS (special-cased)')]
+   val __weakref__: NEITHER identical NOR fingerprintable: builtins.getset_descriptor
+   val lineages: identical
+   -> entries that fail the plan's rule: 8
+=== _props_dataclass: ref=LineagesProps cand=LineagesProps same_obj=False
+   key sets equal: True
+   val __annotations__: value-fingerprintable
+   val __dataclass_fields__: NEITHER identical NOR fingerprintable: dataclasses.Field
+   val __dataclass_params__: NEITHER identical NOR fingerprintable: dataclasses._DataclassParams
+   fn  __delattr__: cells=[('FrozenInstanceError', 'NOT FINGERPRINTABLE: builtins.type'), ('cls', 'REF CLASS (special-cased)')]
+   val __dict__: NEITHER identical NOR fingerprintable: builtins.getset_descriptor
+   val __doc__: value-fingerprintable
+   fn  __eq__: cells=[]
+   fn  __hash__: cells=[]
+   fn  __init__: cells=[('__dataclass_builtins_object__', 'ok')]
+   val __match_args__: value-fingerprintable
+   val __module__: identical
+   fn  __replace__: cells=[]
+   fn  __repr__: cells=[('fillvalue', 'ok'), ('repr_running', 'NOT FINGERPRINTABLE: builtins.set'), ('user_function', 'ok')]
+   fn  __setattr__: cells=[('FrozenInstanceError', 'NOT FINGERPRINTABLE: builtins.type'), ('cls', 'REF CLASS (special-cased)')]
+   val __weakref__: NEITHER identical NOR fingerprintable: builtins.getset_descriptor
+   -> entries that fail the plan's rule: 7
+python 3.13.13
+[runcap] exit 0, peak RSS 323 MB, 4s

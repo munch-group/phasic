@@ -1,0 +1,17 @@
+_result_class annotations values identical: True True
+_result_class fields equal by (identity of) attrs: True
+_result_class params repr equal: True
+_result_class __dict__ objclass is own class: True True
+_result_class __weakref__ objclass is own class: True True
+_result_class __setattr__ FrozenInstanceError cell is dataclasses.FrozenInstanceError: True
+_result_class __delattr__ FrozenInstanceError cell is dataclasses.FrozenInstanceError: True
+_result_class __repr__ repr_running: set 0
+_props_dataclass annotations values identical: True True
+_props_dataclass fields equal by (identity of) attrs: True
+_props_dataclass params repr equal: True
+_props_dataclass __dict__ objclass is own class: True True
+_props_dataclass __weakref__ objclass is own class: True True
+_props_dataclass __setattr__ FrozenInstanceError cell is dataclasses.FrozenInstanceError: True
+_props_dataclass __delattr__ FrozenInstanceError cell is dataclasses.FrozenInstanceError: True
+_props_dataclass __repr__ repr_running: set 0
+[runcap] exit 0, peak RSS 293 MB, 4s

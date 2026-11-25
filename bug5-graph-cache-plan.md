@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.7, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.8, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -530,25 +530,34 @@ safe by the metaclass check).
      numpy arrays means same `type`, `dtype` and `shape` and
      `np.array_equal` (a bare `!=` would raise on multi-element arrays,
      and value-only equality would admit a float array with different
-     behaviour). The GENERATED classes are compared with the ones phasic
-     generates for the rebuild `c` (a fresh phasic object, so no user code
-     runs): `ix._result_class` with `c._result_class`, and each
-     PropertySet's `_props_dataclass`, if present, with the matching
-     PropertySet of `c`'s `_props_class()`. Each must satisfy
-     `type(cls) is type`, `cls.__mro__ == (cls, object)`, the same field
-     names in order, the same `set(vars(cls))` keys as the reference,
-     and, driven from the REFERENCE class's entries: every reference
-     entry that is a function must be an exact `FunctionType` in the
-     candidate with the same FUNCTION FINGERPRINT (code, defaults,
-     kwdefaults, `__dict__`, and closure cells position by position,
-     where a cell holding the reference class itself must hold the
-     candidate class itself), and every non-function entry must be the
-     identical object or equal by VALUE FINGERPRINT (a non-function
-     callable swapped in under an existing key, or a same-code function
-     with different cell contents, is thereby refused, review AE 1) (a swapped-in frozen dataclass with
-     the same fields but a `__post_init__` that shifts values made
-     `index_to_props(5)` return `n=101` instead of `n=1` while `to_dict()`
-     and every other compared field stayed equal, review AC p8). Each Property must have
+     behaviour). The GENERATED classes (`ix._result_class`, created in
+     every indexer's constructor, `state_indexing.py:878, 976`, and each
+     PropertySet's lazily created `_props_dataclass`, `:429`) are NOT
+     compared entry by entry with the rebuild's (v5.7's entry-by-entry
+     rule could not pass on any indexer: the dataclass machinery,
+     `__dataclass_fields__`, `__dataclass_params__`, per-class
+     descriptors, annotation objects, a `FrozenInstanceError` cell and a
+     `repr_running` set, is neither identical nor fingerprintable,
+     review AF p3). Instead, an ADDITIVE registry in `state_indexing.py`:
+     right after each of the two `make_dataclass` calls, phasic records
+     the new class in a module-level dict `_GENERATED_CLASSES` keyed by
+     `id(cls)`, holding a WEAK reference to the class (with a
+     `weakref.finalize` that removes the entry when the class is freed,
+     so nothing leaks in a long session and a reused id can never match:
+     a stale entry's weakref resolves to `None`), the field names it was
+     generated with, and a SNAPSHOT `dict(vars(cls))` (the same entry
+     objects). The check requires: `id(cls)` is in the registry and the
+     entry's weakref resolves to `cls` itself; the field names equal the ones the
+     indexer's properties / slots imply; and `vars(cls)` has exactly the
+     snapshot's keys with every entry the IDENTICAL object (`is`). A
+     user-made class is not registered; any later modification of a
+     registered class (a swapped `__init__`, an added `__post_init__`, a
+     replaced descriptor) changes an entry's identity or the key set.
+     No entry is fingerprinted, so no dataclass internals need rules, and
+     the check reads only the class's own `__dict__` (no user code: the
+     class's metaclass is `type`, checked first). Memory: one small dict
+     per live generated class, removed with the class. (Review AC p8's swap and
+     review AE 1's swaps are all refused by this.) Each Property must have
      `set(vars(p))` equal to its four dataclass fields (a frozen
      dataclass still has a `__dict__`, so extra attributes are
      otherwise invisible; same check as (a)), and each slot is checked as
@@ -1276,7 +1285,12 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. On the REAL install (subprocess, no monkeypatching), the
+18. POSITIVE CONTROLS for rule 8: a plain StateIndexer, fresh and after
+    `index_to_props` (both generated classes present), a StateSpace-based
+    one, and one built by `a + b`: all pass the checks and key (a check
+    that refuses every indexer must fail this test). A registered class
+    with `__init__` replaced, one with an added `__post_init__`, and an
+    unregistered same-field dataclass swapped in: refused. On the REAL install (subprocess, no monkeypatching), the
     end-of-import coverage check stores no recording failure, and a
     keyed build succeeds (guards against a check that refuses every
     normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
@@ -1481,6 +1495,10 @@ SLURM and outside this fix, listed in `found-defects` instead;
 `PhasicConfig.qmd` are generated (regenerated with `pixi run api` if that
 runs cleanly in the worktree; otherwise listed for the user).
 
+Source change outside the cache modules: `state_indexing.py` gains the
+additive `_GENERATED_CLASSES` registry (two lines after each
+`make_dataclass` call, plus the dict), nothing else changes there.
+
 Implementation note: `graph_cache.py` (and other files in this repo)
 use CRLF line endings; edits must preserve them (binary-mode edits, as
 in bug 4) so the diff stays readable.
@@ -1499,7 +1517,9 @@ and 5,823 vertices (b2 models) AND at a typical size (coalescent
 ~18k and ~53k vertices; review A measured on master's JSON format:
 build 3.2 s / 11.3 s, save 1.4 s / 4.6 s, entry 22 MB / 75 MB, load
 0.75 s / 2.7 s, peak RSS 0.47 / 0.8 GB), plus the import-time stat
-recording on its own. Expectation stated in the docstring, with file
+recording on its own, and the SAVE-time peak RSS at 53k (serialize()
+builds lists of lists, then `.tolist()` and `json.dumps` add copies;
+reported next to the load peak). Expectation stated in the docstring, with file
 size and memory given separately: roughly linear; at 600k sparse
 vertices an entry file of about 0.85 GB, ~35 s per load, and a load-time
 process peak of about 5 GB (extrapolated from 0.8 GB at 53k, review B 8);
@@ -1885,3 +1905,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   change during import accepted; 3 `meta` keys specified; 4 snapshot
   placed after the `__future__` import; 5 distributed.ipynb citation
   corrected; 6 accidental shared-key collisions documented.
+- Independent review AF -> v5.8 (no wrong result or data loss): 1 the
+  generated-class check (which v5.7 made unsatisfiable) replaced by an
+  additive registry in `state_indexing.py` (identity of every class
+  entry against its creation-time snapshot), with positive controls in
+  test 18; 2 save-time peak memory measured and stated; 3 positive
+  control added.

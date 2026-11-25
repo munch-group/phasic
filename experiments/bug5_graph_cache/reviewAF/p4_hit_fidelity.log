@@ -1,0 +1,22 @@
+A const_cb theta_dim=2: fresh build raises RuntimeError: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+B param_cb (2 coeffs) theta_dim=None: entry files=1
+   fresh {'V': 6, 'param_length': 2, 'parameterized': True, 'was_dph': False, 'is_discrete': False, 'dyn': False}
+   hit   {'V': 6, 'param_length': 2, 'parameterized': True, 'was_dph': False, 'is_discrete': False, 'dyn': False}   SAME
+   update_weights([2.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+   update_weights([2.0, 3.0]) -> expectation fresh=0.4212560386 hit=0.4212560386 SAME
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+C param_cb (2 coeffs) theta_dim=1: entry files=1
+   fresh {'V': 6, 'param_length': 1, 'parameterized': True, 'was_dph': False, 'is_discrete': False, 'dyn': False}
+   hit   {'V': 6, 'param_length': 1, 'parameterized': True, 'was_dph': False, 'is_discrete': False, 'dyn': False}   SAME
+   update_weights([2.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+   update_weights([2.0, 3.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+D mixed_cb theta_dim=None: fresh build raises RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). This edge uses array syntax. Use add_edge(vertex, scalar) for constant edges.
+E const_cb theta_dim=None: entry files=1
+   fresh {'V': 6, 'param_length': 1, 'parameterized': False, 'was_dph': False, 'is_discrete': False, 'dyn': False}
+   hit   {'V': 6, 'param_length': 1, 'parameterized': False, 'was_dph': False, 'is_discrete': False, 'dyn': False}   SAME
+   update_weights([2.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+   update_weights([2.0, 3.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh=RuntimeError hit=RuntimeError SAME
+cleaned True
+[runcap] exit 0, peak RSS 321 MB, 4s
