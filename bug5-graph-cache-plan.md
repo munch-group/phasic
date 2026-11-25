@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -374,7 +374,8 @@ longer used, so callbacks without accessible source can be cached.
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
    subclasses are refused): `x.dtype.str`, shape, a LAYOUT token (`C`
    if C-contiguous, else `F` if F-contiguous, else `S` followed by the
-   strides divided by the itemsize; a C- and an F-ordered copy of one
+   strides IN BYTES (strides need not be multiples of the itemsize, for
+   example field views of packed records, review T t4); a C- and an F-ordered copy of one
    array give different last-bit results in reductions such as
    `sum(axis=1)` and different `ravel('K')` order, review R p5;
    `DataFrame.to_numpy()` returns F-ordered arrays), C-order bytes (hashed
@@ -612,7 +613,12 @@ files ending in one of `importlib.machinery.EXTENSION_SUFFIXES` (never
 `importlib.util.find_spec`, which would call every `sys.meta_path`
 finder and trip test 14's import hook); at the end of import,
 `phasic.phasic_pybind.__file__` must be among the snapshotted files
-(otherwise a recording failure is stored); at the end the files are
+(otherwise a recording failure is stored, whose message says
+"cache_key needs a regular install of phasic (the compiled extension is
+outside the package directory, e.g. an editable install); use `pixi run
+install-dev` or a normal pip install", and the docstring lists editable
+installs among the refusals; scikit-build-core's editable redirect mode
+places the `.so` outside `src/phasic`); at the end the files are
 re-stat'ed, and if anything changed during the import (a concurrent
 reinstall on a shared cluster), a recording failure is stored (raised at
 the first key computation). So no reinstall during or after import can
@@ -735,10 +741,14 @@ here).
   `OSError` subclass with a message naming the directory and the ways
   out (another directory via `configure(cache_dir=...)`, or no
   `cache_key`); this happens before the lookup, so nothing is built.
-  `save()` repeats `mkdir(exist_ok=True)` before `os.open`, so a
-  directory removed during a long build (for example by
-  `phasic.clear_caches()`, `model_export.py:120-138`) is recreated
-  rather than failing after the build. EDITED: `_serialize_value`
+  `save()` repeats `mkdir(parents=True, exist_ok=True)` before
+  `os.open`, so a cache root removed during a long build (for example
+  `rm -rf ~/.phasic_cache`) is recreated rather than failing after the
+  build. (`phasic.clear_caches()` deletes files but keeps directories,
+  `cache_manager.py:142-152`; it can delete a concurrent writer's
+  in-flight `.partial`, whose `os.replace` then fails with
+  `FileNotFoundError`: a save error with `e.graph` attached, the build
+  kept, nothing saved.) EDITED: `_serialize_value`
   (`graph_cache.py:304-378`) loses its generic `to_dict()` arm (which tags
   any object with `__type__: module.Class`) and its docstring/error text
   advertising the `to_dict()`/`from_dict()` protocol; it encodes plain
@@ -881,11 +891,16 @@ the current graph directory, and ALSO from the legacy default directory
 `graph_cache.py:32, 88`), so users who set `cache_dir` do not keep
 orphaned old entries. The legacy directory is `graph_cache.DEFAULT_CACHE_DIR`
 READ AT CALL TIME (never `Path.home()` or a fixed constant, so tests
-redirect it), and if it differs from the current directory, only files
-that are NOT format "2" are deleted there: the first bytes of each file
-are read (new entries write `format` first, §2.6), so valid new-format
-entries that other runs wrote to the default directory survive (review
-S 1). Docstring says so.
+redirect it), and if it differs from the current directory: it is never
+created (absent means skipped; no `GraphCache(legacy)` constructor with
+its `mkdir` is used, so a read-only or missing HOME on a compute node
+cannot make the call fail); only files that are clearly OLD-format are
+deleted there, i.e. whose first bytes are NOT `{"format":` (new entries
+write `format` first, §2.6, and any future format will too), so valid
+entries of this or a newer phasic that other runs wrote to the default
+directory survive (review S 1, review T 1); a read or unlink error on a
+single file is skipped and counted, never fatal, and the return value
+reports removed and skipped counts. Docstring says so.
 
 ## 3. Tests
 
@@ -1142,10 +1157,17 @@ function):
     array hashes (not timing). A tuple that is both a code constant and
     a default of the same function: keyed, hit. A C- and an F-ordered
     copy of one array as the kwarg: different keys. An `ESTALE` raised
-    once by a monkeypatched `open`: the entry is re-read and hits. Module positions: direct
+    once by the load path's internal opener
+    (`graph_cache._open_entry_reader(path)`, named for this purpose like
+    `_open_entry_writer`): the entry is re-read and hits. Module positions: direct
     cell content keyed; module as a default, inside a container in a
-    cell, and inside the ipv refused. The cache directory deleted between lookup
-    and save: the save succeeds. `clear_all_graph_caches()` with
+    cell, and inside the ipv refused. The cache ROOT (parent of `graphs/`)
+    deleted between lookup and save: the save succeeds. A recording
+    failure for an extension outside the package directory
+    (monkeypatched `__file__`, subprocess): `GraphCacheKeyError` with the
+    regular-install message. `clear_all_graph_caches()` with an ABSENT
+    legacy directory: no directory created, no error; with a legacy file
+    whose first bytes are `{"format":"3"` : kept. `clear_all_graph_caches()` with
     `PHASIC_CACHE_DIR` set and `DEFAULT_CACHE_DIR` monkeypatched to a
     second tmp directory holding one old-format and one new-format entry
     file: the old one is deleted, the new one survives. `nan` vs `-nan`
@@ -1566,3 +1588,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   injected raw writer; 4 code objects memoised, test sizes 60k, cost
   documented; 5 long-double kinds refused, set-order misses documented;
   6 accepted as stated.
+- Independent review T -> v4.6 (no wrong result or data loss found):
+  1 legacy sweep never creates the directory, deletes only files not
+  starting with `{"format":`, per-file errors counted; 2 `save()` mkdir
+  with `parents=True`, corrected reason; 3 editable installs refused
+  with a specific message, documented; 4 strides keyed in bytes; 5 load
+  path opener named for the ESTALE test.

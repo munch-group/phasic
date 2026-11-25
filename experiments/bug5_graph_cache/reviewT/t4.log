@@ -1,0 +1,12 @@
+a type is ndarray: True dtype <f8 fields None C False F False strides (12,) floor(stride/itemsize) (1,) true ratio (1.5,)
+b type is ndarray: True dtype <f8 fields None C False F False strides (13,) floor(stride/itemsize) (1,) true ratio (1.625,)
+PermissionError rebuild ok: PermissionError /x/entry.json
+FileNotFoundError rebuild ok: FileNotFoundError /x/entry.json
+BlockingIOError rebuild ok: BlockingIOError /x/entry.json
+InterruptedError rebuild ok: InterruptedError /x/entry.json
+IsADirectoryError rebuild ok: IsADirectoryError /x/entry.json
+TimeoutError rebuild ok: TimeoutError /x/entry.json
+ConnectionResetError rebuild ok: ConnectionResetError /x/entry.json
+OSError rebuild ok: PermissionError /x/entry.json
+OSError(ESTALE) -> OSError
+[runcap] exit 0, peak RSS 2 MB, 1s
