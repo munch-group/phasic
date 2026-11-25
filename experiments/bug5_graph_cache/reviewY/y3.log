@@ -1,0 +1,7 @@
+numpy 2.4.3 python 3.13.13
+StringDType gates: {'dtype_str': 'StringDType()', 'builtin': True, 'hasobject': True, 'fields': False, 'kind': 'T', 'char': 'T'} admitted by rule 3 text: False
+  byte view raises: TypeError Cannot change data-type for array of references.
+long double 'g' array gates: {'dtype_str': '<f8', 'builtin': True, 'hasobject': False, 'fields': False, 'kind': 'f', 'char': 'g'} admitted by rule 3 text: True
+long double 'G' array gates: {'dtype_str': '<c16', 'builtin': True, 'hasobject': False, 'fields': False, 'kind': 'c', 'char': 'G'} admitted by rule 3 text: True
+unstructured void array gates: {'dtype_str': '|V8', 'builtin': True, 'hasobject': False, 'fields': False, 'kind': 'V', 'char': 'V'} admitted by rule 3 text: True
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -288,8 +288,11 @@ by sub-digests and cycles refused, §2.2.2)
   D). It also refuses every `scipy.special` ufunc (`gamma`, `binom`:
   they have NO `__module__` / `__qualname__` attribute, review C p8, so
   every attribute in these rules is read with `getattr(obj, name, None)`
-  and a missing one means refusal with `GraphCacheKeyError`, never an
-  `AttributeError`); the error advises moving
+  and a missing `__module__` / `__qualname__` (or `__name__` for ufuncs)
+  means refusal with `GraphCacheKeyError`, never an `AttributeError`; a
+  missing `__self__` reads as `None`, since numpy ufuncs and
+  dispatchers such as `np.exp`, `np.sum`, `np.linalg.solve` have no
+  `__self__` at all, review Y y5); the error advises moving
   such a function to a module global (then covered by the user's
   `cache_key`, as for any imported object). Note the asymmetry, which is
   consistent with the contract: compiled dispatchers are keyed by name,
@@ -406,7 +409,8 @@ own attributes would then be keyed, running user code during the walk
    timedelta kinds `M` / `m`, which numpy's buffer protocol rejects, and
    for 0-d arrays, via `reshape(-1)`; not via `tobytes()`). Refused: a
    dtype that is not built in (the same `numpy.dtypes` gate as rule 2),
-   `dtype.hasobject` (covers object dtype AND structured dtypes with an
+   long-double dtype chars `g` / `G` (as in rule 2; on arm64 their
+   `dtype.str` equals float64 / complex128), `dtype.hasobject` (covers object dtype AND structured dtypes with an
    object field, whose bytes are pointers) and `dtype.fields is not
    None` (structured dtypes: different field layouts share
    `dtype.str == '|V16'` and bytes, review A C);
@@ -431,7 +435,10 @@ own attributes would then be keyed, running user code during the walk
    in a closure cell: module-name token (in the kwargs block or the ipv
    it is refused, see §2.2.1);
 7. a class object (`issubclass(type(x), type)`): the immutable-compiled-type
-   token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
+   token of §2.2.1 if it qualifies, which additionally requires
+   `type(x) is type` (no user metaclass, whose `__getattribute__` would
+   run user code when `__flags__` / `__module__` / `__qualname__` are
+   read, review Y 6); otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
    is refused explicitly);
 8. phasic's own value types, EXACT class only, and only in their
@@ -445,7 +452,8 @@ own attributes would then be keyed, running user code during the walk
      takes part in `__eq__` and is readable by a callback
      (`state_indexing.py:97`).
    - `StateIndexer`: admitted only if ALL of:
-     (a) `type(ix) is StateIndexer`, every PropertySet has
+     (a) `type(ix) is StateIndexer`, every PropertySet's `properties` is
+     exactly a `list` or `tuple` (review Y 7a), every PropertySet has
      `type(ps) is PropertySet` or `type(ps) is StateSpace`
      (`state_indexing.py:220`, `:2204`), and EVERY Property the indexer
      can reach passes the Property rule: the entries of each
@@ -803,13 +811,17 @@ here).
   JSON values plus the `ndarray` tag only and raises on anything else, so
   the save side is symmetric with the restricted decoder and no entry
   can be written that every later lookup would refuse. Deleted:
-  `_deserialize_value` (see below). `Graph.__init__` constructs ONE `GraphCache()` per
-  call, whose directory is absolute (§2.5), so lookup and save use the
-  same directory.
+  `_deserialize_value` (see below). `Graph.__init__` constructs ONE
+  `GraphCache(create=True)` per call, whose directory is absolute (§2.5)
+  and exists (the miss-path writability probe relies on that), so lookup
+  and save use the same directory. `GraphCache.entry_path(digest)`
+  returns the absolute entry path (used for `_graph_cache_entry`).
   `clear()` / `clear_graph_cache()` delete ONLY files whose names match
   `^[0-9a-f]{32}\.json$` (entry names, old and new; the directory may now
   be user-chosen via `PHASIC_CACHE_DIR`, so other JSON files there must
-  survive, review M 6); `get_cache_stats` counts the same pattern. They
+  survive, review M 6); `get_cache_stats` counts the same pattern. The
+  `int` they return counts removed entry files only, not `.partial`
+  files. They
   (and through them `clear_all_graph_caches` and
   `model_export.clear_caches`) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
@@ -840,16 +852,22 @@ here).
   the directory, as for today's `open()`, so no umask is read or changed
   (reading it with `os.umask` would briefly change it process-wide while
   JAX/OpenMP threads run), and no `mkstemp` 0600 mode), then
-  `with os.fdopen(fd, "w", encoding="utf-8") as f:` write the entry's
-  small fields, `format` FIRST, as the exact bytes of one shared
+  the file object is a BINARY buffered writer,
+  `graph_cache._open_entry_writer(fd)` = `os.fdopen(fd, "wb")`; the
+  entry's small fields are written first, `format` FIRST, as the exact
+  bytes of one shared
   constant `_ENTRY_HEADER = b'{"format":'` followed by the format string
   (so a reader can tell an entry's format from its first bytes, and the
   legacy sweep, §2.8, tests the same constant; a natural `json.dumps`
   header would write `{"format": ` with a space), then EACH large `graph_data` field encoded with
-  `json.dumps(value, separators=(",", ":"))` (the one-shot call uses
-  CPython's C encoder; `json.dump` streaming always uses the
-  pure-Python encoder, 2.8x slower, review O p6) and written piecewise
-  into the same JSON object, then `f.flush(); os.fsync(f.fileno())` (an
+  `json.dumps(value, separators=(",", ":"))` (ASCII, since
+  `ensure_ascii` is on by default; the one-shot call uses CPython's C
+  encoder; `json.dump` streaming always uses the pure-Python encoder,
+  2.8x slower, review O p6) and written into the same JSON object in
+  8 MiB slices, each slice encoded to bytes just before it is written
+  (`f.write(s[i:i+CH].encode("ascii"))`), so the bytes copy never
+  exceeds one slice (a whole-string write, text or binary, costs a full
+  extra copy, review Y y8), then `f.flush(); os.fsync(f.fileno())` (an
   `OSError` from `fsync` with errno `EINVAL`, `ENOTSUP` / `EOPNOTSUPP` or
   `EROFS`, which some FUSE, network and overlay filesystems return, is
   logged and ignored: durability is best effort; any other error
@@ -859,8 +877,9 @@ here).
   short writes (a single `os.write` of more than 2 GiB writes only
   `INT_MAX` bytes on macOS and about 2 GiB on Linux, so a natural
   `os.write(fd, data)` would store a truncated entry and report success,
-  review N p8), and streaming avoids holding the string and its bytes at
-  once. Compact separators replace master's `indent=2`
+  review N p8), and the sliced encoding bounds the extra memory to one
+  slice per field (the field's string itself is still held while it is
+  written). Compact separators replace master's `indent=2`
   (`graph_cache.py:153`), which was 3.6x larger (2.45 MB vs 0.68 MB at
   7,382 vertices, review N p6). The
   temporary file is removed in a `finally` that covers `BaseException`
@@ -1519,7 +1538,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   Exception; 10 tests 3/4/6 labelled guards; 11 `f.__dict__` keyed,
   test 23; 12 any fingerprintable dict key, call-time semantics, test 24;
   nits (fixture paths, `:68`, `:463`, `_phasic_build_id` named,
-  `_deserialize_value` deleted, one `GraphCache()` per call).
+  `_deserialize_value` deleted, one `GraphCache(create=True)` per call).
 - Independent review D -> v2.9: A1 pandas objects refused in rule 8
   (`to_dict()` collapses duplicate labels), one-to-one requirement on
   `to_dict()` documented; A2 visited map holds strong references,
@@ -1689,3 +1708,11 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   constant for writer and sweep; 4 `fsync` EINVAL / ENOTSUP / EROFS
   ignored; 5 exact `ModuleType` checks; 6 dtype instances listed among
   refusals.
+- Independent review Y -> v5.1 (no wrong result or data loss found):
+  1 `GraphCache(create=True)` on the cache_key path stated everywhere,
+  `entry_path(digest)` named; 2 entry writer is binary (`"wb"`),
+  header constant is bytes, test injects a binary writer; 3 large fields
+  written in encoded 8 MiB slices, memory claim corrected; 4 missing
+  `__self__` reads as None (ufuncs, dispatchers); 5 long-double arrays
+  refused in rule 3; 6 immutable-type token requires `type(x) is type`;
+  7 `clear()` count excludes `.partial` files.

@@ -1,0 +1,20 @@
+math.sqrt                              type=builtin_function_or_method   mod=math           qn=sqrt                   self=module     resolves_to_same=True
+len                                    type=builtin_function_or_method   mod=builtins       qn=len                    self=module     resolves_to_same=True
+np.exp (ufunc)                         type=ufunc                        mod=numpy          qn=exp                    self=str        resolves_to_same=True
+np.add (ufunc)                         type=ufunc                        mod=numpy          qn=add                    self=str        resolves_to_same=True
+np.sum (dispatcher)                    type=_ArrayFunctionDispatcher     mod=numpy          qn=sum                    self=str        resolves_to_same=True
+np.linalg.solve                        type=_ArrayFunctionDispatcher     mod=numpy.linalg   qn=solve                  self=str        resolves_to_same=True
+np.frompyfunc ufunc                    type=ufunc                        mod=<absent>       qn=<absent>               self=str        resolves_to_same=False
+{}.get                                 type=builtin_function_or_method   mod=None           qn=dict.get               self=dict       resolves_to_same=<n/a>
+operator.itemgetter(0)                 type=itemgetter                   mod=operator       qn=<absent>               self=str        resolves_to_same=False
+scipy.special.gamma                    type=ufunc                        mod=<absent>       qn=<absent>               self=str        resolves_to_same=False
+scipy.special.comb                     type=function                     mod=scipy.special. qn=comb                   self=str        resolves_to_same=True
+itertools.combinations_with_replacement immutable_flag=True type(t)=type
+collections.OrderedDict                immutable_flag=True type(t)=type
+collections.Counter                    immutable_flag=False type(t)=type
+np.float64                             immutable_flag=True type(t)=type
+np.ndarray                             immutable_flag=True type(t)=type
+dict                                   immutable_flag=True type(t)=type
+functools.partial                      immutable_flag=True type(t)=type
+user class                             immutable_flag=False
+[runcap] exit 0, peak RSS 91 MB, 1s

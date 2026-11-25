@@ -1,0 +1,35 @@
+parameterized
+   states: int32 (5, 1) -> int64 (5, 1)   <-- dtype/shape changed
+   vertex_indices: int32 (5,) -> int64 (5,)   <-- dtype/shape changed
+   edges: float64 (0, 3) -> float64 (0,)   <-- dtype/shape changed
+   constant_edges: float64 (0, 3) -> float64 (0,)   <-- dtype/shape changed
+   start_edges: float64 (1, 2) -> float64 (1, 2)
+   param_edges: float64 (3, 3) -> float64 (3, 3)
+   start_param_edges: float64 (0, 2) -> float64 (0,)   <-- dtype/shape changed
+   param_length: int 1 -> int
+   state_length: int 1 -> int
+   n_vertices: int 5 -> int
+   weight_mode: str 'linear' -> str
+   dyn_ordering: bool False -> bool
+   is_discrete: bool False -> bool
+   was_dph: bool False -> bool
+   is_aux: bool (5,) -> bool (5,)
+   from_serialized OK; expectation 1.5 1.5
+constant
+   states: int32 (5, 1) -> int64 (5, 1)   <-- dtype/shape changed
+   vertex_indices: int32 (5,) -> int64 (5,)   <-- dtype/shape changed
+   edges: float64 (3, 3) -> float64 (3, 3)
+   constant_edges: float64 (0, 3) -> float64 (0,)   <-- dtype/shape changed
+   start_edges: float64 (1, 2) -> float64 (1, 2)
+   param_edges: float64 (0, 0) -> float64 (0,)   <-- dtype/shape changed
+   start_param_edges: float64 (0, 0) -> float64 (0,)   <-- dtype/shape changed
+   param_length: int 0 -> int
+   state_length: int 1 -> int
+   n_vertices: int 5 -> int
+   weight_mode: str 'linear' -> str
+   dyn_ordering: bool False -> bool
+   is_discrete: bool False -> bool
+   was_dph: bool False -> bool
+   is_aux: bool (5,) -> bool (5,)
+   from_serialized OK; expectation 1.5 1.5
+[runcap] exit 0, peak RSS 318 MB, 4s

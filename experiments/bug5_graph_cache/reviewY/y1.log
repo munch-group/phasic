@@ -1,0 +1,23 @@
+constant+theta_dim build fails: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+param coeff len 3, theta_dim=2
+   param_length: (2, 2)
+   parameterized: (True, True)
+   vertices_length: (5, 5)
+   state_length: (1, 1)
+   expectation: (1.5, 1.5)
+   exp_after_update: ERR RuntimeError: Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-callback mode, they must match exactly. To use extra coefficients, call update_weights(theta, callback) with a custom callback function.   <-- DIFF
+param coeff len 3, no theta_dim
+   param_length: (3, 3)
+   parameterized: (True, True)
+   vertices_length: (5, 5)
+   state_length: (1, 1)
+   expectation: (0.8928571428571428, 0.8928571428571428)
+   exp_after_update: (0.4464285714285714, 0.4464285714285714)
+constant edges, no theta_dim
+   param_length: (1, 1)
+   parameterized: (False, False)
+   vertices_length: (5, 5)
+   state_length: (1, 1)
+   expectation: (1.5, 1.5)
+   exp_after_update: ERR RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with scalar syntax: add_edge(v, 3.0)). Use parameterized edges (array syntax: add_edge(v, [3.0])) if you need to update weights.   <-- DIFF
+[runcap] exit 0, peak RSS 324 MB, 4s
