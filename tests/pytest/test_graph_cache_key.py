@@ -1449,6 +1449,16 @@ def test_18_identity_hashed_dict_keys():
     keys = [(f,), (g,)]
     _refused(keys=keys, scale={keys[0]: 1.0, keys[1]: 5.0})
     _refused(scale={f: 1.0, g: 5.0})
+    # Hashable wrappers around functions (implementation review M1).
+    _refused(scale={slice(f): 1.0, slice(g): 5.0})
+    _refused(scale={Property(f, max_value=1): 1.0,
+                    Property(g, max_value=1): 5.0})
+
+
+def test_18_float_property_fields_in_indexer_are_keyed():
+    ix = StateIndexer(lineage=[Property("n", max_value=3.0)])
+    ix2 = StateIndexer(lineage=[Property("n", max_value=3.0)])
+    assert _key("t18f", coal_global, indexer=ix) == _key("t18f", coal_global, indexer=ix2)
 
 
 def test_18_void_subclass_and_record():
@@ -2076,7 +2086,8 @@ out(case="outside", err=keyerr())
 def test_26_clear_all_legacy_absent_and_read_only_home(tmp_path, monkeypatch):
     legacy = Path(graph_cache.DEFAULT_CACHE_DIR)
     assert not legacy.exists()
-    assert phasic.clear_all_graph_caches() == {"removed": 0, "skipped": 0}
+    assert phasic.clear_all_graph_caches() == {"removed": 0, "skipped": 0,
+                                               "foreign": 0}
     assert not legacy.exists()
     if IS_ROOT:
         return
@@ -2087,7 +2098,8 @@ def test_26_clear_all_legacy_absent_and_read_only_home(tmp_path, monkeypatch):
         monkeypatch.setenv("HOME", str(ro))
         monkeypatch.delenv("PHASIC_CACHE_DIR")
         monkeypatch.setattr(graph_cache, "DEFAULT_CACHE_DIR", ro / ".phasic_cache" / "graphs")
-        assert phasic.clear_all_graph_caches() == {"removed": 0, "skipped": 0}
+        assert phasic.clear_all_graph_caches() == {"removed": 0, "skipped": 0,
+                                                   "foreign": 0}
         assert phasic.get_graph_cache_stats()["num_graphs"] == 0
         assert graph_cache.GraphCache().clear() == 0
         assert not (ro / ".phasic_cache").exists()
@@ -2106,10 +2118,13 @@ def test_26_legacy_sweep(tmp_path, monkeypatch):
     old.write_bytes(b'{\n  "version": "0.20.0",\n  "callback_hash": "x"\n}')
     future = legacy / ("cd" * 16 + ".json")
     future.write_bytes(b'{"format":"3","x":1}')
+    foreign = legacy / ("ef" * 16 + ".json")
+    foreign.write_bytes(b'{"my": "own md5-named file"}')
     res = phasic.clear_all_graph_caches()
     assert not old.exists()
     assert new_path.exists() and future.exists()
-    assert res["removed"] == 1
+    assert foreign.exists()   # implementation review L2
+    assert res["removed"] == 1 and res["foreign"] == 1
 
 
 def test_26_fsync_einval_ignored(monkeypatch):

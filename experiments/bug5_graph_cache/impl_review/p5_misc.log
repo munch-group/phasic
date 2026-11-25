@@ -1,0 +1,7 @@
+RESULT Graph instance callable: False
+RESULT Graph(graph, cache_key) -> ValueError cache_key applies to graphs built from a callback
+RESULT distinct keys for True/1/1.0/np.float64/np.int64: 5
+RESULT indexer dict key refused
+RESULT builtin dict key refused
+RESULT rewrap of errno-less OSError: OSError [Errno None] msg
+RESULT partials after run: []

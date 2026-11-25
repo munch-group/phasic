@@ -65,8 +65,10 @@ _FSYNC_IGNORED = {errno.EINVAL, errno.EROFS, getattr(errno, "ENOTSUP", -1),
 _META_KEYS = frozenset({"cache_key", "callback_name"})
 
 _LOAD_WAYS_OUT = (
-    "Ways out: delete the file, call phasic.clear_all_graph_caches(), or "
-    "use another cache_key."
+    "Ways out: delete this file, or use another cache_key. "
+    "(phasic.clear_all_graph_caches() removes only files that still start "
+    "with an entry header, so a file whose header is damaged must be "
+    "deleted by hand.)"
 )
 _DIR_WAYS_OUT = (
     "Ways out: choose another cache directory with "
@@ -103,9 +105,10 @@ def _open_entry_reader(path: Path):
 def _reraise_oserror(e: OSError, message: str) -> OSError:
     """A new exception of the same OSError subclass carrying ``message``."""
     try:
-        new = type(e)(e.errno, message)
+        new = (type(e)(e.errno, message) if e.errno is not None
+               else type(e)(message))
     except Exception:
-        new = OSError(e.errno, message)
+        new = OSError(e.errno, message) if e.errno is not None else OSError(message)
     return new
 
 
@@ -432,8 +435,13 @@ class GraphCache:
             names = []
         for name in names:
             if _ENTRY_NAME_RE.match(name):
+                p = self.cache_dir / name
                 try:
-                    total += os.stat(self.cache_dir / name).st_size
+                    head = _first_bytes(p, len(_LEGACY_ENTRY_PREFIX))
+                    if not (head.startswith(_ENTRY_HEADER)
+                            or head.startswith(_LEGACY_ENTRY_PREFIX)):
+                        continue   # foreign file with an entry-like name
+                    total += os.stat(p).st_size
                     count += 1
                 except OSError:
                     pass
@@ -582,19 +590,20 @@ def clear_all_graph_caches() -> dict[str, int]:
     and stale ``.partial`` files, see :meth:`GraphCache.clear_graph_cache`)
     and ALSO sweeps the legacy default directory (``DEFAULT_CACHE_DIR``,
     read at call time), where the previous phasic always wrote entries:
-    there only entry-named files whose first bytes are NOT this format's
-    entry header (old-format entries) are deleted, so entries of this or a
-    newer phasic survive. The legacy directory is never created; a read or
+    there only entry-named files that start with the PREVIOUS phasic's
+    entry prefix (old-format entries) are deleted, so entries of this or a
+    newer phasic, and any foreign file, survive. The legacy directory is never created; a read or
     unlink error on a single file is skipped and counted, never fatal.
 
     Returns
     -------
     dict
-        ``{"removed": int, "skipped": int}``: entry files removed over both
-        directories, and per-file errors.
+        ``{"removed": int, "skipped": int, "foreign": int}``: entry files
+        removed over both directories, per-file errors, and entry-named
+        files left alone because their content is not an entry.
     """
     cur = GraphCache()
-    removed, _foreign, errors = cur._clear_dir()
+    removed, foreign, errors = cur._clear_dir()
     legacy = Path(DEFAULT_CACHE_DIR).resolve()
     if legacy != cur.cache_dir:
         try:
@@ -609,11 +618,15 @@ def clear_all_graph_caches() -> dict[str, int]:
                 continue
             p = legacy / name
             try:
-                if _first_bytes(p, len(_ENTRY_HEADER)).startswith(_ENTRY_HEADER):
-                    continue   # this or a newer format: keep
+                head = _first_bytes(p, len(_LEGACY_ENTRY_PREFIX))
+                if not head.startswith(_LEGACY_ENTRY_PREFIX):
+                    if not head.startswith(_ENTRY_HEADER):
+                        foreign += 1
+                    continue   # this or a newer format, or foreign: keep
                 p.unlink()
                 removed += 1
             except OSError:
                 errors += 1
-    logger.info("Cleared %d graph cache entries (%d skipped)", removed, errors)
-    return {"removed": removed, "skipped": errors}
+    logger.info("Cleared %d graph cache entries (%d skipped, %d foreign)",
+                removed, errors, foreign)
+    return {"removed": removed, "skipped": errors, "foreign": foreign}

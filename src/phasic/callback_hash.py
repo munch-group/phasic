@@ -401,6 +401,18 @@ class _KeyWalker:
             if depth > _MAX_DEPTH:
                 return True
             return any(_KeyWalker._identity_hashed(e, depth + 1) for e in k)
+        if t is slice:
+            # Hashable on Python 3.12+: look inside like a tuple.
+            if depth > _MAX_DEPTH:
+                return True
+            return any(_KeyWalker._identity_hashed(e, depth + 1)
+                       for e in (k.start, k.stop, k.step))
+        if t is _phasic_types()[0]:
+            # Property: a frozen dataclass hashed by its fields.
+            if depth > _MAX_DEPTH:
+                return True
+            return any(_KeyWalker._identity_hashed(e, depth + 1)
+                       for e in vars(k).values())
         return t is _phasic_types()[3]
 
     def _walk_dict(self, x: dict, h) -> None:
@@ -713,7 +725,7 @@ class _KeyWalker:
                                       "its key")
         return psets
 
-    _PLAIN_FIELD_TYPES = (str, int, bool)
+    _PLAIN_FIELD_TYPES = (str, int, bool, float)
 
     def _check_indexer_property(self, p: Any, pset_name: str) -> None:
         self._check_property_shape(p)

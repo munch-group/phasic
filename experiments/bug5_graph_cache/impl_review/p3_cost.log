@@ -1,0 +1,4 @@
+RESULT {'model': 'coal8-param', 'n': 8, 'vertices': 23, 'build_s': 0.007, 'key_ms': 0.82, 'miss_total_s': 0.008, 'hit_total_s': 0.002, 'entry_MB': 0.0, 'serialize_mismatch': [], 'E_rel': 0.0, 'walk': {'steps': 30, 'array_hashes': 0, 'tuple': 10, 'code': 2, 'list': 9, 'dict': 6, 'function': 2, 'indexer': 1}}
+RESULT {'model': 'coal30-param', 'n': 30, 'vertices': 5605, 'build_s': 17.009, 'key_ms': 0.76, 'miss_total_s': 17.286, 'hit_total_s': 0.163, 'entry_MB': 1.31, 'serialize_mismatch': [], 'E_rel': 0.0, 'walk': {'steps': 30, 'array_hashes': 0, 'tuple': 10, 'code': 2, 'list': 9, 'dict': 6, 'function': 2, 'indexer': 1}}
+RESULT {'model': 'coal12-const', 'n': 12, 'vertices': 78, 'build_s': 0.041, 'key_ms': 0.76, 'miss_total_s': 0.043, 'hit_total_s': 0.002, 'entry_MB': 0.01, 'serialize_mismatch': [], 'E_rel': 0.0, 'walk': {'steps': 30, 'array_hashes': 0, 'tuple': 10, 'code': 2, 'list': 9, 'dict': 6, 'function': 2, 'indexer': 1}}
+RESULT trivial []
