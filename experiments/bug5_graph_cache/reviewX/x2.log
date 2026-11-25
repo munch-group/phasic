@@ -1,0 +1,19 @@
+[2tuple] param_length fresh 2 hit 2; parameterized True True
+[2tuple] edges identical before update_weights: True
+[2tuple] dyn_ordering False False
+[2tuple] expectation before update_weights fresh 0.8928571428571428 hit 0.8928571428571428
+[2tuple] expectation after theta=1 fresh 0.8928571428571428 hit 0.8928571428571428
+[3tuple] param_length fresh 2 hit 2; parameterized True True
+[3tuple] edges identical before update_weights: True
+[3tuple] dyn_ordering False False
+[3tuple] expectation before update_weights fresh 0.8928571428571428 hit 0.8928571428571428
+[3tuple] expectation after theta=1 fresh 0.8928571428571428 hit 0.8928571428571428
+[2tuple_td1] param_length fresh 1 hit 1; parameterized True True
+[2tuple_td1] edges identical before update_weights: True
+[2tuple_td1] dyn_ordering False False
+[2tuple_td1] expectation before update_weights fresh 1.5 hit 1.5
+[2tuple_td1] update_weights error RuntimeError: Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters. In non-callback mode, they must match e
+[2tuple_td1] update_weights error RuntimeError: Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters. In non-callback mode, they must match e
+[2tuple_td1] expectation after theta=1 fresh 1.5 hit 1.5
+[2tuple_td3] error RuntimeError: Edge has too few coefficients: graph expects at least 3, got 2. Edges must have coefficients_length >= param_length.
+[runcap] exit 0, peak RSS 325 MB, 3s

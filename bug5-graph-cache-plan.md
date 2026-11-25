@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.9, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -124,7 +124,7 @@ deterministic functions of their inputs). The
     error instead of today's `AttributeError` (review E 7d);
   - the ENTRY KEY (§2.2) is computed once. A key error propagates:
     nothing is built, nothing written;
-  - lookup: `cache = GraphCache()` once per call, then
+  - lookup: `cache = GraphCache(create=True)` once per call, then
     `cache.load(digest)` (the full digest from §2.2) returns a separate, fully
     built `Graph`, or `None` (missing file), or raises (§2.6). ONE policy
     for every entry whose CONTENT cannot be used (OS errors such as
@@ -145,7 +145,10 @@ deterministic functions of their inputs). The
     error while restoring attributes on a hit propagates;
   - hit: the current restore sequence (`:1689-1723`) runs; then
     `self.dyn_ordering` is set to the flag of a freshly created native
-    graph (`_Graph(1).dyn_ordering`), which applies the C rule at graph
+    graph, `_Graph(1).get_dyn_ordering()` (the pybind base exposes only
+    the getter, `phasic_pybind.cpp:1550`; the `dyn_ordering` property
+    exists only on the Python subclass, `__init__.py:1956-1971`, review
+    X x4), which applies the C rule at graph
     creation exactly (`phasic.c:2996`, C `getenv`, which `os.environ`
     can diverge from after `os.putenv` or a C library's `setenv`, review
     W 2), because `serialize()` persists the WRITER's flag
@@ -274,7 +277,8 @@ by sub-digests and cycles refused, §2.2.2)
   user's own recompiled extension keeps its key; this falls under the
   contract's "installed libraries" clause and is stated in the
   docstring.) For these exact types: module +
-  qualified name token, ONLY IF `__self__` is `None` or a module AND
+  qualified name token, ONLY IF `__self__` is `None` or exactly a module
+  (`type(__self__) is types.ModuleType`) AND
   resolving `__module__` + `__qualname__` (or `__name__` for ufuncs)
   through `sys.modules` returns the very same object. This admits
   `math.sqrt`, `len`, `np.exp`, `np.linalg.solve` and refuses builtin
@@ -304,7 +308,10 @@ by sub-digests and cycles refused, §2.2.2)
   FINGERPRINTABLE.
 - a MODULE object (not callable; for example the cell a local
   `import numpy as np` inside a factory creates): module-name token,
-  ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
+  ONLY IF `type(m) is types.ModuleType` (exact: a `ModuleType` subclass
+  could run user code when `__name__` is read; numpy, scipy, jax, pandas,
+  math, itertools and phasic are all exactly `ModuleType`, review X x6)
+  AND `sys.modules[m.__name__] is m`. It behaves exactly like a
   module global, whose contents are the user's responsibility under the
   contract. (Value rule 6b below.) Admitted ONLY when a closure cell's
   DIRECT content is the module object (a module nested in a container
@@ -528,7 +535,9 @@ own attributes would then be keyed, running user code during the walk
    `index_to_props` results (precompute lookup tables as plain ints or
    dicts), long-double arrays, functions whose `__dict__` holds an `inspect.Signature`
    (set by some decorator libraries as `__signature__`), numpy 2
-   `StringDType` arrays, `fractions.Fraction`,
+   `StringDType` arrays, numpy dtype INSTANCES such as
+   `np.dtype('int64')` (capture `np.int64` or the dtype string instead),
+   `fractions.Fraction`,
    `decimal.Decimal`, nesting deeper than 100. The docstring also says
    that a function made with `exec(src, ns)` or `types.FunctionType(code,
    ns)` reads its globals from `ns`, which counts as MODULE GLOBALS
@@ -762,12 +771,16 @@ here).
 ### 2.6 `GraphCache` API and entry file
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
-  `get_cache_stats()`. Only the `cache_key` lookup and save construct a
-  `GraphCache` that creates its directory; the management helpers
+  `get_cache_stats()`. The constructor takes `create: bool = False`
+  (DEFAULT False): only `Graph.__init__`'s `cache_key` path constructs
+  `GraphCache(create=True)`, which creates the directory (the miss-path
+  writability probe needs it to exist); so the documented user pattern
+  `GraphCache().clear()` (notebooks listed as unaffected in §5) never
+  runs `mkdir`. The management helpers
   (`clear()`, `clear_graph_cache()`, `get_cache_stats()`,
   `clear_all_graph_caches()`, `get_graph_cache_stats()`,
   `print_graph_cache_info()`, `get_cache_dir()`) RESOLVE the directory
-  without `mkdir` (a constructor flag `create=False`), so a missing
+  without `mkdir` (the default `create=False`), so a missing
   directory gives 0 removed / empty stats and a read-only or missing HOME
   never makes them fail or creates a directory as a side effect
   (pre-existing on master, `graph_cache.py:88-89, 485, 523`, review U 1).
@@ -828,12 +841,19 @@ here).
   (reading it with `os.umask` would briefly change it process-wide while
   JAX/OpenMP threads run), and no `mkstemp` 0600 mode), then
   `with os.fdopen(fd, "w", encoding="utf-8") as f:` write the entry's
-  small fields, `format` FIRST (so a reader can tell an entry's format
-  from its first bytes), then EACH large `graph_data` field encoded with
+  small fields, `format` FIRST, as the exact bytes of one shared
+  constant `_ENTRY_HEADER = b'{"format":'` followed by the format string
+  (so a reader can tell an entry's format from its first bytes, and the
+  legacy sweep, §2.8, tests the same constant; a natural `json.dumps`
+  header would write `{"format": ` with a space), then EACH large `graph_data` field encoded with
   `json.dumps(value, separators=(",", ":"))` (the one-shot call uses
   CPython's C encoder; `json.dump` streaming always uses the
   pure-Python encoder, 2.8x slower, review O p6) and written piecewise
-  into the same JSON object, then `f.flush(); os.fsync(f.fileno())`
+  into the same JSON object, then `f.flush(); os.fsync(f.fileno())` (an
+  `OSError` from `fsync` with errno `EINVAL`, `ENOTSUP` / `EOPNOTSUPP` or
+  `EROFS`, which some FUSE, network and overlay filesystems return, is
+  logged and ignored: durability is best effort; any other error
+  propagates)
   (memory stays bounded per field), then
   `os.replace` to `<first 32 hex>.json`. The buffered writer loops over
   short writes (a single `os.write` of more than 2 GiB writes only
@@ -932,7 +952,7 @@ redirect it), and if it differs from the current directory: it is never
 created (absent means skipped; no `GraphCache(legacy)` constructor with
 its `mkdir` is used, so a read-only or missing HOME on a compute node
 cannot make the call fail); only files that are clearly OLD-format are
-deleted there, i.e. whose first bytes are NOT `{"format":` (new entries
+deleted there, i.e. whose first bytes are NOT `_ENTRY_HEADER` (§2.6; new entries
 write `format` first, §2.6, and any future format will too), so valid
 entries of this or a newer phasic that other runs wrote to the default
 directory survive (review S 1, review T 1); a read or unlink error on a
@@ -1216,7 +1236,11 @@ function):
     legacy directory: no directory created, no error; with HOME
     read-only and `PHASIC_CACHE_DIR` unset: `clear_all_graph_caches()`
     returns `{"removed": 0, "skipped": 0}` and `get_graph_cache_stats()`
-    returns empty stats, neither raising nor creating a directory; with a legacy file
+    returns empty stats, neither raising nor creating a directory;
+    `GraphCache().clear()` likewise; a legacy-directory entry written by
+    the real `GraphCache.save` (not hand-made bytes) survives the sweep;
+    `os.fsync` monkeypatched to raise `OSError(EINVAL)`: the save
+    succeeds; with a legacy file
     whose first bytes are `{"format":"3"` : kept. `clear_all_graph_caches()` with
     `PHASIC_CACHE_DIR` set and `DEFAULT_CACHE_DIR` monkeypatched to a
     second tmp directory holding one old-format and one new-format entry
@@ -1658,3 +1682,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   1 end-of-import order fixed (hash, then final stat equal to the
   top-of-import snapshot; record = (S0, H)); 2 hit-path `dyn_ordering`
   read from a freshly created native graph; 3 line 485.
+- Independent review X -> v5.0 (no wrong result or data loss found):
+  1 hit-path flag via `_Graph(1).get_dyn_ordering()` (the property does
+  not exist on the base); 2 `GraphCache(create=False)` by default,
+  `create=True` only on the `cache_key` path; 3 shared `_ENTRY_HEADER`
+  constant for writer and sweep; 4 `fsync` EINVAL / ENOTSUP / EROFS
+  ignored; 5 exact `ModuleType` checks; 6 dtype instances listed among
+  refusals.

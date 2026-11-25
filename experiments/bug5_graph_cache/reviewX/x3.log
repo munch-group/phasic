@@ -1,0 +1,46 @@
+np.array                         ADMIT
+np.zeros                         ADMIT
+np.arange                        ADMIT
+np.where                         ADMIT
+np.concatenate                   ADMIT
+np.dot                           ADMIT
+np.exp                           ADMIT
+np.sum                           ADMIT
+np.linalg.solve                  ADMIT
+np.add.reduce                    REFUSED(__self__)
+np.random.default_rng            NOT FINGERPRINTABLE (type _cython_3_2_4.cython_function_or_method)
+np.empty                         ADMIT
+np.frombuffer                    ADMIT
+np.asarray                       ADMIT
+math.comb                        ADMIT
+math.factorial                   ADMIT
+len                              ADMIT
+max                              ADMIT
+sorted                           ADMIT
+operator.add                     ADMIT
+operator.mul                     ADMIT
+str.join                         NOT FINGERPRINTABLE (type builtins.method_descriptor)
+functools.reduce                 ADMIT
+itertools.product                ADMIT
+itertools.combinations           ADMIT
+collections.defaultdict          ADMIT
+np.int64                         ADMIT
+np.float64                       ADMIT
+np.int32                         ADMIT
+np.ndarray                       ADMIT
+np.dtype                         ADMIT
+int                              ADMIT
+float                            ADMIT
+tuple                            ADMIT
+range                            ADMIT
+frozenset                        ADMIT
+dict                             ADMIT
+np.dtype(int64) instance         NOT FINGERPRINTABLE (type numpy.dtypes.Int64DType)
+np.bincount                      ADMIT
+np.isin                          ADMIT
+np.searchsorted                  ADMIT
+np.unravel_index                 ADMIT
+np.ravel_multi_index             ADMIT
+scipy.special.comb (py)          python function (code-keyed)
+scipy.special.gammaln            REFUSED(missing attr mod=None qual='gammaln')
+[runcap] exit 0, peak RSS 119 MB, 1s
