@@ -1,0 +1,49 @@
+
+=== A. cross-process stability (PYTHONHASHSEED 0/1/2/random)
+0 cb b5438bfd3446899f | wrapped 7d5bfc23f9812a4b | closure b434367d00a46ba1 | frozenset_iter_order ['alpha', 'delta', 'beta', 'gamma'] 
+1 cb b5438bfd3446899f | wrapped 7d5bfc23f9812a4b | closure b434367d00a46ba1 | frozenset_iter_order ['beta', 'delta', 'gamma', 'alpha'] 
+2 cb b5438bfd3446899f | wrapped 7d5bfc23f9812a4b | closure b434367d00a46ba1 | frozenset_iter_order ['delta', 'gamma', 'alpha', 'beta'] 
+random cb b5438bfd3446899f | wrapped 7d5bfc23f9812a4b | closure b434367d00a46ba1 | frozenset_iter_order ['alpha', 'beta', 'delta', 'gamma'] 
+fingerprints identical across seeds: True
+
+=== B. 3.13 specialisation / instrumentation: co_code before vs after hot calls
+co_code unchanged after 20k calls: True | fp unchanged: True
+adaptive bytecode differs from co_code (specialised): True
+under settrace: fp unchanged: True
+under sys.monitoring LINE: fp unchanged: True
+
+=== C. the _callback wrapper closure
+wrapper freevars: ('func', 'ipv') cell types: ['function', 'list'] defaults: ([],)
+wrapper co_names (globals it reads): ('len', 'zip', 'sum', 'ValueError', 'TypeError', 'items', 'isinstance', 'int', 'print', 'np', 'any', 'list', 'map', 'float', 'ndarray', 'tuple')
+
+=== D. builtin bound methods: module+qualname ignores __self__
+(a) value rules as written (rule 6 has no builtin arm):
+  builtin in cell: NOT FINGERPRINTABLE builtins.builtin_function_or_method
+(b) builtin cell routed to the §2.2.1 builtin arm:
+d1.get vs d2.get type: builtin_function_or_method | fingerprints equal: True
+Random(1).random vs Random(2).random equal: True
+np.frompyfunc ufunc name: <lambda> (vectorized)
+
+=== E. common closure contents that are refused
+  lru_cache helper in cell: NOT FINGERPRINTABLE (functools._lru_cache_wrapper)
+  class (itertools.combinations) in cell: NOT FINGERPRINTABLE (builtins.type)
+  bound method using super() (__class__ cell): ESCAPES as TypeError: Model.to_dict() missing 1 required positional argument: 'self'
+  np.exp (ufunc) in cell (value rule has no builtin arm -> per proto): fingerprintable
+  np.linspace in cell (value rule has no builtin arm -> per proto): fingerprintable
+  math.comb in cell (value rule has no builtin arm -> per proto): fingerprintable
+  scipy.special.comb in cell: fingerprintable
+  scipy.stats.binom.pmf in cell: NOT FINGERPRINTABLE (scipy.stats._discrete_distns.binom_gen)
+
+=== F. recursion: self/mutual recursive closures; backref with/without index
+  mutual recursion: fingerprintable
+  self recursion: fingerprintable
+
+=== G. edits: docstring / comment / whitespace; two lambdas on one line
+docstring edit misses: True | comment/whitespace edit hits: True | constant edit misses: True
+two lambdas one line distinct: True
+
+=== I. build-id stat record cost
+52 py stats in 2.08 ms; .so matches: ['phasic_pybind.cpython-313-darwin.so']
+phasic_pybind.__file__ under pkg: True
+non-py, non-so files in pkg (top): ['.cpp', '.h', '.py', '.so']
+[runcap] exit 0, peak RSS 358 MB, 13s

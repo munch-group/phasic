@@ -1,0 +1,10 @@
+[1] single-line vs constant split over two lines: same fp = True
+    co_code a = 950053016e0158012f022400
+    co_code b = 950053016e0158012f022400
+[2] comment/blank/trailing-comment edit: same fp = True
+[3] 'if s:\n pass' vs 'if s: pass': same fp = True
+[4] after 5000 calls (specialization): same fp = True
+[5] under sys.settrace: same fp = True
+[6] under sys.monitoring LINE+INSTRUCTION: same fp = True
+python 3.13.13
+[runcap] exit 0, peak RSS 2 MB, 1s

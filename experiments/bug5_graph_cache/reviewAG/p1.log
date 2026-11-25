@@ -1,0 +1,26 @@
+Matplotlib is building the font cache; this may take a moment.
+fresh plain                                             PASS
+after index_to_props (both generated classes)           PASS
+test_graph_cache.py indexer                             PASS
+  ... used                                              PASS
+test_from_serialized_find_vertex indexer                PASS
+StateSpace-based                                        PASS
+  ... used                                              PASS
+a + b                                                   PASS
+  ... used                                              PASS
+a + b with interleaved slot                             PASS
+append(prefix_other=...)                                PASS
+deprecated offset Property                              PASS
+tuple of properties                                     PASS
+add_epoch-style (shared psets)                          PASS
+joint_prob_graph-style base + reward                    PASS
+epoch indexer on joint (chained)                        PASS
+from_dict rebuild                                       PASS
+np.int64 max_value                                      PASS
+NEG: _result_class.__init__ replaced                    REFUSED: _result_class: entry '__init__' replaced
+NEG: unregistered same-field class                      REFUSED: _result_class: not registered
+
+LEAK: registry entries before=45 after 500 indexers+checks=1545 (alive=1545)
+WITHOUT registry: live generated classes before=17 after=17
+snapshot entries that strongly reference the class: ['__dict__', '__weakref__']
+[runcap] exit 0, peak RSS 319 MB, 19s

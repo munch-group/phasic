@@ -1,0 +1,42 @@
+Matplotlib is building the font cache; this may take a moment.
+
+=== A. build-id cost: hash every *.py + phasic_pybind in installed pkg
+import phasic 17.262s; build id over 52 py + so = 3.49 MB in 11.9 ms
+pybind file: phasic_pybind.cpython-313-darwin.so inside pkg dir: True
+
+=== B. PTDConfigError vs ValueError for unknown configure() option
+PTDConfigError subclass of ValueError: False
+configure(no_such_option) raised PTDConfigError | isinstance ValueError: False
+
+=== C. AST key cannot see __defaults__ / closure cells (plan item 5 = same AST rule)
+defaults idiom: __defaults__ [(1.0,), (5.0,)] AST keys equal: True
+closure: cells [1.0, 5.0] AST keys equal: True
+  true expectations differ: 1.0833333333333333 0.21666666666666667
+
+=== D. getsource reads the file on disk, not the running code
+running code unchanged: True | AST key changed after edit (no reload): True
+  -> the running (old) code would build a graph saved under the NEW source's key
+
+=== E. _serialize_value (construction_params in the entry) vs plan's fingerprintable types
+  np.bool_: FAILS TypeError: Cannot serialize parameter of type bool. To make this type cacheable, 
+  complex: FAILS TypeError: Cannot serialize parameter of type complex. To make this type cacheabl
+  bytes: FAILS TypeError: Cannot serialize parameter of type bytes. To make this type cacheable,
+  np.complex128: FAILS TypeError: Cannot serialize parameter of type complex128. To make this type cache
+  complex array: FAILS TypeError: Object of type complex is not JSON serializable
+  np.str_: serializable
+  nan: serializable
+
+=== F. master: does cache_key= reach the callback as an unknown kwarg?
+Exception raised in callback function
+  raised TypeError cbk() got an unexpected keyword argument 'cache_key'
+  with **kw: built, 4 vertices; files: 1
+
+=== G. kwargs popped before the key: cache_trace / hierarchical never reach it
+  pop happens before load_graph: True
+
+=== H. hit path bypasses the 'ipv with @callback wrapper' ValueError (master)
+  uncached: ValueError: When providing a function decorated with @callback, the ipv argument is ignored 
+  cached (warm): NO error, ipv=[9] silently ignored
+
+cleaned
+[runcap] exit 0, peak RSS 321 MB, 18s

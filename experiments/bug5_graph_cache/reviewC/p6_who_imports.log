@@ -1,0 +1,10 @@
+libomp loaded after numpy+pandas: True
+OMP at pybind import: None
+p6_who_imports.py:25 import phasic
+__init__.py:53 from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
+graph_cache.py:29 logger = get_logger(__name__)
+logging_config.py:253 setup_logging()
+logging_config.py:200 from . import phasic_pybind
+p6_who_imports.py:11 st = [f"{os.path.basename(f.filename)}:{f.lineno} {f.line}" for f in traceback.extract_stack()
+final OMP: 8
+[runcap] exit 0, peak RSS 313 MB, 3s

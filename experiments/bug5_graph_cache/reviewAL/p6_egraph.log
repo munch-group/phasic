@@ -1,0 +1,5 @@
+recovered type G2 vertices 7 expectation 1.6666666666666667 fresh 1.6666666666666667
+serialize equal: True
+notes: ['built graph attached as e.graph']
+exit clean
+[runcap] exit 0, peak RSS 324 MB, 3s

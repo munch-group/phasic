@@ -1,0 +1,21 @@
+bfloat16             dtype.str='<V2'   kind='V' hasobject=False fields=None bytes=b'\x80?\x00@' scalar_isgeneric=True scalar_exact=True
+float8_e4m3fn        dtype.str='<V1'   kind='V' hasobject=False fields=None bytes=b'8@' scalar_isgeneric=True scalar_exact=True
+float8_e5m2          dtype.str='<f1'   kind='f' hasobject=False fields=None bytes=b'<@' scalar_isgeneric=True scalar_exact=True
+float8_e4m3b11fnuz   dtype.str='<V1'   kind='V' hasobject=False fields=None bytes=b'X`' scalar_isgeneric=True scalar_exact=True
+int4                 dtype.str='<V1'   kind='V' hasobject=False fields=None bytes=b'\x01\x02' scalar_isgeneric=True scalar_exact=True
+uint4                dtype.str='<V1'   kind='V' hasobject=False fields=None bytes=b'\x01\x02' scalar_isgeneric=True scalar_exact=True
+e4m3fn values [1.5 2. ] e5m2 values [1. 2.]
+same dtype.str: False  same bytes: True  same values: False
+scalars: same dtype.str: False  same tobytes: True  values 1.5 1.0
+isbuiltin float64                1  type(dtype).__module__=numpy.dtypes
+isbuiltin <U3                    0  type(dtype).__module__=numpy.dtypes
+isbuiltin |S2                    0  type(dtype).__module__=numpy.dtypes
+isbuiltin datetime64[D]          0  type(dtype).__module__=numpy.dtypes
+isbuiltin |V8                    0  type(dtype).__module__=numpy.dtypes
+isbuiltin bfloat16               2  type(dtype).__module__=numpy
+isbuiltin float8_e4m3fn          2  type(dtype).__module__=numpy
+isbuiltin int4                   2  type(dtype).__module__=numpy
+isbuiltin StringDType()          0  type(dtype).__module__=numpy.dtypes
+PAIR e4m3fn vs e4m3b11fnuz: dtype.str <V1 <V1 | same bytes True | values [1.0, 2.0] [0.0625, 0.125]
+PAIR int4[-1] vs uint4[15]: dtype.str <V1 <V1 | bytes b'\x0f' b'\x0f'
+[runcap] exit 0, peak RSS 2 MB, 1s

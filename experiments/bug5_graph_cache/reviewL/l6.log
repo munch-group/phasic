@@ -1,0 +1,16 @@
+-- compiled functions keyed by name (Cython binding=False style) --
+numpy.random._generator.default_rng: not builtin arm (type _cython_3_2_4.cython_function_or_method)
+numpy.random.mtrand.seed: not builtin arm (type _cython_3_2_4.cython_function_or_method)
+pandas._libs.lib.is_scalar: not builtin arm (type _cython_3_2_4.cython_function_or_method)
+pandas._libs.lib.is_list_like: not builtin arm (type _cython_3_2_4.cython_function_or_method)
+scipy.special._ufuncs.gamma: REFUSED (does not resolve)
+-- ordinary values a callback may capture or receive --
+namedtuple instance: exact tuple? False
+np.memmap is ndarray subclass: True
+class collections.Counter: REFUSED (mutable heap type)
+class collections.defaultdict: ADMITTED by name
+class collections.OrderedDict: ADMITTED by name
+class collections.deque: ADMITTED by name
+class functools.partial: ADMITTED by name
+index_to_props result type: phasic.state_indexing LineagesProps -> rule 9 (refused)
+[runcap] exit 0, peak RSS 279 MB, 4s

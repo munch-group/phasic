@@ -1,0 +1,33 @@
+len                    type=builtin_function_or_method   -> admitted builtins.len
+max                    type=builtin_function_or_method   -> admitted builtins.max
+math.comb              type=builtin_function_or_method   -> admitted math.comb
+np.exp                 type=ufunc                        -> admitted numpy.exp
+np.abs                 type=ufunc                        -> admitted numpy.absolute
+np.sum                 type=_ArrayFunctionDispatcher     -> admitted numpy.sum
+np.linalg.solve        type=_ArrayFunctionDispatcher     -> admitted numpy.linalg.solve
+np.array               type=builtin_function_or_method   -> admitted numpy.array
+np.zeros               type=builtin_function_or_method   -> admitted numpy.zeros
+np.arange              type=builtin_function_or_method   -> admitted numpy.arange
+np.where               type=_ArrayFunctionDispatcher     -> admitted numpy.where
+np.random.binomial     type=method                       -> not-this-arm
+operator.mul           type=builtin_function_or_method   -> admitted _operator.mul
+functools.reduce       type=builtin_function_or_method   -> admitted _functools.reduce
+np.add.reduce          type=builtin_function_or_method   -> REFUSED(__self__=ufunc)
+np.frompyfunc          type=ufunc                        -> REFUSED(no module/qualname)
+functools.partial                        -> admitted
+itertools.combinations_with_replacement  -> admitted
+itertools.product                        -> admitted
+collections.defaultdict                  -> admitted
+collections.OrderedDict                  -> admitted
+collections.deque                        -> admitted
+collections.Counter                      -> REFUSED(mutable)
+decimal.Decimal                          -> admitted
+dict                                     -> admitted
+float                                    -> admitted
+np.float64                               -> admitted
+np.ndarray                               -> admitted
+np.int64                                 -> admitted
+np.longlong                              -> admitted
+np.bool_                                 -> admitted
+scipy.special.gamma -> REFUSED(no module/qualname) | comb type: function
+[runcap] exit 0, peak RSS 2 MB, 1s

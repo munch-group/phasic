@@ -1,0 +1,14 @@
+np.exp                                   type=ufunc                        module=numpy          qualname=exp                                name=exp                      self=str        resolves=True immutable=None
+np.sum                                   type=_ArrayFunctionDispatcher     module=numpy          qualname=sum                                name=sum                      self=str        resolves=True immutable=None
+np.linalg.solve                          type=_ArrayFunctionDispatcher     module=numpy.linalg   qualname=solve                              name=solve                    self=str        resolves=True immutable=None
+math.sqrt                                type=builtin_function_or_method   module=math           qualname=sqrt                               name=sqrt                     self=module     resolves=True immutable=None
+len                                      type=builtin_function_or_method   module=builtins       qualname=len                                name=len                      self=module     resolves=True immutable=None
+itertools.combinations_with_replacement  type=type                         module=itertools      qualname=combinations_with_replacement      name=combinations_with_replacement self=str        resolves=True immutable=True
+functools.partial (class)                type=type                         module=functools      qualname=partial                            name=partial                  self=str        resolves=True immutable=True
+np.frompyfunc ufunc                      type=ufunc                        module=<MISSING>      qualname=<MISSING>                          name=<lambda> (vectorized)    self=str        resolves=<n/a> immutable=None
+{}.get                                   type=builtin_function_or_method   module=None           qualname=dict.get                           name=get                      self=dict       resolves=<n/a> immutable=None
+np.random.rand                           type=method                       module=numpy.random   qualname=RandomState.rand                   name=rand                     self=RandomState resolves=False immutable=None
+str.upper (method_descriptor)            type=method_descriptor            module=<MISSING>      qualname=str.upper                          name=upper                    self=str        resolves=<n/a> immutable=None
+scipy.special.gamma                      type=ufunc                        module=<MISSING>      qualname=<MISSING>                          name=gamma                    self=str        resolves=<n/a> immutable=None
+scipy.special.comb                       type=function                     module=scipy.special._basic qualname=comb                               name=comb                     self=str        resolves=True immutable=None
+[runcap] exit 0, peak RSS 89 MB, 1s

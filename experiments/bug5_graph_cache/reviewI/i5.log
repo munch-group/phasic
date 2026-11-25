@@ -1,0 +1,9 @@
+partial func/args/keywords equal: True True True
+cb code identical: True
+partial __dict__: {'extra': 1.0} {'extra': 3.0}
+expectation g1 vs g2: 1.6 0.5333333333333333
+setattr on bound method: AttributeError
+setattr on np.exp ufunc: True
+setattr on np.sum dispatcher: True
+setattr on len: AttributeError
+[runcap] exit 0, peak RSS 324 MB, 4s

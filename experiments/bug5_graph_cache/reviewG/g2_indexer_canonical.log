@@ -1,0 +1,28 @@
+fresh StateIndexer vars: ['_entity_order', '_offsets', '_property_sets', '_pset_order', '_result_class', '_slot_order', '_slots', '_total_state_length']
+fresh PropertySet vars: ['_bases', '_radix_powers', 'name', 'properties', 'property_dict']
+plain kwargs indexer                                    admitted
+same, after index_to_props                              admitted
+legacy property_sets=[Property] ('default')             admitted
+positional slot                                         admitted
+slots=[Slot]                                            admitted
+StateSpace-based                                        admitted
+a + b (interleaved slot)                                admitted
+append prefix                                           admitted
+add_epoch-style (shared PropertySets)                   admitted
+joint_prob-style base + reward                          admitted
+HexGrid probe failed: AttributeError 'int' object has no attribute 'bounds'
+properties given as a TUPLE                             REFUSED ['(c) properties list (tuple vs list; [0, 0] vs [0, 0])']
+Property(offset=1) (deprecated arg)                     REFUSED ['(c) properties list (list vs list; [1] vs [0])', '(c) property_dict']
+np.int64 max_value                                      admitted
+PropertySet named 'slots'                               REFUSED ['(c) from_dict raised ValueError: slots must be list of str or Slot objects']
+
+-- builtin arm facts --
+np.exp           type=ufunc                        __module__='numpy'          __qualname__='exp'          __self__=NoneType
+np.sum           type=_ArrayFunctionDispatcher     __module__='numpy'          __qualname__='sum'          __self__=NoneType
+np.linalg.solve  type=_ArrayFunctionDispatcher     __module__='numpy.linalg'   __qualname__='solve'        __self__=NoneType
+math.sqrt        type=builtin_function_or_method   __module__='math'           __qualname__='sqrt'         __self__=module
+len              type=builtin_function_or_method   __module__='builtins'       __qualname__='len'          __self__=module
+itertools.cwr    type=type                         __module__='itertools'      __qualname__='combinations_with_replacement' __self__=NoneType
+cwr immutable flag: True
+Property immutable flag: False
+[runcap] exit 0, peak RSS 319 MB, 3s

@@ -1,0 +1,4 @@
+end of import phasic: 36 phasic modules, violations: []
+after svgd/ffi_wrappers/jax imports: 37 phasic modules, violations: []
+extension __file__ in files: True
+[runcap] exit 0, peak RSS 322 MB, 4s

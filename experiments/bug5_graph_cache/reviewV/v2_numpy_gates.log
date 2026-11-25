@@ -1,0 +1,20 @@
+StringDType short      dtype=StringDType()                hasobject=True kind=T -> refused: hasobject  key=None
+StringDType long A     dtype=StringDType()                hasobject=True kind=T -> refused: hasobject  key=None
+StringDType long B     dtype=StringDType()                hasobject=True kind=T -> refused: hasobject  key=None
+U                      dtype=dtype('<U2')                 hasobject=False kind=U -> ADMITTED  key=('<U2', (2,), 'C', '877c5b2fcb8523ae')
+void unstructured      dtype=dtype('V4')                  hasobject=False kind=V -> ADMITTED  key=('|V4', (3,), 'C', '15ec7bf0b50732b4')
+subarray dtype         dtype=dtype('int32')               hasobject=False kind=i -> ADMITTED  key=('<i4', (2, 2), 'C', '374708fff7719dd5')
+datetime               dtype=dtype('<M8[D]')              hasobject=False kind=M -> ADMITTED  key=('<M8[D]', (1,), 'C', 'eaea34fd7d729f04')
+bool                   dtype=dtype('bool')                hasobject=False kind=b -> ADMITTED  key=('|b1', (2,), 'C', '47dc540c94ceb704')
+f2                     dtype=dtype('float16')             hasobject=False kind=f -> ADMITTED  key=('<f2', (1,), 'C', '505114fe537172ea')
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewV/v2_numpy_gates.py", line 48, in <module>
+    print("long A/B equal content?", (A == B).all(), " equal key?", key(A) == key(B))
+                                                                    ~~~^^^
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewV/v2_numpy_gates.py", line 22, in key
+    b = memoryview(np.ascontiguousarray(a).reshape(-1).view(np.uint8))
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/_internal.py", line 525, in _view_is_safe
+    raise TypeError("Cannot change data-type for array of references.")
+TypeError: Cannot change data-type for array of references.
+[runcap] exit 1, peak RSS 2 MB, 1s

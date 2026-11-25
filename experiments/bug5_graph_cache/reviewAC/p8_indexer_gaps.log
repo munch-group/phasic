@@ -1,0 +1,8 @@
+ix._bases -> AttributeError: 'StateIndexer' object has no attribute '_bases'
+PropertySet has _bases: True [4 2]
+index_to_props(5) before: LineageProps(n=1, p=1)
+index_to_props(5) after swap: Shifted(n=101, p=1)
+to_dict equal: True
+all rule-8 (c) compared fields equal: True
+vars(pset) names: ['_bases', '_props_dataclass', '_radix_powers', 'name', 'properties', 'property_dict']
+[runcap] exit 0, peak RSS 320 MB, 4s

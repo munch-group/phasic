@@ -1,0 +1,16 @@
+== /Users/kmt/phasic/.pixi/envs/default/bin/python
+RESULT phasic.logging_config omp_set_at_import= False phasic_mods_loaded_before= 2
+RESULT phasic.graph_cache omp_set_at_import= False phasic_mods_loaded_before= 5
+RESULT phasic.callback_hash omp_set_at_import= False phasic_mods_loaded_before= 6
+RESULT phasic.phasic_pybind omp_set_at_import= False phasic_mods_loaded_before= 7
+RESULT phasic.cache omp_set_at_import= True phasic_mods_loaded_before= 27
+RESULT phasic.trace_serialization omp_set_at_import= True phasic_mods_loaded_before= 28
+RESULT pybind_before_omp: True
+== /Users/kmt/phasic-bug5/.pixi/envs/default/bin/python
+RESULT phasic.logging_config omp_set_at_import= False phasic_mods_loaded_before= 2
+RESULT phasic.graph_cache omp_set_at_import= False phasic_mods_loaded_before= 5
+RESULT phasic.callback_hash omp_set_at_import= False phasic_mods_loaded_before= 6
+RESULT phasic.phasic_pybind omp_set_at_import= True phasic_mods_loaded_before= 7
+RESULT phasic.cache omp_set_at_import= True phasic_mods_loaded_before= 27
+RESULT phasic.trace_serialization omp_set_at_import= True phasic_mods_loaded_before= 28
+RESULT pybind_before_omp: False

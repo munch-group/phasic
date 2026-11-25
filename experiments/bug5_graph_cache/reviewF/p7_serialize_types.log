@@ -1,0 +1,4 @@
+constant                   {'builtins.dict': 1, 'numpy.ndarray': 8, 'builtins.int': 3, 'builtins.str': 1, 'builtins.bool': 3}
+parameterized              {'builtins.dict': 1, 'numpy.ndarray': 8, 'builtins.int': 3, 'builtins.str': 1, 'builtins.bool': 3}
+theta_dim=1 w/ 2 coeffs    {'builtins.dict': 1, 'numpy.ndarray': 8, 'builtins.int': 3, 'builtins.str': 1, 'builtins.bool': 3}
+[runcap] exit 0, peak RSS 303 MB, 4s

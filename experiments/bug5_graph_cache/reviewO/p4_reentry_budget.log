@@ -1,0 +1,9 @@
+empty tuple is a singleton: True
+adjacency n=  20000 d=10: re-entries=   200000  refused=False
+adjacency n=  60000 d=20: re-entries=  1200000  refused=True
+adjacency n= 200000 d= 6: re-entries=  1200000  refused=True
+600000 int keys -> (): re-entries=599999  refused=False
+600000 keys -> ((), ()): re-entries=1799998  refused=True
+literal (0, 1) shared across entries: True
+600000 entries with two literal tuple fields: re-entries=1199998  refused=True
+[runcap] exit 0, peak RSS 430 MB, 5s

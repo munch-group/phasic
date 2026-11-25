@@ -1,0 +1,7 @@
+  StockPickler.save(self, obj, save_persistent_id)
+  StockPickler.save(self, obj, save_persistent_id)
+(1) fresh+used: [('IndexResult', 'ok'), ('lineage', 'ok')]
+(2) after deepcopy of an index_to_props result: [('IndexResult', "key set differs: +['__slotnames__'] -[]"), ('lineage', "key set differs: +['__slotnames__'] -[]")]
+(3) dill failed: PicklingError Can't pickle <class '__main__.LineageProps'>: it's not found as __main__.LineageProps
+(3) cloudpickle dumps ok, bytes 7785
+[runcap] exit 0, peak RSS 317 MB, 4s

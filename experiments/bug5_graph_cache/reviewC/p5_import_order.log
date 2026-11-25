@@ -1,0 +1,7 @@
+== real rc 0
+AT_PYBIND OMP_NUM_THREADS= None omp images already loaded: ['libcompiler_rt.dylib', 'libomp.dylib']
+END omp images: ['AppleFSCompression', '_decomp_interpolative.cpython-313-darwin.so', '_decomp_lu_cython.cpython-313-darwin.so', '_decomp_update.cpython-313-darwin.so', 'libGPUCompilerUtils.dylib', 'libcompiler_rt.dylib', 'libcompression.dylib', 'libllvm-flatbuffers.dylib', 'libomp.dylib', 'libswiftCompression.dylib'] OMP= 8
+== stub rc 0
+AT_PYBIND OMP_NUM_THREADS= None omp images already loaded: ['libcompiler_rt.dylib', 'libomp.dylib']
+END omp images: ['libcompiler_rt.dylib', 'libomp.dylib'] OMP= None
+[runcap] exit 0, peak RSS 303 MB, 16s

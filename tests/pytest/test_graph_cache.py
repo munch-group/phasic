@@ -359,6 +359,23 @@ class TestCacheHitPreservesCallback:
     def _isolate_cache(monkeypatch, tmp_path):
         import phasic.graph_cache as gc
         monkeypatch.setattr(gc, "DEFAULT_CACHE_DIR", tmp_path / "graphs")
+        monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
+
+    @staticmethod
+    def _spy_load(monkeypatch):
+        """Record every GraphCache.load result, so a silent miss cannot
+        pass as a hit."""
+        import phasic.graph_cache as gc
+        results = []
+        orig = gc.GraphCache.load
+
+        def spy(self, digest):
+            out = orig(self, digest)
+            results.append(out)
+            return out
+
+        monkeypatch.setattr(gc.GraphCache, "load", spy)
+        return results
 
     def test_cache_hit_keeps_callback_and_add_epoch_works(self, tmp_path, monkeypatch):
         from phasic import Graph, StateIndexer, Property
@@ -367,6 +384,7 @@ class TestCacheHitPreservesCallback:
         all_pairs = partial(combinations_with_replacement, r=2)
 
         self._isolate_cache(monkeypatch, tmp_path)
+        loads = self._spy_load(monkeypatch)
 
         def coalescent(state, indexer=None):
             transitions = []
@@ -396,7 +414,8 @@ class TestCacheHitPreservesCallback:
             )
             ipv = [0] * indexer.state_length
             ipv[indexer.props_to_index(ton=1)] = nr_samples
-            return Graph(coalescent, ipv=ipv, indexer=indexer, graph_cache=True)
+            return Graph(coalescent, ipv=ipv, indexer=indexer,
+                         cache_key="test-cache-hit-add-epoch")
 
         # First build is a cache MISS (constructs + writes to disk).
         g_miss = build()
@@ -405,6 +424,8 @@ class TestCacheHitPreservesCallback:
         # Second build is a cache HIT (loads structure from disk) — this is
         # the path that previously dropped the callback.
         g_hit = build()
+        assert len(loads) == 2 and loads[0] is None and loads[1] is not None, (
+            "second build must be a cache hit")
         assert g_hit._callback is not None, (
             "cache hit dropped the callback (regression): add_epoch/extend "
             "would raise 'No callback available'"
@@ -423,7 +444,7 @@ class TestCacheHitPreservesCallback:
         )
         ipv = [0] * indexer.state_length
         ipv[indexer.props_to_index(ton=1)] = nr_samples
-        g_nocache = Graph(coalescent, ipv=ipv, indexer=indexer, graph_cache=False)
+        g_nocache = Graph(coalescent, ipv=ipv, indexer=indexer)
         g_nocache.update_weights([1.0])
         g_nocache_epoch = g_nocache.add_epoch(1)
         g_nocache_epoch.update_weights([1.0, 1.0, 1.0, 1.0])
@@ -437,6 +458,7 @@ class TestCacheHitPreservesCallback:
         from phasic import Graph, callback
 
         self._isolate_cache(monkeypatch, tmp_path)
+        loads = self._spy_load(monkeypatch)
 
         @callback(ipv=[([5], 1.0)])
         def coalescent_callback(state, **kwargs):
@@ -445,10 +467,12 @@ class TestCacheHitPreservesCallback:
                 return []
             return [([n - 1], [n * (n - 1) / 2])]
 
-        g_miss = Graph(coalescent_callback, graph_cache=True)
+        g_miss = Graph(coalescent_callback, cache_key="test-cache-hit-extend")
         assert g_miss._callback is not None
 
-        g_hit = Graph(coalescent_callback, graph_cache=True)
+        g_hit = Graph(coalescent_callback, cache_key="test-cache-hit-extend")
+        assert len(loads) == 2 and loads[0] is None and loads[1] is not None, (
+            "second build must be a cache hit")
         assert g_hit._callback is not None, "cache hit dropped the callback"
         # extend() relies on the stored callback; must not raise.
         g_hit.extend()

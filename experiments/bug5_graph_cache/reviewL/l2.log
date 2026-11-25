@@ -1,0 +1,9 @@
+phasic_pybind first import; OMP_NUM_THREADS set: False
+    /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewL/l2_import_order.py 24 import phasic  # noqa
+    phasic/__init__.py 53 from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
+    phasic/graph_cache.py 29 logger = get_logger(__name__)
+    phasic/logging_config.py 253 setup_logging()
+    phasic/logging_config.py 200 from . import phasic_pybind
+    /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewL/l2_import_order.py 16 stack = [f for f in traceback.extract_stack()
+import ok
+[runcap] exit 0, peak RSS 317 MB, 4s

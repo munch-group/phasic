@@ -1,0 +1,10 @@
+const same {}
+    fresh expectation 1.6666666666666667
+    hit expectation 1.6666666666666667
+param theta_dim=1 (decoupled) same {}
+    fresh update/expectation ERR RuntimeError Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters. In non-callback mode, they must match exactly. To use extra coefficie
+    hit update/expectation ERR RuntimeError Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters. In non-callback mode, they must match exactly. To use extra coefficie
+param same {}
+    fresh expectation 1.0462662337662336
+    hit expectation 1.0462662337662336
+[runcap] exit 0, peak RSS 322 MB, 3s

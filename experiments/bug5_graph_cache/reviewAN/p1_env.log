@@ -1,0 +1,22 @@
+Matplotlib is building the font cache; this may take a moment.
+python 3.13.13 numpy 2.4.3
+allow-set size 24
+longdouble is float64: False  clongdouble is complex128: False
+  float64 float64 True
+  longdouble longdouble True
+  int64 int64 True
+  longlong longlong True
+  intc int32 True
+  bool bool True
+  str_ str_ True
+  bytes_ bytes_ True
+  datetime64 datetime64 True
+  timedelta64 timedelta64 True
+  void void True
+  object_ object_ True
+phasic.* modules not under package dir: []
+EXTENSION_SUFFIXES ['.cpython-313-darwin.so', '.abi3.so', '.so']
+cwr immutable: True itertools combinations_with_replacement
+np.sum type <class 'numpy._ArrayFunctionDispatcher'> has __self__ False
+_Graph has get_dyn_ordering: True False
+[runcap] exit 0, peak RSS 326 MB, 16s

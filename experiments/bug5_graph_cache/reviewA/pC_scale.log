@@ -1,0 +1,12 @@
+n=30 vertices=5605 build=0.83s peakRSS=303MB
+save=0.33s size=5.6MB peakRSS=304MB
+load=0.18s vertices=5605 peakRSS=325MB
+[runcap] exit 0, peak RSS 362 MB, 5s
+n=36 vertices=17978 build=3.22s peakRSS=371MB
+save=1.36s size=21.7MB peakRSS=397MB
+load=0.75s vertices=17978 peakRSS=472MB
+[runcap] exit 0, peak RSS 504 MB, 8s
+n=42 vertices=53175 build=11.27s peakRSS=595MB
+save=4.59s size=75.3MB peakRSS=620MB
+load=2.74s vertices=53175 peakRSS=794MB
+[runcap] exit 0, peak RSS 811 MB, 22s

@@ -1,0 +1,8 @@
+phasic from: /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic
+OMP_NUM_THREADS at first phasic_pybind import: None
+stack: g1_import_order.py:14 <- logging_config.py:200 <- logging_config.py:253 <- graph_cache.py:29 <- __init__.py:53 <- g1_import_order.py:19
+[runcap] exit 0, peak RSS 299 MB, 17s
+phasic from: /private/tmp/claude-501/-Users-kmt-phasic/c3f361f0-c1bf-476e-a943-8c5641e4a00a/scratchpad/reviewG/pkg/phasic
+OMP_NUM_THREADS at first phasic_pybind import: 8
+stack: g1_import_order.py:14 <- __init__.py:279 <- g1_import_order.py:19
+[runcap] exit 0, peak RSS 331 MB, 3s

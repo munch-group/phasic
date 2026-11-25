@@ -1,0 +1,8 @@
+const                  fresh 5v pl=1  restored 5v pl=1  serialize fields differing: none  keys equal: True
+const theta_dim=2      ERROR RuntimeError: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+param                  fresh 5v pl=1  restored 5v pl=1  serialize fields differing: none  keys equal: True
+param theta_dim=3      ERROR RuntimeError: Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length >= param_length.
+param2                 fresh 5v pl=2  restored 5v pl=2  serialize fields differing: none  keys equal: True
+param2 theta_dim=1     fresh 5v pl=1  restored 5v pl=1  serialize fields differing: none  keys equal: True
+param theta_dim=1      fresh 5v pl=1  restored 5v pl=1  serialize fields differing: none  keys equal: True
+[runcap] exit 0, peak RSS 323 MB, 3s

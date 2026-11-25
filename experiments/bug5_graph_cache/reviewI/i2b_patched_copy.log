@@ -1,0 +1,6 @@
+first phasic_pybind import; OMP_NUM_THREADS set: True
+   /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewI/i2_import_order.py 18 import phasic
+   /private/tmp/claude-501/-Users-kmt-phasic/c3f361f0-c1bf-476e-a943-8c5641e4a00a/scratchpad/reviewI/pkg/phasic/__init__.py 279 from .phasic_pybind import *
+   /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewI/i2_import_order.py 12 st = [f for f in traceback.extract_stack() if "phasic" in f.filename and "importlib" not in f.filename]
+imported phasic /private/tmp/claude-501/-Users-kmt-phasic/c3f361f0-c1bf-476e-a943-8c5641e4a00a/scratchpad/reviewI/pkg/phasic/__init__.py
+[runcap] exit 0, peak RSS 340 MB, 7s

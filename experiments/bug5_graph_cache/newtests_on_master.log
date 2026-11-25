@@ -1,0 +1,132 @@
+# tests/pytest/test_graph_cache_key.py run against the MASTER build
+# (/Users/kmt/phasic, HEAD 1b63e996, its installed env), 2026-11-25:
+# cd /Users/kmt/phasic && python3 .git/claude-scratch/runcap.py --mb 6000 --timeout 1800 -- \
+#   pixi run pytest /Users/kmt/phasic-bug5/tests/pytest/test_graph_cache_key.py -p no:cacheprovider -q
+# Tail of the output (short test summary) follows; the tests PASSING on master are listed at the end.
+
+  Hint: Check callback function - it may be returning edges with different coefficient arrays.
+=========================== short test summary info ============================
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_01_default_build_is_uncached
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_02_graph_cache_argument_removed
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_05_argument_change_misses_and_is_correct[long-array]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_07_callback_body
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_08_closures
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_09_source_edit_without_reload_keeps_key
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[to_dict-obj]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[dataframe]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[series]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[dataclass]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[set]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[masked]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[self-list]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[structured]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[structured-object]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[void-scalar]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[lru]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[update_wrapper]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[intenum]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[f64-subclass]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_kwargs[f64-subclass-in-list]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_user_class_kwarg_names_class
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[to_dict-obj]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[bound-method]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[dict.get]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[frompyfunc]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[lru]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_refused_cells[update_wrapper]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_cython_function_in_cell_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_property_kwargs_hit_and_miss
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_property_offset_keyed
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_indexer_refusals
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_scalar_types_keyed_apart
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_11_allow_lists_match_used_objects
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_12_values_old_format_could_not_store
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_build_id_and_numpy_version_in_key
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_file_added_raises
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_content_hash_across_file_boundary
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_record_stats_refresh_and_restart
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_recording_failure_and_missing_record
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_13_snapshot_differences
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_14_cache_location
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_14_import_order
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_truncated_and_bad_utf8
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_shape_checks
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_unknown_type_tag_imports_nothing
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_from_serialized_errors
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_restore_error_propagates
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_unreadable_entry
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_15_clear_is_the_way_out
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_16_write_failure_keeps_the_build
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_16_serialize_failure
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_16_stale_partials
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_17_validation_runs_before_lookup
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_clear_leaves_foreign_files
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_clear_model_cache_spares_phasic_cache_dir
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_indexer_positive_controls
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_real_install
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_module_with_nonstr_name_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_dtype_and_scalar_classes
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_metaclass_spoof_runs_no_user_code
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_dict_subclass_property_dict_refused_before_to_dict
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_identity_hashed_dict_keys
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_void_subclass_and_record
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_float64_subclass_dtype_property_never_runs
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_name_assignment_is_keyed
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_cache_key_argument_checks
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_18_class_spoofs
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_19_clear_from_cache
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_20_disable_graph_cache_env_warns
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_22_dyn_ordering_follows_reader
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_23_function_attributes
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_24_dict_keys[tuple-keys]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_25_scipy_ufunc_in_cell_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_25_partial_callback
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_partial_attributes_keyed
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_read_only_locations
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_short_writes
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_large_kwargs_linear
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_hash_seed_independence
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_cycles_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_reload_after_reinstall_raises
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_shared_array_hashed_once
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_array_layout_keyed
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_estale_retried_once
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_module_positions
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_cache_root_deleted_during_build
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_extension_outside_package
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_clear_all_legacy_absent_and_read_only_home
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_legacy_sweep
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_fsync_einval_ignored
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_value_details
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_ml_dtypes_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_datetime_and_0d_arrays[datetime64]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_datetime_and_0d_arrays[timedelta64]
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_renamed_entry_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_non_entry_json_survives_clear
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_shared_dag_nested_40
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_keyboard_interrupt_in_save
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_partial_subclass_refused
+FAILED ../phasic-bug5/tests/pytest/test_graph_cache_key.py::test_26_mixed_coefficients_cannot_be_cached
+101 failed, 19 passed in 47.67s
+[runcap] exit 1, peak RSS 937 MB, 50s
+
+# Passing on master (19):
+#   test_03_same_key_hits
+#   test_03_same_key_hits_across_processes
+#   test_04_different_key_misses
+#   test_05_argument_change_misses_and_is_correct[dict-order]
+#   test_05_argument_change_misses_and_is_correct[int]
+#   test_05_argument_change_misses_and_is_correct[nest1]
+#   test_05_argument_change_misses_and_is_correct[nest2]
+#   test_05_argument_change_misses_and_is_correct[nest3]
+#   test_06_ipv_change_misses
+#   test_10_indexer_by_layout
+#   test_11_indexer_admitted_and_hit
+#   test_11_not_cycles_hash_and_hit
+#   test_20_disable_cache_env_has_no_effect
+#   test_21_contract_pin_module_helper
+#   test_24_dict_keys[int-keys]
+#   test_25_ellipsis_constants_hit
+#   test_26_datetime_and_0d_arrays[0-d]
+#   test_26_spawn_worker_hits
+#   test_26_tuple_constant_and_default

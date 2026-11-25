@@ -1,0 +1,13 @@
+Matplotlib is building the font cache; this may take a moment.
+master OMP NOT set
+    e1_import_order.py:21:<module>
+    __init__.py:53:<module>
+    graph_cache.py:29:<module>
+    logging_config.py:253:get_logger
+    logging_config.py:200:setup_logging
+[runcap] exit 0, peak RSS 324 MB, 19s
+REFUSED (simulated lazy logger): ['graph_cache.py:29:<module>', 'logging_config.py:253:get_logger', 'logging_config.py:200:setup_logging']
+simfix OMP set
+    e1_import_order.py:21:<module>
+    __init__.py:279:<module>
+[runcap] exit 0, peak RSS 324 MB, 3s

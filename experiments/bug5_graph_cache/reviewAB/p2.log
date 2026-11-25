@@ -1,0 +1,19 @@
+np.str_('a') vs np.str_('a\x00')
+   python-equal: False  len: 1 2
+   enc a: ('<U1', b'a\x00\x00\x00')
+   enc b: ('<U2', b'a\x00\x00\x00\x00\x00\x00\x00')
+   distinct
+np.bytes_(b'a') vs np.bytes_(b'a\x00')
+   python-equal: False  len: 1 2
+   enc a: ('|S1', b'a')
+   enc b: ('|S2', b'a\x00')
+   distinct
+np.str_('') vs np.str_('\x00')
+   python-equal: False  len: 0 1
+   enc a: ('<U0', b'\x00\x00\x00\x00')
+   enc b: ('<U1', b'\x00\x00\x00\x00')
+   distinct
+NaT generic vs s: ('<M8', b'\x00\x00\x00\x00\x00\x00\x00\x80') ('<M8[s]', b'\x00\x00\x00\x00\x00\x00\x00\x80')
+type(s) in ALLOW -> True ; user code ran: ['hash', 'eq']
+any(type(s) is t) -> False
+[runcap] exit 0, peak RSS 5 MB, 1s

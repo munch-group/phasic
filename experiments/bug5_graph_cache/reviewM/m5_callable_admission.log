@@ -1,0 +1,74 @@
+np.array                                 name
+np.zeros                                 name
+np.arange                                name
+np.sum                                   name
+np.exp                                   name
+np.log                                   name
+np.concatenate                           name
+np.where                                 name
+np.dot                                   name
+np.isclose                               name
+np.prod                                  name
+np.cumsum                                name
+np.asarray                               name
+np.empty                                 name
+np.unique                                name
+np.float64                               type name
+np.int32                                 type name
+np.ndarray                               type name
+np.add.reduce                            REFUSED (builtin __self__ is ufunc)
+np.random.default_rng                    REFUSED (type _cython_3_2_4.cython_function_or_method)
+np.random.rand                           bound method
+np.linalg.solve                          name
+np.searchsorted                          name
+np.count_nonzero                         name
+np.any                                   name
+np.all                                   name
+np.maximum                               name
+np.sort                                  name
+np.argsort                               name
+np.nonzero                               name
+np.copy                                  name
+np.ravel_multi_index                     name
+np.unravel_index                         name
+np.binomial(rng method)                  bound method
+math.comb                                name
+math.factorial                           name
+math.exp                                 name
+len                                      name
+sum                                      name
+max                                      name
+abs                                      name
+round                                    name
+sorted                                   name
+range                                    type name
+int                                      type name
+float                                    type name
+tuple                                    type name
+list                                     type name
+dict                                     type name
+zip                                      type name
+enumerate                                type name
+map                                      type name
+filter                                   type name
+itertools.product                        type name
+itertools.combinations                   type name
+itertools.permutations                   type name
+itertools.combinations_with_replacement  type name
+operator.add                             name
+operator.mul                             name
+operator.itemgetter(0)                   REFUSED (type operator.itemgetter)
+str.join                                 REFUSED (type builtins.method_descriptor)
+functools.reduce                         name
+collections.Counter                      REFUSED (mutable type)
+dict.get (unbound)                       REFUSED (type builtins.method_descriptor)
+{}.get                                   REFUSED (builtin __self__ is dict)
+list.append(unbound)                     REFUSED (type builtins.method_descriptor)
+scipy.special.comb                       python function (code)
+scipy.special.binom                      REFUSED (missing __module__/__qualname__: None, 'binom')
+scipy.special.gammaln                    REFUSED (missing __module__/__qualname__: None, 'gammaln')
+scipy.special.factorial                  python function (code)
+scipy.stats.poisson.pmf                  bound method
+exec({}) function __module__: None
+FunctionType(code, {}) __module__: None
+[runcap] exit 0, peak RSS 127 MB, 2s

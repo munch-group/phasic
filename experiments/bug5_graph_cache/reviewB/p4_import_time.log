@@ -1,0 +1,5 @@
+# p4: import phasic with a fresh HOME (h1 first), the same HOME again (h1), another fresh HOME (h2)
+import phasic 15.0s (fresh h1, matplotlib font cache built)
+import phasic 1.9s (warm h1)
+import phasic 14.2s (fresh h2)
+matplotlib imported by import phasic: True

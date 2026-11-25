@@ -1,0 +1,7 @@
+Matplotlib is building the font cache; this may take a moment.
+pybind11 module type: <class 'module'> has PyInit multi-phase slots? n/a
+(a) after reload(phasic): same ext object: True record present: True
+(b) after purge + re-import: same ext object: True record present: True
+    same Graph class object: True
+    sys has no record (control): True
+[runcap] exit 0, peak RSS 287 MB, 19s

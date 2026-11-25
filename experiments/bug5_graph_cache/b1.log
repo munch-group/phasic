@@ -1,0 +1,12 @@
+phasic from /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+cache dir /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/fakehome/.phasic_cache/graphs
+## (a) module global changed
+   before 0.833333; after (cache on) 0.833333; after (cache off, correct) 0.083333
+## (b) closure over a local
+   before 0.833333; after (cache on) 0.833333; after (cache off, correct) 0.083333
+## (c) helper function redefined
+   before 0.833333; after (cache on) 0.833333; after (cache off, correct) 0.083333
+## (d) plain callback (ipv= argument) with a closure: what happens today?
+   scale 1: 0.833333; scale 10: 0.833333
+## (e) the same model in a NEW PROCESS-like state: files written
+   cache files: 4

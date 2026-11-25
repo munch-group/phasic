@@ -1,0 +1,4 @@
+text            extra peak during write:   100.0 MiB (str itself 100 MiB, pre-existing)
+binary-encode   extra peak during write:   100.0 MiB (str itself 100 MiB, pre-existing)
+binary-chunked  extra peak during write:    16.0 MiB (str itself 100 MiB, pre-existing)
+[runcap] exit 0, peak RSS 2 MB, 1s

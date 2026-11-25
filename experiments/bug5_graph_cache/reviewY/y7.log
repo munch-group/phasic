@@ -1,0 +1,4 @@
+env set: False -> _Graph(1).get_dyn_ordering() = False
+[runcap] exit 0, peak RSS 305 MB, 4s
+env set: True -> _Graph(1).get_dyn_ordering() = True
+[runcap] exit 0, peak RSS 323 MB, 3s

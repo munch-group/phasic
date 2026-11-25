@@ -1,0 +1,7 @@
+{'x': [[1], 2]} vs {'x': [[1, 2]]} -> same key: True
+{'x': {'a': {'b': 1}, 'c': 2}} vs {'x': {'a': {'b': 1, 'c': 2}}} -> same key: True
+{'ipv': [[[3, 0], 1]], 'n': []} vs {'ipv': [[[3, 0]], 1], 'n': []} -> same key: True
+with counts: False
+with counts: False
+with counts: False
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -1,0 +1,10 @@
+LINEAR callback graph leaf types:
+   ('builtins.bool', '') 3
+   ('builtins.int', '') 3
+   ('builtins.str', '') 1
+   ('ndarray', 'bool') 1
+   ('ndarray', 'float64') 5
+   ('ndarray', 'int32') 2
+formula setter: weight_formula
+formula path: AttributeError 'Graph' object has no attribute 'set_weight_formula'
+[runcap] exit 0, peak RSS 321 MB, 4s

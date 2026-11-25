@@ -123,8 +123,20 @@ def test_negative_index_raises_index_error():
 def test_graph_cache_hit_gets_default_layout(tmp_path, monkeypatch):
     import phasic.graph_cache as graph_cache
     monkeypatch.setattr(graph_cache, "DEFAULT_CACHE_DIR", tmp_path)
+    monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
+    # Spy on GraphCache.load so a silent miss cannot pass as a hit.
+    loads = []
+    orig_load = graph_cache.GraphCache.load
+
+    def spy(self, digest):
+        out = orig_load(self, digest)
+        loads.append(out)
+        return out
+
+    monkeypatch.setattr(graph_cache.GraphCache, "load", spy)
     cb = pins._coalescent_cb(4, True)
-    first = Graph(cb, graph_cache=True)
+    first = Graph(cb, cache_key="test-theta-layout-hit")
     first.set_parameter_name(0, 'coalescent')
-    hit = Graph(cb, graph_cache=True)
+    hit = Graph(cb, cache_key="test-theta-layout-hit")
+    assert len(loads) == 2 and loads[0] is None and loads[1] is not None
     assert _kinds(hit) == [('theta0', 'base', None)]

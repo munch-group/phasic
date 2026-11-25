@@ -1,472 +1,543 @@
 """
-Persistent disk cache for Graph objects using callback hashes as keys.
+Persistent disk cache for Graph objects built with ``Graph(..., cache_key=...)``.
 
-This module provides efficient caching of expensive graph construction
-by hashing callback functions and parameters to create stable cache keys.
+Graphs are cached ONLY when the user names the entry with ``cache_key``;
+the entry key (``phasic.callback_hash.cache_entry_key``) combines that name
+with everything phasic can read exactly from the call (callback code and
+closures, keyword arguments and ipv by value, phasic build, numpy version).
 
-Cache Directory: ~/.phasic_cache/graphs/
-Cache Format: {callback_hash}.json containing serialized graph + metadata
+Cache directory: ``$PHASIC_CACHE_DIR/graphs`` when ``PHASIC_CACHE_DIR`` is
+set and non-empty (``phasic.configure(cache_dir=...)`` sets it), otherwise
+``DEFAULT_CACHE_DIR`` (``~/.phasic_cache/graphs``).
+Entry file: ``<first 32 hex characters of the entry digest>.json``, a JSON
+object whose first bytes are ``{"format":`` followed by the format string,
+holding the serialised graph plus metadata.
 
-Author: Claude Code
-Date: 2025-11-14
+This module uses a stdlib logger and imports nothing that loads
+``phasic_pybind`` at module level (it is imported before
+``OMP_NUM_THREADS`` is set).
 """
 
 from __future__ import annotations
 
+import errno
 import json
+import logging
 import os
-from pathlib import Path
+import re
+import secrets
 from datetime import datetime
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
+
 import numpy as np
+
+from .callback_hash import (
+    GRAPH_CACHE_FORMAT,
+    GraphCacheKeyError,   # noqa: F401  (re-exported for convenience)
+    GraphCacheLoadError,
+)
 
 if TYPE_CHECKING:
     from . import Graph
 
-from .callback_hash import hash_callback
-from .logging_config import get_logger
+logger = logging.getLogger("phasic.graph_cache")
 
-logger = get_logger(__name__)
-
-# Default cache directory
+# Legacy / default cache directory. Read at CALL time everywhere (tests
+# monkeypatch it).
 DEFAULT_CACHE_DIR = Path.home() / ".phasic_cache" / "graphs"
 
+# First bytes of every entry written by this format (and any later one):
+# ``format`` is written first, as these exact bytes followed by the format
+# string. The legacy sweep tests the same constant.
+_ENTRY_HEADER = b'{"format":'
+# First bytes of an entry written by the previous (master) format:
+# json.dump(..., indent=2) with "version" first.
+_LEGACY_ENTRY_PREFIX = b'{\n  "version"'
 
-def is_graph_cache_disabled() -> bool:
-    """True when the graph cache is globally disabled.
+_ENTRY_NAME_RE = re.compile(r"^[0-9a-f]{32}\.json$")
+_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+_PARTIAL_RE = re.compile(r"^\.tmp-.*\.partial$")
+_PARTIAL_STALE_SECONDS = 3600.0
+_WRITE_SLICE = 8 * 1024 * 1024
+_FSYNC_IGNORED = {errno.EINVAL, errno.EROFS, getattr(errno, "ENOTSUP", -1),
+                  getattr(errno, "EOPNOTSUPP", -1)}
+_META_KEYS = frozenset({"cache_key", "callback_name"})
 
-    Backs the ``PHASIC_DISABLE_GRAPH_CACHE`` env var (set by
-    ``phasic.configure(graph_cache=False)`` via the standard
-    inverted-bool convention). The cache defaults to **on**, so an
-    unset env var means enabled. Per-graph
-    ``Graph(..., graph_cache=True/False)`` overrides this global
-    default.
+_LOAD_WAYS_OUT = (
+    "Ways out: delete this file, or use another cache_key. "
+    "(phasic.clear_all_graph_caches() removes only files that still start "
+    "with an entry header, so a file whose header is damaged must be "
+    "deleted by hand.)"
+)
+_DIR_WAYS_OUT = (
+    "Ways out: choose another cache directory with "
+    "phasic.configure(cache_dir=...) (or PHASIC_CACHE_DIR), or build without "
+    "cache_key."
+)
+
+
+def _resolve_cache_dir() -> Path:
+    """The graph cache directory, absolute.
+
+    Same rule as ``phasic.cache._cache_root`` and the C caches (an empty
+    ``PHASIC_CACHE_DIR`` counts as unset), implemented inline: importing
+    ``phasic.cache`` would load ``phasic_pybind`` (via
+    ``trace_serialization``) before ``OMP_NUM_THREADS`` is set.
     """
-    return os.environ.get("PHASIC_DISABLE_GRAPH_CACHE") == "1"
+    env = os.environ.get("PHASIC_CACHE_DIR")
+    if env:
+        return (Path(env) / "graphs").resolve()
+    return Path(DEFAULT_CACHE_DIR).resolve()
+
+
+def _open_entry_writer(fd: int):
+    """File object the save path writes an entry through (binary,
+    buffered: loops over short writes)."""
+    return os.fdopen(fd, "wb")
+
+
+def _open_entry_reader(path: Path):
+    """File object the load path reads an entry through."""
+    return open(path, "r", encoding="utf-8")
+
+
+def _reraise_oserror(e: OSError, message: str) -> OSError:
+    """A new exception of the same OSError subclass carrying ``message``."""
+    try:
+        new = (type(e)(e.errno, message) if e.errno is not None
+               else type(e)(message))
+    except Exception:
+        new = OSError(e.errno, message) if e.errno is not None else OSError(message)
+    return new
+
+
+def _owner_of(path: Path) -> str:
+    try:
+        uid = os.stat(path).st_uid
+    except Exception:
+        return "owner unknown"
+    try:
+        import pwd
+        return f"owned by {pwd.getpwuid(uid).pw_name}"
+    except Exception:
+        return f"owned by uid {uid}"
+
+
+def _first_bytes(path: Path, n: int) -> bytes:
+    with open(path, "rb") as f:
+        return f.read(n)
 
 
 class GraphCache:
     """
-    Manages persistent disk cache for Graph objects.
+    On-disk cache of serialised Graph objects, keyed by entry digests.
 
-    Cache directory: ~/.phasic_cache/graphs/
-    Cache key: callback hash (AST-based) + parameters
+    Directory: ``$PHASIC_CACHE_DIR/graphs`` when ``PHASIC_CACHE_DIR`` is set
+    and non-empty, otherwise ``DEFAULT_CACHE_DIR`` (``~/.phasic_cache/graphs``);
+    resolved once, at construction, and made absolute.
 
-    Examples
-    --------
-    >>> from phasic.graph_cache import GraphCache
-    >>> import phasic
-    >>>
-    >>> @phasic.callback([5])
-    >>> def callback(state, theta=1.0):
-    ...     n = state[0]
-    ...     if n <= 1:
-    ...         return []
-    ...     return [[[n-1], [n*(n-1)/2 * theta]]]
-    >>>
-    >>> cache = GraphCache()
-    >>>
-    >>> # Save graph to cache
-    >>> graph = phasic.Graph(callback, nr_samples=10, theta=1.0)
-    >>> hash_key = cache.save_graph(graph, callback, nr_samples=10, theta=1.0)
-    >>>
-    >>> # Load graph from cache
-    >>> cached = cache.load_graph(callback, nr_samples=10, theta=1.0)
-    >>> cached is not None
-    True
+    Users normally do not construct this class: ``Graph(callback, ...,
+    cache_key="name")`` looks the graph up and saves it. ``GraphCache().clear()``
+    removes this directory's entries.
+
+    Parameters
+    ----------
+    cache_dir : path-like, optional
+        Explicit directory (made absolute). Default: resolved as above.
+    create : bool, default False
+        Create the directory (``Graph.__init__``'s ``cache_key`` path does).
+        The management helpers never create it.
     """
 
-    def __init__(self, cache_dir: Path | None = None) -> None:
-        """
-        Initialize graph cache.
+    def __init__(self, cache_dir: Path | str | None = None,
+                 create: bool = False) -> None:
+        if cache_dir is None:
+            self.cache_dir = _resolve_cache_dir()
+        else:
+            self.cache_dir = Path(cache_dir).resolve()
+        self.last_clear_skipped = 0
+        if create:
+            try:
+                self.cache_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                raise _reraise_oserror(
+                    e, f"cannot create the graph cache directory "
+                       f"{self.cache_dir} ({e.strerror or e}). {_DIR_WAYS_OUT}"
+                ) from e
+        logger.debug("GraphCache initialized: %s", self.cache_dir)
 
-        Parameters
-        ----------
-        cache_dir : Path, optional
-            Cache directory. Defaults to ~/.phasic_cache/graphs/
+    # -- paths ---------------------------------------------------------------
+    def entry_path(self, digest: str) -> Path:
+        """Absolute path of the entry for a full 64-character digest."""
+        if type(digest) is not str or not _DIGEST_RE.match(digest):
+            raise ValueError(f"entry digest must be 64 lowercase hex "
+                             f"characters, got {digest!r}")
+        return self.cache_dir / f"{digest[:32]}.json"
+
+    def _probe_writable(self) -> None:
+        """Create and remove a ``.tmp-<hex>.partial`` file (O_CREAT|O_EXCL);
+        on failure raise the save-path OSError naming the directory."""
+        probe = self.cache_dir / f".tmp-{secrets.token_hex(8)}.partial"
+        try:
+            fd = os.open(probe, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+            os.close(fd)
+            os.unlink(probe)
+        except OSError as e:
+            raise _reraise_oserror(
+                e, f"the graph cache directory {self.cache_dir} is not "
+                   f"writable ({e.strerror or e}); nothing was built. "
+                   f"{_DIR_WAYS_OUT}"
+            ) from e
+
+    # -- save ----------------------------------------------------------------
+    def save(self, graph: Graph, digest: str, meta: dict) -> Path:
+        """Write ``graph`` as the entry for ``digest`` (atomic replace).
+
+        ``meta`` has exactly the keys ``cache_key`` (str) and
+        ``callback_name`` (str or None). Returns the entry path. Any error
+        propagates with its type unchanged; the temporary file is removed.
         """
-        self.cache_dir = cache_dir or DEFAULT_CACHE_DIR
+        if type(meta) is not dict or set(meta) != _META_KEYS:
+            raise ValueError(f"meta must be a dict with exactly the keys "
+                             f"{sorted(_META_KEYS)}, got {meta!r}")
+        if type(meta["cache_key"]) is not str or not (
+                meta["callback_name"] is None
+                or type(meta["callback_name"]) is str):
+            raise TypeError("meta['cache_key'] must be a str and "
+                            "meta['callback_name'] a str or None")
+        path = self.entry_path(digest)
+        try:
+            graph_data = graph.serialize()
+            encoded = _serialize_value(graph_data)
+            if type(encoded) is not dict:
+                raise TypeError("Graph.serialize() did not return a dict")
+        except Exception as e:
+            if not isinstance(e, MemoryError):
+                e.add_note("Graph.serialize() failed: this graph cannot be "
+                           "cached; build it without cache_key.")
+            raise
+
+        import phasic
+        small = [
+            ("entry_digest", digest),
+            ("phasic_version", str(getattr(phasic, "__version__", "unknown"))),
+            ("created_at", datetime.now().isoformat()),
+            ("cache_key", meta["cache_key"]),
+            ("callback_name", meta["callback_name"]),
+        ]
+        # A cache root removed during a long build is recreated.
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"GraphCache initialized: {self.cache_dir}")
+        tmp = self.cache_dir / f".tmp-{secrets.token_hex(8)}.partial"
+        fd = os.open(tmp, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666)
+        replaced = False
+        try:
+            try:
+                f = _open_entry_writer(fd)
+            except BaseException:
+                os.close(fd)
+                raise
+            with f:
+                f.write(_ENTRY_HEADER
+                        + json.dumps(GRAPH_CACHE_FORMAT).encode("ascii"))
+                for k, v in small:
+                    f.write(b"," + json.dumps(k).encode("ascii") + b":"
+                            + json.dumps(v).encode("ascii"))
+                f.write(b',"graph_data":{')
+                first = True
+                for k, v in encoded.items():
+                    if not first:
+                        f.write(b",")
+                    first = False
+                    f.write(json.dumps(k).encode("ascii") + b":")
+                    s = json.dumps(v, separators=(",", ":"))
+                    for i in range(0, len(s), _WRITE_SLICE):
+                        f.write(s[i:i + _WRITE_SLICE].encode("ascii"))
+                    del s
+                f.write(b"}}")
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError as e:
+                    if e.errno not in _FSYNC_IGNORED:
+                        raise
+                    logger.info("fsync not supported for %s (%s); durability "
+                                "is best effort", tmp, e)
+            os.replace(tmp, path)
+            replaced = True
+        finally:
+            if not replaced:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+        logger.info("Saved graph to cache: %s (%d vertices)", path.name,
+                    graph.vertices_length())
+        return path
 
-    def save_graph(self, graph: Graph, callback: Any, **params: Any) -> str:
-        """
-        Save graph to cache.
-
-        Parameters
-        ----------
-        graph : Graph
-            Graph object to cache
-        callback : Callable
-            Callback function used to build graph
-        **params : dict
-            Construction parameters
-
-        Returns
-        -------
-        str
-            Cache key (callback hash)
+    # -- load ----------------------------------------------------------------
+    def load(self, digest: str) -> Graph | None:
+        """The cached graph for ``digest``, ``None`` if there is no entry.
 
         Raises
         ------
-        ValueError
-            If callback uses closures or is not hashable
-        IOError
-            If cache write fails
+        GraphCacheLoadError
+            The entry exists but its content cannot be used.
+        OSError
+            The entry cannot be read (same subclass, message naming the
+            file and its owner).
         """
-        # Honour the global graph-cache disable env var; this returns
-        # early so the call is a no-op when the user has disabled the
-        # cache globally (per-graph kwargs are checked in
-        # ``Graph.__init__`` before we get here).
-        if is_graph_cache_disabled():
-            return ""
+        path = self.entry_path(digest)
+        entry = None
+        for attempt in (0, 1):
+            try:
+                with _open_entry_reader(path) as f:
+                    entry = json.load(f)
+                break
+            except FileNotFoundError:
+                return None
+            except OSError as e:
+                if e.errno == errno.ESTALE and attempt == 0:
+                    logger.info("stale file handle reading %s; re-reading "
+                                "once", path)
+                    continue
+                raise _reraise_oserror(
+                    e, f"cannot read graph cache entry {path} "
+                       f"({_owner_of(path)}): {e.strerror or e}. Ways out: "
+                       "use another cache_key, or another directory via "
+                       "phasic.configure(cache_dir=...)."
+                ) from e
+            except ValueError as e:   # JSONDecodeError, UnicodeDecodeError
+                raise GraphCacheLoadError(
+                    f"graph cache entry {path} is not valid JSON "
+                    f"({type(e).__name__}: {e}). {_LOAD_WAYS_OUT}") from e
 
-        # Compute cache key
+        def bad(what: str) -> GraphCacheLoadError:
+            return GraphCacheLoadError(
+                f"graph cache entry {path} is unusable: {what}. "
+                f"{_LOAD_WAYS_OUT}")
+
+        if type(entry) is not dict:
+            raise bad(f"top level is a {type(entry).__name__}, not an object")
+        fmt = entry.get("format")
+        if type(fmt) is not str:
+            raise bad("field 'format' is missing or not a string")
+        if fmt != GRAPH_CACHE_FORMAT:
+            raise bad(f"format {fmt!r} != {GRAPH_CACHE_FORMAT!r}")
+        for field, ok in (
+                ("entry_digest", lambda v: type(v) is str),
+                ("phasic_version", lambda v: type(v) is str),
+                ("created_at", lambda v: type(v) is str),
+                ("cache_key", lambda v: type(v) is str),
+                ("callback_name", lambda v: v is None or type(v) is str),
+                ("graph_data", lambda v: type(v) is dict)):
+            if field not in entry or not ok(entry[field]):
+                raise bad(f"field {field!r} is missing or of the wrong type")
+        if entry["entry_digest"] != digest:
+            raise bad("its entry_digest does not match the requested key (a "
+                      "file copied or planted under the wrong name)")
         try:
-            cache_key = hash_callback(callback, **params)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Cannot hash callback for caching: {e}")
-            raise
-
-        # Serialize graph
-        try:
-            graph_data = graph.serialize()
-        except Exception as e:
-            logger.error(f"Failed to serialize graph: {e}")
-            raise RuntimeError(f"Graph serialization failed: {e}") from e
-
-        # Add metadata
-        import phasic
-        cache_entry = {
-            'version': phasic.__version__,
-            'callback_hash': cache_key,
-            'created_at': datetime.now().isoformat(),
-            'python_version': f"{os.sys.version_info.major}.{os.sys.version_info.minor}",
-            'construction_params': _serialize_value(params),
-            'graph_data': _serialize_value(graph_data)
-        }
-
-        # Write to disk
-        cache_path = self.cache_dir / f"{cache_key}.json"
-        try:
-            with open(cache_path, 'w') as f:
-                json.dump(cache_entry, f, indent=2)
-            logger.info(f"Saved graph to cache: {cache_key[:16]}... ({graph.vertices_length()} vertices)")
-        except IOError as e:
-            logger.error(f"Failed to write cache file {cache_path}: {e}")
-            raise
-
-        return cache_key
-
-    def load_graph(self, callback: Any, **params: Any) -> Graph | None:
-        """
-        Load graph from cache.
-
-        Parameters
-        ----------
-        callback : Callable
-            Callback function
-        **params : dict
-            Construction parameters
-
-        Returns
-        -------
-        Graph or None
-            Cached graph if found, None otherwise
-        """
-        # Honour the global graph-cache disable env var.
-        if is_graph_cache_disabled():
-            return None
-
-        # Compute cache key
-        try:
-            cache_key = hash_callback(callback, **params)
-        except (ValueError, TypeError) as e:
-            logger.debug(f"Cannot hash callback for cache lookup: {e}")
-            return None
-
-        # Check if cached file exists
-        cache_path = self.cache_dir / f"{cache_key}.json"
-        if not cache_path.exists():
-            logger.debug(f"Cache miss: {cache_key[:16]}...")
-            return None
-
-        # Load from disk
-        try:
-            with open(cache_path, 'r') as f:
-                cache_entry = json.load(f)
-
-            # Version check (warn if different, but still load)
-            import phasic
-            if cache_entry['version'] != phasic.__version__:
-                logger.warning(
-                    f"Cache version mismatch: cached with {cache_entry['version']}, "
-                    f"current is {phasic.__version__}"
-                )
-
-            # Deserialize graph data
-            graph_data = _deserialize_value(cache_entry['graph_data'])
-
-            # Reconstruct graph
-            from phasic import Graph
-            graph = Graph.from_serialized(graph_data)
-
-            logger.info(f"Cache hit: {cache_key[:16]}... ({graph.vertices_length()} vertices)")
-            return graph
-
-        except Exception as e:
-            logger.error(f"Failed to load cached graph {cache_key[:16]}: {e}")
-            return None
-
-    def get_or_build(self, callback: Any, **params: Any) -> Graph:
-        """
-        Get graph from cache or build if not found.
-
-        Parameters
-        ----------
-        callback : Callable
-            Callback function
-        **params : dict
-            Construction parameters (nr_samples, theta, etc.)
-
-        Returns
-        -------
-        Graph
-            Cached or newly built graph
-        """
-        # Try loading from cache
-        graph = self.load_graph(callback, **params)
-        if graph is not None:
-            return graph
-
-        # Cache miss - build graph
+            graph_data = _decode_graph_data(entry["graph_data"])
+        except GraphCacheLoadError as e:
+            raise GraphCacheLoadError(
+                f"graph cache entry {path} is unusable: {e}. "
+                f"{_LOAD_WAYS_OUT}") from e
         from phasic import Graph
-        graph = Graph(callback, **params)
-
-        # Save to cache
         try:
-            self.save_graph(graph, callback, **params)
+            graph = Graph.from_serialized(graph_data)
+        except (MemoryError, RecursionError):
+            raise
         except Exception as e:
-            logger.warning(f"Failed to save graph to cache: {e}")
-
+            raise GraphCacheLoadError(
+                f"graph cache entry {path} could not be rebuilt "
+                f"(Graph.from_serialized raised {type(e).__name__}: {e}). "
+                f"{_LOAD_WAYS_OUT}") from e
+        logger.info("Cache hit: %s (%d vertices)", path.name,
+                    graph.vertices_length())
         return graph
 
-    def clear_graph_cache(self) -> int:
+    # -- management ------------------------------------------------------------
+    def _clear_dir(self) -> tuple[int, int, int]:
+        """Remove this directory's entries and stale ``.partial`` files.
+
+        Returns (removed entries, skipped entry-named files, per-file
+        errors). Never creates the directory.
         """
-        Clear all cached graphs.
+        removed = skipped = errors = 0
+        try:
+            dir_mtime = os.stat(self.cache_dir).st_mtime
+            names = os.listdir(self.cache_dir)
+        except FileNotFoundError:
+            return 0, 0, 0
+        for name in names:
+            p = self.cache_dir / name
+            if _ENTRY_NAME_RE.match(name):
+                try:
+                    head = _first_bytes(p, len(_LEGACY_ENTRY_PREFIX))
+                    if not (head.startswith(_ENTRY_HEADER)
+                            or head.startswith(_LEGACY_ENTRY_PREFIX)):
+                        skipped += 1   # not an entry (e.g. a user's MD5 file)
+                        continue
+                    p.unlink()
+                    removed += 1
+                except OSError:
+                    errors += 1
+            elif _PARTIAL_RE.match(name):
+                # Stale only when (directory mtime) - (file mtime) > 1 h,
+                # both read from the same file server.
+                try:
+                    if dir_mtime - os.stat(p).st_mtime > _PARTIAL_STALE_SECONDS:
+                        p.unlink()
+                except OSError:
+                    errors += 1
+        return removed, skipped, errors
+
+    def clear_graph_cache(self) -> int:
+        """Remove all cache entries in this directory.
+
+        Deletes only files named like entries (``<32 hex>.json``) whose
+        first bytes are an entry header (this format's ``{"format":`` or
+        the previous format's ``{\\n  "version"``); other entry-named files
+        are left alone and counted in ``self.last_clear_skipped``. Also
+        removes ``.tmp-*.partial`` files left by killed writers once they
+        are more than an hour older than the directory's mtime. A missing
+        directory gives 0 and is not created.
 
         Returns
         -------
         int
-            Number of graphs removed
+            Number of entry files removed (``.partial`` files not counted).
         """
-        count = 0
-        for cache_file in self.cache_dir.glob("*.json"):
-            try:
-                cache_file.unlink()
-                count += 1
-            except OSError:
-                pass
-
-        logger.info(f"Cleared {count} cached graphs")
-        return count
+        removed, skipped, _errors = self._clear_dir()
+        self.last_clear_skipped = skipped
+        logger.info("Cleared %d cached graphs (%d entry-named files skipped)",
+                    removed, skipped)
+        return removed
 
     def clear(self) -> int:
-        """
-        Alias for clear_graph_cache().
-
-        Returns
-        -------
-        int
-            Number of graphs removed
-        """
+        """Alias for :meth:`clear_graph_cache`."""
         return self.clear_graph_cache()
 
     def get_cache_stats(self) -> dict[str, Any]:
-        """
-        Get cache statistics.
+        """Statistics over entry-named files (``<32 hex>.json``) only.
 
         Returns
         -------
         dict
-            {'num_graphs': int, 'total_size_mb': float, ...}
+            ``{'num_graphs': int, 'total_size_mb': float, 'cache_dir': str}``;
+            a missing directory gives zeros and is not created.
         """
-        cache_files = list(self.cache_dir.glob("*.json"))
-        total_size = sum(f.stat().st_size for f in cache_files)
-
+        count = 0
+        total = 0
+        try:
+            names = os.listdir(self.cache_dir)
+        except FileNotFoundError:
+            names = []
+        for name in names:
+            if _ENTRY_NAME_RE.match(name):
+                p = self.cache_dir / name
+                try:
+                    head = _first_bytes(p, len(_LEGACY_ENTRY_PREFIX))
+                    if not (head.startswith(_ENTRY_HEADER)
+                            or head.startswith(_LEGACY_ENTRY_PREFIX)):
+                        continue   # foreign file with an entry-like name
+                    total += os.stat(p).st_size
+                    count += 1
+                except OSError:
+                    pass
         return {
-            'num_graphs': len(cache_files),
-            'total_size_mb': total_size / (1024 * 1024),
-            'cache_dir': str(self.cache_dir)
+            'num_graphs': count,
+            'total_size_mb': total / (1024 * 1024),
+            'cache_dir': str(self.cache_dir),
         }
 
 
 def _serialize_value(value: Any) -> Any:
     """
-    Recursively serialize a value for JSON storage.
+    Recursively encode ``Graph.serialize()`` output for JSON storage.
 
-    Handles:
-    - Primitives (int, float, str, bool, None)
-    - Collections (list, dict, tuple)
-    - NumPy arrays and scalars
-    - Custom objects with to_dict() method
-
-    Parameters
-    ----------
-    value : Any
-        Value to serialize
-
-    Returns
-    -------
-    Any
-        JSON-serializable representation
-
-    Raises
-    ------
-    TypeError
-        If value is not serializable and lacks to_dict() method
+    Encodes plain JSON values (None, bool, int, float, str, lists, tuples,
+    dicts), numpy scalars (as Python scalars) and numpy arrays (tagged
+    ``{'__type__': 'ndarray', '__data__': [...]}``). Anything else raises
+    ``TypeError``: the save side is symmetric with the restricted decoder,
+    so no entry can be written that every later lookup would refuse.
 
     Examples
     --------
-    >>> # Primitive
     >>> _serialize_value(42)
     42
-
-    >>> # NumPy array
     >>> _serialize_value(np.array([1, 2, 3]))
     {'__type__': 'ndarray', '__data__': [1, 2, 3]}
-
-    >>> # Custom object with to_dict()
-    >>> class MyClass:
-    ...     def to_dict(self): return {'x': 1}
-    >>> _serialize_value(MyClass())
-    {'__type__': '__main__.MyClass', '__data__': {'x': 1}}
     """
-    # Primitives
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
-
-    # NumPy arrays
     if isinstance(value, np.ndarray):
         return {'__type__': 'ndarray', '__data__': value.tolist()}
-
-    # NumPy scalars
-    if isinstance(value, (np.integer, np.floating)):
+    if isinstance(value, (np.integer, np.floating, np.bool_)):
         return value.item()
-
-    # Collections - dict
     if isinstance(value, dict):
         return {k: _serialize_value(v) for k, v in value.items()}
-
-    # Collections - list/tuple
     if isinstance(value, (list, tuple)):
         return [_serialize_value(item) for item in value]
-
-    # Custom objects with to_dict()
-    if hasattr(value, 'to_dict') and callable(value.to_dict):
-        serialized = value.to_dict()
-        # Tag with type info for deserialization
-        return {
-            '__type__': f'{value.__class__.__module__}.{value.__class__.__name__}',
-            '__data__': _serialize_value(serialized)
-        }
-
-    # Unsupported type
     raise TypeError(
-        f"Cannot serialize parameter of type {type(value).__name__}. "
-        f"To make this type cacheable, add to_dict() and from_dict() methods to the class."
+        f"Cannot store a value of type {type(value).__name__} in a graph "
+        f"cache entry (only plain JSON values and numpy arrays are stored)."
     )
 
 
-def _deserialize_value(value: Any) -> Any:
+def _decode_graph_data(value: Any) -> Any:
+    """Restricted decoder for an entry's ``graph_data``.
+
+    Plain JSON values plus the ``{'__type__': 'ndarray', '__data__': ...}``
+    tag are all ``serialize()`` output needs; nothing is imported. Any other
+    ``__type__`` tag, a tag without ``__data__``, or any exception while
+    decoding (for example ragged ``__data__``), except ``MemoryError`` and
+    ``RecursionError``, raises :class:`GraphCacheLoadError`.
     """
-    Recursively deserialize a value from JSON storage.
+    try:
+        return _decode(value)
+    except (GraphCacheLoadError, MemoryError, RecursionError):
+        raise
+    except Exception as e:
+        raise GraphCacheLoadError(
+            f"graph_data could not be decoded ({type(e).__name__}: {e})"
+        ) from e
 
-    Parameters
-    ----------
-    value : Any
-        Value to deserialize
 
-    Returns
-    -------
-    Any
-        Reconstructed Python object
-
-    Raises
-    ------
-    TypeError
-        If custom class cannot be imported or lacks from_dict() method
-
-    Examples
-    --------
-    >>> # Primitive
-    >>> _deserialize_value(42)
-    42
-
-    >>> # NumPy array
-    >>> _deserialize_value({'__type__': 'ndarray', '__data__': [1, 2, 3]})
-    array([1, 2, 3])
-
-    >>> # Custom class (must be importable)
-    >>> _deserialize_value({'__type__': 'mymodule.MyClass', '__data__': {'x': 1}})
-    <mymodule.MyClass object>
-    """
-    # Primitives
-    if value is None or isinstance(value, (bool, int, float, str)):
+def _decode(value: Any) -> Any:
+    if value is None or type(value) in (bool, int, float, str):
         return value
-
-    # Collections - list
-    if isinstance(value, list):
-        return [_deserialize_value(item) for item in value]
-
-    # Collections - dict
-    if isinstance(value, dict):
-        # Check for type tags
-        if '__type__' in value and '__data__' in value:
-            type_name = value['__type__']
-            data = _deserialize_value(value['__data__'])
-
-            # NumPy array
-            if type_name == 'ndarray':
-                return np.array(data)
-
-            # Custom class - import and reconstruct
-            module_name, class_name = type_name.rsplit('.', 1)
-            try:
-                import importlib
-                module = importlib.import_module(module_name)
-                cls = getattr(module, class_name)
-
-                if hasattr(cls, 'from_dict') and callable(cls.from_dict):
-                    return cls.from_dict(data)
-                else:
-                    raise TypeError(
-                        f"Class {type_name} has to_dict() but not from_dict(). "
-                        f"Both methods are required for deserialization."
-                    )
-            except (ImportError, AttributeError) as e:
-                raise TypeError(
-                    f"Cannot deserialize {type_name}: {e}. "
-                    f"Ensure the class is importable and has from_dict() class method."
-                ) from e
-        else:
-            # Regular dict
-            return {k: _deserialize_value(v) for k, v in value.items()}
-
-    return value
+    if type(value) is list:
+        return [_decode(v) for v in value]
+    if type(value) is dict:
+        if '__type__' in value:
+            tag = value['__type__']
+            if tag != 'ndarray':
+                raise GraphCacheLoadError(
+                    f"graph_data carries the type tag {tag!r}; only "
+                    "'ndarray' is accepted")
+            if '__data__' not in value:
+                raise GraphCacheLoadError(
+                    "graph_data carries an 'ndarray' tag without '__data__'")
+            return np.array(_decode(value['__data__']))
+        return {k: _decode(v) for k, v in value.items()}
+    raise GraphCacheLoadError(
+        f"graph_data holds a value of type {type(value).__name__}")
 
 
-# Module-level convenience functions
+# Module-level convenience functions (resolve the directory without mkdir)
 def get_cache_dir() -> Path:
-    """Get default cache directory."""
-    return DEFAULT_CACHE_DIR
+    """The graph cache directory (``$PHASIC_CACHE_DIR/graphs`` or
+    ``DEFAULT_CACHE_DIR``), absolute; not created."""
+    return _resolve_cache_dir()
 
 
 def get_graph_cache_stats() -> dict[str, Any]:
     """
     Get graph cache statistics.
 
-    Convenience wrapper for GraphCache().get_cache_stats().
+    Convenience wrapper for ``GraphCache().get_cache_stats()``; never
+    creates the directory.
 
     Returns
     -------
@@ -482,8 +553,7 @@ def get_graph_cache_stats() -> dict[str, Any]:
     >>> stats = get_graph_cache_stats()
     >>> print(f"Cached graphs: {stats['num_graphs']}")
     """
-    cache = GraphCache()
-    return cache.get_cache_stats()
+    return GraphCache().get_cache_stats()
 
 
 def print_graph_cache_info() -> None:
@@ -511,14 +581,52 @@ def print_graph_cache_info() -> None:
         print(f"Total size: {stats['total_size_mb']:.2f} MB")
 
 
-def clear_all_graph_caches() -> int:
+def clear_all_graph_caches() -> dict[str, int]:
     """
-    Clear all graph caches.
+    Clear all graph cache entries.
+
+    Clears the current graph cache directory (``$PHASIC_CACHE_DIR/graphs``
+    or ``DEFAULT_CACHE_DIR``, as :class:`GraphCache` resolves it; entries
+    and stale ``.partial`` files, see :meth:`GraphCache.clear_graph_cache`)
+    and ALSO sweeps the legacy default directory (``DEFAULT_CACHE_DIR``,
+    read at call time), where the previous phasic always wrote entries:
+    there only entry-named files that start with the PREVIOUS phasic's
+    entry prefix (old-format entries) are deleted, so entries of this or a
+    newer phasic, and any foreign file, survive. The legacy directory is never created; a read or
+    unlink error on a single file is skipped and counted, never fatal.
 
     Returns
     -------
-    int
-        Number of cache files removed
+    dict
+        ``{"removed": int, "skipped": int, "foreign": int}``: entry files
+        removed over both directories, per-file errors, and entry-named
+        files left alone because their content is not an entry.
     """
-    cache = GraphCache()
-    return cache.clear_graph_cache()
+    cur = GraphCache()
+    removed, foreign, errors = cur._clear_dir()
+    legacy = Path(DEFAULT_CACHE_DIR).resolve()
+    if legacy != cur.cache_dir:
+        try:
+            names = os.listdir(legacy)
+        except (FileNotFoundError, NotADirectoryError):
+            names = []
+        except OSError:
+            names = []
+            errors += 1
+        for name in names:
+            if not _ENTRY_NAME_RE.match(name):
+                continue
+            p = legacy / name
+            try:
+                head = _first_bytes(p, len(_LEGACY_ENTRY_PREFIX))
+                if not head.startswith(_LEGACY_ENTRY_PREFIX):
+                    if not head.startswith(_ENTRY_HEADER):
+                        foreign += 1
+                    continue   # this or a newer format, or foreign: keep
+                p.unlink()
+                removed += 1
+            except OSError:
+                errors += 1
+    logger.info("Cleared %d graph cache entries (%d skipped, %d foreign)",
+                removed, errors, foreign)
+    return {"removed": removed, "skipped": errors, "foreign": foreign}

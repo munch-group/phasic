@@ -1,0 +1,17 @@
+type cwr                type(x) is type=True IMMUTABLE=True module=itertools qual=combinations_with_replacement resolves=True
+type np.float64         type(x) is type=True IMMUTABLE=True module=numpy qual=float64 resolves=True
+type np.ndarray         type(x) is type=True IMMUTABLE=True module=numpy qual=ndarray resolves=True
+type defaultdict        type(x) is type=True IMMUTABLE=True module=collections qual=defaultdict resolves=True
+type functools.partial  type(x) is type=True IMMUTABLE=True module=functools qual=partial resolves=True
+type int                type(x) is type=True IMMUTABLE=True module=builtins qual=int resolves=True
+type range              type(x) is type=True IMMUTABLE=True module=builtins qual=range resolves=True
+type Counter            type(x) is type=True IMMUTABLE=False module=collections qual=Counter resolves=True
+callable len              exact_arm=True type=builtin_function_or_method module=builtins qual=len __self__type=module resolves=True
+callable math.comb        exact_arm=True type=builtin_function_or_method module=math qual=comb __self__type=module resolves=True
+callable np.exp           exact_arm=True type=ufunc module=numpy qual=exp __self__type=NoneType resolves=True
+callable np.sum           exact_arm=True type=_ArrayFunctionDispatcher module=numpy qual=sum __self__type=NoneType resolves=True
+callable np.linalg.solve  exact_arm=True type=_ArrayFunctionDispatcher module=numpy.linalg qual=solve __self__type=NoneType resolves=True
+callable operator.add     exact_arm=True type=builtin_function_or_method module=_operator qual=add __self__type=module resolves=True
+callable np.random.rand   exact_arm=False type=method module=numpy.random qual=RandomState.rand __self__type=RandomState resolves=False
+callable {}.get           exact_arm=True type=builtin_function_or_method module=None qual=dict.get __self__type=dict resolves=None
+[runcap] exit 0, peak RSS 2 MB, 1s

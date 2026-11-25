@@ -1,0 +1,4 @@
+fix=False used=False: dill -> PicklingError: Can't pickle <class 'phasic.state_indexing.IndexResult'>: it's not found as phasic.state_indexing.In
+fix=False used=True: dill -> PicklingError: Can't pickle <class 'phasic.state_indexing.LineageProps'>: it's not found as phasic.state_indexing.L
+fix=True used=False: dill -> ok (loaded class registered: False)
+fix=True used=True: dill -> ok (loaded class registered: False)

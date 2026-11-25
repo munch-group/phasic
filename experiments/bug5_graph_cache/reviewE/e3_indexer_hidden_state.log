@@ -1,0 +1,6 @@
+to_dict equal: True | a == b: True | hash equal: True
+expectation a / b: 1.6666666666666667 0.33333333333333326
+PropertySet attr: to_dict equal: True 1.6666666666666667 0.33333333333333326
+Property key fields equal: True | offset 0 3 | p1 == p2: False
+Property subclass inside indexer: to_dict equal: True | type(d) is StateIndexer: True | props_to_index differ: 3 2
+[runcap] exit 0, peak RSS 322 MB, 3s

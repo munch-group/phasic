@@ -1,0 +1,5 @@
+nan nan 000000000000f87f copysign: 1.0
+nan nan 000000000000f8ff copysign: -1.0
+nan nan 230100000000f87f copysign: 1.0
+a.hex()==b.hex(): True  bits equal: False
+[runcap] exit 0, peak RSS 2 MB, 1s

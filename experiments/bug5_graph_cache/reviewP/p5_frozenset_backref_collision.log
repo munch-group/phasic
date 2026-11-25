@@ -1,0 +1,20 @@
+== callback X under PYTHONHASHSEED=0
+callback X: frozenset iteration order [('a', 1), ('b', 2), ('c', 3)]
+callback X: digest 48b4b4b9c139a7fee5b3af1a7f4cbcf0
+callback X: f((0,1)) = 1, f((2,3)) = 2
+[runcap] exit 0, peak RSS 2 MB, 1s
+== callback Y under PYTHONHASHSEED=1
+callback Y: frozenset iteration order [('c', 3), ('a', 1), ('b', 2)]
+callback Y: digest 48b4b4b9c139a7fee5b3af1a7f4cbcf0
+callback Y: f((0,1)) = 2, f((2,3)) = 1
+[runcap] exit 0, peak RSS 2 MB, 1s
+== callback X under PYTHONHASHSEED=1
+callback X: frozenset iteration order [('c', 3), ('a', 1), ('b', 2)]
+callback X: digest 7c8805d29ddbe0da76408db85129d74d
+callback X: f((0,1)) = 1, f((2,3)) = 2
+[runcap] exit 0, peak RSS 2 MB, 1s
+== callback Y under PYTHONHASHSEED=0
+callback Y: frozenset iteration order [('a', 1), ('b', 2), ('c', 3)]
+callback Y: digest 2ae4e1a847d932e195eb21f0a42c2d81
+callback Y: f((0,1)) = 2, f((2,3)) = 1
+[runcap] exit 0, peak RSS 2 MB, 1s

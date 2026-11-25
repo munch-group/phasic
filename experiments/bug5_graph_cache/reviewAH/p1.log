@@ -1,0 +1,22 @@
+/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewAH/p1_indexer_registry.py:148: DeprecationWarning: StateSpace is deprecated. Use PropertySet(name, properties) or StateIndexer instead.
+  cases["statespace"] = used(StateIndexer(property_sets=[StateSpace([Property("n", max_value=3)], name="ss")]))
+plain fresh                      ADMIT
+plain used                       ADMIT
+statespace                       ADMIT
+a+b interleaved slot             ADMIT
+append prefix                    ADMIT
+tuple props                      ADMIT
+deprecated offset                ADMIT
+add_epoch style shared psets     ADMIT
+deepcopy                         ADMIT
+copy.copy                        ADMIT
+np.int64 max_value               ADMIT
+float max_value                  ADMIT
+bool max_value                   ADMIT
+NEG list appended                REFUSE: _total_state_length differs from rebuild
+NEG unregistered result class    REFUSE: class <class '__main__.IndexResult'> not registered
+NEG __init__ replaced            REFUSE: class entry __init__ replaced
+NEG __post_init__ added          REFUSE: class dict keys differ: +{'__post_init__'} -set()
+real-graph indexer before build ADMIT
+retention over 1000 joint-pair constructions: +0.158 MB traced, live registered 34->34
+[runcap] exit 0, peak RSS 330 MB, 19s

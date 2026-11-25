@@ -1,0 +1,25 @@
+len                    admitted builtins.len
+max                    admitted builtins.max
+math.comb              admitted math.comb
+math.exp               admitted math.exp
+operator.mul           admitted _operator.mul
+np.exp                 admitted numpy.exp
+np.add                 admitted numpy.add
+np.sum                 admitted numpy.sum
+np.linalg.solve        admitted numpy.linalg.solve
+np.array               admitted numpy.array
+np.zeros               admitted numpy.zeros
+np.where               admitted numpy.where
+np.dot                 admitted numpy.dot
+np.concatenate         admitted numpy.concatenate
+np.isclose             admitted numpy.isclose
+np.prod                admitted numpy.prod
+np.random.random       not this arm (method)
+np.searchsorted        admitted numpy.searchsorted
+np.arange              admitted numpy.arange
+np.empty               admitted numpy.empty
+scipy.special.gamma    REFUSED (module=None, name='gamma')
+scipy.special.comb     not this arm (function)
+scipy.special.binom    REFUSED (module=None, name='binom')
+np.__version__ 2.4.3
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -1,0 +1,4 @@
+cold == warm: True
+cold == instrumented (sys.monitoring LINE/BRANCH): True
+cold == settrace: True
+[runcap] exit 0, peak RSS 2 MB, 1s

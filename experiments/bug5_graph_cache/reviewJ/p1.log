@@ -1,0 +1,14 @@
+[A const coalescent] hit=True diffs=none E fresh=1.6 hit=1.6
+[B param len1] hit=True diffs=none E fresh=1.06666666667 hit=1.06666666667
+[C coeff3 theta_dim2] hit=True diffs=none E error RuntimeError: Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-callback mode, they must match exactly. To use extra coefficients, call update_weights(theta, callback) with a custom callback function.
+[D dup param edges] hit=True diffs=none E fresh=0.666666666667 hit=0.666666666667
+[E dup const edges] hit=True diffs=none E error RuntimeError: Multiple edges to the same vertex!. From vertex with index 1 (state 4). To vertex with index 2 (state 3)
+
+[F defective ipv] hit=True diffs=none E fresh=1.43333333333 hit=1.43333333333
+[G zero weight edge] hit=True diffs=none E fresh=4 hit=4
+[H all-zero coeff edge] hit=True diffs=none E fresh=1.33333333333 hit=1.33333333333
+[I cyclic param] hit=True diffs=none E fresh=6.66666666667 hit=6.66666666667
+[J ipv split param] hit=True diffs=none E fresh=1.03333333333 hit=1.03333333333
+[L start-only] hit=True diffs=none E fresh=0 hit=0
+[N 3-tuple] hit=True diffs=none E fresh=0.506349206349 hit=0.506349206349
+[runcap] exit 0, peak RSS 323 MB, 3s

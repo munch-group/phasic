@@ -1,0 +1,7 @@
+cache dir: /private/tmp/claude-501/-Users-kmt-phasic/c3f361f0-c1bf-476e-a943-8c5641e4a00a/scratchpad/reviewE/home/.phasic_cache/graphs
+callback calls fresh/hit: 6 0
+has edge_state: False
+keys only in fresh: []
+keys only in hit: []
+expectation fresh/hit: 0.749741678381917 0.749741678381917
+[runcap] exit 0, peak RSS 323 MB, 3s

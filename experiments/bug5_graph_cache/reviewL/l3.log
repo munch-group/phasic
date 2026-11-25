@@ -1,0 +1,10 @@
+numpy 2.4.3 python 3.13.13
+short a {'exact': True, 'builtin': True, 'hasobject': True, 'fields': None, 'str': 'StringDType()'} TypeError: Cannot change data-type for array of references.
+short b TypeError: Cannot change data-type for array of references.
+long a gates {'exact': True, 'builtin': True, 'hasobject': True, 'fields': None, 'str': 'StringDType()'}
+long a bytes None TypeError: Cannot change data-type for array of references.
+long b bytes None TypeError: Cannot change data-type for array of references.
+DIFFERENT contents, SAME fingerprint: True
+equal contents, equal fingerprint: True
+[runcap] exit 0, peak RSS 2 MB, 1s
+# note: l3 'SAME fingerprint: True' compares two identical TypeError strings; hasobject=True gate refuses StringDType before the view (no issue)

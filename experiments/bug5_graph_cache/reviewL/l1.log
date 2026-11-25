@@ -1,0 +1,6 @@
+const: diffs=[]
+const_theta_dim3 fresh build failed: RuntimeError Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length >= param_length.
+param: diffs=[]
+param_theta_dim1: diffs=[]
+3tuple_w7: diffs=[]
+[runcap] exit 0, peak RSS 321 MB, 3s

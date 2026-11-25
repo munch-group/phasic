@@ -1,0 +1,4 @@
+dyn_ordering False moments [  3.8090555   25.01695179 239.01276612] 0.000s
+dyn_ordering True moments [  3.8090555   25.01695179 239.01276612] 0.000s
+max rel diff: 4.756517384795835e-16
+[runcap] exit 0, peak RSS 306 MB, 3s

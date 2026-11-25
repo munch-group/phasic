@@ -1,0 +1,26 @@
+numpy 2.4.3
+StringDType long 'x'*40                       dtype.str='StringDType()' hasobject=True -> REFUSED
+StringDType long 'y'*40                       dtype.str='StringDType()' hasobject=True -> REFUSED
+StringDType short 'short'                     dtype.str='StringDType()' hasobject=True -> REFUSED
+StringDType short 'other'                     dtype.str='StringDType()' hasobject=True -> REFUSED
+   long strings share a key: False
+   raw bytes a == b: True
+   a[0] type: str
+datetime64[D]                                 dtype.str='<M8[D]'   hasobject=False -> RAISES ValueError: cannot include dtype 'M' in a buffer
+timedelta64[s]                                dtype.str='<m8[s]'   hasobject=False -> RAISES ValueError: cannot include dtype 'm' in a buffer
+complex128                                    dtype.str='<c16'     hasobject=False -> 55a84f145e91b130
+bool                                          dtype.str='|b1'      hasobject=False -> 49e12e5cc2c3dd0f
+float16                                       dtype.str='<f2'      hasobject=False -> f279e2dddbd4890d
+longdouble                                    dtype.str='<f8'      hasobject=False -> c0d3d2bb97c82e37
+unicode U3                                    dtype.str='<U3'      hasobject=False -> a188504f2eb6bea1
+bytes S3                                      dtype.str='|S3'      hasobject=False -> b60781a0d8899537
+0-d float                                     dtype.str='<f8'      hasobject=False -> 361ee7ddc6290e87
+empty (0,3)                                   dtype.str='<f8'      hasobject=False -> f566ab0b6fa61eef
+empty (3,0)                                   dtype.str='<f8'      hasobject=False -> 6f6b1f34f71cfdb6
+subarray dtype ('f8',(2,)) -> folds           dtype.str='<f8'      hasobject=False -> 9da6ceac6179d256
+scalar datetime64   exact=True dtype.str='<M8[D]' bytes=b'VG\x00\x00\x00\x00\x00\x00'
+scalar timedelta64  exact=True dtype.str='<m8[s]' bytes=b'\x03\x00\x00\x00\x00\x00\x00\x00'
+scalar str_         exact=True dtype.str='<U2' bytes=b'a\x00\x00\x00b\x00\x00\x00'
+scalar bytes_       exact=True dtype.str='|S2' bytes=b'ab'
+scalar float16      exact=True dtype.str='<f2' bytes=b'\x00>'
+[runcap] exit 0, peak RSS 2 MB, 1s

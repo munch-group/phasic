@@ -1,0 +1,11 @@
+[absorbing_only] ok n=2 param_length 0/0 parameterized False/False arrays equal: True
+   expectation fresh/hit: 0.0 / 0.0
+[constant] ok n=5 param_length 1/1 parameterized False/False arrays equal: True
+   expectation fresh/hit: 2.0 / 2.0
+[param] ok n=5 param_length 2/2 parameterized True/True arrays equal: True
+   expectation fresh/hit: 0.9999999999999998 / 0.9999999999999998
+[defective_ipv] ok n=3 param_length 1/1 parameterized False/False arrays equal: True
+   expectation fresh/hit: 1.0 / 1.0
+[two_start_states] ok n=5 param_length 1/1 parameterized False/False arrays equal: True
+   expectation fresh/hit: 1.0 / 1.0
+[runcap] exit 0, peak RSS 321 MB, 6s

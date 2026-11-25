@@ -1,0 +1,7 @@
+numpy 2.4.3
+dtype.str 'StringDType()' hasobject True fields None kind T
+a==b content; tobytes equal: True
+a vs c differ content; tobytes: 010000000000000028000000000000402a000000000000002800000000000040 010000000000000028000000000000402a000000000000002800000000000040
+short strings tobytes differ: True
+distinct-content arrays whose tobytes collided with an earlier one: 1999 of 2000
+[runcap] exit 0, peak RSS 2 MB, 1s

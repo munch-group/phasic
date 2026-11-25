@@ -1,0 +1,13 @@
+Matplotlib is building the font cache; this may take a moment.
+3tuple fresh {'n': 6, 'param_length': 1, 'parameterized': True, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+3tuple hit   {'n': 6, 'param_length': 1, 'parameterized': True, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+3tuple after update E fresh/hit 0.8 0.8
+3tuple SAME
+2tuple fresh {'n': 6, 'param_length': 1, 'parameterized': True, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+2tuple hit   {'n': 6, 'param_length': 1, 'parameterized': True, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+2tuple after update E fresh/hit 0.8 0.8
+2tuple SAME
+const fresh {'n': 6, 'param_length': 1, 'parameterized': False, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+const hit   {'n': 6, 'param_length': 1, 'parameterized': False, 'dyn': False, 'weights_sorted': [1.0, 1.0, 3.0, 6.0, 10.0], 'E_before_update': 1.6}
+const SAME
+[runcap] exit 0, peak RSS 325 MB, 16s

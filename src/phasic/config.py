@@ -198,7 +198,6 @@ def _snapshot_config_for_context() -> _ConfigureContext:
         'PHASIC_CONDITION_THRESHOLD',
         'PHASIC_DISABLE_CONDITION_WARNINGS',
         'PHASIC_REWARD_COMPUTE_CACHE',
-        'PHASIC_DISABLE_GRAPH_CACHE',
         'PHASIC_CACHE_DIR',
     }
     saved_env = {v: os.environ.get(v) for v in env_vars}
@@ -236,7 +235,6 @@ def configure(**kwargs) -> _ConfigureContext:
       - ill_condition_threshold: float
       - warn_on_ill_conditioning: bool
       - reward_compute_cache: bool
-      - graph_cache: bool
       - cache_dir: str or None
       - strict: bool
       - verbose: bool
@@ -280,8 +278,16 @@ def configure(**kwargs) -> _ConfigureContext:
                     if not f.name.startswith("_")}
     for key in kwargs:
         if key not in valid_fields:
+            removed = ""
+            if key == "graph_cache":
+                removed = (
+                    "The graph_cache option was removed: graphs are cached "
+                    "only when you name the entry with "
+                    "Graph(..., cache_key=\"<name>\").\n"
+                )
             raise PTDConfigError(
                 f"Unknown configuration option: {key}\n"
+                f"{removed}"
                 f"Valid options: {', '.join(sorted(valid_fields))}"
             )
 
@@ -305,7 +311,7 @@ def get_config() -> "PhasicConfig":
 
     On first call, reads the relevant phasic env vars
     (`PHASIC_HIERAR_ELIMINATION`, `PHASIC_REWARD_COMPUTE_CACHE`,
-    `PHASIC_DISABLE_GRAPH_CACHE`, `PHASIC_CACHE_DIR`,
+    `PHASIC_CACHE_DIR`,
     `PHASIC_MIN_SCC_SIZE_TO_CACHE`, `PHASIC_MAX_PARALLEL_SCCS`,
     `OMP_NUM_THREADS`) and seeds the
     config so its fields agree with the environment that the C
@@ -322,8 +328,6 @@ def get_config() -> "PhasicConfig":
             kwargs['parallel_elimination'] = True
         if os.getenv('PHASIC_REWARD_COMPUTE_CACHE') == '1':
             kwargs['reward_compute_cache'] = True
-        if os.getenv('PHASIC_DISABLE_GRAPH_CACHE') == '1':
-            kwargs['graph_cache'] = False
         cache_dir_env = os.getenv('PHASIC_CACHE_DIR')
         if cache_dir_env:
             kwargs['cache_dir'] = cache_dir_env
@@ -441,8 +445,8 @@ from typing import Literal as _Literal
 # field_name -> (env_var_name, invert_bool, default_value_means_unset)
 #
 # invert_bool: if True, the env var is "off" semantics (e.g.
-# PHASIC_DISABLE_GRAPH_CACHE=1 disables, but the field graph_cache
-# is the positive form). When writing: True -> env unset,
+# PHASIC_DISABLE_CONDITION_WARNINGS=1 disables, but the field
+# warn_on_ill_conditioning is the positive form). When writing: True -> env unset,
 # False -> env set to "1". When reading: presence of env -> False.
 #
 # default_value_means_unset: the field value that corresponds to
@@ -460,9 +464,6 @@ _ENV_VAR_FOR_FIELD = {
     # reward_compute_cache defaults to OFF; the env var is positive
     # ("enable") to match that polarity — absent env = default = off.
     'reward_compute_cache':                 ('PHASIC_REWARD_COMPUTE_CACHE', False, False),
-    # graph_cache defaults to ON; inverted "disable" env-var matches
-    # the convention used by `cache_enabled` previously.
-    'graph_cache':                          ('PHASIC_DISABLE_GRAPH_CACHE', True, True),
     'cache_dir':                            ('PHASIC_CACHE_DIR', False, None),
 }
 
@@ -546,13 +547,6 @@ class PhasicConfig:
         directory. See CLAUDE.md "Disk caches" and
         ``scratch/io_overlap_probe.py``.
 
-    graph_cache : bool, default True
-        Use the on-disk graph cache at ``cache_dir/graphs/`` for
-        serialised ``Graph`` objects (callback-built graphs).
-        Backs PHASIC_DISABLE_GRAPH_CACHE (inverted). Per-graph
-        opt-in via ``Graph(..., graph_cache=...)`` overrides this
-        global default.
-
     cache_dir : str or None, default None
         Override the cache root. None = $HOME/.phasic_cache. Backs
         PHASIC_CACHE_DIR.
@@ -606,9 +600,8 @@ class PhasicConfig:
     # Two independent caches, separately controlled. Their disk
     # paths are siblings under ``cache_dir``:
     #   ``cache_dir/parameterized_reward_compute/`` (reward_compute_cache)
-    #   ``cache_dir/graphs/``                       (graph_cache)
+    #   ``cache_dir/graphs/``                       (per graph: Graph(..., cache_key=...))
     reward_compute_cache: bool = False
-    graph_cache: bool = True
     cache_dir: str | None = None
     model_memory_cache_size: int | None = None
 
@@ -911,7 +904,6 @@ class PhasicConfig:
             'ill_condition_threshold': self.ill_condition_threshold,
             'warn_on_ill_conditioning': self.warn_on_ill_conditioning,
             'reward_compute_cache': self.reward_compute_cache,
-            'graph_cache': self.graph_cache,
             'cache_dir': self.cache_dir,
             'strict': self.strict,
             'verbose': self.verbose,
@@ -927,7 +919,6 @@ class PhasicConfig:
             'PHASIC_CONDITION_THRESHOLD',
             'PHASIC_DISABLE_CONDITION_WARNINGS',
             'PHASIC_REWARD_COMPUTE_CACHE',
-            'PHASIC_DISABLE_GRAPH_CACHE',
             'PHASIC_CACHE_DIR',
         ]
         environment = {var: os.environ.get(var) for var in env_vars}
@@ -1037,10 +1028,10 @@ def _field_to_env_value(field_name: str, value: Any, invert: bool) -> str | None
         return None
     if isinstance(value, bool):
         if invert:
-            # E.g. graph_cache=False -> PHASIC_DISABLE_GRAPH_CACHE='1'.
-            #      graph_cache=True  -> remove PHASIC_DISABLE_GRAPH_CACHE.
-            # Same shape for reward_compute_cache /
-            # PHASIC_DISABLE_REWARD_COMPUTE_CACHE.
+            # E.g. warn_on_ill_conditioning=False ->
+            #          PHASIC_DISABLE_CONDITION_WARNINGS='1'.
+            #      warn_on_ill_conditioning=True  ->
+            #          remove PHASIC_DISABLE_CONDITION_WARNINGS.
             return '1' if not value else None
         return '1' if value else None
     if isinstance(value, str):

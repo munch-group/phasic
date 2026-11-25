@@ -1,0 +1,4 @@
+(A) class module: phasic.state_indexing
+(A) dill ok; same class: False
+(B) class module: phasic.state_indexing
+(B) dill failed: PicklingError Can't pickle <class 'phasic.state_indexing.LineageProps'>: it's not found as phasic.state_indexing.LineageProps

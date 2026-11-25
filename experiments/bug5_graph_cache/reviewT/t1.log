@@ -1,0 +1,21 @@
+Matplotlib is building the font cache; this may take a moment.
+const                fresh: {'vertices_length': 6, 'param_length': 1, 'parameterized': False, 'get_was_dph': False, 'dyn': False}
+const                hit  : {'vertices_length': 6, 'param_length': 1, 'parameterized': False, 'get_was_dph': False, 'dyn': False}
+   differ: set()
+   update_weights([2.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+   update_weights([2.0, 3.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+const theta_dim=2 fresh build failed RuntimeError Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+par2                 fresh: {'vertices_length': 6, 'param_length': 2, 'parameterized': True, 'get_was_dph': False, 'dyn': False}
+par2                 hit  : {'vertices_length': 6, 'param_length': 2, 'parameterized': True, 'get_was_dph': False, 'dyn': False}
+   differ: set()
+   update_weights([2.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+   update_weights([2.0, 3.0]) -> expectation fresh/hit: [0.8, 0.8]
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+par3 theta_dim=2     fresh: {'vertices_length': 6, 'param_length': 2, 'parameterized': True, 'get_was_dph': False, 'dyn': False}
+par3 theta_dim=2     hit  : {'vertices_length': 6, 'param_length': 2, 'parameterized': True, 'get_was_dph': False, 'dyn': False}
+   differ: set()
+   update_weights([2.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+   update_weights([2.0, 3.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+   update_weights([2.0, 3.0, 4.0]) -> expectation fresh/hit: ['ERR RuntimeError', 'ERR RuntimeError']
+[runcap] exit 0, peak RSS 316 MB, 17s

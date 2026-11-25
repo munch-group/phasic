@@ -1,0 +1,4 @@
+after specialisation equal: True
+under sys.monitoring LINE events equal: True
+under settrace equal: True
+[runcap] exit 0, peak RSS 5 MB, 1s

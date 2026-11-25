@@ -1,0 +1,4 @@
+phasic.Graph is G0 after reload: False
+clone() of a pre-reload graph is instance of G0: False
+new Graph(1) is instance of G0: False
+[runcap] exit 0, peak RSS 321 MB, 4s

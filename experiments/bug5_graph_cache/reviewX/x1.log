@@ -1,0 +1,7 @@
+[const] vertices 6 vs 6
+[const] per-vertex edge ORDER identical: True; edge multiset identical: True
+[const] expectation fresh 1.6 hit 1.6 bit-equal True
+[const] seeded sample(2000) identical: True; means 1.616208 1.616208
+[mixed3] build/roundtrip error RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). This edge uses array syntax. Use add_edge(vertex, scalar) for constant edges.
+[pervertex] build/roundtrip error RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). This edge uses array syntax. Use add_edge(vertex, scalar) for constant edges.
+[runcap] exit 0, peak RSS 317 MB, 3s

@@ -1,0 +1,12 @@
+('popgen/old-moran-coalescent-derived.ipynb[3]', 'expected_bw_loss_time', 'loss_weighted_sojourn', ('u_and_om', 'uprime'))
+('test_from_serialized_find_vertex.py', 'test_joint_prob_graph_via_warm_graph_cache', 'build', ('coal',))
+('test_bffg_accuracy.py', 'test_ranking', 'bffg_ll', ('poisson_ll',))
+('test_bffg_accuracy.py', 'test_direction', 'bffg_ll', ('poisson_ll',))
+('test_fixed_values_exact.py', 'test_fixed_equals_hard_coded_value', 'hard_coded', ('model',))
+('test_fixed_values_exact.py', 'spy_on_svgd_models', 'wrap', ('spy',))
+('test_fixed_values_exact.py', 'spy_on_svgd_models', 'init', ('wrap',))
+('test_daisy_chain_c_path.py', '_build_model_and_loss', 'loss', ('model',))
+('test_daisy_chain_c_path.py', 'test_vmap_fuses_into_one_ffi_call', 'traced', ('call',))
+('test_graph_cache.py', 'test_cache_hit_keeps_callback_and_add_epoch_works', 'build', ('coalescent',))
+total 10
+[runcap] exit 0, peak RSS 61 MB, 1s

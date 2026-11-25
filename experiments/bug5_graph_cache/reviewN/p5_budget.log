@@ -1,0 +1,5 @@
+N=60,000 L=20: nodes=1,320,001 time=0.39s -> ok
+N=200,000 L=20: nodes=4,400,001 time=1.36s -> ok
+N=600,000 L=12: nodes=229,377 time=0.07s -> ok
+N=600,000 L=20: nodes=10,000,001 time=3.14s -> BUDGET EXCEEDED at 10,000,001 nodes
+[runcap] exit 0, peak RSS 263 MB, 8s

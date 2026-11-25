@@ -1,0 +1,14 @@
+numpy                    type builtins.module               exact=True sys.modules-identity=True
+numpy.random             type builtins.module               exact=True sys.modules-identity=True
+numpy.linalg             type builtins.module               exact=True sys.modules-identity=True
+math                     type builtins.module               exact=True sys.modules-identity=True
+itertools                type builtins.module               exact=True sys.modules-identity=True
+scipy                    type builtins.module               exact=True sys.modules-identity=True
+scipy.special            type builtins.module               exact=True sys.modules-identity=True
+scipy.stats              type builtins.module               exact=True sys.modules-identity=True
+jax                      type builtins.module               exact=True sys.modules-identity=True
+jax.numpy                type builtins.module               exact=True sys.modules-identity=True
+pandas                   type builtins.module               exact=True sys.modules-identity=True
+phasic                   type builtins.module               exact=True sys.modules-identity=True
+phasic.state_indexing    type builtins.module               exact=True sys.modules-identity=True
+[runcap] exit 0, peak RSS 323 MB, 3s

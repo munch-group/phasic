@@ -54,6 +54,14 @@ def clear_model_cache(verbose: bool = True) -> None:
 
     This is a simplified wrapper around CacheManager.clear().
 
+    The graph-cache part clears the LEGACY default graph directory
+    (``phasic.graph_cache.DEFAULT_CACHE_DIR``, ``~/.phasic_cache/graphs``),
+    consistent with the rest of this function, which clears
+    ``$PHASIC_COMPILATION_CACHE_DIR`` or ``~/.phasic_cache`` regardless of
+    ``PHASIC_CACHE_DIR``. A user-chosen (possibly shared)
+    ``PHASIC_CACHE_DIR`` is never touched here; clear its graph entries
+    with ``phasic.clear_all_graph_caches()`` or ``Graph.clear_from_cache()``.
+
     Parameters
     ----------
     verbose : bool, optional
@@ -76,10 +84,12 @@ def clear_model_cache(verbose: bool = True) -> None:
     if os.path.exists(traces_dir):
         _clear_cache(traces_dir, verbose=verbose)
 
-    # Clear graph cache using GraphCache API
+    # Clear graph cache using GraphCache API (legacy default directory,
+    # read at call time; never $PHASIC_CACHE_DIR, see the docstring)
     try:
+        from . import graph_cache
         from .graph_cache import GraphCache
-        cache = GraphCache()
+        cache = GraphCache(graph_cache.DEFAULT_CACHE_DIR)
         count = cache.clear_graph_cache()
         if verbose and count > 0:
             print(f"Cleared {count} cached graphs from {cache.cache_dir}")

@@ -1,0 +1,26 @@
+[type] itertools.combinations_with_replacement: immutable=True resolves=same
+[type] itertools.product: immutable=True resolves=same
+[type] collections.defaultdict: immutable=True resolves=same
+[type] int: immutable=True resolves=same
+[type] dict: immutable=True resolves=same
+[type] np.ndarray: immutable=True resolves=same
+[type] np.random.Generator: immutable=True resolves=same
+[type] collections.Counter: immutable=False resolves=same
+[fn] math.sqrt: type=builtin_function_or_method gate=True self=module resolves=same
+[fn] math.comb: type=builtin_function_or_method gate=True self=module resolves=same
+[fn] len: type=builtin_function_or_method gate=True self=module resolves=same
+[fn] np.array: type=builtin_function_or_method gate=True self=module resolves=same
+[fn] np.exp: type=ufunc gate=True self=None resolves=same
+[fn] np.sum: type=_ArrayFunctionDispatcher gate=True self=None resolves=same
+[fn] np.linalg.solve: type=_ArrayFunctionDispatcher gate=True self=None resolves=same
+[fn] np.random.default_rng: type=cython_function_or_method gate=False self=None resolves=same
+[fn] np.random.rand: type=method gate=False self=RandomState resolves=different (numpy.random.RandomState.rand)
+[fn] np.zeros: type=builtin_function_or_method gate=True self=module resolves=same
+[fn] np.where: type=_ArrayFunctionDispatcher gate=True self=None resolves=same
+[fn] np.add.reduce: type=builtin_function_or_method gate=True self=ufunc resolves=no (None,'ufunc.reduce')
+[scipy] gamma: type=ufunc module=None qualname=None
+[scipy] binom: type=ufunc module=None qualname=None
+[scipy] comb: type=function module='scipy.special._basic' qualname='comb'
+[scipy] factorial: type=function module='scipy.special._basic' qualname='factorial'
+[consts] ['float', 'frozenset', 'int', 'str', 'tuple', 'tuple-elt:ellipsis', 'tuple-elt:int'] 3.13.13 2.4.3
+[runcap] exit 0, peak RSS 2 MB, 1s

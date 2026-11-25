@@ -1,0 +1,10 @@
+RESULT bare function keys refused: cache_key: cannot key kwargs['table'] -> dict key #0 (type function): dict keys that are f
+RESULT tuple-wrapped function keys refused: cache_key: cannot key kwargs['table'] -> dict key #0 (type tuple): dict keys that are func
+RESULT Property-wrapped function keys same_key= True E_a= 0.8333333333333333 E_b= 0.16666666666666663
+RESULT slice-wrapped function keys same_key= True E_a= 0.8333333333333333 E_b= 0.16666666666666663
+RESULT float-field indexer constructs; state_length 4
+RESULT float-field indexer refused: cache_key: cannot key kwargs['indexer'] (type phasic.state_indexing.Property): Property field 'max_value' in PropertySet
+RESULT empty file | msg tail: column 1 (char 0)). Ways out: delete the file, call phasic.clear_all_graph_caches(), or use another cache_key. | clear_all: {'removed': 0, 'skipped': 0} survived: True | retry: GraphCacheLoadError again
+RESULT header bytes overwritten | msg tail: nvalid start byte). Ways out: delete the file, call phasic.clear_all_graph_caches(), or use another cache_key. | clear_all: {'removed': 0, 'skipped': 0} survived: True | retry: GraphCacheLoadError again
+RESULT legacy dir differs from current: True
+RESULT foreign in LEGACY dir survives: False | foreign in CURRENT dir survives: True {'removed': 1, 'skipped': 0}

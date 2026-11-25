@@ -1,0 +1,4 @@
+snapshot_attr=False: dill -> ok
+snapshot_attr=False: cloudpickle load in subprocess -> rc=0 loaded; n states 4 cls IndexResult has snapshot attr False
+snapshot_attr=True: dill -> PicklingError: Can't pickle <class 'phasic.state_indexing.LineageProps'>: it's not found as phasic.state_indexing.LineageProps
+snapshot_attr=True: cloudpickle load in subprocess -> rc=0 loaded; n states 4 cls IndexResult has snapshot attr True

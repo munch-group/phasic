@@ -1,0 +1,10 @@
+numpy 2.4.3
+a dtype.str StringDType() | type module numpy.dtypes | hasobject True | fields None | kind T | char T
+   uint8 view raises TypeError Cannot change data-type for array of references.
+   tobytes 01000000000000002800000000000040
+b dtype.str StringDType() | type module numpy.dtypes | hasobject True | fields None | kind T | char T
+   uint8 view raises TypeError Cannot change data-type for array of references.
+   tobytes 01000000000000002800000000000040
+scalar type <class 'str'> isinstance np.generic False
+O True
+[runcap] exit 0, peak RSS 6 MB, 1s

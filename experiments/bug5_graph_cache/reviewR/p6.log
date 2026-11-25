@@ -1,0 +1,7 @@
+numpy 2.4.3
+type(dtype).__module__: numpy.dtypes
+hasobject: True  fields: None  str: StringDType()  kind: T
+admitted by rule-3 gates as written: False
+a hash path raises TypeError Cannot change data-type for array of references.
+b hash path raises TypeError Cannot change data-type for array of references.
+[runcap] exit 0, peak RSS 2 MB, 1s

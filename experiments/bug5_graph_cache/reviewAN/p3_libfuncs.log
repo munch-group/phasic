@@ -1,0 +1,26 @@
+scipy 1.17.1 numpy 2.4.3
+scipy.special.comb function
+   __defaults__  = None
+   __kwdefaults__= {'exact': False, 'repetition': False}
+   closure       = []
+   __dict__ keys = {}
+scipy.special.perm function
+   __defaults__  = (False,)
+   __kwdefaults__= None
+   closure       = []
+   __dict__ keys = {}
+scipy.special.factorial function
+   __defaults__  = (False, 'zero')
+   __kwdefaults__= None
+   closure       = []
+   __dict__ keys = {}
+numpy.linalg.matrix_power _ArrayFunctionDispatcher
+numpy.isclose _ArrayFunctionDispatcher
+numpy.round _ArrayFunctionDispatcher
+numpy.zeros_like _ArrayFunctionDispatcher
+numpy.array_equal _ArrayFunctionDispatcher
+numpy.append _ArrayFunctionDispatcher
+math.comb builtin_function_or_method
+scipy.stats.binom.pmf (bound) method
+np.append type: <class 'numpy._ArrayFunctionDispatcher'>  np.isclose type: <class 'numpy._ArrayFunctionDispatcher'>
+[runcap] exit 0, peak RSS 119 MB, 1s

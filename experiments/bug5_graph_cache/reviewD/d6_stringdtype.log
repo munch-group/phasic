@@ -1,0 +1,7 @@
+numpy 2.4.3
+a dtype.str StringDType() hasobject True fields None tobytes 010000000000000028000000000000402a000000000000002800000000000040
+b dtype.str StringDType() hasobject True fields None tobytes 010000000000000028000000000000402a000000000000002800000000000040
+a,b contents differ: True  tobytes equal: True
+a,c contents equal: True  tobytes equal: True
+short strings: tobytes equal: False
+[runcap] exit 0, peak RSS 2 MB, 1s

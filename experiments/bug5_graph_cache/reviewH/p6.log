@@ -1,0 +1,5 @@
+type(a) is float: False type(b) is float: False (rule 1 does not match either)
+rule-2 fingerprints equal: True
+what a callback computes with rate*n for n=3: 1.5 vs 15.0
+guard type(x) is x.dtype.type: True False
+[runcap] exit 0, peak RSS 2 MB, 1s

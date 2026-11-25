@@ -1,0 +1,9 @@
+theta_dim=None: param_length fresh 1 hit 1; parameterized False False
+   update_weights([1.0]) on fresh: RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca; E[T]=1.5
+   update_weights([1.0]) on hit: RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca; E[T]=1.5
+theta_dim=1: param_length fresh 1 hit 1; parameterized False False
+   update_weights([1.0]) on fresh: RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca; E[T]=1.5
+   update_weights([1.0]) on hit: RuntimeError: Cannot call update_weights() on constant graph. Graph has constant edges (created with sca; E[T]=1.5
+theta_dim=2: fresh build error RuntimeError: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length 
+theta_dim=3: fresh build error RuntimeError: Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length 
+[runcap] exit 0, peak RSS 324 MB, 3s

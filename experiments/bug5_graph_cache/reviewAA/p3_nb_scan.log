@@ -1,0 +1,39 @@
+popgen/ghost.ipynb cell 1 [code]: #from phasic import GraphCache
+popgen/ghost.ipynb cell 1 [code]: graph_cache = ph.GraphCache()
+popgen/ghost.ipynb cell 3 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+popgen/moran-coalescent-derived.ipynb cell 1 [code]: graph_cache=True,
+popgen/old-moran-coalescent-derived.ipynb cell 4 [code]: graph_cache=False,
+popgen/two-locus-island.ipynb cell 1 [code]: GraphCache, clear_caches, clear_jax_cache, clear_model_cache,
+popgen/two-locus-island.ipynb cell 1 [code]: from phasic import GraphCache
+popgen/two-locus-island.ipynb cell 1 [code]: graph_cache = GraphCache()
+popgen/two-locus-island.ipynb cell 11 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+popgen/two-locus-island.ipynb cell 29 [code]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer
+popgen/two-locus-island.ipynb cell 37 [code]: # graph_cache.save_graph(graph, two_locus_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=indexer)
+tutorial/distributed.ipynb cell 31 [markdown]: return Graph(coalescent, graph_cache=True)
+tutorial/distributed.ipynb cell 31 [markdown]: Using `graph_cache=True` ensures that each graph is built only once and loaded from cache on subsequent runs.
+tutorial/distributed.ipynb cell 37 [markdown]: **Graph construction scaling**: Graph construction is CPU-bound and single-threaded. For very large state spac
+tutorial/matrix-solve.ipynb cell 2 [code]: phasic.configure(graph_cache=True)
+tutorial/python_trace-and-jax-caching.ipynb cell 2 [code]: get_graph_cache_stats, print_graph_cache_info,
+tutorial/python_trace-and-jax-caching.ipynb cell 7 [markdown]: Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback 
+tutorial/python_trace-and-jax-caching.ipynb cell 8 [code]: graph_cache=True)
+tutorial/python_trace-and-jax-caching.ipynb cell 10 [code]: graph_cache=True, dummy=42)
+tutorial/python_trace-and-jax-caching.ipynb cell 12 [code]: graph_cache=True, dummy=99)
+tutorial/python_trace-and-jax-caching.ipynb cell 35 [code]: print_graph_cache_info()
+tutorial/scc-decomposition.ipynb cell 26 [code]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+tutorial/scc-decomposition.ipynb cell 29 [code]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+tutorial/state-space.ipynb cell 32 [code]: Graph, with_ipv, GraphCache,
+tutorial/state-space.ipynb cell 32 [code]: print_graph_cache_info, get_graph_cache_stats
+tutorial/state-space.ipynb cell 33 [code]: cache = GraphCache()
+tutorial/state-space.ipynb cell 36 [code]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+tutorial/state-space.ipynb cell 38 [code]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+tutorial/state-space.ipynb cell 39 [markdown]: If `graph_cache=True` is not passed, the graph is built from scratch:
+tutorial/state-space.ipynb cell 42 [code]: print_graph_cache_info()
+tutorial/state-space.ipynb cell 43 [code]: get_graph_cache_stats()
+tutorial/state-space.ipynb cell 45 [code]: graph = Graph(callback, model=model, graph_cache=True)
+tutorial/svgd-joint-prob.ipynb cell 78 [code]: #   graph_cache=True,
+tutorial/trace-and-jax-caching-c-path.ipynb cell 2 [code]: get_graph_cache_stats, print_graph_cache_info,
+tutorial/trace-and-jax-caching-c-path.ipynb cell 7 [markdown]: Enable the graph cache by passing `graph_cache=True` to `Graph()`. First build constructs graph from callback 
+tutorial/trace-and-jax-caching-c-path.ipynb cell 8 [code]: graph_cache=True)
+tutorial/trace-and-jax-caching-c-path.ipynb cell 10 [code]: graph_cache=True, dummy=42)
+tutorial/trace-and-jax-caching-c-path.ipynb cell 12 [code]: graph_cache=True, dummy=99)
+tutorial/trace-and-jax-caching-c-path.ipynb cell 33 [code]: print_graph_cache_info()

@@ -1,0 +1,8 @@
+== A const graph theta_dim=3: fresh build raises RuntimeError: Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length 
+== B 3-tuple w=7: identical=True
+== C duplicate edges: identical=True
+== D theta_dim=2 with 3 coeffs: identical=True
+== E zero-coefficient edge: identical=True
+== F ipv with zero-prob start: identical=True
+== G param 2-tuple: identical=True
+[runcap] exit 0, peak RSS 303 MB, 4s

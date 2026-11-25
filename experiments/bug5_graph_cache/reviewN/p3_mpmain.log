@@ -1,0 +1,5 @@
+parent: __main__ __main__
+spawn worker: ('__mp_main__', '__mp_main__')
+forkserver worker: ('__mp_main__', '__mp_main__')
+fork worker: ('__main__', '__main__')
+[runcap] exit 0, peak RSS 2 MB, 1s

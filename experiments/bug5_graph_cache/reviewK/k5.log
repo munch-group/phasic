@@ -1,0 +1,14 @@
+exp                       type=ufunc                        ok
+add                       type=ufunc                        ok
+sum                       type=_ArrayFunctionDispatcher     ok
+solve                     type=_ArrayFunctionDispatcher     ok
+sqrt                      type=builtin_function_or_method   ok
+len                       type=builtin_function_or_method   ok
+gamma                     type=ufunc                        REFUSED(module=None, name='gamma')
+abs (vectorized)          type=ufunc                        REFUSED(module=None, name='abs (vectorized)')
+type int                                 IMMUTABLE=True ok
+type int64                               IMMUTABLE=True ok
+type float64                             IMMUTABLE=True ok
+type ndarray                             IMMUTABLE=True ok
+type combinations_with_replacement       IMMUTABLE=True ok
+[runcap] exit 0, peak RSS 2 MB, 1s

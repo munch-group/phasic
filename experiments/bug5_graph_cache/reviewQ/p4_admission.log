@@ -1,0 +1,19 @@
+dtype class modules: {'f8': 'numpy.dtypes', 'M8[D]': 'numpy.dtypes', 'U3': 'numpy.dtypes', '?': 'numpy.dtypes', 'c16': 'numpy.dtypes'}
+type itertools.combinations_with_replacement: immutable=True resolves=True
+type collections.OrderedDict: immutable=True resolves=True
+type collections.defaultdict: immutable=True resolves=True
+type numpy.ndarray: immutable=True resolves=True
+type numpy.float64: immutable=True resolves=True
+type builtins.range: immutable=True resolves=True
+type builtins.frozenset: immutable=True resolves=True
+type functools.partial: immutable=True resolves=True
+type types.SimpleNamespace: immutable=True resolves=True
+<built-in function array>                                    type=builtin_function_or_method self=module resolves=True
+<built-in function zeros>                                    type=builtin_function_or_method self=module resolves=True
+<built-in function comb>                                     type=builtin_function_or_method self=module resolves=True
+<built-in function len>                                      type=builtin_function_or_method self=module resolves=True
+<ufunc 'exp'>                                                type=ufunc self=NoneType resolves=True
+<function sum at 0x105447d70>                                type=_ArrayFunctionDispatcher self=NoneType resolves=True
+<built-in method reduce of numpy.ufunc object at 0x104b06640 type=builtin_function_or_method self=ufunc resolves=False
+<bound method RandomState.rand of RandomState(MT19937) at 0x type=method self=RandomState resolves=True
+[runcap] exit 0, peak RSS 2 MB, 1s

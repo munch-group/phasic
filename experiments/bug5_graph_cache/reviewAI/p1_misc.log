@@ -1,0 +1,9 @@
+python 3.13.13 numpy 2.4.3
+(a) after copy.copy(instance): added ['__slotnames__'] changed []
+(a) pickle raised PicklingError
+(a) after failed pickle.dumps(instance): added ['__slotnames__']
+(b) np.str_('a') np.str_('a') py-equal: True dtype.str <U1 <U2 tobytes equal: False len 1 2
+(b) np.bytes_(b'a') np.bytes_(b'a') py-equal: False dtype.str |S1 |S2 tobytes equal: False len 1 2
+(b) np.str_ in sctypeDict values: True np.bytes_: True
+(b) allow-set candidates: ['bool', 'bytes_', 'clongdouble', 'complex128', 'complex64', 'datetime64', 'float16', 'float32', 'float64', 'int16', 'int32', 'int64', 'int8', 'longdouble', 'longlong', 'object_', 'str_', 'timedelta64', 'uint16', 'uint32', 'uint64', 'uint8', 'ulonglong', 'void']
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -1,0 +1,13 @@
+Matplotlib is building the font cache; this may take a moment.
+EXTENSION_SUFFIXES ('.cpython-313-darwin.so', '.abi3.so', '.so')
+hashed files 53
+non-.py hashed: ['/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so']
+phasic_pybind.__file__ in hashed: True
+[end of import] phasic.* modules: 36; failing: 0
+getattr ffi_wrappers AttributeError module 'phasic' has no attribute 'ffi_wrappers'
+[after lazy imports] phasic.* modules: 37; failing: 0
+import time 15.21s
+   phasic.phasic_pybind ModuleSpec(name='phasic.phasic_pybind', loader=<_frozen_importlib_external.ExtensionFileLoader object at 0x122a033b0>, origin='/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so') /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+   phasic.phasic_pybind.hash None /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+   phasic.phasic_pybind.parameterized None /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+[runcap] exit 0, peak RSS 326 MB, 16s

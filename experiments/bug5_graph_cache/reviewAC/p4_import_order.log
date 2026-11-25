@@ -1,0 +1,11 @@
+mode plain -> OMP NOT set
+stack at first phasic_pybind import:
+    phasic/__init__.py:53
+    phasic/graph_cache.py:29
+    phasic/logging_config.py:253
+    phasic/logging_config.py:200
+[runcap] exit 0, peak RSS 323 MB, 4s
+mode lazylog -> OMP set
+stack at first phasic_pybind import:
+    phasic/__init__.py:279
+[runcap] exit 0, peak RSS 323 MB, 3s

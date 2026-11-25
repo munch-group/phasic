@@ -1,0 +1,23 @@
+constant graph, no theta_dim:
+   fresh {'n': 6, 'pl': 1, 'par': False, 'E': 1.6}
+   hit   {'n': 6, 'pl': 1, 'par': False, 'E': 1.6}
+   SAME=True
+   update_weights([1.0, 2.0, 3.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+   update_weights([1.0, 2.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+   update_weights([1.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+constant graph, theta_dim=3 fresh build ERR RuntimeError Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length >= param_length.
+3 coeffs, theta_dim=2 (aux coeff):
+   fresh {'n': 6, 'pl': 2, 'par': True, 'E': 0.9837662337662337}
+   hit   {'n': 6, 'pl': 2, 'par': True, 'E': 0.9837662337662337}
+   SAME=True
+   update_weights([1.0, 2.0, 3.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+   update_weights([1.0, 2.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+   update_weights([1.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+2 coeffs, no theta_dim:
+   fresh {'n': 6, 'pl': 2, 'par': True, 'E': 1.6}
+   hit   {'n': 6, 'pl': 2, 'par': True, 'E': 1.6}
+   SAME=True
+   update_weights([1.0, 2.0, 3.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+   update_weights([1.0, 2.0]): fresh=1.6 hit=1.6 
+   update_weights([1.0]): fresh=ERR RuntimeError hit=ERR RuntimeError 
+[runcap] exit 0, peak RSS 317 MB, 4s

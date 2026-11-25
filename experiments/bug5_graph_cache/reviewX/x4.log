@@ -1,0 +1,12 @@
+PHASIC_DYN_ORDERING set: False
+hasattr(_Graph(1), 'dyn_ordering'): False
+AttributeError: 'phasic.phasic_pybind.Graph' object has no attribute 'dyn_ordering'
+_Graph(1).get_dyn_ordering() = False
+Graph(1).dyn_ordering = False
+[runcap] exit 0, peak RSS 323 MB, 3s
+PHASIC_DYN_ORDERING set: True
+hasattr(_Graph(1), 'dyn_ordering'): False
+AttributeError: 'phasic.phasic_pybind.Graph' object has no attribute 'dyn_ordering'
+_Graph(1).get_dyn_ordering() = True
+Graph(1).dyn_ordering = True
+[runcap] exit 0, peak RSS 325 MB, 3s

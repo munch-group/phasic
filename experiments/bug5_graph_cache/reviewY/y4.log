@@ -1,0 +1,4 @@
+same extension module object after purge+reimport: True
+record attribute survives: True
+same native Graph type object (native code NOT reloaded): True
+[runcap] exit 0, peak RSS 315 MB, 4s

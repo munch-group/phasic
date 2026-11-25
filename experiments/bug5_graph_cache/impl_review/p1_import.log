@@ -1,0 +1,12 @@
+RESULT {'import_s': 15.7573, 'has_cache_key': False}
+RESULT {'import_s': 1.9825, 'has_cache_key': False}
+RESULT {'import_s': 1.8197, 'has_cache_key': False}
+RESULT {'import_s': 1.8425, 'has_cache_key': False}
+RESULT {'import_s': 1.8251, 'has_cache_key': False}
+RESULT {'import_s': 1.9099, 'has_cache_key': False}
+RESULT {'import_s': 2.6899, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.63, 'build_id_check_ms_median': 0.236}
+RESULT {'import_s': 1.865, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.31, 'build_id_check_ms_median': 0.217}
+RESULT {'import_s': 1.8618, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.47, 'build_id_check_ms_median': 0.232}
+RESULT {'import_s': 1.8698, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.43, 'build_id_check_ms_median': 0.235}
+RESULT {'import_s': 1.8622, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.4, 'build_id_check_ms_median': 0.233}
+RESULT {'import_s': 1.8464, 'has_cache_key': True, 'record_error': None, 'n_files': 53, 'compute_record_ms_min': 4.27, 'build_id_check_ms_median': 0.217}

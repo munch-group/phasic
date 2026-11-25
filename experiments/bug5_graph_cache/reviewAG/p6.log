@@ -1,0 +1,3 @@
+joblib.externals.cloudpickle: pickles (7284 B); same _result_class object after in-process loads: True
+dill: pickles (7423 B); same _result_class object after in-process loads: False
+[runcap] exit 0, peak RSS 319 MB, 4s

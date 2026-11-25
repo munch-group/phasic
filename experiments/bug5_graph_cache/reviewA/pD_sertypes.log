@@ -1,0 +1,7 @@
+param {'ndarray[int32]': ['root.states', 'root.vertex_indices'], 'ndarray[float64]': ['root.constant_edges', 'root.edges', 'root.param_edges'], 'int': ['root.n_vertices', 'root.param_length', 'root.state_length'], 'str': ['root.weight_mode'], 'bool': ['root.dyn_ordering', 'root.is_discrete', 'root.was_dph'], 'ndarray[bool]': ['root.is_aux']}
+   _serialize_value ok
+param+indexer+theta_dim {'ndarray[int32]': ['root.states', 'root.vertex_indices'], 'ndarray[float64]': ['root.constant_edges', 'root.edges', 'root.param_edges'], 'int': ['root.n_vertices', 'root.param_length', 'root.state_length'], 'str': ['root.weight_mode'], 'bool': ['root.dyn_ordering', 'root.is_discrete', 'root.was_dph'], 'ndarray[bool]': ['root.is_aux']}
+   _serialize_value ok
+constant {'ndarray[int32]': ['root.states', 'root.vertex_indices'], 'ndarray[float64]': ['root.constant_edges', 'root.edges', 'root.param_edges'], 'int': ['root.n_vertices', 'root.param_length', 'root.state_length'], 'str': ['root.weight_mode'], 'bool': ['root.dyn_ordering', 'root.is_discrete', 'root.was_dph'], 'ndarray[bool]': ['root.is_aux']}
+   _serialize_value ok
+[runcap] exit 0, peak RSS 325 MB, 3s

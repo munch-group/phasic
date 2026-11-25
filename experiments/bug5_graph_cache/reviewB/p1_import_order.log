@@ -1,0 +1,9 @@
+Matplotlib is building the font cache; this may take a moment.
+pkgdir: /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic
+A: phasic.phasic_pybind loaded by importing phasic.cache: True
+A: OMP_NUM_THREADS at that moment: None
+
+B: OMP_NUM_THREADS in parent before import phasic: None
+B: OMP_NUM_THREADS in parent after import phasic: 8
+B: child (default env inheritance) sees OMP_NUM_THREADS = 8
+[runcap] exit 0, peak RSS 319 MB, 16s

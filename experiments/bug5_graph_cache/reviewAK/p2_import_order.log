@@ -1,0 +1,3 @@
+OMP set at first pybind import: False
+stack: ['p2_import_order.py:15', '__init__.py:53', 'graph_cache.py:29', 'logging_config.py:253', 'logging_config.py:200', 'p2_import_order.py:10']
+[runcap] exit 0, peak RSS 325 MB, 3s

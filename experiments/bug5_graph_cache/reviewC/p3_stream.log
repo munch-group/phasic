@@ -1,0 +1,9 @@
+targeted pairs collisions: 0
+closure rate 1 vs 5 distinct: True
+closure ([1],2) vs ([1,2],?) distinct: True
+two lambdas distinct: True
+frozenset consts distinct: True
+recursion shapes distinct: True
+module cell hashes: True
+fuzz: 60000 inputs, 24901 distinct streams, collisions: 0
+[runcap] exit 0, peak RSS 117 MB, 2s

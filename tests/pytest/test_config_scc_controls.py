@@ -46,7 +46,6 @@ def _reset_config_and_env(monkeypatch):
         "PHASIC_MIN_SCC_SIZE_TO_CACHE",
         "PHASIC_MAX_PARALLEL_SCCS",
         "PHASIC_REWARD_COMPUTE_CACHE",
-        "PHASIC_DISABLE_GRAPH_CACHE",
         "PHASIC_CACHE_DIR",
     )
 
@@ -104,8 +103,12 @@ def test_configure_max_parallel_sccs_sets_env():
 
 
 def test_configure_disable_graph_cache_sets_env():
-    phasic.configure(graph_cache=False)
-    assert os.environ.get("PHASIC_DISABLE_GRAPH_CACHE") == "1"
+    """The graph_cache option was removed (graphs are cached only with
+    Graph(..., cache_key=...)): configure() rejects it as unknown, naming
+    cache_key."""
+    from phasic.exceptions import PTDConfigError
+    with pytest.raises(PTDConfigError, match="cache_key"):
+        phasic.configure(graph_cache=False)
 
 
 def test_configure_enable_reward_compute_cache_sets_env():

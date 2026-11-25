@@ -1,0 +1,5 @@
+python 3.13.13  c_make_encoder available: True
+1000000 rows x 4 numbers, file 58.3 MB
+json.dump  (streamed, pure-Python encoder): 3.14 s
+json.dumps + write (C encoder):             1.12 s   ratio 2.8x
+[runcap] exit 0, peak RSS 335 MB, 5s

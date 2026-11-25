@@ -1,0 +1,4 @@
+before 398f79f88c58cc67 after specialization 398f79f88c58cc67 equal True
+under sys.monitoring 398f79f88c58cc67 equal True
+under settrace 398f79f88c58cc67 equal True
+[runcap] exit 0, peak RSS 0 MB, 1s

@@ -1,0 +1,33 @@
+Review AM probe outputs (all runs: runcap 4000 MB, HOME=scratch, PHASIC_CACHE_DIR unset;
+cache files written by master's default-on cache under the scratch HOME were deleted afterwards).
+
+p1_import_order.py (master install, OMP_NUM_THREADS removed):
+  OMP set at phasic_pybind import: False
+  stack: ... phasic/logging_config.py:200 <- phasic/logging_config.py:253 <- phasic/graph_cache.py:29
+
+p2_import_order_stubbed.py (phasic.graph_cache stubbed without module-level get_logger):
+  OMP set at phasic_pybind import: True
+  stack: ... phasic/__init__.py:279
+  logging configured after import: True; phasic logger handlers: [StreamHandler <stderr> (WARNING)]
+  => plan 2.2.3 claim holds: graph_cache's logger is the only early trigger; handler setup still happens.
+
+p3_loaded_modules.py: every loaded phasic.* module has a source inside the package dir;
+  phasic.phasic_pybind.hash / .parameterized have __spec__ None and __file__ == the hashed .so.
+
+p4_scalar_allowset.py: numpy 2.4.3, allow-set n=20:
+  bool bytes_ complex128 complex64 datetime64 float16 float32 float64 int16 int32 int64 int8
+  longlong str_ timedelta64 uint16 uint32 uint64 uint8 ulonglong; unchanged after importing ml_dtypes.
+
+p5_hit_vs_fresh_preupdate.py: from_serialized round trip == fresh build (E[T] 1.6 both, before and
+  after update_weights, 2- and 3-tuple callbacks). A second base __init__ on an already-initialised
+  Graph is silently ignored (E[T] 0.0), consistent with review4 p3.
+
+p6_immutable_types.py (3.13.13): itertools.combinations_with_replacement / product, defaultdict,
+  OrderedDict, deque, int, float, range, np.float64, np.ndarray, functools.partial: immutable flag set
+  and name-resolvable; collections.Counter: not immutable. math.sqrt, len, np.array, operator.add:
+  builtin with module __self__, resolvable; np.exp ufunc / np.sum, np.where, np.linalg.solve
+  dispatchers: __self__ absent, resolvable; np.add.reduce (self=ufunc) and np.random.rand
+  (bound method of RandomState) refused as intended.
+
+p7_serialize_types.py: serialize() of callback graphs holds only ndarray / int / str / bool fields.
+p8_formula_tape_types.py: formula tape = ops [int], consts [float], ints, src str (plain JSON).

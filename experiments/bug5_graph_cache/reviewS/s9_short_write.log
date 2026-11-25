@@ -1,0 +1,2 @@
+os.write calls during fdopen text write: 0  file size: 100000
+[runcap] exit 0, peak RSS 2 MB, 1s

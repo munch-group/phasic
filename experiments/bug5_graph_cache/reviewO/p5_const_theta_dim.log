@@ -1,0 +1,7 @@
+--- param 2 coefs, theta_dim=1
+  param_length fresh/hit: 1 1 | parameterized: True True
+  fresh update_weights([2.0]) -> RuntimeError: Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters.
+  fresh update_weights([2.0, 3.0]) -> RuntimeError: Parameter length mismatch: graph expects 1 parameters, got 2
+  hit   update_weights([2.0]) -> RuntimeError: Coefficient length mismatch: edge has 2 coefficients but theta has 1 parameters.
+  hit   update_weights([2.0, 3.0]) -> RuntimeError: Parameter length mismatch: graph expects 1 parameters, got 2
+[runcap] exit 0, peak RSS 323 MB, 3s

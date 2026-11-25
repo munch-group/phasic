@@ -1,0 +1,55 @@
+Matplotlib is building the font cache; this may take a moment.
+== constant: n=6 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=False hit=False
+   expectation (no update): fresh=1.6 hit=1.6
+== param1: n=6 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=1.6 hit=1.6
+   expectation (theta=[2.0]): fresh=0.8 hit=0.8
+   struct after update equal: True
+== param2: n=17 struct_equal=True
+   param_length: fresh=2 hit=2
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=3.2198888483965016 hit=3.2198888483965016
+   expectation (theta=[1.0, 3.0]): fresh=1.7189429012345678 hit=1.7189429012345678
+   struct after update equal: True
+== aux_coeff: n=6 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=1.6 hit=1.6
+== dup_const: n=5 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=False hit=False
+   expectation (no update): fresh=ERR RuntimeError: Multiple edges to the same vertex!. From vertex with index 1 (state 4). To verte hit=ERR RuntimeError: Multiple edges to the same vertex!. From vertex with index 1 (state 4). To verte
+== dup_param: n=5 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=0.9999999999999998 hit=0.9999999999999998
+   expectation (theta=[3.0]): fresh=0.3333333333333335 hit=0.3333333333333335
+   struct after update equal: True
+== multi_ipv: n=6 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=1.0020833333333332 hit=1.0020833333333332
+   expectation (theta=[1.5]): fresh=0.6680555555555555 hit=0.6680555555555555
+   struct after update equal: True
+== zero_coeff: n=7 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=2.0 hit=2.0
+   expectation (theta=[2.0]): fresh=1.0 hit=1.0
+   struct after update equal: True
+== zero_const: n=6 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=False hit=False
+   expectation (no update): fresh=1.0 hit=1.0
+== cyclic: n=4 struct_equal=True
+   param_length: fresh=1 hit=1
+   parameterized: fresh=True hit=True
+   expectation (no update): fresh=2.9999999999999996 hit=2.9999999999999996
+   expectation (theta=[1.0]): fresh=2.9999999999999996 hit=2.9999999999999996
+   struct after update equal: True
+cache files written: 10
+[runcap] exit 0, peak RSS 314 MB, 17s

@@ -1,0 +1,8 @@
+env PHASIC_DYN_ORDERING = None
+_Graph(1).get_dyn_ordering(): False
+fresh callback build dyn_ordering: False
+[runcap] exit 0, peak RSS 322 MB, 4s
+env PHASIC_DYN_ORDERING = 1
+_Graph(1).get_dyn_ordering(): True
+fresh callback build dyn_ordering: True
+[runcap] exit 0, peak RSS 325 MB, 3s

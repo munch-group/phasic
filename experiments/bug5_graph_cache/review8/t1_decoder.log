@@ -1,0 +1,12 @@
+/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/review8/t1_decoder.py:106: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+  jpg = base.joint_prob_graph(idx, reward_limit=3, mutation_rate=1e-2)
+  parameterized linear         tags=['ndarray'] keys+=[] roundtrip=identical
+  constant                     tags=['ndarray'] keys+=[] roundtrip=identical
+  formula mode                 tags=['ndarray'] keys+=['weight_formula_tape'] roundtrip=identical
+  log mode                     tags=['ndarray'] keys+=[] roundtrip=identical
+  callback mode                tags=['ndarray'] keys+=[] roundtrip=identical
+  discretize()'d (was_dph, aux) tags=['ndarray'] keys+=[] roundtrip=identical
+  is_discrete flag             tags=['ndarray'] keys+=[] roundtrip=identical
+  indexer-built base           tags=['ndarray'] keys+=[] roundtrip=identical
+  joint_prob_graph             tags=['ndarray'] keys+=[] roundtrip=identical
+[runcap] exit 0, peak RSS 322 MB, 4s

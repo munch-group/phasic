@@ -1,0 +1,5 @@
+ipv [5] built 6 param_length 1
+  serialize raised ValueError Graph serialization failed: parameterized edges have inconsistent coefficient lengths.
+  Found coefficient lengths: [3, 
+ipv [4] build raised RuntimeError Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+[runcap] exit 0, peak RSS 304 MB, 3s

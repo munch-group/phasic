@@ -1,0 +1,4 @@
+write PHASIC_DYN_ORDERING env: 1
+write cache-path graph dyn_ordering: True | uncached build dyn_ordering: True
+read PHASIC_DYN_ORDERING env: None
+read cache-path graph dyn_ordering: True | uncached build dyn_ordering: False

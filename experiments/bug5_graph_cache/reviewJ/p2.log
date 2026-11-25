@@ -1,0 +1,13 @@
+[param len2] param3: fresh -> ok | hit -> ok  [SAME]
+[param len2] param2: fresh -> ok | hit -> ok  [SAME]
+[param len2] const: fresh -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | hit -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first   [SAME]
+[param len2] set_param_length3: fresh -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=2). Call ptd_graph_se | hit -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=2). Call ptd_graph_se  [SAME]
+[param len2 theta_dim2] param3: fresh -> ok | hit -> ok  [SAME]
+[param len2 theta_dim2] param2: fresh -> ok | hit -> ok  [SAME]
+[param len2 theta_dim2] const: fresh -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | hit -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first   [SAME]
+[param len2 theta_dim2] set_param_length3: fresh -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=2). Call ptd_graph_se | hit -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=2). Call ptd_graph_se  [SAME]
+[constant] param3: fresh -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-I | hit -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-I  [SAME]
+[constant] param2: fresh -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-I | hit -> RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-I  [SAME]
+[constant] const: fresh -> ok | hit -> ok  [SAME]
+[constant] set_param_length3: fresh -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=1). Call ptd_graph_se | hit -> RuntimeError: Cannot set param_length: graph already has edges added (param_length=1). Call ptd_graph_se  [SAME]
+[runcap] exit 0, peak RSS 314 MB, 4s

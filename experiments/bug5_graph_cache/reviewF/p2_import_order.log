@@ -1,0 +1,5 @@
+OMP set at first phasic_pybind import (graph_cache stubbed): True
+     /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewF/p2_import_order.py:18
+     phasic/__init__.py:279
+     /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewF/p2_import_order.py:10
+[runcap] exit 0, peak RSS 320 MB, 3s

@@ -1,5 +1,40 @@
 from __future__ import annotations
 
+# Build-id snapshot for Graph(..., cache_key=...) (bug 5): stat every *.py
+# file and every extension-module file of this package BEFORE any submodule
+# or phasic_pybind import, stdlib only. At the end of this file
+# callback_hash._record_build_stats() hashes the files and re-stats them
+# against this snapshot, so the recorded build id describes the code this
+# process imported. Must apply exactly the rules of
+# callback_hash._scan_package.
+def _phasic_import_snapshot():
+    import os as _os
+    import importlib.machinery as _machinery
+    _root = _os.path.dirname(_os.path.abspath(__file__))
+    _suffixes = tuple(_machinery.EXTENSION_SUFFIXES)
+    _files = {}
+    _stack = [""]
+    try:
+        while _stack:
+            _rel = _stack.pop()
+            with _os.scandir(_os.path.join(_root, _rel) if _rel else _root) as _it:
+                for _e in _it:
+                    _r = _os.path.join(_rel, _e.name) if _rel else _e.name
+                    if _e.is_dir(follow_symlinks=False):
+                        if _e.name != "__pycache__":
+                            _stack.append(_r)
+                    elif _e.name.endswith(".py") or _e.name.endswith(_suffixes):
+                        if _e.is_file():
+                            _st = _e.stat()
+                            _files[_r] = (_st.st_size, _st.st_mtime_ns, _st.st_ctime_ns,
+                                          _st.st_ino, _st.st_dev)
+    except OSError:
+        return None   # recorded as a failure at the end of import
+    return {"root": _root, "files": _files}
+
+
+_phasic_build_snapshot = _phasic_import_snapshot()
+
 from ast import arg
 from functools import partial
 from collections import defaultdict, OrderedDict
@@ -50,7 +85,13 @@ from .state_indexing import (
     StateVector
 )
 from .hex_grid import HexGrid, HexCell
-from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
+from phasic.graph_cache import (
+    GraphCache,
+    get_graph_cache_stats,
+    print_graph_cache_info,
+    clear_all_graph_caches,
+)
+from phasic.callback_hash import GraphCacheKeyError, GraphCacheLoadError
 
 
 def _detect_omp_num_threads() -> int:
@@ -131,6 +172,18 @@ os.environ.setdefault("JAX_ENABLE_X64", "1")
 
 # Get configuration (creates default if none exists)
 _config = get_config()
+
+# The global graph-cache switch was removed (graphs are cached only with
+# Graph(..., cache_key=...)); tell users who still set its variable.
+if "PHASIC_DISABLE_GRAPH_CACHE" in os.environ:
+    import warnings as _warnings
+    _warnings.warn(
+        "PHASIC_DISABLE_GRAPH_CACHE no longer has an effect: graphs are "
+        "cached only when you name the entry with "
+        "Graph(..., cache_key=\"<name>\"), and are never cached otherwise.",
+        UserWarning,
+        stacklevel=2,
+    )
 
 # JAX is no longer imported at module load time. The previous
 # import-time block (which imported JAX, wrote XLA_FLAGS, applied
@@ -1498,7 +1551,7 @@ def _options_hint(*names) -> str:
 
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool | None = None, **kwargs: Any) -> None:
+    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, *, cache_key: str | None = None, **kwargs: Any) -> None:
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1513,18 +1566,153 @@ class Graph(_Graph):
         callback :
             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-        graph_cache : bool or None, optional
-            Per-graph override for the on-disk graph cache at
-            ``~/.phasic_cache/graphs/``. The cache is keyed by callback
-            source code + parameters, enabling instant loading of
-            previously built graphs.
+        cache_key : str or None, keyword-only, optional
+            Name of an on-disk cache entry for a graph built from a
+            callback. ``None`` (default): no lookup, no hashing, no file.
+            Given (an exact, non-empty ``str``; pass ``str(name)`` for
+            ``np.str_`` or enum names), the graph is loaded from the cache
+            if an entry exists for this call, otherwise built and saved.
+            On a hit the callback does NOT run.
 
-            - ``True``: opt in to caching for this graph (load on
-              construction, save after build).
-            - ``False``: opt out for this graph even if the global
-              default is on.
-            - ``None`` (default): use the global default from
-              ``phasic.configure(graph_cache=...)`` — on by default.
+            **Contract.** You name the entry; phasic adds to the key
+            everything it can read exactly from the call:
+
+            - the callback function object (its running bytecode,
+              constants, defaults, ``__name__`` / ``__qualname__``,
+              ``__dict__``, closure contents and bound ``self``,
+              recursively; ``__doc__`` and the source file are not
+              keyed: the key follows the code that RUNS, so editing the
+              file without reloading changes nothing, while a docstring
+              edit or splitting an expression across lines can cause a
+              harmless miss);
+            - the keyword arguments and the ipv BY VALUE (at call time);
+            - the phasic build (a content hash of the installed package's
+              source and extension files, recorded at ``import phasic``),
+              ``numpy.__version__`` and the Python minor version.
+
+            What the callback reaches through MODULE GLOBALS (helper
+            functions, module variables, imported objects), through a
+            module captured in a closure cell (keyed by name only, so its
+            attributes and edits followed by ``importlib.reload`` are not
+            seen), installed library versions (compiled functions are keyed
+            by name, Python functions by their code, never by the module
+            globals they read), files and the environment is YOUR
+            responsibility: change ``cache_key`` when it changes. Functions
+            anywhere (callback, closure cells, defaults, keyword arguments)
+            are keyed by code, defaults and closures, not by the globals
+            they read. A function made with ``exec(src, ns)`` or
+            ``types.FunctionType(code, ns)`` reads its globals from ``ns``,
+            which counts as module globals. In a ``multiprocessing`` spawn
+            or forkserver worker the main script is ``__mp_main__``, keyed
+            as ``__main__``: globals the parent sets inside
+            ``if __name__ == "__main__":`` are absent in the worker, yet the
+            worker gets the parent's graph (module globals are your
+            responsibility). For example::
+
+                RATE = 2.0                       # module global: NOT keyed
+
+                @phasic.callback([5])
+                def model(state, theta=1.0):
+                    ...                          # reads RATE and theta
+
+                g = Graph(model, theta=1.0, cache_key="coalescent-v1")
+                # after changing RATE, use a new name:
+                g = Graph(model, theta=1.0, cache_key="coalescent-v2")
+
+            The key reflects arguments and captured state AT CALL TIME: a
+            callback must not change its arguments or captured state in
+            ways that affect the graph (for example mutating one kwarg and
+            reading an alias of it: aliases are keyed by content). Closure
+            state the build itself changes (a hand-written memo dict, a
+            ``nonlocal`` call counter) makes every repeat call in the same
+            process miss and write a new entry; keep such state in a module
+            global, which is not keyed. Object IDENTITY (``is``, ``id()``)
+            is not part of the key: a callback distinguishing equal-content
+            objects by identity is outside the contract (dicts keyed by
+            function objects are refused). A dict or list built by
+            iterating a SET of strings has a hash-seed-dependent order and
+            misses across processes (sort it first); a callback whose
+            output depends on hash randomisation gets the WRITER's graph on
+            a hit. Side effects of the callback (filling a passed container)
+            do not happen on a hit. The key's cost scales with the argument
+            and captured data and is paid on hits too.
+
+            A hit returns the SAME GRAPH the writer built (identical
+            ``serialize()`` output, vertex and edge order); numerical
+            results computed from it equal a fresh build's up to rounding,
+            not bit for bit (fresh builds already differ in the last bit
+            between instances, and numpy's SIMD math can differ by a few
+            ULPs between CPUs sharing a cache).
+
+            **What is keyed automatically:** plain values (``None``,
+            ``bool``, ``int``, ``float``, ``complex``, ``str``, ``bytes``),
+            numpy scalars and arrays (numeric, bool, str, bytes, datetime /
+            timedelta dtypes; dtype, shape and memory layout are keyed),
+            exact ``list`` / ``tuple`` / ``dict`` containers of those (dict
+            insertion order is keyed), ``Ellipsis`` / ``slice``, functions,
+            bound methods and ``functools.partial`` objects (including
+            attributes set on them), compiled functions that resolve back
+            to themselves by module and name (``math.sqrt``, ``len``,
+            ``np.exp``), immutable compiled types
+            (``itertools.combinations_with_replacement``), a module held
+            directly in a closure cell (by name), and phasic's own
+            ``StateIndexer`` / ``Property`` in their plain form. Anything
+            else raises ``GraphCacheKeyError`` naming the offending value;
+            pass the values the callback needs as plain values instead (for
+            example ``model.to_dict()``, numeric DataFrame columns via
+            ``to_numpy()`` with labels as lists), or build without
+            ``cache_key``. Common refusals: user class instances (with or
+            without ``to_dict()``), dataclass instances (phasic's
+            ``HexCell`` / ``HexGrid`` too), pandas objects, ``set`` /
+            ``frozenset`` / ``range``, ``defaultdict`` / ``OrderedDict``,
+            ``pathlib.Path``, ``jax.Array``, ``operator.itemgetter``,
+            ``collections.namedtuple`` instances (pass ``nt._asdict()`` or
+            a tuple), the class ``collections.Counter`` captured in a cell,
+            ``IntEnum`` values, ``fractions.Fraction``,
+            ``decimal.Decimal``, numpy dtype instances such as
+            ``np.dtype('int64')`` (capture ``np.int64`` or the dtype
+            string), long-double and ``StringDType`` arrays, ``np.memmap``
+            arrays (pass ``np.asarray(mm)``, which reads the file to hash
+            it), masked arrays, structured arrays, a local ``lru_cache`` /
+            ``np.vectorize`` / numba ``@njit`` / ``jax.jit`` helper or a
+            ``scipy.special`` ufunc in a closure (make it a module global),
+            a bare ``PropertySet`` (pass the whole indexer), phasic's own
+            ``index_to_props`` results (precompute plain lookup tables),
+            phasic classes captured in a closure cell (import them at
+            module level), functions whose ``__dict__`` holds an
+            ``inspect.Signature``, recursive nested helpers (define them at
+            module level), cycles, and nesting deeper than 100. A Cython
+            extension compiled with ``binding=False`` is keyed by name
+            (installed-library clause). Replacing a ``StateIndexer``'s
+            private attributes (for example its generated classes) is
+            outside the contract.
+
+            **Files.** Entries live in ``$PHASIC_CACHE_DIR/graphs`` (set it
+            absolute: a relative value is resolved once by the graph cache
+            but used verbatim by the C caches) or ``~/.phasic_cache/graphs``.
+            Writes are atomic with best-effort durability; concurrent
+            writers are safe. Entries are never evicted: every distinct
+            argument set under one ``cache_key`` writes its own file
+            (roughly linear in size: tens of MB at 20k-60k vertices, about
+            0.85 GB and a ~5 GB load-time peak at 600k sparse vertices), so
+            a parameter sweep under one name accumulates files; clear them
+            with ``phasic.clear_all_graph_caches()`` or
+            ``Graph.clear_from_cache()``. An existing but unusable entry
+            raises ``GraphCacheLoadError`` (delete the file, clear the
+            cache, or change ``cache_key``); there is no silent rebuild. A
+            read-only cache directory is detected before building (hits
+            still work); disk-full or quota errors surface at save time,
+            where the save error carries the built graph as ``e.graph``.
+            ``PHASIC_DISABLE_CACHE`` has no effect on ``cache_key``. Share a
+            cache directory only with trusted users (anyone who can compute
+            a key can plant an entry), and use project-unique key names: two
+            projects choosing the same name for same-code callbacks that
+            read different module globals share entries. Keyed runs must
+            not overlap a reinstall of phasic in the same environment (for
+            example ``pixi run install-dev``): the next key computation
+            raises ``GraphCacheKeyError`` asking for a restart. The build id
+            needs a regular install (not an editable install whose compiled
+            extension lives outside the package directory).
         theta_dim : int, optional
             Number of model parameters (θ). This sets the expected length of parameter vectors
             passed to update_weights(theta).
@@ -1577,8 +1765,8 @@ class Graph(_Graph):
         >>> graph = Graph(callback, theta=2.0)
 
         >>> # With caching (fast on second call)
-        >>> graph = Graph(callback, theta=2.0, cache=True)  # Builds and caches
-        >>> graph = Graph(callback, theta=2.0, cache=True)  # Instant load from cache
+        >>> graph = Graph(callback, theta=2.0, cache_key="my-model")  # Builds and caches
+        >>> graph = Graph(callback, theta=2.0, cache_key="my-model")  # Loads from cache
 
         >>> # Using extra coefficients with callback mode
         >>> def callback_with_extra_coeffs(state):
@@ -1590,6 +1778,21 @@ class Graph(_Graph):
         >>> # Callback mode works:
         >>> graph.update_weights([1.5, 2.0], lambda theta, coeffs: coeffs[0]*theta[0] + coeffs[1]*theta[1] + coeffs[2])  # OK
         """
+        # Path of this graph's on-disk cache entry (absolute), set only
+        # when the graph was loaded from or saved to the graph cache under
+        # a cache_key. Graph.clear_from_cache() reads it.
+        self._graph_cache_entry = None
+
+        # The global/per-graph graph_cache switch was removed (bug 5):
+        # without this check the argument would reach the callback through
+        # **kwargs.
+        if 'graph_cache' in kwargs:
+            raise TypeError(
+                "Graph(graph_cache=...) was removed. Graphs are cached only "
+                "when you name the entry: Graph(callback, ..., "
+                "cache_key=\"<name>\"); without cache_key nothing is cached."
+            )
+
         # DEPRECATED: cache_trace and hierarchical kwargs.
         #
         # The Python EliminationTrace path that these kwargs once gated
@@ -1652,6 +1855,18 @@ class Graph(_Graph):
         if not callable(arg) and ipv is not None:
             raise ValueError("ipv is only used with a callback function, not with integer state_length")
 
+        # Validate cache_key
+        if cache_key is not None:
+            if type(cache_key) is not str:
+                raise TypeError(
+                    f"cache_key must be a str, got {type(cache_key).__name__}; "
+                    f"pass str(name)"
+                )
+            if not cache_key:
+                raise ValueError("cache_key must be a non-empty string")
+            if not callable(arg):
+                raise ValueError("cache_key applies to graphs built from a callback")
+
         # Validate theta_dim if provided
         theta_dim_arg = kwargs.get('theta_dim', None)
         if theta_dim_arg is not None:
@@ -1660,72 +1875,84 @@ class Graph(_Graph):
             if theta_dim_arg < 1:
                 raise ValueError(f"theta_dim must be >= 1, got {theta_dim_arg}")
 
+        # Validate the callback / ipv combination and wrap the callback with
+        # the ipv. This runs for EVERY callback build, BEFORE any cache
+        # lookup, so a cache hit can never skip it. The wrapped callback is
+        # what the C builder receives and what the cache key fingerprints.
+        callback_for_cache = arg
+        if callable(arg):
+            if getattr(arg, "__name__", None) != 'wrapper':
+                if ipv is None:
+                    raise ValueError("When providing a function not decorated with @callback, the ipv argument must be provided")
+                callback_for_cache = _callback(ipv)(arg)
+            elif ipv is not None:
+                raise ValueError("When providing a function decorated with @callback, the ipv argument is ignored and should not be provided")
+
         self._joint_prob_base_graph_indexer = None  # flag to signify joint probability representation; defaults to until set internally
         self._indexer = kwargs.get('indexer', None)  # StateIndexer this graph was built against; carried for downstream composition (add_epoch, joint_prob_graph)
 
-        # Wrap callback with IPV BEFORE cache operations to ensure consistent hashing
-        callback_for_cache = arg
-        if callable(arg) and ipv is not None:
-            if arg.__name__ != 'wrapper':
-                # Wrap with IPV now so cache hash includes it
-                callback_for_cache = _callback(ipv)(arg)
-
-        # Resolve the per-graph graph_cache flag against the global
-        # default once: graph_cache=None means "use phasic.configure
-        # (graph_cache=...)" (defaults True). Explicit True/False
-        # bypasses the global.
-        if graph_cache is None:
-            from .config import get_config
-            graph_cache = bool(get_config().graph_cache)
-
-        # Try loading from cache if requested
-        if callable(arg) and graph_cache:
+        # On-disk graph cache: only when the user names the entry.
+        cache = None
+        digest = None
+        if cache_key is not None:
+            from .callback_hash import cache_entry_key
             from .graph_cache import GraphCache
             from .logging_config import get_logger
             logger = get_logger(__name__)
 
-            _cache = GraphCache()
-            try:
-                cached_graph = _cache.load_graph(callback_for_cache, **kwargs)
-                if cached_graph is not None:
-                    # Cache hit - initialize from cached graph
-                    super().__init__(cached_graph)
-                    # Copy Python attributes.
-                    # The deserialized cached graph only restores graph *structure*;
-                    # its _callback is always None because a Python function cannot
-                    # be serialized to disk. Use the live callback/kwargs in hand
-                    # (callback_for_cache is the same value the non-cache path stores
-                    # below) so that extend()/add_epoch() keep working after a cache
-                    # hit instead of raising "No callback available".
-                    self._callback = callback_for_cache
-                    self._callback_kwargs = kwargs.copy()
-                    self.is_discrete = cached_graph.is_discrete if hasattr(cached_graph, 'is_discrete') else False
-                    self._cache_trace = cache_trace
-                    self._trace = None
-                    self._trace_dirty = True
-                    self._last_theta = None
-                    # Match the attribute set established by the
-                    # non-cache-hit path further down (lines ~1901+).
-                    # Without these, calling ``serialize()`` on the
-                    # cache-loaded instance raises AttributeError.
-                    self._weight_mode = getattr(cached_graph, '_weight_mode', 'linear')
-                    self._weight_callback = getattr(cached_graph, '_weight_callback', None)
-                    self._weight_formula = getattr(cached_graph, '_weight_formula', None)
-                    self._weight_formula_tape = getattr(cached_graph, '_weight_formula_tape', None)
-                    if self._weight_mode == 'formula' and self._weight_formula_tape is not None:
-                        # Re-install the tape on this (freshly loaded) live graph
-                        # so direct graph.pdf()/update_weights honor the formula.
-                        _t = self._weight_formula_tape
-                        self._set_weight_tape(list(_t['ops']), list(_t['consts']),
-                                              int(_t['stack_depth']),
-                                              int(_t['n_theta']), int(_t['n_coeff']))
-                    self._last_callback_vertices_length = self.vertices_length()
-                    logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
+            # A key error propagates: nothing is built, nothing written.
+            digest = cache_entry_key(cache_key, callback_for_cache, **kwargs)
+            # ONE GraphCache per call: its directory is absolute and exists,
+            # so lookup and save use the same directory.
+            cache = GraphCache(create=True)
+            # load() returns a graph, None (no entry) or raises
+            # (GraphCacheLoadError / OSError); nothing here catches it.
+            cached_graph = cache.load(digest)
+            if cached_graph is not None:
+                # Cache hit - initialize from cached graph
+                super().__init__(cached_graph)
+                # Copy Python attributes.
+                # The deserialized cached graph only restores graph *structure*;
+                # its _callback is always None because a Python function cannot
+                # be serialized to disk. Use the live callback/kwargs in hand
+                # (callback_for_cache is the same value the non-cache path stores
+                # below) so that extend()/add_epoch() keep working after a cache
+                # hit instead of raising "No callback available".
+                self._callback = callback_for_cache
+                self._callback_kwargs = kwargs.copy()
+                self.is_discrete = cached_graph.is_discrete if hasattr(cached_graph, 'is_discrete') else False
+                self._cache_trace = cache_trace
+                self._trace = None
+                self._trace_dirty = True
+                self._last_theta = None
+                # Match the attribute set established by the
+                # non-cache-hit path further down.
+                # Without these, calling ``serialize()`` on the
+                # cache-loaded instance raises AttributeError.
+                self._weight_mode = getattr(cached_graph, '_weight_mode', 'linear')
+                self._weight_callback = getattr(cached_graph, '_weight_callback', None)
+                self._weight_formula = getattr(cached_graph, '_weight_formula', None)
+                self._weight_formula_tape = getattr(cached_graph, '_weight_formula_tape', None)
+                if self._weight_mode == 'formula' and self._weight_formula_tape is not None:
+                    # Re-install the tape on this (freshly loaded) live graph
+                    # so direct graph.pdf()/update_weights honor the formula.
+                    _t = self._weight_formula_tape
+                    self._set_weight_tape(list(_t['ops']), list(_t['consts']),
+                                          int(_t['stack_depth']),
+                                          int(_t['n_theta']), int(_t['n_coeff']))
+                self._last_callback_vertices_length = self.vertices_length()
+                # serialize() persists the WRITER's dyn_ordering flag; a hit
+                # must behave like a fresh build in THIS environment, so take
+                # the flag of a freshly created native graph (the C rule at
+                # graph creation, which reads the C environment).
+                self.dyn_ordering = _Graph(1).get_dyn_ordering()
+                self._graph_cache_entry = str(cache.entry_path(digest))
+                logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
+                return
 
-                    return
-            except Exception as e:
-                logger.warning(f"Failed to load from cache: {e}")
-                # Fall through to normal construction
+            # Miss: probe the directory's writability BEFORE building, so a
+            # read-only cache directory never costs a long build.
+            cache._probe_writable()
 
         # Store callback and kwargs for later use with extend()
         self._callback = None
@@ -1746,17 +1973,8 @@ class Graph(_Graph):
                 if isinstance(value, int):
                     kwargs_for_callback[key] = float(value)
 
-            # Use the wrapped callback (already done before cache operations)
-            if callback_for_cache is not arg:
-                # Already wrapped for cache
-                arg = callback_for_cache
-            elif arg.__name__ != 'wrapper':
-                if ipv is None:
-                    raise ValueError("When providing a function not decorated with @callback, the ipv argument must be provided")
-                arg = _callback(ipv)(arg)
-            else:
-                if ipv is not None:
-                    raise ValueError("When providing a function decorated with @callback, the ipv argument is ignored and should not be provided")
+            # The callback wrapped with the ipv (validated above)
+            arg = callback_for_cache
 
             # Store the callback and kwargs for extend() (with hierarchical)
             self._callback = arg
@@ -1788,19 +2006,29 @@ class Graph(_Graph):
 
         self._last_callback_vertices_length = self.vertices_length()  # Track vertices length at last callback call for extend()
 
-        # Save to cache if requested and construction succeeded
-        if callable(arg) and graph_cache:
-            from .graph_cache import GraphCache
-            from .logging_config import get_logger
-            logger = get_logger(__name__)
-
-            _cache = GraphCache()
+        # Save to the graph cache (cache_key given, lookup missed).
+        if cache is not None:
+            _inner = getattr(callback_for_cache, "__wrapped__", callback_for_cache)
+            _name = getattr(_inner, "__name__", None)
+            if type(_name) is not str:
+                _name = type(_inner).__name__
             try:
-                # Use same wrapped callback as load for consistent hash
-                _cache.save_graph(self, callback_for_cache, **kwargs)
-                logger.info(f"Saved graph to cache: {self.vertices_length()} vertices")
-            except Exception as e:
-                logger.warning(f"Failed to save graph to cache: {e}")
+                cache.save(self, digest, {"cache_key": cache_key, "callback_name": _name})
+            except BaseException as e:
+                # Keep the (possibly hours-long) build: attach it to the
+                # error, which propagates with its type unchanged.
+                _path = cache.entry_path(digest)
+                try:
+                    e.graph = self
+                except Exception:
+                    pass
+                e.add_note(
+                    f"Saving the graph to the cache entry {_path} failed; "
+                    f"the built graph is attached to this exception as "
+                    f"e.graph (it was not cached)."
+                )
+                raise
+            self._graph_cache_entry = str(cache.entry_path(digest))
 
 
     def vertex_at(self, idx):
@@ -12751,3 +12979,11 @@ def __getattr__(name: str):
 # JAX-dependent at import (SVGD is imported lazily inside FreeEpochModel.fit),
 # so bind it directly rather than via the JAX-lazy __getattr__ above.
 from .epoch_model import FreeEpochModel  # noqa: E402,F401
+
+
+# Record the phasic build id for Graph(..., cache_key=...) (bug 5): hash the
+# package's source and extension files and check them against the
+# top-of-import snapshot. Never raises; a failure is stored and raised by
+# the first key computation. Must stay the LAST statement of this file.
+from . import callback_hash as _callback_hash  # noqa: E402
+_callback_hash._record_build_stats(_phasic_build_snapshot)

@@ -58,12 +58,13 @@ def test_without_flags_reloaded_graph_is_refused_as_before():
 
 def test_is_aux_survives_the_graph_cache_json_path():
     """The graph cache stores serialize() output as JSON (lists) and loads it
-    back with np.array; the flags and their bool dtype survive."""
+    back through the restricted decoder of the load path (np.array for the
+    ndarray tag); the flags and their bool dtype survive."""
     import json
-    from phasic.graph_cache import _serialize_value, _deserialize_value
+    from phasic.graph_cache import _serialize_value, _decode_graph_data
     d = pins.coal_param().discretize(0.1)
     blob = json.dumps(_serialize_value(d.serialize()))
-    data = _deserialize_value(json.loads(blob))
+    data = _decode_graph_data(json.loads(blob))
     assert np.asarray(data["is_aux"]).dtype == bool
     d2 = Graph.from_serialized(data)
     assert [v.is_aux() for v in d2.vertices()] == [v.is_aux() for v in d.vertices()]

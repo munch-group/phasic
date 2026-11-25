@@ -1,0 +1,6 @@
+hashed files: 53 ext: ['phasic_pybind.cpython-313-darwin.so']
+pybind __file__ in hashed: True
+loaded phasic modules: 36
+coverage failures: []
+after lazy imports, failures: []
+[runcap] exit 0, peak RSS 312 MB, 7s

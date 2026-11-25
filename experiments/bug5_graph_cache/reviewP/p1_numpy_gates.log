@@ -1,0 +1,10 @@
+numpy 2.4.3
+StringDType gate: {'mod': 'numpy.dtypes', 'builtin': True, 'hasobject': True, 'fields': None, 'dstr': 'StringDType()'}
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewP/p1_numpy_gates.py", line 17, in <module>
+    ba = np.ascontiguousarray(a).reshape(-1).view(np.uint8).tobytes() if True else None
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/_internal.py", line 525, in _view_is_safe
+    raise TypeError("Cannot change data-type for array of references.")
+TypeError: Cannot change data-type for array of references.
+[runcap] exit 1, peak RSS 2 MB, 1s

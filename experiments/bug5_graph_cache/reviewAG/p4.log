@@ -1,0 +1,6 @@
+result_class: PASS | props_dataclass: PASS
+swapped __init__: entry replaced
+added __post_init__: keyset
+unregistered: not registered
+retained over 1000 indexers: 0.160 MB; live registered classes: 0
+[runcap] exit 0, peak RSS 292 MB, 8s

@@ -1,0 +1,9 @@
+shared list referenced twice                         global-set: FLAGGED AS CYCLE
+shared list referenced twice                         path-set: ok
+ipv with one state list reused                       global-set: FLAGGED AS CYCLE
+ipv with one state list reused                       path-set: ok
+many to_dict objects (id reuse of freed results)     global-set: FLAGGED AS CYCLE
+many to_dict objects (id reuse of freed results)     path-set: ok
+true cycle                                           global-set: FLAGGED AS CYCLE
+true cycle                                           path-set: FLAGGED AS CYCLE
+[runcap] exit 0, peak RSS 2 MB, 1s

@@ -21,7 +21,7 @@ TIMES = np.linspace(0.1, 4.0, 30)
 GRAN = 128
 
 
-# Module-level (hashable) callback so the graph_cache is active. Death chain
+# Module-level callback used with cache_key (graph cache). Death chain
 # 3->2->1 with 2-coefficient edges but theta_dim=1 (decoupled).
 @with_ipv([3])
 def _chain_2coeff_gc(state, indexer=None):
@@ -105,19 +105,28 @@ def test_default_build_still_requires_full_theta():
         g.update_weights([0.5, 1.0])      # len 2 != param_length 3
 
 
-def test_graph_cache_preserves_theta_dim():
-    # The graph_cache save/load roundtrip must NOT drop theta_dim (from_serialized
+def test_graph_cache_preserves_theta_dim(tmp_path, monkeypatch):
+    # The graph cache save/load roundtrip must NOT drop theta_dim (from_serialized
     # would otherwise lock param_length to the coefficient length -> a silent
-    # failure for decoupled weight_formula models built with graph_cache=True).
-    phasic.clear_caches()
-    configure(graph_cache=True)
-    try:
-        g1 = Graph(_chain_2coeff_gc, theta_dim=1)     # cache miss -> build + save
-        g2 = Graph(_chain_2coeff_gc, theta_dim=1)     # cache hit  -> load
-        assert g1.param_length() == 1                 # theta dim, not the 2-coeff length
-        assert g2.param_length() == 1                 # preserved through the cache
-    finally:
-        configure(graph_cache=False)
+    # failure for decoupled weight_formula models built with a cache_key).
+    # tmp_path starts empty, so no cache clearing is needed (and none is done:
+    # phasic.clear_caches() wipes the real $HOME caches).
+    import phasic.graph_cache as gc
+    monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
+    loads = []
+    orig_load = gc.GraphCache.load
+
+    def spy(self, digest):
+        out = orig_load(self, digest)
+        loads.append(out)
+        return out
+
+    monkeypatch.setattr(gc.GraphCache, "load", spy)
+    g1 = Graph(_chain_2coeff_gc, theta_dim=1, cache_key="test-theta-dim")  # miss -> build + save
+    g2 = Graph(_chain_2coeff_gc, theta_dim=1, cache_key="test-theta-dim")  # hit  -> load
+    assert len(loads) == 2 and loads[0] is None and loads[1] is not None
+    assert g1.param_length() == 1                 # theta dim, not the 2-coeff length
+    assert g2.param_length() == 1                 # preserved through the cache
 
 
 def test_svgd_runs_with_theta_dim_lt_coeff_length():

@@ -1,0 +1,22 @@
+== theta_dim=3 > coeff len 2
+  fresh build ERR RuntimeError Edge has too few coefficients: graph expects at least 3, got 2. Edges must have coefficients_length >= param_length.
+== theta_dim=1 < coeff len 2
+  fresh n 6 param_length 1 parameterized True
+  hit   n 6 param_length 1 parameterized True
+  theta [2.0] E fresh/hit ['ERR RuntimeError', 'ERR RuntimeError']
+  theta [2.0, 3.0] E fresh/hit ['ERR RuntimeError', 'ERR RuntimeError']
+  theta [2.0, 3.0, 4.0] E fresh/hit ['ERR RuntimeError', 'ERR RuntimeError']
+== mixed coefficient lengths
+  fresh n 6 param_length 1 parameterized True
+  round trip ERR ValueError Graph serialization failed: parameterized edges have inconsistent coefficient lengths.
+== constant edges with theta_dim=2
+  fresh build ERR RuntimeError Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+== ipv with coefficient list
+  fresh build ERR TypeError ipv[0][1] must be a number (probability), got list
+== defective ipv
+  fresh n 6 param_length 1 parameterized True
+  hit   n 6 param_length 1 parameterized True
+  theta [2.0] E fresh/hit [0.766667, 0.766667]
+  theta [2.0, 3.0] E fresh/hit ['ERR RuntimeError', 'ERR RuntimeError']
+  theta [2.0, 3.0, 4.0] E fresh/hit ['ERR RuntimeError', 'ERR RuntimeError']
+[runcap] exit 0, peak RSS 322 MB, 4s

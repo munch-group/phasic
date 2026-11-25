@@ -1,0 +1,7 @@
+csgraph.dijkstra                       type=cython_function_or_method  FunctionType=False isfunction=False has__code__=True  co_code=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x co_names=() closure=None 
+csgraph.floyd_warshall                 type=cython_function_or_method  FunctionType=False isfunction=False has__code__=True  co_code=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x co_names=() closure=None 
+_comb_int                              type=cython_function_or_method  FunctionType=False isfunction=False has__code__=True  co_code=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x co_names=() closure=None 
+pandas lib.is_scalar                   type=cython_function_or_method  FunctionType=False isfunction=False has__code__=True  co_code=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x co_names=() closure=None 
+pandas lib.is_list_like                type=cython_function_or_method  FunctionType=False isfunction=False has__code__=True  co_code=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x co_names=() closure=None 
+co_name per cyfunction: [('csgraph.dijkstra', 'dijkstra'), ('csgraph.floyd_warshall', 'floyd_warshall'), ('_comb_int', '_comb_int'), ('pandas lib.is_scalar', 'is_scalar'), ('pandas lib.is_list_like', 'is_list_like')]
+[runcap] exit 0, peak RSS 127 MB, 2s
