@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -122,8 +122,9 @@ deterministic functions of their inputs). The
     `cache.load(digest)` (the full digest from §2.2) returns a separate, fully
     built `Graph`, or `None` (missing file), or raises (§2.6). ONE policy
     for every entry whose CONTENT cannot be used (OS errors such as
-    `PermissionError`, and `MemoryError` / `RecursionError`, propagate
-    as they are, §2.6) (malformed JSON or
+    `PermissionError` are re-raised with a message naming the file, and
+    `MemoryError` / `RecursionError` propagate unchanged, §2.6)
+    (malformed JSON or
     encoding, wrong shape or `format`, a non-ndarray type tag,
     `from_serialized` failing): `GraphCacheLoadError` naming the file and
     the ways out. Rationale: writes are atomic with best-effort
@@ -213,8 +214,8 @@ streams. Components in order:
    `indexer` and user kwargs. In the order given (insertion order of
    `**kwargs`), name + VALUE FINGERPRINT.
 
-#### 2.2.1 FUNCTION FINGERPRINT (exact, recursive; sharing and recursion
-handled by sub-digests, §2.2.2)
+#### 2.2.1 FUNCTION FINGERPRINT (exact, recursive descent; sharing handled
+by sub-digests and cycles refused, §2.2.2)
 
 - Python function `f`, EXACT type only (`type(f) is
   types.FunctionType`): `f.__module__` encoded through the VALUE
@@ -305,10 +306,12 @@ handled by sub-digests, §2.2.2)
   (`importlib.reload` keeps the same object and name) without changing
   the token (measured: E[T] 1.6 / 0.4 / 0.16 under one token, review M
   m6). The error advises passing the needed values as plain kwargs.
-- Recursion and sharing: see "Sub-digests" at the end of §2.2.2; a
-  function is represented in its parent's stream by its sub-digest, and
-  self- or mutual recursion through closure cells by a relative
-  current-path back-reference.
+- Sharing: see "Sub-digests" at the end of §2.2.2; a function is
+  represented in its parent's stream by its sub-digest. CYCLES ARE
+  REFUSED EVERYWHERE, including recursion through closure cells (a
+  nested helper that calls itself, mutually recursive nested helpers, a
+  dispatch table): advice, define such helpers at module level, where
+  they are module globals and not walked.
 
 CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
@@ -361,7 +364,12 @@ longer used, so callbacks without accessible source can be cached.
    `np.void` scalars and any dtype with `.fields` or `.hasobject` are
    refused;
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
-   subclasses are refused): `x.dtype.str`, shape, C-order bytes (hashed
+   subclasses are refused): `x.dtype.str`, shape, a LAYOUT token (`C`
+   if C-contiguous, else `F` if F-contiguous, else `S` followed by the
+   strides divided by the itemsize; a C- and an F-ordered copy of one
+   array give different last-bit results in reductions such as
+   `sum(axis=1)` and different `ravel('K')` order, review R p5;
+   `DataFrame.to_numpy()` returns F-ordered arrays), C-order bytes (hashed
    from `memoryview(np.ascontiguousarray(x).reshape(-1).view(np.uint8))`,
    which copies only non-contiguous arrays and also works for datetime /
    timedelta kinds `M` / `m`, which numpy's buffer protocol rejects, and
@@ -513,55 +521,38 @@ objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
 as `GraphCacheKeyError`.
 
-SUB-DIGESTS (replaces the back-reference tokens of v4.1, which made
-frozenset constants hash-seed dependent and could give two different
-callbacks one key, review P p4/p5). Every container (exact list, tuple,
-dict, and the dicts `StateIndexer.to_dict()` returns) and every function,
-bound method and partial is represented in its parent's stream by ONE
-fixed-length token: its SUB-DIGEST, the SHA-256 of its own token stream,
-in which its children are in turn sub-digests. A sub-digest therefore
-depends only on the object's content, never on where else the object
-occurs or on how objects are shared. (Inside a recursion group of
-functions, a member's digest can depend on which member the walk entered
-first, because a memo hit yields a deeper but equally valid unfolding;
-the same input is always walked in the same order, so this costs at most
-a miss between differently arranged but equivalent structures, never a
-shared key.) Within one key computation sub-digests are memoised by
-`id()` in ONE memo shared by values and code constants, the memo holding
-a strong reference to each object until the computation ends (so a
-freed temporary's id is never reused). Memoised kinds: containers,
-functions / bound methods / partials, numpy ARRAYS (so 200 references to
-one large array hash it once), and `StateIndexer` objects AFTER their
-rule-8 checks have passed (those checks do not depend on position). Each
-memoised object is hashed once, so outside recursion groups the walk is
-linear in the number of distinct objects (a DAG such as `a = [a, a]`
-nested k times takes k steps, and shared state tuples cost nothing
-extra). Recursion groups are the exception: open subtrees are not
-memoised (below), so a densely cyclic group of k nested helpers is
-re-walked along every simple path (measured: 2.9 s at k = 9, 28 s at
-k = 10, review Q p1). A cap of 10^5 re-walks of open subtrees per key
-computation therefore raises `GraphCacheKeyError` (advice: move the
-helpers to module level, where they are globals and not walked). Order of checks at each
-container: (1) the current-path cycle check (a container on the current
-path, such as `a = [a]`, is REFUSED with `GraphCacheKeyError`, as test 11
-expects), (2) the memo lookup, (3) the walk. Functions, bound methods
-and partials are the one place where cycles are legitimate (a nested
-function that calls itself, mutual recursion through closure cells): a
-function, bound method or partial found on the current path
-contributes a RELATIVE back-reference token (its distance up the current
-path, a structural property, not a visit order), and any sub-digest whose
-subtree contains a back-reference pointing ABOVE that subtree is used
-only in place and NOT memoised (it would mean something else in another
-context). A cycle that passes through a CONTAINER (a dispatch table
-`table = {}` holding functions that look each other up in `table`, or a
-partial held in a list that the partial's function reads) hits the
-container cycle check and is refused; this is listed among the
-documented refusals (advice: make the table a module global). Modules
-(direct cell content only) are never memoised: their admission depends
-on position (§2.2.1). The tags of the
-different token kinds (sub-digest, back-reference, scalar kinds) are
-distinct, so no two kinds can produce equal tokens.
-Limits: a depth limit of 100, and the current-path cycle check above (a
+SUB-DIGESTS (v4.4; replaces the back-reference tokens of v4.1, which
+made frozenset constants hash-seed dependent, and the recursion
+back-references of v4.2-v4.3, whose soundness depended on the walk's
+entry point, review R p2). Every container (exact list, tuple, dict, and
+the dicts `StateIndexer.to_dict()` returns), every function, bound
+method and partial, every numpy array and every `StateIndexer` that
+passed rule 8 is represented in its parent's stream by ONE fixed-length
+token: its SUB-DIGEST, the SHA-256 of its own token stream, which begins
+with a KIND TAG unique to its kind (list, tuple, dict, function, bound
+method, partial, array, indexer) and in which its children are in turn
+sub-digests. A tuple has ONE encoding whether it is reached as a code
+constant or as a value (the constant-only additions, `Ellipsis` and
+`slice`, are also value rules, rule 5b), so the shared memo can never
+hold two meanings for one object.
+NO CYCLES: the current-path check applies to EVERY memoisable object
+(containers, functions, bound methods, partials, indexers); meeting an
+object that is already on the current path raises `GraphCacheKeyError`
+naming the path, whatever the entry point. Consequently every sub-digest
+is a pure function of the object's content: it never depends on where
+else the object occurs, on sharing, on walk order or on the hash seed.
+Within one key computation sub-digests are memoised by `id()` in ONE
+memo shared by values and code constants, holding a strong reference to
+each object until the computation ends (so a freed temporary's id is
+never reused). Each memoised object is hashed exactly once, so the walk
+is linear in the number of distinct objects (a DAG such as `a = [a, a]`
+nested k times takes k steps; 200 references to one 8 MB array hash it
+once; shared state tuples cost nothing extra); no budget or re-walk cap
+is needed. Order of checks at each memoisable object: (1) current-path
+check, (2) memo lookup, (3) walk. Modules (direct cell content only) are
+never memoised: their admission depends on position (§2.2.1). Scalar
+tokens have their own tags, distinct from all sub-digest kind tags.
+Limits: a depth limit of 100, and the current-path check above (a
 process-wide seen-set is wrong: it flags a list referenced twice, an ipv
 reusing one state list, and freed temporaries whose ids are reused,
 review 5 q2). Both raise `GraphCacheKeyError` (never `RecursionError`).
@@ -812,6 +803,10 @@ here).
   otherwise be loaded silently as a wrong graph, review M 2).
 - Load errors are classed exactly as:
   - `FileNotFoundError` on open -> `None` (miss);
+  - `ESTALE` ("Stale file handle", on NFS when another client replaced the
+    entry with `os.replace` while this reader had it open): re-open and
+    re-read ONCE (an entry under the same name is equivalent by key); a
+    second `ESTALE` falls through to the next case;
   - any other `OSError` on open/read (for example `PermissionError` on an
     entry another user wrote under umask 077, common on HPC): re-raised
     as the same `OSError` subclass, original chained, with a message
@@ -869,7 +864,11 @@ callback. The `graph_cache.py` docstrings at `:7`, `:52`, `:86`
 
 Entries written before this change are never loaded (different format
 and key composition). They stay on disk; `phasic.clear_all_graph_caches()`
-removes them (docstring says so).
+removes them: it sweeps entry-named files (`^[0-9a-f]{32}\.json$`) from
+the current graph directory AND from the legacy default
+`~/.phasic_cache/graphs` (master always wrote there, ignoring
+`PHASIC_CACHE_DIR`, `graph_cache.py:32, 88`), so users who set
+`cache_dir` do not keep orphaned old entries (docstring says so).
 
 ## 3. Tests
 
@@ -990,7 +989,11 @@ function):
     1745-1747`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
-13. `callback_hash._phasic_build_id()` (the import-time content hash of
+13. (Every case below that calls `_record_build_stats` or alters the
+    build record runs in a SUBPROCESS, because the record lives on the
+    extension module for the whole process and `monkeypatch` cannot undo
+    a stored "restart" failure, review R 6.)
+    `callback_hash._phasic_build_id()` (the import-time content hash of
     §2.2.3) monkeypatched to another value: miss. With the recorded stat
     table monkeypatched (never touching installed files): a changed stat
     whose re-hash equals the import hash (only `ctime_ns` differs, the
@@ -1095,23 +1098,27 @@ function):
     would not exercise it). A 600k-entry dict of state tuples as a
     kwarg, and a 60k x 20 adjacency table whose neighbour tuples are the
     same objects as the keys, plus entries holding a literal tuple
-    constant: all keyed (memoised sub-digests, no budget), and in linear
-    time. Hash-seed independence: a callback containing a set literal of
+    constant: all keyed (memoised sub-digests), with walk steps
+    counted by an instrumented counter and asserted linear (no timing
+    assertions). Hash-seed independence: a callback containing a set literal of
     string tuples plus a reuse of one element (`if key in {("a",1),
     ("b",2), ("c",3)}: if key == ("a",1)`) gives EQUAL digests in
     subprocesses under `PYTHONHASHSEED` 0-3; editing the reused element
     to `("c",3)` gives a DIFFERENT digest. A self-recursive nested
-    function and two mutually recursive closures: keyed, hit on rebuild,
-    miss when either body changes. In a SUBPROCESS (a reload inside the
+    function, two mutually recursive closures, a dispatch table entered
+    at the container AND entered at a function (callback = `f2` whose
+    cell holds `c2 = [f2]`), and a partial held in a list read by its
+    function: all `GraphCacheKeyError` naming the cycle. The same
+    recursive helper defined at module level: keyed (a global). In a SUBPROCESS (a reload inside the
     pytest process replaces `phasic.Graph` and breaks later tests,
     review Q p5): `importlib.reload(phasic)` after the package files
     change (monkeypatched re-hash) makes the next key computation raise
-    `GraphCacheKeyError` (restart). A densely mutually recursive group
-    of 10 nested helpers: `GraphCacheKeyError` (re-walk cap) within a
-    few seconds. A dispatch-table closure (`table` dict holding
-    functions that index it): `GraphCacheKeyError`. 200 references to
-    one 8 MB array in a kwarg: hashed once (timing well under the cost
-    of hashing it 200 times). Module positions: direct
+    `GraphCacheKeyError` (restart). 200 references to one 8 MB array
+    in a kwarg: hashed once, asserted with an instrumented counter of
+    array hashes (not timing). A tuple that is both a code constant and
+    a default of the same function: keyed, hit. A C- and an F-ordered
+    copy of one array as the kwarg: different keys. An `ESTALE` raised
+    once by a monkeypatched `open`: the entry is re-read and hits. Module positions: direct
     cell content keyed; module as a default, inside a container in a
     cell, and inside the ipv refused. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
@@ -1128,8 +1135,8 @@ function):
     (`__module__` is `None`): keyed. A copied entry file renamed to
     another call's entry name: `GraphCacheLoadError`. A JSON file with a
     non-entry name in the cache directory survives `GraphCache().clear()`.
-    A shared-container DAG nested 40 deep: keyed in linear time
-    (memoised sub-digests), well under a second. A `KeyboardInterrupt` raised inside `save()`
+    A shared-container DAG nested 40 deep: keyed, walk-step counter
+    equal to 40 containers (memoised sub-digests). A `KeyboardInterrupt` raised inside `save()`
     (monkeypatched): propagates with `e.graph` attached, no `.partial`
     left. A `partial` subclass
     overriding `__call__`: refused. A user kwarg
@@ -1301,7 +1308,9 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   user-defined `to_dict()` can cause. A bare `PropertySet` (a factory
   capturing `ps = indexer.lineage`, a PropertySet kwarg, or a bound
   method such as `indexer.lineage.index_to_props` in a cell) is refused
-  too; pass the whole indexer instead.
+  too; pass the whole indexer instead. Recursive NESTED helpers
+  (closures that call themselves or each other, dispatch tables held in
+  closures) are refused; define them at module level.
 - A docstring edit misses (constant in the code object): extra build,
   never a stale graph.
 - Callbacks capturing a `scipy.special` ufunc (or any compiled callable
@@ -1513,3 +1522,12 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   6 stale reload example replaced; 7 arrays and checked StateIndexers
   memoised, cost statements corrected; 8 frozenset sorted by token
   bytes, one shared memo, line 1719.
+- Independent review R -> v4.4: 1 ALL cycles refused (functions
+  included), so every sub-digest is pure content, memoised
+  unconditionally, linear, with no re-walk cap (removes the entry-point
+  dependence); 2 array layout token (C / F / strides); 3 kind tag at the
+  head of every sub-digest, one tuple encoding for constants and
+  values; 4 one re-read on `ESTALE`; 5 cap removed with the recursion
+  machinery; 6 build-record tests in subprocesses; 7 legacy cache
+  directory swept by `clear_all_graph_caches`; 8 counters instead of
+  timing, §2.1 wording.

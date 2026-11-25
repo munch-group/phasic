@@ -1,0 +1,8 @@
+Q1 naive=False: key(F2) = 410166f771c6a34f (keyed, not refused)
+Q1 naive=True: key(F2) = 410166f771c6a34f (keyed, not refused)
+Q1b naive=False: refused: container cycle
+Q1b naive=True: refused: container cycle
+Q2 naive=False: A=d03f6e0419d99cbc B=e0570e0fc471d76c -> distinct
+Q2 naive=True: A=b715e1238d309688 B=b715e1238d309688 -> COLLISION (x=[F2] vs x=[F3])
+behaviour differs: 11 vs 13
+[runcap] exit 0, peak RSS 6 MB, 1s

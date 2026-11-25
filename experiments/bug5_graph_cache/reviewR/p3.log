@@ -1,0 +1,6 @@
+co_consts: (None, (Ellipsis, 0), (2, 3))
+defaults : ((Ellipsis, 0), (2, 3))
+  default (Ellipsis, 0): same object as a constant of cb's code -> False
+  default (2, 3): same object as a constant of cb's code -> True
+cb2 default ('a',1) is an element object of the frozenset constant: True
+[runcap] exit 0, peak RSS 2 MB, 1s

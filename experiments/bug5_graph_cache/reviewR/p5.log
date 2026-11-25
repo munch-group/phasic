@@ -1,0 +1,9 @@
+(a) digests equal: True
+    A.sum()  = np.float64(45156.5323236345)
+    F.sum()  = np.float64(45156.5323236345)
+    equal bits: True
+    A.sum(axis=1)[:3] == F.sum(axis=1)[:3]: False
+    A.mean() == F.mean(): True
+(b) digests equal: True  ravel('K'): [0, 1, 2, 3, 4, 5] vs [0, 3, 1, 4, 2, 5]
+(c) dtype 'l' vs 'q': str <i8 <i8 digest equal: True  dtype.char l q  type(x[0]) is type(y[0]): False
+[runcap] exit 0, peak RSS 2 MB, 1s

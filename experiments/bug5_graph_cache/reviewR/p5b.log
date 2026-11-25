@@ -1,0 +1,3 @@
+pandas 3.0.2 df.to_numpy() C? False F? True
+same content: True  row sums bit-equal: True
+[runcap] exit 0, peak RSS 101 MB, 1s

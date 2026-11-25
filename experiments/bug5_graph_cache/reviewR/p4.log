@@ -1,0 +1,5 @@
+fresh              5c86b1c8a5aced0a
+after 5000 calls   5c86b1c8a5aced0a
+under settrace     5c86b1c8a5aced0a
+under monitoring   5c86b1c8a5aced0a
+[runcap] exit 0, peak RSS 2 MB, 1s
