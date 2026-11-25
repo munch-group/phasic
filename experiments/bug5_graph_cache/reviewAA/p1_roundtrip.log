@@ -1,0 +1,16 @@
+[a] build raises RuntimeError Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+[b] build raises TypeError 'float' object is not iterable
+[b2_dup_param_same_target] fresh: n=3 param_length=2 parameterized=True | hit: n=3 param_length=2 parameterized=True
+[b2_dup_param_same_target] edge lists equal: True
+  b2 expectation fresh vs hit: 0.33333333333333326 0.33333333333333326
+[c_decoupled] fresh: n=5 param_length=2 parameterized=True | hit: n=5 param_length=2 parameterized=True
+[c_decoupled] edge lists equal: True
+[d_3tuple_weight] fresh: n=4 param_length=1 parameterized=True | hit: n=4 param_length=1 parameterized=True
+[d_3tuple_weight] edge lists equal: True
+  d expectation before update_weights fresh/hit: 2.0 2.0
+[e] raises TypeError ipv[0][1] must be a number (probability), got list
+[f_zero_coeff] fresh: n=4 param_length=2 parameterized=True | hit: n=4 param_length=2 parameterized=True
+[f_zero_coeff] edge lists equal: True
+[g_zero_weight] fresh: n=4 param_length=1 parameterized=False | hit: n=4 param_length=1 parameterized=False
+[g_zero_weight] edge lists equal: True
+[runcap] exit 0, peak RSS 323 MB, 4s

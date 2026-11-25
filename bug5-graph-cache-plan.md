@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -148,8 +148,9 @@ deterministic functions of their inputs). The
     error while restoring attributes on a hit propagates;
   - hit: the current restore sequence (`:1689-1723`) runs; then
     `self.dyn_ordering` is set to the flag of a freshly created native
-    graph, `_Graph(1).get_dyn_ordering()` (the pybind base exposes only
-    the getter, `phasic_pybind.cpp:1550`; the `dyn_ordering` property
+    graph, `_Graph(1).get_dyn_ordering()` (the pybind base exposes
+    `get_dyn_ordering` / `set_dyn_ordering`, `phasic_pybind.cpp:1550,
+    1533`, not the `dyn_ordering` property, which
     exists only on the Python subclass, `__init__.py:1956-1971`, review
     X x4), which applies the C rule at graph
     creation exactly (`phasic.c:2996`, C `getenv`, which `os.environ`
@@ -247,7 +248,11 @@ by sub-digests and cycles refused, §2.2.2)
   from different modules, each reading its own module global, are kept
   apart even under one `cache_key`; it is `'__main__'` in notebooks, so
   notebook hits are unaffected; `co_filename` stays excluded); CODE
-  FINGERPRINT of `f.__code__`; VALUE
+  FINGERPRINT of `f.__code__`; `f.__name__` and `f.__qualname__` (writable
+  slots separate from `co_name` and absent from `__dict__`, changed by
+  `functools.wraps` or assignment, which a callback could branch on,
+  review AA 2; `__doc__` is not keyed and is named in the contract as
+  not part of the key); VALUE
   FINGERPRINT of `f.__defaults__`, `f.__kwdefaults__` and `f.__dict__`
   (function attributes, e.g. `cb.rate = r` read back through the
   function's own cell; phasic's wrapper attributes `__wrapped__` and
@@ -383,26 +388,24 @@ own attributes would then be keyed, running user code during the walk
    payload, review S s8); `complex` via the 16 bytes of both parts.
    Subclasses do not match here: `np.float64` (a `float` subclass) goes
    to rule 2, and `IntEnum` members and other subclasses are refused;
-2. numpy scalar: gated on `issubclass(type(x), np.generic)` FIRST (so
-   `.dtype` is never read from an arbitrary object, e.g. a `StateIndexer` whose
-   PropertySet is named `dtype`, or an object whose `dtype` property
-   raises), then EXACT type only, tested WITHOUT reading any instance
-   attribute: `type(x) is np.dtype(type(x)).type` (reading `x.dtype` on
-   a Python subclass would run its `dtype` property, and a crafted one
-   could pass every gate, review Z z9); `x.dtype` is read only after
-   this passes (a Python
-   subclass of a numpy scalar can override arithmetic and carries a
-   `__dict__`, review H p6, and is refused), with a BUILT-IN numpy dtype
-   (`type(x.dtype).__module__ == "numpy.dtypes"`; user-defined dtypes
-   such as `ml_dtypes`' float8 / int4 / bfloat16, installed alongside
-   jax, all report `dtype.str` `<V1` / `<V2`, so two of them with equal
-   bytes would collide, review K k3, and are refused):
-   `x.dtype.str` + `tobytes()`;
-   `np.void` scalars, any dtype with `.fields` or `.hasobject`, and
-   long-double kinds (`np.longdouble` / `np.clongdouble`, dtype chars
-   `g` / `G`: on Linux x86-64 their 80-bit values sit in 16-byte slots
-   with uninitialised padding, so equal values can have different
-   bytes) are refused;
+2. numpy scalar: admitted ONLY if `type(x)` is in a fixed frozenset of
+   numpy's own scalar classes, built once at import from
+   `np.sctypeDict.values()` with `__module__ == "numpy"`, minus
+   `np.void`, `np.object_`, `np.longdouble` and `np.clongdouble`. The
+   membership test reads no attribute of `x`, so no user code can run:
+   any Python subclass of a numpy scalar is refused (it could override
+   arithmetic and carries a `__dict__`, review H p6; a `dtype` property
+   on a subclass would run if `x.dtype` were read, reviews Z z9 and AA
+   p2, and `np.void` subclasses and numpy's own `np.record` even pass a
+   `np.dtype(type(x)).type` identity test). The excluded kinds: `np.void`
+   (structured, with `.fields`), object, and long double (`g` / `G`: on
+   Linux x86-64 their 80-bit values sit in 16-byte slots with
+   uninitialised padding, so equal values can have different bytes).
+   User-defined dtypes such as `ml_dtypes`' float8 / int4 / bfloat16
+   (installed alongside jax; they report `dtype.str` `<V1` / `<V2`, so
+   two with equal bytes would collide, review K k3) are not in the set
+   and are refused. For an admitted scalar, `x.dtype.str` + `tobytes()`
+   (numpy's C code for these classes);
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
    subclasses are refused): `x.dtype.str`, shape, a LAYOUT token (`C`
    if C-contiguous, else `F` if F-contiguous, else `S` followed by the
@@ -1189,7 +1192,11 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. A dict keyed by function objects (`{f: 1.0, g: 5.0}`) as a kwarg:
+18. A Python subclass of `np.void` with a `dtype` property and an
+    `np.record` value: refused, the property never runs. Two
+    equal-content functions differing only in `__name__` (one renamed by
+    assignment), captured and branched on: different keys.
+    A dict keyed by function objects (`{f: 1.0, g: 5.0}`) as a kwarg:
     `GraphCacheKeyError`. A `np.float64` subclass with a `dtype` property
     that records being called: refused, and the property never runs.
     `cache_key=3`, `cache_key=""`, `cache_key=np.str_("x")`,
@@ -1271,7 +1278,9 @@ function):
     (monkeypatched `__file__`, subprocess): `GraphCacheKeyError` with the
     regular-install message. `clear_all_graph_caches()` with an ABSENT
     legacy directory: no directory created, no error; with HOME
-    read-only and `PHASIC_CACHE_DIR` unset: `clear_all_graph_caches()`
+    read-only, `PHASIC_CACHE_DIR` unset AND `DEFAULT_CACHE_DIR` pointed
+    explicitly at `<read-only home>/.phasic_cache/graphs` (otherwise the
+    autouse fixture's tmp directory makes the case vacuous, review AA 3): `clear_all_graph_caches()`
     returns `{"removed": 0, "skipped": 0}` and `get_graph_cache_stats()`
     returns empty stats, neither raising nor creating a directory;
     `GraphCache().clear()` likewise; a legacy-directory entry written by
@@ -1739,3 +1748,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   keyed; 2 numpy-scalar exact check reads no instance attribute;
   3 `_record_build_stats(s0)` signature and test-13 setup; 4 injected
   writer implements `fileno()`.
+- Independent review AA -> v5.3 (no realistic wrong result or data loss):
+  1 numpy scalars admitted only from a fixed frozenset of numpy's own
+  classes (no `np.void` subclass or `np.record`); 2 `__name__` /
+  `__qualname__` keyed, `__doc__` named as not keyed; 3 read-only-HOME
+  test points `DEFAULT_CACHE_DIR` at the read-only home; 4 wording on
+  `get_` / `set_dyn_ordering`.

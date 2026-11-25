@@ -1,0 +1,7 @@
+np.record instance type: <class 'numpy.record'>
+np.record: np.dtype(cls) = dtype('V'), .type is cls: True
+user V(np.void): np.dtype(cls) = dtype('V'), .type is cls: True
+V instance type: <class '__main__.V'> gate passes: True
+x.dtype -> float64 calls: ['dtype']
+rec gate passes: True
+[runcap] exit 0, peak RSS 0 MB, 1s
