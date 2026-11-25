@@ -1,0 +1,24 @@
+hit? callback attr True
+== param
+  vertices_length: fresh=5 hit=5
+  param_length: fresh=2 hit=2
+  parameterized: fresh=True hit=True
+  get_was_dph: fresh=False hit=False
+  state_length: fresh=1 hit=1
+  edges equal: True
+  expectation fresh/hit (no theta): 1.5 1.5
+  expectation after theta: 0.75 0.75
+  add const edge on fresh: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first non-IPV edge using array synta
+  add const edge on hit: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first non-IPV edge using array synta
+hit? callback attr True
+== const
+  vertices_length: fresh=5 hit=5
+  param_length: fresh=1 hit=1
+  parameterized: fresh=False hit=False
+  get_was_dph: fresh=False hit=False
+  state_length: fresh=1 hit=1
+  edges equal: True
+  expectation fresh/hit (no theta): 1.5 1.5
+  add const edge on fresh: ok
+  add const edge on hit: ok
+[runcap] exit 0, peak RSS 306 MB, 3s

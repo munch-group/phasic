@@ -1,0 +1,6 @@
+isinstance(Spoof(), np.generic): True reads: ['__class__']
+Spoof2: isinstance gate True | exact-type check True | built-in dtype check True | reads ['dtype', 'dtype']
+token would be <f8 b'\x00\x00\x00\x00\x00\x00\x00\x00'
+isinstance(TSpoof(), type): True
+type-based gates instead: False False
+[runcap] exit 0, peak RSS 2 MB, 1s

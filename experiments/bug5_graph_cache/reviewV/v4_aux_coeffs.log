@@ -1,0 +1,8 @@
+param_length fresh/hit: 1 1
+coefficient lengths fresh/hit: [1, 2] [1, 2]
+serialize param_edges shape fresh/hit: (4, 4) (4, 4)
+  fresh: weights [1.0, 25.0, 16.0, 9.0, 4.0]  E=0.463611
+  hit: weights [1.0, 25.0, 16.0, 9.0, 4.0]  E=0.463611
+  formula fresh: E=0.463611
+  formula hit: E=0.463611
+[runcap] exit 0, peak RSS 300 MB, 4s

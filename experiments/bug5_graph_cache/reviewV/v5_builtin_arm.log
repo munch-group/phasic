@@ -1,0 +1,33 @@
+math.sqrt                              builtin_function_or_method   ADMITTED by name math.sqrt
+math.comb                              builtin_function_or_method   ADMITTED by name math.comb
+len                                    builtin_function_or_method   ADMITTED by name builtins.len
+np.exp                                 ufunc                        ADMITTED by name numpy.exp
+np.sum                                 _ArrayFunctionDispatcher     ADMITTED by name numpy.sum
+np.array                               builtin_function_or_method   ADMITTED by name numpy.array
+np.zeros                               builtin_function_or_method   ADMITTED by name numpy.zeros
+np.where                               _ArrayFunctionDispatcher     ADMITTED by name numpy.where
+np.concatenate                         _ArrayFunctionDispatcher     ADMITTED by name numpy.concatenate
+np.dot                                 _ArrayFunctionDispatcher     ADMITTED by name numpy.dot
+np.linalg.solve                        _ArrayFunctionDispatcher     ADMITTED by name numpy.linalg.solve
+np.add.reduce                          builtin_function_or_method   REFUSED (__self__ not None/module: ufunc)
+np.random.binomial                     method                       REFUSED (other type method)
+np.isclose                             _ArrayFunctionDispatcher     ADMITTED by name numpy.isclose
+np.arange                              builtin_function_or_method   ADMITTED by name numpy.arange
+np.unique                              _ArrayFunctionDispatcher     ADMITTED by name numpy.unique
+sps.gamma                              ufunc                        REFUSED (module=None qualname='gamma')
+sps.binom                              ufunc                        REFUSED (module=None qualname='binom')
+sps.comb (py)                          function                     python function (code-keyed)
+operator.add                           builtin_function_or_method   ADMITTED by name _operator.add
+operator.itemgetter(0)                 itemgetter                   REFUSED (other type itemgetter)
+itertools.product                      type                         ADMITTED type itertools.product
+itertools.cwr                          type                         ADMITTED type itertools.combinations_with_replacement
+collections.Counter                    type                         REFUSED (mutable type)
+collections.defaultdict                type                         ADMITTED type collections.defaultdict
+np.ndarray                             type                         ADMITTED type numpy.ndarray
+np.float64                             type                         ADMITTED type numpy.float64
+int                                    type                         ADMITTED type builtins.int
+range                                  type                         ADMITTED type builtins.range
+np.ndarray.sum (method_descriptor)     method_descriptor            REFUSED (other type method_descriptor)
+str.join                               method_descriptor            REFUSED (other type method_descriptor)
+np.frompyfunc                          ufunc                        REFUSED (module=None qualname='<lambda> (vectorized)')
+[runcap] exit 0, peak RSS 3 MB, 1s

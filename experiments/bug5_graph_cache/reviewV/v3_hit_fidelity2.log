@@ -1,0 +1,10 @@
+== theta_dim=3 > coeff 2: build ERR RuntimeError: Edge has too few coefficients: graph expects at least 3, got 2. Edges must have coefficients_length >= param_length.
+== multi-start ipv
+  param_length 2 2  parameterized True True
+  edges equal: True
+  E fresh/hit 0.7083333333333333 0.7083333333333333  var 0.28298611111111105 0.28298611111111105
+== zeros in coeffs
+  param_length 3 3  parameterized True True
+  edges equal: True
+  E fresh/hit 0.5416666666666666 0.5416666666666666  var 0.10590277777777773 0.10590277777777773
+[runcap] exit 0, peak RSS 325 MB, 3s

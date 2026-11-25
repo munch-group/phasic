@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.7, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.8, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -111,7 +111,10 @@ deterministic functions of their inputs). The
   callback through `**kwargs`).
 - `cache_key=None` (default): no lookup, no hashing, no file.
 - `cache_key` given:
-  - non-`str` -> `TypeError`, empty -> `ValueError`; `arg` not callable ->
+  - `type(cache_key) is not str` -> `TypeError` with the advice "pass
+    str(name)" (so `np.str_` and `StrEnum` members are rejected clearly
+    rather than tripping the key computation), empty -> `ValueError`;
+    `arg` not callable ->
     `ValueError` ("cache_key applies to graphs built from a callback");
   - ALL argument validation for a callback runs first: the
     ipv/decorator checks now at `:1750-1759` move above the lookup (for
@@ -226,7 +229,10 @@ by sub-digests and cycles refused, §2.2.2)
   and forkserver workers import the main script as `__mp_main__`, which
   is the same module as the parent's `__main__`; without this, every
   multiprocessing worker would miss the parent's entry and rebuild,
-  review N p3) (it can be `None`, for example for functions made by
+  review N p3; the docstring notes the consequence: globals the parent
+  sets inside `if __name__ == "__main__":` are absent in the worker, yet
+  the worker gets the parent's graph, which is within the contract,
+  since module globals are the user's responsibility) (it can be `None`, for example for functions made by
   `exec(src, {})` or `types.FunctionType(code, {})`, review M m5; the
   same applies to every other name-like token, and `cache_key` itself
   goes through the `str` value rule) (so two same-bodied callbacks
@@ -348,6 +354,13 @@ longer used, so callbacks without accessible source can be cached.
 
 #### 2.2.2 VALUE FINGERPRINT (exact types checked first, in this order)
 
+EVERY type gate in §2.2.1 and §2.2.2 tests `type(x)` (identity, or
+`issubclass(type(x), ...)` where a family is meant), NEVER
+`isinstance(x, ...)`: `isinstance` consults `x.__class__`, which a user
+class can define as a property, so a spoofed object would pass and its
+own attributes would then be keyed, running user code during the walk
+(review V v6).
+
 1. EXACT types only (`type(x) is ...`): `None`, `bool`, `str`, `bytes`:
    type name + canonical repr; `int` via `hex()` (no 4300-digit `repr`
    limit); `float` via its 8 IEEE-754 bytes (`struct.pack("<d", x)`;
@@ -355,8 +368,8 @@ longer used, so callbacks without accessible source can be cached.
    payload, review S s8); `complex` via the 16 bytes of both parts.
    Subclasses do not match here: `np.float64` (a `float` subclass) goes
    to rule 2, and `IntEnum` members and other subclasses are refused;
-2. numpy scalar: gated on `isinstance(x, np.generic)` FIRST (so `.dtype`
-   is never read from an arbitrary object, e.g. a `StateIndexer` whose
+2. numpy scalar: gated on `issubclass(type(x), np.generic)` FIRST (so
+   `.dtype` is never read from an arbitrary object, e.g. a `StateIndexer` whose
    PropertySet is named `dtype`, or an object whose `dtype` property
    raises), then EXACT type only (`type(x) is x.dtype.type`; a Python
    subclass of a numpy scalar can override arithmetic and carries a
@@ -408,7 +421,7 @@ longer used, so callbacks without accessible source can be cached.
    6b. a module object under §2.2.1's module rule, and only when it sits
    in a closure cell: module-name token (in the kwargs block or the ipv
    it is refused, see §2.2.1);
-7. a class object (`isinstance(x, type)`): the immutable-compiled-type
+7. a class object (`issubclass(type(x), type)`): the immutable-compiled-type
    token of §2.2.1 if it qualifies; otherwise NOT FINGERPRINTABLE (so a
    `__class__` cell from `super()` or a user class passed as an argument
    is refused explicitly);
@@ -587,8 +600,11 @@ At `import phasic`, AFTER `from .phasic_pybind import *`
 end of `phasic/__init__.py` records ONCE PER PROCESS (the record is
 stored as an attribute on the `phasic_pybind` extension module, the one
 object `importlib.reload` can never replace; a second call, from
-`importlib.reload(phasic)` or a reload of `callback_hash`, COMPARES the
-files against that record instead of replacing it, and stores a
+`importlib.reload(phasic)`, COMPARES the
+files against that record instead of replacing it (a reload of
+`callback_hash` alone does not call `_record_build_stats`; the next key
+computation checks against the record surviving on the extension
+module), and stores a
 "restart" failure if they differ, because the old code keeps running
 after a reload, review P p2), for the extension module located by
 `phasic.phasic_pybind.__file__` (not by globbing; no `__file__` or a
@@ -1111,7 +1127,10 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. `cache_key=3`, `cache_key=""`, `Graph(3, cache_key="x")` raise;
+18. `cache_key=3`, `cache_key=""`, `cache_key=np.str_("x")`,
+    `Graph(3, cache_key="x")` raise (`np.str_`: `TypeError` advising
+    `str(name)`); an object whose `__class__` property claims
+    `np.float64` or `type` (a spoof): `GraphCacheKeyError`;
     `Graph(cb, ipv, "name")` (positional) raises `TypeError`.
 19. `clear_from_cache()` removes the entry of a `cache_key` graph (built
     on a miss and on a hit) and reports 0 for a graph without one (its
@@ -1622,3 +1641,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `clear()` / `clear_graph_cache()`, dict for `clear_all_graph_caches()`);
   3 `get_cache_stats` wording made consistent; 4 every extension module
   in the package hashed into the build id.
+- Independent review V -> v4.8 (no realistic wrong result or data loss):
+  1 every type gate uses `type(x)` / `issubclass(type(x), ...)`, never
+  `isinstance`; 2 `cache_key` must be exactly `str`; 3 reload wording;
+  4 multiprocessing globals note.
