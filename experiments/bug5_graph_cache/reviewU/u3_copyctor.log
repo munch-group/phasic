@@ -1,0 +1,9 @@
+None fresh param_length 3 parameterized True dyn False was_dph False n 6 edges 5
+None from_serialized param_length 3 parameterized True dyn False was_dph False n 6 edges 5
+None copy param_length 3 parameterized True dyn False was_dph False n 6 edges 5
+None update_weights failed RuntimeError Parameter length mismatch: graph expects 3 parameters, got 2
+2 fresh param_length 2 parameterized True dyn False was_dph False n 6 edges 5
+2 from_serialized param_length 2 parameterized True dyn False was_dph False n 6 edges 5
+2 copy param_length 2 parameterized True dyn False was_dph False n 6 edges 5
+2 update_weights failed RuntimeError Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-callback mode, they must match exactly. To use extra coefficients, call update_weights(theta, callback) with a custom callback function.
+[runcap] exit 0, peak RSS 309 MB, 4s

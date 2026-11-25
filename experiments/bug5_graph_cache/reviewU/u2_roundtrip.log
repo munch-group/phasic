@@ -1,0 +1,17 @@
+== constant: n=17 vs 17; param_length 1 vs 1; parameterized False vs False
+  vertices with differing edge lists: 0 of 17
+  extra fresh: (1.5000000000000002, 1.138888888888888)
+  extra hit  : (1.5000000000000002, 1.138888888888888)
+== param: n=6 vs 6; param_length 2 vs 2; parameterized True vs True
+  vertices with differing edge lists: 0 of 6
+  extra fresh: (1.2300314065019946, [1.2300314065019946, 2.130232596828861])
+  extra hit  : (1.2300314065019946, [1.2300314065019946, 2.130232596828861])
+== aux theta_dim=2 coeff=3: n=6 vs 6; param_length 2 vs 2; parameterized True vs True
+  vertices with differing edge lists: 0 of 6
+  extra fresh: None
+  extra hit  : None
+== param two-edge reversed: n=11 vs 11; param_length 2 vs 2; parameterized True vs True
+  vertices with differing edge lists: 0 of 11
+  extra fresh: (2.4499999999999993, [2.4499999999999993, 7.493888888888886])
+  extra hit  : (2.4499999999999993, [2.4499999999999993, 7.493888888888886])
+[runcap] exit 0, peak RSS 322 MB, 3s

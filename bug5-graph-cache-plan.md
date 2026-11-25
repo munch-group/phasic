@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.7, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -593,10 +593,13 @@ files against that record instead of replacing it, and stores a
 after a reload, review P p2), for the extension module located by
 `phasic.phasic_pybind.__file__` (not by globbing; no `__file__` or a
 missing file is a recording failure, so an editable or source-tree layout
-can never silently leave the extension out of the id) and every `*.py`
-file under the package directory of `phasic.__file__`, RECURSIVELY,
-excluding `__pycache__` (the package is flat today, 52 files, but a
-future subpackage must not fall out of the id silently):
+can never silently leave the extension out of the id), every OTHER file
+under the package directory ending in one of
+`importlib.machinery.EXTENSION_SUFFIXES` (one `.so` today; a second
+compiled module added later must not fall out of the id silently), and
+every `*.py` file under the package directory of `phasic.__file__`,
+RECURSIVELY, excluding `__pycache__` (the package is flat today, 52
+files, but a future subpackage must not fall out of the id silently):
 (i) a stat record `(path, size, mtime_ns, ctime_ns, ino, dev)` per file,
 and (ii) the CONTENT HASH of those files, computed right there, at import
 (measured 11.9 ms for 52 .py + the .so, 3.49 MB, review 4; paid by every
@@ -608,8 +611,8 @@ changes it. This content hash IS `_phasic_build_id()`. To make sure it
 describes the code the process actually imported, a stdlib-only stat
 snapshot is taken at the TOP of `phasic/__init__.py`, before any
 submodule or `phasic_pybind` import: `os.scandir` of the package
-directory for `*.py` (recursive, as above) and for `phasic_pybind*`
-files ending in one of `importlib.machinery.EXTENSION_SUFFIXES` (never
+directory for `*.py` (recursive, as above) and for EVERY file ending in
+one of `importlib.machinery.EXTENSION_SUFFIXES` (never
 `importlib.util.find_spec`, which would call every `sys.meta_path`
 finder and trip test 14's import hook); at the end of import,
 `phasic.phasic_pybind.__file__` must be among the snapshotted files
@@ -736,7 +739,16 @@ here).
 ### 2.6 `GraphCache` API and entry file
 
 - Kept: `GraphCache(cache_dir=None)`, `clear()`, `clear_graph_cache()`,
-  `get_cache_stats()`. The constructor's `mkdir(parents=True,
+  `get_cache_stats()`. Only the `cache_key` lookup and save construct a
+  `GraphCache` that creates its directory; the management helpers
+  (`clear()`, `clear_graph_cache()`, `get_cache_stats()`,
+  `clear_all_graph_caches()`, `get_graph_cache_stats()`,
+  `print_graph_cache_info()`, `get_cache_dir()`) RESOLVE the directory
+  without `mkdir` (a constructor flag `create=False`), so a missing
+  directory gives 0 removed / empty stats and a read-only or missing HOME
+  never makes them fail or creates a directory as a side effect
+  (pre-existing on master, `graph_cache.py:88-89, 483, 523`, review U 1).
+  The constructor's `mkdir(parents=True,
   exist_ok=True)` (`graph_cache.py:88-89`) failing re-raises the same
   `OSError` subclass with a message naming the directory and the ways
   out (another directory via `configure(cache_dir=...)`, or no
@@ -768,7 +780,9 @@ here).
   `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
   behind (review 7 C), but ONLY those whose mtime is more than one hour
   old, so a concurrent writer's in-flight file in a shared directory is
-  never removed under it (review 8); `get_cache_stats` still counts only `*.json`.
+  never removed under it (review 8); `get_cache_stats` counts only
+  entry-named files (the same pattern as `clear()`), never `.partial`
+  files or other JSON files.
 - Replaced: `save_graph(graph, callback, **params)` /
   `load_graph(callback, **params)` -> `save(graph, digest, meta)` /
   `load(digest)` (full 64-character digest; file name = first 32).
@@ -899,8 +913,13 @@ deleted there, i.e. whose first bytes are NOT `{"format":` (new entries
 write `format` first, §2.6, and any future format will too), so valid
 entries of this or a newer phasic that other runs wrote to the default
 directory survive (review S 1, review T 1); a read or unlink error on a
-single file is skipped and counted, never fatal, and the return value
-reports removed and skipped counts. Docstring says so.
+single file is skipped and counted, never fatal. Return types:
+`GraphCache.clear()` and `clear_graph_cache()` keep returning an `int`
+(files removed), so `model_export.clear_model_cache`'s `count > 0`
+(`model_export.py:83-84`) keeps working; `clear_all_graph_caches()`
+returns a `dict` `{"removed": int, "skipped": int}` (removed over both
+directories, skipped = per-file errors); it has no internal caller (only
+a docstring mention at `_graph_cache_mgmt.py:60`). Docstring says so.
 
 ## 3. Tests
 
@@ -1166,7 +1185,10 @@ function):
     failure for an extension outside the package directory
     (monkeypatched `__file__`, subprocess): `GraphCacheKeyError` with the
     regular-install message. `clear_all_graph_caches()` with an ABSENT
-    legacy directory: no directory created, no error; with a legacy file
+    legacy directory: no directory created, no error; with HOME
+    read-only and `PHASIC_CACHE_DIR` unset: `clear_all_graph_caches()`
+    returns `{"removed": 0, "skipped": 0}` and `get_graph_cache_stats()`
+    returns empty stats, neither raising nor creating a directory; with a legacy file
     whose first bytes are `{"format":"3"` : kept. `clear_all_graph_caches()` with
     `PHASIC_CACHE_DIR` set and `DEFAULT_CACHE_DIR` monkeypatched to a
     second tmp directory holding one old-format and one new-format entry
@@ -1594,3 +1616,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   with `parents=True`, corrected reason; 3 editable installs refused
   with a specific message, documented; 4 strides keyed in bytes; 5 load
   path opener named for the ESTALE test.
+- Independent review U -> v4.7 (no wrong result or data loss found;
+  reviewer: "effectively at sign-off"): 1 management helpers resolve the
+  directory without `mkdir`; 2 return types named (`int` for
+  `clear()` / `clear_graph_cache()`, dict for `clear_all_graph_caches()`);
+  3 `get_cache_stats` wording made consistent; 4 every extension module
+  in the package hashed into the build id.
