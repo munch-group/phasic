@@ -1,0 +1,8 @@
+numpy 2.4.3
+StringDType module: numpy.dtypes  str: StringDType()  hasobject: True  fields: None
+short a          REFUSED(hasobject)
+short b          REFUSED(hasobject)
+long A*20        REFUSED(hasobject)
+long B*20        REFUSED(hasobject)
+long A*20 again  REFUSED(hasobject)
+[runcap] exit 0, peak RSS 2 MB, 1s

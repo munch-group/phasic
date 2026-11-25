@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -254,7 +254,11 @@ function already visited contributes a back-reference token)
   module-level `functools.lru_cache` function, or an object made with
   `functools.update_wrapper`, both of which satisfy the conditions below
   and would otherwise be keyed by NAME, review F p6) is NOT
-  FINGERPRINTABLE. For these exact types: module +
+  FINGERPRINTABLE. (A Cython extension compiled with `binding=False`
+  produces exact builtin functions that pass this arm by name, so a
+  user's own recompiled extension keeps its key; this falls under the
+  contract's "installed libraries" clause and is stated in the
+  docstring.) For these exact types: module +
   qualified name token, ONLY IF `__self__` is `None` or a module AND
   resolving `__module__` + `__qualname__` (or `__name__` for ufuncs)
   through `sys.modules` returns the very same object. This admits
@@ -483,7 +487,14 @@ longer used, so callbacks without accessible source can be cached.
    `np.asarray(mm)`; note this reads the file to hash it), the class
    `collections.Counter` captured in a cell, phasic's own
    `index_to_props` results (precompute lookup tables as plain ints or
-   dicts), nesting deeper than 100. The docstring also says that entries
+   dicts), numpy 2 `StringDType` arrays, `fractions.Fraction`,
+   `decimal.Decimal`, nesting deeper than 100. The docstring also says
+   that a function made with `exec(src, ns)` or `types.FunctionType(code,
+   ns)` reads its globals from `ns`, which counts as MODULE GLOBALS
+   (not keyed; change `cache_key` when `ns` changes), and that numpy >=
+   1.25 is required for keyed arrays (the built-in dtype gate uses
+   `numpy.dtypes`; without it every array and numpy scalar is refused
+   with a message naming the requirement). The docstring also says that entries
    are never evicted: every distinct argument set under one `cache_key`
    writes its own file (22-75 MB at typical sizes, §4), so a parameter
    sweep under one name accumulates files; clear them with
@@ -491,15 +502,22 @@ longer used, so callbacks without accessible source can be cached.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
-as `GraphCacheKeyError`. Limits: a depth limit of 100; a budget on
-RE-ENTRIES: walking a container whose `id()` was already walked earlier
-in the same key computation counts against a budget of 10^6 (ordinary
-lookup tables, even 600k states x 20, have no re-entries and are never
-limited; review N p5 measured a flat 10^7 node budget refusing a 600k x
-20 state table) (a DAG of shared
-containers such as `a = [a, a]` nested k times would otherwise be
-walked 2^k times and hang, review M 7), exceeding it raises
-`GraphCacheKeyError`; and a cycle check against the
+as `GraphCacheKeyError`. Shared containers: a container (list, tuple,
+dict, or a `StateIndexer`'s `to_dict()` result) whose `id()` was already
+walked EARLIER in the same key computation contributes a BACK-REFERENCE
+token carrying its first-visit index instead of being walked again,
+exactly as for functions; the map holds a strong reference to every
+walked container until the computation ends, so a freed temporary's id
+can never be reused. This keeps every walk linear in the number of
+distinct objects (a DAG such as `a = [a, a]` nested k times no longer
+takes 2^k steps, review M 7) WITHOUT any budget: the re-entry budget of
+v4.0 refused ordinary state tables, because CPython shares identical
+tuples (the empty tuple, literal tuple constants, canonical state
+tuples used as keys and neighbours; 60k x 20 gave 1.2M re-entries,
+review O p4). Back-references can only cause extra misses (two
+equal-content inputs with different sharing get different keys, and the
+sharing pattern of the same code is deterministic), never a shared key
+for different content. Limits: a depth limit of 100, and a cycle check against the
 ids of the containers / `StateIndexer` objects on the CURRENT PATH from the
 root only (pushed on entry, popped on exit). A process-wide seen-set is
 wrong: it flags a list referenced twice, an ipv reusing one state list,
@@ -559,7 +577,10 @@ after `importlib.reload(phasic.callback_hash)`) also raises
 On EVERY key computation the package directory is re-listed and the files
 re-stat'ed (measured 2.1 ms, review 5). If nothing changed, the import
 hash is used. If a file was added or removed: `GraphCacheKeyError`
-"phasic was reinstalled after it was imported; restart the interpreter".
+"phasic was reinstalled after it was imported; restart the interpreter"
+(by design; the error text and the `cache_key` docstring say that keyed
+runs must not overlap a reinstall, e.g. `pixi run install-dev`, of the
+same environment, since a rebuilt `.so` never re-hashes equal).
 If only stats changed (any of size, mtime, ctime, inode, device), the
 files are RE-HASHED and compared with the import hash: equal means the
 bytes are unchanged (for example a hard-linked file in a shared conda /
@@ -708,8 +729,13 @@ here).
   the directory, as for today's `open()`, so no umask is read or changed
   (reading it with `os.umask` would briefly change it process-wide while
   JAX/OpenMP threads run), and no `mkstemp` 0600 mode), then
-  `with os.fdopen(fd, "w", encoding="utf-8") as f: json.dump(entry, f,
-  separators=(",", ":")); f.flush(); os.fsync(f.fileno())`, then
+  `with os.fdopen(fd, "w", encoding="utf-8") as f:` write the entry's
+  small fields, then EACH large `graph_data` field encoded with
+  `json.dumps(value, separators=(",", ":"))` (the one-shot call uses
+  CPython's C encoder; `json.dump` streaming always uses the
+  pure-Python encoder, 2.8x slower, review O p6) and written piecewise
+  into the same JSON object, then `f.flush(); os.fsync(f.fileno())`
+  (memory stays bounded per field), then
   `os.replace` to `<first 32 hex>.json`. The buffered writer loops over
   short writes (a single `os.write` of more than 2 GiB writes only
   `INT_MAX` bytes on macOS and about 2 GiB on Linux, so a natural
@@ -1010,10 +1036,17 @@ function):
     `OSError`, callback not called; a HIT from a read-only directory
     holding a valid entry works. `os.write` / the file object's `write`
     monkeypatched to perform short writes: the saved entry is complete
-    and loads. Spawned worker (`multiprocessing`, start method `spawn`)
-    calling the same `Graph(cb, ..., cache_key=...)` as the parent: hit
-    (callback not called in the worker). A 600k-entry dict of state
-    tuples as a kwarg: keyed within the budget. Module positions: direct
+    and loads. A subprocess SCRIPT executed as `__main__` (so its
+    callback's module is `__main__`) builds the graph, then a
+    `multiprocessing` worker with start method `spawn` (which imports
+    the script as `__mp_main__`) calls the same `Graph(cb, ...,
+    cache_key=...)`: hit (callback not called in the worker); this is the
+    case the normalisation exists for (a callback in the pytest module
+    would not exercise it). A 600k-entry dict of state tuples as a
+    kwarg, and a 60k x 20 adjacency table whose neighbour tuples are the
+    same objects as the keys, plus entries holding a literal tuple
+    constant: all keyed (back-references, no budget), and in linear
+    time. Module positions: direct
     cell content keyed; module as a default, inside a container in a
     cell, and inside the ipv refused. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
@@ -1030,8 +1063,8 @@ function):
     (`__module__` is `None`): keyed. A copied entry file renamed to
     another call's entry name: `GraphCacheLoadError`. A JSON file with a
     non-entry name in the cache directory survives `GraphCache().clear()`.
-    A shared-container DAG nested 40 deep: `GraphCacheKeyError` (budget)
-    within seconds. A `KeyboardInterrupt` raised inside `save()`
+    A shared-container DAG nested 40 deep: keyed in linear time
+    (back-references), well under a second. A `KeyboardInterrupt` raised inside `save()`
     (monkeypatched): propagates with `e.graph` attached, no `.partial`
     left. A `partial` subclass
     overriding `__call__`: refused. A user kwarg
@@ -1130,7 +1163,8 @@ size and memory given separately: roughly linear; at 600k sparse
 vertices an entry file of about 0.85 GB, ~35 s per load, and a load-time
 process peak of about 5 GB (extrapolated from 0.8 GB at 53k, review B 8);
 more for dense (two-locus) models. The 53k measurement is repeated on the
-new format and reported.
+new format (compact JSON, per-field C encoder) and reported, and the
+600k expectation is updated from it.
 The untracked `fakehome*` and `review3` directories are never committed
 (review evidence is committed only as scripts + logs, under 1 MB).
 
@@ -1388,3 +1422,11 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `load` / `save`; 7 top-of-import snapshot finds the extension via
   `os.scandir` + `EXTENSION_SUFFIXES`, never `find_spec`; 8 module
   admitted only as a cell's direct content; §2.1 "one policy" wording.
+- Independent review O -> v4.1 (no wrong result or data loss found):
+  1 re-entry budget replaced by container back-reference tokens (linear,
+  no budget, shared tuples keyed); 2 reinstall-overlap documented;
+  3 spawn test runs a `__main__` script; 4 large fields encoded with the
+  C encoder (`json.dumps`) and written piecewise; 5 exec / FunctionType
+  namespaces are module globals (docs); 6 Cython `binding=False` under
+  the installed-libraries clause; 7 more documented refusals; 8 numpy >=
+  1.25 for keyed arrays.

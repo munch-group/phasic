@@ -1,0 +1,16 @@
+--- param theta_dim=None: param_length fresh/hit 1/1
+  fresh constant edge: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | 2-coef edge: ok
+  hit   constant edge: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | 2-coef edge: ok
+  serialize after edits: ValueError Graph serialization failed: parameterized edges have inconsistent coefficient le
+--- param theta_dim=1: param_length fresh/hit 1/1
+  fresh constant edge: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | 2-coef edge: ok
+  hit   constant edge: RuntimeError: Cannot mix constant and parameterized edges. Graph mode is PARAMETERIZED (locked by first  | 2-coef edge: ok
+  serialize after edits: ValueError Graph serialization failed: parameterized edges have inconsistent coefficient le
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewO/p3_locks.py", line 31, in <module>
+    g = Graph(cb, ipv=[4], graph_cache=False, **kw)
+  File "/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 1767, in __init__
+    super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), param_length=theta_dim)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Edge has too few coefficients: graph expects at least 3, got 1. Edges must have coefficients_length >= param_length.
+[runcap] exit 1, peak RSS 321 MB, 4s
