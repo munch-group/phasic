@@ -1,0 +1,6 @@
+param coeff2, no theta_dim               SAME
+duplicate edges same target              SAME
+all-zero coefficient edge                SAME
+ipv with two start states                SAME
+ipv sub-stochastic (defect 0.2)          SAME
+[runcap] exit 0, peak RSS 322 MB, 3s

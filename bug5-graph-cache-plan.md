@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -322,7 +322,9 @@ by sub-digests and cycles refused, §2.2.2)
   ONLY IF `type(m) is types.ModuleType` (exact: a `ModuleType` subclass
   could run user code when `__name__` is read; numpy, scipy, jax, pandas,
   math, itertools and phasic are all exactly `ModuleType`, review X x6)
-  AND `sys.modules[m.__name__] is m`. It behaves exactly like a
+  AND `type(m.__name__) is str` (checked before the lookup, since a
+  module's `__name__` is writable) AND `sys.modules[m.__name__] is m`.
+  It behaves exactly like a
   module global, whose contents are the user's responsibility under the
   contract. (Value rule 6b below.) Admitted ONLY when a closure cell's
   DIRECT content is the module object (a module nested in a container
@@ -427,7 +429,9 @@ safe by the metaclass check).
    which copies only non-contiguous arrays and also works for datetime /
    timedelta kinds `M` / `m`, which numpy's buffer protocol rejects, and
    for 0-d arrays, via `reshape(-1)`; not via `tobytes()`). The dtype
-   gate: `x.dtype.type` must be identical to a class in rule 2's
+   token also carries `x.dtype.type.__name__` (as rule 2 does for
+   scalars; `int64` vs `longlong` arrays share `dtype.str` and bytes).
+   The dtype gate: `x.dtype.type` must be identical to a class in rule 2's
    allow-set (reading `x.dtype` is numpy's C code once `type(x) is
    np.ndarray`); this refuses StringDType (its `.type` is `str`),
    user-defined dtypes, structured, object and long-double dtypes.
@@ -485,7 +489,11 @@ safe by the metaclass check).
      `type(...) is dict` for `_property_sets`, `_slots`, `_offsets` and
      every PropertySet's `property_dict`, `type(...) is list` for
      `_pset_order`, `_slot_order`, `_entity_order`, exact `np.ndarray`
-     for `_bases` / `_radix_powers`, and exact `str` / `int` keys and
+     for EACH PROPERTYSET's `_bases` / `_radix_powers` (they are
+     PropertySet attributes, `state_indexing.py:288-289`; reading them on
+     the indexer raises), exact `str` keys in `_property_sets`, `_slots`
+     and every `property_dict` (checked by `type(k) is str` before any
+     hashing or comparison of a key), and exact `str` / `int` keys and
      values in `_offsets` (a dict subclass would run user code inside
      `to_dict()` itself, or lie to check (c), review AB 2); every PropertySet's `properties` is
      exactly a `list` or `tuple` (review Y 7a), every PropertySet has
@@ -516,15 +524,24 @@ safe by the metaclass check).
      and on folded values only, so a deprecated `offset`, which
      `to_dict()` drops after `__post_init__` folded it into min/max,
      `state_indexing.py:99-106`, does not cause a refusal), the same
-     triples for `property_dict.items()` with their keys, and `_bases`
-     and `_radix_powers` must equal those of `c`, where equal for these
+     triples for `property_dict.items()` with their keys, and each
+     PropertySet's `_bases` and `_radix_powers` must equal those of the
+     matching PropertySet of `c`, where equal for these
      numpy arrays means same `type`, `dtype` and `shape` and
      `np.array_equal` (a bare `!=` would raise on multi-element arrays,
      and value-only equality would admit a float array with different
-     behaviour); `_result_class`'s field
-     names must equal `c`'s; `_props_dataclass`, if present (it is
-     created lazily, so `c` never has it), must have field names
-     `[p.name for p in ps.properties]`. Each Property must have
+     behaviour). The GENERATED classes are compared with the ones phasic
+     generates for the rebuild `c` (a fresh phasic object, so no user code
+     runs): `ix._result_class` with `c._result_class`, and each
+     PropertySet's `_props_dataclass`, if present, with the matching
+     PropertySet of `c`'s `_props_class()`. Each must satisfy
+     `type(cls) is type`, `cls.__mro__ == (cls, object)`, the same field
+     names in order, the same `set(vars(cls))` keys as the reference, and
+     for every function in `vars(cls)` the same CODE FINGERPRINT as the
+     reference's entry of that name (a swapped-in frozen dataclass with
+     the same fields but a `__post_init__` that shifts values made
+     `index_to_props(5)` return `n=101` instead of `n=1` while `to_dict()`
+     and every other compared field stayed equal, review AC p8). Each Property must have
      `set(vars(p))` equal to its four dataclass fields (a frozen
      dataclass still has a `__dict__`, so extra attributes are
      otherwise invisible; same check as (a)), and each slot is checked as
@@ -533,10 +550,10 @@ safe by the metaclass check).
      while running ANY of (a), (b) and (c) (for example `AttributeError` for a missing
      attribute on an old pickled indexer, since `__getattr__` raises for
      `_` names, `:996-998`) is re-raised as `GraphCacheKeyError` (path
-     chained). `_result_class` / `_props_dataclass` are generated classes
-     checked by field names only; their other behaviour is phasic code
-     covered by the build id. This
-     catches every route by which `to_dict()` and behaviour drift apart:
+     chained). This catches the known routes by which `to_dict()` and
+     behaviour drift apart (an indexer whose private attributes are
+     deliberately replaced in ways not listed here is outside the
+     contract):
      a property list edited after construction (`PropertySet` keeps the
      caller's list uncopied, `:280`, while `property_dict`, `_bases`,
      `_radix_powers`, `_offsets` and `_total_state_length` are computed
@@ -692,7 +709,12 @@ finder and trip test 14's import hook); at the end of import,
 outside the package directory, e.g. an editable install); use `pixi run
 install-dev` or a normal pip install", and the docstring lists editable
 installs among the refusals; scikit-build-core's editable redirect mode
-places the `.so` outside `src/phasic`). ORDER at the end of import:
+places the `.so` outside `src/phasic`). Also at the end of import:
+every loaded `phasic.*` module's `__spec__.origin` must be among the
+hashed files, otherwise a recording failure is stored (a sourceless
+`.pyc` layout, or a module loaded from outside the package directory,
+would otherwise run code the id does not cover; the docstring states
+that the id covers the package's source and extension files). ORDER at the end of import:
 first the content hash H is computed from all the files, THEN they are
 re-stat'ed (S1); S1 must equal the top-of-import snapshot S0, otherwise a
 recording failure is stored (raised at the first key computation); the
@@ -1084,7 +1106,9 @@ function):
 7. Callback body changed (new function object from source with one
    constant changed): miss. Comment-line, blank-line and in-line spacing
    edits: hit (no line splits, see §2.2.1).
-   Two lambdas defined on one line: distinct keys.
+   Two lambdas with DIFFERENT bodies defined on one line: distinct
+   keys (two identical lambdas share code, name and qualname, so they
+   share a key, correctly).
 8. Closure: a factory `make(rate)` called with 1.0 and 5.0, same
    `cache_key`: miss, both correct (review4 p1 C). Default-bound loop
    idiom `def cb(state, rate=n)`: miss when `n` changes. Closure holding
@@ -1213,7 +1237,12 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. An object whose class has a user metaclass defining `__hash__` /
+18. A `StateIndexer` whose PropertySet `_props_dataclass` (and,
+    separately, whose `_result_class`) was replaced by a same-field
+    frozen dataclass with a shifting `__post_init__`: refused. A module
+    whose `__name__` was set to a non-str: refused before any lookup.
+    `np.int64` vs `np.longlong` arrays with equal bytes: different keys.
+    An object whose class has a user metaclass defining `__hash__` /
     `__eq__` that mimic `np.float64`: refused, and neither method runs.
     A `StateIndexer` whose `property_dict` was replaced by a dict
     subclass: refused before `to_dict()` runs. kwargs `keys=[(f,),(g,)]`
@@ -1416,6 +1445,7 @@ in bug 4) so the diff stays readable.
 
 ## 4. Gate
 
+(Gate scripts live in `/Users/kmt/phasic/.git/claude-scratch/`.)
 `pixi run install-dev` in the worktree, `gate2.sh /Users/kmt/phasic-bug5
 bug5`, `gate_compare.py /Users/kmt/phasic-bug4/.gate_bug4
 /Users/kmt/phasic-bug5/.gate_bug5 --new-file
@@ -1789,3 +1819,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   explicitly against the rule-2 allow-set, stale numpy-version sentence
   removed; 5 `Path.resolve()` throughout; 6 scalar token includes the
   class name.
+- Independent review AC -> v5.5 (no realistic wrong result or data
+  loss): 1 generated indexer classes compared with the rebuild's (mro,
+  attribute keys, method code), "every route" claim narrowed; 2 exact
+  str dict keys pinned before hashing, module `__name__` type checked;
+  3 `_bases` / `_radix_powers` are per-PropertySet; 4 array token
+  carries the dtype class name; 5 loaded `phasic.*` modules must be
+  among the hashed files; 6 lambda test wording, gate-script path.
