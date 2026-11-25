@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -824,7 +824,7 @@ extension only).
   example comment at `:1040-1043`, which also names a nonexistent
   `reward_compute_cache / PHASIC_DISABLE_REWARD_COMPUTE_CACHE` pair, is
   reworded to the one remaining inverted field, `warn_on_ill_conditioning`
-  (`config.py:458`).
+  (`config.py:459`).
 - `phasic.configure(graph_cache=...)`: the existing unknown-option path
   raises `PTDConfigError` (`exceptions.py:14`; NOT a `ValueError`), with
   an added line saying the option was removed and pointing to
@@ -869,8 +869,9 @@ the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_g
 resolution. `model_export.clear_caches` / `clear_model_cache` do NOT: their
 graph-cache part keeps using the legacy default directory
 (`graph_cache.DEFAULT_CACHE_DIR`, read at call time), consistent with
-their other part, which clears `$HOME/.phasic_cache` regardless of
-`PHASIC_CACHE_DIR` (`model_export.py:72`; pre-existing, found-defects
+their other part, which clears `$PHASIC_COMPILATION_CACHE_DIR` if that
+undocumented variable is set and `$HOME/.phasic_cache` otherwise,
+regardless of `PHASIC_CACHE_DIR` (`model_export.py:72`; pre-existing, found-defects
 item P). So a `clear_caches()` call never reaches a user-chosen, possibly
 shared `PHASIC_CACHE_DIR` (review AH 2); entries there are cleared only by
 `clear_all_graph_caches()` or `Graph.clear_from_cache()`. Both docstrings
@@ -1111,7 +1112,10 @@ AJ 4).
 New file `tests/pytest/test_graph_cache_key.py`. An autouse fixture sets
 `HOME` to a directory under `tmp_path` (so no code path, however it
 resolves a home-relative default, can reach the real
-`~/.phasic_cache`), and `PHASIC_CACHE_DIR` to a directory under `tmp_path` (this redirects the
+`~/.phasic_cache`), UNSETS `PHASIC_COMPILATION_CACHE_DIR` and
+`JAX_COMPILATION_CACHE_DIR` (`monkeypatch.delenv(..., raising=False)`;
+`clear_model_cache` deletes everything under the former when it is set,
+`model_export.py:72`, review AL 1), and `PHASIC_CACHE_DIR` to a directory under `tmp_path` (this redirects the
 graph cache AND the C-side caches, so `clear_from_cache()`, whose default
 also clears `parameterized_reward_compute`, never reaches the real HOME),
 and additionally monkeypatches `graph_cache.DEFAULT_CACHE_DIR` to another
@@ -1126,9 +1130,13 @@ The new names (`GraphCacheKeyError`, `GraphCacheLoadError`,
 `cache_entry_key`, ...) are imported INSIDE the tests, so on master the
 file collects and each test records its own outcome (test 21 can show
 its master pass). No test calls `phasic.clear_caches()` except the
-HOME-redirected `clear_model_cache` case of test 18 (unredirected it wipes
-`$HOME/.phasic_cache` and `$HOME/.jax_cache` regardless of
-`PHASIC_CACHE_DIR`, `model_export.py:49,72`). A hit is
+`clear_model_cache` case of test 18, made safe by the autouse fixture's
+HOME redirect AND the unset `PHASIC_COMPILATION_CACHE_DIR` (unredirected,
+`clear_caches` wipes `$PHASIC_COMPILATION_CACHE_DIR` or
+`$HOME/.phasic_cache`, and `$HOME/.jax_cache`, regardless of
+`PHASIC_CACHE_DIR`, `model_export.py:49,72`). Every subprocess the tests
+start gets the same environment treatment (HOME, `PHASIC_CACHE_DIR`,
+and the two compilation-cache variables unset). A hit is
 proven by a spy on the callback (not called); "stale" is judged on
 `expectation()` against a build without `cache_key`. Callbacks used with
 `cache_key` accept `**kw`, so that on master the argument reaches them
@@ -1311,7 +1319,8 @@ function):
 18. `model_export.clear_model_cache(verbose=False)` with HOME redirected
     (autouse) and `PHASIC_CACHE_DIR` set to a directory outside HOME
     holding one entry: the entry survives (the one test allowed to call
-    a `model_export` clear function, safe because HOME is redirected).
+    a `model_export` clear function, safe because the autouse fixture
+    redirects HOME and unsets `PHASIC_COMPILATION_CACHE_DIR`).
     POSITIVE CONTROLS for rule 8: a plain StateIndexer, fresh and after
     `index_to_props` (both generated classes present), a StateSpace-based
     one, one built by `a + b`, one after `copy.deepcopy` of a dict of its
@@ -1975,3 +1984,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   builds of constant models already differ in the last bit), tests
   compare `serialize()` exactly and numbers within 1e-14; 2 `slice` and
   `Property` emitted as single tagged fixed-arity tokens.
+- Independent review AL -> v6.5 (no wrong result or data loss in
+  ordinary use): 1 autouse fixture and subprocesses unset
+  `PHASIC_COMPILATION_CACHE_DIR` / `JAX_COMPILATION_CACHE_DIR`, wording
+  on what `clear_model_cache` clears corrected; 2 line 459.
