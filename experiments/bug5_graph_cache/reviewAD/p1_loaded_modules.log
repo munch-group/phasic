@@ -1,0 +1,42 @@
+Matplotlib is building the font cache; this may take a moment.
+phasic                                        type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py
+phasic._graph_cache_mgmt                      type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_graph_cache_mgmt.py
+phasic._graph_cache_transfer                  type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_graph_cache_transfer.py
+phasic._graph_plotting                        type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_graph_plotting.py
+phasic._graph_reward_validation               type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_graph_reward_validation.py
+phasic._graph_serialize                       type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_graph_serialize.py
+phasic._http_retry                            type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/_http_retry.py
+phasic.auto_parallel                          type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/auto_parallel.py
+phasic.cache                                  type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/cache.py
+phasic.cache_manager                          type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/cache_manager.py
+phasic.callback_hash                          type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/callback_hash.py
+phasic.cluster_configs                        type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/cluster_configs.py
+phasic.compute_repository                     type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/compute_repository.py
+phasic.config                                 type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/config.py
+phasic.distributed_utils                      type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/distributed_utils.py
+phasic.epoch_model                            type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/epoch_model.py
+phasic.exceptions                             type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/exceptions.py
+phasic.graph_cache                            type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/graph_cache.py
+phasic.hex_grid                               type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/hex_grid.py
+phasic.jax_config                             type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/jax_config.py
+phasic.logging_config                         type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/logging_config.py
+phasic.method_of_moments                      type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/method_of_moments.py
+phasic.model_export                           type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_export.py
+phasic.model_memory                           type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_memory.py
+phasic.model_selection                        type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/model_selection.py
+phasic.optax_wrapper                          type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/optax_wrapper.py
+phasic.phasic_pybind                          type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+phasic.phasic_pybind.hash                     type=module       spec=None origin_in_pkg=False origin=None
+phasic.phasic_pybind.parameterized            type=module       spec=None origin_in_pkg=False origin=None
+phasic.probability_matching                   type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/probability_matching.py
+phasic.profile                                type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/profile.py
+phasic.state_indexing                         type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/state_indexing.py
+phasic.svgd                                   type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/svgd.py
+phasic.trace_cache                            type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/trace_cache.py
+phasic.trace_elimination                      type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/trace_elimination.py
+phasic.trace_serialization                    type=module       spec=ok origin_in_pkg=True origin=/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/trace_serialization.py
+--- non-module or None-spec entries after more imports:
+PROBLEM phasic.phasic_pybind.hash <module 'phasic.phasic_pybind.hash' from '/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so'>
+PROBLEM phasic.phasic_pybind.parameterized <module 'phasic.phasic_pybind.parameterized' from '/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so'>
+n phasic modules 36
+[runcap] exit 0, peak RSS 318 MB, 16s

@@ -1,0 +1,11 @@
+const, no theta_dim              fresh={'param_length': 1, 'parameterized': False, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}
+                                 hit  ={'param_length': 1, 'parameterized': False, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}  SAME=True
+                                 expectation fresh=1.6666666666666667 hit=1.6666666666666667
+const, theta_dim=2               build error RuntimeError: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+param 3 coeffs, no theta_dim     fresh={'param_length': 3, 'parameterized': True, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}
+                                 hit  ={'param_length': 3, 'parameterized': True, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}  SAME=True
+                                 expectation fresh=0.6602564102564102 hit=0.6602564102564102
+param 3 coeffs, theta_dim=2      fresh={'param_length': 2, 'parameterized': True, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}
+                                 hit  ={'param_length': 2, 'parameterized': True, 'vertices_length': 7, 'get_was_dph': False, 'is_discrete': False}  SAME=True
+                                 eval: fresh/hit raised RuntimeError: Coefficient length mismatch: edge has 3 coefficients but theta has 2 parameters. In non-callback mode, they must match exactly. To use extra coefficients, call update_weights(theta, callback) with a custom callback function.
+[runcap] exit 0, peak RSS 323 MB, 3s

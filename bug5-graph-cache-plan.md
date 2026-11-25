@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -709,9 +709,15 @@ finder and trip test 14's import hook); at the end of import,
 outside the package directory, e.g. an editable install); use `pixi run
 install-dev` or a normal pip install", and the docstring lists editable
 installs among the refusals; scikit-build-core's editable redirect mode
-places the `.so` outside `src/phasic`). Also at the end of import:
-every loaded `phasic.*` module's `__spec__.origin` must be among the
-hashed files, otherwise a recording failure is stored (a sourceless
+places the `.so` outside `src/phasic`). Also at the end of import,
+iterating `list(sys.modules.items())` and skipping `None` values: every
+loaded `phasic.*` module's source file must be among the hashed files,
+where the source file is `__spec__.origin` if `__spec__` and its origin
+are not `None`, else `__file__` (pybind11 submodules such as
+`phasic.phasic_pybind.hash` and `phasic.phasic_pybind.parameterized`
+have `__spec__ is None` and `__file__` equal to the hashed `.so`, review
+AD p1); a module with neither is exempt only if its name starts with
+`phasic.phasic_pybind.`; otherwise a recording failure is stored (a sourceless
 `.pyc` layout, or a module loaded from outside the package directory,
 would otherwise run code the id does not cover; the docstring states
 that the id covers the package's source and extension files). ORDER at the end of import:
@@ -826,7 +832,10 @@ p1). Same rule as `cache.py:73-74` and the C side,
 written by `configure(cache_dir=...)` via `validate()`,
 `config.py:819-845`, and read by the C caches.) Otherwise the module
 attribute `DEFAULT_CACHE_DIR`, read at call time. Tests isolate with
-`monkeypatch.setenv("PHASIC_CACHE_DIR", <tmp>)`, which also redirects
+`monkeypatch.setenv("PHASIC_CACHE_DIR", <tmp>)` (the docstring notes that
+a RELATIVE `PHASIC_CACHE_DIR` is resolved once by the graph cache but
+used verbatim, relative to the current directory, by the C-side caches,
+so set it absolute), which also redirects
 the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_graph_cache_stats`,
 `print_graph_cache_info`, `clear_all_graph_caches` and
 the GRAPH-CACHE part of `model_export.clear_caches` use the same
@@ -887,7 +896,16 @@ here).
   `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
   behind (review 7 C), but ONLY those whose mtime is more than one hour
   old, so a concurrent writer's in-flight file in a shared directory is
-  never removed under it (review 8); `get_cache_stats` counts only
+  never removed under it (review 8; a `.partial` counts as stale when
+  (cache directory mtime) - (file mtime) exceeds one hour, both read
+  from the same file server rather than compared with the local clock,
+  so NFS clock skew cannot shorten it; creating the `.partial` itself
+  bumps the directory mtime, so the difference only grows through later
+  activity in the directory and a file is never judged older than it
+  is, at the price of stale files lingering in an idle directory; a writer
+  suspended for over an hour mid-save, e.g. SLURM preemption by
+  SUSPEND, can still lose its `.partial`, which is only a save error
+  with `e.graph` attached, documented); `get_cache_stats` counts only
   entry-named files (the same pattern as `clear()`), never `.partial`
   files or other JSON files.
 - Replaced: `save_graph(graph, callback, **params)` /
@@ -1231,13 +1249,17 @@ function):
     `e.graph._graph_cache_entry is None`, and no `.partial` file left in
     the directory. `serialize` monkeypatched to raise `RuntimeError`
     during save: `RuntimeError` with `e.graph` set. A stray
-    `.tmp-x.partial` file with an mtime two hours old is removed by
-    `GraphCache().clear()`; one with a current mtime is kept; neither is
-    counted by `get_cache_stats()`.
+    `.tmp-x.partial` file whose mtime is two hours before the cache
+    directory's mtime (both set with `os.utime`) is removed by
+    `GraphCache().clear()`; one with the directory's mtime is kept;
+    neither is counted by `get_cache_stats()`.
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. A `StateIndexer` whose PropertySet `_props_dataclass` (and,
+18. On the REAL install (subprocess, no monkeypatching), the
+    end-of-import coverage check stores no recording failure, and a
+    keyed build succeeds (guards against a check that refuses every
+    normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
     separately, whose `_result_class`) was replaced by a same-field
     frozen dataclass with a shifting `__post_init__`: refused. A module
     whose `__name__` was set to a non-str: refused before any lookup.
@@ -1826,3 +1848,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   3 `_bases` / `_radix_powers` are per-PropertySet; 4 array token
   carries the dtype class name; 5 loaded `phasic.*` modules must be
   among the hashed files; 6 lambda test wording, gate-script path.
+- Independent review AD -> v5.6 (no wrong result or data loss): 1 the
+  loaded-module coverage check falls back to `__file__` for pybind
+  submodules (`__spec__ is None`), skips `None` entries, and a test runs
+  it on the real install; 2 `.partial` age judged against the directory
+  mtime, suspension case documented; 3 relative `PHASIC_CACHE_DIR`
+  documented.

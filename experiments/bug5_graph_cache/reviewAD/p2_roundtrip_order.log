@@ -1,0 +1,9 @@
+build failed: RuntimeError Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). This edge uses array syntax. Use add_edge(vertex, scalar) for constant edges.
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewAD/p2_roundtrip_order.py", line 27, in <module>
+    g = Graph(cb, ipv=[8], graph_cache=False)
+  File "/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 1769, in __init__
+    super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). This edge uses array syntax. Use add_edge(vertex, scalar) for constant edges.
+[runcap] exit 1, peak RSS 301 MB, 3s
