@@ -1,0 +1,13 @@
+numpy 2.4.3 darwin
+StringDType gates: {'mod': 'numpy.dtypes', 'str': 'StringDType()', 'hasobject': True, 'fields': None, 'isnative': True, 'kind': 'T'}
+StringDType plan_bytes raised TypeError Cannot change data-type for array of references.
+StringDType scalar type: <class 'str'> isinstance np.generic: False
+longdouble float64 dtype.str <f8 <f8 types differ True exact-type gate both pass True builtin numpy.dtypes same bytes True
+   promotion with float32: float64 float64
+longlong int64 dtype.str <i8 <i8 types differ True exact-type gate both pass True builtin numpy.dtypes same bytes True
+   promotion with float32: float64 float64
+int32 int32 dtype.str <i4 <i4 types differ False exact-type gate both pass True builtin numpy.dtypes same bytes True
+   promotion with float32: float64 float64
+clongdouble complex128 dtype.str <c16 <c16 types differ True exact-type gate both pass True builtin numpy.dtypes same bytes True
+   promotion with float32: complex128 complex128
+[runcap] exit 0, peak RSS 2 MB, 1s

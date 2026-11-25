@@ -1,0 +1,6 @@
+phasic_pybind first imported; OMP_NUM_THREADS set: False
+    phasic/__init__.py 53 <module> | from phasic.graph_cache import GraphCache, get_graph_cache_stats, prin
+    phasic/graph_cache.py 29 <module> | logger = get_logger(__name__)
+    phasic/logging_config.py 253 get_logger | setup_logging()
+    phasic/logging_config.py 200 setup_logging | from . import phasic_pybind
+[runcap] exit 0, peak RSS 306 MB, 4s

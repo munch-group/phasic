@@ -1,0 +1,6 @@
+vertices 7382
+indent=2 (master): 2.45 MB
+compact: 0.68 MB
+dumps+encode: python-heap peak 1.4 MB
+stream dump: python-heap peak 0.1 MB
+[runcap] exit 0, peak RSS 335 MB, 5s

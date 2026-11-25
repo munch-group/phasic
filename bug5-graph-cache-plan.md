@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v3.9, 2026-11-24. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -116,9 +116,11 @@ deterministic functions of their inputs). The
   - the ENTRY KEY (§2.2) is computed once. A key error propagates:
     nothing is built, nothing written;
   - lookup: `cache = GraphCache()` once per call, then
-    `cache.load(entry_key)` returns a separate, fully
+    `cache.load(digest)` (the full digest from §2.2) returns a separate, fully
     built `Graph`, or `None` (missing file), or raises (§2.6). ONE policy
-    for every entry that exists but cannot be used (malformed JSON or
+    for every entry whose CONTENT cannot be used (OS errors such as
+    `PermissionError`, and `MemoryError` / `RecursionError`, propagate
+    as they are, §2.6) (malformed JSON or
     encoding, wrong shape or `format`, a non-ndarray type tag,
     `from_serialized` failing): `GraphCacheLoadError` naming the file and
     the ways out. Rationale: writes are atomic with best-effort
@@ -141,7 +143,15 @@ deterministic functions of their inputs). The
     `Path.resolve()`, so a relative `PHASIC_CACHE_DIR` plus a later
     `chdir` cannot break it, and so
     `clear_from_cache` finds it even if `PHASIC_CACHE_DIR` changes later);
-  - miss: build as today, then `cache.save(self, entry_key, meta)` on the
+  - miss: BEFORE building, the cache directory's writability is probed by
+    creating and removing a `.tmp-<hex>.partial` file (`O_CREAT |
+    O_EXCL`); failure raises the save-path `OSError` (message naming the
+    directory and the ways out) before any build work, so a read-only
+    cache directory never costs an hours-long build (hits from a
+    read-only cache keep working, since the probe runs on a miss only).
+    Disk-full or quota errors can still only surface at save time
+    (stated in the docstring). Then build as today, then
+    `cache.save(self, digest, meta)` on the
     SAME `GraphCache` instance `cache` used for the lookup (one per call,
     §2.6);
     only after it returns, `self._graph_cache_entry = <entry path>`. ANY
@@ -165,8 +175,10 @@ deterministic functions of their inputs). The
 
 `cache_entry_key(cache_key, callback, /, **params) -> str` (the first two
 parameters positional-only, so a user kwarg named `callback` or
-`cache_key` cannot collide with them): the first 32 hex
-characters of SHA-256 over a TOKEN STREAM. Every token is written as
+`cache_key` cannot collide with them): the FULL SHA-256 hex digest
+(64 characters) of a TOKEN STREAM; the entry file name is its first 32
+characters, and `GraphCache.load(digest)` / `save(graph, digest, meta)`
+take the full digest and derive the file name. Every token is written as
 `<tag>:<len>:<payload>` with the payload's byte length, so no two token
 sequences can produce the same bytes. That alone does not make the
 VALUE -> token-sequence map one-to-one (a literal implementation gives
@@ -203,7 +215,11 @@ function already visited contributes a back-reference token)
 
 - Python function `f`, EXACT type only (`type(f) is
   types.FunctionType`): `f.__module__` encoded through the VALUE
-  FINGERPRINT (it can be `None`, for example for functions made by
+  FINGERPRINT, with `'__mp_main__'` normalised to `'__main__'` (spawn
+  and forkserver workers import the main script as `__mp_main__`, which
+  is the same module as the parent's `__main__`; without this, every
+  multiprocessing worker would miss the parent's entry and rebuild,
+  review N p3) (it can be `None`, for example for functions made by
   `exec(src, {})` or `types.FunctionType(code, {})`, review M m5; the
   same applies to every other name-like token, and `cache_key` itself
   goes through the `str` value rule) (so two same-bodied callbacks
@@ -271,7 +287,11 @@ function already visited contributes a back-reference token)
   `import numpy as np` inside a factory creates): module-name token,
   ONLY IF `sys.modules[m.__name__] is m`. It behaves exactly like a
   module global, whose contents are the user's responsibility under the
-  contract. (Value rule 6b below.) Admitted ONLY inside closure cells: a
+  contract. (Value rule 6b below.) Admitted ONLY when a closure cell's
+  DIRECT content is the module object (a module nested in a container
+  inside a cell, in a function default `def cb(state, np=np)` or
+  `__kwdefaults__`, or in phasic's own `ipv` wrapper cell, is refused
+  like any other position); a
   module passed as a keyword argument or inside the ipv is NOT
   FINGERPRINTABLE, because there the contract promises keying BY VALUE
   and a module's attributes can change (`mod.RATE = 4.0`) or be reloaded
@@ -471,8 +491,12 @@ longer used, so callbacks without accessible source can be cached.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
-as `GraphCacheKeyError`. Limits: a depth limit of 100; a TOTAL node
-budget of 10^7 visited objects per key computation (a DAG of shared
+as `GraphCacheKeyError`. Limits: a depth limit of 100; a budget on
+RE-ENTRIES: walking a container whose `id()` was already walked earlier
+in the same key computation counts against a budget of 10^6 (ordinary
+lookup tables, even 600k states x 20, have no re-entries and are never
+limited; review N p5 measured a flat 10^7 node budget refusing a 600k x
+20 state table) (a DAG of shared
 containers such as `a = [a, a]` nested k times would otherwise be
 walked 2^k times and hang, review M 7), exceeding it raises
 `GraphCacheKeyError`; and a cycle check against the
@@ -514,8 +538,14 @@ file in sorted relative-path order its relative path, its size and its
 bytes, so moving text across a file boundary (an extraction refactor)
 changes it. This content hash IS `_phasic_build_id()`. To make sure it
 describes the code the process actually imported, a stdlib-only stat
-snapshot of the same files is taken at the TOP of `phasic/__init__.py`,
-before any submodule or `phasic_pybind` import; at the end the files are
+snapshot is taken at the TOP of `phasic/__init__.py`, before any
+submodule or `phasic_pybind` import: `os.scandir` of the package
+directory for `*.py` (recursive, as above) and for `phasic_pybind*`
+files ending in one of `importlib.machinery.EXTENSION_SUFFIXES` (never
+`importlib.util.find_spec`, which would call every `sys.meta_path`
+finder and trip test 14's import hook); at the end of import,
+`phasic.phasic_pybind.__file__` must be among the snapshotted files
+(otherwise a recording failure is stored); at the end the files are
 re-stat'ed, and if anything changed during the import (a concurrent
 reinstall on a shared cluster), a recording failure is stored (raised at
 the first key computation). So no reinstall during or after import can
@@ -658,8 +688,8 @@ here).
   old, so a concurrent writer's in-flight file in a shared directory is
   never removed under it (review 8); `get_cache_stats` still counts only `*.json`.
 - Replaced: `save_graph(graph, callback, **params)` /
-  `load_graph(callback, **params)` -> `save(graph, entry_key, meta)` /
-  `load(entry_key)`.
+  `load_graph(callback, **params)` -> `save(graph, digest, meta)` /
+  `load(digest)` (full 64-character digest; file name = first 32).
 - Removed: `get_or_build`, `hash_callback`, `_detect_closures`,
   `_normalize_ast`.
 - Entry content: `entry_digest` (the FULL SHA-256 hex of the key token
@@ -677,8 +707,17 @@ here).
   `*.json`; the kernel applies the process umask and any default ACL of
   the directory, as for today's `open()`, so no umask is read or changed
   (reading it with `os.umask` would briefly change it process-wide while
-  JAX/OpenMP threads run), and no `mkstemp` 0600 mode), write,
-  `os.fsync(fd)`, close, `os.replace` to `<entry_key>.json`. The
+  JAX/OpenMP threads run), and no `mkstemp` 0600 mode), then
+  `with os.fdopen(fd, "w", encoding="utf-8") as f: json.dump(entry, f,
+  separators=(",", ":")); f.flush(); os.fsync(f.fileno())`, then
+  `os.replace` to `<first 32 hex>.json`. The buffered writer loops over
+  short writes (a single `os.write` of more than 2 GiB writes only
+  `INT_MAX` bytes on macOS and about 2 GiB on Linux, so a natural
+  `os.write(fd, data)` would store a truncated entry and report success,
+  review N p8), and streaming avoids holding the string and its bytes at
+  once. Compact separators replace master's `indent=2`
+  (`graph_cache.py:153`), which was 3.6x larger (2.45 MB vs 0.68 MB at
+  7,382 vertices, review N p6). The
   temporary file is removed in a `finally` that covers `BaseException`
   too (a Ctrl-C during a minute-long 600k-vertex save must not leave a
   ~0.85 GB `.partial` behind for an hour). Durability is best effort: no
@@ -691,7 +730,7 @@ here).
   writers each replace atomically; a reader sees a complete file or none
   (shared SLURM directories are a documented use,
   `distributed.ipynb` cell 31).
-- On load, `entry_digest` must equal the digest recomputed for this call;
+- On load, `entry_digest` must equal the full digest passed to `load()`;
   a mismatch is a `GraphCacheLoadError` naming the file (a file copied or
   planted under the wrong name, or a truncated-name collision, would
   otherwise be loaded silently as a wrong graph, review M 2).
@@ -967,8 +1006,16 @@ function):
     in a hand-set attribute the callback reads: different keys. A cache directory that does not exist under a read-only
     parent (skipped as root): `mkdir` fails, `OSError` naming
     it, callback not called. An EXISTING read-only cache directory
-    (skipped as root): `mkdir(exist_ok=True)` passes, the build runs, and
-    `save()` raises the `OSError` with `e.graph` attached. The cache directory deleted between lookup
+    (skipped as root): the pre-build writability probe raises the
+    `OSError`, callback not called; a HIT from a read-only directory
+    holding a valid entry works. `os.write` / the file object's `write`
+    monkeypatched to perform short writes: the saved entry is complete
+    and loads. Spawned worker (`multiprocessing`, start method `spawn`)
+    calling the same `Graph(cb, ..., cache_key=...)` as the parent: hit
+    (callback not called in the worker). A 600k-entry dict of state
+    tuples as a kwarg: keyed within the budget. Module positions: direct
+    cell content keyed; module as a default, inside a container in a
+    cell, and inside the ipv refused. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
     named `dtype` as a kwarg: keyed normally. `ml_dtypes` arrays
     `float8_e4m3fn` vs `float8_e4m3b11fnuz` with equal bytes, and an
@@ -1007,9 +1054,9 @@ callback (not called), so a silent miss can no longer pass (review B 12):
   r=2)`; it keys under the immutable-compiled-type rule (§2.2.1), so the
   test body is otherwise unchanged (review A 1).
 - `test_serialize_constant_roundtrip.py`: `:106-113`, `:134` use
-  `cache_key`; `load_graph(callback)` at `:111` -> `load(entry_key)`
-  (`Path(g._graph_cache_entry).stem`, since the attribute holds the
-  file path). T6 (`:219-240`) is rewritten to exercise
+  `cache_key`; `load_graph(callback)` at `:111` -> `load(digest)`, the
+  digest obtained from `cache_entry_key(...)` for the same call (the
+  file name holds only its first 32 characters). T6 (`:219-240`) is rewritten to exercise
   the load-time format check: write a valid entry, rewrite its `format`
   field to `"1"`, assert `GraphCacheLoadError` naming the file; after
   deleting the file, the rebuild is a CONSTANT graph. Fixture `tmp_cache`
@@ -1332,3 +1379,12 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   defined in `callback_hash`; 5 array equality in the StateIndexer check
   specified; 6 `clear()` deletes only entry-named files; 7 total node
   budget for the key walk.
+- Independent review N -> v4.0 (no wrong graph found): 1 save streams
+  through a buffered file object (no truncated >2 GiB writes); 2
+  writability probed before building on a miss; 3 `__mp_main__`
+  normalised to `__main__`; 4 budget counts container re-entries only
+  (10^6), so large plain lookup tables are keyed; 5 compact JSON
+  (3.6x smaller than master's indent=2); 6 full 64-hex digest passed to
+  `load` / `save`; 7 top-of-import snapshot finds the extension via
+  `os.scandir` + `EXTENSION_SUFFIXES`, never `find_spec`; 8 module
+  admitted only as a cell's direct content; §2.1 "one policy" wording.

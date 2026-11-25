@@ -1,0 +1,5 @@
+before/after quickening: 3ca0e12bc951a4e4 3ca0e12bc951a4e4 equal
+under settrace: 3ca0e12bc951a4e4 equal
+under sys.monitoring: 3ca0e12bc951a4e4 equal
+3.13.13 | packaged by conda-forge | (main, Apr  8 2026, 02:29:07) [Clang 19.1.7 ]
+[runcap] exit 0, peak RSS 2 MB, 1s

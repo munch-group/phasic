@@ -1,0 +1,22 @@
+Matplotlib is building the font cache; this may take a moment.
+3-tuple
+   n: fresh=6 roundtrip=6 hit=6
+   parameterized: fresh=True roundtrip=True hit=True
+   param_length: fresh=1 roundtrip=1 hit=1
+   weights: fresh=[1.0, 10.0, 6.0, 3.0, 1.0] roundtrip=[1.0, 10.0, 6.0, 3.0, 1.0] hit=[1.0, 10.0, 6.0, 3.0, 1.0]
+   E_before_update: fresh=1.6 roundtrip=1.6 hit=1.6
+   E after update_weights([1]): fresh 1.6 hit 1.6
+2-tuple coeffs
+   n: fresh=6 roundtrip=6 hit=6
+   parameterized: fresh=True roundtrip=True hit=True
+   param_length: fresh=1 roundtrip=1 hit=1
+   weights: fresh=[1.0, 10.0, 6.0, 3.0, 1.0] roundtrip=[1.0, 10.0, 6.0, 3.0, 1.0] hit=[1.0, 10.0, 6.0, 3.0, 1.0]
+   E_before_update: fresh=1.6 roundtrip=1.6 hit=1.6
+   E after update_weights([1]): fresh 1.6 hit 1.6
+constant
+   n: fresh=6 roundtrip=6 hit=6
+   parameterized: fresh=False roundtrip=False hit=False
+   param_length: fresh=1 roundtrip=1 hit=1
+   weights: fresh=[1.0, 10.0, 6.0, 3.0, 1.0] roundtrip=[1.0, 10.0, 6.0, 3.0, 1.0] hit=[1.0, 10.0, 6.0, 3.0, 1.0]
+   E_before_update: fresh=1.6 roundtrip=1.6 hit=1.6
+[runcap] exit 0, peak RSS 287 MB, 19s
