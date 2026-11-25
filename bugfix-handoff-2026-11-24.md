@@ -61,7 +61,12 @@ end with the Co-Authored-By line; the user pushes.
    was rewritten (unpushed) to drop ~95 MB of plan-review-3 scratch
    (`review3/nw/negw.jsonl`, `review3/patched/`); both remain on disk,
    untracked, in the bug 4 worktree.
-5. **On-disk graph cache returns stale graphs** —
+5. **On-disk graph cache returns stale graphs** — MERGED (`96b141fc`);
+   main environment rebuilt. Suite run: `/Users/kmt/phasic-bug5/.gate_bug5`
+   (3032 passed, 121 new; the same 4 test_plot_ci failures; one extra,
+   test_mcmc_accuracy TestErlang2Posterior::test_two_param_recovery, R-hat
+   1.218 vs 1.2, passed 3/3 in isolation: flaky). Implementation
+   `17967f51`, tests `359c4e1b`, review fixes `92e4a6a3`. History below.
    `/Users/kmt/phasic-bug5`, branch `fix/graph-cache-stale`. Plan
    `bug5-graph-cache-plan.md` v1 REJECTED by reviewer 1 (evidence in
    `experiments/bug5_graph_cache/review1/`): the dependency fingerprint
@@ -104,5 +109,7 @@ end with the Co-Authored-By line; the user pushes.
   (plus the out-of-scope lists in the bug 4 plan §2.3).
 - Notebook cells needing the user's edits (model-selection.ipynb cell 13;
   bug 5 list in `bug5-graph-cache-plan.md` §5).
+- docs/api pages still mention graph_cache (Graph.qmd, configure.qmd,
+  get_config.qmd, PhasicConfig.qmd): regenerate with `pixi run api`.
 - Parked: `fd-step-and-slow-band-guard-plan.md` v5, to be split into Plan A
   (gradient step) and Plan B (forward replacement) after the bugs.
