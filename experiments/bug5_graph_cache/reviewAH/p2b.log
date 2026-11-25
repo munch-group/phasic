@@ -1,0 +1,5 @@
+graph_cache logger: <Logger phasic.graph_cache (WARNING)>
+OMP_NUM_THREADS at first phasic_pybind import: 8
+   /Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewAH/p2b_import_order_lazy.py:28
+   phasic/__init__.py:279
+[runcap] exit 0, peak RSS 320 MB, 3s

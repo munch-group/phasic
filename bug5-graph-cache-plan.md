@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.9, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -390,6 +390,10 @@ check refuses nothing legitimate. Allow-set tests are written as
 identity tests (`any(type(x) is t for t in ALLOWED)`, or a lookup made
 safe by the metaclass check).
 
+(Token tags: Python-scalar tokens (rule 1) and numpy-scalar tokens
+(rule 2) use DISJOINT tag namespaces, `py:` and `np:` prefixes, so
+`bool` and `np.bool`, whose type names are both `bool`, can never share
+a tag, whatever the payloads.)
 1. EXACT types only (`type(x) is ...`): `None`, `bool`, `str`, `bytes`:
    type name + canonical repr; `int` via `hex()` (no 4300-digit `repr`
    limit); `float` via its 8 IEEE-754 bytes (`struct.pack("<d", x)`;
@@ -876,12 +880,16 @@ a RELATIVE `PHASIC_CACHE_DIR` is resolved once by the graph cache but
 used verbatim, relative to the current directory, by the C-side caches,
 so set it absolute), which also redirects
 the C-side caches that `clear_from_cache` touches (§3). `get_cache_dir`, `get_graph_cache_stats`,
-`print_graph_cache_info`, `clear_all_graph_caches` and
-the GRAPH-CACHE part of `model_export.clear_caches` use the same
-resolution (its `clear_model_cache` part still `rmtree`s
-`$HOME/.phasic_cache` regardless of `PHASIC_CACHE_DIR`,
-`model_export.py:72`; pre-existing, found-defects item P, unchanged
-here).
+`print_graph_cache_info` and `clear_all_graph_caches` use the same
+resolution. `model_export.clear_caches` / `clear_model_cache` do NOT: their
+graph-cache part keeps using the legacy default directory
+(`graph_cache.DEFAULT_CACHE_DIR`, read at call time), consistent with
+their other part, which clears `$HOME/.phasic_cache` regardless of
+`PHASIC_CACHE_DIR` (`model_export.py:72`; pre-existing, found-defects
+item P). So a `clear_caches()` call never reaches a user-chosen, possibly
+shared `PHASIC_CACHE_DIR` (review AH 2); entries there are cleared only by
+`clear_all_graph_caches()` or `Graph.clear_from_cache()`. Both docstrings
+say so.
 
 ### 2.6 `GraphCache` API and entry file
 
@@ -930,7 +938,8 @@ here).
   `int` they return counts removed entry files only, not `.partial`
   files. They
   (and through them `clear_all_graph_caches` and
-  `model_export.clear_caches`) also remove
+  `model_export.clear_caches`, which uses the legacy default directory,
+  §2.5) also remove
   leftover `.tmp-*.partial` files, which a writer killed between
   `os.open` and `os.replace` (SIGKILL, OOM kill, SLURM time limit) leaves
   behind (review 7 C), but ONLY those whose mtime is more than one hour
@@ -1311,8 +1320,12 @@ function):
     joint-probability base + reward indexer pairs with `index_to_props`
     and key computations, `gc.collect()`: the number of live registered
     classes stays bounded (not growing with N). An indexer round-tripped
-    through `cloudpickle` (if installed): refused with the rebuild
-    advice. On the REAL install (subprocess, no monkeypatching), the
+    through `dill` in-process (dill rebuilds the generated class; skipped
+    if dill is absent), and one dumped with `joblib.externals.cloudpickle`
+    and loaded in a SUBPROCESS (an in-process cloudpickle round trip
+    returns the same registered class and is admitted, correctly):
+    refused with the rebuild advice. Not gated on a top-level
+    `import cloudpickle`, which is not installed here (review AH 1). On the REAL install (subprocess, no monkeypatching), the
     end-of-import coverage check stores no recording failure, and a
     keyed build succeeds (guards against a check that refuses every
     normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
@@ -1940,3 +1953,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   leak-guard test; 2 cloudpickle / dill indexers refused with rebuild
   advice; 3 bases / name checked, in-place entry edits named outside the
   contract; 4 §3 source-change note and CRLF; 5 tests extended.
+- Independent review AH -> v6.0 (no wrong result or data loss;
+  reviewer would sign off once fixed): 1 pickled-indexer test uses dill
+  in-process and joblib's cloudpickle across a subprocess; 2
+  `clear_caches()` keeps its graph part on the legacy default directory,
+  never reaching `PHASIC_CACHE_DIR`; 3 disjoint `py:` / `np:` scalar tag
+  namespaces.

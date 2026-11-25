@@ -1,0 +1,9 @@
+constant coalescent                      V=7/7 edges-ordered-equal=True moments bit-equal
+param coalescent                         V=7/7 edges-ordered-equal=True moments bit-equal
+two-island param                         V=15/15 edges-ordered-equal=True moments bit-equal
+duplicate targets, constant              V=6/6 edges-ordered-equal=True moments moments raised RuntimeError
+duplicate targets, param                 V=6/6 edges-ordered-equal=True moments bit-equal
+multi-start constant                     V=7/7 edges-ordered-equal=True moments bit-equal
+all-zero coefficient edge                V=6/6 edges-ordered-equal=True moments bit-equal
+odd float weights                        V=6/6 edges-ordered-equal=True moments bit-equal
+[runcap] exit 0, peak RSS 308 MB, 4s
