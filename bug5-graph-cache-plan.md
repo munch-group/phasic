@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.0, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -549,7 +549,15 @@ a tag, whatever the payloads.)
      generated class's `__module__` stays `phasic.state_indexing`): the
      wrapper calls the real `make_dataclass`, then stores a SNAPSHOT
      `dict(vars(cls))` (the same entry objects) ON THE CLASS ITSELF as
-     `cls.__phasic_snapshot__`, together with the field names, and adds
+     `cls.__phasic_snapshot__`, together with the field names, wrapped in
+     a tiny holder object `_Snap` (`__slots__`, and a `__reduce__`
+     returning `(_Snap, (None, None))`): a bare dict there makes
+     `dill.dumps(indexer)` fail for EVERY indexer, used or not, a
+     regression for all users, including phasic's own `%%srun` magic,
+     which dill-dumps notebook globals (`srun_magic.py:147, 219-224`) and
+     would silently lose such an indexer; with the holder, dill and
+     cloudpickle copy a harmless empty stub, and the rebuilt class stays
+     unregistered (review AI p4-p6), and adds
      the class to a module-level `weakref.WeakSet` `_GENERATED_CLASSES`.
      (A dict of weakrefs plus a snapshot held outside the class, as in
      the first v5.8 text, leaks: the snapshot's `__dict__` / `__weakref__`
@@ -561,8 +569,12 @@ a tag, whatever the payloads.)
      `cls.__bases__ == (object,)` and `cls.__name__` is the name phasic
      generates (`IndexResult` / `<Name>Props`); the field names equal the
      ones the indexer's properties / slots imply; and `vars(cls)`, minus
-     the `__phasic_snapshot__` key, has exactly the snapshot's keys with
-     every entry the IDENTICAL object (`is`). A user-made class is not
+     the `__phasic_snapshot__` key and minus `__slotnames__` (which
+     CPython's copyreg adds to a class the first time one of its
+     instances is copied or pickled, e.g. a `deepcopy` of a
+     state-to-label dict holding `index_to_props` results; it only
+     affects copying of instances, review AI p3), has exactly the
+     snapshot's keys with every entry the IDENTICAL object (`is`). A user-made class is not
      registered; replacing or adding a class attribute (a swapped
      `__init__`, an added `__post_init__`) changes an entry's identity or
      the key set; changing the bases or the name is caught by the first
@@ -1325,7 +1337,12 @@ function):
     and loaded in a SUBPROCESS (an in-process cloudpickle round trip
     returns the same registered class and is admitted, correctly):
     refused with the rebuild advice. Not gated on a top-level
-    `import cloudpickle`, which is not installed here (review AH 1). On the REAL install (subprocess, no monkeypatching), the
+    `import cloudpickle`, which is not installed here (review AH 1).
+    `dill.loads(dill.dumps(ix))` itself WORKS (fresh and used indexer;
+    no regression for `%%srun` / pathos users), and the loaded copy is
+    refused for keying. After `copy.deepcopy` of a dict holding
+    `index_to_props` results (adds `__slotnames__`), a keyed build with
+    the original indexer still hits. On the REAL install (subprocess, no monkeypatching), the
     end-of-import coverage check stores no recording failure, and a
     keyed build succeeds (guards against a check that refuses every
     normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
@@ -1535,8 +1552,9 @@ additive registry (an `import weakref`, the `WeakSet`, and a module-level
 wrapper rebinding `make_dataclass`; no existing function body changes).
 `state_indexing.py` is CRLF, so the CRLF note below applies to it too.
 
-Implementation note: `graph_cache.py` (and other files in this repo)
-use CRLF line endings; edits must preserve them (binary-mode edits, as
+Implementation note: `graph_cache.py`, `callback_hash.py`,
+`state_indexing.py`, `model_export.py` and `config.py` use CRLF line
+endings (`__init__.py` and `_graph_cache_mgmt.py` are LF); edits must preserve them (binary-mode edits, as
 in bug 4) so the diff stays readable.
 
 ## 4. Gate
@@ -1959,3 +1977,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `clear_caches()` keeps its graph part on the legacy default directory,
   never reaching `PHASIC_CACHE_DIR`; 3 disjoint `py:` / `np:` scalar tag
   namespaces.
+- Independent review AI -> v6.1 (no wrong result or data loss): 1 the
+  snapshot is held in a `_Snap` object whose `__reduce__` yields an
+  empty stub, so dill pickling of indexers keeps working (it broke for
+  all users under v5.9); 2 `__slotnames__` ignored in the class
+  key-set comparison; 3 CRLF file list.
