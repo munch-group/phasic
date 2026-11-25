@@ -1,0 +1,20 @@
+python 3.13.13 numpy 2.4.3
+StringDType module: numpy.dtypes hasobject: True fields: None str: StringDType() itemsize 16
+StringDType bytes path raised: TypeError Cannot change data-type for array of references.
+view(uint8) raised: TypeError Cannot change data-type for array of references.
+f8 numpy.dtypes False
+M8[s] numpy.dtypes False
+m8[ms] numpy.dtypes False
+U3 numpy.dtypes False
+S3 numpy.dtypes False
+c16 numpy.dtypes False
+? numpy.dtypes False
+O numpy.dtypes True
+combinations_with_replacement True
+ndarray True
+float64 True
+int True
+range True
+partial True
+Counter False
+[runcap] exit 0, peak RSS 2 MB, 1s

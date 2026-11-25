@@ -1,0 +1,10 @@
+3.13.13
+in_set         [('NoneType',), ('frozenset',)]
+tuple_of_set   [('NoneType',), ('int',), ('int',), ('int',)]
+for_set        [('NoneType',), ('frozenset',)]
+match_map      [('NoneType',), ('int',), ('int',), ('tuple', ['str'])]
+match_or       [('NoneType',), ('int',), ('int',), ('int',), ('tuple', ['int'])]
+nested_in      [('NoneType',), ('frozenset',), ('frozenset',)]
+default_tuple  [('NoneType',), ('tuple', ['ellipsis', 'int'])]
+slice_c        [('NoneType',), ('int',), ('int',), ('int',)]
+[runcap] exit 0, peak RSS 2 MB, 1s

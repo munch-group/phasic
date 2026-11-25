@@ -1,0 +1,22 @@
+pages/popgen/ghost.ipynb[1]: graph_cache = ph.GraphCache()
+pages/popgen/ghost.ipynb[3]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, index
+pages/popgen/moran-coalescent-derived.ipynb[1]: graph_cache=True,
+pages/popgen/old-moran-coalescent-derived.ipynb[4]: graph_cache=False,
+pages/popgen/two-locus-island.ipynb[1]: graph_cache = GraphCache()
+pages/popgen/two-locus-island.ipynb[11]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, index
+pages/popgen/two-locus-island.ipynb[29]: # graph_cache.save_graph(graph, two_locus_ghost_island, epoch_idx=0, nr_epochs=2, nr_params=6, index
+pages/popgen/two-locus-island.ipynb[37]: # graph_cache.save_graph(graph, two_locus_island, epoch_idx=0, nr_epochs=2, nr_params=6, indexer=ind
+pages/tutorial/matrix-solve.ipynb[2]: phasic.configure(graph_cache=True)
+pages/tutorial/python_trace-and-jax-caching.ipynb[8]: graph_cache=True)
+pages/tutorial/python_trace-and-jax-caching.ipynb[10]: graph_cache=True, dummy=42)
+pages/tutorial/python_trace-and-jax-caching.ipynb[12]: graph_cache=True, dummy=99)
+pages/tutorial/scc-decomposition.ipynb[26]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+pages/tutorial/scc-decomposition.ipynb[29]: g_arg.clear_from_cache(graph_cache=False) # keep graph cache
+pages/tutorial/state-space.ipynb[36]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+pages/tutorial/state-space.ipynb[38]: graph = Graph(coalescent, ipv=initial, N=10000, graph_cache=True)
+pages/tutorial/state-space.ipynb[45]: graph = Graph(callback, model=model, graph_cache=True)
+pages/tutorial/svgd-joint-prob.ipynb[78]: #   graph_cache=True,
+pages/tutorial/trace-and-jax-caching-c-path.ipynb[8]: graph_cache=True)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb[10]: graph_cache=True, dummy=42)
+pages/tutorial/trace-and-jax-caching-c-path.ipynb[12]: graph_cache=True, dummy=99)
+[runcap] exit 0, peak RSS 4 MB, 1s

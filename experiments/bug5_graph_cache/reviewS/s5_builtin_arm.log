@@ -1,0 +1,22 @@
+math.sqrt                builtin_function_or_method   ADMIT math.sqrt
+len                      builtin_function_or_method   ADMIT builtins.len
+np.exp                   ufunc                        ADMIT numpy.exp
+np.add                   ufunc                        ADMIT numpy.add
+np.sum                   _ArrayFunctionDispatcher     ADMIT numpy.sum
+np.linalg.solve          _ArrayFunctionDispatcher     ADMIT numpy.linalg.solve
+np.minimum               ufunc                        ADMIT numpy.minimum
+np.isclose               _ArrayFunctionDispatcher     ADMIT numpy.isclose
+np.zeros                 builtin_function_or_method   ADMIT numpy.zeros
+np.array                 builtin_function_or_method   ADMIT numpy.array
+np.concatenate           _ArrayFunctionDispatcher     ADMIT numpy.concatenate
+np.random.default_rng    cython_function_or_method    not this arm
+sp.gamma                 ufunc                        refused: module=None qual='gamma'
+sp.comb                  function                     not this arm
+{}.get                   builtin_function_or_method   refused: __self__
+frompyfunc               ufunc                        refused: module=None qual='<lambda> (vectorized)'
+np.abs                   ufunc                        ADMIT numpy.absolute
+abs                      builtin_function_or_method   ADMIT builtins.abs
+np.round                 _ArrayFunctionDispatcher     ADMIT numpy.round
+np.log1p                 ufunc                        ADMIT numpy.log1p
+np.prod                  _ArrayFunctionDispatcher     ADMIT numpy.prod
+[runcap] exit 0, peak RSS 84 MB, 1s

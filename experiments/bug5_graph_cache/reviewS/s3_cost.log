@@ -1,0 +1,4 @@
+built 600000 state dict, rss 214 MB
+600k dict: 5.75 s, steps 600001, memo 600001, rss 343 MB
+60k x 20 adjacency: 1.07 s, steps 120001, rss 343 MB
+[runcap] exit 0, peak RSS 363 MB, 11s

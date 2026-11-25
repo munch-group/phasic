@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -84,7 +84,10 @@ responsibility: change `cache_key` when it changes. The key also
 reflects arguments and captured state AT CALL TIME, so a callback must
 not change its arguments or captured state in ways that affect the graph
 (for example mutating one kwarg and reading an alias of it: aliases are
-keyed by content). Functions ANYWHERE (callback, closure cells, defaults,
+keyed by content). A kwarg dict or list built by iterating a SET of
+strings has a hash-seed-dependent order, so it misses across processes
+(sort it first). The key's cost scales with the argument and captured
+data and is paid on hits too. Functions ANYWHERE (callback, closure cells, defaults,
 keyword arguments) are keyed by their code, defaults and closures, not
 by the module globals they read; those globals are the user's
 responsibility wherever the function is passed. On a hit the callback does NOT run, so any side
@@ -347,7 +350,9 @@ longer used, so callbacks without accessible source can be cached.
 
 1. EXACT types only (`type(x) is ...`): `None`, `bool`, `str`, `bytes`:
    type name + canonical repr; `int` via `hex()` (no 4300-digit `repr`
-   limit); `float` via `float.hex`; `complex` via the hex of both parts.
+   limit); `float` via its 8 IEEE-754 bytes (`struct.pack("<d", x)`;
+   `float.hex` prints `nan` for every NaN regardless of sign and
+   payload, review S s8); `complex` via the 16 bytes of both parts.
    Subclasses do not match here: `np.float64` (a `float` subclass) goes
    to rule 2, and `IntEnum` members and other subclasses are refused;
 2. numpy scalar: gated on `isinstance(x, np.generic)` FIRST (so `.dtype`
@@ -361,8 +366,11 @@ longer used, so callbacks without accessible source can be cached.
    jax, all report `dtype.str` `<V1` / `<V2`, so two of them with equal
    bytes would collide, review K k3, and are refused):
    `x.dtype.str` + `tobytes()`;
-   `np.void` scalars and any dtype with `.fields` or `.hasobject` are
-   refused;
+   `np.void` scalars, any dtype with `.fields` or `.hasobject`, and
+   long-double kinds (`np.longdouble` / `np.clongdouble`, dtype chars
+   `g` / `G`: on Linux x86-64 their 80-bit values sit in 16-byte slots
+   with uninitialised padding, so equal values can have different
+   bytes) are refused;
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
    subclasses are refused): `x.dtype.str`, shape, a LAYOUT token (`C`
    if C-contiguous, else `F` if F-contiguous, else `S` followed by the
@@ -502,7 +510,7 @@ longer used, so callbacks without accessible source can be cached.
    `np.asarray(mm)`; note this reads the file to hash it), the class
    `collections.Counter` captured in a cell, phasic's own
    `index_to_props` results (precompute lookup tables as plain ints or
-   dicts), functions whose `__dict__` holds an `inspect.Signature`
+   dicts), long-double arrays, functions whose `__dict__` holds an `inspect.Signature`
    (set by some decorator libraries as `__signature__`), numpy 2
    `StringDType` arrays, `fractions.Fraction`,
    `decimal.Decimal`, nesting deeper than 100. The docstring also says
@@ -530,7 +538,9 @@ method and partial, every numpy array and every `StateIndexer` that
 passed rule 8 is represented in its parent's stream by ONE fixed-length
 token: its SUB-DIGEST, the SHA-256 of its own token stream, which begins
 with a KIND TAG unique to its kind (list, tuple, dict, function, bound
-method, partial, array, indexer) and in which its children are in turn
+method, partial, CODE OBJECT, array, indexer; code objects are memoised
+too, so one `def` in a loop producing many closures hashes its code
+once) and in which its children are in turn
 sub-digests. A tuple has ONE encoding whether it is reached as a code
 constant or as a value (the constant-only additions, `Ellipsis` and
 `slice`, are also value rules, rule 5b), so the shared memo can never
@@ -771,7 +781,8 @@ here).
   (reading it with `os.umask` would briefly change it process-wide while
   JAX/OpenMP threads run), and no `mkstemp` 0600 mode), then
   `with os.fdopen(fd, "w", encoding="utf-8") as f:` write the entry's
-  small fields, then EACH large `graph_data` field encoded with
+  small fields, `format` FIRST (so a reader can tell an entry's format
+  from its first bytes), then EACH large `graph_data` field encoded with
   `json.dumps(value, separators=(",", ":"))` (the one-shot call uses
   CPython's C encoder; `json.dump` streaming always uses the
   pure-Python encoder, 2.8x slower, review O p6) and written piecewise
@@ -865,15 +876,23 @@ callback. The `graph_cache.py` docstrings at `:7`, `:52`, `:86`
 Entries written before this change are never loaded (different format
 and key composition). They stay on disk; `phasic.clear_all_graph_caches()`
 removes them: it sweeps entry-named files (`^[0-9a-f]{32}\.json$`) from
-the current graph directory AND from the legacy default
-`~/.phasic_cache/graphs` (master always wrote there, ignoring
-`PHASIC_CACHE_DIR`, `graph_cache.py:32, 88`), so users who set
-`cache_dir` do not keep orphaned old entries (docstring says so).
+the current graph directory, and ALSO from the legacy default directory
+(master always wrote there, ignoring `PHASIC_CACHE_DIR`,
+`graph_cache.py:32, 88`), so users who set `cache_dir` do not keep
+orphaned old entries. The legacy directory is `graph_cache.DEFAULT_CACHE_DIR`
+READ AT CALL TIME (never `Path.home()` or a fixed constant, so tests
+redirect it), and if it differs from the current directory, only files
+that are NOT format "2" are deleted there: the first bytes of each file
+are read (new entries write `format` first, §2.6), so valid new-format
+entries that other runs wrote to the default directory survive (review
+S 1). Docstring says so.
 
 ## 3. Tests
 
 New file `tests/pytest/test_graph_cache_key.py`. An autouse fixture sets
-`PHASIC_CACHE_DIR` to a directory under `tmp_path` (this redirects the
+`HOME` to a directory under `tmp_path` (so no code path, however it
+resolves a home-relative default, can reach the real
+`~/.phasic_cache`), and `PHASIC_CACHE_DIR` to a directory under `tmp_path` (this redirects the
 graph cache AND the C-side caches, so `clear_from_cache()`, whose default
 also clears `parameterized_reward_compute`, never reaches the real HOME),
 and additionally monkeypatches `graph_cache.DEFAULT_CACHE_DIR` to another
@@ -1087,16 +1106,21 @@ function):
     it, callback not called. An EXISTING read-only cache directory
     (skipped as root): the pre-build writability probe raises the
     `OSError`, callback not called; a HIT from a read-only directory
-    holding a valid entry works. `os.write` / the file object's `write`
-    monkeypatched to perform short writes: the saved entry is complete
-    and loads. A subprocess SCRIPT executed as `__main__` (so its
+    holding a valid entry works. Short writes: the save path's file
+    object is constructed through a small internal factory
+    (`graph_cache._open_entry_writer(fd)`), which the test replaces with
+    a `BufferedWriter` over a `RawIOBase` whose `write` stores at most 7
+    bytes per call; the saved entry is complete and loads (patching
+    `os.write` would test nothing, since `os.fdopen` text writes never
+    call it, review S s9). A subprocess SCRIPT executed as `__main__` (so its
     callback's module is `__main__`) builds the graph, then a
     `multiprocessing` worker with start method `spawn` (which imports
     the script as `__mp_main__`) calls the same `Graph(cb, ...,
     cache_key=...)`: hit (callback not called in the worker); this is the
     case the normalisation exists for (a callback in the pytest module
-    would not exercise it). A 600k-entry dict of state tuples as a
-    kwarg, and a 60k x 20 adjacency table whose neighbour tuples are the
+    would not exercise it). A 60k-entry dict of state tuples as a
+    kwarg (the step counter proves linearity; 600k would cost several
+    seconds of suite time), and a 60k x 20 adjacency table whose neighbour tuples are the
     same objects as the keys, plus entries holding a literal tuple
     constant: all keyed (memoised sub-digests), with walk steps
     counted by an instrumented counter and asserted linear (no timing
@@ -1121,7 +1145,11 @@ function):
     once by a monkeypatched `open`: the entry is re-read and hits. Module positions: direct
     cell content keyed; module as a default, inside a container in a
     cell, and inside the ipv refused. The cache directory deleted between lookup
-    and save: the save succeeds. A `StateIndexer` with a PropertySet
+    and save: the save succeeds. `clear_all_graph_caches()` with
+    `PHASIC_CACHE_DIR` set and `DEFAULT_CACHE_DIR` monkeypatched to a
+    second tmp directory holding one old-format and one new-format entry
+    file: the old one is deleted, the new one survives. `nan` vs `-nan`
+    as a kwarg: different keys. A `np.longdouble` array: refused. A `StateIndexer` with a PropertySet
     named `dtype` as a kwarg: keyed normally. `ml_dtypes` arrays
     `float8_e4m3fn` vs `float8_e4m3b11fnuz` with equal bytes, and an
     `int4` scalar: `GraphCacheKeyError` (skipped if `ml_dtypes` is not
@@ -1531,3 +1559,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   machinery; 6 build-record tests in subprocesses; 7 legacy cache
   directory swept by `clear_all_graph_caches`; 8 counters instead of
   timing, §2.1 wording.
+- Independent review S -> v4.5 (no stale hit found): 1 legacy sweep reads
+  `DEFAULT_CACHE_DIR` at call time and deletes only non-format-2 files
+  there (`format` written first), autouse fixture sets HOME; 2 floats
+  keyed by IEEE bytes (NaN sign / payload); 3 short-write test via an
+  injected raw writer; 4 code objects memoised, test sizes 60k, cost
+  documented; 5 long-double kinds refused, set-order misses documented;
+  6 accepted as stated.
