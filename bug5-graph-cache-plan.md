@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -84,7 +84,10 @@ responsibility: change `cache_key` when it changes. The key also
 reflects arguments and captured state AT CALL TIME, so a callback must
 not change its arguments or captured state in ways that affect the graph
 (for example mutating one kwarg and reading an alias of it: aliases are
-keyed by content). A kwarg dict or list built by iterating a SET of
+keyed by content). Object IDENTITY (`is`, `id()`) is not part of the
+key: a callback that distinguishes equal-content objects by identity is
+outside the contract (dicts keyed by function objects are refused
+outright). A kwarg dict or list built by iterating a SET of
 strings has a hash-seed-dependent order, so it misses across processes
 (sort it first). The key's cost scales with the argument and captured
 data and is paid on hits too. Functions ANYWHERE (callback, closure cells, defaults,
@@ -383,7 +386,11 @@ own attributes would then be keyed, running user code during the walk
 2. numpy scalar: gated on `issubclass(type(x), np.generic)` FIRST (so
    `.dtype` is never read from an arbitrary object, e.g. a `StateIndexer` whose
    PropertySet is named `dtype`, or an object whose `dtype` property
-   raises), then EXACT type only (`type(x) is x.dtype.type`; a Python
+   raises), then EXACT type only, tested WITHOUT reading any instance
+   attribute: `type(x) is np.dtype(type(x)).type` (reading `x.dtype` on
+   a Python subclass would run its `dtype` property, and a crafted one
+   could pass every gate, review Z z9); `x.dtype` is read only after
+   this passes (a Python
    subclass of a numpy scalar can override arithmetic and carries a
    `__dict__`, review H p6, and is refused), with a BUILT-IN numpy dtype
    (`type(x.dtype).__module__ == "numpy.dtypes"`; user-defined dtypes
@@ -417,7 +424,12 @@ own attributes would then be keyed, running user code during the walk
 4. exact `list` / `tuple`: type + element fingerprints in order;
 5. exact `dict`: entry count, then entries in INSERTION order (a
    callback iterating a dict sees that order, so it can change the
-   graph); each key by VALUE FINGERPRINT (any fingerprintable key: tuple
+   graph); identity-hashed objects (functions, bound methods,
+   partials, and tuples or frozensets containing them, at any depth) are
+   REFUSED as dict keys, because a callback looking them up by identity
+   can tell apart two objects whose content encodings are equal (review
+   Z z4: `scale={f: 1.0, g: 5.0}` with `f`, `g` equal-content closures);
+   each other key by VALUE FINGERPRINT (any fingerprintable key: tuple
    state keys, int keys), then its value. The key
    reflects captured state AT CALL TIME: a closure-captured memo dict
    that the build fills is keyed as it was before that build (stated in
@@ -615,7 +627,8 @@ handler setup left to the existing package-level call. (In this env
 libomp is already loaded by numpy/pandas, so the guarded property is the
 order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
-(`__init__.py:279`), a call `callback_hash._record_build_stats()` at the
+(`__init__.py:279`), a call `callback_hash._record_build_stats(s0)` (taking
+the top-of-import snapshot `s0` as a parameter) at the
 end of `phasic/__init__.py` records ONCE PER PROCESS (the record is
 stored as an attribute on the `phasic_pybind` extension module, the one
 object `importlib.reload` can never replace; a second call, from
@@ -1104,8 +1117,9 @@ function):
     1745-1747`, which overflows with or without a cache): build, save and
     hit work. A module captured in a closure cell (local
     `import numpy as np` in a factory): hits.
-13. (Every case below that calls `_record_build_stats` or alters the
-    build record runs in a SUBPROCESS, because the record lives on the
+13. (Every case below that calls `_record_build_stats(s0)` or alters
+    the build record runs in a SUBPROCESS, which first deletes the record
+    attribute from `phasic_pybind` and passes a constructed `s0`, because the record lives on the
     extension module for the whole process and `monkeypatch` cannot undo
     a stored "restart" failure, review R 6.)
     `callback_hash._phasic_build_id()` (the import-time content hash of
@@ -1175,7 +1189,10 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. `cache_key=3`, `cache_key=""`, `cache_key=np.str_("x")`,
+18. A dict keyed by function objects (`{f: 1.0, g: 5.0}`) as a kwarg:
+    `GraphCacheKeyError`. A `np.float64` subclass with a `dtype` property
+    that records being called: refused, and the property never runs.
+    `cache_key=3`, `cache_key=""`, `cache_key=np.str_("x")`,
     `Graph(3, cache_key="x")` raise (`np.str_`: `TypeError` advising
     `str(name)`); an object whose `__class__` property claims
     `np.float64` or `type` (a spoof): `GraphCacheKeyError`;
@@ -1211,7 +1228,8 @@ function):
     object is constructed through a small internal factory
     (`graph_cache._open_entry_writer(fd)`), which the test replaces with
     a `BufferedWriter` over a `RawIOBase` whose `write` stores at most 7
-    bytes per call; the saved entry is complete and loads (patching
+    bytes per call and which implements `fileno()` (returning the real
+    fd, so `os.fsync` works); the saved entry is complete and loads (patching
     `os.write` would test nothing, since `os.fdopen` text writes never
     call it, review S s9). A subprocess SCRIPT executed as `__main__` (so its
     callback's module is `__main__`) builds the graph, then a
@@ -1716,3 +1734,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `__self__` reads as None (ufuncs, dispatchers); 5 long-double arrays
   refused in rule 3; 6 immutable-type token requires `type(x) is type`;
   7 `clear()` count excludes `.partial` files.
+- Independent review Z -> v5.2 (no ordinary-use wrong result or data
+  loss): 1 identity-hashed dict keys refused, identity documented as not
+  keyed; 2 numpy-scalar exact check reads no instance attribute;
+  3 `_record_build_stats(s0)` signature and test-13 setup; 4 injected
+  writer implements `fileno()`.

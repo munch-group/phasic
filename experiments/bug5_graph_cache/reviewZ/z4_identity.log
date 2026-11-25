@@ -1,0 +1,5 @@
+[z8] pick=f E[T]=1.283333   pick=g E[T]=0.256667   different graphs: True
+[z8] content of kwargs identical under a content-only encoding: scale -> [(D(f),1.0),(D(g),5.0)] with D(f)==D(g); pick -> D(f) vs D(g), equal
+[z9] issubclass gate=True; exact check=False; user code ran during check: ['dtype property ran']
+[z9] alternative gate type(x) is np.dtype(type(x)).type -> False; user code ran: False
+[runcap] exit 0, peak RSS 320 MB, 4s

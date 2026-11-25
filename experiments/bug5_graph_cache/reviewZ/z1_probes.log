@@ -1,0 +1,39 @@
+[z1] OMP set at pybind import: False
+phasic frames: ['__init__.py:53', 'graph_cache.py:29', 'logging_config.py:253', 'logging_config.py:200'] 
+[z2] const: files=1 fresh={'V': 6, 'parameterized': False, 'param_length': 1, 'was_dph': False, 'dyn': False, 'is_discrete': False, 'add_param_edge': 'RuntimeError', 'add_const_edge': 'ok', 'uw2': 'RuntimeError:Cannot call update_weights() on constant graph. Graph has co', 'E': 1.6}
+[z2] const: hit-vs-fresh differences: none
+[z2] param: files=2 fresh={'V': 6, 'parameterized': True, 'param_length': 3, 'was_dph': False, 'dyn': False, 'is_discrete': False, 'add_param_edge': 'ok', 'add_const_edge': 'RuntimeError', 'uw2': 'RuntimeError:Parameter length mismatch: graph expects 3 parameters, got 2', 'E': 0.8425120772946859}
+[z2] param: hit-vs-fresh differences: none
+[z2] param_td2: files=3 fresh={'V': 6, 'parameterized': True, 'param_length': 2, 'was_dph': False, 'dyn': False, 'is_discrete': False, 'add_param_edge': 'ok', 'add_const_edge': 'RuntimeError', 'uw2': 'RuntimeError:Coefficient length mismatch: edge has 3 coefficients but the', 'E': 0.9837662337662337}
+[z2] param_td2: hit-vs-fresh differences: none
+[z3] numpy 2.4.3
+[z3] f8      module=numpy.dtypes str=<f8 fields=False obj=False
+[z3] >f8     module=numpy.dtypes str=>f8 fields=False obj=False
+[z3] i4      module=numpy.dtypes str=<i4 fields=False obj=False
+[z3] ?       module=numpy.dtypes str=|b1 fields=False obj=False
+[z3] U3      module=numpy.dtypes str=<U3 fields=False obj=False
+[z3] S3      module=numpy.dtypes str=|S3 fields=False obj=False
+[z3] M8[s]   module=numpy.dtypes str=<M8[s] fields=False obj=False
+[z3] m8[ns]  module=numpy.dtypes str=<m8[ns] fields=False obj=False
+[z3] V8      module=numpy.dtypes str=|V8 fields=False obj=False
+[z3] O       module=numpy.dtypes str=|O fields=False obj=True
+[z3] c16     module=numpy.dtypes str=<c16 fields=False obj=False
+[z3] f2      module=numpy.dtypes str=<f2 fields=False obj=False
+[z3] g       module=numpy.dtypes str=<f8 fields=False obj=False
+[z3] G       module=numpy.dtypes str=<c16 fields=False obj=False
+[z3] StringDType module numpy.dtypes StringDType()
+[z3] ml_dtypes.float8_e4m3fn module=numpy str=<V1
+[z3] ml_dtypes.bfloat16 module=numpy str=<V2
+[z3] ml_dtypes.int4 module=numpy str=<V1
+[z3] f8+metadata module numpy.dtypes <f8
+[z4] co_code stable after warmup: True under settrace: True under sys.monitoring: True
+[z5] math.sqrt {'type': 'builtin_function_or_method', 'module': 'math', 'qualname': 'sqrt', 'name': 'sqrt', 'self_type': 'module'}
+[z5] len {'type': 'builtin_function_or_method', 'module': 'builtins', 'qualname': 'len', 'name': 'len', 'self_type': 'module'}
+[z5] np.exp {'type': 'ufunc', 'module': 'numpy', 'qualname': 'exp', 'name': 'exp', 'self_type': 'NoneType'}
+[z5] np.sum {'type': '_ArrayFunctionDispatcher', 'module': 'numpy', 'qualname': 'sum', 'name': 'sum', 'self_type': 'NoneType'}
+[z5] np.linalg.solve {'type': '_ArrayFunctionDispatcher', 'module': 'numpy.linalg', 'qualname': 'solve', 'name': 'solve', 'self_type': 'NoneType'}
+[z5] functools.reduce {'type': 'builtin_function_or_method', 'module': '_functools', 'qualname': 'reduce', 'name': 'reduce', 'self_type': 'module'}
+[z5] type(np.sum) is type(np.linalg.solve): True
+[z5] cwr immutable flag: True type is type: True
+[z5] np.float64 immutable flag: True
+[runcap] exit 0, peak RSS 320 MB, 19s

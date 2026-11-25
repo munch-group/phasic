@@ -1,0 +1,6 @@
+[z6] OMP set at pybind import: True
+phasic frames: ['__init__.py:279'] 
+[z7] StringDType: type module numpy.dtypes str 'StringDType()' char T hasobject True fields None itemsize 16
+[z7] uint8 view of StringDType array: view failed: TypeError: Cannot change data-type for array of references.
+[z7] tobytes len 16
+[runcap] exit 0, peak RSS 329 MB, 3s
