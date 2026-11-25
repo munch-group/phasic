@@ -1,0 +1,7 @@
+np.exp           type=ufunc                        module=numpy          qualname=exp        name=exp      self=NoneType   resolves=True
+np.add           type=ufunc                        module=numpy          qualname=add        name=add      self=NoneType   resolves=True
+np.sum           type=_ArrayFunctionDispatcher     module=numpy          qualname=sum        name=sum      self=NoneType   resolves=True
+np.linalg.solve  type=_ArrayFunctionDispatcher     module=numpy.linalg   qualname=solve      name=solve    self=NoneType   resolves=True
+math.sqrt        type=builtin_function_or_method   module=math           qualname=sqrt       name=sqrt     self=module     resolves=True
+len              type=builtin_function_or_method   module=builtins       qualname=len        name=len      self=module     resolves=True
+[runcap] exit 0, peak RSS 2 MB, 1s

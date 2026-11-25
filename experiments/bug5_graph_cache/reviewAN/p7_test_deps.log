@@ -1,0 +1,7 @@
+default_rng type: cython_function_or_method
+dill available
+ml_dtypes available
+pandas available
+scipy available
+frompyfunc ufunc: type ufunc __module__ <absent> __name__ <lambda> (vectorized)
+[runcap] exit 0, peak RSS 90 MB, 1s

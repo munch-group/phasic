@@ -1,0 +1,9 @@
+dt64 <M8[D] datetime64 (1,) ok 8
+td64 <m8[s] timedelta64 (2,) ok 16
+0d <f8 float64 () ok 8
+U0 <U1 str_ (3,) ok 12
+S0 |S1 bytes_ (3,) ok 3
+empty2d <f8 float64 (0, 3) ok 0
+noncontig <f8 float64 (3, 2) ok 48
+bool |b1 bool (2,) ok 2
+[runcap] exit 0, peak RSS 2 MB, 1s

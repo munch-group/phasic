@@ -1,0 +1,21 @@
+3-tuple parameterized: True True
+  fresh weights: [[1.0], [11.0], [7.0], [4.0], [2.0], []]
+  hit   weights: [[1.0], [11.0], [7.0], [4.0], [2.0], []]
+  equal: True
+   fresh expectation() w/o update_weights: 0.9837662337662337
+   hit expectation() w/o update_weights: 0.9837662337662337
+   after update_weights equal: True 1.2014652014652016 1.2014652014652016
+2-tuple parameterized: True True
+  fresh weights: [[1.0], [11.0], [7.0], [4.0], [2.0], []]
+  hit   weights: [[1.0], [11.0], [7.0], [4.0], [2.0], []]
+  equal: True
+   fresh expectation() w/o update_weights: 0.9837662337662337
+   hit expectation() w/o update_weights: 0.9837662337662337
+   after update_weights equal: True 1.2014652014652016 1.2014652014652016
+constant parameterized: False False
+  fresh weights: [[1.0], [10.0], [6.0], [3.0], [1.0], []]
+  hit   weights: [[1.0], [10.0], [6.0], [3.0], [1.0], []]
+  equal: True
+   fresh expectation() w/o update_weights: 1.6
+   hit expectation() w/o update_weights: 1.6
+[runcap] exit 0, peak RSS 299 MB, 4s

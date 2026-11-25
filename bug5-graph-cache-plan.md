@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.7, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -220,7 +220,10 @@ the stream prefix-free, so distinct structures always give distinct
 streams. Components in order:
 1. `GRAPH_CACHE_FORMAT = "2"` (replaces `PHASIC_CALLBACK_VERSION`);
 2. Python `sys.version_info[:2]` (bytecode is version-specific);
-3. the phasic build id (§2.2.3) and `numpy.__version__` (the state
+3. the phasic build id (§2.2.3) and `numpy.__version__`, BOTH read at
+   every key computation (as `callback_hash._phasic_build_id()` through
+   the module attribute and `numpy.__version__`, never bound to a name at
+   import, so tests can monkeypatch them, review AN 2) (the state
    arrays the callback receives are numpy arrays phasic creates, and
    scalar promotion changed between numpy 1.x and 2.x, NEP 50, while the
    same phasic build can run against either). What a hit promises is the
@@ -932,7 +935,12 @@ call time), review AJ 1.
   `clear()` / `clear_graph_cache()` delete ONLY files whose names match
   `^[0-9a-f]{32}\.json$` (entry names, old and new; the directory may now
   be user-chosen via `PHASIC_CACHE_DIR`, so other JSON files there must
-  survive, review M 6); `get_cache_stats` counts the same pattern. The
+  survive, review M 6) AND whose first bytes are either `_ENTRY_HEADER`
+  (new entries) or master's entry prefix `{\n  "version"` (master writes
+  `json.dump(..., indent=2)` with `version` first, `graph_cache.py:139-153`);
+  any other entry-named file (a user's own MD5-named JSON, a 32-hex name
+  is exactly an MD5 digest) is left alone and counted as skipped (review
+  AN 1); `get_cache_stats` counts the same pattern. The
   `int` they return counts removed entry files only, not `.partial`
   files. They
   (and through them `clear_all_graph_caches` and
@@ -1141,8 +1149,9 @@ review B p4) and its stderr notice cannot interfere with output checks.
 The new names (`GraphCacheKeyError`, `GraphCacheLoadError`,
 `cache_entry_key`, ...) are imported INSIDE the tests, so on master the
 file collects and each test records its own outcome (test 21 can show
-its master pass). No test calls `phasic.clear_caches()` except the
-`clear_model_cache` case of test 18, made safe by the autouse fixture's
+its master pass). No test calls a `model_export` clear function
+(`clear_caches()` also clears `~/.jax_cache`) except test 18, which calls
+`clear_model_cache`, made safe by the autouse fixture's
 HOME redirect AND the unset `PHASIC_COMPILATION_CACHE_DIR` (unredirected,
 `clear_caches` wipes `$PHASIC_COMPILATION_CACHE_DIR` or
 `$HOME/.phasic_cache`, and `$HOME/.jax_cache`, regardless of
@@ -1337,7 +1346,9 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. `model_export.clear_model_cache(verbose=False)` with HOME redirected
+18. A 32-hex-named JSON file with foreign content (not an entry) in the
+    graph directory survives `GraphCache().clear()` and is counted as
+    skipped. `model_export.clear_model_cache(verbose=False)` with HOME redirected
     (autouse) and `PHASIC_CACHE_DIR` set to a directory outside HOME
     holding one entry: the entry survives (the one test allowed to call
     a `model_export` clear function, safe because the autouse fixture
@@ -2016,3 +2027,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   path's path goes in a note (`e.__notes__`), tests assert there; 4 hit
   promise scoped to the same machine type; docs list phasic classes in
   cells and IntEnum among refusals.
+- Independent review AN -> v6.7 (no stale hit, wrong graph or realistic
+  data loss): 1 `clear()` deletes entry-named files only if their content
+  starts like an entry; 2 numpy version and build id read at every key
+  computation; 3 §3 wording on clear functions.
