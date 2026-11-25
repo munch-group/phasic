@@ -1,0 +1,5 @@
+no registry    : retained 0.16 MB over 1000 iterations (~0.2 kB per joint_prob-style iteration); registry=0
+v5.8 registry  : retained 55.36 MB over 1000 iterations (~55.4 kB per joint_prob-style iteration); registry=5250
+deepcopy : ok; _result_class identical: True
+pickle : fails: PicklingError Can't pickle <class '__main__.IndexResult'>: attribute lookup IndexResult on __main__ failed
+[runcap] exit 0, peak RSS 394 MB, 22s

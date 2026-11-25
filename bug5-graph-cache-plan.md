@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.8, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.9, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -538,26 +538,42 @@ safe by the metaclass check).
      `__dataclass_fields__`, `__dataclass_params__`, per-class
      descriptors, annotation objects, a `FrozenInstanceError` cell and a
      `repr_running` set, is neither identical nor fingerprintable,
-     review AF p3). Instead, an ADDITIVE registry in `state_indexing.py`:
-     right after each of the two `make_dataclass` calls, phasic records
-     the new class in a module-level dict `_GENERATED_CLASSES` keyed by
-     `id(cls)`, holding a WEAK reference to the class (with a
-     `weakref.finalize` that removes the entry when the class is freed,
-     so nothing leaks in a long session and a reused id can never match:
-     a stale entry's weakref resolves to `None`), the field names it was
-     generated with, and a SNAPSHOT `dict(vars(cls))` (the same entry
-     objects). The check requires: `id(cls)` is in the registry and the
-     entry's weakref resolves to `cls` itself; the field names equal the ones the
-     indexer's properties / slots imply; and `vars(cls)` has exactly the
-     snapshot's keys with every entry the IDENTICAL object (`is`). A
-     user-made class is not registered; any later modification of a
-     registered class (a swapped `__init__`, an added `__post_init__`, a
-     replaced descriptor) changes an entry's identity or the key set.
-     No entry is fingerprinted, so no dataclass internals need rules, and
-     the check reads only the class's own `__dict__` (no user code: the
-     class's metaclass is `type`, checked first). Memory: one small dict
-     per live generated class, removed with the class. (Review AC p8's swap and
-     review AE 1's swaps are all refused by this.) Each Property must have
+     review AF p3). Instead, an ADDITIVE registry in `state_indexing.py`,
+     installed as a module-level wrapper that rebinds the module's
+     `make_dataclass` name (only lines 429 and 976 call it; their bodies
+     are untouched, matching the no-modify-existing preference; the
+     generated class's `__module__` stays `phasic.state_indexing`): the
+     wrapper calls the real `make_dataclass`, then stores a SNAPSHOT
+     `dict(vars(cls))` (the same entry objects) ON THE CLASS ITSELF as
+     `cls.__phasic_snapshot__`, together with the field names, and adds
+     the class to a module-level `weakref.WeakSet` `_GENERATED_CLASSES`.
+     (A dict of weakrefs plus a snapshot held outside the class, as in
+     the first v5.8 text, leaks: the snapshot's `__dict__` / `__weakref__`
+     descriptors and the frozen `__setattr__` closure reference the
+     class, so it is never freed; measured 55 MB over 1000
+     joint-probability-graph constructions; with the snapshot on the
+     class and a WeakSet, 0.16 MB and no live classes, review AG p3/p4.)
+     The check requires: the class is in `_GENERATED_CLASSES`;
+     `cls.__bases__ == (object,)` and `cls.__name__` is the name phasic
+     generates (`IndexResult` / `<Name>Props`); the field names equal the
+     ones the indexer's properties / slots imply; and `vars(cls)`, minus
+     the `__phasic_snapshot__` key, has exactly the snapshot's keys with
+     every entry the IDENTICAL object (`is`). A user-made class is not
+     registered; replacing or adding a class attribute (a swapped
+     `__init__`, an added `__post_init__`) changes an entry's identity or
+     the key set; changing the bases or the name is caught by the first
+     two conditions. Not detected (documented as outside the contract,
+     like other deliberately altered internals): in-place edits INSIDE an
+     entry (`cls.__init__.__code__ = ...`, mutating
+     `__dataclass_fields__` contents). No entry is fingerprinted, so no
+     dataclass internals need rules, and the check reads only the class's
+     own `__dict__`, `__bases__` and `__name__` (no user code: the
+     class's metaclass is `type`, checked first). An indexer sent through
+     cloudpickle (joblib/loky) or dill arrives with a REBUILT, unregistered
+     class and is refused with an error naming this case and the way
+     out: rebuild it in the worker with `StateIndexer.from_dict(
+     ix.to_dict())`, or construct the indexer there (review AG p6).
+     (Review AC p8's swap and review AE 1's swaps are refused.) Each Property must have
      `set(vars(p))` equal to its four dataclass fields (a frozen
      dataclass still has a `__dict__`, so extra attributes are
      otherwise invisible; same check as (a)), and each slot is checked as
@@ -1289,8 +1305,14 @@ function):
     `index_to_props` (both generated classes present), a StateSpace-based
     one, and one built by `a + b`: all pass the checks and key (a check
     that refuses every indexer must fail this test). A registered class
-    with `__init__` replaced, one with an added `__post_init__`, and an
-    unregistered same-field dataclass swapped in: refused. On the REAL install (subprocess, no monkeypatching), the
+    with `__init__` replaced, one with an added `__post_init__`, one whose
+    `__bases__` were changed, and an unregistered same-field dataclass
+    swapped in: refused. LEAK GUARD: build 1000 indexers and
+    joint-probability base + reward indexer pairs with `index_to_props`
+    and key computations, `gc.collect()`: the number of live registered
+    classes stays bounded (not growing with N). An indexer round-tripped
+    through `cloudpickle` (if installed): refused with the rebuild
+    advice. On the REAL install (subprocess, no monkeypatching), the
     end-of-import coverage check stores no recording failure, and a
     keyed build succeeds (guards against a check that refuses every
     normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
@@ -1496,8 +1518,9 @@ SLURM and outside this fix, listed in `found-defects` instead;
 runs cleanly in the worktree; otherwise listed for the user).
 
 Source change outside the cache modules: `state_indexing.py` gains the
-additive `_GENERATED_CLASSES` registry (two lines after each
-`make_dataclass` call, plus the dict), nothing else changes there.
+additive registry (an `import weakref`, the `WeakSet`, and a module-level
+wrapper rebinding `make_dataclass`; no existing function body changes).
+`state_indexing.py` is CRLF, so the CRLF note below applies to it too.
 
 Implementation note: `graph_cache.py` (and other files in this repo)
 use CRLF line endings; edits must preserve them (binary-mode edits, as
@@ -1911,3 +1934,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   entry against its creation-time snapshot), with positive controls in
   test 18; 2 save-time peak memory measured and stated; 3 positive
   control added.
+- Independent review AG -> v5.9 (no wrong result or data loss; checks
+  (a)-(c) and the registry measured to pass on real indexers): 1 registry
+  leak fixed (snapshot on the class, WeakSet, module-level wrapper),
+  leak-guard test; 2 cloudpickle / dill indexers refused with rebuild
+  advice; 3 bases / name checked, in-place entry edits named outside the
+  contract; 4 §3 source-change note and CRLF; 5 tests extended.
