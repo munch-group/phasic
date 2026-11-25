@@ -1,0 +1,8 @@
+vertices 7 7
+same vertex order: True
+vertices whose out-edge list (order/content) differs: 0
+expectation fresh/hit: 0.8349803765890451 0.8349803765890451
+serialize arrays equal: True
+sample(5) fresh: [0.699793 0.035361 1.604022 1.332343 1.036961]
+sample(5) hit  : [0.699793 0.035361 1.604022 1.332343 1.036961]
+[runcap] exit 0, peak RSS 299 MB, 3s

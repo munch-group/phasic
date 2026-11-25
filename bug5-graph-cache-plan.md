@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v4.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v4.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -84,7 +84,10 @@ responsibility: change `cache_key` when it changes. The key also
 reflects arguments and captured state AT CALL TIME, so a callback must
 not change its arguments or captured state in ways that affect the graph
 (for example mutating one kwarg and reading an alias of it: aliases are
-keyed by content). On a hit the callback does NOT run, so any side
+keyed by content). Functions ANYWHERE (callback, closure cells, defaults,
+keyword arguments) are keyed by their code, defaults and closures, not
+by the module globals they read; those globals are the user's
+responsibility wherever the function is passed. On a hit the callback does NOT run, so any side
 effect it has (filling a passed container such as a state-to-label map)
 does not happen; and a callback whose output order depends on hash
 randomisation (iterating a set of strings, using `hash()`) gets the
@@ -210,8 +213,8 @@ streams. Components in order:
    `indexer` and user kwargs. In the order given (insertion order of
    `**kwargs`), name + VALUE FINGERPRINT.
 
-#### 2.2.1 FUNCTION FINGERPRINT (exact, recursive, visited set; a
-function already visited contributes a back-reference token)
+#### 2.2.1 FUNCTION FINGERPRINT (exact, recursive; sharing and recursion
+handled by sub-digests, §2.2.2)
 
 - Python function `f`, EXACT type only (`type(f) is
   types.FunctionType`): `f.__module__` encoded through the VALUE
@@ -302,23 +305,18 @@ function already visited contributes a back-reference token)
   (`importlib.reload` keeps the same object and name) without changing
   the token (measured: E[T] 1.6 / 0.4 / 0.16 under one token, review M
   m6). The error advises passing the needed values as plain kwargs.
-- Recursion: the visited map maps each function to its first-visit
-  index; a revisit contributes a back-reference token carrying that
-  index, so different recursion shapes give different streams. The map
-  is keyed by `id()` but HOLDS A STRONG REFERENCE to every visited
-  function until the key computation finishes (since v3.0 the only
-  temporaries walked are the dicts `StateIndexer.to_dict()` returns,
-  which hold no functions; the strong references stay as a guard), so a
-  temporary freed mid-walk can
-  never have its id reused by a different function (which would turn it
-  into a back-reference and give two different inputs one stream,
-  review D d7).
+- Recursion and sharing: see "Sub-digests" at the end of §2.2.2; a
+  function is represented in its parent's stream by its sub-digest, and
+  self- or mutual recursion through closure cells by a relative
+  current-path back-reference.
 
 CODE FINGERPRINT of a code object: `co_code`, `co_exceptiontable`,
 `co_names`, `co_varnames`, `co_freevars`, `co_cellvars`, `co_argcount`,
 `co_posonlyargcount`, `co_kwonlyargcount`, `co_flags`, `co_name`, and
 `co_consts` element by element (nested code objects by CODE FINGERPRINT;
-`frozenset` constants by their elements' fingerprints, sorted; `tuple`
+`frozenset` constants by their elements' SUB-DIGESTS (§2.2.2, computed
+from content alone, so independent of the hash-seed-dependent iteration
+order and of object sharing), sorted; `tuple`
 constants element by element under these same CONSTANT rules (so
 `state[..., 0]`, whose constant is `(Ellipsis, 0)`, and on 3.14
 `M[1:3, 0]` are covered, review C p4); `Ellipsis` token; `slice`
@@ -420,7 +418,9 @@ longer used, so callbacks without accessible source can be cached.
      that has been USED (after `index_to_props`), so it neither misses a
      lazy attribute nor refuses an indexer a build has already used
      (review F 4);
-     (c) BEHAVIOURAL STATE equal to a canonical rebuild: let
+     (c) (run only AFTER `to_dict()` has been fingerprinted, which
+     refuses any non-plain field value, so no user operator can run
+     during the rebuild) BEHAVIOURAL STATE equal to a canonical rebuild: let
      `c = StateIndexer.from_dict(ix.to_dict())`; then `ix._offsets`,
      `ix._total_state_length`, `_pset_order`, `_slot_order`,
      `_entity_order`, and for each PropertySet
@@ -487,7 +487,9 @@ longer used, so callbacks without accessible source can be cached.
    `np.asarray(mm)`; note this reads the file to hash it), the class
    `collections.Counter` captured in a cell, phasic's own
    `index_to_props` results (precompute lookup tables as plain ints or
-   dicts), numpy 2 `StringDType` arrays, `fractions.Fraction`,
+   dicts), functions whose `__dict__` holds an `inspect.Signature`
+   (set by some decorator libraries as `__signature__`), numpy 2
+   `StringDType` arrays, `fractions.Fraction`,
    `decimal.Decimal`, nesting deeper than 100. The docstring also says
    that a function made with `exec(src, ns)` or `types.FunctionType(code,
    ns)` reads its globals from `ns`, which counts as MODULE GLOBALS
@@ -502,27 +504,41 @@ longer used, so callbacks without accessible source can be cached.
 Recursion is bounded in EVERY recursive arm (values, functions, code
 objects and their constants, `to_dict()` results), and `cache_entry_key`
 additionally catches `RecursionError` at its top level and re-raises it
-as `GraphCacheKeyError`. Shared containers: a container (list, tuple,
-dict, or a `StateIndexer`'s `to_dict()` result) whose `id()` was already
-walked EARLIER in the same key computation contributes a BACK-REFERENCE
-token carrying its first-visit index instead of being walked again,
-exactly as for functions; the map holds a strong reference to every
-walked container until the computation ends, so a freed temporary's id
-can never be reused. This keeps every walk linear in the number of
-distinct objects (a DAG such as `a = [a, a]` nested k times no longer
-takes 2^k steps, review M 7) WITHOUT any budget: the re-entry budget of
-v4.0 refused ordinary state tables, because CPython shares identical
-tuples (the empty tuple, literal tuple constants, canonical state
-tuples used as keys and neighbours; 60k x 20 gave 1.2M re-entries,
-review O p4). Back-references can only cause extra misses (two
-equal-content inputs with different sharing get different keys, and the
-sharing pattern of the same code is deterministic), never a shared key
-for different content. Limits: a depth limit of 100, and a cycle check against the
-ids of the containers / `StateIndexer` objects on the CURRENT PATH from the
-root only (pushed on entry, popped on exit). A process-wide seen-set is
-wrong: it flags a list referenced twice, an ipv reusing one state list,
-and freed temporaries whose ids are reused (review 5 q2). Both limits
-raise `GraphCacheKeyError` (never `RecursionError`).
+as `GraphCacheKeyError`.
+
+SUB-DIGESTS (replaces the back-reference tokens of v4.1, which made
+frozenset constants hash-seed dependent and could give two different
+callbacks one key, review P p4/p5). Every container (exact list, tuple,
+dict, and the dicts `StateIndexer.to_dict()` returns) and every function,
+bound method and partial is represented in its parent's stream by ONE
+fixed-length token: its SUB-DIGEST, the SHA-256 of its own token stream,
+in which its children are in turn sub-digests. A sub-digest therefore
+depends only on the object's content, never on where else the object
+occurs, on how objects are shared, or on the order of the walk. Within
+one key computation sub-digests are memoised by `id()`, the memo holding
+a strong reference to each object until the computation ends (so a
+freed temporary's id is never reused); each distinct object is hashed
+once, so the walk is linear in the number of distinct objects (a DAG
+such as `a = [a, a]` nested k times takes k steps, and shared state
+tuples cost nothing extra; no budget is needed). Order of checks at each
+container: (1) the current-path cycle check (a container on the current
+path, such as `a = [a]`, is REFUSED with `GraphCacheKeyError`, as test 11
+expects), (2) the memo lookup, (3) the walk. Functions are the one place
+where cycles are legitimate (a nested function that calls itself, mutual
+recursion through closure cells): a function found on the current path
+contributes a RELATIVE back-reference token (its distance up the current
+path, a structural property, not a visit order), and any sub-digest whose
+subtree contains a back-reference pointing ABOVE that subtree is used
+only in place and NOT memoised (it would mean something else in another
+context). Modules (direct cell content only) and `StateIndexer` objects
+are never memoised: their admission depends on position (§2.2.1) and on
+the checks of rule 8, which run at every occurrence. The tags of the
+different token kinds (sub-digest, back-reference, scalar kinds) are
+distinct, so no two kinds can produce equal tokens.
+Limits: a depth limit of 100, and the current-path cycle check above (a
+process-wide seen-set is wrong: it flags a list referenced twice, an ipv
+reusing one state list, and freed temporaries whose ids are reused,
+review 5 q2). Both raise `GraphCacheKeyError` (never `RecursionError`).
 
 #### 2.2.3 Build id
 
@@ -540,7 +556,13 @@ libomp is already loaded by numpy/pandas, so the guarded property is the
 order of the `phasic_pybind` import, not libomp's load time.)
 At `import phasic`, AFTER `from .phasic_pybind import *`
 (`__init__.py:279`), a call `callback_hash._record_build_stats()` at the
-end of `phasic/__init__.py` records, for the extension module located by
+end of `phasic/__init__.py` records ONCE PER PROCESS (the record is
+stored as an attribute on the `phasic_pybind` extension module, the one
+object `importlib.reload` can never replace; a second call, from
+`importlib.reload(phasic)` or a reload of `callback_hash`, COMPARES the
+files against that record instead of replacing it, and stores a
+"restart" failure if they differ, because the old code keeps running
+after a reload, review P p2), for the extension module located by
 `phasic.phasic_pybind.__file__` (not by globbing; no `__file__` or a
 missing file is a recording failure, so an editable or source-tree layout
 can never silently leave the extension out of the id) and every `*.py`
@@ -1045,8 +1067,16 @@ function):
     would not exercise it). A 600k-entry dict of state tuples as a
     kwarg, and a 60k x 20 adjacency table whose neighbour tuples are the
     same objects as the keys, plus entries holding a literal tuple
-    constant: all keyed (back-references, no budget), and in linear
-    time. Module positions: direct
+    constant: all keyed (memoised sub-digests, no budget), and in linear
+    time. Hash-seed independence: a callback containing a set literal of
+    string tuples plus a reuse of one element (`if key in {("a",1),
+    ("b",2), ("c",3)}: if key == ("a",1)`) gives EQUAL digests in
+    subprocesses under `PYTHONHASHSEED` 0-3; editing the reused element
+    to `("c",3)` gives a DIFFERENT digest. A self-recursive nested
+    function and two mutually recursive closures: keyed, hit on rebuild,
+    miss when either body changes. `importlib.reload(phasic)` after the
+    package files change (monkeypatched re-hash): the next key
+    computation raises `GraphCacheKeyError` (restart). Module positions: direct
     cell content keyed; module as a default, inside a container in a
     cell, and inside the ipv refused. The cache directory deleted between lookup
     and save: the save succeeds. A `StateIndexer` with a PropertySet
@@ -1064,7 +1094,7 @@ function):
     another call's entry name: `GraphCacheLoadError`. A JSON file with a
     non-entry name in the cache directory survives `GraphCache().clear()`.
     A shared-container DAG nested 40 deep: keyed in linear time
-    (back-references), well under a second. A `KeyboardInterrupt` raised inside `save()`
+    (memoised sub-digests), well under a second. A `KeyboardInterrupt` raised inside `save()`
     (monkeypatched): propagates with `e.graph` attached, no `.partial`
     left. A `partial` subclass
     overriding `__call__`: refused. A user kwarg
@@ -1430,3 +1460,13 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   namespaces are module globals (docs); 6 Cython `binding=False` under
   the installed-libraries clause; 7 more documented refusals; 8 numpy >=
   1.25 for keyed arrays.
+- Independent review P -> v4.2: 1 container back-references replaced by
+  content-only SUB-DIGESTS (hash-seed and sharing independent; memoised
+  by id with strong references; linear); frozenset constants use them;
+  functions' recursion via relative current-path back-references, with
+  open subtrees not memoised; 2 build-id record anchored on the
+  extension module, reload compares instead of re-recording; 3 one tag
+  space per token kind, modules / StateIndexer never memoised; 4
+  `to_dict()` fingerprinted before the canonical check; 5 cycle check
+  before memo lookup; 7-8 docs (functions keyed by code everywhere,
+  `__signature__` refusal).

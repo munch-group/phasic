@@ -1,0 +1,7 @@
+Matplotlib is building the font cache; this may take a moment.
+reload(phasic) succeeded
+__init__ re-executed (Graph class object replaced): True
+graph_cache submodule same object (not re-executed): True
+callback_hash submodule same object (not re-executed): True
+phasic_pybind extension same object (cannot be reloaded): True
+[runcap] exit 0, peak RSS 300 MB, 16s
