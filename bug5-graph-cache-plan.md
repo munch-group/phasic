@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.4, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -379,7 +379,14 @@ EVERY type gate in §2.2.1 and §2.2.2 tests `type(x)` (identity, or
 `isinstance(x, ...)`: `isinstance` consults `x.__class__`, which a user
 class can define as a property, so a spoofed object would pass and its
 own attributes would then be keyed, running user code during the walk
-(review V v6).
+(review V v6). FIRST of all, before any test that hashes or compares
+`type(x)` (set or dict membership, dispatch tables), the walker checks
+`type(type(x)) is type`: a user METACLASS could define `__hash__` /
+`__eq__` and make `type(x) in ALLOWED` true for a spoof, running user
+code (review AB p2); every admitted class has metaclass `type`, so this
+check refuses nothing legitimate. Allow-set tests are written as
+identity tests (`any(type(x) is t for t in ALLOWED)`, or a lookup made
+safe by the metaclass check).
 
 1. EXACT types only (`type(x) is ...`): `None`, `bool`, `str`, `bytes`:
    type name + canonical repr; `int` via `hex()` (no 4300-digit `repr`
@@ -404,8 +411,10 @@ own attributes would then be keyed, running user code during the walk
    User-defined dtypes such as `ml_dtypes`' float8 / int4 / bfloat16
    (installed alongside jax; they report `dtype.str` `<V1` / `<V2`, so
    two with equal bytes would collide, review K k3) are not in the set
-   and are refused. For an admitted scalar, `x.dtype.str` + `tobytes()`
-   (numpy's C code for these classes);
+   and are refused. For an admitted scalar, `type(x).__name__` +
+   `x.dtype.str` + `tobytes()` (numpy's C code for these classes; the
+   class name separates `np.int64` from `np.longlong`, which share
+   `dtype.str` and bytes and differ only in `type()` / `repr`);
 3. `type(x) is np.ndarray` exactly (masked arrays, `np.matrix` and other
    subclasses are refused): `x.dtype.str`, shape, a LAYOUT token (`C`
    if C-contiguous, else `F` if F-contiguous, else `S` followed by the
@@ -417,8 +426,12 @@ own attributes would then be keyed, running user code during the walk
    from `memoryview(np.ascontiguousarray(x).reshape(-1).view(np.uint8))`,
    which copies only non-contiguous arrays and also works for datetime /
    timedelta kinds `M` / `m`, which numpy's buffer protocol rejects, and
-   for 0-d arrays, via `reshape(-1)`; not via `tobytes()`). Refused: a
-   dtype that is not built in (the same `numpy.dtypes` gate as rule 2),
+   for 0-d arrays, via `reshape(-1)`; not via `tobytes()`). The dtype
+   gate: `x.dtype.type` must be identical to a class in rule 2's
+   allow-set (reading `x.dtype` is numpy's C code once `type(x) is
+   np.ndarray`); this refuses StringDType (its `.type` is `str`),
+   user-defined dtypes, structured, object and long-double dtypes.
+   Refused: a dtype that fails this gate,
    long-double dtype chars `g` / `G` (as in rule 2; on arm64 their
    `dtype.str` equals float64 / complex128), `dtype.hasobject` (covers object dtype AND structured dtypes with an
    object field, whose bytes are pointers) and `dtype.fields is not
@@ -467,7 +480,14 @@ own attributes would then be keyed, running user code during the walk
      takes part in `__eq__` and is readable by a callback
      (`state_indexing.py:97`).
    - `StateIndexer`: admitted only if ALL of:
-     (a) `type(ix) is StateIndexer`, every PropertySet's `properties` is
+     (a) (run FIRST, before `to_dict()` is called) `type(ix) is
+     StateIndexer`; exact container types for its internals:
+     `type(...) is dict` for `_property_sets`, `_slots`, `_offsets` and
+     every PropertySet's `property_dict`, `type(...) is list` for
+     `_pset_order`, `_slot_order`, `_entity_order`, exact `np.ndarray`
+     for `_bases` / `_radix_powers`, and exact `str` / `int` keys and
+     values in `_offsets` (a dict subclass would run user code inside
+     `to_dict()` itself, or lie to check (c), review AB 2); every PropertySet's `properties` is
      exactly a `list` or `tuple` (review Y 7a), every PropertySet has
      `type(ps) is PropertySet` or `type(ps) is StateSpace`
      (`state_indexing.py:220`, `:2204`), and EVERY Property the indexer
@@ -564,10 +584,7 @@ own attributes would then be keyed, running user code during the walk
    `decimal.Decimal`, nesting deeper than 100. The docstring also says
    that a function made with `exec(src, ns)` or `types.FunctionType(code,
    ns)` reads its globals from `ns`, which counts as MODULE GLOBALS
-   (not keyed; change `cache_key` when `ns` changes), and that numpy >=
-   1.25 is required for keyed arrays (the built-in dtype gate uses
-   `numpy.dtypes`; without it every array and numpy scalar is refused
-   with a message naming the requirement). The docstring also says that entries
+   (not keyed; change `cache_key` when `ns` changes). The docstring also says that entries
    are never evicted: every distinct argument set under one `cache_key`
    writes its own file (22-75 MB at typical sizes, §4), so a parameter
    sweep under one name accumulates files; clear them with
@@ -607,7 +624,10 @@ is linear in the number of distinct objects (a DAG such as `a = [a, a]`
 nested k times takes k steps; 200 references to one 8 MB array hash it
 once; shared state tuples cost nothing extra); no budget or re-walk cap
 is needed. Order of checks at each memoisable object: (1) current-path
-check, (2) memo lookup, (3) walk. Modules (direct cell content only) are
+check, (2) memo lookup, (3) walk. The identity-hashed-key refusal of
+rule 5 is a SEPARATE predicate run on every dict key, ignoring the
+memo (a key tuple memoised earlier from a value position must still be
+refused as a key, review AB 3). Modules (direct cell content only) are
 never memoised: their admission depends on position (§2.2.1). Scalar
 tokens have their own tags, distinct from all sub-digest kind tags.
 Limits: a depth limit of 100, and the current-path check above (a
@@ -770,7 +790,8 @@ extension only).
 ### 2.5 Cache location
 
 `GraphCache()` with no argument resolves its directory when constructed
-and makes it ABSOLUTE (`Path.absolute()`), so a `chdir` by the callback
+and makes it ABSOLUTE (`Path.resolve()`, the same call as for the entry
+path in §2.1), so a `chdir` by the callback
 or another thread during a long build cannot send `save()` elsewhere:
 `Path(env) / "graphs"` when `PHASIC_CACHE_DIR` is set AND
 non-empty, implemented INLINE in `graph_cache` (3 lines, with a comment)
@@ -1192,7 +1213,13 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. A Python subclass of `np.void` with a `dtype` property and an
+18. An object whose class has a user metaclass defining `__hash__` /
+    `__eq__` that mimic `np.float64`: refused, and neither method runs.
+    A `StateIndexer` whose `property_dict` was replaced by a dict
+    subclass: refused before `to_dict()` runs. kwargs `keys=[(f,),(g,)]`
+    plus `scale={keys[0]: 1.0, keys[1]: 5.0}` (a key tuple first seen
+    as a value): refused. `np.int64(3)` vs `np.longlong(3)`: different
+    keys. A Python subclass of `np.void` with a `dtype` property and an
     `np.record` value: refused, the property never runs. Two
     equal-content functions differing only in `__name__` (one renamed by
     assignment), captured and branched on: different keys.
@@ -1754,3 +1781,11 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `__qualname__` keyed, `__doc__` named as not keyed; 3 read-only-HOME
   test points `DEFAULT_CACHE_DIR` at the read-only home; 4 wording on
   `get_` / `set_dyn_ordering`.
+- Independent review AB -> v5.4 (no realistic wrong result or data
+  loss): 1 global `type(type(x)) is type` check before any hashed
+  lookup on a type, identity allow-set tests; 2 StateIndexer internal
+  container types pinned before `to_dict()`; 3 identity-key refusal is a
+  separate predicate, not memoised; 4 array dtype gate stated
+  explicitly against the rule-2 allow-set, stale numpy-version sentence
+  removed; 5 `Path.resolve()` throughout; 6 scalar token includes the
+  class name.
