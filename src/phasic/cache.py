@@ -23,9 +23,9 @@ sets ``PHASIC_REWARD_COMPUTE_CACHE=1``) for models re-run across
 processes whose recompute is expensive, and leave it off for small or
 one-shot models — see the ``reward_compute_cache`` note in
 :mod:`phasic.config`. The graph cache at
-``~/.phasic_cache/graphs/`` is **on by default**; disable via
-``phasic.configure(graph_cache=False)`` (sets
-``PHASIC_DISABLE_GRAPH_CACHE=1``).
+``cache_dir/graphs/`` (``~/.phasic_cache/graphs/`` by default) is used
+only for graphs built with ``Graph(..., cache_key="<name>")``; nothing
+is cached without a ``cache_key``.
 
 Example
 -------

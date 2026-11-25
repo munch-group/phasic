@@ -23,7 +23,7 @@ def coal(n, param=True):
                 r = state[i] * (state[j] - same) / (1 + same)
                 out.append([new, [r] if param else r])
         return out
-    return Graph(cb, graph_cache=False)
+    return Graph(cb)
 
 if __name__ == '__main__':
     for n in [int(a) for a in sys.argv[1:]]:

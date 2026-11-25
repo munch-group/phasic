@@ -368,7 +368,7 @@ def _spawn(fixture: str, cell: str, workdir: str, env_over: dict, tag: str,
     for k in ("PHASIC_HIERAR_ELIMINATION", "PHASIC_DYN_ORDERING",
               "PHASIC_REWARD_COMPUTE_CACHE", "PHASIC_CACHE_DIR",
               "PHASIC_MIN_SCC_SIZE_TO_CACHE", "PHASIC_MAX_PARALLEL_SCCS",
-              "PHASIC_DISABLE_GRAPH_CACHE", "OMP_NUM_THREADS"):
+              "OMP_NUM_THREADS"):
         env.pop(k, None)
     env.update(env_over)
     cmd = [sys.executable, os.path.abspath(__file__),
@@ -421,9 +421,9 @@ def orchestrate(args) -> None:
     E_HIER = {"PHASIC_HIERAR_ELIMINATION": "1"}
 
     # -- prep the two-locus npz fixtures (single subprocess, its own budget) --
-    # PHASIC_DISABLE_GRAPH_CACHE=1: the callback build must not read from or
-    # write to the user's ~/.phasic_cache/graphs (honest build cost + hygiene).
-    prep_env = dict(os.environ, PHASIC_DISABLE_GRAPH_CACHE="1",
+    # Graphs are built without cache_key, so the callback build never reads
+    # from or writes to the on-disk graph cache (honest build cost + hygiene).
+    prep_env = dict(os.environ,
                     PHASIC_CACHE_DIR=os.path.join(args.workdir, "cache", "prep"))
     if args.size_list:
         cmd = [sys.executable, os.path.abspath(__file__), "--prep",

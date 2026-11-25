@@ -17,12 +17,17 @@ def clear_from_cache(
     Parameters
     ----------
     graph_cache : bool, default True
-        If True, remove the serialised Graph entry from
-        ``~/.phasic_cache/graphs/<callback_hash>.json``. Requires
-        that this graph was built from a callback (so the
-        callback + construction kwargs are available to recompute
-        the same hash the constructor used). Manually constructed
-        graphs have no callback-hash key and will raise.
+        If True, remove this graph's entry from the on-disk graph
+        cache (``$PHASIC_CACHE_DIR/graphs/<entry>.json`` or
+        ``~/.phasic_cache/graphs/<entry>.json``). The entry's path is
+        recorded when the graph is built or loaded with
+        ``Graph(callback, ..., cache_key="<name>")``, so it is found
+        even if ``PHASIC_CACHE_DIR`` changed since. A graph built from a
+        callback without ``cache_key`` has no entry and reports 0, as do
+        graphs DERIVED from a cached graph (``discretize``, widening,
+        ``laplace_transform``, ``add_epoch``), which have no entry of
+        their own. Graphs not built from a callback (manually
+        constructed, ``clone()`` / ``copy()``) raise.
     parameterized_reward_compute : bool, default True
         If True, remove this graph's Stage A2 symbolic elimination
         entry from
@@ -80,15 +85,16 @@ def clear_from_cache(
             raise RuntimeError(
                 "clear_from_cache(graph_cache=True): this graph "
                 "was not built from a callback, so it has no "
-                "callback-hash key in ~/.phasic_cache/graphs/."
+                "graph cache entry (graphs are cached only with "
+                "Graph(callback, ..., cache_key=...))."
             )
-        from .graph_cache import GraphCache
-        from .callback_hash import hash_callback
-        cache_key = hash_callback(self._callback, **self._callback_kwargs)
-        cache_path = GraphCache().cache_dir / f"{cache_key}.json"
-        if cache_path.exists():
-            cache_path.unlink()
-            removed["graph_cache"] = 1
+        from pathlib import Path
+        entry = getattr(self, "_graph_cache_entry", None)
+        if entry is not None:
+            cache_path = Path(entry)
+            if cache_path.exists():
+                cache_path.unlink()
+                removed["graph_cache"] = 1
 
     if parameterized_reward_compute:
         from .phasic_pybind import hash as _hash_mod
