@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.5, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -186,8 +186,8 @@ deterministic functions of their inputs). The
     write, or for example
     `serialize()` failing or a `MemoryError` while encoding a 600k-vertex
     graph) propagates with its type unchanged (an `OSError` keeps its
-    subclass and gains a message naming the path), with the built graph
-    attached as `e.graph` and the message saying so, so an hours-long
+    subclass and gains a NOTE, via `add_note`, naming the path), with the
+    built graph attached as `e.graph` and the note saying so, so an hours-long
     build is not lost (still an error, not a silent fallback);
     `self._graph_cache_entry` stays `None` on that object. When the
     failure comes from `serialize()` itself (for example a callback
@@ -224,7 +224,11 @@ streams. Components in order:
    arrays the callback receives are numpy arrays phasic creates, and
    scalar promotion changed between numpy 1.x and 2.x, NEP 50, while the
    same phasic build can run against either). What a hit promises is the
-   SAME GRAPH (identical `serialize()` output, vertex and edge order);
+   SAME GRAPH as the writer built (identical `serialize()` output,
+   vertex and edge order), which is identical to a fresh build on the
+   same machine type and numpy build (on another CPU sharing the cache,
+   weights computed with SIMD math may differ from a local fresh build
+   in the last bits);
    numerical results computed from it equal a fresh build's up to
    rounding, not bit for bit: fresh uncached builds of the same constant
    model already differ in the last bit of `expectation()` between
@@ -611,7 +615,11 @@ a tag, whatever the payloads.)
    `np.asarray(mm)`; note this reads the file to hash it), the class
    `collections.Counter` captured in a cell, phasic's own
    `index_to_props` results (precompute lookup tables as plain ints or
-   dicts), long-double arrays, functions whose `__dict__` holds an `inspect.Signature`
+   dicts), phasic's own classes captured in a closure cell (for example
+   a local `from phasic import Property` used by the callback; import it
+   at module level), `IntEnum` values anywhere (top-level int kwargs are
+   converted to float by `Graph.__init__`, but the key is taken before
+   that and refuses the enum), long-double arrays, functions whose `__dict__` holds an `inspect.Signature`
    (set by some decorator libraries as `__signature__`), numpy 2
    `StringDType` arrays, numpy dtype INSTANCES such as
    `np.dtype('int64')` (capture `np.int64` or the dtype string instead),
@@ -1104,6 +1112,10 @@ a docstring mention at `_graph_cache_mgmt.py:60`). Docstring says so.
 
 ## 3. Tests
 
+Every file a test writes (module or script files in tests 9, 15, 26, the
+relative-directory case of test 14) is under `tmp_path`; no test writes
+into the working directory.
+
 Digests in tests are taken either from a spy on `GraphCache.load` or by
 calling `cache_entry_key` on the callback wrapped EXACTLY as `__init__`
 wraps it (`with_ipv(ipv)(cb)`), never on the bare user function (review
@@ -1270,7 +1282,9 @@ function):
     and with it set to `""` (HOME also monkeypatched to `tmp_path` for
     these cases, so nothing can reach the real HOME): entry under the
     monkeypatched `DEFAULT_CACHE_DIR` (never a relative `graphs/`). A
-    relative `PHASIC_CACHE_DIR`: `_graph_cache_entry` is absolute. Import order: a
+    relative `PHASIC_CACHE_DIR` (after `monkeypatch.chdir(tmp_path)`, so
+    nothing is written into the repository checkout, which is pytest's
+    working directory, review AM 1): `_graph_cache_entry` is absolute. Import order: a
     subprocess whose env has `OMP_NUM_THREADS` REMOVED (the pytest process
     has it set by phasic, `__init__.py:107-108`, and children inherit it)
     runs `import phasic` with a `sys.meta_path` hook that records, when
@@ -1279,8 +1293,15 @@ function):
     shown to work by running the same hook once on a deliberate violation
     (a stubbed package importing `phasic.cache` first, as in review B p1),
     where it must report the violation.
-15. Unusable entries raise `GraphCacheLoadError` naming the file, with
-    the original chained, the callback NOT called and the file left in
+15. (Each malformed entry is made by editing ONE field of a real entry
+    written by `GraphCache.save` for the same call, so its
+    `entry_digest` and `format` are right and the case under test is
+    actually reached; each case asserts its specific cause or message
+    fragment. Chaining (`__cause__`) is asserted only where an original
+    exception exists: JSON / Unicode decode errors, decoder errors and
+    `from_serialized`; the shape checks (a JSON list, a missing field, a
+    wrong `format`) raise `GraphCacheLoadError` directly, review AM 2.)
+    Unusable entries raise `GraphCacheLoadError` naming the file, the callback NOT called and the file left in
     place: truncated JSON; invalid UTF-8 bytes; a valid JSON list; a dict
     missing `graph_data`; wrong `format`; a `graph_data` carrying
     `{"__type__": "<module>.<Class>"}` for a throwaway module written to
@@ -1305,7 +1326,7 @@ function):
     `phasic.clear_all_graph_caches()` the same call rebuilds and saves.
 16. Write failure (`os.replace` monkeypatched to raise
     `PermissionError`): the same `PermissionError` subclass, the path in
-    the message, `e.graph` equal to a fresh build (same `serialize()`),
+    `e.__notes__` (notes are not part of `str(e)`), `e.graph` equal to a fresh build (same `serialize()`),
     `e.graph._graph_cache_entry is None`, and no `.partial` file left in
     the directory. `serialize` monkeypatched to raise `RuntimeError`
     during save: `RuntimeError` with `e.graph` set. A stray
@@ -1988,3 +2009,10 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   ordinary use): 1 autouse fixture and subprocesses unset
   `PHASIC_COMPILATION_CACHE_DIR` / `JAX_COMPILATION_CACHE_DIR`, wording
   on what `clear_model_cache` clears corrected; 2 line 459.
+- Independent review AM -> v6.6 (no wrong result or data loss): 1 test
+  14 changes directory to tmp_path first, every test file written under
+  tmp_path; 2 test 15 entries built by editing one field of a real entry,
+  chaining asserted only where an original exception exists; 3 the save
+  path's path goes in a note (`e.__notes__`), tests assert there; 4 hit
+  promise scoped to the same machine type; docs list phasic classes in
+  cells and IntEnum among refusals.
