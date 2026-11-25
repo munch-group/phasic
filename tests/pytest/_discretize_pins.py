@@ -44,11 +44,11 @@ def _coalescent_cb(n, as_list):
 
 
 def coal_param(n=N):
-    return Graph(_coalescent_cb(n, True), graph_cache=False)
+    return Graph(_coalescent_cb(n, True))
 
 
 def coal_constant(n=N):
-    return Graph(_coalescent_cb(n, False), graph_cache=False)
+    return Graph(_coalescent_cb(n, False))
 
 
 def two_param_chain():
@@ -83,7 +83,7 @@ def coal_indexed(n=3, as_list=True):
             r = state[i] * (state[j] - same) / (1 + same)
             out.append([new, [r] if as_list else r])
         return out
-    return Graph(cb, indexer=indexer, graph_cache=False)
+    return Graph(cb, indexer=indexer)
 
 
 def epoch_graph():

@@ -50,13 +50,13 @@ def _coal_param(state):
 
 
 def constant_graph():
-    g = Graph(_coal_constant, graph_cache=False)
+    g = Graph(_coal_constant)
     assert not g.parameterized()
     return g
 
 
 def param_graph():
-    g = Graph(_coal_param, graph_cache=False)
+    g = Graph(_coal_param)
     assert g.parameterized()
     return g
 
@@ -229,7 +229,7 @@ def _coal_indexed(nr):
             new[min(i + j + 1, state.size - 1)] += 1
             out.append([new, [state[i] * (state[j] - same) / (1 + same)]])
         return out
-    return Graph(coal, indexer=indexer, graph_cache=False), indexer
+    return Graph(coal, indexer=indexer), indexer
 
 
 def test_add_epoch_then_discretize_keeps_epoch_metadata_and_indexer():

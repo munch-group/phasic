@@ -157,6 +157,7 @@ def test_joint_prob_graph_via_warm_graph_cache(tmp_path, monkeypatch):
     crash. Mirrors the real warm-``~/.phasic_cache/graphs`` failure."""
     import phasic.graph_cache as gc
     monkeypatch.setattr(gc, "DEFAULT_CACHE_DIR", tmp_path / "graphs")
+    monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
 
     # Spy on the cache load so we can PROVE the second build is a genuine HIT
     # (reload via from_serialized). Without this, a silent cache MISS -- e.g. an
@@ -164,15 +165,15 @@ def test_joint_prob_graph_via_warm_graph_cache(tmp_path, monkeypatch):
     # fresh find_or_create build that also works now, so the test could pass
     # without ever exercising the reload path this regression is about.
     load_hits = {"non_none": 0}
-    _orig_load = gc.GraphCache.load_graph
+    _orig_load = gc.GraphCache.load
 
-    def _spy_load(self, callback, **params):
-        res = _orig_load(self, callback, **params)
+    def _spy_load(self, digest):
+        res = _orig_load(self, digest)
         if res is not None:
             load_hits["non_none"] += 1
         return res
 
-    monkeypatch.setattr(gc.GraphCache, "load_graph", _spy_load)
+    monkeypatch.setattr(gc.GraphCache, "load", _spy_load)
 
     from phasic import with_ipv, StateIndexer, Property
     all_pairs = partial(combinations_with_replacement, r=2)
@@ -197,7 +198,8 @@ def test_joint_prob_graph_via_warm_graph_cache(tmp_path, monkeypatch):
                 t.append([new, [state[i] * (state[j] - same) / (1 + same)]])
             return t
 
-        return Graph(coal, indexer=indexer, graph_cache=True), indexer
+        return Graph(coal, indexer=indexer,
+                     cache_key="test-joint-prob-warm-cache"), indexer
 
     kw = dict(reward_limit=5, mutation_rate=1e-4)
     g_miss, idx_miss = build()                       # cache MISS: fresh build + write

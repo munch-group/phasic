@@ -61,12 +61,16 @@ def _coalescent_param(state):
 
 @pytest.fixture
 def tmp_cache(tmp_path, monkeypatch):
-    """Point the graph cache at an empty temporary directory."""
+    """Point the graph cache at an empty temporary directory
+    ($PHASIC_CACHE_DIR/graphs = tmp_path/graphs)."""
     d = tmp_path / "graphs"
     d.mkdir()
-    monkeypatch.setattr(graph_cache, "DEFAULT_CACHE_DIR", d)
-    monkeypatch.delenv("PHASIC_DISABLE_GRAPH_CACHE", raising=False)
+    monkeypatch.setenv("PHASIC_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(graph_cache, "DEFAULT_CACHE_DIR", tmp_path / "default")
     return d
+
+
+KEY = "test-serialize-constant-roundtrip"
 
 
 def _constant_chain():
@@ -103,14 +107,14 @@ def _assert_same_distribution(g1, g2, discrete=False):
 
 # --------------------------------------------------------------- T1: the cache
 def test_t1_constant_callback_graph_stays_constant_through_cache(tmp_cache):
-    fresh = Graph(_coalescent_constant, graph_cache=True)   # miss: built, saved
+    fresh = Graph(_coalescent_constant, cache_key=KEY)   # miss: built, saved
     assert not fresh.parameterized()
-    assert any(tmp_cache.iterdir()), "graph was not saved to the cache"
-    # Load errors are swallowed (load_graph returns None, Graph rebuilds), so
-    # check the hit directly: a silent miss must not let this test pass.
-    hit = graph_cache.GraphCache().load_graph(fresh._callback)
+    assert any(tmp_cache.glob("*.json")), "graph was not saved to the cache"
+    # Check the hit directly: a silent miss must not let this test pass.
+    digest = callback_hash.cache_entry_key(KEY, fresh._callback)
+    hit = graph_cache.GraphCache().load(digest)
     assert hit is not None and not hit.parameterized()
-    loaded = Graph(_coalescent_constant, graph_cache=True)  # hit
+    loaded = Graph(_coalescent_constant, cache_key=KEY)  # hit
     assert not loaded.parameterized()
     with pytest.raises(RuntimeError, match="constant graph"):
         loaded.update_weights([2.0])
@@ -131,7 +135,7 @@ def test_t2_constant_graph_default_serialize_has_no_param_edges():
 
 # -------------------------------------------- T3: parameterized unchanged
 @pytest.mark.parametrize("make", [
-    lambda: Graph(_coalescent_param, graph_cache=True), _two_param_chain])
+    lambda: Graph(_coalescent_param, cache_key=KEY), _two_param_chain])
 def test_t3_parameterized_default_serialize_unchanged(make, tmp_cache):
     g = make()
     assert g.parameterized()
@@ -216,24 +220,27 @@ def test_t5_explicit_theta_dim_wins():
 
 
 # -------------------------------------------- T6: stale cache entries
-def test_t6_stale_entry_from_old_version_is_not_loaded(tmp_cache, monkeypatch):
-    """An entry in the OLD (pre-fix) layout, saved under version 1.0, must
-    not be loaded after the bump: the graph is rebuilt and is constant."""
-    assert callback_hash.PHASIC_CALLBACK_VERSION != "1.0"
-    new_version = callback_hash.PHASIC_CALLBACK_VERSION
-    old = Graph(_coalescent_constant, graph_cache=False)
-    # Write the stale layout: what serialize() produced before the fix.
-    real_serialize = Graph.serialize
-    monkeypatch.setattr(Graph, "serialize",
-                        lambda self, theta_dim=None, **kw: real_serialize(self, theta_dim=1, **kw))
-    monkeypatch.setattr(callback_hash, "PHASIC_CALLBACK_VERSION", "1.0")
-    graph_cache.GraphCache().save_graph(old, old._callback)
-    stale = graph_cache.GraphCache().load_graph(old._callback)
-    assert stale is not None and stale.parameterized(), "stale entry not written"
-    monkeypatch.setattr(Graph, "serialize", real_serialize)
-    monkeypatch.setattr(callback_hash, "PHASIC_CALLBACK_VERSION", new_version)
-    assert graph_cache.GraphCache().load_graph(old._callback) is None
-    rebuilt = Graph(_coalescent_constant, graph_cache=True)
+def test_t6_stale_entry_from_old_version_is_not_loaded(tmp_cache):
+    """An entry whose format field is not the current GRAPH_CACHE_FORMAT
+    is never loaded: the lookup raises GraphCacheLoadError naming the file
+    (no silent rebuild); after the file is deleted the rebuild is constant."""
+    from phasic import GraphCacheLoadError
+    assert callback_hash.GRAPH_CACHE_FORMAT != "1"
+    first = Graph(_coalescent_constant, cache_key=KEY)   # writes a valid entry
+    path = first._graph_cache_entry
+    assert path is not None
+    with open(path, "rb") as f:
+        data = f.read()
+    header = b'{"format":"' + callback_hash.GRAPH_CACHE_FORMAT.encode() + b'"'
+    assert data.startswith(header)
+    with open(path, "wb") as f:
+        f.write(b'{"format":"1"' + data[len(header):])
+    with pytest.raises(GraphCacheLoadError) as ei:
+        Graph(_coalescent_constant, cache_key=KEY)
+    assert str(path) in str(ei.value)
+    import os
+    os.unlink(path)
+    rebuilt = Graph(_coalescent_constant, cache_key=KEY)
     assert not rebuilt.parameterized()
     with pytest.raises(RuntimeError, match="constant graph"):
         rebuilt.update_weights([2.0])
