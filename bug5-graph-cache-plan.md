@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v5.6, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v5.7, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -536,9 +536,16 @@ safe by the metaclass check).
      PropertySet's `_props_dataclass`, if present, with the matching
      PropertySet of `c`'s `_props_class()`. Each must satisfy
      `type(cls) is type`, `cls.__mro__ == (cls, object)`, the same field
-     names in order, the same `set(vars(cls))` keys as the reference, and
-     for every function in `vars(cls)` the same CODE FINGERPRINT as the
-     reference's entry of that name (a swapped-in frozen dataclass with
+     names in order, the same `set(vars(cls))` keys as the reference,
+     and, driven from the REFERENCE class's entries: every reference
+     entry that is a function must be an exact `FunctionType` in the
+     candidate with the same FUNCTION FINGERPRINT (code, defaults,
+     kwdefaults, `__dict__`, and closure cells position by position,
+     where a cell holding the reference class itself must hold the
+     candidate class itself), and every non-function entry must be the
+     identical object or equal by VALUE FINGERPRINT (a non-function
+     callable swapped in under an existing key, or a same-code function
+     with different cell contents, is thereby refused, review AE 1) (a swapped-in frozen dataclass with
      the same fields but a `__post_init__` that shifts values made
      `index_to_props(5)` return `n=101` instead of `n=1` while `to_dict()`
      and every other compared field stayed equal, review AC p8). Each Property must have
@@ -697,7 +704,9 @@ file in sorted relative-path order its relative path, its size and its
 bytes, so moving text across a file boundary (an extraction refactor)
 changes it. This content hash IS `_phasic_build_id()`. To make sure it
 describes the code the process actually imported, a stdlib-only stat
-snapshot is taken at the TOP of `phasic/__init__.py`, before any
+snapshot is taken at the TOP of `phasic/__init__.py` (immediately after
+`from __future__ import annotations`, which must stay the first
+statement), before any
 submodule or `phasic_pybind` import: `os.scandir` of the package
 directory for `*.py` (recursive, as above) and for EVERY file ending in
 one of `importlib.machinery.EXTENSION_SUFFIXES` (never
@@ -722,9 +731,13 @@ AD p1); a module with neither is exempt only if its name starts with
 would otherwise run code the id does not cover; the docstring states
 that the id covers the package's source and extension files). ORDER at the end of import:
 first the content hash H is computed from all the files, THEN they are
-re-stat'ed (S1); S1 must equal the top-of-import snapshot S0, otherwise a
-recording failure is stored (raised at the first key computation); the
-stored record is (S0, H). Hashing before the final stat closes the window
+re-stat'ed (S1); S1 must equal the top-of-import snapshot S0 in size,
+`mtime_ns`, inode and device (a difference in `ctime_ns` ONLY, from a
+hard-link count change or an xattr write during the 3-15 s import, is
+accepted and S1 is recorded), otherwise a recording failure is stored
+(raised at the first key computation); the stored record is (S0 or S1,
+H). (Re-hashing at import to accept a stats change would re-open the
+window review W 1 closed, so it is not done.) Hashing before the final stat closes the window
 in which a concurrent reinstall could change a file after its last stat
 but before it is read, which would record a hash of code the process is
 not running and let the later "stats changed, bytes equal" rule accept
@@ -751,8 +764,9 @@ bytes are unchanged (for example a hard-linked file in a shared conda /
 pixi package cache whose `ctime` moved because another environment
 linked or unlinked it, or an xattr write on Lustre/GPFS, review J p5),
 and the stat record is refreshed silently; different means a reinstall,
-and `GraphCacheKeyError` as above. So a harmless metadata change never
-produces a spurious "restart" error, and a real one is always caught.
+and `GraphCacheKeyError` as above. So a ctime-only metadata change, at
+import or later, never produces a spurious "restart" error, and a real
+reinstall is always caught.
 Recording in `graph_cache`'s module body would be wrong: that module is
 imported at `__init__.py:53`, before `OMP_NUM_THREADS` is set at
 `:107-108`, and touching `phasic_pybind` there would load the native
@@ -910,7 +924,10 @@ here).
   files or other JSON files.
 - Replaced: `save_graph(graph, callback, **params)` /
   `load_graph(callback, **params)` -> `save(graph, digest, meta)` /
-  `load(digest)` (full 64-character digest; file name = first 32).
+  `load(digest)` (full 64-character digest; file name = first 32), where
+  `meta` is a `dict` with exactly the keys `cache_key` (str) and
+  `callback_name` (str or None); `save` adds `entry_digest`, `format`,
+  `phasic_version`, `created_at` and `graph_data` itself.
 - Removed: `get_or_build`, `hash_callback`, `_detect_closures`,
   `_normalize_ast`.
 - Entry content: `entry_digest` (the FULL SHA-256 hex of the key token
@@ -969,8 +986,9 @@ here).
   `e.graph` (phasic already requires Python 3.11: `from typing import
   Self`, `__init__.py:11`). Two concurrent
   writers each replace atomically; a reader sees a complete file or none
-  (shared SLURM directories are a documented use,
-  `distributed.ipynb` cell 31).
+  (concurrent writers are a documented use: `distributed.ipynb` cell 31
+  builds several graphs with a `ProcessPoolExecutor`; shared cluster
+  directories add more).
 - On load, `entry_digest` must equal the full digest passed to `load()`;
   a mismatch is a `GraphCacheLoadError` naming the file (a file copied or
   planted under the wrong name, or a truncated-name collision, would
@@ -1201,7 +1219,9 @@ function):
     `GraphCacheKeyError` at the first key computation, while
     `import phasic` itself succeeded. A file change between the top-of-
     import snapshot and the end of import (monkeypatched snapshot):
-    recording failure, `GraphCacheKeyError` at first use. A file
+    recording failure, `GraphCacheKeyError` at first use; a ctime-only
+    difference between S0 and S1 (monkeypatched): accepted, keyed builds
+    work. A file
     "changed" between the end-of-import hash and the final stat
     (monkeypatched, subprocess): recording failure. The content hash differs when bytes
     move across a file boundary (two temporary files, unit test of the
@@ -1570,7 +1590,12 @@ Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
   restricted decoder (§2.6) it is data only, never an import or a call
   (unlike pickle caches, and unlike today's loader, which imports any
   module an entry names), but a peer could plant a wrong graph; this is existing behaviour, and the `cache_key` docstring says
-  to share a cache directory only with trusted users.
+  to share a cache directory only with trusted users. The more likely
+  accident is two cooperating users or projects choosing the same
+  `cache_key` for same-code callbacks that read different module
+  globals: the second silently gets the first's graph (within the D1
+  contract); the docstring advises project-unique key names and a
+  per-user cache directory.
 
 ## 7. Review history
 
@@ -1854,3 +1879,9 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   it on the real install; 2 `.partial` age judged against the directory
   mtime, suspension case documented; 3 relative `PHASIC_CACHE_DIR`
   documented.
+- Independent review AE -> v5.7 (no realistic wrong result or data
+  loss): 1 generated-class check driven from the reference entries
+  (full function fingerprints, non-function entries); 2 ctime-only
+  change during import accepted; 3 `meta` keys specified; 4 snapshot
+  placed after the `__future__` import; 5 distributed.ipynb citation
+  corrected; 6 accidental shared-key collisions documented.

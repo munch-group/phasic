@@ -1,0 +1,11 @@
+(a) first phasic_pybind import: OMP_NUM_THREADS = None
+       phasic/__init__.py:53
+       phasic/graph_cache.py:29
+       phasic/logging_config.py:253
+       phasic/logging_config.py:200
+(b) files: 53 changed across import: []
+    built 6 vertices; E[T] = 1.6
+    changed after build: []
+(c) numpy 2.4.3 allow-set: ['bool', 'bytes_', 'complex128', 'complex64', 'datetime64', 'float16', 'float32', 'float64', 'int16', 'int32', 'int64', 'int8', 'longlong', 'str_', 'timedelta64', 'uint16', 'uint32', 'uint64', 'uint8', 'ulonglong']
+    common types missing: []
+[runcap] exit 0, peak RSS 305 MB, 3s
