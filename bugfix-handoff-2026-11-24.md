@@ -83,7 +83,10 @@ end with the Co-Authored-By line; the user pushes.
    finding wrong-result cases; user decision D3 narrowed the key, no
    generic to_dict(); plan v3.0 `d55fe87f`; then reviews E-AI through
    v6.1; D4 (2026-11-25) dropped the StateIndexer generated-class
-   registry; plan v6.2, fresh review next). User decided (2026-11-24) to keep the full v2.2 design
+   registry; reviews AJ-AN to v6.7 `b35fed7a`). USER SAID GO (2026-11-25):
+   implementation of v6.7 delegated to one Opus agent in the bug 5
+   worktree; next: one Opus implementation review, then gate vs
+   `.gate_bug4`, merge if no new failures. User decided (2026-11-24) to keep the full v2.2 design
    (inference features rely on closures). USER RULES: once a reviewer
    signs off with no issues, run two more independent reviewers; DO NOT
    IMPLEMENT until the user says go.
