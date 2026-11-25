@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.1, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -16,7 +16,13 @@ change, objects pickled by reference, a source file edited after import, a
 `StateIndexer` does not pickle). v2 stops inferring dependencies through
 module globals and lets the user name the entry.
 
-**User decisions (2026-11-24):**
+**User decisions (2026-11-24 / 25):**
+- D4 (2026-11-25): no check on a StateIndexer's GENERATED dataclasses and
+  no registry in `state_indexing.py`. A registry built for that check
+  caused a defect in each of four rounds (unsatisfiable, leaking,
+  breaking dill, breaking after a copy) and ran for every phasic user,
+  while guarding only against deliberately replaced private attributes.
+  Such replacements are outside the contract, like in-place code edits.
 - D3 (after four independent reviews each found a wrong-result case in
   the generic "key any object by content" machinery): NARROW what the key
   accepts automatically. No user-defined protocol (`to_dict()`) is
@@ -534,62 +540,15 @@ a tag, whatever the payloads.)
      numpy arrays means same `type`, `dtype` and `shape` and
      `np.array_equal` (a bare `!=` would raise on multi-element arrays,
      and value-only equality would admit a float array with different
-     behaviour). The GENERATED classes (`ix._result_class`, created in
-     every indexer's constructor, `state_indexing.py:878, 976`, and each
-     PropertySet's lazily created `_props_dataclass`, `:429`) are NOT
-     compared entry by entry with the rebuild's (v5.7's entry-by-entry
-     rule could not pass on any indexer: the dataclass machinery,
-     `__dataclass_fields__`, `__dataclass_params__`, per-class
-     descriptors, annotation objects, a `FrozenInstanceError` cell and a
-     `repr_running` set, is neither identical nor fingerprintable,
-     review AF p3). Instead, an ADDITIVE registry in `state_indexing.py`,
-     installed as a module-level wrapper that rebinds the module's
-     `make_dataclass` name (only lines 429 and 976 call it; their bodies
-     are untouched, matching the no-modify-existing preference; the
-     generated class's `__module__` stays `phasic.state_indexing`): the
-     wrapper calls the real `make_dataclass`, then stores a SNAPSHOT
-     `dict(vars(cls))` (the same entry objects) ON THE CLASS ITSELF as
-     `cls.__phasic_snapshot__`, together with the field names, wrapped in
-     a tiny holder object `_Snap` (`__slots__`, and a `__reduce__`
-     returning `(_Snap, (None, None))`): a bare dict there makes
-     `dill.dumps(indexer)` fail for EVERY indexer, used or not, a
-     regression for all users, including phasic's own `%%srun` magic,
-     which dill-dumps notebook globals (`srun_magic.py:147, 219-224`) and
-     would silently lose such an indexer; with the holder, dill and
-     cloudpickle copy a harmless empty stub, and the rebuilt class stays
-     unregistered (review AI p4-p6), and adds
-     the class to a module-level `weakref.WeakSet` `_GENERATED_CLASSES`.
-     (A dict of weakrefs plus a snapshot held outside the class, as in
-     the first v5.8 text, leaks: the snapshot's `__dict__` / `__weakref__`
-     descriptors and the frozen `__setattr__` closure reference the
-     class, so it is never freed; measured 55 MB over 1000
-     joint-probability-graph constructions; with the snapshot on the
-     class and a WeakSet, 0.16 MB and no live classes, review AG p3/p4.)
-     The check requires: the class is in `_GENERATED_CLASSES`;
-     `cls.__bases__ == (object,)` and `cls.__name__` is the name phasic
-     generates (`IndexResult` / `<Name>Props`); the field names equal the
-     ones the indexer's properties / slots imply; and `vars(cls)`, minus
-     the `__phasic_snapshot__` key and minus `__slotnames__` (which
-     CPython's copyreg adds to a class the first time one of its
-     instances is copied or pickled, e.g. a `deepcopy` of a
-     state-to-label dict holding `index_to_props` results; it only
-     affects copying of instances, review AI p3), has exactly the
-     snapshot's keys with every entry the IDENTICAL object (`is`). A user-made class is not
-     registered; replacing or adding a class attribute (a swapped
-     `__init__`, an added `__post_init__`) changes an entry's identity or
-     the key set; changing the bases or the name is caught by the first
-     two conditions. Not detected (documented as outside the contract,
-     like other deliberately altered internals): in-place edits INSIDE an
-     entry (`cls.__init__.__code__ = ...`, mutating
-     `__dataclass_fields__` contents). No entry is fingerprinted, so no
-     dataclass internals need rules, and the check reads only the class's
-     own `__dict__`, `__bases__` and `__name__` (no user code: the
-     class's metaclass is `type`, checked first). An indexer sent through
-     cloudpickle (joblib/loky) or dill arrives with a REBUILT, unregistered
-     class and is refused with an error naming this case and the way
-     out: rebuild it in the worker with `StateIndexer.from_dict(
-     ix.to_dict())`, or construct the indexer there (review AG p6).
-     (Review AC p8's swap and review AE 1's swaps are refused.) Each Property must have
+     behaviour). The GENERATED classes (`ix._result_class`,
+     `state_indexing.py:878, 976`, and each PropertySet's lazily created
+     `_props_dataclass`, `:429`) are NOT checked (user decision D4): they
+     are generated by phasic from the properties and slots that (a)-(c)
+     verify, and replacing them is deliberate tampering with private
+     attributes, outside the contract (documented). No registry and no
+     change to `state_indexing.py`. (Review AC p8's swap is therefore not
+     detected; it needs `ix._result_class = X` or
+     `ps._props_dataclass = X` by hand.) Each Property must have
      `set(vars(p))` equal to its four dataclass fields (a frozen
      dataclass still has a `__dict__`, so extra attributes are
      otherwise invisible; same check as (a)), and each slot is checked as
@@ -1324,30 +1283,14 @@ function):
     ignored" `ValueError`.
 18. POSITIVE CONTROLS for rule 8: a plain StateIndexer, fresh and after
     `index_to_props` (both generated classes present), a StateSpace-based
-    one, and one built by `a + b`: all pass the checks and key (a check
-    that refuses every indexer must fail this test). A registered class
-    with `__init__` replaced, one with an added `__post_init__`, one whose
-    `__bases__` were changed, and an unregistered same-field dataclass
-    swapped in: refused. LEAK GUARD: build 1000 indexers and
-    joint-probability base + reward indexer pairs with `index_to_props`
-    and key computations, `gc.collect()`: the number of live registered
-    classes stays bounded (not growing with N). An indexer round-tripped
-    through `dill` in-process (dill rebuilds the generated class; skipped
-    if dill is absent), and one dumped with `joblib.externals.cloudpickle`
-    and loaded in a SUBPROCESS (an in-process cloudpickle round trip
-    returns the same registered class and is admitted, correctly):
-    refused with the rebuild advice. Not gated on a top-level
-    `import cloudpickle`, which is not installed here (review AH 1).
-    `dill.loads(dill.dumps(ix))` itself WORKS (fresh and used indexer;
-    no regression for `%%srun` / pathos users), and the loaded copy is
-    refused for keying. After `copy.deepcopy` of a dict holding
-    `index_to_props` results (adds `__slotnames__`), a keyed build with
-    the original indexer still hits. On the REAL install (subprocess, no monkeypatching), the
+    one, one built by `a + b`, one after `copy.deepcopy` of a dict of its
+    `index_to_props` results, and one round-tripped through `dill`: all
+    pass the checks and key (a check that refuses every indexer must fail
+    this test). `dill.loads(dill.dumps(ix))` works and keys like the
+    original (no regression for `%%srun` / pathos users). On the REAL install (subprocess, no monkeypatching), the
     end-of-import coverage check stores no recording failure, and a
     keyed build succeeds (guards against a check that refuses every
-    normal install). A `StateIndexer` whose PropertySet `_props_dataclass` (and,
-    separately, whose `_result_class`) was replaced by a same-field
-    frozen dataclass with a shifting `__post_init__`: refused. A module
+    normal install). A module
     whose `__name__` was set to a non-str: refused before any lookup.
     `np.int64` vs `np.longlong` arrays with equal bytes: different keys.
     An object whose class has a user metaclass defining `__hash__` /
@@ -1547,10 +1490,8 @@ SLURM and outside this fix, listed in `found-defects` instead;
 `PhasicConfig.qmd` are generated (regenerated with `pixi run api` if that
 runs cleanly in the worktree; otherwise listed for the user).
 
-Source change outside the cache modules: `state_indexing.py` gains the
-additive registry (an `import weakref`, the `WeakSet`, and a module-level
-wrapper rebinding `make_dataclass`; no existing function body changes).
-`state_indexing.py` is CRLF, so the CRLF note below applies to it too.
+No source change outside the cache modules (D4: no registry in
+`state_indexing.py`).
 
 Implementation note: `graph_cache.py`, `callback_hash.py`,
 `state_indexing.py`, `model_export.py` and `config.py` use CRLF line
@@ -1982,3 +1923,7 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   empty stub, so dill pickling of indexers keeps working (it broke for
   all users under v5.9); 2 `__slotnames__` ignored in the class
   key-set comparison; 3 CRLF file list.
+- v6.2 (user decision D4): the generated-class check and the
+  `state_indexing.py` registry are removed; replaced generated classes
+  are outside the contract; test 18 keeps positive controls (incl.
+  deepcopy and dill round trips) and drops the registry cases.
