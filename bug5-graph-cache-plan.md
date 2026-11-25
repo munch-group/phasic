@@ -1,6 +1,6 @@
 # Bug 5: the on-disk graph cache returns a stale graph — fix plan
 
-**Status: v6.2, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
+**Status: v6.3, 2026-11-25. Branch `fix/graph-cache-stale`, worktree
 `/Users/kmt/phasic-bug5` (own pixi env), rebased on master `5ef0d76c`
 (bugs 1-4 merged). No source changed yet. Python-only change. Backward
 compatibility is not required (user decision, 2026-11-23).**
@@ -267,7 +267,10 @@ by sub-digests and cycles refused, §2.2.2)
   FINGERPRINT, where a cell holding a function is fingerprinted as a
   function (so decorator wrappers and captured helpers are covered).
 - bound method, EXACT type only (`type(m) is types.MethodType`):
-  FUNCTION FINGERPRINT of `__func__` + VALUE FINGERPRINT of `__self__`.
+  `__func__` through value rule 6 (the callable rules; `MethodType`
+  accepts any callable there, a partial, a builtin or a Cython function,
+  so it is refused with `GraphCacheKeyError` if no rule admits it, never
+  an `AttributeError`) + VALUE FINGERPRINT of `__self__`.
 - NOT FINGERPRINTABLE: any other object that merely exposes `__code__`,
   in particular Cython's `cython_function_or_method`, whose `__code__`
   is a placeholder (all-zero `co_code`, empty `co_names`): distinct
@@ -810,7 +813,10 @@ extension only).
   docstring mentions at `:239`, `:308`; the cache-layout comment at
   `:607-609` is REWORDED (it still holds, minus the "graph_cache" field
   name), not deleted; the inverted-bool
-  example comment at `:1040-1041` (reworded to a remaining field).
+  example comment at `:1040-1043`, which also names a nonexistent
+  `reward_compute_cache / PHASIC_DISABLE_REWARD_COMPUTE_CACHE` pair, is
+  reworded to the one remaining inverted field, `warn_on_ill_conditioning`
+  (`config.py:458`).
 - `phasic.configure(graph_cache=...)`: the existing unknown-option path
   raises `PTDConfigError` (`exceptions.py:14`; NOT a `ValueError`), with
   an added line saying the option was removed and pointing to
@@ -860,7 +866,11 @@ their other part, which clears `$HOME/.phasic_cache` regardless of
 item P). So a `clear_caches()` call never reaches a user-chosen, possibly
 shared `PHASIC_CACHE_DIR` (review AH 2); entries there are cleared only by
 `clear_all_graph_caches()` or `Graph.clear_from_cache()`. Both docstrings
-say so.
+say so. This NEEDS A CODE CHANGE: `model_export.py:82` constructs a bare
+`GraphCache()`, which under the new resolution would point at
+`$PHASIC_CACHE_DIR/graphs`; it becomes
+`GraphCache(graph_cache.DEFAULT_CACHE_DIR)` (the module attribute read at
+call time), review AJ 1.
 
 ### 2.6 `GraphCache` API and entry file
 
@@ -1085,6 +1095,11 @@ a docstring mention at `_graph_cache_mgmt.py:60`). Docstring says so.
 
 ## 3. Tests
 
+Digests in tests are taken either from a spy on `GraphCache.load` or by
+calling `cache_entry_key` on the callback wrapped EXACTLY as `__init__`
+wraps it (`with_ipv(ipv)(cb)`), never on the bare user function (review
+AJ 4).
+
 New file `tests/pytest/test_graph_cache_key.py`. An autouse fixture sets
 `HOME` to a directory under `tmp_path` (so no code path, however it
 resolves a home-relative default, can reach the real
@@ -1102,7 +1117,8 @@ review B p4) and its stderr notice cannot interfere with output checks.
 The new names (`GraphCacheKeyError`, `GraphCacheLoadError`,
 `cache_entry_key`, ...) are imported INSIDE the tests, so on master the
 file collects and each test records its own outcome (test 21 can show
-its master pass). No test calls `phasic.clear_caches()` (it wipes
+its master pass). No test calls `phasic.clear_caches()` except the
+HOME-redirected `clear_model_cache` case of test 18 (unredirected it wipes
 `$HOME/.phasic_cache` and `$HOME/.jax_cache` regardless of
 `PHASIC_CACHE_DIR`, `model_export.py:49,72`). A hit is
 proven by a spy on the callback (not called); "stale" is judged on
@@ -1281,7 +1297,11 @@ function):
 17. Validation before lookup: warm the cache for a `with_ipv`-decorated
     callback, then `Graph(cb, ipv=[9], cache_key=...)` raises the "ipv is
     ignored" `ValueError`.
-18. POSITIVE CONTROLS for rule 8: a plain StateIndexer, fresh and after
+18. `model_export.clear_model_cache(verbose=False)` with HOME redirected
+    (autouse) and `PHASIC_CACHE_DIR` set to a directory outside HOME
+    holding one entry: the entry survives (the one test allowed to call
+    a `model_export` clear function, safe because HOME is redirected).
+    POSITIVE CONTROLS for rule 8: a plain StateIndexer, fresh and after
     `index_to_props` (both generated classes present), a StateSpace-based
     one, one built by `a + b`, one after `copy.deepcopy` of a dict of its
     `index_to_props` results, and one round-tripped through `dill`: all
@@ -1490,11 +1510,13 @@ SLURM and outside this fix, listed in `found-defects` instead;
 `PhasicConfig.qmd` are generated (regenerated with `pixi run api` if that
 runs cleanly in the worktree; otherwise listed for the user).
 
-No source change outside the cache modules (D4: no registry in
-`state_indexing.py`).
+Source files edited: `graph_cache.py`, `callback_hash.py`,
+`__init__.py`, `config.py`, `_graph_cache_mgmt.py`, `model_export.py`
+(line 82, §2.5), and the `cache.py` docstring. No change to
+`state_indexing.py` (D4).
 
 Implementation note: `graph_cache.py`, `callback_hash.py`,
-`state_indexing.py`, `model_export.py` and `config.py` use CRLF line
+`model_export.py` and `config.py` use CRLF line
 endings (`__init__.py` and `_graph_cache_mgmt.py` are LF); edits must preserve them (binary-mode edits, as
 in bug 4) so the diff stays readable.
 
@@ -1573,8 +1595,13 @@ Text to revise (not raising):
 - Commented-out lines only: `popgen/ghost.ipynb` cell 3,
   `popgen/two-locus-island.ipynb` cells 11, 29, 37
   (`graph_cache.save_graph`), `tutorial/svgd-joint-prob.ipynb` cell 78.
-Unaffected: `GraphCache()` and `.clear()` (`state-space` cell 33,
-`ghost` cell 1, `two-locus-island` cell 1), `print_graph_cache_info` /
+Changed behaviour, no error: `tutorial/state-space.ipynb` cell 33
+(`cache = GraphCache(); cache.clear()`) cleared `~/.phasic_cache/graphs` on
+master; after the change it clears `$PHASIC_CACHE_DIR/graphs` when that
+variable is set, which can be a shared directory (intended; you may want
+a comment in the cell).
+Unaffected: `GraphCache()` construction (`ghost` cell 1,
+`two-locus-island` cell 1), `print_graph_cache_info` /
 `get_graph_cache_stats`, `clear_from_cache(graph_cache=False)`
 (`scc-decomposition` cells 26, 29).
 
@@ -1927,3 +1954,8 @@ test 20. 13 missing references -> §2.4, §3 edits and grep gate.
   `state_indexing.py` registry are removed; replaced generated classes
   are outside the contract; test 18 keeps positive controls (incl.
   deepcopy and dill round trips) and drops the registry cases.
+- Independent review AJ -> v6.3 (no wrong graph or stale hit): 1
+  `model_export.py:82` edit named, with a test; 2 state-space cell 33
+  listed as changed behaviour; 3 bound-method `__func__` through the
+  callable rules; 4 how tests obtain digests; 5-7 source-file list, CRLF
+  list, config comment wording.

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-bug5/experiments/bug5_graph_cache/reviewAJ/p6_const_theta.py", line 10, in <module>
+    g = Graph(cb, ipv=[[[4], 1.0]], **kw)
+  File "/Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 1767, in __init__
+    super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), param_length=theta_dim)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Edge has too few coefficients: graph expects at least 2, got 1. Edges must have coefficients_length >= param_length.
+[runcap] exit 1, peak RSS 323 MB, 4s

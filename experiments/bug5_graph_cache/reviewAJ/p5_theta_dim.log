@@ -1,0 +1,14 @@
+theta_dim None param_length fresh 2 hit 2
+   theta [2.0] fresh RuntimeError hit RuntimeError SAME
+   theta [2.0, 0.5] fresh 0.6338461538 hit 0.6338461538 SAME
+   theta [2.0, 0.5, 9.0] fresh RuntimeError hit RuntimeError SAME
+theta_dim 1 param_length fresh 1 hit 1
+   theta [2.0] fresh RuntimeError hit RuntimeError SAME
+   theta [2.0, 0.5] fresh RuntimeError hit RuntimeError SAME
+   theta [2.0, 0.5, 9.0] fresh RuntimeError hit RuntimeError SAME
+theta_dim 2 param_length fresh 2 hit 2
+   theta [2.0] fresh RuntimeError hit RuntimeError SAME
+   theta [2.0, 0.5] fresh 0.6338461538 hit 0.6338461538 SAME
+   theta [2.0, 0.5, 9.0] fresh RuntimeError hit RuntimeError SAME
+theta_dim 3 fresh build raised RuntimeError Edge has too few coefficients: graph expects at least 3, got 2. Edges must have coefficients_length 
+[runcap] exit 0, peak RSS 313 MB, 6s

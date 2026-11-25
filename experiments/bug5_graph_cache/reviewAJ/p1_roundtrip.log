@@ -1,0 +1,18 @@
+Matplotlib is building the font cache; this may take a moment.
+param vertices 5 5 edges equal: True
+   fresh expectation 1.5 param True 1
+   hit expectation 1.5 param True 1
+   after update_weights([2]): 0.75 0.75 True
+three vertices 5 5 edges equal: True
+   fresh expectation 1.5 param True 1
+   hit expectation 1.5 param True 1
+   after update_weights([2]): 0.75 0.75 True
+parallel vertices 5 5 edges equal: True
+   fresh expectation raised RuntimeError Multiple edges to the same vertex!. From vertex with index 1 (state 4). To vertex with index 2 (state 3)
+
+   hit expectation raised RuntimeError Multiple edges to the same vertex!. From vertex with index 1 (state 4). To vertex with index 2 (state 3)
+
+const vertices 5 5 edges equal: True
+   fresh expectation 1.0833333333333333 param False 1
+   hit expectation 1.0833333333333333 param False 1
+[runcap] exit 0, peak RSS 323 MB, 19s

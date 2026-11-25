@@ -1,0 +1,54 @@
+python 3.13.13 numpy 2.4.3
+has sctypeDict: True
+allow-set size 20 ['bool', 'bytes_', 'complex128', 'complex64', 'datetime64', 'float16', 'float32', 'float64', 'int16', 'int32', 'int64', 'int8', 'longlong', 'str_', 'timedelta64', 'uint16', 'uint32', 'uint64', 'uint8', 'ulonglong']
+np.bool in allow True float64 True str_ True datetime64 True intc True longlong True ulonglong True half True
+  dtype 'i1' |i1 int8 allowed
+  dtype 'i2' <i2 int16 allowed
+  dtype 'i4' <i4 int32 allowed
+  dtype 'i8' <i8 int64 allowed
+  dtype 'u1' |u1 uint8 allowed
+  dtype 'u2' <u2 uint16 allowed
+  dtype 'u4' <u4 uint32 allowed
+  dtype 'u8' <u8 uint64 allowed
+  dtype 'f2' <f2 float16 allowed
+  dtype 'f4' <f4 float32 allowed
+  dtype 'f8' <f8 float64 allowed
+  dtype 'c8' <c8 complex64 allowed
+  dtype 'c16' <c16 complex128 allowed
+  dtype '?' |b1 bool allowed
+  dtype 'M8[s]' <M8[s] datetime64 allowed
+  dtype 'm8[s]' <m8[s] timedelta64 allowed
+  dtype 'U3' <U3 str_ allowed
+  dtype 'S3' |S3 bytes_ allowed
+  dtype <class 'numpy.int32'> <i4 int32 allowed
+  dtype <class 'numpy.uint32'> <u4 uint32 allowed
+  dtype <class 'numpy.longlong'> <i8 longlong allowed
+  dtype <class 'numpy.ulonglong'> <u8 ulonglong allowed
+  dtype <class 'numpy.int64'> <i8 int64 allowed
+  dtype <class 'numpy.uint64'> <u8 uint64 allowed
+  dtype <class 'numpy.int64'> <i8 int64 allowed
+  dtype <class 'numpy.uint64'> <u8 uint64 allowed
+allow-set classes with non-type metaclass: []
+  metaclass ndarray True
+  metaclass ufunc True
+  metaclass _ArrayFunctionDispatcher True
+  metaclass partial True
+  metaclass function True
+  metaclass method True
+type(np.sum) <class 'numpy._ArrayFunctionDispatcher'> np.linalg.solve <class 'numpy._ArrayFunctionDispatcher'>
+  resolve exp numpy exp self: NoneType same: True
+  resolve sum numpy sum self: NoneType same: True
+  resolve solve numpy.linalg solve self: NoneType same: True
+  resolve sqrt math sqrt self: module same: True
+  resolve len builtins len self: module same: True
+  immutable flag combinations_with_replacement True itertools
+  immutable flag int True builtins
+  immutable flag float64 True numpy
+  immutable flag ndarray True numpy
+  immutable flag partial True functools
+scipy.special.gamma __module__ <absent> __qualname__ <absent> type is ufunc True
+EXTENSION_SUFFIXES ['.cpython-313-darwin.so', '.abi3.so', '.so']
+_Graph(1).get_dyn_ordering() False
+phasic_pybind __file__ /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic/phasic_pybind.cpython-313-darwin.so
+pkg dir /Users/kmt/phasic-bug5/.pixi/envs/default/lib/python3.13/site-packages/phasic
+[runcap] exit 0, peak RSS 321 MB, 3s

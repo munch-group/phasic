@@ -1,0 +1,7 @@
+fresh+used: PASS
+dill: PASS | index_to_props works: IndexResult(lineage=LineageProps(descendants=3, pop=1), epoch=None)
+deepcopy: PASS
+pickle raised PicklingError Can't pickle <class 'phasic.state_indexing.LineageProps'>: attribute lookup LineageProps on phasic.state_indexing failed
+shared pset a: PASS b: PASS
+a+b: PASS
+[runcap] exit 0, peak RSS 323 MB, 4s
