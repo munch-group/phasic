@@ -1,0 +1,14 @@
+# Plan A v2.2 review 7 (Opus, HEAD f326cae7) — CHANGES REQUIRED
+
+Part A: v2.2 resolves R5/R6 for graph-based builders; gaps B1 (pmf_from_cpp), B2 (rewards); exposure widening needs SVGD.__init__ containment stated; joint-index host site only reached on linear-continuous; pin flips in Batch 1 (test_fd_gradient_mixed_scale.py:226-242), :112/:132 stay (linear pmf_and_moments no rewards :46-55).
+
+BLOCKER B2: rewards make linear-continuous pmf_and_moments refuse: forward at slot -5e-8 ok without rewards, raises with rewards [0,1,2,0] "Edge weight evaluates to non-positive value" via reward_transform rebuild ptd_graph_add_edge weight<0 (phasic.c:4938) (p3_rewards_neg.log). Batch 2 positive_params=False rewards fit -> non-refusing -> clamp dropped -> crash in band (clamp __init__.py:9068-9077); zero-inflation cdf_zero site (:8943) evaluates on offender reward rows (zero_inflation.py:160-174). Flag cannot be build-time only (model(theta,times,rewards)). Fix: flag = build-time property OR rewards is not None (static at trace); cdf_zero site refusing; rewards axis in Batch 0 grid; rewards × 'unconstrained' × 5e-8 tests; NOT unconditional (would break :112/:132, goal 6).
+MAJOR B1: pmf_from_cpp refuses: jax.grad at [1,5e-8] and [1,0] raises (phasic.c:4938) (p1_cpp.log); forwards at 5e-8 and 0 ok; user C++ may transform arbitrarily. Fix: pmf_from_cpp always refusing; §4.4 + §4.1; tests at 5e-8 and 0.
+MAJOR M1: jnp.where-selected divisor breaks bit identity under jit (58,870/200,000 elements changed; loop-form sum bits changed); computing both quotients and selecting result is bit-identical (p2_divisor.log); XLA rewrites x/(2*eps) under jit already. Fix §4.7: select probes with jnp.where, compute today's quotient verbatim and fallback quotient separately, select the quotient; no traced selection on non-refusing models; compare each mode to master in the same mode.
+MINORS
+- m1 θ==0 changes (clamp sites today secant [1e-9,1e-7]; multi-epoch central where valid) -> goal 2/§9 band 0<=θ<=1e-7; exclude θ==0 from bit-identity tests.
+- m2 log mode refuses product exactly 0 (graph_builder.cpp:617-621, phasic.c:5745-5756) -> slot=0 log cell expectation = today's primal error; §4.5 claim false for log.
+- m3 spy needs a named seam (module-level forward reference looked up at call time, or test-only probe hook fed actual probe vector).
+- m4 rvp direct call (Graph.reward_visit_probability :3751-3790) has no model -> derive flag inside rvp backward from structure_json (weight mode + discreteness).
+- m5 'unconstrained' with negative coefficient in log/formula: valid domain θ<0; today crashes too; state out of scope.
+Sound: weight mode captured at build via serialize (pmf_from_graph :4110-4141), svgd overrides set before build and restored (:6826-6860); pmf_from_graph FFI only (:4118-4129); joint-index/rvp linear forwards guard non-positive totals (phasic.c:12346); test_exact_grad_rewards θ~1.

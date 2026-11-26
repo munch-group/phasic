@@ -1,0 +1,63 @@
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:8144: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+ERROR:2026-11-26 15:32:27,605:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Edge weight evaluates to non-positive value '-0.000000'. Vertex index 2 (state 2). Weight must be strictly larger than 0.
+
+ERROR:2026-11-26 15:32:27,736:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Edge weight evaluates to non-positive value '-0.000000'. Vertex index 2 (state 2). Weight must be strictly larger than 0.
+
+plain emg False [1. 1.] fwd ok [2. 6.] grad [-7. -7.]
+plain emg False [ 1.e+00 -5.e-08] fwd ok [-1.9999999e+07  7.9999996e+14] grad [ 3.99999990e+07 -4.08000001e+25]
+plain emg False [1.e+00 5.e-08] fwd ok [2.0000001e+07 8.0000004e+14] grad [-4.00000010e+07 -1.34222222e+25]
+plain emg True [1. 1.] fwd ok [2. 6.] grad [-7. -7.]
+plain emg True [ 1.e+00 -5.e-08] fwd ok [-1.9999999e+07  7.9999996e+14] grad [3.99999950e+07 3.19999988e+22]
+plain emg True [1.e+00 5.e-08] fwd ok [2.0000001e+07 8.0000004e+14] grad [-4.00000050e+07 -3.20000012e+22]
+rewards emg False [1. 1.] fwd ok [ 3. 14.] grad [ -9.         -22.00000001]
+rewards emg False [ 1.e+00 -5.e-08] RAISE XlaRuntimeError INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic/experiments/fd_domain_steps/review7/p3_rewards_neg.py", line 19, in <module>
+  File "/Users/k
+rewards emg False [1.e+00 5.e-08] fwd ok [4.00000010e+07 3.20000008e+15] grad [-8.00000010e+07 -5.36888889e+25]
+rewards emg True [1. 1.] fwd ok [ 3. 14.] grad [ -9. -22.]
+rewards emg True [ 1.e+00 -5.e-08] RAISE XlaRuntimeError INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "/Users/kmt/phasic/experiments/fd_domain_steps/review7/p3_rewards_neg.py", line 19, in <module>
+  File "/Users/k
+rewards emg True [1.e+00 5.e-08] fwd ok [4.00000010e+07 3.20000008e+15] grad [-8.00000050e+07 -1.28000002e+23]
+[runcap] exit 0, peak RSS 464 MB, 5s

@@ -1,10 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.2, 2026-11-26. v1 (`b9178dab`) went through three independent
-adversarial reviews, v2 (`a4d2b3ad`) through a fourth and v2.1 (`f27561fa`)
-through a fifth and sixth (Opus; all CHANGES REQUIRED, no REJECT); their
-findings are folded in here (dispositions in §11). v2.2 is NOT
-re-reviewed. No code changed.** Split out of
+**Status: v2.3, 2026-11-26. v1 (`b9178dab`) went through three independent
+adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
+sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
+REJECT); their findings are folded in here (dispositions in §11). v2.3 is
+NOT re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..6}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..7}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -59,7 +59,7 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
 2. **Undeclared callers keep today's numbers bit for bit**, with one
    stated exception: on models whose forward refuses a negative rate (§4.4: multi-epoch,
    discrete, or non-linear weight mode), an undeclared slot with
-   0 < theta <= 1e-7 uses the §4.4 fallback even when
+   0 <= theta <= 1e-7 uses the §4.4 fallback even when
    today's probe happened not to crash (today's crash depends on the edge
    weight sum c·theta, not on the slot alone: theta = 1e-7 does not crash,
    review4/p1_edges.log; an exact trigger is impossible under jit). Bit
@@ -214,12 +214,32 @@ refuses when ANY of these holds:
   (review6/p4_discrete.log);
 - its weight mode is `log` (`graph_builder.cpp:613-622`,
   `phasic.c:5739-5757`), `formula` (`phasic.c:5706-5718`) or `callback`
-  (measured).
+  (measured);
+- it is built by `pmf_from_cpp` (user C++ code may transform theta
+  arbitrarily; the add-edge check refuses a negative weight,
+  `phasic.c:4938`; measured, review7/p1_cpp.log): ALWAYS refusing,
+  continuous and discrete;
+- it is CALLED WITH REWARDS (`rewards is not None`): the reward-transform
+  rebuild goes through the same add-edge check, so a linear continuous
+  `pmf_and_moments_from_graph` model refuses a negative probe when called
+  with rewards and accepts it without (review7/p3_rewards_neg.log). Whether
+  `rewards` is None is static at trace time, so this part is decided
+  inside the `custom_vjp` closure at call time. The zero-inflation
+  cdf-at-zero site (`:8943`), which evaluates on reward rows
+  (`zero_inflation.py:160-174`), counts as refusing.
+
+The flag is NOT made unconditional for `pmf_and_moments_from_graph`: its
+no-rewards linear form must keep today's behaviour (the "FD is still
+broken" tests at `test_fd_gradient_mixed_scale.py:112`, `:132`, goal 6).
 
 Only linear-weight continuous models accept a slightly negative probe (the
 check is commented out, `phasic.c:5767-5790`; the Euler pdf path is then
-~1e-8 accurate, review3/p3_nearzero.log). The model builder computes this
-flag ONCE at build time and passes it to `_fd_steps` with the domains.
+~1e-8 accurate, review3/p3_nearzero.log), when called without rewards and
+not built by `pmf_from_cpp`. The model builder computes the build-time part
+of this flag once and passes it to `_fd_steps` with the domains; the
+rewards part is added at trace time. For the direct
+`Graph.reward_visit_probability` call, which has no model, the rvp backward
+derives the flag from its `structure_json` (weight mode and discreteness).
 
 On a refusing model, at EVERY FD site of that model (including the
 `pmf_and_moments_from_graph` clamp sites and the `reward_visit_probability`
@@ -238,14 +258,20 @@ On a non-refusing (linear continuous) model, undeclared slots keep today's
 code everywhere, and `'unconstrained'` is plain ±1e-7.
 
 Goal 1 still cannot cover non-monotone formulas (e.g. `c0*t0 - c1*t1`),
-which can produce a negative edge weight with every slot large; that is the
+which can produce a negative edge weight with every slot large, nor
+`'unconstrained'` slots in log or formula mode whose valid domain is
+theta < 0 (a negative coefficient): today crashes there too. Both are the
 model's own domain, stated in §9.
 
 ### 4.5 Degenerate values (no silent NaN, no silent zero)
 
 - **Declared positive with theta == 0:** a one-sided difference over
-  [0, 1e-7] (both probes non-negative, so refusing forwards accept them;
-  for theta < 0 the forward itself is invalid and today's probe is kept), selected with `jnp.where`. This is the case of a rate fixed
+  [0, 1e-7] (both probes non-negative, so forwards that refuse NEGATIVE
+  weights accept them; for theta < 0 the forward itself is invalid and
+  today's probe is kept). Exception: log mode refuses a product that is
+  exactly 0 (`graph_builder.cpp:617-621`, `phasic.c:5745-5756`), so there
+  the primal itself raises at 0 and today's clear error is the expected
+  outcome, selected with `jnp.where`. This is the case of a rate fixed
   at 0 in a nested model (allowed since bug 2, `svgd.py:5196-5247`; the
   epoch-route crash is reproduced on master, review4/p1_edges.log, and
   named in `test_fixed_values_exact.py:362-365`).
@@ -256,7 +282,9 @@ model's own domain, stated in §9.
   multiplies it by alpha, `svgd.py:315`, so values above 1 are valid;
   unit ⊂ positive, so the containment check still passes). On the epoch
   route `exposure_param_index` is a per-epoch local index (`svgd.py:5685`);
-  the widening applies to every flat slot e·P + k.
+  the widening applies to every flat slot e·P + k. `SVGD.__init__` uses the
+  same containment check (not equality), so the widened slot fitted with a
+  sigmoid passes.
 - **A zero probe difference** (theta above ~2e9, where the capped u falls
   below ~5.5e-17; at 1e9 the down-probe still moves, review6/p1_modes.log)
   gives a zero gradient for that slot and a host-side counter plus a
@@ -284,9 +312,16 @@ fixed-slot information get it as the `'fixed'` domain value:
 ### 4.7 One helper module
 
 `src/phasic/_fd_steps.py`, a leaf module (`__init__.py` would make a
-circular import). It returns probe points and divisors only. Each site
-keeps its own arithmetic and expression order, so undeclared paths stay
-bit identical. At traced sites everything is jnp with no Python branching
+circular import). It returns probe points (selected with `jnp.where`, which
+is exact). Each site then computes TODAY's quotient verbatim and, where a
+rule other than today's applies, the fallback quotient separately, and
+selects between the two QUOTIENTS, never between divisors: selecting the
+divisor with `jnp.where` changed 58,870 of 200,000 elements under jit,
+selecting the quotient changed none (review7/p2_divisor.log). On
+non-refusing models with undeclared slots there is no traced selection at
+all. Bit-identity tests compare each mode (eager, jit, vmap(grad)) against
+master in the SAME mode, never eager against jit (XLA already rewrites
+x / (2·eps) under jit). At traced sites everything is jnp with no Python branching
 on theta, so it runs under `vmap(jit(grad))`; the joint-index host fallback
 (`__init__.py:9551-9563`) runs on concrete numpy arrays and gets a numpy
 variant of the same rule. Domains and rules are bound when the
@@ -331,6 +366,8 @@ calls.
   `ffi_wrappers.py:1278`, `:1316`). Each is listed as an FD site (with its
   loops, slots probed, divisor/clamp/guard) or as resolved-not-FD.
 - **Refusal grid** for every FD site:
+  - builder {graph-based, `pmf_from_cpp`};
+  - rewards {none, 1-D, 2-D multivariate};
   - weight mode {linear, log, formula (incl. sqrt and division),
     callback};
   - discreteness {continuous, native DPH, `was_dph`};
@@ -370,9 +407,15 @@ calls.
   - the crash cases of §1 run on every route (Graph.svgd, `epoch_model`,
     direct `SVGD(model=...)`, direct `jax.grad`);
   - slot = 5e-8 and slot = 0 for each weight mode × {`pmf_from_graph`,
-    `pmf_and_moments_from_graph`, `reward_visit_probability`} and on a
-    discretized model's discretize slot: no crash;
-  - a **probe-recording spy**: wrap the forward, record every probe vector,
+    `pmf_and_moments_from_graph` with and without rewards,
+    `reward_visit_probability`, `pmf_from_cpp`} and on a discretized model's
+    discretize slot: no crash (except log mode at exactly 0, where today's
+    primal error is expected);
+  - a **probe-recording spy** through a named seam: `_fd_steps` gets a
+    test-only probe hook that each loop feeds the ACTUAL probe vector it
+    passes to the forward (wrapping `_fd_steps` alone would not see a
+    loop/slot misalignment, and the multi-epoch forward is an FFI call
+    under `custom_vmap` in a closure). Record every probe vector,
     and assert per slot that only slot i changed, the probe lies inside that
     slot's domain, fixed slots are never probed and tied slaves are. Use a
     heterogeneous list (unit / positive / fixed / tied slave / exposure)
@@ -399,8 +442,9 @@ calls.
     0's measurement at theta = 1e-4 and 1e-5 (expected 1e-7 to 1e-5);
   - one coarse fit-level check per route;
   - the reported epoch fit from near-floor particles completes;
-  - `positive_params=False` × {log, formula, callback, discretized} ×
-    theta = 5e-8: no crash (the §4.4 fallback replaces the 1e-9 clamp).
+  - `positive_params=False` × {log, formula, callback, discretized,
+    linear with rewards} × theta = 5e-8: no crash (the §4.4 fallback
+    replaces the 1e-9 clamp).
 
 ## 7. Existing tests expected to change
 
@@ -444,8 +488,10 @@ implementation review per batch.
   under any FD step.
 - **Linear-near-zero parameters** in theta-space direct calls: the §4.3
   limit.
-- **The §2 band:** undeclared slots with 0 < theta <= 1e-7 on refusing
-  models change even where today did not crash.
+- **The §2 band:** undeclared slots with 0 <= theta <= 1e-7 on refusing
+  models change even where today did not crash (theta == 0 included: the
+  one-sided step replaces today's clamp secant or central difference; such
+  points are excluded from the bit-identity tests).
 - **Out of scope by nature:** the native-discrete upper row-sum wall, and
   non-monotone formulas that make an edge negative with every slot large.
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
@@ -535,3 +581,22 @@ Reports: `experiments/fd_domain_steps/review{5,6}/REPORT.md`.
 - **Smaller items.** R5 m1: None passes containment. R5 m3: the zero
   difference is counted and logged. R5 m4: the length check at first
   trace. R5 m6: prompts updated. R5 m7: the rvp domain tuple.
+
+### Review 7 (of v2.2) → v2.3
+
+Report: `experiments/fd_domain_steps/review7/REPORT.md`.
+
+- **Rewards make a linear model refuse** (B2) → §4.4: the flag is the
+  build-time property OR rewards present, decided in the `custom_vjp`
+  closure; the cdf-zero site counts as refusing; a rewards axis in the
+  Batch 0 grid; tests.
+- **`pmf_from_cpp`** (B1) → always refusing; tests.
+- **Divisor selection breaks bit identity** (M1) → §4.7 selects
+  quotients, not divisors; same-mode comparisons.
+- **Minors.**
+  - m1: the band includes theta == 0.
+  - m2: log mode at exactly 0 keeps the primal error.
+  - m3: the spy's probe hook seam.
+  - m4: the rvp flag from `structure_json`.
+  - m5: negative-domain slots out of scope.
+- **Part A note** → containment stated for `SVGD.__init__` as well.

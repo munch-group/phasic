@@ -1,0 +1,13 @@
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:4489: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+fwd [1. 1.] [0.60697525 0.36805917 0.13533526]
+grad [1. 1.] [-5.82867088e-09 -6.66613975e-02]
+fwd [1.e+00 2.e-07] [0.30319107 0.36805921 0.27080279]
+grad [1.e+00 2.e-07] [0.41182479 0.58014144]
+fwd [1.e+00 5.e-08] [0.30319099 0.36805918 0.27080281]
+grad RAISE [1.e+00 5.e-08] XlaRuntimeError UNKNOWN: XLA FFI call failed: Edge weight evaluates to non-positive value '-0.000000'. Vertex index 1 (state 1). Weight must be strictly larger than 0.
+
+fwd [1. 0.] [0.30319096 0.36805917 0.27080282]
+grad RAISE [1. 0.] XlaRuntimeError UNKNOWN: XLA FFI call failed: Edge weight evaluates to non-positive value '-0.000000'. Vertex index 1 (state 1). Weight must be strictly larger than 0.
+
+[runcap] exit 0, peak RSS 472 MB, 9s

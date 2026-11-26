@@ -1,0 +1,5 @@
+eager==jit today False
+divisor-select bit-identical: False n diff 58870
+result-select bit-identical: True n diff 0
+loop-form sum bit-identical: False 389170897.1363302 389170897.13633025
+[runcap] exit 0, peak RSS 232 MB, 2s
