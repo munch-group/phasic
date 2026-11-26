@@ -1,10 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.5, 2026-11-26 (v2.4 + review 9). v1 (`b9178dab`) went through three independent
+**Status: v2.6, 2026-11-26 (v2.5 + review 10 + user decision D-NZ). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
-REJECT; reviews 8 and 9 of v2.3 and v2.4 likewise); their findings are
-folded in here (dispositions in §11). v2.5 is NOT re-reviewed. No code changed.** Split out of
+REJECT; reviews 8-10 of v2.3-v2.5 likewise); their findings are
+folded in here (dispositions in §11). v2.6 is NOT re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..9}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..10}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -86,18 +86,26 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
   fallback of §4.4;
 - `'positive'` (0, inf);
 - `'unit'` (0, 1);
-- `'unconstrained'`: a symmetric step divided by the actual difference,
-  NO clamp (the fix for signed parameters), whose size follows the
-  EDGE-DISTANCE rule of §4.4: plain ±1e-7 unless a probe would bring some
-  edge weight the slot enters to (or across) zero, in which case the step
-  shrinks in proportion to that edge's distance from zero. Rationale: a
-  plain central difference that crosses an edge weight of 0 straddles the
-  1/rate pole of moments and sojourn outputs and flips the gradient's sign
-  (measured +1.33e14 against an exact -4.00e14 at theta = 5e-8,
-  review8/p5_unconstrained_pole.log), while a slot that only offsets a
-  large rate (rate = 1 + t1, t1 near 0) has no pole and needs the full
-  1e-7 step (a relative step there collapses to a zero gradient,
-  review9/p1_signed_offset.log);
+- `'unconstrained'`: plain ±1e-7 divided by the literal 2·eps, NO clamp
+  (the fix for signed parameters), except crash prevention: on a REFUSING
+  model (§4.4) a slot with 0 <= theta <= 1e-7 gets the capped positive rule.
+  **User decision D-NZ (2026-11-26), "keep today + document":** no further
+  rule near zero. Reviews 8-10 measured that no finite-difference rule with
+  a fixed small step is right for every model shape near zero: a plain step
+  that crosses a zero edge weight straddles the 1/rate pole of moments and
+  sojourn outputs and can flip the gradient's SIGN (measured +1.33e14
+  against an exact -4.00e14 at theta = 5e-8, review8/p5_unconstrained_pole.log);
+  relative or edge-distance steps instead silently zero offsets and small
+  rates beside other exits (review9/p1_signed_offset.log,
+  review10/p2_edge_rule.log), and the edge-distance rule cost several GB
+  under vmap at 600k vertices (review10/p3_cost.log). Documented instead:
+  FD gradients of an unconstrained RATE within 1e-7 of zero can be wrong,
+  including its sign; rates should be fitted with `positive_params=True`
+  (softplus), and exact gradients (after the refactor) are the real fix.
+  Note: at the `pmf_and_moments_from_graph` clamp sites this replaces
+  today's 1e-9 clamp (right sign, wrong size near a pole; wrong for signed
+  parameters) by the plain step (right for signed parameters and offsets,
+  possibly wrong sign at a pole). Listed in §7;
 - `'fixed'`: never probed.
 
 **Side-effect-free resolver.** One function
@@ -196,14 +204,13 @@ pdf's capped step (harmless; stated).
 |---|---|---|---|
 | positive | theta·e^(±s) | theta·e^(±u), u = min(log1p(1e-7/theta), s) | actual difference, with zero guard |
 | unit | logit step of s | logit step of size min(s, 1e-7/(theta(1-theta)))/(1 + s) (the extra factor keeps the up-probe at most ~1e-7 above theta to second order) | actual difference, with zero guard |
-| unconstrained | — | linear-weight models: theta ± h_k, h_k = min(1e-7, s·d_k), d_k the edge distance (§4.4); non-linear (refusing) models: theta ± 1e-7 outside 0 <= theta <= 1e-7, the capped positive rule inside it | literal 2·eps when h_k = 1e-7, else the actual difference with zero guard |
+| unconstrained | — | theta ± 1e-7; on REFUSING models only, the capped positive rule when 0 <= theta <= 1e-7 (crash prevention) | literal 2·eps for the plain step; actual difference with zero guard for the capped step (two quotients selected per §4.7) |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
 The capped up-probe is never more than 1e-7 above theta (review 1 m1
 corrected v1's formula), and no `'positive'` probe is ever negative. An
-`'unconstrained'` probe may be negative (that is the point of the domain);
-the edge-distance rule keeps every edge weight it touches on its side of
-zero.
+`'unconstrained'` probe may be negative (that is the point of the
+domain); on refusing models the band rule keeps it non-negative near zero.
 
 ### 4.3 Error model
 
@@ -219,15 +226,14 @@ steps, s²·theta·(F''/2 + theta·F'''/6) in theta terms). Measured:
 
 That is harmless for softplus/sigmoid fits, where softplus floors theta at
 1e-9 (`svgd.py:5254`) and the absolute error in phi is ~1e-11, but it is a
-documented limit for direct theta-space callers. It does NOT apply to
-`'unconstrained'` slots on linear-weight models, which use the
-edge-distance rule (accurate for both poles and offsets). On NON-linear
-(refusing) models an `'unconstrained'` slot in the band uses the capped
-positive rule, which has the trade-off measured in review 9: exact at a
-pole, but for a slot that only offsets a large rate the relative error
-grows as the slot shrinks (2.6e-4 at 5e-8, 2e-2 at 1e-9, ~1 at 1e-11,
-and a forward tie, i.e. an exact zero, at 1e-13;
-review9/p2_band_variants.log); §4.5 makes that tie non-silent.
+documented limit for direct theta-space callers. On REFUSING models an
+`'unconstrained'` slot in the band uses the capped positive rule for crash
+prevention, with the trade-off measured in review 9: exact at a pole, but
+for a slot that only offsets a large rate the relative error grows as the
+slot shrinks (2.6e-4 at 5e-8, 2e-2 at 1e-9, ~1 at 1e-11, and a forward tie,
+i.e. an exact zero, at 1e-13; review9/p2_band_variants.log); §4.5 makes
+that tie non-silent. On non-refusing models `'unconstrained'` is the plain
+step, with the D-NZ limit stated in §3.
 
 ### 4.4 Crash fallback (fixes every route)
 
@@ -273,7 +279,7 @@ derives the flag from its `structure_json` (weight mode and discreteness).
 The flag is exposed through ONE named function, `_fd_steps.model_refuses(
 build_info, has_rewards)`, which every site calls. The refactor plan
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md), phase 5) later
-replaces its implementation with a C query on the graph-state record
+replaces its implementation with a C++ query on the graph-state record
 (`refuses(record, has_rewards)`, with `pmf_from_cpp` refusing by
 constant), so the swap happens in one place. The Batch 0 refusal grid is
 the starting point of the refactor's phase-1 refusal matrix, and the two
@@ -295,31 +301,10 @@ discretized fits (review6/p1_modes.log).
 On a non-refusing (linear continuous) model, undeclared slots keep today's
 code everywhere.
 
-**Edge-distance rule for `'unconstrained'` slots on linear-weight models**
-(review 9). For weight mode `linear` the edge weights are w_e = Σ_k
-c_ek·theta_k, with the coefficient matrix C known at build time (from
-`serialize()`'s parameterized edges). For each slot k let
-
-    d_k = min over edges e with c_ek ≠ 0 of  |w_e| / |c_ek|
-
-(the change in theta_k that would bring some edge it enters to zero).
-The slot is probed at theta_k ± h_k with h_k = min(1e-7, s·d_k), divided
-by the actual difference (zero guard). So:
-
-- an offset slot (rate = 1 + t1) has d ~ 1 and gets the full 1e-7: today's
-  accuracy;
-- a slot that is itself a rate near 0 gets a step proportional to its
-  value: exact at the 1/rate pole;
-- an edge SUM near zero (rate = t0 + t1 with t0 = 1.5e-7, t1 = -1e-7) is
-  caught too, which no per-slot band can do (review 9 minor 1).
-
-It runs in jnp (one C·theta product per backward, O(E·P), small next to a
-forward), with no Python branching on theta. Exposure-scaled slots use the
-scaled value. The signed-parameter fix is unaffected (theta = -5 with d
-large keeps ±1e-7). On non-linear weight modes (which refuse) the edge
-weights are not linear in theta: there `'unconstrained'` slots use the
-band rule (0 <= theta <= 1e-7: capped positive rule) with the §4.3
-trade-off, and edge-sum poles are the model's own domain (§9).
+`'unconstrained'` slots: plain ±1e-7 everywhere except, on refusing models,
+the capped positive rule when 0 <= theta <= 1e-7 (crash prevention; user
+decision D-NZ, §3). The signed-parameter fix is unaffected: a slot such as
+theta = -5 keeps ±1e-7.
 
 The `reward_visit_probability` backward uses the BUILD-TIME flag only (it
 has no rewards argument); that is harmless, since its forward accepts a
@@ -532,15 +517,17 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   - `positive_params=False` × {log, formula, callback, discretized,
     linear with rewards} × theta = 5e-8: no crash (the §4.4 fallback
     replaces the 1e-9 clamp);
-  - a VALUE test: `positive_params=False`, linear, no rewards,
-    `exact_moment_grad=False`, slot 5e-8: the moments gradient matches the
-    closed form (sign and magnitude);
-  - VALUE tests for the edge-distance rule on a linear model: a pole slot
-    (rate = t1) and an offset slot (rate = 1 + t1) at t1 in {5e-8, 1e-9,
-    1e-13}, and an edge-sum case (t0 = 1.5e-7, t1 = -1e-7), each against a
-    closed form or a wide-step reference; and the band rule on a log-mode
-    model at the same points, pinning the stated §4.3 trade-off and the
-    §4.5 tie behaviour;
+  - a documentation test pinning D-NZ: `positive_params=False`, linear, no
+    rewards, `exact_moment_grad=False`, a rate slot at 5e-8: the plain step
+    is used (the result is recorded, and its known sign error near the pole
+    is asserted as the documented behaviour, so a later change is
+    deliberate);
+  - the band rule on a log-mode (refusing) model at offset and pole slots
+    in {5e-8, 1e-9, 1e-13}, pinning the stated §4.3 trade-off and the §4.5
+    tie behaviour; and, on a linear model, an offset `'unconstrained'` slot
+    at 1e-13 keeping today's accuracy (plain step). References near poles
+    are CLOSED FORMS, not `exact_moment_grad` (it disagrees with closed
+    forms near poles, OI-117);
   - the 2-D rewards (multivariate) leaf and an exposure fit carry
     `_param_domains` to every FD site (the spy).
 
@@ -567,6 +554,11 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   at theta >= 1e-3 and up to ~1e-5 at 1e-4 to 1e-5; `epoch_model(...).fit`
   with `positive_params=False` on a default model raises with a rebuild
   message.
+- **Behaviour change (Batch 2, D-NZ), listed for the user:** with
+  `positive_params=False`, the `pmf_and_moments_from_graph` clamp sites
+  stop clamping the minus probe at 1e-9. Signed parameters and offsets get
+  correct gradients; an unconstrained rate within 1e-7 of zero can get a
+  wrong-sign gradient (today: right sign, wrong size).
 - Batch 0's census may add more; each is listed before Batch 1 starts.
 
 ## 8. Gate per batch
@@ -592,8 +584,11 @@ implementation review per batch.
   points are excluded from the bit-identity tests).
 - **Out of scope by nature:** the native-discrete upper row-sum wall;
   non-monotone formulas that make an edge negative with every slot large;
-  edge-sum poles on NON-linear weight models (the band protects only a
-  pole at a single slot there).
+  edge-sum poles (the band protects only a pole at a single slot).
+- **D-NZ (user decision):** FD gradients of an `'unconstrained'` rate within
+  1e-7 of zero can be wrong, including the sign, on non-refusing models;
+  documented in the `positive_params` docstring and the Graph.svgd notes,
+  with the advice to fit rates with `positive_params=True`.
 - **The band trade-off on non-linear models** (§4.3): an `'unconstrained'`
   offset slot below ~1e-9 loses accuracy (non-silently at a tie).
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
@@ -737,3 +732,20 @@ Report: `experiments/fd_domain_steps/review9/REPORT.md`.
 - **Optional (d)** (the band costs pdf accuracy when moments are exact): moot
   on linear models, where the edge-distance rule keeps the full 1e-7 step
   wherever no edge nears zero.
+
+### Review 10 (of v2.5) and user decision D-NZ → v2.6
+
+Report: `experiments/fd_domain_steps/review10/REPORT.md`.
+
+- **The edge-distance rule** (M1) was right for some shapes and wrong for
+  others (small rate beside other exits, parallel-edge offsets, poles
+  spread over a vertex, cycles), and expensive at scale (m4). The user
+  chose (D-NZ) to keep the plain step for `'unconstrained'` slots, prevent
+  crashes on refusing models, and DOCUMENT the near-zero limit. The
+  edge-distance rule is removed (§3, §4.2, §4.3, §4.4, tests, §7, §9).
+- **Minors.** m2 (rule per model class) and m3 (where C comes from) are
+  moot without the edge rule; m5's two-quotient selection is stated in the
+  §4.2 row.
+- **Side finding:** the exact moments gradient disagrees with closed
+  forms near poles. Recorded as OI-117; value tests near poles use closed
+  forms.
