@@ -1,18 +1,18 @@
 # Core-engine refactor: C/C++ as the single source of every core computation
 
-**Status: v2.6, 2026-11-26. Ten adversarial reviews so far (Opus): three
-of v1 (`b9178dab`), one each of v2 (`256c788a`), v2.2 (`f326cae7`), v2.3,
-v2.4 and v2.5, two of v2.1 (`900b8016`). All said CHANGES REQUIRED; none
+**Status: v2.7, 2026-11-26. Eleven adversarial reviews so far (Opus):
+three of v1 (`b9178dab`), one each of v2 (`256c788a`), v2.2 (`f326cae7`),
+v2.3, v2.4, v2.5 and v2.6, two of v2.1 (`900b8016`). All said CHANGES REQUIRED; none
 rejected the goal. Findings and the user's decisions are folded in
 (dispositions in §9). The user approved D15, D16 and D17 on 2026-11-26
-(§2). v2.6 is NOT re-reviewed. No code changed.**
+(§2; D18 on the hand-off format added later the same day). v2.7 is NOT re-reviewed. No code changed.**
 
 This is a master plan: each phase gets its own detailed sub-plan, reviewed
 before any code. It supersedes the unexecuted parts of
 [stage3-refactor-plan.md](stage3-refactor-plan.md) (July 2026), which stays
 as history; its doctrine and the decisions listed in §2 carry over, except
 its §4a item 3 ("`evaluate_trace_jax` is not dead code"), retracted by R12'.
-Review reports: `experiments/core_ssot/review{1..10}/REPORT.md`.
+Review reports: `experiments/core_ssot/review{1..11}/REPORT.md`.
 
 Phase numbers changed in v2.1 (trace deletion moved to phase 2, add_epoch
 ahead of the joint family); §9 maps old to new.
@@ -131,21 +131,52 @@ phase-type graph:
   - **No struct crosses compiled copies, from phase 0c on (reviews 9 and
     10).** `load_cpp_builder` compiles the live source tree
     (`phasic_pybind.cpp:5143-5147`, `:5192-5200`) and shares the resulting
-    graph POINTER with the extension (`:5262`). That pointer carries
+    graph POINTER with the extension (the copy at about `:5267`). That pointer carries
     structs partly defined privately in `phasic.c` (`ptd_weight_tape`,
     `phasic.c:5106`; the offset-tape and cache structs `:1871-1891`) and
     C++ members (`std::string`, `std::function`) whose layout depends on
     `PHASIC_B3_VALIDATORS` (`phasic.h:263-270`) and on the compiler's
     standard-library ABI. No hash of sources can detect all of that.
   - **The fix:** in phase 0c, `load_cpp_builder`'s hand-off moves to plain
-    bytes, ahead of the rest of R13 (a timing refinement of D16). The JIT
-    library serializes the built graph to the same JSON the extension
-    already parses (`GraphBuilder::parse_structure` / Python
-    `from_serialized`) and passes only a `char*` buffer. The extension
-    builds its own graph from it, so the layout/ABI hazard disappears
-    rather than being detected, and no layout fingerprint is needed.
-    `load_cpp_builder` then returns a `Graph`, not the raw `_Graph`: a
-    listed change.
+    bytes, ahead of the rest of R13 (a timing refinement of D16), so the
+    layout/ABI hazard disappears rather than being detected and no layout
+    fingerprint is needed.
+  - **Format (user decision D18, 2026-11-26): a flat, versioned BINARY
+    buffer rebuilt in C++.** JSON was rejected because the builder runs
+    once per parameter value. Review 11 measured the JSON round trip for a
+    lean 600k-vertex graph at 3.84 s (Python serialize) plus 2.65 s
+    (`from_serialized`, a Python loop) per call, against ~35 µs today
+    (`experiments/core_ssot/review11/p_bytes_cost_600k.log`). The buffer:
+    - is plain arrays behind a header with a format version constant;
+    - is WRITTEN by a new C++ emitter in the JIT copy and REBUILT by a C++
+      reader in the extension, with no Python loops (native O(V));
+    - carries everything a C++-built graph carries: states (including
+      duplicates) and vertex indices; regular, parameterized, constant and
+      starting-vertex (incl. parameterized IPV) edges; `is_aux`;
+      `was_dph`; weight mode; the formula source and tape; the theta
+      layout (`_theta_blocks`, `_theta_names`); epoch metadata
+      (`_epoch_state_index`, `_n_epochs`, `_base_param_length`);
+    - stores doubles bitwise, so infinities and NaNs survive and there is
+      no precision loss;
+    - comes back from the JIT copy through an exported free function,
+      because allocators differ between copies;
+    - preserves edge ORDER. Today's serializers reorder interleaved edge
+      kinds (`_graph_serialize.py:550-660`), and both drop a constant edge
+      parallel to a parameterized one (`phasiccpp.cpp:1372`). The buffer
+      fixes the first; the second is recorded as a known limit in the 0c
+      test, or fixed if it is cheap.
+  - **The seed of phase 5.** This emitter/reader pair is the seed of phase
+    5's single C++ serialize owner. Phase 5 extends it (and keeps the
+    public Python `serialize()` dict), so phase 5 does not inherit three
+    serializers.
+  - **Return type.** `load_cpp_builder` then returns a `Graph`, not the raw
+    `_Graph`. Listed for approval with its behaviour differences: `Graph`
+    overrides `pdf` (raises `ValueError` for NaN or negative times,
+    `TypeError` for a non-integer granularity, dispatches on
+    `is_discrete`, `__init__.py:2763-2776`), `sample` (reward-coverage
+    checks and warnings), `normalize` (cache invalidation) and others
+    (`:2334`, `:2521`, `:2584-2736`, `:2850`, `:3102`).
+    `isinstance(g, _Graph)` still holds.
   - **Sources on a normal install (review 10, measured,
     `experiments/core_ssot/review10/p_pkgdir.log`):** both routes fail
     today without a source checkout. `pmf_from_cpp` needs
@@ -157,9 +188,12 @@ phase-type graph:
     - gives both routes ONE source-resolution rule: the installed copy by
       default, with `PHASIC_SOURCE_DIR` as an explicit override honoured by
       both;
-    - keys each library cache on hash(user source, every compiled source
-      file, compile flags), so a changed tree recompiles (staleness only:
-      no struct crosses, so no refusal is needed);
+    - keys each library cache on hash(user source, the whole installed
+      JIT source set including headers (`phasic.h`, `phasic_log.h`,
+      `phasiccpp.h`, `scc_graph.h`, `user_model.h`), compile flags, and
+      the compiler's path and version), so a changed tree or compiler
+      recompiles (staleness only: no struct crosses, so no refusal is
+      needed);
     - states the supported install modes (wheel, conda, editable) in R7.
   - **`pmf_from_cpp`** exchanges only arrays through ctypes
     (`__init__.py:1213-1266`). Its behaviour is unchanged apart from
@@ -201,7 +235,7 @@ phase-type graph:
   serialized bytes; no live pointer crosses compiled copies.
   - **Scope (refined from review 4; D16 approved):** this applies
     to build-once models (R8) and to `load_cpp_builder`, whose pointer
-    sharing is the only real crossing today (`phasic_pybind.cpp:5262`).
+    sharing is the only real crossing today (`phasic_pybind.cpp`, about `:5267`).
   - `pmf_from_cpp` computes inside its JIT library and returns only
     numbers, so it already satisfies R13. It keeps doing so.
   - Routing it through bytes would add serialize + parse per theta and per
@@ -209,6 +243,8 @@ phase-type graph:
     serializer, `experiments/core_ssot/review4/probe_serialize_cost.log`.
 - **R14** Approved exception to R6: address-ordered edges become
   index-ordered (phase 0b).
+
+**Decision D18 (user, 2026-11-26):** `load_cpp_builder` hands its graph over as a flat versioned BINARY buffer rebuilt in C++ (R7), not JSON.
 
 **Decisions D15-D17 (APPROVED by the user, 2026-11-26):**
 
@@ -380,7 +416,7 @@ phase-type graph:
   effective-weight-mode snapshot and the `probability_matching` /
   `method_of_moments` dispatch, and compare with the frozen result (phase
   4 changes the discreteness flag these read with defaults,
-  `svgd_config.py:686`, `:759`; phase 12 changes `load_cpp_builder`'s
+  `svgd_config.py:686`, `:759`; phase 0c changes `load_cpp_builder`'s
   return type).
 - **Notebooks.** Each sub-plan ships the generated list of affected
   notebook cells (a scan like `experiments/core_ssot/review5/nbscan.py`,
@@ -459,12 +495,12 @@ ahead; implementation is sequential. Sizes are relative (S / M / L / XL).
 | — | Plan A | [fd-domain-steps-plan.md](fd-domain-steps-plan.md) | M | not started |
 | 0a | Prerequisites | CI runs the broad suite (OI-062); gate tooling into `scripts/` (OI-067); the notebook scan script into `scripts/` (0b and 0c already change notebook-visible numbers); plot-test and flaky-test fixes (OI-060/061); commit, prune, push (OI-110/111/113) | S | not started |
 | 0b | Determinism (R14) | Address order → index order everywhere: the `arr_c_cmp` sorts (`phasic.c:6088-6094`, used at `:6327`, `:7414`, `:7784`, `:8180`), the pointer comparisons in the merge loops (`:6489`, `:7535`, `:7926`, `:8301`) and the pointer-arithmetic sentinels (`:6187`/`:6247`, `:7275`/`:7324`, `:7643`/`:7696`, `:8052`/`:8101`), all in the `ptd_vtx_order_key` form (`:8541`). Confirm and close OI-022, OI-023, and OI-015 (time-boxed; the FFI rewarded path reward-transforms per theta, `graph_builder.cpp:993`). Heap-perturbation harness (in-process). **Listed changes:** last digits of constant-model read-outs; the EDGE ORDER and `serialize()` output of reward-transformed graphs (measured address-dependent today: 3 orders in 16 instances, `experiments/core_ssot/review6/r14b.log`), and any content hash or cache key computed from them; seeded `sample()` sequences on reward-transformed graphs. | M | not started |
-| 0c | Cheap core fixes | OI-088 factorial; OI-089 per R7: `load_cpp_builder` hands over plain bytes (no struct crosses copies; returns a `Graph`), the complete JIT source set installed, one source-resolution rule with `PHASIC_SOURCE_DIR` as override for both routes, a cache key over every compiled source file and the flags, a secure cache directory; tests: `load_cpp_builder`'s graph equals the same model built in Python, a changed source tree recompiles, both routes work on a non-editable install; OI-116 `load_cpp_builder` normalize; OI-033 C++ discretize checks; OI-019/020 discrete reward transform; today's serialize reader treats unknown versions or keys as a cache MISS for graph-cache entries (a clear error elsewhere), after enumerating every producer of dicts fed to `from_serialized` (`serialize_scc_synth` `distributed_scc.py:77`, `compute_repository`, `_apply_weight_callback`) | S | not started |
+| 0c | Cheap core fixes | OI-088 factorial; OI-089 per R7: `load_cpp_builder` hands over the D18 binary buffer, rebuilt in C++ (no struct crosses copies; returns a `Graph`, behaviour differences listed for approval; a memory-capped per-call benchmark at 60k, 200k and 600k vertices against today's route; the buffer's version constant; a gate that the rebuilt graph equals the same graph through Python `serialize()` / `from_serialized` for a discretized graph with aux vertices, a formula-mode graph, a graph with named theta slots and a graph with duplicate states), the complete JIT source set installed, one source-resolution rule with `PHASIC_SOURCE_DIR` as override for both routes, a cache key over every compiled source file and the flags, a secure cache directory; tests: `load_cpp_builder`'s graph equals the same model built in Python, a changed source tree recompiles, both routes work on a non-editable install; OI-116 `load_cpp_builder` normalize; OI-033 C++ discretize checks; OI-019/020 discrete reward transform; today's serialize reader treats unknown versions or keys as a cache MISS for graph-cache entries (a clear error elsewhere), after enumerating every producer of dicts fed to `from_serialized` (`serialize_scc_synth` `distributed_scc.py:77`, `compute_repository`, `_apply_weight_callback`) | S | not started |
 | 1 | Inventory, gates, baselines | re-check §3 on master; D15 applied (including the JIT commands), then baselines; the refusal-matrix fixture; the routing-gate baseline; golden fixtures for the cyclic and formula elimination cells (outside the D17 oracle's reach); the corpus axes (OI-065); codec latency baseline (the phase-6 gate is relative to it); golden fixtures for phases 2-4; benchmark protocol and baseline; tests and a measured baseline for `pmf_from_cpp` / `load_cpp_builder` (after 0c); arm64 + x86 CI gates; ASan and TSan jobs; supported platforms recorded (Windows wheels are built, `pypi-release.yml:47-51`, but the JIT routes assume `/tmp`, `g++` and POSIX mmap); the orphan installed libraries decided | M | not started |
 | 2 | Delete the Python trace pipeline (R12') | removal list for the user: every public name in §3, the `phasic.trace_elimination` import path, `Graph(cache_trace=...)`, the public properties `Graph.cache_trace` (`__init__.py:2179`), `Graph.hierarchical` (`:2202`) and `Graph.trace_valid` (`:2213`, all referenced in `docs/api/Graph.qmd`), the change to `get_all_cache_stats()`'s result, and the affected notebook cells (`trace-and-jax-caching-c-path`, `svgd-joint-prob`, `benchmarks/python/test_hierarchical_caching` cells 2, 8, 10, 12, 14, 18); ask about the C trace port and the `_c_trace_*` bindings; `trace_elimination.py` moves under `tests/` as a tests-only oracle (D17) and is deleted after phase 13 merges; relocate `is_cache_disabled` (redefining its condition); a disposition list (rewrite / delete / keep) for the 24 test files that import the pipeline (`experiments/core_ssot/review8/imports.txt`) plus `test_gate_moments_3way.py:52` (asserts `ga.cache_trace is False`) and `inference/test_hierarchical_graph.py` (uses `compute_trace`), e.g. `test_modeling_compose.py:434-457` (add_epoch moments via `get_trace_hierarchical`, rewritten onto `record_elimination_trace`, an oracle input for phase 7), `test_trace_cache.py`, `test_slurm_cpu_count.py`, `test_pickle_cache_trust.py`, `test_c_trace_reload_param.py`; OI-049, OI-080 (`_pmap_file_cache` lives only in `hierarchical_trace_cache.py:471`, `:542`) and OI-083 close; OI-044 becomes a recorded limitation of the oracle | M | not started |
 | 3 | pybind restructure and construction | split into `register_*()` (the D17 oracle tests are in this phase's gate: they use the re-registered `_Graph` methods); C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
 | 4 | Moments, variance, covariance, discreteness | the C++-owned (per-object) discreteness flag and OI-021 (one discrete rule, including OI-078's discretized `expectation()`) decided first; `is_discrete` becomes a property WITH A SETTER over the C flag in this phase. The flag's HOME is per `phasic::Graph` OBJECT, copied in the C++ copy constructor like `_weight_formula_src` (`phasiccpp.h:254-266`), NOT in the shared `ptd_graph`: a wrap shares the `ptd_graph`, and a flag stored there would let `Graph(g)`'s reset silently flip the SOURCE to continuous (measured semantics today: the wrap is reset, the source is unchanged, `experiments/core_ssot/review9/p_pickle_wrap.log`). The desync fixture includes wrap-then-assign on both source and wrap (assignment is public API: 13 assignments in `src/phasic`, 15 in tests, e.g. `__init__.py:11327`, `_graph_serialize.py:~713`), so there is never a second discreteness store; its relation to `was_dph` (a distinct latch) is spelled out; a desync fixture assigns the attribute and checks the read-outs and the routing gate; `ptd_moments`, `ptd_continuous_to_discrete_moments`, variance/covariance kernels or sanctioned list; `phasic::Graph::moments` API; rewarded-moments rule per call site; drift gate (non-MPFR tapes, same reward scaling); gates at k >= 13 and k >= 21; matrices; retire the generated-C++ emitter (R4) with the constant `pmf_from_graph` A/B gate; `use_ffi` deprecation; OI-026, OI-031 | L | not started |
-| 5 | Graph state and serialize schema | every record field states its HOME (per `phasic::Graph` object and copied on copy, or shared in `ptd_graph`) and keeps today's `Graph(g)` wrap semantics, with any change listed for approval; the census records each field's CURRENT wrap behaviour (today Python attributes are dropped on a wrap and fall back to getattr defaults, e.g. a log-mode wrap is routed as linear, while C++ fields such as `_weight_formula_src` are copied), so a property over a copied record does not silently change routing; starts with a census of every metadata read in `src/phasic` and in the `tests/` oracle (direct and getattr-default, incl. the inference modules); every field listed as a record field or a named Python-side attribute (§3); per-vertex metadata kept OUT of the FFI structure JSON before phase 11 (it is hashed per batch element, `graph_builder_ffi.cpp:274`, `:1542`), or measured at 600k; at merge the Python attributes become properties over the record, so there is ONE store from then on (not three); strict accessors for every name the inference layer reads; the routing gate; Plan A's flag becomes a C query. The serialized formula TAPE stays in the schema until phase 10 (alongside the source); the OI-048 select/pow cases are in the phase-5 gate. One C++-owned record reconciling the Python attributes and the existing C++ fields; carried by clone, copy and serialize. Schema rules: formula SOURCE plus a tape version (phase 10 may change tape semantics); layout as `StateIndexer.to_dict()`; joint and epoch fields may be added in phases 7-8 with a version bump; v0 graph-cache entries are read (or rejected) by an explicit rule. Consumers updated (graph cache, `distributed_scc`, `compute_repository`, GraphBuilder); `from_serialized` hardened and fuzzed; binary format considered after measuring at 600k; OI-053, OI-054 | L | not started |
+| 5 | Graph state and serialize schema | every record field states its HOME (per `phasic::Graph` object and copied on copy, or shared in `ptd_graph`) and keeps today's `Graph(g)` wrap semantics, with any change listed for approval; the census records each field's CURRENT wrap behaviour (today Python attributes are dropped on a wrap and fall back to getattr defaults, e.g. a log-mode wrap is routed as linear, while C++ fields such as `_weight_formula_src` are copied), so a property over a copied record does not silently change routing; starts with a census of every metadata read in `src/phasic` and in the `tests/` oracle (direct and getattr-default, incl. the inference modules); every field listed as a record field or a named Python-side attribute (§3); per-vertex metadata kept OUT of the FFI structure JSON before phase 11 (it is hashed per batch element, `graph_builder_ffi.cpp:274`, `:1542`), or measured at 600k; at merge the Python attributes become properties over the record, so there is ONE store from then on (not three); strict accessors for every name the inference layer reads; the routing gate; Plan A's flag becomes a C++ function. The serialized formula TAPE stays in the schema until phase 10 (alongside the source); the OI-048 select/pow cases are in the phase-5 gate. One C++-owned record reconciling the Python attributes and the existing C++ fields; carried by clone, copy and serialize. Schema rules: formula SOURCE plus a tape version (phase 10 may change tape semantics); layout as `StateIndexer.to_dict()`; joint and epoch fields may be added in phases 7-8 with a version bump; v0 graph-cache entries are read (or rejected) by an explicit rule. Consumers updated (graph cache, `distributed_scc`, `compute_repository`, GraphBuilder); `from_serialized` hardened and fuzzed; binary format considered after measuring at 600k; OI-053, OI-054 | L | not started |
 | 6 | Index codec | exact API; OI-077 (C++ codec part); native constructor; codec → StateIndexer direction; error-message parity; the codec handle kept OUT of the instance `__dict__` (`callback_hash.py:149-157`, `:653-720`), so graph-cache keys are unchanged (OI-055 checked); pickle tests; scalar call latency no worse than the phase-1 baseline inside 60k and 600k callback builds | L | not started |
 | 7 | add_epoch | port promoted after parity (OI-025), before the joint family so it gates on the final epoch-metadata producer; its refusals of non-linear weight modes and was_dph/aux inputs (`__init__.py:3317`) pinned as fixtures with their messages | M | not started |
 | 8a | joint_prob_graph in C++ | index-ordered containers only; its refusals (`_require_linear_weight_mode` `__init__.py:10823`, was_dph/aux inputs `:10824`) pinned with messages; OI-056 (constant edges) decided; OI-077 (C++ `joint_prob_graph`); caps, `reward_only`, trash and t-vertex rules, degenerate merge, multi-property rule. The reward-rates callback has two ABIs (Python objects via codec → StateIndexer; a `std::function`), holds the GIL, runs single-threaded and never inside OpenMP. ~53 test files | L | not started |
@@ -730,3 +766,20 @@ features beyond R8; notebook edits (the user's).
     named.
   - m3: the phase-5 census records each field's current wrap behaviour.
   - m4: hash canonicalisation is moot.
+
+**Review 11 (of v2.6) → v2.7** (report `review11/`):
+
+- **Per-call cost of the hand-off** (B1, measured) → user decision D18: a
+  flat versioned binary buffer rebuilt in C++; a 0c per-call benchmark.
+- **The named parser could not do the job, and fields were lost** (B2) →
+  the D18 buffer carries every field a C++-built graph carries (incl. the
+  theta layout and epoch metadata), stores doubles bitwise, has a version
+  constant, is the seed of phase 5's owner, and is gated against Python
+  `serialize()` on four graph kinds.
+- **Minors.**
+  - m1: stale wording.
+  - m2: `Graph` vs `_Graph` behaviour listed.
+  - m3: the staleness key covers headers and the compiler.
+  - m4: edge order preserved; the parallel-edge drop is a known limit.
+  - m5: the buffer is freed by the JIT copy.
+  - m6: citations.
