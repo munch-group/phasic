@@ -1,0 +1,104 @@
+pam fwd [1.0, 1.0] [0.47747229 0.46544795 0.23411084]
+pam grad [1.0, 1.0] [1.16724814 0.58362407]
+pam fwd [1.0, 5e-08] [4.98940083e-08 9.98689067e-08 1.99768423e-07]
+pam grad [1.0, 5e-08] [5.99882803e+00 5.99825945e+07]
+ERROR:2026-11-26 12:00:43,411:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8585, in _cb
+    pmf, moments = _compute_callback(t_np, tm_np, rw_np)
+                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8536, in _compute_callback
+    concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 940, in _apply_weight_callback
+    weight = _check_weight(
+        float(callback(theta, coeffs)),
+        theta, coeffs,
+        where=f"edge {from_idx} -> {to_idx}",
+    )
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 922, in _check_weight
+    raise ValueError(
+    ...<9 lines>...
+    )
+ValueError: weight_callback returned a non-finite value (nan) for edge 1 -> 2.
+  theta = [1.0, -5e-08]
+  coefficients = [1.0, 1.0]
+Phase-type edge weights must be finite non-negative floats. Inspect your weight_callback for branches that produce NaN/inf at typical theta values (e.g. binomial pmf called with p outside [0, 1], division by near-zero, log of non-positive).
+pam [1.0, -5e-08] RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p6_callback.py", line 19, in <module>   File "/Users/kmt/
+pfg fwd [1.0, 1.0] [0.47747229 0.46544795 0.23411084]
+pfg grad [1.0, 1.0] [1.16724814 0.58362407]
+pfg fwd [1.0, 5e-08] [4.98940083e-08 9.98689067e-08 1.99768423e-07]
+ERROR:2026-11-26 12:00:43,540:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 4067, in <lambda>
+    lambda t, tm: _compute_pdf_callback(
+                  ~~~~~~~~~~~~~~~~~~~~~^
+        np.asarray(t, dtype=np.float64),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        np.asarray(tm, dtype=np.float64)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ).astype(times.dtype),
+    ^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 4056, in _compute_pdf_callback
+    concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 940, in _apply_weight_callback
+    weight = _check_weight(
+        float(callback(theta, coeffs)),
+        theta, coeffs,
+        where=f"edge {from_idx} -> {to_idx}",
+    )
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 922, in _check_weight
+    raise ValueError(
+    ...<9 lines>...
+    )
+ValueError: weight_callback returned a non-finite value (nan) for edge 1 -> 2.
+  theta = [1.0, -5e-08]
+  coefficients = [1.0, 1.0]
+Phase-type edge weights must be finite non-negative floats. Inspect your weight_callback for branches that produce NaN/inf at typical theta values (e.g. binomial pmf called with p outside [0, 1], division by near-zero, log of non-positive).
+pfg [1.0, 5e-08] RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p6_callback.py", line 20, in <module>   File "/Users/kmt/
+ERROR:2026-11-26 12:00:43,555:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 4067, in <lambda>
+    lambda t, tm: _compute_pdf_callback(
+                  ~~~~~~~~~~~~~~~~~~~~~^
+        np.asarray(t, dtype=np.float64),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        np.asarray(tm, dtype=np.float64)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ).astype(times.dtype),
+    ^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 4056, in _compute_pdf_callback
+    concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 940, in _apply_weight_callback
+    weight = _check_weight(
+        float(callback(theta, coeffs)),
+        theta, coeffs,
+        where=f"edge {from_idx} -> {to_idx}",
+    )
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 922, in _check_weight
+    raise ValueError(
+    ...<9 lines>...
+    )
+ValueError: weight_callback returned a non-finite value (nan) for edge 1 -> 2.
+  theta = [1.0, -5e-08]
+  coefficients = [1.0, 1.0]
+Phase-type edge weights must be finite non-negative floats. Inspect your weight_callback for branches that produce NaN/inf at typical theta values (e.g. binomial pmf called with p outside [0, 1], division by near-zero, log of non-positive).
+pfg [1.0, -5e-08] RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p6_callback.py", line 19, in <module>   File "/Users/kmt/
+[runcap] exit 0, peak RSS 428 MB, 5s

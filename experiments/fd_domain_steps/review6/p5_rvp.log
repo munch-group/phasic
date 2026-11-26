@@ -1,0 +1,43 @@
+linear [1.0, 1.0] [-0.04  0.04]
+linear [1.0, 5e-08] [-5.82867088e-09  1.11111104e-01]
+log [1.0, 1.0] [0. 0.]
+ERROR:2026-11-26 12:00:22,113:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1261, in _cb
+    return _reward_visit_probability_callback(
+        structure_str,
+    ...<2 lines>...
+        np.asarray(ipv_jax),
+    )
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1230, in _reward_visit_probability_callback
+    concrete = Graph(builder.build(theta_np))
+                     ~~~~~~~~~~~~~^^^^^^^^^^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+log [1.0, 5e-08] RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p5_rvp.py", line 
+formula_sqrt [1.0, 1.0] [0. 0.]
+ERROR:2026-11-26 12:00:22,201:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1261, in _cb
+    return _reward_visit_probability_callback(
+        structure_str,
+    ...<2 lines>...
+        np.asarray(ipv_jax),
+    )
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1230, in _reward_visit_probability_callback
+    concrete = Graph(builder.build(theta_np))
+                     ~~~~~~~~~~~~~^^^^^^^^^^
+ValueError: weight_formula produced a non-finite or negative edge weight
+formula_sqrt [1.0, 5e-08] RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p5_rvp.py", line 
+[runcap] exit 0, peak RSS 402 MB, 4s

@@ -1,0 +1,23 @@
+/Users/kmt/phasic/experiments/fd_domain_steps/review5/p1_weightmode_refusal.py:15: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+  v2.add_edge_parameterized(v1, 0.0, [1.0, 1.0])
+[ERROR] phasic.c: ComputePmfFfiImpl exception: weight_formula produced a non-finite or negative edge weight
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+[ERROR] phasic.c: ComputePmfFfiImpl exception: weight_formula produced a non-finite or negative edge weight
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+pmf_from_graph linear                                   theta=[1.0, 5e-08] grad=[-0.5004889 -0.5004889]
+pmf_from_graph formula c0*t0+c1*t1                      theta=[1.0, 5e-08] grad=[-0.5004889 -0.5004889]
+pmf_from_graph formula c0*t0+c1*sqrt(t1)                theta=[1.0, 5e-08] RAISES ValueError: INTERNAL: weight_formula produced a non-finite or negative edge weight
+pmf_from_graph log                                      theta=[1.0, 5e-08] RAISES ValueError: INTERNAL: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+pmf_from_graph linear                                   theta=[1.0, 1e-09] grad=[-0.50048872 -0.50048872]
+pmf_from_graph formula c0*t0+c1*t1                      theta=[1.0, 1e-09] grad=[-0.50048872 -0.50048872]
+pmf_from_graph formula c0*t0+c1*sqrt(t1)                theta=[1.0, 1e-09] RAISES ValueError: INTERNAL: weight_formula produced a non-finite or negative edge weight
+pmf_from_graph log                                      theta=[1.0, 1e-09] RAISES ValueError: INTERNAL: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+pmf_and_moments_from_graph linear                       theta=[1.0, 5e-08] grad=[-0.5004889  -0.50048899]
+pmf_and_moments_from_graph formula c0*t0+c1*t1          theta=[1.0, 5e-08] grad=[-0.5004889  -0.50048899]
+pmf_and_moments_from_graph formula c0*t0+c1*sqrt(t1)    theta=[1.0, 5e-08] grad=[-5.01160219e-01 -1.19625246e+03]
+pmf_and_moments_from_graph log                          theta=[1.0, 5e-08] grad=[2.99999998e+00 5.99999929e+07]
+pmf_and_moments_from_graph linear                       theta=[1.0, 1e-09] grad=[-0.50048872 -0.50048879]
+pmf_and_moments_from_graph formula c0*t0+c1*t1          theta=[1.0, 1e-09] grad=[-0.50048872 -0.50048879]
+pmf_and_moments_from_graph formula c0*t0+c1*sqrt(t1)    theta=[1.0, 1e-09] grad=[-5.00583722e-01 -1.43329819e+03]
+pmf_and_moments_from_graph log                          theta=[1.0, 1e-09] grad=[2.99999998e+00 2.99999965e+09]
+[runcap] exit 0, peak RSS 482 MB, 4s

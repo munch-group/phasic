@@ -1,0 +1,136 @@
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:4006: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+[linear] pmf_from_graph grad                               theta=[1.0, 1.0] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[linear] pmf_and_moments grad (exact_mom)                  theta=[1.0, 1.0] -> [-1.3387713  -1.00357161]
+[linear] pmf_and_moments grad (FD mom)                     theta=[1.0, 1.0] -> [-1.3387713  -1.00357161]
+[linear] pmf_from_graph grad                               theta=[1.0, 5e-08] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[linear] pmf_and_moments grad (exact_mom)                  theta=[1.0, 5e-08] -> [1.15874791 0.99388964]
+[linear] pmf_and_moments grad (FD mom)                     theta=[1.0, 5e-08] -> [1.15874791 0.99388964]
+[linear] pmf_from_graph grad                               theta=[1.0, 1e-07] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[linear] pmf_and_moments grad (exact_mom)                  theta=[1.0, 1e-07] -> [1.15874766 0.99388951]
+[linear] pmf_and_moments grad (FD mom)                     theta=[1.0, 1e-07] -> [1.15874766 0.99388951]
+[linear] pmf_from_graph grad                               theta=[1.0, 1e-12] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[linear] pmf_and_moments grad (exact_mom)                  theta=[1.0, 1e-12] -> [1.15874809 0.99388971]
+[linear] pmf_and_moments grad (FD mom)                     theta=[1.0, 1e-12] -> [1.15874809 0.99388971]
+[linear] pmf_and_moments FORWARD at unconstrained probe    theta=[1.0, -5e-08] -> [0.47747226 0.46544794 0.23411084]
+[linear] capped probe at 1e9: up-th=0.000e+00 dn-th=-1.192e-07; jnp: 0.000e+00
+[log] pmf_from_graph grad                                  theta=[1.0, 1.0] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[log] pmf_and_moments grad (exact_mom)                     theta=[1.0, 1.0] -> [1.15874814 1.15874814]
+[log] pmf_and_moments grad (FD mom)                        theta=[1.0, 1.0] -> [1.15874814 1.15874814]
+[log] pmf_from_graph grad                                  theta=[1.0, 5e-08] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[log] pmf_and_moments grad (exact_mom)                     theta=[1.0, 5e-08] -> [-2.80000003e+12 -5.60000006e+19]
+[log] pmf_and_moments grad (FD mom)                        theta=[1.0, 5e-08] -> [-2.80000003e+12 -2.34888889e+22]
+[log] pmf_from_graph grad                                  theta=[1.0, 1e-07] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[log] pmf_and_moments grad (exact_mom)                     theta=[1.0, 1e-07] -> [-7.00000015e+11 -7.00000015e+18]
+[log] pmf_and_moments grad (FD mom)                        theta=[1.0, 1e-07] -> [-7.00000012e+11 -1.75875000e+22]
+[log] pmf_from_graph grad                                  theta=[1.0, 1e-12] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[log] pmf_and_moments grad (exact_mom)                     theta=[1.0, 1e-12] -> [-7.e+21 -7.e+33]
+[log] pmf_and_moments grad (FD mom)                        theta=[1.0, 1e-12] -> [-6.99999999e+21 -3.53493400e+22]
+ERROR:2026-11-26 11:56:54,263:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: log=True requires all (coefficient * parameter) products to be positive. Got -0.000000 at coefficient index 1 (coefficient=1.000000, parameter=-0.000000). Check that all coefficients and parameters are positive.
+[log] pmf_and_moments FORWARD at unconstrained probe       theta=[1.0, -5e-08] -> RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/exp
+[log] capped probe at 1e9: up-th=0.000e+00 dn-th=-1.192e-07; jnp: 0.000e+00
+[formula_lin] pmf_from_graph grad                          theta=[1.0, 1.0] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_lin] pmf_and_moments grad (exact_mom)             theta=[1.0, 1.0] -> [-1.3387713  -1.00357161]
+[formula_lin] pmf_and_moments grad (FD mom)                theta=[1.0, 1.0] -> [-1.3387713  -1.00357161]
+[formula_lin] pmf_from_graph grad                          theta=[1.0, 5e-08] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_lin] pmf_and_moments grad (exact_mom)             theta=[1.0, 5e-08] -> [1.15874791 0.99388964]
+[formula_lin] pmf_and_moments grad (FD mom)                theta=[1.0, 5e-08] -> [1.15874791 0.99388964]
+[formula_lin] pmf_from_graph grad                          theta=[1.0, 1e-07] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_lin] pmf_and_moments grad (exact_mom)             theta=[1.0, 1e-07] -> [1.15874766 0.99388951]
+[formula_lin] pmf_and_moments grad (FD mom)                theta=[1.0, 1e-07] -> [1.15874766 0.99388951]
+[formula_lin] pmf_from_graph grad                          theta=[1.0, 1e-12] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_lin] pmf_and_moments grad (exact_mom)             theta=[1.0, 1e-12] -> [1.15874809 0.99388971]
+[formula_lin] pmf_and_moments grad (FD mom)                theta=[1.0, 1e-12] -> [1.15874809 0.99388971]
+[formula_lin] pmf_and_moments FORWARD at unconstrained probe theta=[1.0, -5e-08] -> [0.47747226 0.46544794 0.23411084]
+[formula_lin] capped probe at 1e9: up-th=0.000e+00 dn-th=-1.192e-07; jnp: 0.000e+00
+[formula_div] pmf_from_graph grad                          theta=[1.0, 1.0] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_div] pmf_and_moments grad (exact_mom)             theta=[1.0, 1.0] -> [ 1.15874814 -1.15874815]
+[formula_div] pmf_and_moments grad (FD mom)                theta=[1.0, 1.0] -> [ 1.15874814 -1.15874815]
+[formula_div] pmf_from_graph grad                          theta=[1.0, 5e-08] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_div] pmf_and_moments grad (exact_mom)             theta=[1.0, 5e-08] -> [-7.50000175e-11            -inf]
+[formula_div] pmf_and_moments grad (FD mom)                theta=[1.0, 5e-08] -> [-7.49400716e-11            -inf]
+[formula_div] pmf_from_graph grad                          theta=[1.0, 1e-07] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_div] pmf_and_moments grad (exact_mom)             theta=[1.0, 1e-07] -> [-1.5000007e-10           -inf]
+[formula_div] pmf_and_moments grad (FD mom)                theta=[1.0, 1e-07] -> [-1.5043529e-10           -inf]
+[formula_div] pmf_from_graph grad                          theta=[1.0, 1e-12] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_div] pmf_and_moments grad (exact_mom)             theta=[1.0, 1e-12] -> [-1.50000000e-15 -3.03027242e+07]
+[formula_div] pmf_and_moments grad (FD mom)                theta=[1.0, 1e-12] -> [        0.         -30302724.21339177]
+ERROR:2026-11-26 11:58:01,163:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: weight_formula produced a negative edge weight (-2e+07) at vertex 1, edge 0. Phase-type edge weights must be finite and non-negative; check the formula for log/sqrt of a non-positive value, division by zero, or pow with a negative base.
+[formula_div] pmf_and_moments FORWARD at unconstrained probe theta=[1.0, -5e-08] -> RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/exp
+[formula_div] capped probe at 1e9: up-th=0.000e+00 dn-th=-1.192e-07; jnp: 0.000e+00
+[formula_sqrt] pmf_from_graph grad                         theta=[1.0, 1.0] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_sqrt] pmf_and_moments grad (exact_mom)            theta=[1.0, 1.0] -> [1.15874814 0.57937407]
+[formula_sqrt] pmf_and_moments grad (FD mom)               theta=[1.0, 1.0] -> [1.15874814 0.57937407]
+[formula_sqrt] pmf_from_graph grad                         theta=[1.0, 5e-08] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_sqrt] pmf_and_moments grad (exact_mom)            theta=[1.0, 5e-08] -> [-1.40000709e+05 -1.40000710e+12]
+[formula_sqrt] pmf_and_moments grad (FD mom)               theta=[1.0, 5e-08] -> [-1.40000709e+05 -2.33335657e+13]
+[formula_sqrt] pmf_from_graph grad                         theta=[1.0, 1e-07] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_sqrt] pmf_and_moments grad (exact_mom)            theta=[1.0, 1e-07] -> [-6.99987451e+04 -3.49993724e+11]
+[formula_sqrt] pmf_and_moments grad (FD mom)               theta=[1.0, 1e-07] -> [-6.99987451e+04 -1.75001915e+13]
+[formula_sqrt] pmf_from_graph grad                         theta=[1.0, 1e-12] -> RAISES XlaRuntimeError: INVALID_ARGUMENT: [execute] Failed to decode all FFI handler operands (bad operands at: 4) Diagnostics: Wrong 
+[formula_sqrt] pmf_and_moments grad (exact_mom)            theta=[1.0, 1e-12] -> [-7.00000149e+09 -3.50000075e+21]
+[formula_sqrt] pmf_and_moments grad (FD mom)               theta=[1.0, 1e-12] -> [-7.00000150e+09 -3.20017479e+13]
+ERROR:2026-11-26 11:58:01,558:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: weight_formula produced a non-finite edge weight (nan) at vertex 1, edge 0. Phase-type edge weights must be finite and non-negative; check the formula for log/sqrt of a non-positive value, division by zero, or pow with a negative base.
+[formula_sqrt] pmf_and_moments FORWARD at unconstrained probe theta=[1.0, -5e-08] -> RAISES XlaRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/exp
+[formula_sqrt] capped probe at 1e9: up-th=0.000e+00 dn-th=-1.192e-07; jnp: 0.000e+00
+[runcap] exit 0, peak RSS 2793 MB, 73s

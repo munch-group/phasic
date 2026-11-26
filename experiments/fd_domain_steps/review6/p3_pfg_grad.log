@@ -1,0 +1,27 @@
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:4006: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+[ERROR] phasic.c: ComputePmfFfiImpl exception: weight_formula produced a non-finite or negative edge weight
+[ERROR] phasic.c: ComputePmfFfiImpl exception: weight_formula produced a non-finite or negative edge weight
+[ERROR] phasic.c: ComputePmfFfiImpl exception: weight_formula produced a non-finite or negative edge weight
+linear [1.0, 1.0] grad [-1.33711389 -1.00228457]
+linear [1.0, 1.0] jit(grad) [-1.33711389 -1.00228457]
+linear [1.0, 1.0] fwd at minus probe [0.86967275 0.51372733 0.09489363]
+linear [1.0, 5e-08] grad [1.16724791 1.00113972]
+linear [1.0, 5e-08] jit(grad) [1.16724791 1.00113972]
+linear [1.0, 5e-08] fwd at minus probe [0.47747226 0.46544794 0.23411084]
+log [1.0, 1.0] grad [1.16724814 1.16724814]
+log [1.0, 1.0] jit(grad) [1.16724814 1.16724814]
+log [1.0, 1.0] fwd at minus probe [0.47747223 0.46544792 0.23411085]
+log [1.0, 5e-08] grad RAISES INTERNAL: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+log [1.0, 5e-08] jit(grad) RAISES INTERNAL: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+log [1.0, 5e-08] fwd at minus probe RAISES INTERNAL: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+formula_sqrt [1.0, 1.0] grad [1.16724814 0.58362407]
+formula_sqrt [1.0, 1.0] jit(grad) [1.16724814 0.58362407]
+formula_sqrt [1.0, 1.0] fwd at minus probe [0.47747226 0.46544794 0.23411085]
+formula_sqrt [1.0, 5e-08] grad RAISES INTERNAL: weight_formula produced a non-finite or negative edge weight
+formula_sqrt [1.0, 5e-08] jit(grad) RAISES INTERNAL: weight_formula produced a non-finite or negative edge weight
+formula_sqrt [1.0, 5e-08] fwd at minus probe RAISES INTERNAL: weight_formula produced a non-finite or negative edge weight
+[runcap] exit 0, peak RSS 410 MB, 4s

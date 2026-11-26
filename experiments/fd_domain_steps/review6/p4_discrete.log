@@ -1,0 +1,126 @@
+was_dph graph params: 3
+was_dph pfg grad                                   [1.0, 1.0, 1.0] -> [ inf -inf -inf]
+was_dph pfg grad                                   [1.0, 5e-08, 1.0] -> [-18333332.74502929  -1666666.44941527  -1666666.69941514]
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -2.5000000625000014e-08. Are you sure this is a discrete phase-type distribution?
+
+was_dph pfg grad                                   [1.0, 1.0, 5e-08] -> RAISES INTERNAL: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -2.5000000625
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -5.0000002500000126e-08. Are you sure this is a discrete phase-type distribution?
+
+was_dph pfg grad                                   [1.0, 1.0, 0.0] -> RAISES INTERNAL: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -5.0000002500
+was_dph pfg fwd at neg slot1                       [1.0, -5e-08, 1.0] -> [2.77777775e-01 1.75925928e-01 1.85037169e-17]
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -2.5000000625000014e-08. Are you sure this is a discrete phase-type distribution?
+
+was_dph pfg fwd at neg slot2                       [1.0, 1.0, -5e-08] -> RAISES INTERNAL: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -2.5000000625
+was_dph pam grad                                   [1.0, 1.0, 1.0] -> [ inf -inf -inf]
+was_dph pam grad                                   [1.0, 5e-08, 1.0] -> [-1.83333327e+07  1.89473589e-01 -1.66666670e+06]
+was_dph pam grad                                   [1.0, 1.0, 5e-08] -> [              inf               inf 80399987.05262491]
+was_dph pam grad                                   [1.0, 1.0, 0.0] -> [ 0.  0. inf]
+was_dph pam fwd at neg slot1                       [1.0, -5e-08, 1.0] -> [2.77777775e-01 1.75925928e-01 1.85037169e-17]
+ERROR:2026-11-26 11:59:37,061:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 4 has negative weight -2.5000000625000014e-08. Are you sure this is a discrete phase-type distribution?
+
+was_dph pam fwd at neg slot2                       [1.0, 1.0, -5e-08] -> RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p4_disc
+native DPH pam grad                                [0.5, 0.5] -> [-7. -7.]
+native DPH pfg grad                                [0.5, 0.5] -> [-7.         -6.99999999]
+native DPH pam grad                                [0.5, 5e-08] -> [1.24246825e+00 5.99999785e+07]
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 2 (state 2) to have finite, non-negative outgoing weights. The edge to vertex 3 has negative weight -4.9999999999999998e-08. Are you sure this is a discrete phase-type distribution?
+
+native DPH pfg grad                                [0.5, 5e-08] -> RAISES INTERNAL: Expected vertex with index 2 (state 2) to have finite, non-negative outgoing weights. The edge to vertex 3 has negative weight -4.9999999999
+ERROR:2026-11-26 11:59:37,305:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000000499999999'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pam grad                                [0.5, 0.99999995] -> RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p4_disc
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000000499999999'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pfg grad                                [0.5, 0.99999995] -> RAISES INTERNAL: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000000499999999'. Are you sure this is a discrete phase-type distr
+ERROR:2026-11-26 11:59:37,349:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.000000099999'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pam grad                                [0.5, 0.999999999999] -> RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p4_disc
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.000000099999'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pfg grad                                [0.5, 0.999999999999] -> RAISES INTERNAL: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.000000099999'. Are you sure this is a discrete phase-type distribut
+ERROR:2026-11-26 11:59:37,393:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8848, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 8781, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000001000000001'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pam grad                                [0.5, 1.0] -> RAISES INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):   File "/Users/kmt/phasic/experiments/fd_domain_steps/review6/p4_disc
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000001000000001'. Are you sure this is a discrete phase-type distribution?
+
+native DPH pfg grad                                [0.5, 1.0] -> RAISES INTERNAL: Expected vertex with index 2 (state 2) to have outgoing rate <= 1. Is '1.0000001000000001'. Are you sure this is a discrete phase-type distr
+[runcap] exit 0, peak RSS 480 MB, 4s

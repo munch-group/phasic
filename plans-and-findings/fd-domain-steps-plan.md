@@ -1,9 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.1, 2026-11-26. v1 (`b9178dab`) went through three independent
-adversarial reviews and v2 (`a4d2b3ad`) through a fourth (Opus; all
-CHANGES REQUIRED, no REJECT); their findings are folded in here
-(dispositions in §11). v2.1 is NOT re-reviewed. No code changed.** Split out of
+**Status: v2.2, 2026-11-26. v1 (`b9178dab`) went through three independent
+adversarial reviews, v2 (`a4d2b3ad`) through a fourth and v2.1 (`f27561fa`)
+through a fifth and sixth (Opus; all CHANGES REQUIRED, no REJECT); their
+findings are folded in here (dispositions in §11). v2.2 is NOT
+re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -20,8 +21,8 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 ## 0. Copy-paste prompt for a fresh session
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
-> the review dispositions, and the three review reports under
-> `experiments/fd_domain_steps/review{1,2,3}/REPORT.md`) and `OPEN-ITEMS.md`.
+> the review dispositions, and the review reports under
+> `experiments/fd_domain_steps/review{1..6}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -56,8 +57,9 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
    direct `SVGD(model=...)`, model selection, direct `jax.grad` on a
    built model).
 2. **Undeclared callers keep today's numbers bit for bit**, with one
-   stated exception: at sites whose forward refuses a negative rate, an
-   undeclared slot with 0 < theta <= 1e-7 uses the §4.4 fallback even when
+   stated exception: on models whose forward refuses a negative rate (§4.4: multi-epoch,
+   discrete, or non-linear weight mode), an undeclared slot with
+   0 < theta <= 1e-7 uses the §4.4 fallback even when
    today's probe happened not to crash (today's crash depends on the edge
    weight sum c·theta, not on the slot alone: theta = 1e-7 does not crash,
    review4/p1_edges.log; an exact trigger is impossible under jit). Bit
@@ -136,6 +138,12 @@ drift.
   against its own transforms and raises on a conflict (for example a
   `'unit'` model fitted with softplus, where logit(theta > 1) would be a
   silent NaN).
+- **Custom `param_transform`** resolves to `None` (unknown); `None` passes
+  the containment check (on refusing models the primal already refuses
+  invalid theta).
+- **Length check:** the domain list's length is checked against the traced
+  `theta.shape[-1]` at first trace (formula and callback models resolve
+  theta_dim late); a mismatch raises.
 - **Graph.mcmc: no change.** MCMC is gradient-free (`mcmc.py:536`, `:657`;
   no gradient call), so declaring domains there would be a no-op.
 - **Direct callers** (`SVGD(model=...)`, model-selection examples,
@@ -152,8 +160,15 @@ drift.
 | Continuous pdf/cdf, Euler forward with automatic granularity (`pmf_from_graph`, `pmf_from_cpp`, the pdf half of `pmf_and_moments_from_graph`) | yes, when max exit rate > ~500 (`phasic.c:12963-13006`) | capped |
 | Multi-epoch / daisy chain with granularity 0 (`_daisy_chain_svgd_model`, `daisy_chain_joint_probs`; `stop_probability(dt, 0)` at `graph_builder_ffi.cpp:1940`, `:2168`; `__init__.py:4729-4731`, `:5195`) | yes (measured: full rule up to 330x wrong at rate scale 200, review3/p4_daisy_jumps.log) | capped, all slots |
 | Native discrete (DPH; `was_dph` false) | no jumps, but the row sum <= 1 + 1e-9 wall (`phasic.c:6698-6770`) | capped (the full step crashes within ~1e-4 of the wall, review3/p5_discrete_edge.log) |
+| Discretized / joint graphs (`was_dph` true, from `discretize()` or `joint_prob_graph(discrete=True)`) | the discretize slot enters every row's normalisation; a negative probe on it raises (review6/p4_discrete.log) | capped; the step rule for the discretize slot is fixed by a Batch 0 jump/accuracy check |
 | Elimination-only (moments, `moments_from_graph`, joint-index sojourn, `reward_visit_probability`) | no | full |
 | Daisy chain with an explicit user granularity | no | full |
+
+The upper row-sum wall of native discrete graphs (a row summing above
+1 + 1e-9, e.g. a probability slot at 1 - 5e-8 or 1.0) already crashes today
+on both pmf sites (review6/p4_discrete.log). It is not a per-parameter
+range (a row can hold several slots), so no per-slot rule can protect it:
+OUT OF SCOPE, and the Batch 1 test asserts today's clear error there.
 
 `pmf_and_moments_from_graph` runs one FD loop for pdf and moments together
 (`:9068-9108`); with `exact_moment_grad=False` the moments inherit the
@@ -187,35 +202,65 @@ That is harmless for fits, where softplus floors theta at 1e-9
 (`svgd.py:5254`) and the absolute error in phi is ~1e-11, but it is a
 documented limit for direct theta-space callers.
 
-### 4.4 Crash fallback for undeclared slots (fixes every route)
+### 4.4 Crash fallback (fixes every route)
 
-At sites whose forward REFUSES a negative rate (the two multi-epoch FFIs,
-`graph_builder_ffi.cpp:2000`, `:2242`, threshold -1e-12 at `:1620`; native
-discrete, `phasic.c:6716-6745`; the joint-index and Euler pdf forwards
-accept sub-zero probes, review4/p2_jix.log; Batch 0 confirms the list), an
-undeclared or `'unconstrained'` slot with 0 < theta <= 1e-7 uses the capped
-positive rule instead of today's probe, and one with theta exactly 0 uses
-the one-sided step of §4.5 (the `'unconstrained'` case covers
-epoch fits with `positive_params=False`, review 4 m1).
-Everywhere else undeclared slots keep today's code. This changes results
-only where today raises, so goal 2 holds. At sites whose forward accepts
-a slightly negative probe (the Euler pdf path is ~1e-8 accurate there,
-review3/p3_nearzero.log), undeclared slots are unchanged.
+**Whether a forward refuses a negative probe is a property of the built
+MODEL, not of the site** (reviews 5 and 6, measured on master). A model
+refuses when ANY of these holds:
+
+- it is multi-epoch (`graph_builder_ffi.cpp:2000`, `:2242`; threshold
+  -1e-12 at `:1620`);
+- it is discrete, native (`phasic.c:6716-6745`) or `was_dph`
+  (review6/p4_discrete.log);
+- its weight mode is `log` (`graph_builder.cpp:613-622`,
+  `phasic.c:5739-5757`), `formula` (`phasic.c:5706-5718`) or `callback`
+  (measured).
+
+Only linear-weight continuous models accept a slightly negative probe (the
+check is commented out, `phasic.c:5767-5790`; the Euler pdf path is then
+~1e-8 accurate, review3/p3_nearzero.log). The model builder computes this
+flag ONCE at build time and passes it to `_fd_steps` with the domains.
+
+On a refusing model, at EVERY FD site of that model (including the
+`pmf_and_moments_from_graph` clamp sites and the `reward_visit_probability`
+backward used by zero inflation):
+
+- an undeclared or `'unconstrained'` slot with 0 < theta <= 1e-7 uses the
+  capped positive rule;
+- one with theta exactly 0 uses the one-sided step of §4.5.
+
+The `'unconstrained'` case covers `positive_params=False` fits, which today
+survive only through the 1e-9 clamp. Removing that clamp under
+`'unconstrained'` would otherwise crash log, formula, callback and
+discretized fits (review6/p1_modes.log).
+
+On a non-refusing (linear continuous) model, undeclared slots keep today's
+code everywhere, and `'unconstrained'` is plain ±1e-7.
+
+Goal 1 still cannot cover non-monotone formulas (e.g. `c0*t0 - c1*t1`),
+which can produce a negative edge weight with every slot large; that is the
+model's own domain, stated in §9.
 
 ### 4.5 Degenerate values (no silent NaN, no silent zero)
 
-- **Declared positive with theta <= 0:** a one-sided difference over
-  [theta, theta + 1e-7] (both probes non-negative, so refusing forwards
-  accept them), selected with `jnp.where`. This is the case of a rate fixed
+- **Declared positive with theta == 0:** a one-sided difference over
+  [0, 1e-7] (both probes non-negative, so refusing forwards accept them;
+  for theta < 0 the forward itself is invalid and today's probe is kept), selected with `jnp.where`. This is the case of a rate fixed
   at 0 in a nested model (allowed since bug 2, `svgd.py:5196-5247`; the
   epoch-route crash is reproduced on master, review4/p1_edges.log, and
   named in `test_fixed_values_exact.py:362-365`).
 - **Declared unit with theta outside (0, 1):** that slot uses today's
   probe, selected with `jnp.where` (exposure-scaled values).
-- **`'unit'` is refused on `exposure_param_index`** at construction.
-- **A zero probe difference** (e.g. theta = 1e10 with a capped u of 1e-17)
-  gives a zero gradient for that slot. Batch 0 measures where this happens
-  (the band 1e9-1e10) and compares with today's site.
+- **The exposure slot is never `'unit'`:** the resolver widens a BetaPrior
+  (sigmoid) on `exposure_param_index` to `'positive'` (the wrapper
+  multiplies it by alpha, `svgd.py:315`, so values above 1 are valid;
+  unit ⊂ positive, so the containment check still passes). On the epoch
+  route `exposure_param_index` is a per-epoch local index (`svgd.py:5685`);
+  the widening applies to every flat slot e·P + k.
+- **A zero probe difference** (theta above ~2e9, where the capped u falls
+  below ~5.5e-17; at 1e9 the down-probe still moves, review6/p1_modes.log)
+  gives a zero gradient for that slot and a host-side counter plus a
+  once-per-model log line, so it is not silent. Batch 0 measures the band.
 
 ### 4.6 Fixed and tied slots
 
@@ -231,7 +276,10 @@ fixed-slot information get it as the `'fixed'` domain value:
   module-level `custom_vjp` with `nondiff_argnums=(0,)`, so domains must
   be a hashable nondiff argument. It is reached via `zero_inflation.py:176-196`
   (attached by `Graph.svgd` at `:7292`) and `Graph.reward_visit_probability`
-  (`:3751`).
+  (`:3751`). The domain tuple (a tuple of str, plus the refusing flag) is
+  read from `model._param_domains` and passed as a second nondiff
+  argument; the non-FFI branch uses `cdf_zero_fn` (site `:8943`) and
+  inherits the builder's domains.
 
 ### 4.7 One helper module
 
@@ -254,7 +302,7 @@ model is built.
 | `:5501` → loops `:5647`, `:5698` | `_daisy_chain_svgd_model`, exposure | multi-epoch |
 | `:8006` | `moments_from_graph` | elimination |
 | `:8661`, `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp) | `pmf_and_moments_from_graph` | Euler + elimination |
-| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; gets the positive rule and the fixed skip |
+| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared slots keep today's rule bit for bit (plus the §4.4 fallback if the model refuses); declared slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
 | `:9888` | `pmf_from_graph_joint_index` | elimination |
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
 | `ffi_wrappers.py:1296` | `reward_visit_probability` backward | elimination |
@@ -278,13 +326,25 @@ calls.
 
 ### Batch 0: census, step sizes, baseline (no source change)
 
-- Every FD loop with its family, slots probed, divisor/clamp/guard, and
-  whether its forward refuses non-positive rates (the §4.4 list).
-- s per family on the five model types (coalescent, two-island,
-  reward-transformed, epoch, discrete).
-- The degenerate cases of §4.5.
-- The census of tests that replicate today's rule.
-- A fresh master suite baseline with `gate2.sh`.
+- **Enumeration (mechanical):** every `custom_vjp` / `defvjp` in
+  `src/phasic/*.py` (review 5 counts 37 lines in `__init__.py` plus
+  `ffi_wrappers.py:1278`, `:1316`). Each is listed as an FD site (with its
+  loops, slots probed, divisor/clamp/guard) or as resolved-not-FD.
+- **Refusal grid** for every FD site:
+  - weight mode {linear, log, formula (incl. sqrt and division),
+    callback};
+  - discreteness {continuous, native DPH, `was_dph`};
+  - slot value {1, 5e-8, 0, 1 - 5e-8}.
+
+  It confirms the §4.4 model property.
+- **Step size per family**, on coalescent, two-island, reward-transformed,
+  epoch, native discrete and discretized models. Acceptance criterion: the
+  smallest s whose median relative error against an exact or Richardson
+  reference is within 2x of the best s on the scan grid {1e-3 ... 1e-6},
+  on both ordinary (theta ~ 1) and population-genetics (1e-4 to 1e-5)
+  values.
+- The degenerate cases of §4.5; the census of tests that replicate today's
+  rule; a fresh master suite baseline with `gate2.sh`.
 - Record in `plans-and-findings/fd-domain-steps-findings.md`.
 
 ### Batch 1: helper, builders, crash fallback (bit identical outside the §2 band)
@@ -308,7 +368,17 @@ calls.
   - signed parameters under `'unconstrained'`;
   - formula and log weight modes with fixed slots;
   - the crash cases of §1 run on every route (Graph.svgd, `epoch_model`,
-    direct `SVGD(model=...)`, direct `jax.grad`).
+    direct `SVGD(model=...)`, direct `jax.grad`);
+  - slot = 5e-8 and slot = 0 for each weight mode × {`pmf_from_graph`,
+    `pmf_and_moments_from_graph`, `reward_visit_probability`} and on a
+    discretized model's discretize slot: no crash;
+  - a **probe-recording spy**: wrap the forward, record every probe vector,
+    and assert per slot that only slot i changed, the probe lies inside that
+    slot's domain, fixed slots are never probed and tied slaves are. Use a
+    heterogeneous list (unit / positive / fixed / tied slave / exposure)
+    across >= 2 epochs;
+  - native discrete at the upper row-sum wall: today's clear error is kept
+    (out of scope, §4.1).
 - The mixed-scale pin flips here through the §4.4 fallback (its small
   slot is 1e-8, undeclared, at a refusing site).
 - Also tested: epoch-route fits with a rate fixed at 0 (the nested
@@ -328,7 +398,9 @@ calls.
     theta >= 1e-3 (measured ~1e-8), and within a tolerance set from Batch
     0's measurement at theta = 1e-4 and 1e-5 (expected 1e-7 to 1e-5);
   - one coarse fit-level check per route;
-  - the reported epoch fit from near-floor particles completes.
+  - the reported epoch fit from near-floor particles completes;
+  - `positive_params=False` × {log, formula, callback, discretized} ×
+    theta = 5e-8: no crash (the §4.4 fallback replaces the 1e-9 clamp).
 
 ## 7. Existing tests expected to change
 
@@ -372,8 +444,10 @@ implementation review per batch.
   under any FD step.
 - **Linear-near-zero parameters** in theta-space direct calls: the §4.3
   limit.
-- **The §2 band:** undeclared slots with 0 < theta <= 1e-7 at refusing
-  sites change even where today did not crash.
+- **The §2 band:** undeclared slots with 0 < theta <= 1e-7 on refusing
+  models change even where today did not crash.
+- **Out of scope by nature:** the native-discrete upper row-sum wall, and
+  non-monotone formulas that make an edge negative with every slot large.
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
   removes it.
 - **Overlap with the refactor:** `__init__.py` is also the refactor's
@@ -435,3 +509,29 @@ behaviour change. m1 → fallback also for 'unconstrained' at refusing
 sites; prior=None wording. m2 → numpy variant at the host site. m3 →
 capped logit factor. m4 → population-genetics regime in §4.3 and Batch 2.
 m5 → zero-guard claim replaced by a measurement.
+
+### Reviews 5 and 6 (of v2.1) → v2.2
+
+Reports: `experiments/fd_domain_steps/review{5,6}/REPORT.md`.
+
+- **Refusal depends on weight mode and discreteness** (R5 B1, R6 B1, R6
+  M3). Measured: log, formula, callback and discretize slots crash at
+  5e-8. Fix: §4.4 makes refusal a property of the model computed at build
+  time; was_dph row in §4.1; the Batch 0 refusal grid; Batch 1 tests per
+  weight mode.
+- **The Batch 2 crash for `positive_params=False`** (R6 M2, R5 B1.2) →
+  §4.4 applies the fallback to `'unconstrained'` on refusing models,
+  including the clamp sites; Batch 2 test.
+- **The joint-index host fallback** (R5 M1) → §5 row.
+- **BetaPrior on the exposure slot** (R5 M2) → §4.5 widening to
+  positive, per flat epoch slot.
+- **Misaligned domains** (R5 M3) → the probe-recording spy test.
+- **The upper row-sum wall** (R6 m4) → out of scope, with an explicit test
+  expectation.
+- **Wording.** R6 m5: refusal qualified by weight mode; non-monotone
+  formulas. R5 m2: theta == 0.
+- **Census.** R5 m5, R6 m6 → Batch 0 enumeration, grid and acceptance
+  criterion.
+- **Smaller items.** R5 m1: None passes containment. R5 m3: the zero
+  difference is counted and logged. R5 m4: the length check at first
+  trace. R5 m6: prompts updated. R5 m7: the rvp domain tuple.
