@@ -1,0 +1,12 @@
+# Refactor plan v2.10 review 15 (Opus) — CHANGES REQUIRED (1 MAJOR, 6 MINOR; no probes)
+
+Part A: review 14 resolved (0c pmf_from_cpp only :585; 0d all load_cpp_builder work :586; R7 :130-136, :259-260; §8 :668-669; OPEN-ITEMS.md:114; D19 baseline :234-243; tape + bitwise forward :586; visibility :586; native DPH :216-222; overlap :473-477; status :3-10; OI-118 row :117). Sequencing holds (0b before 0d bitwise; 0c sources for 0d; phase-1 baselines after 0d :480-481, :587; 0d stop :612).
+MAJOR 1: epoch metadata in buffer (:163-164) but wrapper sets only is_discrete + weight attrs (:203-205). Python add_epoch uses Python attrs: is_first_epoch = not hasattr(self, '_epoch_state_index') (__init__.py:3334), _base_param_length via hasattr (:3338-3341); plain attrs in _WIDEN_CARRIED_ATTRS (:10318-10321); pybind exposes no getter for C++ members (only _theta_layout :1460). C++ add_epoch sets them (phasiccpp.cpp:1701-1718; phasiccpp.h:1191). Python add_epoch on returned C++ epoch model -> treated as epoch 0: second epoch state dimension, param_length()+2 slots, epochs from 1 -> silently wrong. Gate "epoch fields via their getters" (:586) — no getter exists. Fix: wrapper sets _epoch_state_index, _n_epochs, _base_param_length from header when _n_epochs > 0; C++ add_epoch test model in 0d; compare as Python attrs or new getter; test Python add_epoch on returned graph == on equivalent Python-built model.
+MINORS
+m1 bitwise forward comparison confounded: JIT copy cc/g++ from PATH (Apple clang /usr/bin/g++), no MPFR/OpenMP; extension links libmpfr, libomp; expected_waiting_time switches to MPFR above cond 1e12 or PHASIC_FORCE_MPFR (phasic.c:10121-10133); D15 only in phase 1 -> FMA may differ (Linux CI conda compiler). Fix: name quantity (post-update_weights edge weights, or non-MPFR single-thread read-out, PHASIC_FORCE_MPFR unset); same -ffp-contract on both copies, or listed tolerance.
+m2 no fallback if D19 rejected: decide D19 before 0d sub-plan; alternative load_cpp_builder raises NotImplementedError until phase 12.
+m3 D15 JIT scope cites phasic_pybind.cpp:5192 (:348) -> "0d's compile command".
+m4 routing corpus "raw _Graph until 0d" (:499) moot -> delete.
+m5 register OI-116 rows (:115, :118) don't name 0d; OI-089 detail row (:119) says "(phase 0c)" only.
+m6 PHASIC_SOURCE_DIR different tree: emitter and reader may disagree with matching version -> source hash in header, or state override developer-only.
+Sound: peak memory; native O(V) rebuild; RTLD_LOCAL + hidden visibility; 0c/0d split; stop table; §8 homes; Plan A seam.
