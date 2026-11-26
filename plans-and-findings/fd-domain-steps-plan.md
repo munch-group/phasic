@@ -241,6 +241,15 @@ rewards part is added at trace time. For the direct
 `Graph.reward_visit_probability` call, which has no model, the rvp backward
 derives the flag from its `structure_json` (weight mode and discreteness).
 
+The flag is exposed through ONE named function, `_fd_steps.model_refuses(
+build_info, has_rewards)`, which every site calls. The refactor plan
+([core-engine-ssot-plan.md](core-engine-ssot-plan.md), phase 5) later
+replaces its implementation with a C query on the graph-state record
+(`refuses(record, has_rewards)`, with `pmf_from_cpp` refusing by
+constant), so the swap happens in one place. The Batch 0 refusal grid is
+the starting point of the refactor's phase-1 refusal matrix, and the two
+must agree.
+
 On a refusing model, at EVERY FD site of that model (including the
 `pmf_and_moments_from_graph` clamp sites and the `reward_visit_probability`
 backward used by zero inflation):
