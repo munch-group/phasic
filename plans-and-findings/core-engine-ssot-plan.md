@@ -4,8 +4,8 @@
 adversarial reviews, v2 (`256c788a`) through a fourth and v2.1 (`900b8016`)
 through a fifth and sixth (Opus; all CHANGES REQUIRED, none rejecting the
 goal); findings and the user's decisions are folded in (dispositions in
-§9). v2.2 is NOT re-reviewed. Three decisions are pending with the user
-(§2: D15, D16, D17). No code changed.**
+§9). The user approved D15, D16 and D17 on 2026-11-26 (§2). v2.2 is NOT
+re-reviewed. No code changed.**
 
 This is a master plan: each phase gets its own detailed sub-plan, reviewed
 before any code. It supersedes the unexecuted parts of
@@ -142,7 +142,7 @@ phase-type graph:
   same time.
 - **R13** Graphs built by user C++ code reach Python only as versioned
   serialized bytes; no live pointer crosses compiled copies.
-  - **Scope (refined from review 4, for confirmation, D16):** this applies
+  - **Scope (refined from review 4; D16 approved):** this applies
     to build-once models (R8) and to `load_cpp_builder`, whose pointer
     sharing is the only real crossing today (`phasic_pybind.cpp:5262`).
   - `pmf_from_cpp` computes inside its JIT library and returns only
@@ -153,9 +153,9 @@ phase-type graph:
 - **R14** Approved exception to R6: address-ordered edges become
   index-ordered (phase 0b).
 
-**Pending user decisions:**
+**Decisions D15-D17 (APPROVED by the user, 2026-11-26):**
 
-- **D15 (phase 1)** A build-wide `-ffp-contract=off` (no fused multiply-add)
+- **D15 (phase 1), APPROVED.** A build-wide `-ffp-contract=off` (no fused multiply-add)
   so bit identity survives code moving between files and C/C++ ports of
   Python arithmetic. It changes last digits wherever the compiler fuses
   today, so it is an R6 exception. Baselines are taken after the flip.
@@ -171,9 +171,9 @@ phase-type graph:
     (`__init__.py:1179`, `:1187`; `phasic_pybind.cpp:5192`) and the Rcpp
     example; the MSVC `/fp:contract` setting for the Windows wheels is
     recorded.
-- **D16** The R13 scope refinement above (reviews 5 and 6 both
+- **D16, APPROVED.** The R13 scope refinement above (reviews 5 and 6 both
   recommend approving).
-- **D17 (from review 6)** The Python trace recorder is today the only
+- **D17 (from review 6), APPROVED as recommended** (tests-only oracle until phase 13). The Python trace recorder is today the only
   independent elimination oracle in the gate corpus: 20 test files use it,
   including `test_gate_trace_ffi_equivalence.py`,
   `test_gate_elimination_bit_identity.py` and
@@ -373,7 +373,7 @@ ahead; implementation is sequential. Sizes are relative (S / M / L / XL).
 | 0b | Determinism (R14) | Address order → index order everywhere: the `arr_c_cmp` sorts (`phasic.c:6088-6094`, used at `:6327`, `:7414`, `:7784`, `:8180`), the pointer comparisons in the merge loops (`:6489`, `:7535`, `:7926`, `:8301`) and the pointer-arithmetic sentinels (`:6187`/`:6247`, `:7275`/`:7324`, `:7643`/`:7696`, `:8052`/`:8101`), all in the `ptd_vtx_order_key` form (`:8541`). Confirm and close OI-022, OI-023, and OI-015 (time-boxed; the FFI rewarded path reward-transforms per theta, `graph_builder.cpp:993`). Heap-perturbation harness (in-process). **Listed changes:** last digits of constant-model read-outs; the EDGE ORDER and `serialize()` output of reward-transformed graphs (measured address-dependent today: 3 orders in 16 instances, `experiments/core_ssot/review6/r14b.log`), and any content hash or cache key computed from them; seeded `sample()` sequences on reward-transformed graphs. | M | not started |
 | 0c | Cheap core fixes | OI-088 factorial; OI-089 JIT path, key and sources; OI-116 `load_cpp_builder` normalize; OI-033 C++ discretize checks; OI-019/020 discrete reward transform; today's serialize reader rejects unknown versions and keys | S | not started |
 | 1 | Inventory, gates, baselines | re-check §3 on master; D15 applied (if approved, including the JIT commands), then baselines; the refusal-matrix fixture; the corpus axes (OI-065); the notebook scan script; codec latency baseline (the phase-6 gate is relative to it); golden fixtures for phases 2-4; benchmark protocol and baseline; tests and a measured baseline for `pmf_from_cpp` / `load_cpp_builder` (after 0c); arm64 + x86 CI gates; ASan and TSan jobs; supported platforms recorded (Windows wheels are built, `pypi-release.yml:47-51`, but the JIT routes assume `/tmp`, `g++` and POSIX mmap); the orphan installed libraries decided | M | not started |
-| 2 | Delete the Python trace pipeline (R12') | removal list for the user: every public name in §3, the `phasic.trace_elimination` import path, `Graph(cache_trace=...)`, the change to `get_all_cache_stats()`'s result, and the affected notebook cells (`trace-and-jax-caching-c-path`, `svgd-joint-prob`, `benchmarks/python/test_hierarchical_caching` cells 2, 8, 10, 12, 14, 18); ask about the C trace port and the `_c_trace_*` bindings; D17 decides whether `trace_elimination.py` survives as a tests-only oracle until phase 13; relocate `is_cache_disabled` (redefining its condition); OI-044, OI-049, OI-083 close | M | not started |
+| 2 | Delete the Python trace pipeline (R12') | removal list for the user: every public name in §3, the `phasic.trace_elimination` import path, `Graph(cache_trace=...)`, the change to `get_all_cache_stats()`'s result, and the affected notebook cells (`trace-and-jax-caching-c-path`, `svgd-joint-prob`, `benchmarks/python/test_hierarchical_caching` cells 2, 8, 10, 12, 14, 18); ask about the C trace port and the `_c_trace_*` bindings; `trace_elimination.py` moves under `tests/` as a tests-only oracle (D17) and is deleted after phase 13 merges; relocate `is_cache_disabled` (redefining its condition); OI-044, OI-049, OI-083 close | M | not started |
 | 3 | pybind restructure and construction | split into `register_*()`; C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
 | 4 | Moments, variance, covariance, discreteness | the C-owned discreteness flag and OI-021 (one discrete rule, including OI-078's discretized `expectation()`) decided first; `ptd_moments`, `ptd_continuous_to_discrete_moments`, variance/covariance kernels or sanctioned list; `phasic::Graph::moments` API; rewarded-moments rule per call site; drift gate (non-MPFR tapes, same reward scaling); gates at k >= 13 and k >= 21; matrices; retire the generated-C++ emitter (R4) with the constant `pmf_from_graph` A/B gate; `use_ffi` deprecation; OI-026, OI-031 | L | not started |
 | 5 | Graph state and serialize schema | starts with a census of every metadata read in `src/phasic` (direct and getattr-default, incl. the inference modules); at merge the Python attributes become properties over the record, so there is ONE store from then on (not three); strict accessors for every name the inference layer reads; the routing gate; Plan A's flag becomes a C query. The serialized formula TAPE stays in the schema until phase 10 (alongside the source); the OI-048 select/pow cases are in the phase-5 gate. One C++-owned record reconciling the Python attributes and the existing C++ fields; carried by clone, copy and serialize. Schema rules: formula SOURCE plus a tape version (phase 10 may change tape semantics); layout as `StateIndexer.to_dict()`; joint and epoch fields may be added in phases 7-8 with a version bump; v0 graph-cache entries are read (or rejected) by an explicit rule. Consumers updated (graph cache, `distributed_scc`, `compute_repository`, GraphBuilder); `from_serialized` hardened and fuzzed; binary format considered after measuring at 600k; OI-053, OI-054 | L | not started |
