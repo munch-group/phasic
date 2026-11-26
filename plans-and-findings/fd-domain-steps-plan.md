@@ -1,9 +1,9 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2, 2026-11-26. v1 (`b9178dab`) went through three independent
-adversarial reviews (Opus; all CHANGES REQUIRED, no REJECT); their
-findings are folded in here (dispositions in §11). v2 is NOT yet
-re-reviewed. No code changed.** Split out of
+**Status: v2.1, 2026-11-26. v1 (`b9178dab`) went through three independent
+adversarial reviews and v2 (`a4d2b3ad`) through a fourth (Opus; all
+CHANGES REQUIRED, no REJECT); their findings are folded in here
+(dispositions in §11). v2.1 is NOT re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -55,8 +55,13 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
    route** (Graph.svgd, `Graph.epoch_model(...).fit` / `FreeEpochModel`,
    direct `SVGD(model=...)`, model selection, direct `jax.grad` on a
    built model).
-2. **Undeclared callers keep today's numbers bit for bit wherever today
-   does not crash** (each site's own probes, divisor, clamp and guard).
+2. **Undeclared callers keep today's numbers bit for bit**, with one
+   stated exception: at sites whose forward refuses a negative rate, an
+   undeclared slot with 0 < theta <= 1e-7 uses the §4.4 fallback even when
+   today's probe happened not to crash (today's crash depends on the edge
+   weight sum c·theta, not on the slot alone: theta = 1e-7 does not crash,
+   review4/p1_edges.log; an exact trigger is impossible under jit). Bit
+   identity tests avoid that band.
 3. Declared domains (from the fitters, `epoch_model`, or the caller) give
    probes inside the domain and the documented accuracy.
 4. Fixed slots are never probed; tied slaves keep flowing to their master.
@@ -103,16 +108,30 @@ drift.
   `SVGD(...)` at `:7288`). The domains go to the builder.
 - **The epoch route**: domains per local slot are broadcast over the flat
   n_epochs × param_length vector. Tied slaves take their master's domain.
-  With `prior=None`, the default epoch prior (GaussPrior with lower=0)
-  means `'positive'`.
+  With `prior=None` and `positive_params=True`, the default epoch prior
+  (GaussPrior with lower=0) means `'positive'`; with
+  `positive_params=False` it means `'unconstrained'`
+  (`__init__.py:7116-7126`).
 - **`Graph.epoch_model` / `FreeEpochModel`** build one model and fit it
   many times (`epoch_model.py:72-160`; `full.model is nested.model` is the
   likelihood-ratio-test fast path). They take `param_domains`, default
   `'positive'` for every flat slot (rates). `fit()` checks that its
   `positive_params`/prior agree with the model's domains and raises a
   clear error otherwise ("rebuild with `epoch_model(...,
-  param_domains=...)`"). Fit-time fixed slots stay probed; that is
-  harmless because of §4.5.
+  param_domains=...)`"). The check is CONTAINMENT, not equality: a fit's
+  domain must lie inside the model's (unit ⊂ positive; everything ⊂
+  unconstrained), so a BetaPrior fit on a positive model works as today;
+  only a widening raises (e.g. a softplus fit on a 'unit' model). `fit()`
+  reads the domains stored on the `FreeEpochModel` object, not on
+  `em.model` (tests replace `em.model` with spies,
+  `test_fixed_values_exact.py:341-354`). Rejecting `positive_params=False`
+  on a default (positive) `epoch_model` is a listed behaviour change (§7).
+  The epoch_model default is introduced in Batch 2, together with the
+  `Graph.svgd` resolver, so the two routes keep their parity
+  (`test_epoch_model.py:83`, `:161`, rtol 1e-9). Fit-time fixed slots stay probed; that is
+  harmless because of §4.5 (declared-positive slots at theta <= 0, such as
+  a rate fixed at 0 for the nested likelihood-ratio model, get a one-sided
+  step).
 - **The model carries `_param_domains`.** `SVGD.__init__` checks it
   against its own transforms and raises on a conflict (for example a
   `'unit'` model fitted with softplus, where logit(theta > 1) would be a
@@ -145,7 +164,7 @@ pdf's capped step (harmless; stated).
 | Domain | Full rule | Capped rule | Divisor |
 |---|---|---|---|
 | positive | theta·e^(±s) | theta·e^(±u), u = min(log1p(1e-7/theta), s) | actual difference, with zero guard |
-| unit | logit step of s | logit step of size min(s, 1e-7/(theta(1-theta))) | actual difference, with zero guard |
+| unit | logit step of s | logit step of size min(s, 1e-7/(theta(1-theta)))/(1 + s) (the extra factor keeps the up-probe at most ~1e-7 above theta to second order) | actual difference, with zero guard |
 | unconstrained | — | theta ± 1e-7 | literal 2·eps, no clamp |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
@@ -156,8 +175,10 @@ corrected v1's formula), and no probe is ever negative.
 
 In the domain coordinate, error ≈ s²|F'''|/6 + eps_fwd|F|/s (for log
 steps, s²·theta·(F''/2 + theta·F'''/6) in theta terms). Measured:
-- at ordinary theta (>= 1e-3), the change from today is ~1e-8 relative,
-  i.e. rounding level (review3/p1_daisy.log);
+- at theta >= 1e-3 the change from today is ~1e-8 relative
+  (review3/p1_daisy.log); at population-genetics rates (1e-4 to 1e-5),
+  where most test fixtures sit, about 1e-7 to 1e-5 relative (review 4 m4),
+  because today's absolute 1e-7 step is then a large relative step;
 - for parameters whose effect is linear near 0, the relative error in
   theta terms grows like 1/theta: 1e-3 at 1e-9, ~100% at 1e-13
   (review3/p3_nearzero.log).
@@ -168,9 +189,14 @@ documented limit for direct theta-space callers.
 
 ### 4.4 Crash fallback for undeclared slots (fixes every route)
 
-At sites whose forward REFUSES a non-positive rate (at least the
-multi-epoch FFI; Batch 0 lists all of them), an undeclared slot with
-0 < theta <= 1e-7 uses the capped positive rule instead of today's probe.
+At sites whose forward REFUSES a negative rate (the two multi-epoch FFIs,
+`graph_builder_ffi.cpp:2000`, `:2242`, threshold -1e-12 at `:1620`; native
+discrete, `phasic.c:6716-6745`; the joint-index and Euler pdf forwards
+accept sub-zero probes, review4/p2_jix.log; Batch 0 confirms the list), an
+undeclared or `'unconstrained'` slot with 0 < theta <= 1e-7 uses the capped
+positive rule instead of today's probe, and one with theta exactly 0 uses
+the one-sided step of §4.5 (the `'unconstrained'` case covers
+epoch fits with `positive_params=False`, review 4 m1).
 Everywhere else undeclared slots keep today's code. This changes results
 only where today raises, so goal 2 holds. At sites whose forward accepts
 a slightly negative probe (the Euler pdf path is ~1e-8 accurate there,
@@ -178,14 +204,18 @@ review3/p3_nearzero.log), undeclared slots are unchanged.
 
 ### 4.5 Degenerate values (no silent NaN, no silent zero)
 
-- **Declared positive with theta <= 0, or unit with theta outside (0, 1):**
-  that slot uses today's probe, selected with `jnp.where` (no Python
-  branching on tracers). This happens for fit-time fixed values of 0
-  (allowed since bug 2, `svgd.py:5196-5247`) and exposure-scaled values.
+- **Declared positive with theta <= 0:** a one-sided difference over
+  [theta, theta + 1e-7] (both probes non-negative, so refusing forwards
+  accept them), selected with `jnp.where`. This is the case of a rate fixed
+  at 0 in a nested model (allowed since bug 2, `svgd.py:5196-5247`; the
+  epoch-route crash is reproduced on master, review4/p1_edges.log, and
+  named in `test_fixed_values_exact.py:362-365`).
+- **Declared unit with theta outside (0, 1):** that slot uses today's
+  probe, selected with `jnp.where` (exposure-scaled values).
 - **`'unit'` is refused on `exposure_param_index`** at construction.
 - **A zero probe difference** (e.g. theta = 1e10 with a capped u of 1e-17)
-  gives a zero gradient for that slot, only where today's site would also
-  give zero. Batch 0 checks the cases.
+  gives a zero gradient for that slot. Batch 0 measures where this happens
+  (the band 1e9-1e10) and compares with today's site.
 
 ### 4.6 Fixed and tied slots
 
@@ -208,8 +238,10 @@ fixed-slot information get it as the `'fixed'` domain value:
 `src/phasic/_fd_steps.py`, a leaf module (`__init__.py` would make a
 circular import). It returns probe points and divisors only. Each site
 keeps its own arithmetic and expression order, so undeclared paths stay
-bit identical. Everything is in jnp with no Python branching on theta, so
-it runs under `vmap(jit(grad))`. Domains and rules are bound when the
+bit identical. At traced sites everything is jnp with no Python branching
+on theta, so it runs under `vmap(jit(grad))`; the joint-index host fallback
+(`__init__.py:9551-9563`) runs on concrete numpy arrays and gets a numpy
+variant of the same rule. Domains and rules are bound when the
 model is built.
 
 ## 5. FD sites (master `b9178dab`; Batch 0 confirms and lists every loop)
@@ -255,11 +287,11 @@ calls.
 - A fresh master suite baseline with `gate2.sh`.
 - Record in `plans-and-findings/fd-domain-steps-findings.md`.
 
-### Batch 1: helper, builders, crash fallback (bit identical where today works)
+### Batch 1: helper, builders, crash fallback (bit identical outside the §2 band)
 
-- `_fd_steps.py`; `param_domains` on every builder in §5 plus
-  `Graph.epoch_model` (default `'positive'`); the `'fixed'` value; the
-  §4.4 fallback; the §4.5 guards.
+- `_fd_steps.py`; `param_domains` on every builder in §5 (accepted but not
+  yet defaulted anywhere); the `'fixed'` value; the §4.4 fallback; the §4.5
+  guards.
 - **Tests** (new `tests/pytest/test_fd_domain_steps.py`):
   - per-site bit identity for undeclared slots where today works, under
     eager, `jit`, `vmap(grad)` and the `custom_vmap` epoch forward;
@@ -277,19 +309,24 @@ calls.
   - formula and log weight modes with fixed slots;
   - the crash cases of §1 run on every route (Graph.svgd, `epoch_model`,
     direct `SVGD(model=...)`, direct `jax.grad`).
-- The mixed-scale pin flips here, because `epoch_model` now declares
-  `'positive'`.
+- The mixed-scale pin flips here through the §4.4 fallback (its small
+  slot is 1e-8, undeclared, at a refusing site).
+- Also tested: epoch-route fits with a rate fixed at 0 (the nested
+  likelihood-ratio model); an exposure case with small alpha inside the
+  fallback band.
 
 ### Batch 2: Graph.svgd declares domains (fits change slightly)
 
-- The resolver in `Graph.svgd`; `_param_domains` on the model; the
-  consistency check in `SVGD.__init__`; `positive_params=False` →
-  `'unconstrained'`.
+- The resolver in `Graph.svgd`; `Graph.epoch_model` defaults to
+  `'positive'` (moved here from Batch 1 so the two routes stay in parity);
+  `_param_domains` on the model; the containment check in `SVGD.__init__`
+  and `FreeEpochModel.fit`; `positive_params=False` → `'unconstrained'`.
 - **Tests:**
   - the flat epoch domain list for mixed Beta/Gauss priors with tying and
     fixed slots;
   - gradients at fixed particles equal master's within 1e-6 relative for
-    theta >= 1e-3 (measured ~1e-8);
+    theta >= 1e-3 (measured ~1e-8), and within a tolerance set from Batch
+    0's measurement at theta = 1e-4 and 1e-5 (expected 1e-7 to 1e-5);
   - one coarse fit-level check per route;
   - the reported epoch fit from near-floor particles completes.
 
@@ -308,6 +345,14 @@ calls.
   floor" pin) may XPASS after Batch 2. The Batch 2 gate runs them
   explicitly. A flip is reported to the user, who decides whether to
   remove the marker; it is not edited silently.
+- `test_epoch_model.py:83` and `:161` (epoch_model reproduces Graph.svgd
+  at rtol 1e-9): must keep passing; they do because both routes declare in
+  the same batch (Batch 2).
+- **Behaviour changes (Batch 2), listed for the user:** `epoch_model`
+  gradients change for every user (declared 'positive'), by ~1e-8 relative
+  at theta >= 1e-3 and up to ~1e-5 at 1e-4 to 1e-5; `epoch_model(...).fit`
+  with `positive_params=False` on a default model raises with a rebuild
+  message.
 - Batch 0's census may add more; each is listed before Batch 1 starts.
 
 ## 8. Gate per batch
@@ -327,6 +372,8 @@ implementation review per batch.
   under any FD step.
 - **Linear-near-zero parameters** in theta-space direct calls: the §4.3
   limit.
+- **The §2 band:** undeclared slots with 0 < theta <= 1e-7 at refusing
+  sites change even where today did not crash.
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
   removes it.
 - **Overlap with the refactor:** `__init__.py` is also the refactor's
@@ -376,3 +423,15 @@ Reports: `experiments/fd_domain_steps/review{1,2,3}/REPORT.md`.
 - **Unit near 1.** R2 m4: the tolerance is noted in the Batch 1 tests.
 - **jnp only.** R2 m5 → §4.7.
 - **Gate strength.** R3 m6 → the Batch 1 and Batch 2 tests.
+
+### Review 4 (of v2) → v2.1
+
+Report: `experiments/fd_domain_steps/review4/REPORT.md`. B1 (fixed 0 on the
+epoch route still crashed) → §4.5 one-sided step, tests. M1 (slot-level
+trigger versus edge-level refusal) → §2 goal 2 restated with the band,
+§9. M2 (Batch 1 parity break) → epoch_model default moved to Batch 2, §7.
+M3 (over-strict check) → containment, storage on FreeEpochModel, listed
+behaviour change. m1 → fallback also for 'unconstrained' at refusing
+sites; prior=None wording. m2 → numpy variant at the host site. m3 →
+capped logit factor. m4 → population-genetics regime in §4.3 and Batch 2.
+m5 → zero-guard claim replaced by a measurement.

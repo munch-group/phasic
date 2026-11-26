@@ -1,0 +1,12 @@
+/Users/kmt/phasic/experiments/fd_domain_steps/review4/p1_edges.py:26: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+  jpg_d = graph.joint_prob_graph(indexer, reward_limit=5, mutation_rate=mu)
+/Users/kmt/phasic/experiments/fd_domain_steps/review4/p1_edges.py:29: DeprecationWarning: joint_prob_graph(mutation_rate=...) is deprecated; use event_rate_coefficient=... instead (same meaning: a fixed scale on the event-edge rates, effective rate = event_rate_coefficient * theta[-1]). The mutation_rate keyword will be removed in a future release.
+  jpg = graph.joint_prob_graph(indexer, reward_limit=5, mutation_rate=mu, discrete=False)
+/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:5986: RuntimeWarning: phasic enabled jax_enable_x64 after JAX was already imported. Any JAX arrays created before importing phasic are still float32 and may trip FFI dtype checks. Restart the kernel (or recreate arrays) if you see 'expected F64 but got F32' errors.
+  _ensure_jax_active()
+[0.0001, 0.0, 0.0001, 0.0001] -> RAISES ValueError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000
+[0.0001, 1e-07, 0.0001, 0.0001] -> [-5.70032758e+00  5.70022568e+00 -2.09922477e+05  2.09922028e+05]
+[0.0001, 9.999989999999999e-08, 0.0001, 0.0001] -> [-5.70032758e+00  5.70022569e+00 -2.09922477e+05  2.09922028e+05]
+[0.0001, 9.999e-08, 0.0001, 0.0001] -> [-5.70032759e+00  5.70022570e+00 -2.09922477e+05  2.09922028e+05]
+[0.0001, 5e-08, 0.0001, 0.0001] -> RAISES ValueError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000
+[runcap] exit 0, peak RSS 402 MB, 6s
