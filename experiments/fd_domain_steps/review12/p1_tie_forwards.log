@@ -1,0 +1,5 @@
+t=5e-08 u=1.0e-04 up=5.000500e-08 (t+1e-7=1.500000e-07, equal=False) tie=False f(t)==f(up)=False onesided[t,t+1e-7]=-8.175956e-02 exact=-8.175955e-02
+t=1e-09 u=1.0e-04 up=1.000100e-09 (t+1e-7=1.010000e-07, equal=False) tie=False f(t)==f(up)=False onesided[t,t+1e-7]=-8.175955e-02 exact=-8.175954e-02
+t=1e-11 u=1.0e-04 up=1.000100e-11 (t+1e-7=1.000100e-07, equal=False) tie=False f(t)==f(up)=False onesided[t,t+1e-7]=-8.175955e-02 exact=-8.175954e-02
+t=1e-13 u=1.0e-04 up=1.000100e-13 (t+1e-7=1.000001e-07, equal=False) tie=True f(t)==f(up)=True onesided[t,t+1e-7]=-8.175955e-02 exact=-8.175954e-02
+[runcap] exit 0, peak RSS 0 MB, 1s
