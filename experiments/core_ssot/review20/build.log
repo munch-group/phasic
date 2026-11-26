@@ -1,0 +1,3 @@
+mod_anchor.cpython-313-darwin.so
+mod_ref.cpython-313-darwin.so
+[runcap] exit 0, peak RSS 262 MB, 10s
