@@ -1,0 +1,4 @@
+pickle: TypeError cannot pickle 'Graph' object
+source is_discrete True wrap is_discrete False
+after wrap assignment, source True
+[runcap] exit 0, peak RSS 298 MB, 4s
