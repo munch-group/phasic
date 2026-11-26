@@ -1,0 +1,31 @@
+output pdf
+  t1=  1e-07 ref=+1.9477752229e-01 
+     plain_rel_err=2.06e-08 v2.4_band_rel_err=4.27e-05 (fb=+1.947692e-01) today_rel_err=2.08e-08
+  t1=  5e-08 ref=+1.9477753965e-01 
+     plain_rel_err=2.83e-09 v2.4_band_rel_err=2.56e-04 (fb=+1.948275e-01) today_rel_err=5.89e-08
+  t1=  1e-09 ref=+1.9477755667e-01 
+     plain_rel_err=4.73e-09 v2.4_band_rel_err=2.10e-02 (fb=+1.906808e-01) today_rel_err=6.17e-08
+  t1=  1e-11 ref=+1.9477755701e-01 
+     plain_rel_err=3.63e-09 v2.4_band_rel_err=9.95e-01 (fb=+3.885781e-01) today_rel_err=1.20e-07
+  t1=  1e-13 ref=+1.9477755701e-01 
+     plain_rel_err=1.36e-08 v2.4_band_rel_err=1.00e+00 (fb=+0.000000e+00) today_rel_err=9.10e-08
+  t1=  1e-15 ref=+1.9477755701e-01 
+     plain_rel_err=2.07e-09 v2.4_band_rel_err=1.00e+00 (fb=+0.000000e+00) today_rel_err=7.27e-08
+  t1=  0e+00 ref=+1.9477755701e-01 
+     plain_rel_err=7.77e-09 v2.4_band_rel_err=6.35e-08 (fb=+1.947775e-01) today_rel_err=6.26e-08
+output m1
+  t1=  1e-07 ref=-9.9999981000e-01 exact=-9.9999980000e-01
+     plain_rel_err=1.04e-08 v2.4_band_rel_err=2.71e-07 (fb=-1.000000e+00) today_rel_err=1.18e-08
+  t1=  5e-08 ref=-9.9999991000e-01 exact=-9.9999990000e-01
+     plain_rel_err=1.04e-08 v2.4_band_rel_err=1.71e-07 (fb=-1.000000e+00) today_rel_err=6.27e-08
+  t1=  1e-09 ref=-1.0000000080e+00 exact=-9.9999999800e-01
+     plain_rel_err=1.07e-08 v2.4_band_rel_err=3.11e-04 (fb=-1.000311e+00) today_rel_err=1.12e-07
+  t1=  1e-11 ref=-1.0000000100e+00 exact=-9.9999999998e-01
+     plain_rel_err=9.40e-09 v2.4_band_rel_err=1.10e-01 (fb=-1.110223e+00) today_rel_err=1.11e-07
+  t1=  1e-13 ref=-1.0000000100e+00 exact=-1.0000000000e+00
+     plain_rel_err=9.42e-09 v2.4_band_rel_err=1.00e+00 (fb=+0.000000e+00) today_rel_err=1.12e-07
+  t1=  1e-15 ref=-1.0000000100e+00 exact=-1.0000000000e+00
+     plain_rel_err=1.05e-08 v2.4_band_rel_err=1.00e+00 (fb=+0.000000e+00) today_rel_err=1.12e-07
+  t1=  0e+00 ref=-1.0000000100e+00 exact=-1.0000000000e+00
+     plain_rel_err=9.42e-09 v2.4_band_rel_err=1.09e-07 (fb=-9.999999e-01) today_rel_err=1.11e-07
+[runcap] exit 0, peak RSS 491 MB, 6s

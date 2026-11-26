@@ -1,0 +1,28 @@
+model pole
+  out=1 t1=9e-08 ref=-1.23457e+14  A(v2.4)=-1.23457e+14 relerr=1.9e-13  B(uB=0.0011)=-1.23457e+14 relerr=5.4e-14
+  out=1 t1=5e-08 ref=-4.00000e+14  A(v2.4)=-4.00000e+14 relerr=3.4e-13  B(uB=0.002)=-4.00000e+14 relerr=1.0e-14
+  out=1 t1=1e-09 ref=-1.00000e+18  A(v2.4)=-1.00000e+18 relerr=9.2e-14  B(uB=0.1)=-1.00000e+18 relerr=3.8e-16
+  out=1 t1=1e-11 ref=-1.00000e+22  A(v2.4)=-1.00000e+22 relerr=4.4e-14  B(uB=9.2)=-1.00000e+22 relerr=2.1e-16
+  out=1 t1=1e-13 ref=-1.00000e+26  A(v2.4)=-1.00000e+26 relerr=1.6e-13  B(uB=14)=-1.00000e+26 relerr=0.0e+00
+  out=2 t1=9e-08 ref=-5.48697e+21  A(v2.4)=-5.48697e+21 relerr=5.1e-09  B(uB=0.0011)=-5.48697e+21 relerr=6.2e-07
+  out=2 t1=5e-08 ref=-3.20000e+22  A(v2.4)=-3.20000e+22 relerr=5.0e-09  B(uB=0.002)=-3.20001e+22 relerr=2.0e-06
+  out=2 t1=1e-09 ref=-4.00000e+27  A(v2.4)=-4.00000e+27 relerr=5.1e-09  B(uB=0.1)=-4.02002e+27 relerr=5.0e-03
+  out=2 t1=1e-11 ref=-4.00000e+33  A(v2.4)=-4.00000e+33 relerr=5.0e-09  B(uB=9.2)=-2.00020e+37 relerr=5.0e+03
+  out=2 t1=1e-13 ref=-4.00000e+39  A(v2.4)=-4.00000e+39 relerr=5.0e-09  B(uB=14)=-2.00000e+45 relerr=5.0e+05
+model offset
+  out=pdf t1=9e-08 ref=+1.94778e-01  A(v2.4)=+1.94761e-01 relerr=8.5e-05  B(uB=0.0011)=+1.94780e-01 relerr=1.1e-05
+  out=pdf t1=5e-08 ref=+1.94778e-01  A(v2.4)=+1.94827e-01 relerr=2.6e-04  B(uB=0.002)=+1.94784e-01 relerr=3.5e-05
+  out=pdf t1=1e-09 ref=+1.94778e-01  A(v2.4)=+1.90681e-01 relerr=2.1e-02  B(uB=0.1)=+1.94777e-01 relerr=4.1e-07
+  out=pdf t1=1e-11 ref=+1.94778e-01  A(v2.4)=+3.88578e-01 relerr=9.9e-01  B(uB=9.2)=+1.94778e-01 relerr=1.2e-07
+  out=pdf t1=1e-13 ref=+1.94778e-01  A(v2.4)=+0.00000e+00 relerr=1.0e+00  B(uB=14)=+1.94778e-01 relerr=9.2e-08
+  out=1 t1=9e-08 ref=-1.00000e+00  A(v2.4)=-9.99990e-01 relerr=9.6e-06  B(uB=0.0011)=-1.00000e+00 relerr=4.7e-08
+  out=1 t1=5e-08 ref=-1.00000e+00  A(v2.4)=-1.00000e+00 relerr=1.7e-07  B(uB=0.002)=-9.99999e-01 relerr=4.9e-07
+  out=1 t1=1e-09 ref=-1.00000e+00  A(v2.4)=-1.00031e+00 relerr=3.1e-04  B(uB=0.1)=-1.00000e+00 relerr=1.3e-07
+  out=1 t1=1e-11 ref=-1.00000e+00  A(v2.4)=-1.11022e+00 relerr=1.1e-01  B(uB=9.2)=-1.00000e+00 relerr=1.1e-07
+  out=1 t1=1e-13 ref=-1.00000e+00  A(v2.4)=+0.00000e+00 relerr=1.0e+00  B(uB=14)=-1.00000e+00 relerr=1.1e-07
+  out=2 t1=9e-08 ref=-5.00000e+00  A(v2.4)=-4.99998e+00 relerr=4.6e-06  B(uB=0.0011)=-5.00000e+00 relerr=1.1e-07
+  out=2 t1=5e-08 ref=-5.00000e+00  A(v2.4)=-5.00000e+00 relerr=2.0e-07  B(uB=0.002)=-5.00000e+00 relerr=4.6e-07
+  out=2 t1=1e-09 ref=-5.00000e+00  A(v2.4)=-5.00266e+00 relerr=5.3e-04  B(uB=0.1)=-5.00000e+00 relerr=1.2e-07
+  out=2 t1=1e-11 ref=-5.00000e+00  A(v2.4)=-5.55112e+00 relerr=1.1e-01  B(uB=9.2)=-5.00000e+00 relerr=1.6e-07
+  out=2 t1=1e-13 ref=-5.00000e+00  A(v2.4)=+0.00000e+00 relerr=1.0e+00  B(uB=14)=-5.00000e+00 relerr=1.6e-07
+[runcap] exit 0, peak RSS 451 MB, 5s

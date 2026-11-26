@@ -1,10 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.4, 2026-11-26 (v2.3 + review 8). v1 (`b9178dab`) went through three independent
+**Status: v2.5, 2026-11-26 (v2.4 + review 9). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
-REJECT); their findings are folded in here (dispositions in §11). v2.3 is
-NOT re-reviewed. No code changed.** Split out of
+REJECT; reviews 8 and 9 of v2.3 and v2.4 likewise); their findings are
+folded in here (dispositions in §11). v2.5 is NOT re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..8}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..9}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -86,12 +86,18 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
   fallback of §4.4;
 - `'positive'` (0, inf);
 - `'unit'` (0, 1);
-- `'unconstrained'`: plain ±1e-7, divided by the literal 2·eps, NO clamp
-  (the fix for signed parameters), EXCEPT in the band 0 <= theta <= 1e-7,
-  where the §4.4 fallback applies on every model (a plain central
-  difference there straddles the 1/rate pole of moments and sojourn
-  outputs and flips the gradient's sign: measured +1.33e14 against an
-  exact -4.00e14 at theta = 5e-8, review8/p5_unconstrained_pole.log);
+- `'unconstrained'`: a symmetric step divided by the actual difference,
+  NO clamp (the fix for signed parameters), whose size follows the
+  EDGE-DISTANCE rule of §4.4: plain ±1e-7 unless a probe would bring some
+  edge weight the slot enters to (or across) zero, in which case the step
+  shrinks in proportion to that edge's distance from zero. Rationale: a
+  plain central difference that crosses an edge weight of 0 straddles the
+  1/rate pole of moments and sojourn outputs and flips the gradient's sign
+  (measured +1.33e14 against an exact -4.00e14 at theta = 5e-8,
+  review8/p5_unconstrained_pole.log), while a slot that only offsets a
+  large rate (rate = 1 + t1, t1 near 0) has no pole and needs the full
+  1e-7 step (a relative step there collapses to a zero gradient,
+  review9/p1_signed_offset.log);
 - `'fixed'`: never probed.
 
 **Side-effect-free resolver.** One function
@@ -190,11 +196,14 @@ pdf's capped step (harmless; stated).
 |---|---|---|---|
 | positive | theta·e^(±s) | theta·e^(±u), u = min(log1p(1e-7/theta), s) | actual difference, with zero guard |
 | unit | logit step of s | logit step of size min(s, 1e-7/(theta(1-theta)))/(1 + s) (the extra factor keeps the up-probe at most ~1e-7 above theta to second order) | actual difference, with zero guard |
-| unconstrained | — | theta ± 1e-7 | literal 2·eps, no clamp |
+| unconstrained | — | linear-weight models: theta ± h_k, h_k = min(1e-7, s·d_k), d_k the edge distance (§4.4); non-linear (refusing) models: theta ± 1e-7 outside 0 <= theta <= 1e-7, the capped positive rule inside it | literal 2·eps when h_k = 1e-7, else the actual difference with zero guard |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
 The capped up-probe is never more than 1e-7 above theta (review 1 m1
-corrected v1's formula), and no probe is ever negative.
+corrected v1's formula), and no `'positive'` probe is ever negative. An
+`'unconstrained'` probe may be negative (that is the point of the domain);
+the edge-distance rule keeps every edge weight it touches on its side of
+zero.
 
 ### 4.3 Error model
 
@@ -208,9 +217,17 @@ steps, s²·theta·(F''/2 + theta·F'''/6) in theta terms). Measured:
   theta terms grows like 1/theta: 1e-3 at 1e-9, ~100% at 1e-13
   (review3/p3_nearzero.log).
 
-That is harmless for fits, where softplus floors theta at 1e-9
-(`svgd.py:5254`) and the absolute error in phi is ~1e-11, but it is a
-documented limit for direct theta-space callers.
+That is harmless for softplus/sigmoid fits, where softplus floors theta at
+1e-9 (`svgd.py:5254`) and the absolute error in phi is ~1e-11, but it is a
+documented limit for direct theta-space callers. It does NOT apply to
+`'unconstrained'` slots on linear-weight models, which use the
+edge-distance rule (accurate for both poles and offsets). On NON-linear
+(refusing) models an `'unconstrained'` slot in the band uses the capped
+positive rule, which has the trade-off measured in review 9: exact at a
+pole, but for a slot that only offsets a large rate the relative error
+grows as the slot shrinks (2.6e-4 at 5e-8, 2e-2 at 1e-9, ~1 at 1e-11,
+and a forward tie, i.e. an exact zero, at 1e-13;
+review9/p2_band_variants.log); §4.5 makes that tie non-silent.
 
 ### 4.4 Crash fallback (fixes every route)
 
@@ -230,7 +247,7 @@ refuses when ANY of these holds:
   `phasic.c:4938`; measured, review7/p1_cpp.log): ALWAYS refusing,
   continuous and discrete;
 - it is CALLED WITH REWARDS (the existing `_rewards_provided` test,
-  `rewards is not None and rewards.size > 0`, `__init__.py:9014`; an empty
+  `rewards is not None and rewards.size > 0`, `__init__.py:9021` on HEAD `003559ed`, Batch 0 re-confirms; an empty
   array triggers no reward transform): the reward-transform
   rebuild goes through the same add-edge check, so a linear continuous
   `pmf_and_moments_from_graph` model refuses a negative probe when called
@@ -276,10 +293,33 @@ survive only through the 1e-9 clamp. Removing that clamp under
 discretized fits (review6/p1_modes.log).
 
 On a non-refusing (linear continuous) model, undeclared slots keep today's
-code everywhere. `'unconstrained'` slots are plain ±1e-7 outside the band
-and get the fallback inside it (0 <= theta <= 1e-7) on EVERY model, refusing
-or not, because of the 1/rate pole (§3). The signed-parameter fix is
-unaffected: a slot such as theta = -5 lies outside the band.
+code everywhere.
+
+**Edge-distance rule for `'unconstrained'` slots on linear-weight models**
+(review 9). For weight mode `linear` the edge weights are w_e = Σ_k
+c_ek·theta_k, with the coefficient matrix C known at build time (from
+`serialize()`'s parameterized edges). For each slot k let
+
+    d_k = min over edges e with c_ek ≠ 0 of  |w_e| / |c_ek|
+
+(the change in theta_k that would bring some edge it enters to zero).
+The slot is probed at theta_k ± h_k with h_k = min(1e-7, s·d_k), divided
+by the actual difference (zero guard). So:
+
+- an offset slot (rate = 1 + t1) has d ~ 1 and gets the full 1e-7: today's
+  accuracy;
+- a slot that is itself a rate near 0 gets a step proportional to its
+  value: exact at the 1/rate pole;
+- an edge SUM near zero (rate = t0 + t1 with t0 = 1.5e-7, t1 = -1e-7) is
+  caught too, which no per-slot band can do (review 9 minor 1).
+
+It runs in jnp (one C·theta product per backward, O(E·P), small next to a
+forward), with no Python branching on theta. Exposure-scaled slots use the
+scaled value. The signed-parameter fix is unaffected (theta = -5 with d
+large keeps ±1e-7). On non-linear weight modes (which refuse) the edge
+weights are not linear in theta: there `'unconstrained'` slots use the
+band rule (0 <= theta <= 1e-7: capped positive rule) with the §4.3
+trade-off, and edge-sum poles are the model's own domain (§9).
 
 The `reward_visit_probability` backward uses the BUILD-TIME flag only (it
 has no rewards argument); that is harmless, since its forward accepts a
@@ -313,6 +353,12 @@ model's own domain, stated in §9.
   the widening applies to every flat slot e·P + k. `SVGD.__init__` uses the
   same containment check (not equality), so the widened slot fitted with a
   sigmoid passes.
+- **A forward tie** (f+ == f- in every output) on a selected
+  capped-band branch, e.g. an offset slot at 1e-13 on a non-linear model:
+  counted and logged like a zero probe difference (once per model), and
+  that slot's quotient falls back to the one-sided [theta, theta + 1e-7]
+  difference when both of those probes are valid (non-negative edge
+  weights), which repairs the exact zero (not the ~11% error at 1e-11).
 - **A zero probe difference** (theta above ~2e9, where the capped u falls
   below ~5.5e-17; at 1e9 the down-probe still moves, review6/p1_modes.log)
   gives a zero gradient for that slot and a host-side counter plus a
@@ -489,6 +535,12 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   - a VALUE test: `positive_params=False`, linear, no rewards,
     `exact_moment_grad=False`, slot 5e-8: the moments gradient matches the
     closed form (sign and magnitude);
+  - VALUE tests for the edge-distance rule on a linear model: a pole slot
+    (rate = t1) and an offset slot (rate = 1 + t1) at t1 in {5e-8, 1e-9,
+    1e-13}, and an edge-sum case (t0 = 1.5e-7, t1 = -1e-7), each against a
+    closed form or a wide-step reference; and the band rule on a log-mode
+    model at the same points, pinning the stated §4.3 trade-off and the
+    §4.5 tie behaviour;
   - the 2-D rewards (multivariate) leaf and an exposure fit carry
     `_param_domains` to every FD site (the spy).
 
@@ -538,8 +590,12 @@ implementation review per batch.
   models change even where today did not crash (theta == 0 included: the
   one-sided step replaces today's clamp secant or central difference; such
   points are excluded from the bit-identity tests).
-- **Out of scope by nature:** the native-discrete upper row-sum wall, and
-  non-monotone formulas that make an edge negative with every slot large.
+- **Out of scope by nature:** the native-discrete upper row-sum wall;
+  non-monotone formulas that make an edge negative with every slot large;
+  edge-sum poles on NON-linear weight models (the band protects only a
+  pole at a single slot there).
+- **The band trade-off on non-linear models** (§4.3): an `'unconstrained'`
+  offset slot below ~1e-9 loses accuracy (non-silently at a tie).
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
   removes it.
 - **Overlap with the refactor:** `__init__.py` is also the refactor's
@@ -662,3 +718,22 @@ Report: `experiments/fd_domain_steps/review8/REPORT.md`.
   - m4: goal 4 says build-time fixed; the rvp flag is build-time only.
   - m5: `_rewards_provided`; the counter counts the selected branch.
   - Path fixed for the parity tests.
+
+### Review 9 (of v2.4) → v2.5
+
+Report: `experiments/fd_domain_steps/review9/REPORT.md`.
+
+- **The band zeroes an additive signed slot** (M1, measured; no
+  single-slot rule serves both a pole and an offset) → the edge-distance
+  rule for `'unconstrained'` on linear-weight models (§3, §4.2, §4.4),
+  which serves both. The band rule with a stated trade-off remains on
+  non-linear models (§4.3, §9). A tie is counted and falls back to a
+  one-sided step (§4.5). Value tests are added.
+- **Minors.**
+  - m1 (edge-sum poles): covered by the edge-distance rule on linear
+    models; stated out of scope on non-linear ones.
+  - m2: the §4.2 row is corrected.
+  - m3: the status line; the `_rewards_provided` line.
+- **Optional (d)** (the band costs pdf accuracy when moments are exact): moot
+  on linear models, where the edge-distance rule keeps the full 1e-7 step
+  wherever no edge nears zero.
