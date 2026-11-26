@@ -302,13 +302,15 @@ The stack is four layers; a change in the domain logic usually touches Python on
 
 4. **Python package** — `src/phasic/`. `__init__.py` (very large, ~13k lines) defines `class Graph(_Graph)`, the primary user-facing object; nearly all user-visible methods hang off it. Everything else in the directory is a supporting submodule.
 
-### The central computation pattern: trace-based elimination
+### The central computation pattern: record the elimination once, replay it per θ
 
-This is the key idea to understand (`trace_elimination.py`). Instead of symbolic expression trees (which blow up exponentially), graph elimination is done **once** with unit weights while **recording a linear trace of arithmetic operations** (O(n³) record). That trace is then **replayed** with concrete parameter vectors θ (O(n) per replay). The replay is pure-array and therefore JAX-compatible: `jit`, `grad`, `vmap`, `pmap` all work, and it scales to 100k+ vertices. Any parameterized graph uses this path regardless of caching flags.
+For a parameterized graph, the C core eliminates the graph ONCE with symbolic weights and records the arithmetic as a command tape over a memory arena (`ptd_precompute_reward_compute_graph`, `src/c/phasic.c`). After `update_weights(θ)`, expectation/moments/variance, sojourn times, the exact-gradient cores and the JAX FFI handlers (GraphBuilder) replay that tape instead of eliminating again. The tape is cached in memory per graph, optionally on disk (rev-3 files, mmap-loaded), and per strongly connected component for the C composer (`scc_compose.c`, used by `parallel_elimination` / `PHASIC_HIERAR_ELIMINATION`). JAX never sees the tape: its gradients come from finite differences or the C exact-gradient cores.
+
+**Retired (2026-11-26 check):** the older Python trace pipeline (`trace_elimination.py` recorder and `evaluate_trace_jax` replay, `hierarchical_trace_cache.py` stitching, `trace_serialization.py`) is reachable only through the deprecated `Graph.compute_trace()`; its other call sites are commented out. It is scheduled for deletion (refactor plan `plans-and-findings/core-engine-ssot-plan.md`, decision R12', phase 13). Do not build on it.
 
 ### Hierarchical / SCC caching and distribution
 
-For large graphs (`hierarchical_trace_cache.py`, `distributed_scc.py`): the graph is decomposed into strongly connected components, each SCC's trace is computed in parallel and **hash-deduplicated**, then results are stitched back in topological order. Parallelism runs via JAX vmap/pmap, OpenMP (C composer), or across SLURM nodes. Related: `graph_cache.py` / `trace_cache.py` (on-disk caches under `~/.phasic_cache/`), `cloud_cache.py` + `compute_repository.py` (IPFS-published trace registry), `srun_magic.py` / `cluster_configs.py` / `parallel_utils.py` (SLURM). The `test_slurm_*` and `test_scc_*` tests cover this.
+For large graphs the graph is decomposed into strongly connected components; each SCC's elimination tape is computed in parallel and **hash-deduplicated**, then composed in topological order by the C composer (`scc_compose.c`; the SLURM per-SCC path is `distributed_scc.py`). The Python stitching in `hierarchical_trace_cache.py` belongs to the retired trace pipeline above. Parallelism runs via JAX vmap/pmap, OpenMP (C composer), or across SLURM nodes. Related: `graph_cache.py` / `trace_cache.py` (on-disk caches under `~/.phasic_cache/`), `cloud_cache.py` + `compute_repository.py` (IPFS-published trace registry), `srun_magic.py` / `cluster_configs.py` / `parallel_utils.py` (SLURM). The `test_slurm_*` and `test_scc_*` tests cover this.
 
 ### Inference & likelihood entry points
 
