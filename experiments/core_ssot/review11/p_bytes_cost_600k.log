@@ -1,0 +1,8 @@
+N_req=600000 vertices=600627 python_build_s=2.33 peak_rss_mb=640
+serialize_s=3.84 json_dumps_s=0.92 json_MB=50.1 B_per_vertex=83 peak_rss_mb=1069
+json_loads_np_s=0.93 peak_rss_mb=1121
+from_serialized_s=2.65 peak_rss_mb=1125
+roundtrip_equal_vertices=True
+Graph(g)_wrap_s=0.000035
+type_today_is_raw_base=Graph
+[runcap] exit 0, peak RSS 1095 MB, 14s
