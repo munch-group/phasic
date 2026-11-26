@@ -1,20 +1,20 @@
 # Core-engine refactor: C/C++ as the single source of every core computation
 
-**Status: v2.14, 2026-11-26. Eighteen adversarial reviews so far (Opus):
+**Status: v2.15, 2026-11-26. Nineteen adversarial reviews so far (Opus):
 three of v1 (`b9178dab`), one each of v2 (`256c788a`), v2.2 (`f326cae7`),
-v2.3 to v2.13, two of v2.1 (`900b8016`). v2.10 moves all
+v2.3 to v2.14, two of v2.1 (`900b8016`). v2.10 moves all
 `load_cpp_builder` work (its source rule, cache key, secure directory,
 tests and OI-116) into phase 0d, since it only compiles from 0d. All said CHANGES REQUIRED; none
 rejected the goal. Findings and the user's decisions are folded in
 (dispositions in §9). The user approved D15, D16 and D17 on 2026-11-26
-(§2; D18 on the hand-off format added later the same day). v2.14 is NOT re-reviewed. One decision is pending with the user (D19, §2). No code changed.**
+(§2; D18 on the hand-off format added later the same day). v2.15 is NOT re-reviewed. One decision is pending with the user (D19, §2). No code changed.**
 
 This is a master plan: each phase gets its own detailed sub-plan, reviewed
 before any code. It supersedes the unexecuted parts of
 [stage3-refactor-plan.md](stage3-refactor-plan.md) (July 2026), which stays
 as history; its doctrine and the decisions listed in §2 carry over, except
 its §4a item 3 ("`evaluate_trace_jax` is not dead code"), retracted by R12'.
-Review reports: `experiments/core_ssot/review{1..18}/REPORT.md`.
+Review reports: `experiments/core_ssot/review{1..19}/REPORT.md`.
 
 Phase numbers changed in v2.1 (trace deletion moved to phase 2, add_epoch
 ahead of the joint family); §9 maps old to new.
@@ -338,47 +338,68 @@ phase-type graph:
     (pybind's caster is instantiated in the module, `type_caster_base.h:1647-1694`;
     the module's inline copy constructor, `phasiccpp.h:254-264`), and for a
     `phasic::Graph&` argument no extension code runs at all (review 17):
-    - **one layout by construction:** the build installs a generated
-      `phasic_build_config.h`, included first by the installed headers,
-      that defines every layout-affecting option the extension was built
-      with (e.g. `PHASIC_B3_VALIDATORS`, a PRIVATE compile definition today,
-      `CMakeLists.txt:326-327`, which adds a `ptd_graph` field,
-      `phasic.h:263-270`), so a module compiles the same C struct layouts
-      as the extension;
-    - **one check per module, at load time (review 18):** the installed
-      `phasiccpp.cpp`, which every cppimport module must compile to link
-      `phasic::Graph` (all four list it in `cfg["sources"]`:
-      `cpp_state_spaces.cpp:95`, `cpp_callback_construction.cpp:112`,
-      `_cpp_add_epoch_fixture.cpp:193`, `_cpp_from_callback_fixture.cpp:97`),
-      contains a static initializer that computes the module's OWN layout
-      fingerprint at compile time: `sizeof`, `alignof` and key `offsetof`s
-      of `rf_graph`, `ptd_graph`, `ptd_vertex`, `ptd_edge` and
-      `phasic::Graph`; `sizeof` of `std::string`, `std::vector`,
-      `std::function` and `std::map`; the standard-library identity macros
-      (`_LIBCPP_ABI_VERSION`, `__GLIBCXX__`, `_GLIBCXX_USE_CXX11_ABI`); and
-      the header hash. It passes the fingerprint to `ptd_abi_check(fp)`,
-      exported by the extension (modules already resolve `ptd_*` from it),
-      which compares it with the extension's own compiled value;
-    - **on a mismatch the module refuses to load:** the initializer prints a
-      clear message (rebuild the module against this phasic) and aborts the
-      import. No graph can exist in a mismatched module, so no per-access
-      check is needed. Instrumenting every access instead was rejected:
-      there are 187 `rf_graph->` uses in the header, 21 direct
-      `rf_graph->graph` dereferences, and raw `ptd_vertex*` / `ptd_edge*`
-      pointers in `Vertex` / `Edge`, so a per-access guard could not be
-      made complete;
-    - the extension's wrap (`py::init<const phasic::Graph>`,
-      `phasic_pybind.cpp:873`, which today has no body) becomes a factory
-      taking `const phasic::Graph&` that checks a version word at offset 0
-      of `rf_graph` (the first member, `phasiccpp.h:1914`) before copying,
-      as a second line of defence;
-    - the generated fingerprint inputs are also written into the installed
-      `phasiccpp.cpp` (a `configure_file` step, `CMakeLists.txt:383-385`;
-      the header hash is taken before injection), so ANY header or option
-      change forces cppimport to rebuild unedited modules (it hashes
-      `cfg["sources"]` contents, `cppimport/checksum.py:63-77`); phase 3
-      itself changes `phasiccpp.cpp`, so modules built before the guard
-      rebuild once;
+    - **The guard is specified by REQUIREMENTS here; its mechanism is
+      designed and reviewed in the phase-3 sub-plan.** Reviews 16-19 each
+      found a mechanism detail that failed (where a check can run, which
+      layout it sees, how it refuses, which modules it reaches, what it
+      does to the JIT copies). Those are implementation questions for the
+      phase-3 sub-plan; the master plan fixes what the guard must achieve:
+      - **G1 Coverage.** Every module that can hold a `phasic::Graph`
+        passes the guard. A module that does not compile the installed
+        `phasiccpp.cpp` can today still build and pass a graph (measured,
+        `experiments/core_ssot/review19/nocpp_undef.log`), so the guard
+        must be reachable from every inline constructor (e.g. a non-inline
+        symbol defined only in `phasiccpp.cpp`; the extension exports no
+        `phasic::Graph::` symbols, so a module lacking it fails to load).
+      - **G2 Real layout.** The check compares the module's own COMPILED
+        layout (struct sizes and offsets of `rf_graph`, `ptd_graph`,
+        `ptd_vertex`, `ptd_edge`, `phasic::Graph`; std type sizes; stdlib
+        ABI macros; header hash) with the extension's. A constant baked
+        from the extension's build cannot see the module's layout
+        (review 18). An installed generated `phasic_build_config.h` makes
+        the layout options identical by construction (e.g.
+        `PHASIC_B3_VALIDATORS`, today a PRIVATE compile definition,
+        `CMakeLists.txt:326-327`, `phasic.h:263-270`).
+      - **G3 Before use.** No module code touches graph memory before the
+        check has passed (a per-access guard is not feasible: 187
+        `rf_graph->` uses in the header, raw `ptd_vertex*`/`ptd_edge*` in
+        `Vertex`/`Edge`; a load-time or first-construction check is).
+      - **G4 Never kills the process.** A mismatch raises a Python error
+        (an `ImportError` at import, or a `RuntimeError` at first
+        construction). It never throws or aborts in a static initializer:
+        that was measured to SIGABRT the interpreter (a dead notebook
+        kernel); setting a Python `ImportError` and returning was measured
+        to raise cleanly (`review19/probe_static_init.log`, CPython 3.13,
+        pybind11 3.0.3; the free-threaded build has no GIL to rely on).
+      - **G5 Rebuild of unedited modules.** Any header or layout-option
+        change forces cppimport to rebuild the docs modules without
+        editing them (they list the installed `phasiccpp.cpp` in
+        `cfg["sources"]`, `cpp_state_spaces.cpp:95`,
+        `cpp_callback_construction.cpp:112`; cppimport hashes those
+        contents, `cppimport/checksum.py:63-77`), so the fingerprint inputs
+        are written into the installed `phasiccpp.cpp`.
+      - **G6 The JIT copies keep working.** `phasiccpp.cpp` is also
+        compiled into the `pmf_from_cpp` JIT library (`__init__.py:1126`)
+        and the `load_cpp_builder` library (`phasic_pybind.cpp:5198`), which
+        link standalone or load `RTLD_LOCAL` with hidden visibility (0d).
+        The guard symbol's home is chosen so both still compile and load
+        (e.g. defined in `phasic.c` against generated C constants, or
+        compiled out under a define those drivers set); the phase-3 gate
+        includes both routes compiling and loading on macOS and Linux.
+      - **G7 Second line.** The extension's wrap (`py::init<const
+        phasic::Graph>`, `phasic_pybind.cpp:873`, no body today) becomes a
+        checked factory (a version word at offset 0 of `rf_graph`, the
+        first member, `phasiccpp.h:1914`).
+      - **G8 Tests in-process.** Refusal tests run in the pytest process
+        (not only in subprocesses) for a changed header, a flipped layout
+        option, a stdlib mismatch, and a module that does not compile
+        `phasiccpp.cpp`, each with the rebuild disabled so the refusal
+        path itself is exercised.
+      Candidate mechanisms from reviews 17-19 (an exported
+      `ptd_abi_check()`; a static-initializer fingerprint; a non-inline
+      `phasic::detail::abi_guard()` called by every inline constructor with
+      a function-local static; an ImportError set via `PyErr_SetString`)
+      are the starting point for the phase-3 sub-plan, not decisions.
     - the test modules also list the headers in `cfg["dependencies"]`;
     - `docs/pages/tutorial/coalescent_from_callback.cpp` is a STANDALONE
       C++ program (`int main`, `:89`), not a cppimport module: it compiles
@@ -667,9 +688,9 @@ ahead; implementation is sequential. Sizes are relative (S / M / L / XL).
 | 0b | Determinism (R14) | Address order → index order everywhere: the `arr_c_cmp` sorts (`phasic.c:6088-6094`, used at `:6327`, `:7414`, `:7784`, `:8180`), the pointer comparisons in the merge loops (`:6489`, `:7535`, `:7926`, `:8301`) and the pointer-arithmetic sentinels (`:6187`/`:6247`, `:7275`/`:7324`, `:7643`/`:7696`, `:8052`/`:8101`), all in the `ptd_vtx_order_key` form (`:8541`). Confirm and close OI-022, OI-023, and OI-015 (time-boxed; the FFI rewarded path reward-transforms per theta, `graph_builder.cpp:993`). Heap-perturbation harness (in-process). **Listed changes:** last digits of constant-model read-outs; the EDGE ORDER and `serialize()` output of reward-transformed graphs (measured address-dependent today: 3 orders in 16 instances, `experiments/core_ssot/review6/r14b.log`), and any content hash or cache key computed from them; seeded `sample()` sequences on reward-transformed graphs. | M | not started |
 | 0c | Cheap core fixes | OI-088 factorial; OI-118 the `phasic::Vertex` / `Graph` copy-assignment segfault (`phasiccpp.h:~1840-1900`, root cause in copy assignment); OI-089's source and cache parts for `pmf_from_cpp` per R7 (the complete JIT source set installed, one source-resolution rule with `PHASIC_SOURCE_DIR` as override, a cache key over every compiled source file and the flags, a secure cache directory; tests on `pmf_from_cpp`: a changed source tree recompiles, it works on a non-editable install); OI-033 C++ discretize checks; OI-019/020 discrete reward transform; today's serialize reader treats unknown versions or keys as a cache MISS for graph-cache entries (a clear error elsewhere), after enumerating every producer of dicts fed to `from_serialized` (`serialize_scc_synth` `distributed_scc.py:77`, `compute_repository`, `_apply_weight_callback`) | S (relative to 0d; M in absolute terms) | not started |
 | 0d | `load_cpp_builder` bytes hand-off (D18) | `load_cpp_builder`'s compile fixed (C files compiled as C, with `-fvisibility=hidden` exporting only the entry, free and test-walk functions, plus `-Wl,-Bsymbolic` on Linux, so a host that loaded another phasic copy globally cannot interpose its symbols) in the same phase as the hand-off; its source rule, cache key and secure directory (as for `pmf_from_cpp` in 0c); OI-116 (no `normalize()`; the wrapper template, `phasic_pybind.cpp:5172-5186`, regenerated); tests: a changed source tree recompiles, it works on a non-editable install; an INDEPENDENT oracle: a test-only function exported by the JIT copy writes a canonical C-level walk of the SOURCE graph BEFORE it is freed (vertex index, state, is_aux, in-tree bit, each edge's target, weight bits and coefficient bits in array order, IPV incl. parameterized start edges, was_dph, param_length, formula source, theta blocks and names, epoch fields, and the formula tape's ops and constant bits; the header also carries the emitter/reader source hash, and other source differences between the copies are behavioural only because no struct crosses), plus one comparison of the post-`update_weights` edge weights at a fixed theta on both graphs, bitwise (the JIT copy compiled with the extension's EFFECTIVE `-ffp-contract` setting, since D15 sets it explicitly only in phase 1; a model-level read-out such as `expected_waiting_time` is NOT used, because the extension may switch to MPFR above condition 1e12 or under `PHASIC_FORCE_MPFR`, `phasic.c:10121-10133`, and the JIT copy has no MPFR or OpenMP); the same walk compiled into the extension runs on the rebuilt graph, and the two are compared field by field; each test model also asserts its expected header values from its definition (a was_dph model returns `is_discrete` True, a formula model returns formula); the C++ emitter in the JIT copy and the C++ reader in the extension (unbound, reachable only through the JIT function's buffer); version constant; exported free function; hand-off order emit → free → rebuild; the Python wrapper sets the metadata (R7); returns a `Graph` (differences listed for approval, incl. the lost `_callback`); per-call benchmark against today's route with the compile fixed, bound emit + rebuild <= 1× build time (D19); field-by-field gate: exact edge order against a C-level walk of the rebuilt graph, an idempotence check (emit, rebuild, emit in the extension, byte-compare), theta layout via `_theta_layout`, epoch fields as the Python attributes the wrapper sets (no pybind getter exists today; one may be added in 0d) and an epoch test model built with C++ `add_epoch`, for which Python `add_epoch` (given `callback=` explicitly, since `_callback` is lost) on the returned graph must equal Python `add_epoch` on the equivalent Python-built base (feasible today, `experiments/core_ssot/review16/p_epoch_parity.log`; the builders in `tests/pytest/_cpp_add_epoch_fixture.cpp` can serve as test models), the Python attributes, and against Python `serialize()` only the fields it carries (order compared modulo its documented reordering); test models include a formula-mode, a was_dph, a named-slot and a duplicate-state graph and use the C++ vertex-chain idiom (OI-118 is fixed in 0c; 0d's reader and wrapper avoid `Graph` assignment regardless); the native checklist (ASan, malloc-scribble, fuzz smoke) | M | not started |
-| 1 | Inventory, gates, baselines | re-check §3 on master; D15 applied (including the JIT commands), then baselines; the refusal-matrix fixture; the routing-gate baseline; golden fixtures for the cyclic and formula elimination cells (outside the D17 oracle's reach); the corpus axes (OI-065); codec latency baseline (the phase-6 gate is relative to it); golden fixtures for phases 2-4; benchmark protocol and baseline; tests and a measured baseline for `pmf_from_cpp` / `load_cpp_builder` (after 0d); arm64 + x86 CI gates; ASan and TSan jobs; supported platforms recorded (Windows wheels are built, `pypi-release.yml:47-51`, but the JIT routes assume `/tmp`, `g++` and POSIX mmap); the orphan installed libraries decided | M | not started |
+| 1 | Inventory, gates, baselines | re-check §3 on master; the decision on the installed `include/` tree keeps `phasiccpp.cpp` and `phasic_build_config.h` installed (D20 depends on them); D15 applied (including the JIT commands), then baselines; the refusal-matrix fixture; the routing-gate baseline; golden fixtures for the cyclic and formula elimination cells (outside the D17 oracle's reach); the corpus axes (OI-065); codec latency baseline (the phase-6 gate is relative to it); golden fixtures for phases 2-4; benchmark protocol and baseline; tests and a measured baseline for `pmf_from_cpp` / `load_cpp_builder` (after 0d); arm64 + x86 CI gates; ASan and TSan jobs; supported platforms recorded (Windows wheels are built, `pypi-release.yml:47-51`, but the JIT routes assume `/tmp`, `g++` and POSIX mmap); the orphan installed libraries decided | M | not started |
 | 2 | Delete the Python trace pipeline (R12') | removal list for the user: every public name in §3, the `phasic.trace_elimination` import path, `Graph(cache_trace=...)`, the public properties `Graph.cache_trace` (`__init__.py:2179`), `Graph.hierarchical` (`:2202`) and `Graph.trace_valid` (`:2213`, all referenced in `docs/api/Graph.qmd`), the change to `get_all_cache_stats()`'s result, and the affected notebook cells (`trace-and-jax-caching-c-path`, `svgd-joint-prob`, `benchmarks/python/test_hierarchical_caching` cells 2, 8, 10, 12, 14, 18); ask about the C trace port and the `_c_trace_*` bindings; `trace_elimination.py` moves under `tests/` as a tests-only oracle (D17) and is deleted after phase 13 merges; relocate `is_cache_disabled` (redefining its condition); a disposition list (rewrite / delete / keep) for the 24 test files that import the pipeline (`experiments/core_ssot/review8/imports.txt`) plus `test_gate_moments_3way.py:52` (asserts `ga.cache_trace is False`) and `inference/test_hierarchical_graph.py` (uses `compute_trace`), e.g. `test_modeling_compose.py:434-457` (add_epoch moments via `get_trace_hierarchical`, rewritten onto `record_elimination_trace`, an oracle input for phase 7), `test_trace_cache.py`, `test_slurm_cpu_count.py`, `test_pickle_cache_trust.py`, `test_c_trace_reload_param.py`; OI-049, OI-080 (`_pmap_file_cache` lives only in `hierarchical_trace_cache.py:471`, `:542`) and OI-083 close; OI-044 becomes a recorded limitation of the oracle | M | not started |
-| 3 | pybind restructure and construction | the D20 cppimport guard (R13 note): an installed generated `phasic_build_config.h` so modules compile the extension's layout options; a load-time layout fingerprint check in the installed `phasiccpp.cpp` (struct sizes and offsets, std type sizes, stdlib ABI macros, header hash) against the extension's `ptd_abi_check()`, refusing the module's import on mismatch; the extension's wrap as a checked factory (version word at offset 0 of `rf_graph`); fingerprint inputs written into the installed `phasiccpp.cpp` so unedited docs modules rebuild; headers in the test modules' `cfg["dependencies"]`; REFUSAL tests with the rebuild disabled for a changed header, a flipped `PHASIC_B3_VALIDATORS` and a mismatched stdlib macro; split into `register_*()` (keeping the 0d binding's exception types and messages) (the D17 oracle tests are in this phase's gate: they use the re-registered `_Graph` methods); C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
+| 3 | pybind restructure and construction | the D20 cppimport guard meeting requirements G1-G8 (R13 note; mechanism designed and reviewed in this phase's sub-plan), with the phase gate including `pmf_from_cpp` and `load_cpp_builder` still compiling and loading on macOS and Linux; split into `register_*()` (keeping the 0d binding's exception types and messages) (the D17 oracle tests are in this phase's gate: they use the re-registered `_Graph` methods); C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
 | 4 | Moments, variance, covariance, discreteness | the C++-owned (per-object) discreteness flag and OI-021 (one discrete rule, including OI-078's discretized `expectation()`) decided first; `is_discrete` becomes a property WITH A SETTER over the C flag in this phase. The flag's HOME is per `phasic::Graph` OBJECT, copied in the C++ copy constructor like `_weight_formula_src` (`phasiccpp.h:254-266`), NOT in the shared `ptd_graph`: a wrap shares the `ptd_graph`, and a flag stored there would let `Graph(g)`'s reset silently flip the SOURCE to continuous (measured semantics today: the wrap is reset, the source is unchanged, `experiments/core_ssot/review9/p_pickle_wrap.log`). The desync fixture includes wrap-then-assign on both source and wrap (assignment is public API: 13 assignments in `src/phasic`, 15 in tests, e.g. `__init__.py:11327`, `_graph_serialize.py:~713`), so there is never a second discreteness store; its relation to `was_dph` (a distinct latch) is spelled out; a desync fixture assigns the attribute and checks the read-outs and the routing gate; `ptd_moments`, `ptd_continuous_to_discrete_moments`, variance/covariance kernels or sanctioned list; `phasic::Graph::moments` API; rewarded-moments rule per call site; drift gate (non-MPFR tapes, same reward scaling); gates at k >= 13 and k >= 21; matrices; retire the generated-C++ emitter (R4) with the constant `pmf_from_graph` A/B gate; `use_ffi` deprecation; OI-026, OI-031 | L | not started |
 | 5 | Graph state and serialize schema | every record field states its HOME (per `phasic::Graph` object and copied on copy, or shared in `ptd_graph`) and keeps today's `Graph(g)` wrap semantics, with any change listed for approval; the census records each field's CURRENT wrap behaviour (today Python attributes are dropped on a wrap and fall back to getattr defaults, e.g. a log-mode wrap is routed as linear, while C++ fields such as `_weight_formula_src` are copied), so a property over a copied record does not silently change routing; starts with a census of every metadata read in `src/phasic` and in the `tests/` oracle (direct and getattr-default, incl. the inference modules); every field listed as a record field or a named Python-side attribute (§3); per-vertex metadata kept OUT of the FFI structure JSON before phase 11 (it is hashed per batch element, `graph_builder_ffi.cpp:274`, `:1542`), or measured at 600k; at merge the Python attributes become properties over the record, so there is ONE store from then on (not three); strict accessors for every name the inference layer reads; the routing gate; Plan A's flag becomes a C++ function. The serialized formula TAPE stays in the schema until phase 10 (alongside the source); the OI-048 select/pow cases are in the phase-5 gate. One C++-owned record reconciling the Python attributes and the existing C++ fields; carried by clone, copy and serialize. Schema rules: formula SOURCE plus a tape version (phase 10 may change tape semantics); layout as `StateIndexer.to_dict()`; joint and epoch fields may be added in phases 7-8 with a version bump; v0 graph-cache entries are read (or rejected) by an explicit rule. Consumers updated (graph cache, `distributed_scc`, `compute_repository`, GraphBuilder); `from_serialized` hardened and fuzzed; the serialize owner EXTENDS the 0d emitter/reader (D18) and absorbs `phasic::Graph::serialize` and `GraphBuilder::parse_structure` (the public Python `serialize()` dict stays); OI-053, OI-054 | L | not started |
 | 6 | Index codec | exact API; OI-077 (C++ codec part); native constructor; codec → StateIndexer direction; error-message parity; the codec handle kept OUT of the instance `__dict__` (`callback_hash.py:149-157`, `:653-720`), so graph-cache keys are unchanged (OI-055 checked); pickle tests; scalar call latency no worse than the phase-1 baseline inside 60k and 600k callback builds | L | not started |
@@ -1074,3 +1095,18 @@ features beyond R8; notebook edits (the user's).
   - 3: `coalescent_from_callback.cpp` is a standalone example, out of
     scope, and a phase-14 constraint.
   - 4: the header wording follows the new design.
+
+**Review 19 (of v2.14) → v2.15** (report `review19/`):
+
+- **The refusal would kill the process; modules can bypass the guard;
+  the guard can break the JIT copies** (M1, M2, measured) → the guard is
+  now specified by requirements G1-G8 (coverage, real layout, before use,
+  never kills the process, rebuild of unedited modules, JIT copies keep
+  working, a second line, in-process tests). The mechanism moves to the
+  phase-3 sub-plan, with reviews 17-19's candidates as its starting point.
+  Rationale: four master-plan rounds in a row were spent on mechanism
+  details that belong in the sub-plan's own review.
+- **Minors.**
+  - 1: the RTLD_GLOBAL note is fine for Linux.
+  - 2: Python-version and free-threaded notes are in G4.
+  - 3: phase 1 keeps the needed files installed.

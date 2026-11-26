@@ -1,0 +1,18 @@
+== mod_ok
+[mod_b static init] check=1
+IMPORTED mod_ok 1
+[runcap] exit 0, peak RSS 14 MB, 1s
+== mod_throw
+[mod_b static init] check=0
+[runcap] exit -6, peak RSS 5 MB, 1s
+== mod_pyerr
+[mod_b static init] check=0
+EXC SystemError initialization of mod_pyerr raised unreported exception | cause: ImportError('mod_b: layout mismatch, rebuild against this phasic')
+[runcap] exit 0, peak RSS 7 MB, 1s
+== noreopen_mod_ok
+[mod_b static init] check=1
+IMPORTED mod_ok 1
+[runcap] exit 0, peak RSS 7 MB, 1s
+== nopre_mod_ok
+EXC ImportError dlopen(/Users/kmt/phasic/experiments/core_ssot/review19/mod_ok.cpython-313-darwin.so, 0x0002): symbol not found in flat namespace '_ptd_probe_check' | cause: None
+[runcap] exit 0, peak RSS 6 MB, 1s
