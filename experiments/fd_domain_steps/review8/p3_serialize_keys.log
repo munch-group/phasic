@@ -1,0 +1,20 @@
+['constant_edges', 'dyn_ordering', 'edges', 'is_aux', 'is_discrete', 'n_vertices', 'param_edges', 'param_length', 'start_edges', 'start_param_edges', 'state_length', 'states', 'vertex_indices', 'was_dph', 'weight_mode']
+states [[0]
+ [3]
+ [2]]
+vertex_indices [0 1 2]
+edges []
+constant_edges []
+start_edges [[1. 1.]]
+param_edges [[1. 2. 1. 0.]]
+start_param_edges []
+param_length 2
+state_length 1
+n_vertices 3
+weight_mode linear
+dyn_ordering False
+is_discrete False
+was_dph False
+is_aux [False False False]
+discretized keys diff set() {'weight_mode': 'linear', 'is_discrete': True, 'was_dph': True}
+[runcap] exit 0, peak RSS 292 MB, 4s

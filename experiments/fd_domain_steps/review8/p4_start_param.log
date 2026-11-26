@@ -1,0 +1,18 @@
+serialize start_param_edges []
+pmf_and_moments [0.5 1.  0.5] fwd 2.052422635439065
+pmf_and_moments [0.5 1.  0.5] grad [0.         0.99196668 0.        ]
+pmf_and_moments [5.e-08 1.e+00 1.e+00] fwd 2.052422635439065
+pmf_and_moments [5.e-08 1.e+00 1.e+00] grad [0.         0.99196668 0.        ]
+pmf_and_moments [-5.e-08  1.e+00  1.e+00] fwd 2.052422635439065
+pmf_and_moments [-5.e-08  1.e+00  1.e+00] grad [0.         0.99196668 0.        ]
+pmf_and_moments [0. 1. 1.] fwd 2.052422635439065
+pmf_and_moments [0. 1. 1.] grad [0.         0.99196668 0.        ]
+pmf_from_graph [0.5 1.  0.5] fwd 2.052422635439065
+pmf_from_graph [0.5 1.  0.5] grad [0.         0.99196668 0.        ]
+pmf_from_graph [5.e-08 1.e+00 1.e+00] fwd 2.052422635439065
+pmf_from_graph [5.e-08 1.e+00 1.e+00] grad [0.         0.99196668 0.        ]
+pmf_from_graph [-5.e-08  1.e+00  1.e+00] fwd 2.052422635439065
+pmf_from_graph [-5.e-08  1.e+00  1.e+00] grad [0.         0.99196668 0.        ]
+pmf_from_graph [0. 1. 1.] fwd 2.052422635439065
+pmf_from_graph [0. 1. 1.] grad [0.         0.99196668 0.        ]
+[runcap] exit 0, peak RSS 417 MB, 5s

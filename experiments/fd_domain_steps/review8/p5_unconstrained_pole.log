@@ -1,0 +1,4 @@
+t1=9e-08 exact=-1.2346e+14 today_clamp=-5.2632e+15 plan_unconstrained_plain=5.2632e+14 plan_capped_fallback=-1.2346e+14
+t1=5e-08 exact=-4.0000e+14 today_clamp=-6.6667e+15 plan_unconstrained_plain=1.3333e+14 plan_capped_fallback=-4.0000e+14
+t1=1e-08 exact=-1.0000e+16 today_clamp=-9.0909e+15 plan_unconstrained_plain=1.0101e+14 plan_capped_fallback=-1.0000e+16
+[runcap] exit 0, peak RSS 400 MB, 5s

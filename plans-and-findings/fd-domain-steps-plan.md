@@ -1,6 +1,6 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.3, 2026-11-26. v1 (`b9178dab`) went through three independent
+**Status: v2.4, 2026-11-26 (v2.3 + review 8). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
 REJECT); their findings are folded in here (dispositions in §11). v2.3 is
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..7}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..8}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -66,7 +66,9 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
    identity tests avoid that band.
 3. Declared domains (from the fitters, `epoch_model`, or the caller) give
    probes inside the domain and the documented accuracy.
-4. Fixed slots are never probed; tied slaves keep flowing to their master.
+4. Build-time fixed slots are never probed (fit-time fixed slots on a
+   reused `epoch_model` are, harmlessly, §3); tied slaves keep flowing to
+   their master.
 5. No forward value (pdf, cdf, moments, sojourn, stop probability)
    changes anywhere.
 6. The one strict-xfail mixed-scale pin
@@ -85,7 +87,11 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
 - `'positive'` (0, inf);
 - `'unit'` (0, 1);
 - `'unconstrained'`: plain ±1e-7, divided by the literal 2·eps, NO clamp
-  (the fix for signed parameters);
+  (the fix for signed parameters), EXCEPT in the band 0 <= theta <= 1e-7,
+  where the §4.4 fallback applies on every model (a plain central
+  difference there straddles the 1/rate pole of moments and sojourn
+  outputs and flips the gradient's sign: measured +1.33e14 against an
+  exact -4.00e14 at theta = 5e-8, review8/p5_unconstrained_pole.log);
 - `'fixed'`: never probed.
 
 **Side-effect-free resolver.** One function
@@ -123,14 +129,18 @@ drift.
   param_domains=...)`"). The check is CONTAINMENT, not equality: a fit's
   domain must lie inside the model's (unit ⊂ positive; everything ⊂
   unconstrained), so a BetaPrior fit on a positive model works as today;
-  only a widening raises (e.g. a softplus fit on a 'unit' model). `fit()`
+  only a widening raises (e.g. a softplus fit on a 'unit' model). A
+  fit-side `'fixed'` slot is contained in any model domain (tied slaves
+  and fit-time fixed values are in SVGD's `fixed` list,
+  `__init__.py:4964-4970`); a model-side `'fixed'` slot requires a fit-side
+  `'fixed'`, otherwise that parameter would silently get a zero gradient. `fit()`
   reads the domains stored on the `FreeEpochModel` object, not on
   `em.model` (tests replace `em.model` with spies,
   `test_fixed_values_exact.py:341-354`). Rejecting `positive_params=False`
   on a default (positive) `epoch_model` is a listed behaviour change (§7).
   The epoch_model default is introduced in Batch 2, together with the
   `Graph.svgd` resolver, so the two routes keep their parity
-  (`test_epoch_model.py:83`, `:161`, rtol 1e-9). Fit-time fixed slots stay probed; that is
+  (`tests/pytest/inference/test_epoch_model.py:83`, `:161`, rtol 1e-9). Fit-time fixed slots stay probed; that is
   harmless because of §4.5 (declared-positive slots at theta <= 0, such as
   a rate fixed at 0 for the nested likelihood-ratio model, get a one-sided
   step).
@@ -219,7 +229,9 @@ refuses when ANY of these holds:
   arbitrarily; the add-edge check refuses a negative weight,
   `phasic.c:4938`; measured, review7/p1_cpp.log): ALWAYS refusing,
   continuous and discrete;
-- it is CALLED WITH REWARDS (`rewards is not None`): the reward-transform
+- it is CALLED WITH REWARDS (the existing `_rewards_provided` test,
+  `rewards is not None and rewards.size > 0`, `__init__.py:9014`; an empty
+  array triggers no reward transform): the reward-transform
   rebuild goes through the same add-edge check, so a linear continuous
   `pmf_and_moments_from_graph` model refuses a negative probe when called
   with rewards and accepts it without (review7/p3_rewards_neg.log). Whether
@@ -264,7 +276,14 @@ survive only through the 1e-9 clamp. Removing that clamp under
 discretized fits (review6/p1_modes.log).
 
 On a non-refusing (linear continuous) model, undeclared slots keep today's
-code everywhere, and `'unconstrained'` is plain ±1e-7.
+code everywhere. `'unconstrained'` slots are plain ±1e-7 outside the band
+and get the fallback inside it (0 <= theta <= 1e-7) on EVERY model, refusing
+or not, because of the 1/rate pole (§3). The signed-parameter fix is
+unaffected: a slot such as theta = -5 lies outside the band.
+
+The `reward_visit_probability` backward uses the BUILD-TIME flag only (it
+has no rewards argument); that is harmless, since its forward accepts a
+negative probe on linear graphs (review8/p1_rvp.log).
 
 Goal 1 still cannot cover non-monotone formulas (e.g. `c0*t0 - c1*t1`),
 which can produce a negative edge weight with every slot large, nor
@@ -297,7 +316,10 @@ model's own domain, stated in §9.
 - **A zero probe difference** (theta above ~2e9, where the capped u falls
   below ~5.5e-17; at 1e9 the down-probe still moves, review6/p1_modes.log)
   gives a zero gradient for that slot and a host-side counter plus a
-  once-per-model log line, so it is not silent. Batch 0 measures the band.
+  once-per-model log line, so it is not silent. The counter counts only
+  the branch actually selected (at theta == 0 the capped probes collapse
+  too, but that branch is discarded by the `jnp.where`, so fixed-at-0 slots
+  must not log). Batch 0 measures the band.
 
 ### 4.6 Fixed and tied slots
 
@@ -351,13 +373,23 @@ model is built.
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
 | `ffi_wrappers.py:1296` | `reward_visit_probability` backward | elimination |
 
-`pmf_and_moments_from_graph_multivariate` inherits through its per-feature
-calls.
+`pmf_and_moments_from_graph_multivariate` (`__init__.py:9987`; the
+`Graph.svgd` leaf for 2-D rewards, `:7253`) inherits only if Batch 1 adds a
+`param_domains` passthrough to it AND copies `_param_domains` onto its
+wrapper (it copies attributes one by one, `:10194-10196`). SVGD's
+`_wrap_model_with_exposure` (`svgd.py:271-306`, applied in `SVGD.__init__`
+at `:6558`) drops all attributes, so `SVGD.__init__` reads
+`_param_domains` BEFORE wrapping.
 
 **Out of scope, stated:**
 - the SVGD preconditioner's `compute_scaling` (`svgd.py:4017`, `:4121`,
-  `:4220`): it differentiates in the unconstrained phi coordinate, so it is
-  already inside any domain;
+  `:4220`). With a transform it differentiates in phi and stays inside the
+  domain. With the identity transform (`positive_params=False`) it probes
+  theta_ref ± 1e-5 in theta space (`svgd.py:4003-4027`), which on a
+  refusing model with theta_ref < 1e-5 can raise. That is a residual
+  against goal 1, not a regression: the reference grid
+  {-2, -1, 0, 0.5, ...} skips points that fail, so it is unlikely in
+  practice;
 - MCMC (gradient-free);
 - the scipy `least_squares` numeric Jacobians in
   `probability_matching.py:447` and `method_of_moments.py:480` (bounded at
@@ -453,7 +485,12 @@ calls.
   - the reported epoch fit from near-floor particles completes;
   - `positive_params=False` × {log, formula, callback, discretized,
     linear with rewards} × theta = 5e-8: no crash (the §4.4 fallback
-    replaces the 1e-9 clamp).
+    replaces the 1e-9 clamp);
+  - a VALUE test: `positive_params=False`, linear, no rewards,
+    `exact_moment_grad=False`, slot 5e-8: the moments gradient matches the
+    closed form (sign and magnitude);
+  - the 2-D rewards (multivariate) leaf and an exposure fit carry
+    `_param_domains` to every FD site (the spy).
 
 ## 7. Existing tests expected to change
 
@@ -609,3 +646,19 @@ Report: `experiments/fd_domain_steps/review7/REPORT.md`.
   - m4: the rvp flag from `structure_json`.
   - m5: negative-domain slots out of scope.
 - **Part A note** → containment stated for `SVGD.__init__` as well.
+
+### Review 8 (of v2.3) → v2.4
+
+Report: `experiments/fd_domain_steps/review8/REPORT.md`.
+
+- **The sign flip near the pole for `'unconstrained'` on non-refusing
+  models** (M1, measured) → §3 and §4.4: the band fallback applies to
+  `'unconstrained'` on every model; Batch 2 value test.
+- **Minors.**
+  - m1: containment for `'fixed'`.
+  - m2: the multivariate passthrough and reading domains before the
+    exposure wrapper.
+  - m3: the preconditioner reason corrected, as a stated residual.
+  - m4: goal 4 says build-time fixed; the rvp flag is build-time only.
+  - m5: `_rewards_provided`; the counter counts the selected branch.
+  - Path fixed for the parity tests.

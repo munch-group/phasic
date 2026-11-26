@@ -1,0 +1,2 @@
+['ArrayImpl', 'DynamicJaxprTracer', 'BatchTracer']
+[runcap] exit 0, peak RSS 194 MB, 2s
