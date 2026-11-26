@@ -1,0 +1,34 @@
+today's exact load_cpp_builder command (phasic_pybind.cpp:5192-5200):
+clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]
+In file included from wrapper.cpp:1:
+In file included from /Users/kmt/phasic/api/cpp/phasiccpp.h:40:
+/Users/kmt/phasic/api/cpp/../c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+In file included from /Users/kmt/phasic/src/cpp/phasiccpp.cpp:41:
+In file included from /Users/kmt/phasic/src/cpp/phasiccpp.h:1:
+In file included from /Users/kmt/phasic/src/cpp/../../api/cpp/phasiccpp.h:40:
+/Users/kmt/phasic/src/cpp/../../api/cpp/../c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+In file included from /Users/kmt/phasic/src/c/phasic.c:98:
+In file included from /Users/kmt/phasic/src/c/phasic.h:1:
+/Users/kmt/phasic/src/c/../../api/c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+exit=1
+--- with -I src/c:
+Undefined symbols for architecture arm64:
+  "_ptd_compose_scc_prcs_live", referenced from:
+      _ptd_expected_waiting_time in phasic-9961bf.o
+  "_ptd_graph_content_hash", referenced from:
+      ptd_pcg_build_cache_path(ptd_graph const*, char*, unsigned long) in phasic-9961bf.o
+      ptd_save_parameterized_reward_compute_graph_impl(char const*, ptd_desc_reward_compute_parameterized const*, ptd_graph const*, double const* const*, unsigned long) in phasic-9961bf.o
+  "_ptd_log", referenced from:
+--- adding scc/log/hash .c compiled as C++:
+/Users/kmt/phasic/src/c/scc_compose.c:239:13: error: cannot jump from this goto statement to its label
+/Users/kmt/phasic/src/c/scc_compose.c:221:13: error: cannot jump from this goto statement to its label
+/Users/kmt/phasic/src/c/scc_compose.c:206:13: error: cannot jump from this goto statement to its label

@@ -1,0 +1,8 @@
+N=60000 build+normalize_s=0.0256 free_s=0.0030
+N=60000 build+normalize_s=0.0255 free_s=0.0029
+N=60000 build+normalize_s=0.0242 free_s=0.0033
+[runcap] exit 0, peak RSS 0 MB, 1s
+N=600000 build+normalize_s=0.2919 free_s=0.0372
+N=600000 build+normalize_s=0.2762 free_s=0.0387
+N=600000 build+normalize_s=0.2816 free_s=0.0328
+[runcap] exit 0, peak RSS 122 MB, 1s

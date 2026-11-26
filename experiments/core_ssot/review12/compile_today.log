@@ -1,0 +1,21 @@
+clang++: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]
+In file included from wrapper.cpp:1:
+In file included from /Users/kmt/phasic/api/cpp/phasiccpp.h:40:
+/Users/kmt/phasic/api/cpp/../c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+In file included from /Users/kmt/phasic/src/cpp/phasiccpp.cpp:41:
+In file included from /Users/kmt/phasic/src/cpp/phasiccpp.h:1:
+In file included from /Users/kmt/phasic/src/cpp/../../api/cpp/phasiccpp.h:40:
+/Users/kmt/phasic/src/cpp/../../api/cpp/../c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+In file included from /Users/kmt/phasic/src/c/phasic.c:98:
+In file included from /Users/kmt/phasic/src/c/phasic.h:1:
+/Users/kmt/phasic/src/c/../../api/c/phasic.h:1584:10: fatal error: 'phasic_log.h' file not found
+ 1584 | #include "phasic_log.h"
+      |          ^~~~~~~~~~~~~~
+1 error generated.
+exit=1
