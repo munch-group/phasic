@@ -287,7 +287,7 @@ variant is added"). Two concrete bad outcomes if these run uncoordinated:
   copies, whichever lands second either merge-conflicts outright or (worse,
   silently) gets applied against source that no longer exists in that
   shape — reproducing exactly the "fix-lineage divergence" pattern already
-  documented in `atlas/exact-fd-atlas-c-functions.md` §"Cross-cutting
+  documented in `exact-fd-atlas-c-functions.md` §"Cross-cutting
   observations" #1 (MPFR gate / `coefficients_length` guard / alloc checks
   were each independently fixed in one function and never backported to
   the "superseded" `ptd_moment0_grad_theta`, which still carries both gaps

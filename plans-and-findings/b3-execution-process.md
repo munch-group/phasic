@@ -30,7 +30,7 @@ document wins and the conflict is fixed here.
 | `b3-<batch>-findings.md` | De-risk/experiment findings for that batch (existing convention: `b3-batch1-reverse-adjoint-findings.md` etc.) | Immutable after batch close; dated correction notes only |
 | `B3-<BATCH>-MERGE-REVIEW.md` or a merge-review section in the findings doc | Pre-merge review record: gate results, adversarial-review verdicts, deviations (existing convention: `B3-MERGE-REVIEW.md`, `B3-DISCRETE-MERGE-REVIEW.md`) | Immutable after merge |
 | `deferred-{1,2,3,4}-*-plan.md` | Deferred-unit design-of-record (reviewed 2026-08-11) | As master plan |
-| `atlas/*.md`, historical `b3-*-findings.md` | Reference/feasibility corpus | Read-only |
+| `*.md`, historical `b3-*-findings.md` | Reference/feasibility corpus | Read-only |
 | `CLAUDE.md` | Behavior contract for shipped code (defaults, scopes, known gaps) | Updated in the SAME batch that changes shipped behavior (§7.2) |
 
 Naming: all new B3 documents at repo root, prefixed `b3-`; plans end in
@@ -162,7 +162,7 @@ findings doc; G2-G5 apply only when code changes ship.
    master plan, the four deferred plans, this file, the tracker, the
    baseline ledger, and the older plan docs (`category-A-fix-plans.md`,
    `batch2-free-epoch-model-plan.md`, `svgd-lrt-fix-a-plan.md`, the 6
-   `atlas/plan-feasibility-*.md`) are versioned as the design-of-record.
+   `plan-feasibility-*.md`) are versioned as the design-of-record.
 
 ## 6. Deferral policy — what happens when something out-of-scope surfaces
 

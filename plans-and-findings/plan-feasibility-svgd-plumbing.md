@@ -1,7 +1,7 @@
 # Feasibility/scoping: SVGD exact-grad plumbing, joint-index baked mode, two mechanical fixes
 
-Investigation date 2026-08-05. Starting hypotheses were `atlas/exact-fd-atlas-svgd-reachability.md`
-and `atlas/exact-fd-atlas-python-wiring.md` (both dated 2026-08-01/04) plus
+Investigation date 2026-08-05. Starting hypotheses were `exact-fd-atlas-svgd-reachability.md`
+and `exact-fd-atlas-python-wiring.md` (both dated 2026-08-01/04) plus
 `b3-joint-index-plan.md`. Every claim below was re-verified against the CURRENT
 checked-out source (`master`, HEAD `cadf1ca4` at investigation time — one commit
 past what the conversation's initial git-status snapshot showed) by direct

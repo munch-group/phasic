@@ -18,7 +18,7 @@ D6 joint-index redesign was nearly built on the false premise that
 `Graph.svgd()` reaches it (it doesn't — see `project_exact_fd_atlas` memory).
 
 **Grounding.** Every claim below traces to one of six feasibility documents in
-`/Users/kmt/phasic/atlas/` (`plan-feasibility-rewards-support.md`,
+`/Users/kmt/phasic/plans-and-findings/` (`plan-feasibility-rewards-support.md`,
 `-formula-mode.md`, `-svgd-plumbing.md`, `-hierarchical-scc.md`,
 `-pdf-gradient-daisy-chain.md`, `-callback-and-conditioning-floor.md`), all
 produced 2026-08-05 by independent agents each instructed to re-derive claims

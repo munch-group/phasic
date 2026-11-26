@@ -9,7 +9,7 @@ term against it — **before** any implementation plan is even written." This
 document plans exactly that de-risk pass, the route decision it must produce,
 and a conditional implementation sketch to be re-detailed from findings.
 
-**Grounding.** Primary source: `atlas/plan-feasibility-pdf-gradient-daisy-chain.md`
+**Grounding.** Primary source: `plan-feasibility-pdf-gradient-daisy-chain.md`
 ("PDF §n"; its §§1-4, 6 are this unit's evidence base), master plan §13 and
 risk item 18. [PDF §n] = read-from-source/measured findings; [reasoned] = this
 plan's inference, to be confirmed in de-risk.
@@ -242,7 +242,7 @@ exists anywhere [PDF §4]. Unit parked pending gates A1-A2.
 
 **Copy-paste prompt for the executing session:**
 > Read `/Users/kmt/phasic/deferred-3-pdf-gradient-revival-plan.md` and
-> `/Users/kmt/phasic/atlas/plan-feasibility-pdf-gradient-daisy-chain.md`
+> `/Users/kmt/phasic/plans-and-findings/plan-feasibility-pdf-gradient-daisy-chain.md`
 > (§§1-4, 6) in full. Confirm the master plan was signed off and gate A1
 > holds; if not, stop and report. Run the de-risk on a branch
 > (`derisk/pdf-exact-gradient`) in the order E1 → E0 → E2/E3 → E5

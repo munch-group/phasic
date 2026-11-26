@@ -1,7 +1,7 @@
 # Batch C — `weight_mode='callback'` exact moment gradient, Job A only (plan v1)
 
 **Master plan:** §5 (signed off 2026-08-11). **Feasibility:**
-`atlas/plan-feasibility-callback-and-conditioning-floor.md` Job A (read
+`plan-feasibility-callback-and-conditioning-floor.md` Job A (read
 in full; Job B = Deferred 4, explicitly NOT this batch). **Process:**
 `b3-execution-process.md`. **Base:** master `769fe3a1` (Batch B
 close-out; eighth ledger stamp 1978/0/84/24). **Branch/worktree:**

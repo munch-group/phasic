@@ -10,7 +10,7 @@ de-risk experiments that must precede any implementation plan, and (c) a
 conditional implementation sketch whose batches will be re-detailed from de-risk
 findings (per `feedback_derisk_and_reevaluate`) before any code is written.
 
-**Grounding.** Primary source: `atlas/plan-feasibility-hierarchical-scc.md`
+**Grounding.** Primary source: `plan-feasibility-hierarchical-scc.md`
 (2026-08-05, fresh source re-derivation; cited below as "HSCC §n") plus master
 plan §11 and its risk-register items 7 and 13. Claims below marked [HSCC §n] are
 read-from-source findings of that document; claims marked [reasoned] are this
@@ -301,14 +301,14 @@ unpushed. All B3 shipped work is on master (continuous/discrete/log moments
 adjoints default-on; joint-index sojourn adjoint opt-in). Master plan
 `b3-exact-gradient-master-plan.md` awaits user sign-off; Batch 0 NOT yet
 implemented. This unit is parked pending gate A. Feasibility source:
-`atlas/plan-feasibility-hierarchical-scc.md`. Nothing in `src/` may change
+`plan-feasibility-hierarchical-scc.md`. Nothing in `src/` may change
 until master-plan sign-off; this unit additionally requires gate A + P1-P3.
 
 **Copy-paste prompt for the executing session** (rewritten per review F2 —
 the v1 prompt deadlocked: it required gate A before E0, but E0 is the
 experiment that answers gate A):
 > Read `/Users/kmt/phasic/deferred-1-hierarchical-scc-adjoint-plan.md` and
-> `/Users/kmt/phasic/atlas/plan-feasibility-hierarchical-scc.md` in full.
+> `/Users/kmt/phasic/plans-and-findings/plan-feasibility-hierarchical-scc.md` in full.
 > Confirm (a) the master plan has been signed off and (b) the user has
 > explicitly authorized this unit's de-risk phase; if either fails, stop and
 > report. Then run E0 FIRST on a branch (`derisk/hierarchical-scc-adjoint`),

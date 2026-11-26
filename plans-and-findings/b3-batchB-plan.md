@@ -1,7 +1,7 @@
 # Batch B — `weight_mode='formula'` exact moment gradient (plan v1)
 
 **Master plan:** §4 (signed off 2026-08-11). **Feasibility:**
-`atlas/plan-feasibility-formula-mode.md` (read in full; §5 is the design
+`plan-feasibility-formula-mode.md` (read in full; §5 is the design
 sketch this plan concretizes). **Process:** `b3-execution-process.md`
 (gate ladder G0–G5; two plan refuters BEFORE implementation; de-risk on
 the branch before the implementation commit). **Base:** master

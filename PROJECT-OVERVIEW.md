@@ -1,7 +1,7 @@
 # phasic — project overview
 
-Written 2026-10-10 as the single entry point to the ~70 plan, findings and
-review files in the repository root; updated 2026-10-12 with the October
+Written 2026-10-10 as the single entry point to the plan, findings and
+review files (since 2026-11-26 all in `plans-and-findings/`); updated 2026-10-12 with the October
 model-building consistency work (§1d) and the Stage-3 status correction;
 updated 2026-10-15 after the C++ `discretize()` merge (§1f); updated
 2026-10-27 with the parallel-elimination weight-mode fix (§1c item 8);
@@ -10,6 +10,13 @@ updated 2026-11-20 with the November joint-probability likelihood work
 files (named in each entry) plus git history; nothing new was measured to
 write it. When a file and this overview disagree, the file is the record —
 and this overview should be corrected.
+
+**Open items are tracked in `OPEN-ITEMS.md`, not here** (since
+2026-11-25). Section 1c below is kept as the August-November history of
+the open list; for current status and priorities read `OPEN-ITEMS.md`.
+Updated 2026-11-26: files moved to `plans-and-findings/`; the November
+bug-fix series (bugs 1-5) is recorded in
+`plans-and-findings/bugfix-handoff-2026-11-24.md` and the bug plans.
 
 Convention from here on: every ID (batch letter, deferred number, tier,
 gate, rule) is written together with a few words saying what it is.
@@ -24,7 +31,7 @@ now normalised, `tot_reward_limit` no longer corrupts the single-epoch
 likelihood, and a C++ segfault at thread exit is fixed. Each was gated
 on the 35 test files that build joint-probability graphs, not on the
 full suite. Follow-up tickets are tracked in
-`joint-prob-followups-plan.md`; twelve of them are merged too (master
+`plans-and-findings/joint-prob-followups-plan.md`; twelve of them are merged too (master
 `7b0b7a7c`, four more merges, not pushed): see §1g.
 
 **October:** master carries both October work streams, merged and pushed: the
@@ -46,7 +53,7 @@ from the `docs/pages/tutorial/svgd-*` notebooks to data simulated at known
 parameters, from priors that exclude the true value. Four cases fail and are
 recorded as expected failures ("pins"). Whether each failure is a real
 defect or just too few iterations was settled in
-`b3-budget-vs-defect-findings.md`:
+`plans-and-findings/b3-budget-vs-defect-findings.md`:
 
 | Model | What goes wrong | Verdict |
 |---|---|---|
@@ -63,7 +70,7 @@ Two further facts limit how precise any fit can be:
 - **The default likelihood is only ~2.5e-3 accurate** (relative), and that
   error biases the estimate by the same amount regardless of sample size.
   Cause: the default discretisation granularity (1024 steps) in the
-  continuous PDF. Record: `b3-mixed-scale-defect-settled.md`; guarded by
+  continuous PDF. Record: `plans-and-findings/b3-mixed-scale-defect-settled.md`; guarded by
   `tests/pytest/test_likelihood_correctness.py`.
 - **Recombination is only identifiable at larger rates**: at 0.05 the
   likelihood is flat over a 25-fold range, so the test uses 0.5.
@@ -80,24 +87,24 @@ finite-difference gradients (estimating a derivative from nearby
 evaluations, which fails when parameters differ hugely in scale, e.g. 1e-8
 next to 1) with exact analytic gradients. Every planned unit of that work
 shipped and passed review. A stock-take on 16 August
-(`b3-stocktake-2026-08-16.md`) then found two problems:
+(`plans-and-findings/b3-stocktake-2026-08-16.md`) then found two problems:
 
 1. **Scale.** Production models are 20k–60k vertices, and the library must
    handle 200k–600k. The exact gradients were only ever tested up to ~8k
    vertices. At 22.6k vertices no gradient call finished within 15 minutes;
    on two-locus models a safety check makes the exact path quietly hand
    back finite differences anyway, already at ~1k vertices.
-   Record: `b3-scale-reality-findings.md`.
+   Record: `plans-and-findings/b3-scale-reality-findings.md`.
 2. **Wrong quantity.** The programme made the gradient of *moments* exact,
    but the default SVGD likelihood uses the *PDF at the observed times*,
    whose gradient is still finite differences everywhere in the library.
-   Record: `b3-likelihood-path-map.md`.
+   Record: `plans-and-findings/b3-likelihood-path-map.md`.
 
-### 1c. Open items, in plain language
+### 1c. Open items, in plain language (superseded by `OPEN-ITEMS.md`; kept as history)
 
 1. Explain the three inference defects in 1a. Not started.
 2. **Exact gradients for big models, by splitting them into components**
-   ("Deferred 1", plan `b3-d1-implementation-plan.md`). Large graphs are
+   ("Deferred 1", plan `plans-and-findings/b3-d1-implementation-plan.md`). Large graphs are
    already processed as strongly connected components (clusters of states
    that can reach each other), which are then stitched together. This plan
    would make the gradient follow the same split. It is the only designed
@@ -115,13 +122,13 @@ shipped and passed review. A stock-take on 16 August
    or joint probabilities, instead of only absorption times). Not yet made
    to converge.
 5. **Exact gradient of the PDF itself** ("Deferred 3",
-   `deferred-3-pdf-gradient-revival-plan.md`, `b3-d3-derisk-findings.md`).
+   `plans-and-findings/deferred-3-pdf-gradient-revival-plan.md`, `plans-and-findings/b3-d3-derisk-findings.md`).
    This is the only item that would make the *default* fit exact. The
    method is chosen (Poisson-mixture route) and derived on paper. No
    implementation plan yet.
 6. **Exact gradient for the earlier time epochs** of time-inhomogeneous
-   models ("Deferred 2", `deferred-2-daisy-intermediate-epoch-plan.md`,
-   `b3-d2-derisk-findings.md`). Exploratory work is done. The main reason
+   models ("Deferred 2", `plans-and-findings/deferred-2-daisy-intermediate-epoch-plan.md`,
+   `plans-and-findings/b3-d2-derisk-findings.md`). Exploratory work is done. The main reason
    to build it: the current backward pass crashes for parameters below
    ~1e-7. No implementation plan yet.
 7. **High-precision (MPFR) gradients** ("Deferred 4"). Parked by your
@@ -140,9 +147,9 @@ shipped and passed review. A stock-take on 16 August
    documentation overstating parallel-elimination benefits, a
    forward/backward mismatch when a rate blows up, and failures in the
    multi-epoch FFI that become unlogged NaNs. Full list in
-   `b3-stocktake-2026-08-16.md` §4.
+   `plans-and-findings/b3-stocktake-2026-08-16.md` §4.
 9. **Leftovers outside the gradient programme** (end of
-   `b3-execution-tracker.md`):
+   `plans-and-findings/b3-execution-tracker.md`):
    - `model-selection.ipynb` uses an outdated, broken pattern.
    - A random tie-break in the epoch model is untested.
    - The old cache format needs hardening.
@@ -158,7 +165,7 @@ shipped and passed review. A stock-take on 16 August
     `is_aux` in the C++ serialized graph and the SLURM per-component path,
     constant edges in discrete graphs, and a stale Stage-3 plan record.
 12. **Joint-probability follow-ups** (§1g), tracked ticket by ticket in
-    `joint-prob-followups-plan.md`: stale cached graphs in the C++ FFI
+    `plans-and-findings/joint-prob-followups-plan.md`: stale cached graphs in the C++ FFI
     (T1), the broken `reward_rates_callback` route (T2), the continuous
     `joint_prob_table()` returning probability / mutation rate (T3),
     degenerate outcomes picked at random instead of summed (T4), silent
@@ -177,9 +184,9 @@ shipped and passed review. A stock-take on 16 August
 ### 1d. Model-building consistency (10–12 October)
 
 Started from your question why a coalescent built with float rates came
-back parameterized. Plan `constant-parameterized-consistency-plan.md`
+back parameterized. Plan `plans-and-findings/constant-parameterized-consistency-plan.md`
 (record in its §13), with Part 1 detailed in
-`graph-cache-constant-roundtrip-plan.md`. Branch
+`plans-and-findings/graph-cache-constant-roundtrip-plan.md`. Branch
 `fix/constant-parameterized-consistency`, merged to master 2026-10-13, one
 commit per part:
 
@@ -209,7 +216,7 @@ before the branch).
 joint graphs are refused rather than supported (needs a C change);
 `joint_prob_graph(reward_rates_callback=...)` has been broken since
 21 May 2026 (calls a commented-out method; now ticket T2 in
-`joint-prob-followups-plan.md`); per-state rate APIs not yet on
+`plans-and-findings/joint-prob-followups-plan.md`); per-state rate APIs not yet on
 the new rules (`joint_prob_graph`'s `mutation_rate`; the legacy
 `_discretize_inplace` and the C++ `discretize` are resolved, §1f);
 `expectation()` on a discretized
@@ -218,7 +225,7 @@ explicitly.
 
 ### 1e. The Stage-3 refactor is only partly done
 
-The July refactor plan (`stage3-refactor-plan.md`) is the larger plan in
+The July refactor plan (`plans-and-findings/stage3-refactor-plan.md`) is the larger plan in
 force: one implementation per capability, with the C++ API as the single
 source of truth (its decision Q4) and Python delegating. Executed so far:
 WS-A (safety-net test gates), WS-B (dead-code removal) and part of WS-C
@@ -230,8 +237,8 @@ promotion.
 
 ### 1f. One `discretize()`, owned by C++ (13–15 October)
 
-Plan `discretize-cpp-ssot-plan.md` (v2; its §13 is the implementation
-record), exploratory measurements in `discretize-cpp-derisk-findings.md`.
+Plan `plans-and-findings/discretize-cpp-ssot-plan.md` (v2; its §13 is the implementation
+record), exploratory measurements in `plans-and-findings/discretize-cpp-derisk-findings.md`.
 Branch `refactor/discretize-cpp-ssot`, merged to master 2026-10-15
 (`61b1ab93`, pushed).
 
@@ -263,7 +270,7 @@ recovered 5.0. Three fixes, each on its own branch, merged into master
 
 | Merge | Fix | Record |
 |---|---|---|
-| `e7282362` (commits `8feea1d1`, `656beb41`) | **Epoch likelihood normalised.** Observations beyond `reward_limit`/`tot_reward_limit` cannot be passed to inference, so the correct likelihood conditions on not overflowing: each observation's probability divided by its own table mass Z(θ, exposure). The single-epoch path did this; the epoch (daisy-chain) path used raw probabilities, which pulls estimates toward rates that reduce overflow (the 6.44). Now normalised on both the no-exposure and the exposure branch, including the exact final-epoch gradient. `final_read='stopprob'` is rejected for fits (new rule R33), because normalising it would cancel the penalty for mass not yet absorbed. The reproducer's likelihood now peaks at 5.000000. No measurable slowdown at 45,704 vertices | `epoch-normalization-plan.md` (v2, two review rounds), `epoch-normalization-findings.md`, `tests/pytest/test_epoch_normalization.py` (17 tests) |
+| `e7282362` (commits `8feea1d1`, `656beb41`) | **Epoch likelihood normalised.** Observations beyond `reward_limit`/`tot_reward_limit` cannot be passed to inference, so the correct likelihood conditions on not overflowing: each observation's probability divided by its own table mass Z(θ, exposure). The single-epoch path did this; the epoch (daisy-chain) path used raw probabilities, which pulls estimates toward rates that reduce overflow (the 6.44). Now normalised on both the no-exposure and the exposure branch, including the exact final-epoch gradient. `final_read='stopprob'` is rejected for fits (new rule R33), because normalising it would cancel the penalty for mass not yet absorbed. The reproducer's likelihood now peaks at 5.000000. No measurable slowdown at 45,704 vertices | `plans-and-findings/epoch-normalization-plan.md` (v2, two review rounds), `plans-and-findings/epoch-normalization-findings.md`, `tests/pytest/test_epoch_normalization.py` (17 tests) |
 | `9cedb4f3` (commit `86e1f8ac`) | **Total-cap trash edge.** `joint_prob_graph` gave an outcome vertex sitting at `tot_reward_limit` an edge to the trash vertex. On a continuous graph that made the single-epoch likelihood 43–49% wrong for every capped outcome; with `reward_only` discrete graphs were wrong too. The epoch path was never affected | `tests/pytest/test_joint_prob_tot_cap.py` (28 tests, against closed forms) |
 | `038dcc63` (commit `2dc4f60f`) | **Segfault at interpreter exit** after long test runs. A C++ destructor (`~GraphBuilder`) erased from a per-thread map that had already been destroyed when JAX's worker threads shut down. Located with lldb and disassembly, confirmed by thread tracing | `tests/pytest/test_thread_local_teardown.py` (macOS-reliable reproducer) |
 
@@ -274,7 +281,7 @@ reviewer. The full test suite was not run.
 
 **Deferred by your decision:** keeping over-cap observations as an
 explicit overflow category would make the likelihood about twice as
-informative. A reviewed design is in `overflow-observations-plan.md`
+informative. A reviewed design is in `plans-and-findings/overflow-observations-plan.md`
 (v3); the note is also in `CLAUDE.md`.
 
 **Your notebooks:** the epoch-fit notebooks (`svgd-joint-prob`,
@@ -287,7 +294,7 @@ own tests and both branches reviewed independently:
 
 | Merge | Tickets | Record |
 |---|---|---|
-| `31e799b3` (branch `fix/joint-prob-callback`) | T7 `joint_prob_table()` refuses graphs derived from a joint graph; T8 joint-probability inference needs at least two outcomes; T3 the continuous `joint_prob_table()` reports probabilities (was probability / mutation rate); T4 outcomes that differ only in their absorbing base state are merged at construction (two-island: 54 → 27 outcome vertices, results equal the old group sums); T5 no silent fallback to a standard-normal prior in `svgd`, the epoch path or `mcmc`; T2 `reward_rates_callback` works again, with the caps enforced by the builder; T9 an indexer with several properties requires an explicit `reward_only`; T12 `mcmc`'s default prior receives `rewards=`. Review fixes: `reward_only` names are validated, the subset merge no longer depends on property order, a dict `reward_limit` (never worked) is refused | `joint-prob-followups-plan.md` §6; gate 742 + 146 + 112 passed, 0 failed |
+| `31e799b3` (branch `fix/joint-prob-callback`) | T7 `joint_prob_table()` refuses graphs derived from a joint graph; T8 joint-probability inference needs at least two outcomes; T3 the continuous `joint_prob_table()` reports probabilities (was probability / mutation rate); T4 outcomes that differ only in their absorbing base state are merged at construction (two-island: 54 → 27 outcome vertices, results equal the old group sums); T5 no silent fallback to a standard-normal prior in `svgd`, the epoch path or `mcmc`; T2 `reward_rates_callback` works again, with the caps enforced by the builder; T9 an indexer with several properties requires an explicit `reward_only`; T12 `mcmc`'s default prior receives `rewards=`. Review fixes: `reward_only` names are validated, the subset merge no longer depends on property order, a dict `reward_limit` (never worked) is refused | `plans-and-findings/joint-prob-followups-plan.md` §6; gate 742 + 146 + 112 passed, 0 failed |
 | `928bfb6c` (branch `fix/ffi-stale-graph-cache`) | T1 the C++ FFI per-thread graph caches are keyed by a process-unique model id, so a new model can no longer run on a destroyed model's cached graph (silent NaN, 13–50 per 3,000 threads before); T10 a cached Python object is never released after interpreter shutdown | `tests/pytest/test_ffi_stale_graph_cache.py`; gate 592 passed, 0 failed |
 
 **Your notebooks after T9:** notebooks that build a joint graph from an
@@ -304,7 +311,7 @@ numbers were probably wrong (inferred from the code, not re-run):
 
 | Merge | Ticket | Record |
 |---|---|---|
-| `36edaaa8` (branch `fix/epoch-build-cost`) | T6: the `epoch_starts=[0.0]` build took 47.7 s at 45,704 vertices, now 7.5 s (4.9 s with an explicit prior), outputs bit-identical. Causes: `joint_stop_prob_graph` scanned a list of ~16k numpy ints once per vertex, and the default prior re-encoded the 6.3 MB graph JSON on each of 158 calls | `joint-prob-followups-plan.md` §6; gate 629 passed, 0 failed |
+| `36edaaa8` (branch `fix/epoch-build-cost`) | T6: the `epoch_starts=[0.0]` build took 47.7 s at 45,704 vertices, now 7.5 s (4.9 s with an explicit prior), outputs bit-identical. Causes: `joint_stop_prob_graph` scanned a list of ~16k numpy ints once per vertex, and the default prior re-encoded the 6.3 MB graph JSON on each of 158 calls | `plans-and-findings/joint-prob-followups-plan.md` §6; gate 629 passed, 0 failed |
 | `7b0b7a7c` (branch `fix/ffi-cache-eviction`) | T11: the C++ caches kept every model's structure plus one graph per worker thread until exit (~290 MB per 45,704-vertex model). Now at most `model_memory_cache_size` models (default 4, `phasic.configure`) stay cached process-wide; `phasic.clear_model_memory()` frees them and `phasic.model_memory_info()` reports usage. The review caught a use-after-free in the first version (fixed before merge) | `tests/pytest/test_model_memory.py`; gate 602 passed, 0 failed |
 
 **Closed, not a defect:** T13, the suspected poor fit of the default
@@ -313,7 +320,7 @@ called the internal module function with observation tuples instead of
 vertex indices. Through `Graph.probability_matching`, which every
 caller uses, the fit matches the truth (coalescent n=4/6: estimated
 mu/c 0.589 vs 0.6, log-likelihood within 0.6 of the truth's);
-`joint-prob-followups-plan.md` (§1c item 12).
+`plans-and-findings/joint-prob-followups-plan.md` (§1c item 12).
 
 **SVGD notices (21 Nov):**
 - `probability_matching` now rejects input that isn't vertex indices.
@@ -325,7 +332,7 @@ mu/c 0.589 vs 0.6, log-likelihood within 0.6 of the truth's);
   only when prior, fixed or theta_dim were actually expanded. The
   `effective_options()` table shows readable values (`svgd.GaussPrior`,
   `'auto' -> 'jacobian'`).
-- Record: `svgd-notices-plan.md`.
+- Record: `plans-and-findings/svgd-notices-plan.md`.
 
 ---
 
@@ -335,7 +342,7 @@ mu/c 0.589 vs 0.6, log-likelihood within 0.6 of the truth's);
 |---|---|---|---|
 | early Jul | Hardening fixes (H1–H10, C1–C3) | Ten bug fixes and three cache-security fixes (untrusted pickles, tar members) | Done |
 | 5–9 Jul | Refactor, Stages 1–3 | Remove dead code; build a test safety net; split the 12k-line `Graph` class into modules | Stages 1–2 done; Stage 3 partly (WS-A, WS-B, part of WS-C; merged `9de5d61a`); WS-D–G not started (§1e) |
-| 15–19 Jul | Differential audit | Compare post-refactor behaviour with the pre-refactor commit `3082ebc6`; log every divergence | Done; findings F-001… in `audit-differential-findings.md` |
+| 15–19 Jul | Differential audit | Compare post-refactor behaviour with the pre-refactor commit `3082ebc6`; log every divergence | Done; findings F-001… in `plans-and-findings/audit-differential-findings.md` |
 | 17 Jul | Category-A fixes (A1–A3) | The three audit bugs reachable by users | Done |
 | 27–30 Jul | SVGD robustness + likelihood-ratio tests | Stop runaway particles from crashing a fit; make nested LRTs work for tied-vs-free epoch models; public `Graph.epoch_model` | Done |
 | 30 Jul–4 Aug | B3 exploration | Prototype exact gradients; first exact moments gradient (continuous, then discrete); log weight mode; joint-index (sojourn) gradient | Done |
@@ -356,42 +363,42 @@ Several schemes reuse the same letters. **Collisions are marked ⚠.**
 
 | Label | Meaning | Defined in |
 |---|---|---|
-| **B3** | The whole exact-gradient programme. Originally step 3 of a five-step plan B0–B4 for fixing finite-difference gradients (B0 pin the bug with a test, B1 guard against negative rates, B2 build a verification harness, B3 replace the FD backward passes, B4 adversarial verification) | `b3-derisking-strategy.md`; decoder in `tmp.md` |
-| **Batch 0** | Merge three near-identical C gradient functions into one shared core | `b3-batch0-plan.md` |
-| **Batch A** ⚠ | (Aug) Exact moments gradient with `rewards`. ⚠ In July "Batch A / A1–A4" was an unrelated audit-fix batch, and "A1–A3" are also the Category-A bug fixes | `b3-batchA-plan.md` |
-| **Batch B / C** | Exact gradient for `weight_mode='formula'` / `'callback'` | `b3-batchB-plan.md`, `b3-batchC-plan.md` |
-| **Batch D (D.1–D.4)** ⚠ | D.1 fix a crash of `moments_from_graph` under `jax.vmap`; D.2 add safety checks to a debug-only C function; D.3 pass an option through to joint-probability SVGD (cancelled, folded into G.1); D.4 pass `exact_moment_grad` through `Graph.svgd()`. ⚠ Not the same as D1 = Deferred 1 | `b3-batchD-tier1-plan.md`, `b3-batchD3-plan.md` |
-| **Batch E** | Exact gradient for joint-probability models with de-duplicated observations ("baked" mode) | `b3-batchE-plan.md` |
-| **Batch F** / **D6** | Remove a JAX construct (`lax.cond`) that, under `vmap`, computed both the exact and the FD gradient. D6 was its name inside the joint-index plan | `b3-batchF-plan.md` |
-| **Batch G (G.1, G.2)** ⚠ | Expose exact-gradient options through `Graph.svgd()` (G.1: multi-epoch final epoch; G.2: multi-feature rewards). ⚠ Not gates G0–G5, nor audit findings G1/G2 | `b3-batchG1-plan.md`, `b3-batchG2-plan.md` |
-| **Batch H** ⚠ | Exact gradient for the final epoch of multi-epoch (daisy-chain) models. ⚠ Not hardening fixes H1–H10 | `b3-batchH-plan.md` |
-| **Batch 1–3** (Jul) ⚠ | Early B3 steps: tape adjoint, first exact gradient, higher moments. ⚠ "Batch 1/2" also name the LRT fix and the `epoch_model` builder | `b3-batch{1,2,3}-*-findings.md`, `batch2-free-epoch-model-plan.md` |
-| **Deferred 1 (D1, Def-1)** | Exact gradients for big models split into strongly connected components | `deferred-1-…-plan.md`, `b3-d1-*.md` |
-| **D1-E2 guard** | Small shipped fix from Deferred 1 experiment E2: exact-gradient code now refuses placeholder "synthetic" component graphs, where it used to return plausible but wrong numbers | `b3-d1-e2-guard-plan.md` |
-| **Deferred 2 (D2)** | Exact gradient for the earlier epochs of multi-epoch models | `deferred-2-…-plan.md`, `b3-d2-derisk-findings.md` |
-| **Deferred 3 (D3)** | Exact gradient of the PDF/PMF at observed times | `deferred-3-…-plan.md`, `b3-d3-*.md` |
-| **Deferred 4 (D4)** | High-precision (MPFR) gradients for badly conditioned cases; parked | `deferred-4-…-plan.md`, `b3-d4-sweep-findings.md` |
+| **B3** | The whole exact-gradient programme. Originally step 3 of a five-step plan B0–B4 for fixing finite-difference gradients (B0 pin the bug with a test, B1 guard against negative rates, B2 build a verification harness, B3 replace the FD backward passes, B4 adversarial verification) | `plans-and-findings/b3-derisking-strategy.md`; decoder in `tmp.md` |
+| **Batch 0** | Merge three near-identical C gradient functions into one shared core | `plans-and-findings/b3-batch0-plan.md` |
+| **Batch A** ⚠ | (Aug) Exact moments gradient with `rewards`. ⚠ In July "Batch A / A1–A4" was an unrelated audit-fix batch, and "A1–A3" are also the Category-A bug fixes | `plans-and-findings/b3-batchA-plan.md` |
+| **Batch B / C** | Exact gradient for `weight_mode='formula'` / `'callback'` | `plans-and-findings/b3-batchB-plan.md`, `plans-and-findings/b3-batchC-plan.md` |
+| **Batch D (D.1–D.4)** ⚠ | D.1 fix a crash of `moments_from_graph` under `jax.vmap`; D.2 add safety checks to a debug-only C function; D.3 pass an option through to joint-probability SVGD (cancelled, folded into G.1); D.4 pass `exact_moment_grad` through `Graph.svgd()`. ⚠ Not the same as D1 = Deferred 1 | `plans-and-findings/b3-batchD-tier1-plan.md`, `plans-and-findings/b3-batchD3-plan.md` |
+| **Batch E** | Exact gradient for joint-probability models with de-duplicated observations ("baked" mode) | `plans-and-findings/b3-batchE-plan.md` |
+| **Batch F** / **D6** | Remove a JAX construct (`lax.cond`) that, under `vmap`, computed both the exact and the FD gradient. D6 was its name inside the joint-index plan | `plans-and-findings/b3-batchF-plan.md` |
+| **Batch G (G.1, G.2)** ⚠ | Expose exact-gradient options through `Graph.svgd()` (G.1: multi-epoch final epoch; G.2: multi-feature rewards). ⚠ Not gates G0–G5, nor audit findings G1/G2 | `plans-and-findings/b3-batchG1-plan.md`, `plans-and-findings/b3-batchG2-plan.md` |
+| **Batch H** ⚠ | Exact gradient for the final epoch of multi-epoch (daisy-chain) models. ⚠ Not hardening fixes H1–H10 | `plans-and-findings/b3-batchH-plan.md` |
+| **Batch 1–3** (Jul) ⚠ | Early B3 steps: tape adjoint, first exact gradient, higher moments. ⚠ "Batch 1/2" also name the LRT fix and the `epoch_model` builder | `plans-and-findings/b3-batch{1,2,3}-*-findings.md`, `plans-and-findings/batch2-free-epoch-model-plan.md` |
+| **Deferred 1 (D1, Def-1)** | Exact gradients for big models split into strongly connected components | `plans-and-findings/deferred-1-…-plan.md`, `plans-and-findings/b3-d1-*.md` |
+| **D1-E2 guard** | Small shipped fix from Deferred 1 experiment E2: exact-gradient code now refuses placeholder "synthetic" component graphs, where it used to return plausible but wrong numbers | `plans-and-findings/b3-d1-e2-guard-plan.md` |
+| **Deferred 2 (D2)** | Exact gradient for the earlier epochs of multi-epoch models | `plans-and-findings/deferred-2-…-plan.md`, `plans-and-findings/b3-d2-derisk-findings.md` |
+| **Deferred 3 (D3)** | Exact gradient of the PDF/PMF at observed times | `plans-and-findings/deferred-3-…-plan.md`, `plans-and-findings/b3-d3-*.md` |
+| **Deferred 4 (D4)** | High-precision (MPFR) gradients for badly conditioned cases; parked | `plans-and-findings/deferred-4-…-plan.md`, `plans-and-findings/b3-d4-sweep-findings.md` |
 | **E0–E5** | Numbered experiments *inside* each deferred plan; the numbers restart in every plan | the deferred plans |
-| **CC-1, CC-2** | "Cheap checks" in the master plan. CC-2 = the conditioning sweep that led to parking Deferred 4 | `b3-exact-gradient-master-plan.md` §15 |
+| **CC-1, CC-2** | "Cheap checks" in the master plan. CC-2 = the conditioning sweep that led to parking Deferred 4 | `plans-and-findings/b3-exact-gradient-master-plan.md` §15 |
 | **Phase 1–4** ⚠ | (B3) Ordering groups of batches in the master plan; all complete. ⚠ In July: the four phases of the numerical audit (forward values, gradients, invariants, weak tests) | master plan §15 / `tmp.md` |
-| **Tier 1–3** ⚠ | (B3) Three candidate strategies: exact differentiation via the trace / smarter FD step (abandoned) / C adjoint (chosen). ⚠ In the recovery tests, Tiers 0–2 mean sampler check / likelihood-peak check / full SVGD fit. ⚠ "Batch D Tier-1" and "SVGD plumbing Tier 3" mean yet another thing | `b3-derisking-strategy.md`; test file docstring |
-| **G0–G5** | Checklist every batch passed: baseline current, own tests, targeted tests, full suite vs ledger, adversarial diff review, merge record | `b3-execution-process.md` §4 |
+| **Tier 1–3** ⚠ | (B3) Three candidate strategies: exact differentiation via the trace / smarter FD step (abandoned) / C adjoint (chosen). ⚠ In the recovery tests, Tiers 0–2 mean sampler check / likelihood-peak check / full SVGD fit. ⚠ "Batch D Tier-1" and "SVGD plumbing Tier 3" mean yet another thing | `plans-and-findings/b3-derisking-strategy.md`; test file docstring |
+| **G0–G5** | Checklist every batch passed: baseline current, own tests, targeted tests, full suite vs ledger, adversarial diff review, merge record | `plans-and-findings/b3-execution-process.md` §4 |
 | **§16b items 1–14** | The master plan's list of unscheduled loose ends | master plan §16b |
 | **R9, R29–R33** | Numbered argument-validation rules in `svgd_config.py` that reject an option where it would have no effect (R33: `final_read='stopprob'` refused for epoch fits) | `src/phasic/svgd_config.py` |
-| **T1–T10** | Joint-probability follow-up tickets (November) | `joint-prob-followups-plan.md` |
-| **D1–D4 (epoch plan)** ⚠ | Decisions in the epoch-normalisation plan (D2a = refuse `stopprob` for fits). ⚠ Not Deferred 1–4 | `epoch-normalization-plan.md` §7 |
-| **Leaf 1–5** | Branches of `Graph.svgd()`'s internal routing: 1 multi-epoch, 2 joint-probability, 3 multi-feature rewards, 4 single rewards, 5 plain moments | `atlas/exact-fd-atlas-svgd-reachability.md` |
-| **DR-A, DR-D** | Early "de-risk" experiments: DR-A an analytic gradient oracle, DR-D a scale-aware FD step (dead end) | `b3-experiment-findings.md` |
-| **F-001…** ⚠ | Audit findings. ⚠ Also "F1–F7" (audit phase-1 findings), "F-P1…" (reviewer findings inside plans) | `audit-differential-findings.md` |
+| **T1–T10** | Joint-probability follow-up tickets (November) | `plans-and-findings/joint-prob-followups-plan.md` |
+| **D1–D4 (epoch plan)** ⚠ | Decisions in the epoch-normalisation plan (D2a = refuse `stopprob` for fits). ⚠ Not Deferred 1–4 | `plans-and-findings/epoch-normalization-plan.md` §7 |
+| **Leaf 1–5** | Branches of `Graph.svgd()`'s internal routing: 1 multi-epoch, 2 joint-probability, 3 multi-feature rewards, 4 single rewards, 5 plain moments | `plans-and-findings/exact-fd-atlas-svgd-reachability.md` |
+| **DR-A, DR-D** | Early "de-risk" experiments: DR-A an analytic gradient oracle, DR-D a scale-aware FD step (dead end) | `plans-and-findings/b3-experiment-findings.md` |
+| **F-001…** ⚠ | Audit findings. ⚠ Also "F1–F7" (audit phase-1 findings), "F-P1…" (reviewer findings inside plans) | `plans-and-findings/audit-differential-findings.md` |
 | **N1–N12, G1–G2, P2-x** | Defects found during the July audit (N), its headline findings (G), its early claims (P2) | `tmp.md` |
-| **WS-A … WS-G** | Workstreams of the Stage-3 refactor: A safety-net test gates, B dead-code removal, C splitting Python god-objects (the Graph class, svgd.py), D thinning the pybind layer, E C++ single-source promotions, F splitting the C core, G doctrine document + CI guards | `stage3-refactor-plan.md` §7 |
-| **Stage-3 steps 0–20** | The refactor's ordered commit sequence; step 11 = discretize to C++ | `stage3-refactor-plan.md` §8 |
-| **Q1–Q13, Q-CODEGEN** | Decisions recorded in the refactor plan; Q4 = "C++ API is a product, its ports become the single source of truth"; Q13 = freeze the public C symbols | `stage3-refactor-plan.md` §9 |
-| **Part 1, 2, 3a, 3, 4** | The model-building consistency work: cache round trip / one guard for constant models / edge-array memory fix / lossless widening / one-number discretize callback | `constant-parameterized-consistency-plan.md` |
-| **P1–P4, O1–O8** | Widening standard: P = what the shared widening primitive guarantees; O = what each operation (discretize, add_epoch, joint_prob_graph) must check, change and record | `discretize-cpp-ssot-plan.md` §3 |
-| **Fix A / C / D** | Fixes for the nested likelihood-ratio test on epoch models | `svgd-lrt-fix-a-plan.md` |
-| **Pins 1–4** | The four expected-failure recovery tests in 1a | `b3-budget-vs-defect-findings.md` |
-| **Ledger stamps** (e.g. "11th stamp 2012/0/84/24") | Recorded full-suite results: passed / failed / skipped / expected-fail | `b3-test-baseline.md` |
+| **WS-A … WS-G** | Workstreams of the Stage-3 refactor: A safety-net test gates, B dead-code removal, C splitting Python god-objects (the Graph class, svgd.py), D thinning the pybind layer, E C++ single-source promotions, F splitting the C core, G doctrine document + CI guards | `plans-and-findings/stage3-refactor-plan.md` §7 |
+| **Stage-3 steps 0–20** | The refactor's ordered commit sequence; step 11 = discretize to C++ | `plans-and-findings/stage3-refactor-plan.md` §8 |
+| **Q1–Q13, Q-CODEGEN** | Decisions recorded in the refactor plan; Q4 = "C++ API is a product, its ports become the single source of truth"; Q13 = freeze the public C symbols | `plans-and-findings/stage3-refactor-plan.md` §9 |
+| **Part 1, 2, 3a, 3, 4** | The model-building consistency work: cache round trip / one guard for constant models / edge-array memory fix / lossless widening / one-number discretize callback | `plans-and-findings/constant-parameterized-consistency-plan.md` |
+| **P1–P4, O1–O8** | Widening standard: P = what the shared widening primitive guarantees; O = what each operation (discretize, add_epoch, joint_prob_graph) must check, change and record | `plans-and-findings/discretize-cpp-ssot-plan.md` §3 |
+| **Fix A / C / D** | Fixes for the nested likelihood-ratio test on epoch models | `plans-and-findings/svgd-lrt-fix-a-plan.md` |
+| **Pins 1–4** | The four expected-failure recovery tests in 1a | `plans-and-findings/b3-budget-vs-defect-findings.md` |
+| **Ledger stamps** (e.g. "11th stamp 2012/0/84/24") | Recorded full-suite results: passed / failed / skipped / expected-fail | `plans-and-findings/b3-test-baseline.md` |
 | **SOUND-WITH-CORRECTIONS** etc. | Verdicts from adversarial review agents | — |
 
 ---
@@ -403,95 +410,109 @@ Several schemes reuse the same letters. **Collisions are marked ⚠.**
 ### Start here
 | File | What it is | |
 |---|---|---|
+| `OPEN-ITEMS.md` | The register of everything still open, with priorities | Current |
 | `PROJECT-OVERVIEW.md` | This file | Current |
 | `CLAUDE.md` | Build, test, architecture notes and the long list of known gaps | Current |
-| `b3-stocktake-2026-08-16.md` | Is the gradient work aligned with what the library is for? (No: scale and wrong quantity) | Current |
-| `b3-budget-vs-defect-findings.md` | Verdicts on the four failing recovery tests | Current |
-| `b3-likelihood-path-map.md` | What each inference method actually computes, traced through the source | Current |
+| `plans-and-findings/b3-stocktake-2026-08-16.md` | Is the gradient work aligned with what the library is for? (No: scale and wrong quantity) | Current |
+| `plans-and-findings/b3-budget-vs-defect-findings.md` | Verdicts on the four failing recovery tests | Current |
+| `plans-and-findings/b3-likelihood-path-map.md` | What each inference method actually computes, traced through the source | Current |
 
 ### Inference correctness (Aug 16–17)
 | File | What it is | |
 |---|---|---|
-| `b3-mixed-scale-defect-settled.md` | FD gradient error at mixed scales is smaller than thought; the 2.5e-3 likelihood error is the bigger problem | Current |
-| `b3-scale-reality-findings.md` | Measurements of the exact gradients at 1k–22k vertices; tape growth per model type | Current |
-| `b3-inference-accuracy-table.md` | Generated table: true vs inferred parameters with seven convergence checks | Current |
+| `plans-and-findings/b3-mixed-scale-defect-settled.md` | FD gradient error at mixed scales is smaller than thought; the 2.5e-3 likelihood error is the bigger problem | Current |
+| `plans-and-findings/b3-scale-reality-findings.md` | Measurements of the exact gradients at 1k–22k vertices; tape growth per model type | Current |
+| `plans-and-findings/b3-inference-accuracy-table.md` | Generated table: true vs inferred parameters with seven convergence checks | Current |
 
 ### Exact-gradient programme (B3): overview and process
 | File | What it is | |
 |---|---|---|
-| `b3-execution-tracker.md` | Status table for every batch (dense; see decoder above) | History, partly current |
-| `b3-exact-gradient-master-plan.md` | 1,482-line plan sequencing Batches 0, A–H and Deferred 1–4 | History |
-| `b3-execution-process.md` | Branching, review and test-gate rules used for every batch | Reference |
-| `b3-test-baseline.md` | Full-suite results ledger | Reference |
-| `exact-fd-atlas-SUMMARY.md` + `atlas/` (13 files) | Map of exact vs FD gradient coverage, and feasibility studies | History |
-| `b3-derisking-strategy.md` | The original exploration plan for replacing FD gradients | History |
+| `plans-and-findings/b3-execution-tracker.md` | Status table for every batch (dense; see decoder above) | History, partly current |
+| `plans-and-findings/b3-exact-gradient-master-plan.md` | 1,482-line plan sequencing Batches 0, A–H and Deferred 1–4 | History |
+| `plans-and-findings/b3-execution-process.md` | Branching, review and test-gate rules used for every batch | Reference |
+| `plans-and-findings/b3-test-baseline.md` | Full-suite results ledger | Reference |
+| `plans-and-findings/exact-fd-atlas-SUMMARY.md` + `plans-and-findings/exact-fd-atlas-*.md`, `plans-and-findings/plan-feasibility-*.md` (14 files, moved from `atlas/` 2026-11-26) | August map of exact vs FD gradient coverage (7 atlas files) and the six feasibility studies behind Batches A-H and Deferred 1-4. Coverage claims are superseded by those batches; still-open findings are in `OPEN-ITEMS.md` (reviewed 2026-11-26) | History |
+| `plans-and-findings/b3-derisking-strategy.md` | The original exploration plan for replacing FD gradients | History |
 
 ### B3: per-batch plans and findings (all shipped)
-`b3-batch0-plan.md`, `b3-batchA-*`, `b3-batchB-*`, `b3-batchC-*`,
-`b3-batchD-tier1-plan.md`, `b3-batchD3-plan.md`, `b3-batchE-*`,
-`b3-batchF-plan.md`, `b3-batchG1-*`, `b3-batchG2-*`, `b3-batchH-*` —
+`plans-and-findings/b3-batch0-plan.md`, `plans-and-findings/b3-batchA-*`, `plans-and-findings/b3-batchB-*`, `plans-and-findings/b3-batchC-*`,
+`plans-and-findings/b3-batchD-tier1-plan.md`, `plans-and-findings/b3-batchD3-plan.md`, `plans-and-findings/b3-batchE-*`,
+`plans-and-findings/b3-batchF-plan.md`, `plans-and-findings/b3-batchG1-*`, `plans-and-findings/b3-batchG2-*`, `plans-and-findings/b3-batchH-*` —
 meanings in the decoder. History.
 
 ### B3: early work, late July – early August (shipped)
-`b3-experiment-findings.md`, `b3-prototype-findings.md`,
-`b3-c-theta-adjoint-plan.md`, `b3-batch0-realtape-findings.md`,
-`b3-batch1-reverse-adjoint-findings.md`, `b3-batch2-exact-grad-findings.md`,
-`b3-batch3-higher-moments-findings.md`, `b3-batch3-mpfr-and-discrete-derisk.md`,
-`B3-MERGE-REVIEW.md` (first exact moments gradient),
-`b3-discrete-theta-adjoint-plan.md` + `B3-DISCRETE-MERGE-REVIEW.md`
-(discrete models), `b3-log-weight-mode-plan.md`, `b3-joint-index-plan.md`
+`plans-and-findings/b3-experiment-findings.md`, `plans-and-findings/b3-prototype-findings.md`,
+`plans-and-findings/b3-c-theta-adjoint-plan.md`, `plans-and-findings/b3-batch0-realtape-findings.md`,
+`plans-and-findings/b3-batch1-reverse-adjoint-findings.md`, `plans-and-findings/b3-batch2-exact-grad-findings.md`,
+`plans-and-findings/b3-batch3-higher-moments-findings.md`, `plans-and-findings/b3-batch3-mpfr-and-discrete-derisk.md`,
+`plans-and-findings/B3-MERGE-REVIEW.md` (first exact moments gradient),
+`plans-and-findings/b3-discrete-theta-adjoint-plan.md` + `plans-and-findings/B3-DISCRETE-MERGE-REVIEW.md`
+(discrete models), `plans-and-findings/b3-log-weight-mode-plan.md`, `plans-and-findings/b3-joint-index-plan.md`
 (sojourn-time gradient). History.
 
 ### B3: deferred items (open decisions)
 | File | What it is | |
 |---|---|---|
-| `deferred-1-hierarchical-scc-adjoint-plan.md`, `b3-d1-derisk-findings.md`, `b3-d1-implementation-plan.md` | Component-split gradients for big models: exploration plan, results, implementation plan awaiting sign-off | Current |
-| `b3-d1-e2-guard-plan.md` | The shipped synthetic-graph guard | History |
-| `deferred-2-daisy-intermediate-epoch-plan.md`, `b3-d2-derisk-findings.md` | Earlier-epoch gradients | Current |
-| `deferred-3-pdf-gradient-revival-plan.md`, `b3-d3-derisk-findings.md`, `b3-d3-e5-derivation-dossier.md` | PDF gradient: plan, results, derivation | Current |
-| `deferred-4-mpfr-conditioning-floor-plan.md`, `b3-d4-sweep-findings.md` | High-precision gradients (parked) | History |
+| `plans-and-findings/deferred-1-hierarchical-scc-adjoint-plan.md`, `plans-and-findings/b3-d1-derisk-findings.md`, `plans-and-findings/b3-d1-implementation-plan.md` | Component-split gradients for big models: exploration plan, results, implementation plan awaiting sign-off | Current |
+| `plans-and-findings/b3-d1-e2-guard-plan.md` | The shipped synthetic-graph guard | History |
+| `plans-and-findings/deferred-2-daisy-intermediate-epoch-plan.md`, `plans-and-findings/b3-d2-derisk-findings.md` | Earlier-epoch gradients | Current |
+| `plans-and-findings/deferred-3-pdf-gradient-revival-plan.md`, `plans-and-findings/b3-d3-derisk-findings.md`, `plans-and-findings/b3-d3-e5-derivation-dossier.md` | PDF gradient: plan, results, derivation | Current |
+| `plans-and-findings/deferred-4-mpfr-conditioning-floor-plan.md`, `plans-and-findings/b3-d4-sweep-findings.md` | High-precision gradients (parked) | History |
 
 ### Model-building consistency and the C++ discretize (October)
 | File | What it is | |
 |---|---|---|
-| `constant-parameterized-consistency-plan.md` | Parts 1–4: constant vs parameterized models, lossless widening, discretize callback; §13 is the implementation record | Current |
-| `graph-cache-constant-roundtrip-plan.md` | Part 1 in detail: constant graphs coming back parameterized from the graph cache | Current |
-| `discretize-cpp-ssot-plan.md` | One `discretize()` owned by C++, with the widening and layout standards; implemented and merged, §13 is the record and lists the follow-ups | Current |
-| `discretize-cpp-derisk-findings.md` | Measurements behind that plan (where the time went, quadratic `clone()`, C bugs found on the way) | History |
-| `test-suite-timings-2026-10-12.md` | Time per test file and the slowest tests | Reference |
-| `stage3-refactor-plan.md` | The larger refactoring plan still in force (doctrine, workstreams, commit sequence, decisions) | Current |
+| `plans-and-findings/constant-parameterized-consistency-plan.md` | Parts 1–4: constant vs parameterized models, lossless widening, discretize callback; §13 is the implementation record | Current |
+| `plans-and-findings/graph-cache-constant-roundtrip-plan.md` | Part 1 in detail: constant graphs coming back parameterized from the graph cache | Current |
+| `plans-and-findings/discretize-cpp-ssot-plan.md` | One `discretize()` owned by C++, with the widening and layout standards; implemented and merged, §13 is the record and lists the follow-ups | Current |
+| `plans-and-findings/discretize-cpp-derisk-findings.md` | Measurements behind that plan (where the time went, quadratic `clone()`, C bugs found on the way) | History |
+| `plans-and-findings/test-suite-timings-2026-10-12.md` | Time per test file and the slowest tests | Reference |
+| `plans-and-findings/stage3-refactor-plan.md` | The larger refactoring plan still in force (doctrine, workstreams, commit sequence, decisions) | Current |
 
 ### Joint-probability likelihood (November)
 | File | What it is | |
 |---|---|---|
-| `joint-prob-followups-plan.md` | Plan and tracker for the follow-up tickets T1–T10, with decisions and a log | Current |
-| `epoch-normalization-plan.md` | Plan (v2) for normalising the epoch likelihood; §9 lists the defects found on the way | History |
-| `epoch-normalization-findings.md` | Closed-form checks, test gate and timing for that fix | History |
-| `overflow-observations-plan.md` | Reviewed design (v3) for keeping over-cap observations as an overflow category; deferred | Current (deferred) |
+| `plans-and-findings/joint-prob-followups-plan.md` | Plan and tracker for the follow-up tickets T1–T10, with decisions and a log | Current |
+| `plans-and-findings/epoch-normalization-plan.md` | Plan (v2) for normalising the epoch likelihood; §9 lists the defects found on the way | History |
+| `plans-and-findings/epoch-normalization-findings.md` | Closed-form checks, test gate and timing for that fix | History |
+| `plans-and-findings/overflow-observations-plan.md` | Reviewed design (v3) for keeping over-cap observations as an overflow category; deferred | Current (deferred) |
 | `experiments/dr_epochnorm_checks.py`, `experiments/dr_tot_reward_trash.py` | Scripts behind those checks | History |
 
+### Priors, notices and the November bug-fix series (21-26 November)
+| File | What it is | |
+|---|---|---|
+| `plans-and-findings/bugfix-handoff-2026-11-24.md` | Handoff and state of bugs 1-5 (all merged) | History |
+| `plans-and-findings/bug1-compiled-cache-plan.md` … `bug5-graph-cache-plan.md` | The five bug plans (compiled-gradient cache, fixed values, BetaPrior transform, discrete row sums, stale graph cache), each with its review record | History |
+| `plans-and-findings/found-defects-2026-11-23.md` | Defects found during those reviews, not approved for fixing (now rows OI-010 to OI-024 in `OPEN-ITEMS.md`) | Current |
+| `plans-and-findings/fd-step-and-slow-band-guard-plan.md` | Scale-free likelihood and gradients (v5, parked, not reviewed) | Current (parked) |
+| `plans-and-findings/epoch-fit-prior-and-fd-floor-plan.md` | Investigation of the epoch-fit hang and negative-rate FD error; split into the next two | History |
+| `plans-and-findings/epoch-default-prior-and-truncated-gauss-plan.md` | Default epoch prior and GaussPrior `lower=` (merged) | History |
+| `plans-and-findings/svgd-notices-plan.md` | Short SVGD notices and `effective_options('<option>')` (merged) | History |
+| `plans-and-findings/hpd-hdr-naming-plan.md` | HPD/HDR method renames with deprecation aliases (October) | History |
+
 ### Refactor and audit (July)
-`stage2-coverage-safety-net-handoff.md`,
-`stage3-execution-handoff.md` (what of Stage 3 was executed), `deferred-notebook-triage.md`,
-`audit-situation-map.md` (also the map of all compute paths — still useful),
-`audit-differential-findings.md`, `category-A-fix-plans.md`. History.
+`plans-and-findings/stage2-coverage-safety-net-handoff.md`,
+`plans-and-findings/stage3-execution-handoff.md` (what of Stage 3 was executed), `plans-and-findings/deferred-notebook-triage.md`,
+`plans-and-findings/audit-situation-map.md` (also the map of all compute paths — still useful),
+`plans-and-findings/audit-differential-findings.md`, `plans-and-findings/category-A-fix-plans.md`. History.
 
 ### SVGD robustness and model selection (late July)
-`deferred-svgd-divergece-fix.md`, `svgd-divergence-robustness-plan.md`,
-`deferred-svgd-lr-bug.md`, `svgd-lrt-model-reuse-plan.md`,
-`svgd-lrt-fix-a-plan.md`, `batch2-free-epoch-model-plan.md`. History.
+`plans-and-findings/deferred-svgd-divergece-fix.md`, `plans-and-findings/svgd-divergence-robustness-plan.md`,
+`plans-and-findings/deferred-svgd-lr-bug.md`, `plans-and-findings/svgd-lrt-model-reuse-plan.md`,
+`plans-and-findings/svgd-lrt-fix-a-plan.md`, `plans-and-findings/batch2-free-epoch-model-plan.md`. History.
 
 ### Other
 | File | What it is |
 |---|---|
-| `sojourn-fix.md` | Cut memory of sojourn-time computation from O(n·k) to O(n) (shipped) |
-| `tree_toplogy_encoding.md` | Encoding tree topologies as states |
+| `plans-and-findings/sojourn-fix.md` | Cut memory of sojourn-time computation from O(n·k) to O(n) (shipped) |
+| `plans-and-findings/tree_toplogy_encoding.md` | Encoding tree topologies as states |
+| `plans-and-findings/MCMC_TODO.md` | April 2026 to-do list for the MCMC class (moved from `docs/`). Since done: plots (posterior, chains, autocorrelation), vmap chains, thinning. Still open: warm restart (OI-084); its claim of 27 passing tests in `test_mcmc.py` is outdated (all commented out, OI-066) |
 | `tmp.md` (git-ignored) | An earlier decoder of the July audit labels |
 | `experiments/` (58 scripts) | Scripts behind the findings files (`dr_*.py`) |
 
 ---
 
-## 5. Suggested tidy-up (not done)
+## 5. Suggested tidy-up (partly done 2026-11-26: plans and findings moved to `plans-and-findings/`)
 
 - Move every "History" file into `docs/history/` (or `notes/archive/`), so
   that the repo root holds only this overview, `CLAUDE.md`, `README.md` and

@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`phasic` is a library for **phase-type distribution algorithms represented as graphs**. A phase-type distribution is the time to absorption of a continuous- or discrete-time Markov chain; here the chain's state space is a directed graph of vertices (states) and weighted edges (transition rates), and the library computes PMFs/PDFs/CDFs, moments, sojourn times, and does Bayesian parameter inference over these models. The main application domain is population genetics (coalescent / two-locus / recombination models), so states typically encode lineage properties (see `state_indexing.py` and `tree_toplogy_encoding.md`).
+`phasic` is a library for **phase-type distribution algorithms represented as graphs**. A phase-type distribution is the time to absorption of a continuous- or discrete-time Markov chain; here the chain's state space is a directed graph of vertices (states) and weighted edges (transition rates), and the library computes PMFs/PDFs/CDFs, moments, sojourn times, and does Bayesian parameter inference over these models. The main application domain is population genetics (coalescent / two-locus / recombination models), so states typically encode lineage properties (see `state_indexing.py` and `plans-and-findings/tree_toplogy_encoding.md`).
+
+## Where things are (read first)
+
+- `OPEN-ITEMS.md` (repo root): the ONE tracker of open defects, follow-ups,
+  decisions, notebook edits, and the priority order toward the current goal.
+  Add new items there first; status lines in plans are not maintained.
+- `PROJECT-OVERVIEW.md` (repo root): narrative history and label decoder.
+- `plans-and-findings/`: every plan, findings, review and handoff file
+  (new ones go here too), including the August exact/FD gradient atlas
+  (`exact-fd-atlas-*.md`, `plan-feasibility-*.md`, formerly `atlas/`).
+- The sections below that describe old sessions and "known gaps" are kept as
+  background; for whether an item is still open, check `OPEN-ITEMS.md`.
 
 ## RESUMING THE INFERENCE-CORRECTNESS SESSION (2026-08-17)
 
@@ -17,8 +29,8 @@ written to stand alone):
 
 > I have reviewed the models in `tests/pytest/test_notebook_model_recovery.py`
 > myself and checked them against your findings. Read
-> `b3-budget-vs-defect-findings.md`, `b3-mixed-scale-defect-settled.md`,
-> `b3-likelihood-path-map.md` and `b3-stocktake-2026-08-16.md` first, then
+> `plans-and-findings/b3-budget-vs-defect-findings.md`, `plans-and-findings/b3-mixed-scale-defect-settled.md`,
+> `plans-and-findings/b3-likelihood-path-map.md` and `plans-and-findings/b3-stocktake-2026-08-16.md` first, then
 > continue. Note that inference correctness is the requirement and must be
 > tracked by tests in the suite; typical models are 20k-60k vertices and
 > ~200k-600k must work; use manually-set step-size schedules in every
@@ -57,7 +69,7 @@ prior alone. `assert_informative()` guards this.
 ### The four pins and their settled verdicts
 
 Run `pixi run pytest tests/pytest/test_notebook_model_recovery.py -m "not slow"`
-(17 tests, ~2 min). Full evidence in `b3-budget-vs-defect-findings.md`.
+(17 tests, ~2 min). Full evidence in `plans-and-findings/b3-budget-vs-defect-findings.md`.
 
 - **Under-dispersion — DEFECT.** More iterations shrink the posterior
   (sd 0.2525 → 0.0735 at 60 particles, 150 → 600 iterations). Mean pinned
@@ -85,8 +97,8 @@ Run `pixi run pytest tests/pytest/test_notebook_model_recovery.py -m "not slow"`
 1. **The three defects are unexplained mechanically.** Variance collapse is
    the observed behaviour; the cause (kernel bandwidth, preconditioner,
    step schedule interaction) has not been diagnosed.
-2. **Deferred 1/2/3 decisions remain open** — see `b3-stocktake-2026-08-16.md`
-   §5. D1 was activated and its plan (`b3-d1-implementation-plan.md` v3) is
+2. **Deferred 1/2/3 decisions remain open** — see `plans-and-findings/b3-stocktake-2026-08-16.md`
+   §5. D1 was activated and its plan (`plans-and-findings/b3-d1-implementation-plan.md` v3) is
    drafted and adversarially reviewed but NOT signed off.
 3. **Two cheap, high-value fixes identified but not built:** a
    moments-family conditioning-gate opt-out (the sojourn family already has
@@ -102,7 +114,7 @@ Run `pixi run pytest tests/pytest/test_notebook_model_recovery.py -m "not slow"`
 must also handle models an order of magnitude larger (~200,000-600,000
 vertices).** This is the ordinary case, not an aspiration: real
 joint-probability graphs already reach n~7e5 (see
-`b3-joint-index-plan.md`). Treat any algorithm whose memory or time
+`plans-and-findings/b3-joint-index-plan.md`). Treat any algorithm whose memory or time
 becomes impractical below ~60k vertices as OUT OF SCOPE for production
 use, and say so explicitly rather than benchmarking on toy graphs.
 
@@ -113,7 +125,7 @@ vertices, and at 59,522 vertices consumed ~50 GB RAM (plus a >=2.5 GB
 partial on-disk tape) — i.e. it fails across the typical range. The
 sojourn/joint-index family is forward-mode over few parameters and was
 designed for large graphs; the two families scale differently and must
-be measured separately. Full record: `b3-d1-derisk-findings.md` (E0).
+be measured separately. Full record: `plans-and-findings/b3-d1-derisk-findings.md` (E0).
 
 **Tape growth is MODEL-DEPENDENT — never quote a single exponent.**
 Measured elimination-tape length L against vertex count n:
@@ -123,7 +135,7 @@ So a sparse acyclic model of 50,000 vertices needs only ~400 MB of tape
 and is feasible on the monolithic path, while a two-locus model of the
 same size needs ~240 GB and is not. The binding constraint is model
 STRUCTURE, not vertex count alone. Any scale claim must name the family
-it was measured on (`b3-scale-reality-findings.md` §2b).
+it was measured on (`plans-and-findings/b3-scale-reality-findings.md` §2b).
 
 **Any scale measurement must be memory-capped** — `RLIMIT_DATA` in a
 child process plus a parent RSS watchdog. A subprocess timeout does NOT
@@ -150,7 +162,7 @@ layer seeds the C sampler from Python's stdlib `random`
 sampling non-deterministic; seed BOTH or tests are flaky.
 
 `experiments/dr_inference_accuracy_table.py` regenerates
-`b3-inference-accuracy-table.md`: true vs inferred parameters with prior
+`plans-and-findings/b3-inference-accuracy-table.md`: true vs inferred parameters with prior
 and posterior intervals, gated on three independent convergence checks
 (R-hat across seeds, trace stationarity, and an independent scipy MLE
 landing inside the posterior interval) rather than on `summary()`.
@@ -172,7 +184,7 @@ data displaces the estimate by the same 2.5e-3, and unlike sampling
 error it does not shrink with sample size — so it dominates the answer
 for large datasets. Guarded by
 `tests/pytest/test_likelihood_correctness.py`; full analysis in
-`b3-mixed-scale-defect-settled.md`.
+`plans-and-findings/b3-mixed-scale-defect-settled.md`.
 
 Practical consequence: for the default PDF path the accuracy limit is
 the FORWARD, not the gradient. Exact-gradient work cannot improve an
@@ -190,7 +202,7 @@ joint-graph likelihood is prod p_i / Z(theta, alpha_i), where Z is the
 table mass of the observation's own (exposure-scaled) parameters. Data
 must be truncated at exactly the graph's caps. The epoch (daisy-chain)
 path was raw (unnormalised) until branch `fix/epoch-normalization`
-(plan `epoch-normalization-plan.md`), which biased estimates toward
+(plan `plans-and-findings/epoch-normalization-plan.md`), which biased estimates toward
 parameters that minimise overflow (test.py reproducer: 6.44 for a true
 5.0). `final_read='stopprob'` is rejected for epoch fits (rule R33):
 normalising it would cancel the penalty for mass unabsorbed at t_eval.
@@ -199,7 +211,7 @@ normalising it would cancel the penalty for mass unabsorbed at t_eval.
 observations as an explicit overflow category, the full likelihood
 prod_in p_i x prod_over (1 - Z) is unbiased and about twice as
 informative (tied two-epoch test model: sd 0.036 vs 0.074). A reviewed
-design exists in `overflow-observations-plan.md` (v3, deferred).
+design exists in `plans-and-findings/overflow-observations-plan.md` (v3, deferred).
 Constraints found: the single-epoch joint-index model reads sojourn =
 probability / mu on continuous graphs, so censoring must use the epoch
 path (`epoch_starts=[0.0]`), whose build is ~36x slower at 45k vertices
@@ -214,7 +226,7 @@ likelihood 43-49% wrong; `test_joint_prob_tot_cap.py`). The epoch path
 never read t-vertex out-edges, so it was unaffected. Open follow-ups
 (continuous `joint_prob_table()` is probability / mu, degenerate
 outcomes, prior fallbacks, ...) are tracked in
-`joint-prob-followups-plan.md`.
+`plans-and-findings/joint-prob-followups-plan.md`.
 
 **C++ thread_local caches: destruction order matters** (fix `2dc4f60f`,
 2026-11-20). thread_locals are destroyed in reverse construction order
@@ -229,7 +241,7 @@ only).
 
 ## Priors under positive_params; default epoch prior (2026-11-23)
 
-Merged `070728cd` + `357329ef` (plan `epoch-default-prior-and-truncated-gauss-plan.md`).
+Merged `070728cd` + `357329ef` (plan `plans-and-findings/epoch-default-prior-and-truncated-gauss-plan.md`).
 
 - `GaussPrior(lower=0.0)` samples the Gaussian truncated to theta > 0
   exactly (inverse CDF, no 1e-6 clip). Under `positive_params=True` SVGD
@@ -335,12 +347,12 @@ The **builder-based** (`θ → Graph` *function*) likelihood API `Graph.pmf_from
 `Graph.pmf_and_moments_from_graph`'s exact reverse-mode moment-vector adjoint
 (continuous + discrete/was_dph for `weight_mode='linear'`; continuous only
 for `weight_mode='log'`, added in the log-weight-mode batch,
-`b3-log-weight-mode-plan.md`; continuous + ALIGNED-theta-dim only for
+`plans-and-findings/b3-log-weight-mode-plan.md`; continuous + ALIGNED-theta-dim only for
 `weight_mode='formula'`, added by Batch B `c6cc38b9` 2026-08-14 — a
 Wengert-list reverse-mode autodiff over the weight-formula tape; the
 lazily-built decoupled formula class, C `param_length` ≠ model theta
 dimension, statically declines to FD with a log, full decoupled support
-being a ledgered follow-up in `b3-batchB-plan.md` v2 §A; and continuous
+being a ledgered follow-up in `plans-and-findings/b3-batchB-plan.md` v2 §A; and continuous
 + JAX-NATIVE-under-jit only for `weight_mode='callback'`, added by
 Batch C `35a17364` 2026-08-14 — the pre-contraction binp exit + Python
 `binp @ jax.grad(callback)` contraction, decoupled theta dimensions
@@ -372,11 +384,11 @@ was_dph/is_discrete exclusion is load-bearing, not defensive; since
 2026-10-12 `discretize()` widens parameterized graphs and refuses log mode,
 but a was_dph log graph can still be built by hand, so the exclusion
 stays) — see
-`b3-log-weight-mode-plan.md` D1. The following were flagged across these
+`plans-and-findings/b3-log-weight-mode-plan.md` D1. The following were flagged across these
 reviews but judged lower-severity / out of scope for those passes:
 
 - **Conditioning verdict (Deferred-4 Phase 0, CC-2, 2026-08-15,
-  `b3-d4-sweep-findings.md`):** the moments-family exact gradients are
+  `plans-and-findings/b3-d4-sweep-findings.md`):** the moments-family exact gradients are
   verified NEVER silently wrong — a 64-point sweep against an
   exact-rational oracle (calibrated 1e-16-class) found zero GAP points;
   every decline is gate-driven, logged, and 3-4 decades EARLY on the
@@ -435,7 +447,7 @@ reviews but judged lower-severity / out of scope for those passes:
   its logging automatically), but a caller cannot force FD directly through
   this entry point — only by editing the underlying 1-D model construction.
 - **Reverse-tape skeleton duplication** (flagged during the log-weight-mode
-  batch, `b3-log-weight-mode-plan.md`). `ptd_moments_grad_theta` (linear),
+  batch, `plans-and-findings/b3-log-weight-mode-plan.md`). `ptd_moments_grad_theta` (linear),
   `ptd_moments_grad_theta_dph` (discrete/was_dph), and
   `ptd_moments_grad_theta_log` (log) in `src/c/phasic.c` are three
   near-identical (~150 line) copies of the same stage-0 (forward moment
@@ -479,7 +491,7 @@ reviews but judged lower-severity / out of scope for those passes:
   are ~unchanged (5.6e-10) — the guard's value is an honest C/pybind
   surface plus protection for the future two-level adjoint. Tests:
   `tests/pytest/test_synthetic_scc_guard.py`; record
-  `b3-d1-e2-guard-plan.md`.
+  `plans-and-findings/b3-d1-e2-guard-plan.md`.
 
 None of these are regressions from the default flip (the multivariate/
 moments_from_graph/method_of_moments gaps predate it and were never in
@@ -494,7 +506,7 @@ review, not by the original implementation or its own tests.
 
 `Graph.pmf_from_graph_joint_index`'s `exact_grad` kwarg (new C function
 `ptd_sojourn_grad_theta_subset`, `src/c/phasic.c`; see
-`b3-joint-index-plan.md` for the full derivation) is the first B3
+`plans-and-findings/b3-joint-index-plan.md` for the full derivation) is the first B3
 exact-gradient kwarg in this codebase to default to **`False`**, not
 `True`. Reason: it uses forward-mode (cost scales with `theta_dim` `P`,
 unlike every other B3 gradient function here, which is reverse-mode and
@@ -522,7 +534,7 @@ that same review, judged lower-severity / out of scope for it:
   (post-Batch-F): the FD-favoured cost at this model's typical P=2 plus
   the hard-stop raise semantics of the committed path make opt-in the
   right default; the trade-off is documented in the `exact_grad`
-  docstring** (decision recorded in `b3-batchF-plan.md`'s merge review,
+  docstring** (decision recorded in `plans-and-findings/b3-batchF-plan.md`'s merge review,
   item 1). Also documented there: the
   batched forward sojourn FFI silently NaN-fills out-of-range indices (a
   pre-existing gap); the backward callback's bounds check is the live
@@ -606,7 +618,7 @@ forward NaN-fills there, pre-existing). Exposure supported (per-unique
 blocks; the chain rule scales ONLY the `exposure_param_index` column by
 alpha_u). Measured: final-epoch gradient components 3.6e5-5.0e5× more
 accurate than FD at ~7.4% of the FD backward's cost (net speedup —
-removes 2·P FFI calls). Full record: `b3-batchH-plan.md` (v3.1 + merge
-review), `b3-batchH-findings.md`. Known gaps: no pytest trap fixture;
+removes 2·P FFI calls). Full record: `plans-and-findings/b3-batchH-plan.md` (v3.1 + merge
+review), `plans-and-findings/b3-batchH-findings.md`. Known gaps: no pytest trap fixture;
 no exposure+tied combination test; subnormal-mass handoffs decline→raise
 (by decision, micro-gate (d)).

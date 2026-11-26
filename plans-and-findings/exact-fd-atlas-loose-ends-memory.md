@@ -50,7 +50,7 @@ claim.
 
 ## 2. Note on the existing (non-memory) reachability atlas
 
-While grounding §3.4, I found `/Users/kmt/phasic/atlas/exact-fd-atlas-svgd-reachability.md`
+While grounding §3.4, I found `/Users/kmt/phasic/plans-and-findings/exact-fd-atlas-svgd-reachability.md`
 already in the repo (dated 2026-08-01/04, i.e. very recent — the same window as
 `project_b3_analytic_gradient`'s last `modified` timestamp). It is **not a
 memory file** and is not referenced by `MEMORY.md` or `CLAUDE.md`, but it

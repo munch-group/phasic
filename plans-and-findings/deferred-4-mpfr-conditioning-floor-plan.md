@@ -11,7 +11,7 @@ design of that scheduled check plus the decision tree hanging off its outcome
 conditional and expected, on current evidence, NOT to run.
 
 **Grounding.** Primary source:
-`atlas/plan-feasibility-callback-and-conditioning-floor.md` Job B ("CCF §n"),
+`plan-feasibility-callback-and-conditioning-floor.md` Job B ("CCF §n"),
 master plan §14 and risk items 9 and 17, `b3-experiment-findings.md` (DR-A),
 `experiments/dr_a_cyclic_analytic_gradient.py`. Key corrected fact (master
 plan §14): DR-A's historical "conditioning floor" was measured on a
@@ -260,7 +260,7 @@ conditional.
 
 **Copy-paste prompt for the executing session:**
 > Read `/Users/kmt/phasic/deferred-4-mpfr-conditioning-floor-plan.md`,
-> `atlas/plan-feasibility-callback-and-conditioning-floor.md` (Job B), and
+> `plan-feasibility-callback-and-conditioning-floor.md` (Job B), and
 > master plan §14. Confirm the master plan was signed off; if not, stop and
 > report. Execute Phase 0 exactly as §2 specifies, on a branch
 > (`derisk/d4-mpfr-sweep`), experiments only, no `src/` changes; build and

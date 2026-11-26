@@ -11,7 +11,7 @@ and a conditional sketch to be re-detailed from findings, per
 `feedback_derisk_and_reevaluate`) — it is deliberately NOT an implementation
 plan.
 
-**Grounding.** Primary source: `atlas/plan-feasibility-pdf-gradient-daisy-chain.md`
+**Grounding.** Primary source: `plan-feasibility-pdf-gradient-daisy-chain.md`
 (2026-08-05; cited as "PDF §n"), master plan §10 (Batch H) and §12, risk items
 4, 8, and 15 [citation corrected per cross-plan review F10 — risk 6 is E/F
 sequencing, unrelated]. [PDF §n] = read-from-source findings of that document;
@@ -290,7 +290,7 @@ pending gates A1-A3.
 the v1 prompt hard-stopped ALL experiments on Batch H, though E1/E2/E4 do not
 depend on it):
 > Read `/Users/kmt/phasic/deferred-2-daisy-intermediate-epoch-plan.md` and
-> `/Users/kmt/phasic/atlas/plan-feasibility-pdf-gradient-daisy-chain.md` in
+> `/Users/kmt/phasic/plans-and-findings/plan-feasibility-pdf-gradient-daisy-chain.md` in
 > full. Confirm the master plan was signed off and the user has explicitly
 > authorized this unit's de-risk; if not, stop and report. E1, E2, and E4 may
 > run before Batch H ships (they do not depend on H's primitive); the §1

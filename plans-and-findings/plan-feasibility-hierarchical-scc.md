@@ -211,7 +211,7 @@ comments — WP-1 through WP-8 — suggest an actively-in-progress branch/initia
 built for **performance** (parallelism across independent SCCs, hash-deduplication
 of repeated substructure across models/graphs), not necessarily for scale the
 monolithic path can't already reach — the companion atlas
-(`atlas/exact-fd-atlas-c-functions.md:240`) notes monolithic sojourn's *design
+(`exact-fd-atlas-c-functions.md:240`) notes monolithic sojourn's *design
 target* is n up to ~7×10⁵ (a stated intent, not an empirically measured benchmark:
 the same atlas explicitly flags "no measured cost/memory profile at production
 scale (n~7×10⁵)" as an open gap). Whether hierarchical decomposition is required

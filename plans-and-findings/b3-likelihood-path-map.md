@@ -124,7 +124,7 @@ quantity the likelihood actually consumes.
 
 ## 5. Documentation defects found while establishing this
 
-The atlas set (atlas/*.md plus exact-fd-atlas-SUMMARY.md) is a
+The atlas set (*.md plus exact-fd-atlas-SUMMARY.md) is a
 2026-08-04 snapshot predating Batches A, B, C, D.4, E, F, G.1, G.2 and
 H. It carries no staleness banner, yet memory instructs "read before
 any B3 batch". It is wrong in at least six places: it claims svgd has
