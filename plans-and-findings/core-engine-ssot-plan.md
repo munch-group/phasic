@@ -1,20 +1,20 @@
 # Core-engine refactor: C/C++ as the single source of every core computation
 
-**Status: v2.12, 2026-11-26. Sixteen adversarial reviews so far (Opus):
+**Status: v2.13, 2026-11-26. Seventeen adversarial reviews so far (Opus):
 three of v1 (`b9178dab`), one each of v2 (`256c788a`), v2.2 (`f326cae7`),
-v2.3 to v2.11, two of v2.1 (`900b8016`). v2.10 moves all
+v2.3 to v2.12, two of v2.1 (`900b8016`). v2.10 moves all
 `load_cpp_builder` work (its source rule, cache key, secure directory,
 tests and OI-116) into phase 0d, since it only compiles from 0d. All said CHANGES REQUIRED; none
 rejected the goal. Findings and the user's decisions are folded in
 (dispositions in §9). The user approved D15, D16 and D17 on 2026-11-26
-(§2; D18 on the hand-off format added later the same day). v2.12 is NOT re-reviewed. One decision is pending with the user (D19, §2). No code changed.**
+(§2; D18 on the hand-off format added later the same day). v2.13 is NOT re-reviewed. One decision is pending with the user (D19, §2). No code changed.**
 
 This is a master plan: each phase gets its own detailed sub-plan, reviewed
 before any code. It supersedes the unexecuted parts of
 [stage3-refactor-plan.md](stage3-refactor-plan.md) (July 2026), which stays
 as history; its doctrine and the decisions listed in §2 carry over, except
 its §4a item 3 ("`evaluate_trace_jax` is not dead code"), retracted by R12'.
-Review reports: `experiments/core_ssot/review{1..16}/REPORT.md`.
+Review reports: `experiments/core_ssot/review{1..17}/REPORT.md`.
 
 Phase numbers changed in v2.1 (trace deletion moved to phase 2, add_epoch
 ahead of the joint family); §9 maps old to new.
@@ -134,8 +134,9 @@ phase-type graph:
   directory); everything for `load_cpp_builder` (the same three plus its
   compile fix, OI-116 and the bytes hand-off) lands in 0d, because that
   route only compiles from 0d.
-  - **No struct crosses compiled copies, from phase 0d on (reviews 9 and
-    10).** `load_cpp_builder` compiles the live source tree
+  - **For `load_cpp_builder` and `pmf_from_cpp`, no struct crosses
+    compiled copies from phase 0d on (reviews 9 and 10); the one exception
+    is the guarded D20 same-install cppimport route below.** `load_cpp_builder` compiles the live source tree
     (`phasic_pybind.cpp:5143-5147`, `:5192-5200`) and shares the resulting
     graph POINTER with the extension (the copy at about `:5267`). That pointer carries
     structs partly defined privately in `phasic.c` (`ptd_weight_tape`,
@@ -331,17 +332,38 @@ phase-type graph:
     objects by value in both directions (`Graph(module.coalescent(4))`;
     `plans-and-findings/discretize-cpp-derisk-findings.md:63-66`); tests
     `test_cpp_from_callback.py`, `test_cpp_add_epoch_lossless.py`. It stays
-    a live-object route, guarded as a SAME-INSTALL route (phase 3):
-    - an ABI/version constant returned by an inline function in
-      `phasiccpp.h`, compiled into every module that includes it, is
-      checked by the extension whenever it wraps or accepts a
-      `phasic::Graph` from another module (clear error on mismatch);
-    - the phasic headers are listed in `cfg["dependencies"]` of the test
-      modules (and, for the user, in the docs modules: listed, not
-      edited), so cppimport rebuilds a module when they change (today it
-      rebuilds only on the user file and `cfg["sources"]`,
-      `cppimport/checksum.py:63-77`, so a stale module would silently
-      corrupt memory after phases 4-5 change the class layout).
+    a live-object route, guarded as a SAME-INSTALL route (phase 3). The
+    guard is on the MODULE side, because the module builds and copies the
+    graph with its own compiled inline code before any extension code runs
+    (pybind's caster is instantiated in the module, `type_caster_base.h:1647-1694`;
+    the module's inline copy constructor, `phasiccpp.h:254-264`), and for a
+    `phasic::Graph&` argument no extension code runs at all (review 17):
+    - the ABI constant is GENERATED at build time from a hash of the
+      installed headers plus a word of layout-affecting build options
+      (e.g. `PHASIC_B3_VALIDATORS`, which adds a `ptd_graph` field,
+      `phasic.h:263-270`), so it never needs a manual bump;
+    - the extension exports a C function `ptd_abi_version()` (reachable,
+      since modules already resolve `ptd_*` from the extension);
+    - an inline check in `phasiccpp.h` compares it with the header's
+      compile-time constant, and every `phasic::Graph` constructor, and the
+      accessor that dereferences `rf_graph` for an accepted `Graph&`, calls
+      it FIRST and throws `std::runtime_error` on mismatch (pybind turns
+      it into a Python error);
+    - a second line of defence: the extension's wrap
+      (`py::init<const phasic::Graph>`, `phasic_pybind.cpp:876`) checks a
+      version word stored at offset 0 of `rf_graph`;
+    - the same generated constant is written into the installed
+      `phasiccpp.cpp`, which the docs modules already list in
+      `cfg["sources"]` (`cpp_state_spaces.cpp:95`,
+      `cpp_callback_construction.cpp:112`), so ANY header change forces
+      cppimport to rebuild them without editing them (cppimport hashes
+      only the module file, `cfg["sources"]` and `cfg["dependencies"]`,
+      `cppimport/checksum.py:63-77`); phase 3 itself changes
+      `phasiccpp.cpp`, so modules built before the guard rebuild once;
+    - the test modules also list the headers in `cfg["dependencies"]`;
+    - `docs/pages/tutorial/coalescent_from_callback.cpp` (a third cppimport
+      module) is in scope on the same terms; no other live-object route
+      exists (searched: no ctypes, dlopen or cppimport in `src/phasic`).
   - `pmf_from_cpp` computes inside its JIT library and returns only
     numbers, so it already satisfies R13. It keeps doing so.
   - Routing it through bytes would add serialize + parse per theta and per
@@ -625,7 +647,7 @@ ahead; implementation is sequential. Sizes are relative (S / M / L / XL).
 | 0d | `load_cpp_builder` bytes hand-off (D18) | `load_cpp_builder`'s compile fixed (C files compiled as C, with `-fvisibility=hidden` exporting only the entry, free and test-walk functions, plus `-Wl,-Bsymbolic` on Linux, so a host that loaded another phasic copy globally cannot interpose its symbols) in the same phase as the hand-off; its source rule, cache key and secure directory (as for `pmf_from_cpp` in 0c); OI-116 (no `normalize()`; the wrapper template, `phasic_pybind.cpp:5172-5186`, regenerated); tests: a changed source tree recompiles, it works on a non-editable install; an INDEPENDENT oracle: a test-only function exported by the JIT copy writes a canonical C-level walk of the SOURCE graph BEFORE it is freed (vertex index, state, is_aux, in-tree bit, each edge's target, weight bits and coefficient bits in array order, IPV incl. parameterized start edges, was_dph, param_length, formula source, theta blocks and names, epoch fields, and the formula tape's ops and constant bits; the header also carries the emitter/reader source hash, and other source differences between the copies are behavioural only because no struct crosses), plus one comparison of the post-`update_weights` edge weights at a fixed theta on both graphs, bitwise (the JIT copy compiled with the extension's EFFECTIVE `-ffp-contract` setting, since D15 sets it explicitly only in phase 1; a model-level read-out such as `expected_waiting_time` is NOT used, because the extension may switch to MPFR above condition 1e12 or under `PHASIC_FORCE_MPFR`, `phasic.c:10121-10133`, and the JIT copy has no MPFR or OpenMP); the same walk compiled into the extension runs on the rebuilt graph, and the two are compared field by field; each test model also asserts its expected header values from its definition (a was_dph model returns `is_discrete` True, a formula model returns formula); the C++ emitter in the JIT copy and the C++ reader in the extension (unbound, reachable only through the JIT function's buffer); version constant; exported free function; hand-off order emit → free → rebuild; the Python wrapper sets the metadata (R7); returns a `Graph` (differences listed for approval, incl. the lost `_callback`); per-call benchmark against today's route with the compile fixed, bound emit + rebuild <= 1× build time (D19); field-by-field gate: exact edge order against a C-level walk of the rebuilt graph, an idempotence check (emit, rebuild, emit in the extension, byte-compare), theta layout via `_theta_layout`, epoch fields as the Python attributes the wrapper sets (no pybind getter exists today; one may be added in 0d) and an epoch test model built with C++ `add_epoch`, for which Python `add_epoch` (given `callback=` explicitly, since `_callback` is lost) on the returned graph must equal Python `add_epoch` on the equivalent Python-built base (feasible today, `experiments/core_ssot/review16/p_epoch_parity.log`; the builders in `tests/pytest/_cpp_add_epoch_fixture.cpp` can serve as test models), the Python attributes, and against Python `serialize()` only the fields it carries (order compared modulo its documented reordering); test models include a formula-mode, a was_dph, a named-slot and a duplicate-state graph and use the C++ vertex-chain idiom (OI-118 is fixed in 0c; 0d's reader and wrapper avoid `Graph` assignment regardless); the native checklist (ASan, malloc-scribble, fuzz smoke) | M | not started |
 | 1 | Inventory, gates, baselines | re-check §3 on master; D15 applied (including the JIT commands), then baselines; the refusal-matrix fixture; the routing-gate baseline; golden fixtures for the cyclic and formula elimination cells (outside the D17 oracle's reach); the corpus axes (OI-065); codec latency baseline (the phase-6 gate is relative to it); golden fixtures for phases 2-4; benchmark protocol and baseline; tests and a measured baseline for `pmf_from_cpp` / `load_cpp_builder` (after 0d); arm64 + x86 CI gates; ASan and TSan jobs; supported platforms recorded (Windows wheels are built, `pypi-release.yml:47-51`, but the JIT routes assume `/tmp`, `g++` and POSIX mmap); the orphan installed libraries decided | M | not started |
 | 2 | Delete the Python trace pipeline (R12') | removal list for the user: every public name in §3, the `phasic.trace_elimination` import path, `Graph(cache_trace=...)`, the public properties `Graph.cache_trace` (`__init__.py:2179`), `Graph.hierarchical` (`:2202`) and `Graph.trace_valid` (`:2213`, all referenced in `docs/api/Graph.qmd`), the change to `get_all_cache_stats()`'s result, and the affected notebook cells (`trace-and-jax-caching-c-path`, `svgd-joint-prob`, `benchmarks/python/test_hierarchical_caching` cells 2, 8, 10, 12, 14, 18); ask about the C trace port and the `_c_trace_*` bindings; `trace_elimination.py` moves under `tests/` as a tests-only oracle (D17) and is deleted after phase 13 merges; relocate `is_cache_disabled` (redefining its condition); a disposition list (rewrite / delete / keep) for the 24 test files that import the pipeline (`experiments/core_ssot/review8/imports.txt`) plus `test_gate_moments_3way.py:52` (asserts `ga.cache_trace is False`) and `inference/test_hierarchical_graph.py` (uses `compute_trace`), e.g. `test_modeling_compose.py:434-457` (add_epoch moments via `get_trace_hierarchical`, rewritten onto `record_elimination_trace`, an oracle input for phase 7), `test_trace_cache.py`, `test_slurm_cpu_count.py`, `test_pickle_cache_trust.py`, `test_c_trace_reload_param.py`; OI-049, OI-080 (`_pmap_file_cache` lives only in `hierarchical_trace_cache.py:471`, `:542`) and OI-083 close; OI-044 becomes a recorded limitation of the oracle | M | not started |
-| 3 | pybind restructure and construction | the D20 cppimport guard (ABI/version constant in an inline `phasiccpp.h` function, checked when the extension wraps or accepts a `phasic::Graph`; phasic headers in the test modules' `cfg["dependencies"]`, the docs modules listed for the user; a test that a module built against a changed header is refused or rebuilt); split into `register_*()` (keeping the 0d binding's exception types and messages) (the D17 oracle tests are in this phase's gate: they use the re-registered `_Graph` methods); C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
+| 3 | pybind restructure and construction | the D20 cppimport guard on the module side (R13 note: a generated ABI constant from the installed headers plus layout-affecting build options; `ptd_abi_version()` exported by the extension; an inline check called first by every `phasic::Graph` constructor and by the accessor for an accepted `Graph&`; a version word at offset 0 of `rf_graph` checked by the extension's wrap; the constant also written into the installed `phasiccpp.cpp` so the unedited docs modules rebuild; headers in the test modules' `cfg["dependencies"]`; a REFUSAL test using a module with the dependency rebuild disabled, so the refusal path itself is exercised); split into `register_*()` (keeping the 0d binding's exception types and messages) (the D17 oracle tests are in this phase's gate: they use the re-registered `_Graph` methods); C++ exception-mapping layer; one construction path via complete-then-promote. First parity: parameterized IPV edges, zero-probability entries, numpy state argument, the three IPV validations reconciled, every user-visible difference listed for approval. Then fix the builder leak (check whether it explains OI-017's per-fit memory growth), recheck OI-030 (`phasic_pybind.cpp:3743-3763`), and make an OpenMP spawn failure raise (OI-034). Parity also covers phasic's per-transition Python wrapper (`__init__.py:1317`): validation by `assert` (an `AssertionError`, which disappears under `python -O`), two stdout prints, int coercion; the sub-plan decides whether the wrapper is part of the one construction path | M | not started |
 | 4 | Moments, variance, covariance, discreteness | the C++-owned (per-object) discreteness flag and OI-021 (one discrete rule, including OI-078's discretized `expectation()`) decided first; `is_discrete` becomes a property WITH A SETTER over the C flag in this phase. The flag's HOME is per `phasic::Graph` OBJECT, copied in the C++ copy constructor like `_weight_formula_src` (`phasiccpp.h:254-266`), NOT in the shared `ptd_graph`: a wrap shares the `ptd_graph`, and a flag stored there would let `Graph(g)`'s reset silently flip the SOURCE to continuous (measured semantics today: the wrap is reset, the source is unchanged, `experiments/core_ssot/review9/p_pickle_wrap.log`). The desync fixture includes wrap-then-assign on both source and wrap (assignment is public API: 13 assignments in `src/phasic`, 15 in tests, e.g. `__init__.py:11327`, `_graph_serialize.py:~713`), so there is never a second discreteness store; its relation to `was_dph` (a distinct latch) is spelled out; a desync fixture assigns the attribute and checks the read-outs and the routing gate; `ptd_moments`, `ptd_continuous_to_discrete_moments`, variance/covariance kernels or sanctioned list; `phasic::Graph::moments` API; rewarded-moments rule per call site; drift gate (non-MPFR tapes, same reward scaling); gates at k >= 13 and k >= 21; matrices; retire the generated-C++ emitter (R4) with the constant `pmf_from_graph` A/B gate; `use_ffi` deprecation; OI-026, OI-031 | L | not started |
 | 5 | Graph state and serialize schema | every record field states its HOME (per `phasic::Graph` object and copied on copy, or shared in `ptd_graph`) and keeps today's `Graph(g)` wrap semantics, with any change listed for approval; the census records each field's CURRENT wrap behaviour (today Python attributes are dropped on a wrap and fall back to getattr defaults, e.g. a log-mode wrap is routed as linear, while C++ fields such as `_weight_formula_src` are copied), so a property over a copied record does not silently change routing; starts with a census of every metadata read in `src/phasic` and in the `tests/` oracle (direct and getattr-default, incl. the inference modules); every field listed as a record field or a named Python-side attribute (§3); per-vertex metadata kept OUT of the FFI structure JSON before phase 11 (it is hashed per batch element, `graph_builder_ffi.cpp:274`, `:1542`), or measured at 600k; at merge the Python attributes become properties over the record, so there is ONE store from then on (not three); strict accessors for every name the inference layer reads; the routing gate; Plan A's flag becomes a C++ function. The serialized formula TAPE stays in the schema until phase 10 (alongside the source); the OI-048 select/pow cases are in the phase-5 gate. One C++-owned record reconciling the Python attributes and the existing C++ fields; carried by clone, copy and serialize. Schema rules: formula SOURCE plus a tape version (phase 10 may change tape semantics); layout as `StateIndexer.to_dict()`; joint and epoch fields may be added in phases 7-8 with a version bump; v0 graph-cache entries are read (or rejected) by an explicit rule. Consumers updated (graph cache, `distributed_scc`, `compute_repository`, GraphBuilder); `from_serialized` hardened and fuzzed; the serialize owner EXTENDS the 0d emitter/reader (D18) and absorbs `phasic::Graph::serialize` and `GraphBuilder::parse_structure` (the public Python `serialize()` dict stays); OI-053, OI-054 | L | not started |
 | 6 | Index codec | exact API; OI-077 (C++ codec part); native constructor; codec → StateIndexer direction; error-message parity; the codec handle kept OUT of the instance `__dict__` (`callback_hash.py:149-157`, `:653-720`), so graph-cache keys are unchanged (OI-055 checked); pickle tests; scalar call latency no worse than the phase-1 baseline inside 60k and 600k callback builds | L | not started |
@@ -648,7 +670,7 @@ than today?
 | After | Safe? | Reason |
 |---|---|---|
 | 0a-0c, 1 | yes | fixes and gates only |
-| 0d | yes | one extra (binary) serializer exists until phase 5 absorbs it, but `load_cpp_builder` works (it does not compile today) and no struct crosses copies (the compile fix and the hand-off land together) |
+| 0d | yes | one extra (binary) serializer exists until phase 5 absorbs it, but `load_cpp_builder` works (it does not compile today) and no struct crosses copies on that route (the compile fix and the hand-off land together) |
 | 2 | yes | dead code removed; the oracle kept under `tests/` |
 | 3, 4 | yes | each capability fully delegated within the phase (phase 4 includes the `is_discrete` property, so discreteness has one store) |
 | 5 | yes, with a caveat | one record plus the named Python-side attributes; the joint and epoch code still run in Python against it |
@@ -1001,3 +1023,16 @@ features beyond R8; notebook edits (the user's).
   - 4: equality-test details (`callback=`, Python base, fixture reuse).
   - 5: the duplicate register rows are left as they are (consistent,
     cosmetic).
+
+**Review 17 (of v2.12) → v2.13** (report `review17/`):
+
+- **The D20 guard could not run before layout-dependent code** (M1) →
+  the guard moves to the module side: an exported `ptd_abi_version()`,
+  an inline check first in every constructor and accessor, a generated
+  constant (headers plus build options) also written into the installed
+  `phasiccpp.cpp` so unedited modules rebuild, a second check at the
+  extension's wrap, and a real refusal test.
+- **Minors.**
+  - 1: R7's "no struct crosses" is scoped.
+  - 2: build options are in the constant.
+  - 3: `coalescent_from_callback.cpp` is named; no other route exists.
