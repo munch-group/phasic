@@ -1,0 +1,28 @@
+cap u=min(1e-7/theta, s): up-displacement / 1e-7
+theta=    1e-12 up=0.00000000 down=0.00000000 actual_diff=2.000e-16 zero=False
+theta=    1e-09 up=0.00000100 down=0.00000100 actual_diff=2.000e-13 zero=False
+theta=   0.0001 up=0.10000500 down=0.09999500 actual_diff=2.000e-08 zero=False
+theta= 0.000999 up=0.99904995 down=0.99895005 actual_diff=1.998e-07 zero=False
+theta=    0.001 up=1.00005000 down=0.99995000 actual_diff=2.000e-07 zero=False
+theta=    0.001 up=1.00005000 down=0.99995001 actual_diff=2.000e-07 zero=False
+theta=     0.01 up=1.00000500 down=0.99999500 actual_diff=2.000e-07 zero=False
+theta=        1 up=1.00000005 down=0.99999995 actual_diff=2.000e-07 zero=False
+theta=    1e+03 up=0.99999966 down=0.99999966 actual_diff=2.000e-07 zero=False
+theta=    1e+08 up=1.04308128 down=1.04308128 actual_diff=2.086e-07 zero=False
+theta=    1e+09 up=0.00000000 down=1.19209290 actual_diff=1.192e-07 zero=False
+theta=    1e+10 up=0.00000000 down=0.00000000 actual_diff=0.000e+00 zero=True
+today theta +/- 1e-7 at large theta: probes equal?
+100000000.0 False 2.086162567138672e-07
+1000000000.0 False 2.384185791015625e-07
+10000000000.0 True 0.0
+bit identity: (t+e)-(t-e) vs 2e
+0.3 2.0000000000575113e-07 2e-07 False
+1.0 2.0000000000575113e-07 2e-07 False
+1.7 2.0000000011677344e-07 2e-07 False
+5.0 2.0000000056086265e-07 2e-07 False
+theta==0 under positive log rule: 0.0 0.0
+unit p= 1e-09 1.0001000050000672e-09 9.999000049999344e-10
+unit p= 0.999999999 0.9999999990001001 0.9999999989999
+unit p= 0.999999999999999 0.9999999999999991 0.9999999999999989
+unit p= 1.0 1.0 1.0
+[runcap] exit 0, peak RSS 0 MB, 1s

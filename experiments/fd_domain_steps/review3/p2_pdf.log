@@ -1,0 +1,20 @@
+(a) mixed scale, theta=[coal=1, mig]
+  mig=1e-03 slot0 ref= 1.34767249e+00 (spread 9.7e-10) master 1.9e-08  | s=1e-03 full 6.4e-07 cap 2.3e-09 | s=1e-04 full 6.3e-09 cap 2.3e-09 | s=1e-05 full 3.4e-10 cap 2.3e-09
+  mig=1e-03 slot1 ref=-1.25792524e+01 (spread 3.7e-10) master 6.5e-10  | s=1e-03 full 5.4e-09 cap 1.9e-09 | s=1e-04 full 1.9e-09 cap 1.9e-09 | s=1e-05 full 1.1e-07 cap 1.1e-07
+  mig=1e-05 slot0 ref= 1.34616172e+00 (spread 9.7e-10) master 2.2e-08  | s=1e-03 full 6.4e-07 cap 2.7e-08 | s=1e-04 full 6.4e-09 cap 2.7e-08 | s=1e-05 full 2.9e-11 cap 2.7e-08
+  mig=1e-05 slot1 ref=-1.26623844e+01 (spread 8.9e-09) master 8.5e-09  | s=1e-03 full 6.0e-08 cap 6.0e-08 | s=1e-04 full 1.2e-07 cap 1.2e-07 | s=1e-05 full 4.8e-06 cap 4.8e-06
+  mig=1e-07 slot0 ref= 1.34614712e+00 (spread 9.7e-10) master 4.8e-08  | s=1e-03 full 6.4e-07 cap 2.7e-08 | s=1e-04 full 6.4e-09 cap 2.7e-08 | s=1e-05 full 3.6e-10 cap 2.7e-08
+  mig=1e-07 slot1 ref=-1.26631808e+01 (spread 2.8e-06) master 2.7e-06  | s=1e-03 full 8.1e-06 cap 8.1e-06 | s=1e-04 full 2.7e-05 cap 2.7e-05 | s=1e-05 full 3.5e-04 cap 3.5e-04
+  mig=1e-08 slot0 ref= 1.34614699e+00 (spread 9.7e-10) master 3.0e-08  | s=1e-03 full 6.4e-07 cap 1.8e-08 | s=1e-04 full 6.4e-09 cap 1.8e-08 | s=1e-05 full 3.3e-10 cap 1.8e-08
+  mig=1e-08 slot1 ref=-1.26635051e+01 (spread 8.9e-06) master 2.2e-05  | s=1e-03 full 5.5e-05 cap 5.5e-05 | s=1e-04 full 1.2e-04 cap 1.2e-04 | s=1e-05 full 5.0e-04 cap 5.0e-04
+  mig=1e-09 slot0 ref= 1.34614697e+00 (spread 9.7e-10) master 3.9e-08  | s=1e-03 full 6.4e-07 cap 6.4e-09 | s=1e-04 full 6.4e-09 cap 6.4e-09 | s=1e-05 full 4.4e-10 cap 6.4e-09
+  mig=1e-09 slot1 ref=-1.26663131e+01 (spread 1.6e-04) master 2.4e-04  | s=1e-03 full 1.9e-04 cap 1.9e-04 | s=1e-04 full 1.2e-03 cap 1.2e-03 | s=1e-05 full 9.4e-03 cap 9.4e-03
+  mig=1e-11 slot0 ref= 1.34614697e+00 (spread 9.7e-10) master 4.2e-08  | s=1e-03 full 6.4e-07 cap 6.2e-09 | s=1e-04 full 6.4e-09 cap 6.2e-09 | s=1e-05 full 1.1e-10 cap 6.2e-09
+  mig=1e-11 slot1 ref=-1.23484525e+01 (spread 1.6e-02) master 2.5e-02  | s=1e-03 full 1.3e-02 cap 1.3e-02 | s=1e-04 full 2.4e-01 cap 2.4e-01 | s=1e-05 full 4.8e-02 cap 4.8e-02
+
+(b) jump regime: scale 200, times scaled down
+  scale=200 today        median 1.6e-07 95pct 4.5e-07 max 6.9e-07 frac>1% 0.000
+  scale=200 cap s=1e-4   median 1.3e-07 95pct 4.3e-07 max 7.0e-07 frac>1% 0.000
+  scale=200 full s=1e-4  median 2.0e-01 95pct 3.2e+00 max 3.5e+00 frac>1% 1.000
+  scale=200 full s=1e-3  median 5.4e-01 95pct 5.5e-01 max 5.6e-01 frac>1% 1.000
+[runcap] exit 0, peak RSS 430 MB, 4s

@@ -1,0 +1,12 @@
+theta=0.5: pmf=[0.         0.125      0.15625    0.12695312]  pmf(theta*e^1e-4)=[0.         0.125025   0.15627188 0.12695723]  pmf(theta+1e-7)=[0.         0.12500005 0.15625004 0.12695313]
+theta=0.9: pmf=[0.         0.405      0.26325    0.08226562]  pmf(theta*e^1e-4)=[0.         0.40508101 0.26324797 0.08224722]  pmf(theta+1e-7)=[0.         0.40500009 0.26325    0.0822656 ]
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000499999999166'. Are you sure this is a discrete phase-type distribution?
+
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000999049901662'. Are you sure this is a discrete phase-type distribution?
+
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0001000050001667'. Are you sure this is a discrete phase-type distribution?
+
+0.99995 ERR ValueError INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000499999999166'. Are you sure this 
+0.9999999 ERR ValueError INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000999049901662'. Are you sure this 
+1.0 ERR ValueError INTERNAL: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0001000050001667'. Are you sure this 
+[runcap] exit 0, peak RSS 296 MB, 4s

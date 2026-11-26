@@ -1,0 +1,9 @@
+  coal1 scale=30 today        median 1.7e-01 95pct 1.7e-01 max 1.7e-01 frac>1% 1.00
+  coal1 scale=30 cap s=1e-4   median 1.7e-01 95pct 1.7e-01 max 1.7e-01 frac>1% 1.00
+  coal1 scale=30 full s=1e-4  median 1.7e-01 95pct 1.7e-01 max 1.7e-01 frac>1% 1.00
+  coal1 scale=30 full s=1e-3  median 1.7e-01 95pct 1.7e-01 max 1.7e-01 frac>1% 1.00
+  coal1 scale=200 today        median 3.9e-02 95pct 1.3e-01 max 1.3e-01 frac>1% 1.00
+  coal1 scale=200 cap s=1e-4   median 3.9e-02 95pct 1.3e-01 max 1.3e-01 frac>1% 1.00
+  coal1 scale=200 full s=1e-4  median 1.3e-01 95pct 1.8e+01 max 3.3e+02 frac>1% 1.00
+  coal1 scale=200 full s=1e-3  median 3.2e+01 95pct 3.2e+01 max 3.3e+01 frac>1% 1.00
+[runcap] exit 0, peak RSS 472 MB, 9s

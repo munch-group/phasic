@@ -1,0 +1,52 @@
+
+=== theta=[0.0001, 0.0001, 0.0001, 0.0001]
+  master jax.grad: [-5.69987647e+00  5.69987646e+00 -2.09916781e+05  2.09916332e+05]   [0.4s]
+  exact_final_grad model (final slots 2,3 exact): [-5.69987647e+00  5.69987646e+00 -2.09916312e+05  2.09916312e+05]
+  slot0 th=1.0e-04 ref=-5.69987646e+00 (spread 1.7e-09) | master 1.4e-09 | s=1e-02 full 1.0e-09 cap 3.6e-09 | s=1e-03 full 3.6e-09 cap 3.6e-09 | s=1e-04 full 2.4e-08 cap 2.4e-08 | s=1e-05 full 2.3e-07 cap 2.3e-07 | s=1e-06 full 2.0e-07 cap 2.0e-07
+  slot1 th=1.0e-04 ref= 5.69987647e+00 (spread 7.5e-10) | master 1.2e-09 | s=1e-02 full 3.4e-09 cap 2.3e-09 | s=1e-03 full 2.3e-09 cap 2.3e-09 | s=1e-04 full 1.6e-08 cap 1.6e-08 | s=1e-05 full 1.8e-07 cap 1.8e-07 | s=1e-06 full 2.2e-06 cap 2.2e-06
+  slot2 th=1.0e-04 ref=-2.09916312e+05 (spread 6.3e-10) efg-vs-ref 1.2e-13 | master 2.2e-06 | s=1e-02 full 6.7e-05 cap 6.7e-07 | s=1e-03 full 6.7e-07 cap 6.7e-07 | s=1e-04 full 6.7e-09 cap 6.7e-09 | s=1e-05 full 6.0e-11 cap 6.0e-11 | s=1e-06 full 1.1e-11 cap 1.1e-11
+  slot3 th=1.0e-04 ref= 2.09916312e+05 (spread 6.3e-10) efg-vs-ref 1.5e-13 | master 9.5e-08 | s=1e-02 full 6.7e-05 cap 6.7e-07 | s=1e-03 full 6.7e-07 cap 6.7e-07 | s=1e-04 full 6.7e-09 cap 6.7e-09 | s=1e-05 full 7.0e-11 cap 7.0e-11 | s=1e-06 full 1.2e-10 cap 1.2e-10
+
+=== theta=[1.0, 1e-08, 1.0, 1e-08]
+  master jax.grad: [nan nan nan nan]  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negativ [0.0s]
+  efg failed ValueError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000
+  exact_final_grad model (final slots 2,3 exact): [nan nan nan nan]
+  slot0 th=1.0e+00 ref=-5.56062711e+00 (spread 1.4e-11) | master nan | s=1e-02 full 2.2e-05 cap 1.7e-09 | s=1e-03 full 2.2e-07 cap 1.7e-09 | s=1e-04 full 2.2e-09 cap 1.7e-09 | s=1e-05 full 2.6e-11 cap 1.7e-09 | s=1e-06 full 5.6e-10 cap 1.7e-09
+  slot1 th=1.0e-08 ref= 5.56062711e+08 (spread 1.8e-10) | master nan | s=1e-02 full 2.1e-05 cap 2.1e-05 | s=1e-03 full 2.1e-07 cap 2.1e-07 | s=1e-04 full 2.1e-09 cap 2.1e-09 | s=1e-05 full 3.2e-11 cap 3.2e-11 | s=1e-06 full 7.0e-10 cap 7.0e-10
+  slot2 th=1.0e+00 ref=-1.54393729e+01 (spread 5.0e-10) efg-vs-ref nan | master nan | s=1e-02 full 5.3e-05 cap 1.2e-09 | s=1e-03 full 5.3e-07 cap 1.2e-09 | s=1e-04 full 5.3e-09 cap 1.2e-09 | s=1e-05 full 5.1e-11 cap 1.2e-09 | s=1e-06 full 1.0e-10 cap 1.2e-09
+  slot3 th=1.0e-08 ref= 1.54393729e+09 (spread 5.0e-10) efg-vs-ref nan | master nan | s=1e-02 full 5.3e-05 cap 5.3e-05 | s=1e-03 full 5.3e-07 cap 5.3e-07 | s=1e-04 full 5.3e-09 cap 5.3e-09 | s=1e-05 full 7.3e-11 cap 7.3e-11 | s=1e-06 full 1.6e-11 cap 1.6e-11
+
+=== theta=[1.0, 1e-09, 1.0, 1e-09]
+  master jax.grad: [nan nan nan nan]  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negativ [0.0s]
+  efg failed ValueError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000
+  exact_final_grad model (final slots 2,3 exact): [nan nan nan nan]
+  slot0 th=1.0e+00 ref=-5.56062711e+00 (spread 1.4e-11) | master nan | s=1e-02 full 2.2e-05 cap 4.4e-09 | s=1e-03 full 2.2e-07 cap 4.4e-09 | s=1e-04 full 2.2e-09 cap 4.4e-09 | s=1e-05 full 5.0e-11 cap 4.4e-09 | s=1e-06 full 3.9e-10 cap 4.4e-09
+  slot1 th=1.0e-09 ref= 5.56062711e+09 (spread 1.8e-10) | master nan | s=1e-02 full 2.1e-05 cap 2.1e-05 | s=1e-03 full 2.1e-07 cap 2.1e-07 | s=1e-04 full 2.1e-09 cap 2.1e-09 | s=1e-05 full 3.0e-12 cap 3.0e-12 | s=1e-06 full 1.8e-10 cap 1.8e-10
+  slot2 th=1.0e+00 ref=-1.54393729e+01 (spread 5.0e-10) efg-vs-ref nan | master nan | s=1e-02 full 5.3e-05 cap 2.4e-10 | s=1e-03 full 5.3e-07 cap 2.4e-10 | s=1e-04 full 5.3e-09 cap 2.4e-10 | s=1e-05 full 4.6e-11 cap 2.4e-10 | s=1e-06 full 2.1e-11 cap 2.4e-10
+  slot3 th=1.0e-09 ref= 1.54393729e+10 (spread 5.0e-10) efg-vs-ref nan | master nan | s=1e-02 full 5.3e-05 cap 5.3e-05 | s=1e-03 full 5.3e-07 cap 5.3e-07 | s=1e-04 full 5.3e-09 cap 5.3e-09 | s=1e-05 full 5.2e-11 cap 5.2e-11 | s=1e-06 full 6.2e-12 cap 6.2e-12
+
+=== theta=[1e-09, 0.0001, 0.0001, 0.0001]
+  master jax.grad: [nan nan nan nan]  ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000001). A rate cannot be negativ [0.0s]
+  efg failed ValueError INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000
+  exact_final_grad model (final slots 2,3 exact): [nan nan nan nan]
+  slot0 th=1.0e-09 ref=-5.69910995e+00 (spread 7.0e-05) | master nan | s=1e-02 full 5.3e-05 cap 5.3e-05 | s=1e-03 full 7.8e-05 cap 7.8e-05 | s=1e-04 full 2.2e-03 cap 2.2e-03 | s=1e-05 full 9.6e-03 cap 9.6e-03 | s=1e-06 full 7.1e-02 cap 7.1e-02
+  slot1 th=1.0e-04 ref= 5.69942489e+00 (spread 1.4e-09) | master nan | s=1e-02 full 1.5e-09 cap 3.4e-10 | s=1e-03 full 3.4e-10 cap 3.4e-10 | s=1e-04 full 2.2e-08 cap 2.2e-08 | s=1e-05 full 7.9e-08 cap 7.9e-08 | s=1e-06 full 1.7e-06 cap 1.7e-06
+  slot2 th=1.0e-04 ref=-2.09916311e+05 (spread 6.3e-10) efg-vs-ref nan | master nan | s=1e-02 full 6.7e-05 cap 6.7e-07 | s=1e-03 full 6.7e-07 cap 6.7e-07 | s=1e-04 full 6.7e-09 cap 6.7e-09 | s=1e-05 full 5.8e-11 cap 5.8e-11 | s=1e-06 full 1.4e-11 cap 1.4e-11
+  slot3 th=1.0e-04 ref= 2.09916311e+05 (spread 6.3e-10) efg-vs-ref nan | master nan | s=1e-02 full 6.7e-05 cap 6.7e-07 | s=1e-03 full 6.7e-07 cap 6.7e-07 | s=1e-04 full 6.7e-09 cap 6.7e-09 | s=1e-05 full 6.9e-11 cap 6.9e-11 | s=1e-06 full 3.1e-11 cap 3.1e-11
+
+=== theta=[0.3, 0.002, 1.5, 0.005]
+  master jax.grad: [  -5.06407553 1540.51878386  -11.94595663 3583.78698369]   [0.1s]
+  exact_final_grad model (final slots 2,3 exact): [  -5.06407553 1540.51878386  -11.94595661 3583.78698358]
+  slot0 th=3.0e-01 ref=-5.06407552e+00 (spread 1.7e-11) | master 2.8e-09 | s=1e-02 full 5.5e-06 cap 1.1e-09 | s=1e-03 full 5.5e-08 cap 1.1e-09 | s=1e-04 full 5.8e-10 cap 1.1e-09 | s=1e-05 full 2.0e-10 cap 1.1e-09 | s=1e-06 full 1.5e-09 cap 1.1e-09
+  slot1 th=2.0e-03 ref= 1.54051878e+03 (spread 1.3e-10) | master 8.7e-12 | s=1e-02 full 1.5e-05 cap 3.6e-10 | s=1e-03 full 1.5e-07 cap 3.6e-10 | s=1e-04 full 1.5e-09 cap 3.6e-10 | s=1e-05 full 2.7e-11 cap 2.7e-11 | s=1e-06 full 1.5e-10 cap 1.5e-10
+  slot2 th=1.5e+00 ref=-1.19459566e+01 (spread 5.4e-10) efg-vs-ref 2.0e-14 | master 1.1e-09 | s=1e-02 full 5.8e-05 cap 3.5e-10 | s=1e-03 full 5.8e-07 cap 3.5e-10 | s=1e-04 full 5.8e-09 cap 3.5e-10 | s=1e-05 full 5.1e-11 cap 3.5e-10 | s=1e-06 full 1.6e-11 cap 3.5e-10
+  slot3 th=5.0e-03 ref= 3.58378698e+03 (spread 5.4e-10) efg-vs-ref 7.3e-14 | master 3.1e-11 | s=1e-02 full 5.8e-05 cap 2.2e-10 | s=1e-03 full 5.8e-07 cap 2.2e-10 | s=1e-04 full 5.8e-09 cap 2.2e-10 | s=1e-05 full 4.7e-11 cap 4.7e-11 | s=1e-06 full 6.7e-11 cap 6.7e-11
+
+=== theta=[1.0, 0.001, 1.0, 0.001]
+  master jax.grad: [-5.56062603e+00  5.56062594e+03 -1.54393663e+01  1.54393663e+04]   [0.1s]
+  exact_final_grad model (final slots 2,3 exact): [-5.56062603e+00  5.56062594e+03 -1.54393663e+01  1.54393663e+04]
+  slot0 th=1.0e+00 ref=-5.56062594e+00 (spread 1.4e-11) | master 1.5e-08 | s=1e-02 full 2.2e-05 cap 1.4e-08 | s=1e-03 full 2.2e-07 cap 1.4e-08 | s=1e-04 full 2.2e-09 cap 1.4e-08 | s=1e-05 full 7.1e-11 cap 1.4e-08 | s=1e-06 full 1.3e-10 cap 1.4e-08
+  slot1 th=1.0e-03 ref= 5.56062594e+03 (spread 1.8e-10) | master 1.6e-10 | s=1e-02 full 2.1e-05 cap 2.1e-09 | s=1e-03 full 2.1e-07 cap 2.1e-09 | s=1e-04 full 2.1e-09 cap 2.1e-09 | s=1e-05 full 3.7e-11 cap 3.7e-11 | s=1e-06 full 5.3e-10 cap 5.3e-10
+  slot2 th=1.0e+00 ref=-1.54393663e+01 (spread 5.0e-10) efg-vs-ref 4.8e-14 | master 5.3e-11 | s=1e-02 full 5.3e-05 cap 1.1e-09 | s=1e-03 full 5.3e-07 cap 1.1e-09 | s=1e-04 full 5.3e-09 cap 1.1e-09 | s=1e-05 full 6.5e-11 cap 1.1e-09 | s=1e-06 full 4.4e-11 cap 1.1e-09
+  slot3 th=1.0e-03 ref= 1.54393663e+04 (spread 5.0e-10) efg-vs-ref 6.0e-14 | master 7.1e-10 | s=1e-02 full 5.3e-05 cap 5.3e-09 | s=1e-03 full 5.3e-07 cap 5.3e-09 | s=1e-04 full 5.3e-09 cap 5.3e-09 | s=1e-05 full 5.2e-11 cap 5.2e-11 | s=1e-06 full 4.8e-11 cap 4.8e-11
+[runcap] exit 0, peak RSS 458 MB, 10s

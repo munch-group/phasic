@@ -1,0 +1,28 @@
+
+### pdf two-island mig
+  theta=1e-03 ref=-1.257925236e+01 (ref h-agree 2.9e-07) master 4.7e-10 | s=1e-03 full 5.6e-09 cap 2.1e-09 | s=1e-04 full 2.1e-09 cap 2.1e-09 | s=1e-05 full 1.1e-07 cap 1.1e-07
+  theta=1e-05 ref=-1.266238451e+01 (ref h-agree 2.9e-07) master 2.4e-09 | s=1e-03 full 4.9e-08 cap 4.9e-08 | s=1e-04 full 1.1e-07 cap 1.1e-07 | s=1e-05 full 4.8e-06 cap 4.8e-06
+  theta=1e-07 ref=-1.266321510e+01 (ref h-agree 2.9e-07) master 2.4e-08 | s=1e-03 full 5.4e-06 cap 5.4e-06 | s=1e-04 full 2.9e-05 cap 2.9e-05 | s=1e-05 full 3.4e-04 cap 3.4e-04
+  theta=1e-08 ref=-1.266322266e+01 (ref h-agree 2.9e-07) master 1.6e-08 | s=1e-03 full 3.3e-05 cap 3.3e-05 | s=1e-04 full 9.8e-05 cap 9.8e-05 | s=1e-05 full 5.2e-04 cap 5.2e-04
+  theta=1e-09 ref=-1.266322341e+01 (ref h-agree 2.9e-07) master 9.3e-09 | s=1e-03 full 5.3e-05 cap 5.3e-05 | s=1e-04 full 1.4e-03 cap 1.4e-03 | s=1e-05 full 9.6e-03 cap 9.6e-03
+  theta=1e-11 ref=-1.266322350e+01 (ref h-agree 2.9e-07) master 2.8e-09 | s=1e-03 full 1.2e-02 cap 1.2e-02 | s=1e-04 full 2.6e-01 cap 2.6e-01 | s=1e-05 full 7.2e-02 cap 7.2e-02
+  theta=1e-13 ref=-1.266322349e+01 (ref h-agree 2.9e-07) master 7.5e-09 | s=1e-03 full 1.3e+00 cap 1.3e+00 | s=1e-04 full 1.0e+00 cap 1.0e+00 | s=1e-05 full 1.0e+00 cap 1.0e+00
+
+### daisy epoch-1 coal
+  theta=1e-03 ref=-5.704849022e+00 (ref h-agree 2.6e-09) master 2.5e-09 | s=1e-03 full 2.3e-10 cap 3.0e-10 | s=1e-04 full 3.0e-10 cap 3.0e-10 | s=1e-05 full 1.0e-08 cap 1.0e-08
+  theta=1e-05 ref=-5.699378175e+00 (ref h-agree 2.6e-09) master 7.9e-10 | s=1e-03 full 5.0e-10 cap 5.0e-10 | s=1e-04 full 7.1e-09 cap 7.1e-09 | s=1e-05 full 4.4e-06 cap 4.4e-06
+  theta=1e-07 ref=-5.699323351e+00 (ref h-agree 2.6e-09) master 9.1e-10 | s=1e-03 full 4.3e-07 cap 4.3e-07 | s=1e-04 full 1.3e-05 cap 1.3e-05 | s=1e-05 full 1.4e-04 cap 1.4e-04
+  theta=1e-08 ref=-5.699322853e+00 (ref h-agree 2.6e-09) master nan | s=1e-03 full 1.3e-05 cap 1.3e-05 | s=1e-04 full 5.3e-05 cap 5.3e-05 | s=1e-05 full 1.3e-03 cap 1.3e-03
+  theta=1e-09 ref=-5.699322803e+00 (ref h-agree 2.6e-09) master nan | s=1e-03 full 1.2e-04 cap 1.2e-04 | s=1e-04 full 2.2e-03 cap 2.2e-03 | s=1e-05 full 9.6e-03 cap 9.6e-03
+  theta=1e-11 ref=-5.699322797e+00 (ref h-agree 2.6e-09) master nan | s=1e-03 full 2.4e-03 cap 2.4e-03 | s=1e-04 full 8.2e-02 cap 8.2e-02 | s=1e-05 full 2.5e-01 cap 2.5e-01
+  theta=1e-13 ref=-5.699322797e+00 (ref h-agree 2.6e-09) master nan | s=1e-03 full 2.6e-01 cap 2.6e-01 | s=1e-04 full 1.0e+00 cap 1.0e+00 | s=1e-05 full 1.0e+00 cap 1.0e+00
+
+### daisy epoch-1 coal (ordinary)
+  theta=1e-03 ref=-2.988745015e+00 (ref h-agree 1.5e-08) master 3.4e-09 | s=1e-03 full 3.5e-10 cap 5.4e-09 | s=1e-04 full 5.4e-09 cap 5.4e-09 | s=1e-05 full 4.8e-08 cap 4.8e-08
+  theta=1e-05 ref=-2.975670091e+00 (ref h-agree 1.5e-08) master 7.0e-09 | s=1e-03 full 8.0e-09 cap 8.0e-09 | s=1e-04 full 3.4e-07 cap 3.4e-07 | s=1e-05 full 9.6e-06 cap 9.6e-06
+  theta=1e-07 ref=-2.975538947e+00 (ref h-agree 1.6e-08) master 3.6e-10 | s=1e-03 full 1.1e-06 cap 1.1e-06 | s=1e-04 full 6.0e-06 cap 6.0e-06 | s=1e-05 full 6.2e-04 cap 6.2e-04
+  theta=1e-08 ref=-2.975537753e+00 (ref h-agree 1.6e-08) master nan | s=1e-03 full 2.7e-04 cap 2.7e-04 | s=1e-04 full 5.6e-03 cap 5.6e-03 | s=1e-05 full 5.1e-02 cap 5.1e-02
+  theta=1e-09 ref=-2.975537636e+00 (ref h-agree 1.5e-08) master nan | s=1e-03 full 5.7e-03 cap 5.7e-03 | s=1e-04 full 4.8e-02 cap 4.8e-02 | s=1e-05 full 5.7e-02 cap 5.7e-02
+  theta=1e-11 ref=-2.975537623e+00 (ref h-agree 1.6e-08) master nan | s=1e-03 full 6.9e-02 cap 6.9e-02 | s=1e-04 full 1.3e+00 cap 1.3e+00 | s=1e-05 full 7.7e-01 cap 7.7e-01
+  theta=1e-13 ref=-2.975537621e+00 (ref h-agree 1.6e-08) master nan | s=1e-03 full 2.7e+00 cap 2.7e+00 | s=1e-04 full 1.0e+00 cap 1.0e+00 | s=1e-05 full 1.0e+00 cap 1.0e+00
+[runcap] exit 0, peak RSS 418 MB, 7s
