@@ -1,0 +1,17 @@
+# Refactor plan v2.3 review 8 (Opus) — CHANGES REQUIRED (2 MAJOR, minors; no probes)
+
+Part A: B1, B2, B3, B5, m1-m9 resolved; B4 partly (minor 4, MAJOR 2); leftover: phase 1 still lists notebook scan (now 0a). OI mapping: every OI has exactly one home; OI-077 split by design; all register-assigned OIs present. Register drift: OPEN-ITEMS.md calls the plan "not yet reviewed" (:32, OI-009 row :195).
+
+MAJOR 1: 0c version key doesn't protect the programme: load_cpp_builder key = std::hash(user source), /tmp/ptd_builder_<hash>.so reused across processes, pointer-shared (phasic_pybind.cpp:5164-5167, :5262); version string unchanged between install-dev builds while phases 3, 5, 13, 14 change ptd_graph/phasic::Graph layout (also PHASIC_B3_VALIDATORS, phasic.h:263-269); D15 flip doesn't change key. Python JIT safe (unlinks/rebuilds per process, __init__.py:1106-1108). Fix: key on build ID (hash of installed extension binary, or headers + compile flags) in R7, §6, 0c row; 0c test: rebuild with changed layout constant -> cache miss.
+MAJOR 2: is_discrete plain writable attr (13 assignments src, 15 tests, e.g. __init__.py:11327, _graph_serialize.py:~713); routing reads with default (svgd_config.py:686); phase 4 adds C flag but properties only at end of phase 5 -> desync between 4 and 5; stop point "4 safe" false. Fix: phase 4 makes is_discrete a property with setter over the C flag (assignment is public API); spell out is_discrete vs was_dph (distinct latches); desync fixture.
+
+MINORS
+1 0c refusal-moving but matrix only from phase 1 -> 0c checks against Plan A Batch 0 grid; phase-1 baseline after 0c. rvp derives flag from structure_json (Plan A :250-253) -> phase 5 routes it through the same C query.
+2 Phase 2 lists: 24 test files (imports.txt), plus test_gate_moments_3way.py:52 (asserts ga.cache_trace is False) and inference/test_hierarchical_graph.py (compute_trace); public properties Graph.cache_trace (__init__.py:2179), Graph.hierarchical (:2202), Graph.trace_valid (:2213) missing from removal list; docs/api/Graph.qmd references them.
+3 Routing gate on every merge after phase 1 incl 13-15 (_classify_graph_kind reads markers with defaults svgd_config.py:469-471).
+4 Named-attribute list incomplete: _callback/_callback_kwargs (__init__.py:1921,:3503,:10365; collides with C++ _callback phasiccpp.h:280,:1926), _joint_prob_source (:11532, read :11947), _rewarded_props (:11332,:12353), _t_aux_map, _t_vertex_indices, _ipv_target_indices, _ipv_target_states (:11527-11536,:11692-11694), _graph_cache_entry, _last_theta, _last_ipv.
+5 is_cache_disabled does NOT gate the C cache: called only in trace_serialization.py (:273,:366,:454), reported in cache.py:181, test_cache_module.py:146; C reads env itself -> cache-info compatibility item. cache.py imports trace_serialization which loads phasic_pybind early (graph_cache.py:83-86 OMP_NUM_THREADS order) -> phase 2 keeps or deliberately changes load order.
+6 phase 6 row hardcodes 2.4/3.8 µs -> drop.
+7 D15 perf effect unmeasured: benchmark just before and after flip, record with exception.
+8 R13 bytes hand-off: phase-12 benchmark at 200k and 600k (peak RSS, time) build-once/serialize/load.
+Sound: no other src dependence on trace modules beyond listed imports (__init__.py:416,:438,:2150,:10490-10525; model_export.py:123,:238,:265; cache.py:48-50); D15 JIT citations; svgd_config citations. grep lists: imports.txt, names.txt.

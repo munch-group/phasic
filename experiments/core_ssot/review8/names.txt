@@ -1,0 +1,12 @@
+tests/pytest/inference/_demo_svgd_jax.py
+tests/pytest/inference/test_hierarchical_graph.py
+tests/pytest/inference/test_self_loop_correction.py
+tests/pytest/inference/test_svgd_correctness.py
+tests/pytest/inference/test_trace_jax_compat.py
+tests/pytest/inference/test_trace_vs_direct.py
+tests/pytest/test_c_trace_reload_param.py
+tests/pytest/test_cache_module.py
+tests/pytest/test_gate_elimination_bit_identity.py
+tests/pytest/test_gate_moments_3way.py
+tests/pytest/test_slurm_multi_node_ffi.py
+tests/pytest/test_trace_cache.py

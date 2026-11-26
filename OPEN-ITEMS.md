@@ -29,8 +29,8 @@ sample of items against current master (`a857b112`).
 
 ## Priorities toward goal 1: a stable refactored core engine with the full API in C++ and Python
 
-Set 2026-11-26 at your request. **Plans written 2026-11-26 (not yet
-reviewed):** [plans-and-findings/fd-domain-steps-plan.md](plans-and-findings/fd-domain-steps-plan.md) (Plan A,
+Set 2026-11-26 at your request. **Plans written 2026-11-26 (under adversarial review; see each plan's
+status line):** [plans-and-findings/fd-domain-steps-plan.md](plans-and-findings/fd-domain-steps-plan.md) (Plan A,
 done first) and [plans-and-findings/core-engine-ssot-plan.md](plans-and-findings/core-engine-ssot-plan.md) (the
 refactor master plan; its phase 0 is Tiers 1-3 below). Scope decided
 (OI-009): C/C++ single source for all core computations including the
@@ -192,7 +192,7 @@ Fold these into the refreshed plan (OI-009) as part of the matching step:
 | OI-005 | **Exact gradient of the PDF at observed times** (Deferred 3): build or park. Route chosen (Poisson mixture), derivation verified; no implementation plan. It is the only item that makes the default SVGD fit exact, and would also close the 2.5e-3 likelihood bias (OI-040). Overlaps with OI-002's forward replacement. | [plans-and-findings/deferred-3-pdf-gradient-revival-plan.md](plans-and-findings/deferred-3-pdf-gradient-revival-plan.md), [b3-d3-derisk-findings.md](plans-and-findings/b3-d3-derisk-findings.md), [b3-d3-e5-derivation-dossier.md](plans-and-findings/b3-d3-e5-derivation-dossier.md) |
 | OI-006 | **Overflow observations** (keep over-cap joint-probability observations as an explicit category, about twice as informative). Deferred by you; design v3 has open decisions D1-D5. | [plans-and-findings/overflow-observations-plan.md](plans-and-findings/overflow-observations-plan.md) |
 | OI-007 | **Stage-3 refactor, remaining workstreams**: thinning the pybind layer (WS-D), C++ single-source promotions (WS-E, only discretize done), splitting the C core (WS-F), doctrine document and CI guards (WS-G). Not started; whether to continue is yours. Several pinned divergences in section 3 are owned by it. | [plans-and-findings/stage3-refactor-plan.md](plans-and-findings/stage3-refactor-plan.md), [plans-and-findings/stage3-execution-handoff.md](plans-and-findings/stage3-execution-handoff.md) |
-| OI-009 | DECIDED 2026-11-26: C/C++ single source for every core computation (incl. joint-probability family, C++ index codec), inference layer Python; plan [plans-and-findings/core-engine-ssot-plan.md](plans-and-findings/core-engine-ssot-plan.md) (not yet reviewed). | [plans-and-findings/stage3-refactor-plan.md](plans-and-findings/stage3-refactor-plan.md) |
+| OI-009 | DECIDED 2026-11-26: C/C++ single source for every core computation (incl. joint-probability family, C++ index codec), inference layer Python; plan [plans-and-findings/core-engine-ssot-plan.md](plans-and-findings/core-engine-ssot-plan.md) (v2.4 after eight adversarial reviews, no sign-off yet). | [plans-and-findings/stage3-refactor-plan.md](plans-and-findings/stage3-refactor-plan.md) |
 | OI-008 | High-precision (MPFR) gradients (Deferred 4). Parked by you 2026-08-15; listed so it is not lost. | [plans-and-findings/deferred-4-mpfr-conditioning-floor-plan.md](plans-and-findings/deferred-4-mpfr-conditioning-floor-plan.md) |
 
 ## 2. Defects: wrong results, crashes, freezes
