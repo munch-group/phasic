@@ -1,0 +1,22 @@
+P2 trace API: 8 cells in 3 notebooks
+    benchmarks/python/test_hierarchical_caching.ipynb [2, 8, 10, 12, 14, 18]
+    tutorial/svgd-joint-prob.ipynb [78]
+    tutorial/trace-and-jax-caching-c-path.ipynb [34]
+P4 moments_from_graph/use_ffi: 0 cells in 0 notebooks
+P4 moments/variance/cov: 78 cells in 20 notebooks
+P5 serialize/clone/pickle: 0 cells in 0 notebooks
+P5 graph attrs: 10 cells in 3 notebooks
+P6 StateIndexer: 66 cells in 21 notebooks
+P6 graph_cache: 29 cells in 10 notebooks
+P7 add_epoch: 7 cells in 3 notebooks
+P8 joint: 82 cells in 14 notebooks
+P8 private joint attrs: 1 cells in 1 notebooks
+    tutorial/time-inhomogeneous.ipynb [28]
+P12 user C++: 9 cells in 5 notebooks
+    benchmarks/R/benchmarks.ipynb [20, 25]
+    benchmarks/R/benchmarks/benchmarks_benchmarks_kingman_params.ipynb [18, 23]
+    benchmarks/R/benchmarks/benchmarks_benchmarks_rabbits_params.ipynb [18, 23]
+    benchmarks/R/rabbit_running_time.ipynb [4]
+    benchmarks/R/running_time.ipynb [10, 31]
+P13 sample: 31 cells in 15 notebooks
+P15 profile: 0 cells in 0 notebooks

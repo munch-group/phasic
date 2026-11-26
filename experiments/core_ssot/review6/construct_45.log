@@ -1,0 +1,6 @@
+N=45 vertices=89135 construct_total=20.746s user_callback=12.147s (58.6%) calls=89134
+memoized rebuild: total=7.604s lookup=0.051s non-callback (wrapper+pybind+native)=7.553s
+structure JSON: 42.63 MB, produce=4.845s, bytes/vertex=478
+copy+hash proxy per call: 48.83 ms
+maxrss=1530 MB
+[runcap] exit 0, peak RSS 1471 MB, 38s

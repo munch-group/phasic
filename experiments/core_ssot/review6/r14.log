@@ -1,0 +1,8 @@
+N=14 vertices=136 instances=16
+  const_expect       distinct bit patterns: 2
+  const_var          distinct bit patterns: 2
+  const_rt_expect    distinct bit patterns: 2
+  const_moments3     distinct bit patterns: 4
+  param_expect       distinct bit patterns: 1
+  param_var          distinct bit patterns: 1
+[runcap] exit 0, peak RSS 373 MB, 4s

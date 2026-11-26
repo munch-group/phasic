@@ -1,0 +1,2 @@
+reward_transform: distinct edge-order patterns 3, distinct serialize() outputs 3 over 16 instances
+[runcap] exit 0, peak RSS 314 MB, 4s

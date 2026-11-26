@@ -1,0 +1,20 @@
+N=40 vertices=37339 construct_total=7.229s user_callback=4.128s (57.1%) calls=37338
+memoized rebuild: total=3.300s lookup=0.034s non-callback (wrapper+pybind+native)=3.267s
+structure JSON: 15.76 MB, produce=1.778s, bytes/vertex=422
+         3366792 function calls in 2.222 seconds
+   Ordered by: internal time
+   List reduced from 24 to 12 due to restriction <12>
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    37339    1.261    0.000    2.222    0.000 /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py:1317(wrapper)
+   432937    0.369    0.000    0.369    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+   432937    0.258    0.000    0.668    0.000 /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/fromnumeric.py:86(_wrapreduction_any_all)
+   432937    0.150    0.000    0.818    0.000 /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/fromnumeric.py:2436(any)
+   940551    0.063    0.000    0.063    0.000 {built-in method builtins.len}
+   470276    0.046    0.000    0.046    0.000 {method 'items' of 'dict' objects}
+    37338    0.032    0.000    0.045    0.000 probe:40(memo_cb)
+   432937    0.028    0.000    0.028    0.000 /Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/numpy/_core/fromnumeric.py:2431(_any_dispatcher)
+    74678    0.007    0.000    0.007    0.000 {built-in method time.perf_counter}
+    37338    0.007    0.000    0.007    0.000 {method 'tobytes' of 'numpy.ndarray' objects}
+    37419    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+[runcap] exit 0, peak RSS 740 MB, 16s

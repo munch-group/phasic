@@ -1,0 +1,13 @@
+iter 0 vertices=8350 rss=343 MB
+iter 1 vertices=8350 rss=351 MB
+iter 2 vertices=8350 rss=358 MB
+iter 3 vertices=8350 rss=366 MB
+iter 4 vertices=8350 rss=374 MB
+iter 5 vertices=8350 rss=382 MB
+iter 6 vertices=8350 rss=389 MB
+iter 7 vertices=8350 rss=397 MB
+iter 8 vertices=8350 rss=405 MB
+iter 9 vertices=8350 rss=403 MB
+iter 10 vertices=8350 rss=392 MB
+iter 11 vertices=8350 rss=399 MB
+[runcap] exit 0, peak RSS 421 MB, 10s
