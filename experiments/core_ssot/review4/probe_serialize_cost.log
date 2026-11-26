@@ -1,0 +1,7 @@
+n=15 V=177 build=0.01s serialize=0.00s from_serialized=0.00s json=0.0MB expect_equal=True (1.866666666666666 vs 1.866666666666666)
+n=20 V=628 build=0.04s serialize=0.01s from_serialized=0.01s json=0.1MB expect_equal=True (1.8999999999999986 vs 1.8999999999999986)
+n=25 V=1959 build=0.18s serialize=0.04s from_serialized=0.03s json=0.5MB expect_equal=True (1.9199999999999986 vs 1.9199999999999986)
+[runcap] exit 0, peak RSS 313 MB, 4s
+n=35 V=14884 build=2.24s serialize=0.51s from_serialized=0.26s json=5.4MB expect_equal=True (1.9428571428571415 vs 1.9428571428571415)
+n=40 V=37339 build=8.04s serialize=1.46s from_serialized=0.76s json=15.8MB expect_equal=True (1.9499999999999982 vs 1.9499999999999982)
+[runcap] exit 0, peak RSS 866 MB, 17s

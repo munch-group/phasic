@@ -306,7 +306,7 @@ The stack is four layers; a change in the domain logic usually touches Python on
 
 For a parameterized graph, the C core eliminates the graph ONCE with symbolic weights and records the arithmetic as a command tape over a memory arena (`ptd_precompute_reward_compute_graph`, `src/c/phasic.c`). After `update_weights(θ)`, expectation/moments/variance, sojourn times, the exact-gradient cores and the JAX FFI handlers (GraphBuilder) replay that tape instead of eliminating again. The tape is cached in memory per graph, optionally on disk (rev-3 files, mmap-loaded), and per strongly connected component for the C composer (`scc_compose.c`, used by `parallel_elimination` / `PHASIC_HIERAR_ELIMINATION`). JAX never sees the tape: its gradients come from finite differences or the C exact-gradient cores.
 
-**Retired (2026-11-26 check):** the older Python trace pipeline (`trace_elimination.py` recorder and `evaluate_trace_jax` replay, `hierarchical_trace_cache.py` stitching, `trace_serialization.py`) is reachable only through the deprecated `Graph.compute_trace()`; its other call sites are commented out. It is scheduled for deletion (refactor plan `plans-and-findings/core-engine-ssot-plan.md`, decision R12', phase 13). Do not build on it.
+**Retired (2026-11-26 check):** the older Python trace pipeline (`trace_elimination.py` recorder and `evaluate_trace_jax` replay, `hierarchical_trace_cache.py` stitching, `trace_serialization.py`) is reachable only through the deprecated `Graph.compute_trace()`; its other call sites are commented out. It is scheduled for deletion (refactor plan `plans-and-findings/core-engine-ssot-plan.md`, decision R12', phase 2). Do not build on it.
 
 ### Hierarchical / SCC caching and distribution
 
