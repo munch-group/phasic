@@ -1,10 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.8, 2026-11-26 (v2.7 + review 12). v1 (`b9178dab`) went through three independent
+**Status: v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
 REJECT; reviews 8-12 of v2.3-v2.7 likewise); their findings are
-folded in here (dispositions in §11). v2.8 is NOT re-reviewed. No code changed.** Split out of
+folded in here (dispositions in §11). v2.9 only adds review 13's minors. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..12}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..13}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -346,9 +346,14 @@ model's own domain, stated in §9.
   equal (entries that are NaN on either side, which the pdf uses for
   missing observations and the epoch forward at a mass-0 handoff, are
   excluded; all-NaN outputs are not a tie). Only the outputs whose FD
-  quotient is actually used are compared (with exact moments active, only
-  the pdf). A tie gives a zero gradient for that slot, COUNTED and LOGGED
-  like a zero probe difference (once per model): a documented limit in
+  quotient is actually used are compared: the pdf always, and the moments
+  only where the exact moments Jacobian is declined for that theta
+  (`~_exact_ok`, selected with `jnp.where`; `__init__.py:9061-9065`,
+  `:9100-9104`). A tie gives a zero FD CONTRIBUTION for that slot (the
+  whole gradient when nothing exact is added), COUNTED and LOGGED like a
+  zero probe difference (once per model) as "zero FD gradient (forward
+  tie; may be a genuine zero)", since a slot whose true partial is zero
+  also ties: a documented limit in
   §4.3 and §9, in the spirit of D-NZ. There is NO repair: a one-sided
   repair would need a third forward at theta + 1e-7 (the capped probes are
   theta·(1 ± 1e-4), never theta + 1e-7; review12/p1_tie_forwards.log), and
@@ -410,7 +415,7 @@ model is built.
 | `:5501` → loops `:5647`, `:5698` | `_daisy_chain_svgd_model`, exposure | multi-epoch |
 | `:8006` | `moments_from_graph` | elimination |
 | `:8661`, `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp) | `pmf_and_moments_from_graph` | Euler + elimination |
-| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared AND `'unconstrained'` slots keep today's RELATIVE rule bit for bit (it is correct near zero, where the plain ±1e-7 step would flip the sign: measured -4.0000e14 today vs +1.33e14 plain at theta = 5e-8, review11/p2_host_site.log), with the §4.4 band only on refusing models and only for abs(theta) < 1e-10 (this site can be refusing for a direct `pmf_from_graph_joint_index(..., exact_grad_decline='fd')` call on a native discrete graph, `__init__.py:9409-9470`; `Graph.svgd` cannot reach that, rule R31); ties here are counted only (the host callback evaluates no primal); `'positive'` / `'unit'` slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
+| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared AND `'unconstrained'` slots keep today's RELATIVE rule bit for bit (it is correct near zero, where the plain ±1e-7 step would flip the sign: measured -4.0000e14 today vs +1.33e14 plain at theta = 5e-8, review11/p2_host_site.log), with the §4.4 band only on refusing models and only for 0 <= theta < 1e-10 (negative slots keep today's relative step; the capped rule is undefined for theta < 0) (this site can be refusing for a direct `pmf_from_graph_joint_index(..., exact_grad_decline='fd')` call on a native discrete graph, `__init__.py:9409-9470`; `Graph.svgd` cannot reach that, rule R31); ties on its declared branches are counted only, as everywhere; `'positive'` / `'unit'` slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
 | `:9888` | `pmf_from_graph_joint_index` | elimination |
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
 | `ffi_wrappers.py:1296` | `reward_visit_probability` backward | elimination |
@@ -608,8 +613,10 @@ implementation review per batch.
   1e-7 of zero can be wrong, including the sign, on non-refusing models;
   documented where the Batch 2 documentation deliverable lists, with the
   advice to fit rates with `positive_params=True`.
-- **Ties** (§4.5): a slot whose capped or relative probes tie gets a
-  counted, logged zero gradient, not repaired.
+- **Ties** (§4.5): a slot whose selected capped, positive or unit probes
+  tie gets a counted, logged zero FD contribution, not repaired (the
+  host site's relative branch for undeclared slots is not tie-checked,
+  so that site stays bit-identical and silent as today).
 - **The band trade-off on refusing models** (§4.3): an `'unconstrained'`
   offset slot below ~1e-9 loses accuracy (non-silently at a tie).
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
@@ -803,3 +810,15 @@ Report: `experiments/fd_domain_steps/review12/REPORT.md`.
   - m3: the D-NZ notes go to svgd, SVGD, epoch_model and
     FreeEpochModel.fit, not mcmc; §9 is aligned.
   - m4: the host site can be refusing; ties there are counted only.
+
+### Review 13 (of v2.8): SIGN-OFF → v2.9 (series closed)
+
+Report: `experiments/fd_domain_steps/review13/REPORT.md`. No blocker or
+major. Under the user's rule (stop when no more major issues show up) the
+review series ends here; the three minors are folded in:
+
+- m1: the moments are compared where exact moments are declined per
+  theta; "zero FD contribution".
+- m2: the tie log notes it may be a genuine zero; §9 is aligned with
+  §4.5; the stale primal reason is removed.
+- m3: the host-site band is 0 <= theta < 1e-10.
