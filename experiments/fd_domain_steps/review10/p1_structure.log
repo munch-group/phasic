@@ -1,0 +1,19 @@
+mixing refused: Cannot mix constant and parameterized edges. Graph mode is CONSTANT (locked by f
+vertex a2 edges: [([1], 1.0), ([1], 1.0)]
+== two param same target weight_mode linear param_length 2
+  edges []
+  param_edges [[1.0, 2.0, 1.0, 0.0], [1.0, 2.0, 0.0, 1.0]]
+  start_edges [[1.0, 1.0]]
+  start_param_edges []
+== param start edges weight_mode linear param_length 2
+  edges []
+  param_edges [[1.0, 2.0, 1.0, 1.0]]
+  start_edges [[1.0, 1.0], [2.0, 1.0]]
+  start_param_edges []
+== discretized weight_mode linear param_length 3
+  edges []
+  param_edges [[1.0, 2.0, 1.0, 0.0, 0.0], [1.0, 4.0, 0.0, 0.0, 0.1], [2.0, 3.0, 0.0, 1.0, 0.0], [2.0, 5.0, 0.0, 0.0, 0.1]]
+  start_edges [[1.0, 1.0]]
+  start_param_edges []
+was_dph None True
+[runcap] exit 0, peak RSS 323 MB, 3s

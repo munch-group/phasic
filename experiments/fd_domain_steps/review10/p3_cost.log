@@ -1,0 +1,6 @@
+E=1e+05 P=4 N=64: compile 0.1s, first 0.07s, second 0.04s, peak RSS 495 MB, C bytes 3 MB
+[runcap] exit 0, peak RSS 518 MB, 2s
+E=1e+06 P=4 N=64: compile 0.4s, first 1.15s, second 0.94s, peak RSS 1923 MB, C bytes 31 MB
+[runcap] exit 0, peak RSS 1771 MB, 3s
+E=2e+06 P=8 N=32: compile 0.8s, first 1.49s, second 1.50s, peak RSS 2455 MB, C bytes 122 MB
+[runcap] exit 0, peak RSS 2306 MB, 5s
