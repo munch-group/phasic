@@ -1,0 +1,8 @@
+/Users/kmt/phasic/experiments/fd_domain_steps/review11/p2_host_site.py:10: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+  a.add_edge_parameterized(b, 0.0, [1.0, 0.0])
+/Users/kmt/phasic/experiments/fd_domain_steps/review11/p2_host_site.py:11: DeprecationWarning: add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.
+  b.add_edge_parameterized(z, 0.0, [0.0, 1.0])
+t1=5e-08 exact=-4.0000e+14 today_rel=-4.0000e+14 plain=133333333333333.34
+t1=1e-08 exact=-1.0000e+16 today_rel=-1.0001e+16 plain=101010101010101.03
+t1=1e-09 exact=-1.0000e+18 today_rel=-1.0101e+18 plain=100010001000100.0
+[runcap] exit 0, peak RSS 322 MB, 5s

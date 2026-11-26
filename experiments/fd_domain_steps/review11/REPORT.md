@@ -1,0 +1,11 @@
+# Plan A v2.6 review 11 (Opus, HEAD 8cf9d328) — CHANGES REQUIRED (1 MAJOR, 6 MINOR)
+
+Part A: edge rule removed (diff fac11416..8cf9d328); leftovers: §4.5 l.342 "on a non-linear model" (band applies to every refusing model); §4.5 l.345-346 "both probes valid (non-negative edge weights)" not checkable/always true in band -> delete or per slot; §9 l.592 "non-linear" -> "refusing". Review 10 minors resolved; OI-117 recorded; D-NZ wording consistent (§3, §4.2, §4.4, §7, §9); §4.2 row omits θ==0 one-sided step; goal 2 (l.61) refusing list omits pmf_from_cpp and rewards; D-NZ documentation (positive_params docstring, Graph.svgd notes, SVGD class docstring) not a listed Batch 2 deliverable.
+MAJOR 1: joint-index host fallback (__init__.py:9551-9562) today uses RELATIVE step h=max(|θ|·1e-6,1e-10), correct near zero; plan gives declared 'unconstrained' plain ±1e-7 (graph non-refusing) -> sign flip. Measured (p2_host_site.log) expected_sojourn_time, vertex b sole exit t1, θ=[1,t1]: t1=5e-8 exact -4.0e14, today -4.0000e14, plan +1.33e14; 1e-8: -1.0e16 / -1.0001e16 / +1.01e14; 1e-9: -1.0e18 / -1.0101e18 / +1.00e14. Fix: 'unconstrained' keeps today's relative rule at this site; band only on refusing models for |θ|<1e-10; Batch 2 value test at 5e-8, 1e-9; else list in §7.
+MINORS
+2 tie fallback needs f(θ); residuals hold only θ (daisy _autodiff_fwd returns (output, theta_flat) __init__.py:5290-5291) -> save primal in residuals (memory, not values) rather than a third forward.
+3 tie detection with NaN (pdf NaN for missing obs; nansum __init__.py:9085-9088) -> compare finite entries or equal_nan.
+4 'positive' slot can tie silently (direct θ≈1e-13 beside O(1) rate) -> tie counter on every selected positive/unit branch.
+5 Batch 2 linear offset test must say "linear, continuous, single-epoch, no rewards".
+6 literal 2·eps vs actual-difference divisor for plain step (p1_divisor.log: comparable to 1e6, literal ~4x worse at 1e7 and 1e9, better at 1e8; rate-blowup penalty finite __init__.py:1436-1448) -> optional.
+Sound: containment incl fit-time fixed and LRT fast path; jnp.where selection; undeclared keep clamp at clamp sites; band probes non-negative incl exposure; default exact_moment_grad -> D-NZ affects only pdf quotient (no pole); no new crash route.

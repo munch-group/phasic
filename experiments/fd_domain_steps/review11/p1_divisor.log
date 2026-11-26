@@ -1,0 +1,13 @@
+theta   rel_err_literal   rel_err_actual
+   1e+00  2.876e-11  0.000e+00  actual_diff=2.0000e-07
+   1e+01  6.077e-09  0.000e+00  actual_diff=2.0000e-07
+   1e+02  2.526e-08  3.411e-08  actual_diff=2.0000e-07
+   1e+03  5.346e-07  1.910e-07  actual_diff=2.0000e-07
+   1e+04  9.477e-06  1.863e-06  actual_diff=2.0000e-07
+   1e+05  2.289e-05  1.527e-05  actual_diff=2.0000e-07
+   1e+06  2.441e-04  2.518e-04  actual_diff=2.0000e-07
+   1e+07  7.812e-03  1.973e-03  actual_diff=2.0117e-07
+   1e+08  0.000e+00  4.130e-02  actual_diff=2.0862e-07
+   1e+09  2.800e-01  7.374e-02  actual_diff=2.3842e-07
+   3e+09  1.000e+00  1.000e+00  actual_diff=0.0000e+00
+[runcap] exit 0, peak RSS 6 MB, 1s

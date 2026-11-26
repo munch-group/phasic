@@ -1,10 +1,10 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.6, 2026-11-26 (v2.5 + review 10 + user decision D-NZ). v1 (`b9178dab`) went through three independent
+**Status: v2.7, 2026-11-26 (v2.6 + review 11). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
-REJECT; reviews 8-10 of v2.3-v2.5 likewise); their findings are
-folded in here (dispositions in §11). v2.6 is NOT re-reviewed. No code changed.** Split out of
+REJECT; reviews 8-11 of v2.3-v2.6 likewise); their findings are
+folded in here (dispositions in §11). v2.7 is NOT re-reviewed. No code changed.** Split out of
 [fd-step-and-slow-band-guard-plan.md](fd-step-and-slow-band-guard-plan.md)
 v5 (its §3.2 and Batch 1), to be done BEFORE the core-engine refactor
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md)). The rest of v5
@@ -22,7 +22,7 @@ epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
 > Read `plans-and-findings/fd-domain-steps-plan.md` in full (including §11,
 > the review dispositions, and the review reports under
-> `experiments/fd_domain_steps/review{1..10}/REPORT.md`) and `OPEN-ITEMS.md`.
+> `experiments/fd_domain_steps/review{1..11}/REPORT.md`) and `OPEN-ITEMS.md`.
 > Implement it batch by batch on branch `fix/fd-domain-steps` in a worktree
 > `../phasic-fdsteps`. Gate each batch before the next. Memory-cap every
 > run (`.git/claude-scratch/runcap.py`); one heavy run at a time; never run
@@ -58,7 +58,8 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
    built model).
 2. **Undeclared callers keep today's numbers bit for bit**, with one
    stated exception: on models whose forward refuses a negative rate (§4.4: multi-epoch,
-   discrete, or non-linear weight mode), an undeclared slot with
+   discrete, non-linear weight mode, built by `pmf_from_cpp`, or called
+   with rewards), an undeclared slot with
    0 <= theta <= 1e-7 uses the §4.4 fallback even when
    today's probe happened not to crash (today's crash depends on the edge
    weight sum c·theta, not on the slot alone: theta = 1e-7 does not crash,
@@ -204,7 +205,7 @@ pdf's capped step (harmless; stated).
 |---|---|---|---|
 | positive | theta·e^(±s) | theta·e^(±u), u = min(log1p(1e-7/theta), s) | actual difference, with zero guard |
 | unit | logit step of s | logit step of size min(s, 1e-7/(theta(1-theta)))/(1 + s) (the extra factor keeps the up-probe at most ~1e-7 above theta to second order) | actual difference, with zero guard |
-| unconstrained | — | theta ± 1e-7; on REFUSING models only, the capped positive rule when 0 <= theta <= 1e-7 (crash prevention) | literal 2·eps for the plain step; actual difference with zero guard for the capped step (two quotients selected per §4.7) |
+| unconstrained | — | theta ± 1e-7; on REFUSING models only, the capped positive rule when 0 < theta <= 1e-7 and the one-sided [0, 1e-7] step at theta == 0 (crash prevention); at the joint-index host site, today's relative step (§5) | literal 2·eps for the plain step; actual difference with zero guard for the capped step (two quotients selected per §4.7) |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
 The capped up-probe is never more than 1e-7 above theta (review 1 m1
@@ -338,12 +339,17 @@ model's own domain, stated in §9.
   the widening applies to every flat slot e·P + k. `SVGD.__init__` uses the
   same containment check (not equality), so the widened slot fitted with a
   sigmoid passes.
-- **A forward tie** (f+ == f- in every output) on a selected
-  capped-band branch, e.g. an offset slot at 1e-13 on a non-linear model:
-  counted and logged like a zero probe difference (once per model), and
-  that slot's quotient falls back to the one-sided [theta, theta + 1e-7]
-  difference when both of those probes are valid (non-negative edge
-  weights), which repairs the exact zero (not the ~11% error at 1e-11).
+- **A forward tie** (f+ == f- in every FINITE output; NaN entries, which
+  the pdf uses for missing observations, are excluded from the comparison)
+  on ANY selected capped, positive or unit branch, e.g. an offset slot at
+  1e-13 on a refusing model, or a `'positive'` slot at 1e-13 beside an O(1)
+  rate in a direct theta-space call: counted and logged like a zero probe
+  difference (once per model). On the capped band of a refusing model the
+  slot's quotient then falls back to the one-sided [theta, theta + 1e-7]
+  difference (both probes are non-negative in the band), which repairs the
+  exact zero (not the ~11% error at 1e-11). The forward at theta it needs
+  is the PRIMAL output, saved in the residuals and reused (a memory cost,
+  no extra forward and no change in values).
 - **A zero probe difference** (theta above ~2e9, where the capped u falls
   below ~5.5e-17; at 1e9 the down-probe still moves, review6/p1_modes.log)
   gives a zero gradient for that slot and a host-side counter plus a
@@ -399,7 +405,7 @@ model is built.
 | `:5501` → loops `:5647`, `:5698` | `_daisy_chain_svgd_model`, exposure | multi-epoch |
 | `:8006` | `moments_from_graph` | elimination |
 | `:8661`, `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp) | `pmf_and_moments_from_graph` | Euler + elimination |
-| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared slots keep today's rule bit for bit (plus the §4.4 fallback if the model refuses); declared slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
+| `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared AND `'unconstrained'` slots keep today's RELATIVE rule bit for bit (it is correct near zero, where the plain ±1e-7 step would flip the sign: measured -4.0000e14 today vs +1.33e14 plain at theta = 5e-8, review11/p2_host_site.log), with the §4.4 band only on refusing models and only for abs(theta) < 1e-10; `'positive'` / `'unit'` slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
 | `:9888` | `pmf_from_graph_joint_index` | elimination |
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
 | `ffi_wrappers.py:1296` | `reward_visit_probability` backward | elimination |
@@ -514,6 +520,10 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
     0's measurement at theta = 1e-4 and 1e-5 (expected 1e-7 to 1e-5);
   - one coarse fit-level check per route;
   - the reported epoch fit from near-floor particles completes;
+  - **documentation deliverable (D-NZ):** the `positive_params` docstrings
+    of `Graph.svgd`, `SVGD` and `Graph.mcmc` state the near-zero limit and
+    the advice to fit rates with `positive_params=True`; a test asserts the
+    note is present;
   - `positive_params=False` × {log, formula, callback, discretized,
     linear with rewards} × theta = 5e-8: no crash (the §4.4 fallback
     replaces the 1e-9 clamp);
@@ -524,8 +534,10 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
     deliberate);
   - the band rule on a log-mode (refusing) model at offset and pole slots
     in {5e-8, 1e-9, 1e-13}, pinning the stated §4.3 trade-off and the §4.5
-    tie behaviour; and, on a linear model, an offset `'unconstrained'` slot
-    at 1e-13 keeping today's accuracy (plain step). References near poles
+    tie behaviour; and, on a linear, continuous, single-epoch model with no
+    rewards (non-refusing), an offset `'unconstrained'` slot at 1e-13
+    keeping today's accuracy (plain step); and the joint-index host site at
+    t1 in {5e-8, 1e-9} keeping today's relative step (correct sign). References near poles
     are CLOSED FORMS, not `exact_moment_grad` (it disagrees with closed
     forms near poles, OI-117);
   - the 2-D rewards (multivariate) leaf and an exposure fit carry
@@ -589,7 +601,7 @@ implementation review per batch.
   1e-7 of zero can be wrong, including the sign, on non-refusing models;
   documented in the `positive_params` docstring and the Graph.svgd notes,
   with the advice to fit rates with `positive_params=True`.
-- **The band trade-off on non-linear models** (§4.3): an `'unconstrained'`
+- **The band trade-off on refusing models** (§4.3): an `'unconstrained'`
   offset slot below ~1e-9 loses accuracy (non-silently at a tie).
 - **The cap keeps today's jump behaviour** on Euler forwards; only Plan B
   removes it.
@@ -749,3 +761,21 @@ Report: `experiments/fd_domain_steps/review10/REPORT.md`.
 - **Side finding:** the exact moments gradient disagrees with closed
   forms near poles. Recorded as OI-117; value tests near poles use closed
   forms.
+
+### Review 11 (of v2.6) → v2.7
+
+Report: `experiments/fd_domain_steps/review11/REPORT.md`.
+
+- **The joint-index host site would have flipped a correct sign** (M1,
+  measured) → under D-NZ ("keep today"), undeclared and `'unconstrained'`
+  slots there keep today's relative step (§5 row, §4.2 row); value test.
+- **Minors.**
+  - m2: the tie fallback reuses the saved primal.
+  - m3: NaN entries are excluded from tie detection.
+  - m4: the tie counter covers every selected positive or unit branch.
+  - m5: the non-refusing linear test is named precisely.
+  - m6: the divisor is left as stated (optional).
+- **Part A leftovers** → the §4.5 tie text no longer depends on edge
+  weights; §9 says "refusing models"; goal 2 lists every refusing class;
+  the §4.2 row includes the theta == 0 step; the D-NZ documentation is a
+  Batch 2 deliverable with a test.
