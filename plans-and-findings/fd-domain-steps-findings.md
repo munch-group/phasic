@@ -42,7 +42,8 @@ the suite baseline.
    native discrete including the unit rule), 3e-6 (discretized, elimination)
    and 1e-5 (daisy chain with explicit granularity). At s = 1e-4 every family is
    still at or below about 2e-8 median relative error, against today's 4e-7 to
-   5e-6 at population-genetics values. This is a choice for you (section 4.3).
+   5e-6 at population-genetics values. **Decided (user, 2026-11-27): s = 3e-5
+   for every family** (section 4.3).
 5. **The discretize slot has no jumps** (scale invariance and smoothness
    verified). It takes the capped rule with the discretized family's s.
 6. **Degenerate values (§4.5).** These are confirmed:
@@ -342,7 +343,25 @@ Two defensible options for Batch 1, differing by at most ~1e-8 median error:
   elimination and discretized (2.6e-10 / 8.2e-10), with better tails than the
   smaller picks. It is simpler to implement and test.
 
-These are recorded, not decided. Recommendation in section 7.
+**Decision (user, 2026-11-27): option (b), s = 3e-5 for every family**, for both
+the full and the capped rule (positive and unit domains), including the
+discretize slot. The reasons:
+
+- Every candidate is at or below 1e-8 median error, so accuracy does not
+  separate them.
+- The finite-difference error is truncation (≈ s², nearly size-independent)
+  plus forward rounding noise divided by s, which grows with model size.
+- These measurements were on models of at most ~1,000 vertices, while
+  production models are 20k-600k, so the best step at scale is likely larger
+  than measured. The small per-family picks (3e-6) are the most exposed.
+- 3e-5 is the best or within 2x of it where forwards are long (continuous pdf,
+  multi-epoch, native discrete), costs at most ~1e-9 elsewhere, and has better
+  worst cases than smaller steps (continuous pdf at population-genetics values:
+  max 7.9e-8 at 3e-5 against 9.3e-7 at 1e-5).
+- One constant is simpler to implement and test.
+
+This knowingly departs from the literal "smallest s within 2x of the best"
+criterion, which ignores tails and model size.
 
 ## 5. Degenerate values (plan §4.5)
 
@@ -423,11 +442,8 @@ These are recorded, not decided. Recommendation in section 7.
    discrete joint graphs over-predict, harmlessly.
 2. §1, §5: the clamp is unconditional, at three sites (section 2).
 3. §4.2: the overshoot wording (section 5).
-4. §4.1 / §6: the step sizes, once you choose option (a) or (b) of section
-   4.3. **Recommendation: (a), the per-family values.** The criterion was
-   agreed in advance, and the per-family constant is one table in
-   `_fd_steps.py`, so (a) costs no more code than (b). If you prefer one
-   constant, (b) s = 3e-5 loses at most ~1e-9 median.
+4. §4.1 / §6: **s = 3e-5 for every family** (user decision 2026-11-27,
+   section 4.3), replacing the starting value 1e-4.
 5. §7: add `test_discrete_row_sum.py::test_gradient_at_the_lower_bound`; drop
    the conditional `test_likelihood_correctness.py` item.
 6. Batch 1 tests: a fresh model per rewarded invalid-theta assertion (OI-119);
