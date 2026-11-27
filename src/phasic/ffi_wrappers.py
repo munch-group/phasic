@@ -1164,6 +1164,7 @@ def compute_reward_visit_probability_ffi(
     theta: 'jax.Array',
     target_vertices: 'jax.Array',
     initial_ipv: 'jax.Array',
+    param_domains=None,
 ) -> 'jax.Array':
     """Probability of visiting any target vertex before absorption.
 
@@ -1193,6 +1194,11 @@ def compute_reward_visit_probability_ffi(
         Initial probability vector alpha, shape (n_vertices,).
         Nonzero only at the graph's starting vertices.
 
+    param_domains : sequence, optional
+        Per-slot finite-difference domains (Plan A; see
+        ``Graph.pmf_and_moments_from_graph``). The refusal of a negative
+        probe is derived from ``structure_json`` (weight mode, discreteness).
+
     Returns
     -------
     jax.Array, shape ()
@@ -1201,9 +1207,30 @@ def compute_reward_visit_probability_ffi(
     initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
     target_vertices = jnp.asarray(target_vertices, dtype=jnp.int32)
     theta = jnp.asarray(theta, dtype=jnp.float64)
+    fd_spec = _rvp_fd_spec(structure_json, param_domains)
     return _reward_visit_probability_autodiff(
-        structure_json, theta, target_vertices, initial_ipv,
+        structure_json, fd_spec, theta, target_vertices, initial_ipv,
     )
+
+
+@functools.lru_cache(maxsize=8)
+def _rvp_info_from_json(structure_str: str):
+    import json as _json
+    from . import _fd_steps
+    d = _json.loads(structure_str)
+    return _fd_steps.build_info(d, family=_fd_steps.FULL)
+
+
+def _rvp_fd_spec(structure_json, param_domains):
+    """(domains, BuildInfo) -- hashable, a nondiff argument of the rvp
+    custom_vjp. The BUILD-TIME refusal only: rvp takes no rewards argument
+    (plan §4.4)."""
+    from . import _fd_steps
+    if isinstance(structure_json, dict):
+        info = _fd_steps.build_info(structure_json, family=_fd_steps.FULL)
+    else:
+        info = _rvp_info_from_json(_ensure_json_string(structure_json))
+    return (_fd_steps.normalize_domains(param_domains), info)
 
 
 def _reward_visit_probability_callback(
@@ -1275,37 +1302,60 @@ def _reward_visit_probability_forward(
     )
 
 
-@functools.partial(jax.custom_vjp, nondiff_argnums=(0,))
+@functools.partial(jax.custom_vjp, nondiff_argnums=(0, 1))
 def _reward_visit_probability_autodiff(
-    structure_json, theta, target_vertices, initial_ipv,
+    structure_json, fd_spec, theta, target_vertices, initial_ipv,
 ):
     return _reward_visit_probability_forward(
         structure_json, theta, target_vertices, initial_ipv,
     )
 
 
-def _rvp_fwd(structure_json, theta, target_vertices, initial_ipv):
+def _rvp_fwd(structure_json, fd_spec, theta, target_vertices, initial_ipv):
     out = _reward_visit_probability_forward(
         structure_json, theta, target_vertices, initial_ipv,
     )
     return out, (theta, target_vertices, initial_ipv)
 
 
-def _rvp_bwd(structure_json, res, cotangent):
+_RVP_FD_STATS = None
+
+
+def _rvp_bwd(structure_json, fd_spec, res, cotangent):
+    from . import _fd_steps
+    global _RVP_FD_STATS
+    if _RVP_FD_STATS is None:
+        _RVP_FD_STATS = _fd_steps.FDStats('reward_visit_probability')
+    domains, info = fd_spec
     theta, target_vertices, initial_ipv = res
     eps = 1e-7
     n_params = int(theta.shape[-1])
+    _fd_steps.check_length(domains, n_params, 'reward_visit_probability')
     grads = []
+    _fd_z, _fd_t = [], []
     for i in range(n_params):
+        _rule = _fd_steps.slot_rule(_fd_steps.domain_of(domains, i), info.refuses)
+        if _rule == _fd_steps.SKIP:
+            grads.append(jnp.zeros_like(cotangent))
+            continue
         tp = theta.at[i].add(eps)
         tm = theta.at[i].add(-eps)
+        tp, tm, _use = _fd_steps.probes(theta, i, tp, tm, _rule, info)
+        _fd_steps.record('reward_visit_probability', i, tp, tm)
         fp = _reward_visit_probability_forward(
             structure_json, tp, target_vertices, initial_ipv,
         )
         fm = _reward_visit_probability_forward(
             structure_json, tm, target_vertices, initial_ipv,
         )
-        grads.append(cotangent * (fp - fm) / (2.0 * eps))
+        _g = cotangent * (fp - fm) / (2.0 * eps)
+        if _use is not None:
+            _d = tp[i] - tm[i]
+            _g = jnp.where(_use, cotangent * _fd_steps.alt_ratio(fp, fm, _d), _g)
+            _z, _t = _fd_steps.flags(_use, _d, [fp], [fm])
+            _fd_z.append(_z); _fd_t.append(_t)
+        grads.append(_g)
+    _fd_steps.report(_RVP_FD_STATS, _fd_z, _fd_t)
     return (
         jnp.stack(grads),
         jnp.zeros_like(target_vertices, dtype=jnp.float64),

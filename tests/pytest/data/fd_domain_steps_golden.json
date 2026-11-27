@@ -1,0 +1,396 @@
+{
+ "grads": {
+  "cdf_zero|0.7,1.3|eager": [
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ],
+  "cdf_zero|0.7,1.3|jit": [
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ],
+  "cdf_zero|0.7,1.3|vmap": [
+   "0x0.0p+0",
+   "0x0.0p+0",
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ],
+  "cpp|0.7,1.3|eager": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "cpp|0.7,1.3|jit": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "dc_efg|1.0,0.5,1.5,0.3|eager": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad3488863adp-17",
+   "-0x1.c7d881aaa7c9ep-15"
+  ],
+  "dc_efg|1.0,0.5,1.5,0.3|jit": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad3488863adp-17",
+   "-0x1.c7d881aaa7c9ep-15"
+  ],
+  "dc_efg|1.0,0.5,1.5,0.3|vmap": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad3488863adp-17",
+   "-0x1.c7d881aaa7c9ep-15",
+   "0x1.c80e30edea50bp-17",
+   "-0x1.b4eeaf254eabdp-15",
+   "0x1.439d46ebe2b4ap-17",
+   "-0x1.948498a6db621p-15"
+  ],
+  "dc_exp|1.0,0.5,1.5,0.3|eager": [
+   "-0x1.b5caeca0f9cdep-10",
+   "0x1.8849e18fe3708p-8",
+   "-0x1.44fbc6413953fp-10",
+   "0x1.963ac3d0318e9p-8"
+  ],
+  "dc_exp|1.0,0.5,1.5,0.3|jit": [
+   "-0x1.b5caeca0f9cdep-10",
+   "0x1.8849e18fe3708p-8",
+   "-0x1.44fbc6413953ep-10",
+   "0x1.963ac3d0318e8p-8"
+  ],
+  "dc_exp|1.0,0.5,1.5,0.3|vmap": [
+   "-0x1.b5caeca0f9cdep-10",
+   "0x1.8849e18fe3708p-8",
+   "-0x1.44fbc6413953fp-10",
+   "0x1.963ac3d0318e9p-8",
+   "-0x1.b1afec13d5a42p-10",
+   "0x1.7e6550e1e076ep-8",
+   "-0x1.19dac39b5b502p-10",
+   "0x1.605176b91eaeep-8"
+  ],
+  "dc_noexp|1.0,0.5,1.5,0.3|eager": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad34871f36ap-17",
+   "-0x1.c7d881a9530bep-15"
+  ],
+  "dc_noexp|1.0,0.5,1.5,0.3|jit": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad34871f369p-17",
+   "-0x1.c7d881a9530bep-15"
+  ],
+  "dc_noexp|1.0,0.5,1.5,0.3|vmap": [
+   "0x1.b3ad67c05dbd2p-17",
+   "-0x1.afbb569a5c1f6p-15",
+   "0x1.6cad34871f36ap-17",
+   "-0x1.c7d881a9530bep-15",
+   "0x1.c80e30edea50bp-17",
+   "-0x1.b4eeaf254eabdp-15",
+   "0x1.439d46e61c01cp-17",
+   "-0x1.948498a93e13dp-15"
+  ],
+  "dc_noexp|1.0,2e-07,1.5,3e-07|eager": [
+   "0x1.fb9676d836de8p-58",
+   "-0x1.2e8bbe8b8fc62p-35",
+   "0x1.c0ab5464076f3p-58",
+   "-0x1.0b6d7ed8c43c8p-35"
+  ],
+  "dc_noexp|1.0,2e-07,1.5,3e-07|jit": [
+   "0x1.fb96773de2239p-58",
+   "-0x1.2e8bbe8b8fd77p-35",
+   "0x1.c0ab54d647f40p-58",
+   "-0x1.0b6d7ed8c43aap-35"
+  ],
+  "dc_noexp|1.0,2e-07,1.5,3e-07|vmap": [
+   "0x1.fb9676d836de8p-58",
+   "-0x1.2e8bbe8b8fc62p-35",
+   "0x1.c0ab5464076f3p-58",
+   "-0x1.0b6d7ed8c43c8p-35",
+   "0x1.efdfe7ae6d5f6p-58",
+   "-0x1.2790769fa442ep-35",
+   "0x1.80ed4fc5d9c55p-58",
+   "-0x1.cade65ba6d722p-36"
+  ],
+  "dcjp|1.0,0.5,1.5,0.3|eager": [
+   "0x1.74f9724c6a800p-12",
+   "-0x1.502d973824600p-10",
+   "0x1.01e25232ac800p-12",
+   "-0x1.425ad1e2c4200p-10"
+  ],
+  "dcjp|1.0,0.5,1.5,0.3|jit": [
+   "0x1.74f9724c6a800p-12",
+   "-0x1.502d973824600p-10",
+   "0x1.01e25232ac800p-12",
+   "-0x1.425ad1e2c4200p-10"
+  ],
+  "dcjp|1.0,0.5,1.5,0.3|vmap": [
+   "0x1.74f9724c6a800p-12",
+   "-0x1.502d973824600p-10",
+   "0x1.01e25232ac800p-12",
+   "-0x1.425ad1e2c4200p-10",
+   "0x1.73d51092e0000p-12",
+   "-0x1.47af00cd15c00p-10",
+   "0x1.bd526b3035000p-13",
+   "-0x1.165376c613e00p-10"
+  ],
+  "jix|1.0,0.5|eager": [
+   "0x1.b059fb9de9980p-14",
+   "-0x1.b05960e4d6880p-13"
+  ],
+  "jix|1.0,0.5|jit": [
+   "0x1.b059fb9de99e0p-14",
+   "-0x1.b05960e4d6858p-13"
+  ],
+  "jix|1.0,0.5|vmap": [
+   "0x1.b059fb9de9980p-14",
+   "-0x1.b05960e4d6880p-13",
+   "0x1.890a8337c5f00p-14",
+   "-0x1.890b6f0cb8c80p-13"
+  ],
+  "mfg|0.7,1.3|eager": [
+   "-0x1.1053977c8bc40p+2",
+   "-0x1.1b6db6e014070p+1"
+  ],
+  "mfg|0.7,1.3|jit": [
+   "-0x1.1053977c8bc40p+2",
+   "-0x1.1b6db6e014070p+1"
+  ],
+  "mfg|0.7,1.3|vmap": [
+   "-0x1.1053977c8bc40p+2",
+   "-0x1.1b6db6e014070p+1",
+   "-0x1.9e03aa84781f0p+1",
+   "-0x1.b3814720acec0p+0"
+  ],
+  "multivar|0.7,1.3|eager": [
+   "-0x1.f0c9cb1955017p-4",
+   "0x1.64a2fa549bae2p-3"
+  ],
+  "multivar|0.7,1.3|jit": [
+   "-0x1.f0c9caf32f617p-4",
+   "0x1.64a2fa86ad102p-3"
+  ],
+  "multivar|0.7,1.3|vmap": [
+   "-0x1.f0c9caf32f617p-4",
+   "0x1.64a2fa48afec2p-3",
+   "-0x1.455d11e746fa0p-4",
+   "0x1.9a3fdea94aea9p-4"
+  ],
+  "pam_formula|0.7,1.3|eager": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_formula|0.7,1.3|jit": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_formula|0.7,1.3|vmap": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4",
+   "0x1.350b3012c8c5bp-3",
+   "-0x1.d22c925cb1b61p-4"
+  ],
+  "pam_linear_ffi|0.7,1.3|eager": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_linear_ffi|0.7,1.3|jit": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_linear_ffi|0.7,1.3|vmap": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4",
+   "0x1.350b3012c8c5bp-3",
+   "-0x1.d22c925cb1b61p-4"
+  ],
+  "pam_linear_rw|0.7,1.3|eager": [
+   "-0x1.1d7dc2d8acd12p-8",
+   "-0x1.ee227ec9bdb3ep-6"
+  ],
+  "pam_linear_rw|0.7,1.3|jit": [
+   "-0x1.1d7dc2d8acd10p-8",
+   "-0x1.ee227ec9bdb3ep-6"
+  ],
+  "pam_linear_rw|0.7,1.3|vmap": [
+   "-0x1.1d7dc2d8acd12p-8",
+   "-0x1.ee22804735f3ep-6",
+   "0x1.09c31a3cd16bap-6",
+   "-0x1.10192c5dc1623p-4"
+  ],
+  "pam_linear_rw|0.7,2e-07|eager": [
+   "0x1.683f05e39a161p-1",
+   "0x1.23599c837a3c7p+0"
+  ],
+  "pam_linear_rw|0.7,2e-07|jit": [
+   "0x1.683f05e39a161p-1",
+   "0x1.23599c837a3c7p+0"
+  ],
+  "pam_linear_rw|0.7,2e-07|vmap": [
+   "0x1.683f05e39a161p-1",
+   "0x1.23599c837a3c7p+0",
+   "0x1.6e719cfd928eap-1",
+   "0x1.099793f091f5ap+0"
+  ],
+  "pam_linear|0.7,1.3|eager": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_linear|0.7,1.3|jit": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4"
+  ],
+  "pam_linear|0.7,1.3|vmap": [
+   "0x1.45afeba70fc3dp-3",
+   "-0x1.3ed9dde9bc7f0p-4",
+   "0x1.350b3012c8c5bp-3",
+   "-0x1.d22c925cb1b61p-4"
+  ],
+  "pam_linear|0.7,5e-08|eager": [
+   "0x1.070b5c73eeddep+0",
+   "0x1.0253dfc1accb6p+0"
+  ],
+  "pam_linear|0.7,5e-08|jit": [
+   "0x1.070b5c73eeddep+0",
+   "0x1.0253dfc1accb6p+0"
+  ],
+  "pam_linear|0.7,5e-08|vmap": [
+   "0x1.070b5c73eeddep+0",
+   "0x1.0253dfc1accb6p+0",
+   "0x1.f8100c4652d8cp-1",
+   "0x1.c87f4f638f440p-1"
+  ],
+  "pam_log|0.7,1.3|eager": [
+   "-0x1.21219326fb9cfp-2",
+   "-0x1.375f3b47551eap-3"
+  ],
+  "pam_log|0.7,1.3|jit": [
+   "-0x1.21219326fb9cfp-2",
+   "-0x1.375f3b47551eap-3"
+  ],
+  "pam_log|0.7,1.3|vmap": [
+   "-0x1.21219326fb9cfp-2",
+   "-0x1.375f3b47551eap-3",
+   "-0x1.9d7096717c4a8p-2",
+   "-0x1.bd3e2b149cfaap-3"
+  ],
+  "pfg_callback|0.7,1.3|eager": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_callback|0.7,1.3|jit": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_callback|0.7,1.3|vmap": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4",
+   "0x1.3baafd8b0a1c0p-3",
+   "-0x1.cb34be4c60480p-4"
+  ],
+  "pfg_dph|0.3,0.4|eager": [
+   "0x1.9a0275249bfa0p-2",
+   "-0x1.ecd9e83ebf308p-2"
+  ],
+  "pfg_dph|0.3,0.4|jit": [
+   "0x1.9a0275249bfa0p-2",
+   "-0x1.ecd9e83ebf308p-2"
+  ],
+  "pfg_dph|0.3,0.4|vmap": [
+   "0x1.9a0275249bfa0p-2",
+   "-0x1.ecd9e83ebf308p-2",
+   "0x1.89faa7fd18530p-2",
+   "-0x1.2c69fd1f8a5a8p-1"
+  ],
+  "pfg_dph|0.3,2e-07|eager": [
+   "0x1.8dd2df9d23328p+0",
+   "0x1.1353e03016a30p+0"
+  ],
+  "pfg_dph|0.3,2e-07|jit": [
+   "0x1.8dd2df9d23328p+0",
+   "0x1.1353e03016a30p+0"
+  ],
+  "pfg_dph|0.3,2e-07|vmap": [
+   "0x1.8dd2df9d23328p+0",
+   "0x1.1353e03016a30p+0",
+   "0x1.88b39cee02ad0p+0",
+   "0x1.d61e1dc4e1690p-1"
+  ],
+  "pfg_formula|0.7,1.3|eager": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_formula|0.7,1.3|jit": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_formula|0.7,1.3|vmap": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4",
+   "0x1.3baafd8b0a1c0p-3",
+   "-0x1.cb34be4c60480p-4"
+  ],
+  "pfg_linear|0.7,1.3|eager": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_linear|0.7,1.3|jit": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4"
+  ],
+  "pfg_linear|0.7,1.3|vmap": [
+   "0x1.4e66d1c4f5cc0p-3",
+   "-0x1.35c8052124200p-4",
+   "0x1.3baafd8b0a1c0p-3",
+   "-0x1.cb34be4c60480p-4"
+  ],
+  "pfg_log|0.7,1.3|eager": [
+   "-0x1.1c22446432d60p-2",
+   "-0x1.31fd84051c480p-3"
+  ],
+  "pfg_log|0.7,1.3|jit": [
+   "-0x1.1c22446432d60p-2",
+   "-0x1.31fd84051c480p-3"
+  ],
+  "pfg_log|0.7,1.3|vmap": [
+   "-0x1.1c22446432d60p-2",
+   "-0x1.31fd84051c480p-3",
+   "-0x1.9a3276e4f28e0p-2",
+   "-0x1.b9c030857e280p-3"
+  ],
+  "pfg_wasdph|0.7,1.3,0.9|eager": [
+   "0x1.5cb44f3af7260p-3",
+   "0x1.c5a0a0ea89380p-4",
+   "-0x1.2b6acaaaebbc0p-2"
+  ],
+  "pfg_wasdph|0.7,1.3,0.9|jit": [
+   "0x1.5cb44f3af7260p-3",
+   "0x1.c5a0a0ea89380p-4",
+   "-0x1.2b6acaaaebbc0p-2"
+  ],
+  "pfg_wasdph|0.7,1.3,0.9|vmap": [
+   "0x1.5cb44f3af7260p-3",
+   "0x1.c5a0a0ea89380p-4",
+   "-0x1.2b6acaaaebbc0p-2",
+   "0x1.3d01022fc0ba0p-3",
+   "0x1.9c637afa39280p-4",
+   "-0x1.103289b68e840p-2"
+  ],
+  "rvp_linear|0.7,1.3|eager": [
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ],
+  "rvp_linear|0.7,1.3|jit": [
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ],
+  "rvp_linear|0.7,1.3|vmap": [
+   "0x0.0p+0",
+   "0x0.0p+0",
+   "0x0.0p+0",
+   "0x0.0p+0"
+  ]
+ },
+ "n_cells": 74,
+ "note": "captured on master code before any Plan A source change",
+ "platform": "darwin-arm64",
+ "source_commit": "f5afcaf26c5244ae9f1b1c9d11fa64f16d2a7a93"
+}
