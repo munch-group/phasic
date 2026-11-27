@@ -556,11 +556,12 @@ def fd_warnings():
     rec = []
     h = logging.Handler()
     h.emit = lambda r: rec.append(r.getMessage())
-    _fd_steps._log.addHandler(h)
+    log = _fd_steps._logger()
+    log.addHandler(h)
     try:
         yield rec
     finally:
-        _fd_steps._log.removeHandler(h)
+        log.removeHandler(h)
 
 
 def test_zero_probe_difference_is_counted_and_logged_once(fd_warnings):

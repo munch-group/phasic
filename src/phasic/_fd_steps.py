@@ -38,9 +38,19 @@ from typing import Any, NamedTuple, Optional, Sequence
 
 import numpy as np
 
-from .logging_config import get_logger
+_LOG = None
 
-_log = get_logger(__name__)
+
+def _logger():
+    """The module logger, created on first use. NOT at import time:
+    get_logger() runs setup_logging(), which imports phasic_pybind, and this
+    module is imported by phasic/__init__.py BEFORE OMP_NUM_THREADS is set
+    (test_graph_cache_key::test_14_import_order)."""
+    global _LOG
+    if _LOG is None:
+        from .logging_config import get_logger
+        _LOG = get_logger(__name__)
+    return _LOG
 
 EPS = 1e-7          # today's absolute FD step
 S = 3e-5            # the domain-aware step (findings §4.3)
@@ -260,7 +270,7 @@ class FDStats:
                     "zero) for a slot whose two probes gave identical outputs; "
                     "counted in model._fd_stats.tie")
         for m in msgs:
-            _log.warning(m)
+            _logger().warning(m)
 
 
 def _host_report(stats: FDStats, zeros, ties):
