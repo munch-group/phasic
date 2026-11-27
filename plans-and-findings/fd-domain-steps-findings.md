@@ -808,7 +808,8 @@ Plan v2.10 §6 Batch 2. Tests: `tests/pytest/test_fd_domain_steps_batch2.py`
 
 ### 11.4 OI-124
 
-Drafted as plan §12, amendment A-124, awaiting approval; not implemented.
+Drafted as plan §12, amendment A-124; approved by the user and implemented
+afterwards (§11.8).
 It also corrects the Batch 1 review's reachability claim: SVGD's sigmoid is
 clipped to [1e-9, 1 - 1e-9], so only an explicit 'unit' declaration at
 exactly 0 reaches it.
@@ -892,3 +893,41 @@ Rerun after the fixes:
 
 The fixes are docstrings, one error message and tests, so the full gate was
 not repeated.
+
+### 11.8 Amendment A-124 (OI-124), approved and implemented
+
+Approved by the user 2026-11-27, together with the `test_svgd_api_parity`
+edit (§11.6).
+
+- **Rule.** A 'unit' slot at exactly 0 takes the one-sided [0, 1e-7] step,
+  in `_fd_steps.probes` (traced) and `host_probes_np` (numpy). Exceptions:
+  - log mode keeps the primal's own error at 0;
+  - every other value outside (0, 1), including exactly 1, keeps today's
+    probe.
+- **Tests** (`test_fd_domain_steps_batch2.py`, section A-124, 5 tests):
+  - the probe helpers at 0, at 1, and in log mode;
+  - the epoch model at [1, 0, 1, 0.5] with slot 1 'unit'. The spy shows
+    probes of exactly [0, 1e-7]. The value matches the one-sided quotient
+    to 1e-4: the backward's forward and a direct call differ in the last
+    bit, and dividing by 1e-7 turns that into 6e-6. SVGD's log-likelihood
+    gradient matches a finer one-sided difference to 1e-3;
+  - `epoch_model(param_domains=['positive', 'unit']).fit(fixed=[(1, 0.0)])`
+    (the reachable route) completes;
+  - native-discrete `pmf_from_graph` at 0, which now equals the undeclared
+    band's step;
+  - log mode at 0 still raises.
+- **Mutation check.** With the rule reverted in the installed copy, 4 of
+  the 5 tests fail. The log-mode test is the exception by design.
+- **Existing test updated:** `test_fd_domain_steps.py::test_rule_selection`
+  asserted the old behaviour at 0; it now asserts the one-sided step, and
+  today's probe in log mode.
+- **Gate (as planned in §12):**
+
+  | File | Result |
+  |---|---|
+  | `test_fd_domain_steps_batch2.py` | 62 passed |
+  | `test_fd_domain_steps.py` | 235 passed |
+  | `inference/test_epoch_model.py` | 7 passed |
+
+  The change only affects a branch that crashed before, so the full suite
+  was not repeated.

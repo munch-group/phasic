@@ -15,7 +15,8 @@ Per-slot domains (``param_domains``):
                     [0, 1e-7] at exactly 0) instead, so the probe cannot cross
                     zero;
 - ``'positive'``    (0, inf): probes theta * exp(+-u);
-- ``'unit'``        (0, 1): a logit step;
+- ``'unit'``        (0, 1): a logit step; one-sided [0, 1e-7] at exactly 0
+                    (amendment A-124);
 - ``'unconstrained'`` plain +-1e-7 over the literal 2*eps, no clamp; on a
                     refusing model the same band rule as ``None``;
 - ``'fixed'``       never probed (zero gradient).
@@ -204,7 +205,18 @@ def probes(theta, i: int, today_tp, today_tm, rule: str, info: BuildInfo):
             use = use & (t != 0)
     elif rule == UNIT:
         up, dn = _unit_pair(t, info.family)
-        use = (t > 0) & (t < 1)       # outside (0, 1) (exposure-scaled values): today's
+        # Amendment A-124 (OI-124, user-approved 2026-11-27): at theta == 0
+        # exactly, the one-sided [0, EPS] step that 'positive' uses (today's
+        # probe would cross zero and crash a refusing model); log mode
+        # refuses 0 itself, so its primal error stays. Other values outside
+        # (0, 1), including exactly 1 (the row-sum wall, §4.1) and
+        # exposure-scaled values, keep today's probe.
+        zero = t == 0
+        up = jnp.where(zero, EPS, up)
+        dn = jnp.where(zero, 0.0, dn)
+        use = ((t > 0) & (t < 1)) | zero
+        if info.log_mode:
+            use = use & (t != 0)
     else:
         raise ValueError(f"unknown FD rule {rule!r}")
     tp = jnp.where(use, theta.at[i].set(up), base_tp)
@@ -339,6 +351,9 @@ def host_probes_np(th, k: int, today_h: float, rule: str, info: BuildInfo):
             return tp, tm, 2.0 * today_h, False
         up, dn = _positive_pair_np(t, info.family)
     elif rule == UNIT:
+        if t == 0.0 and not info.log_mode:        # A-124: one-sided [0, EPS]
+            tp[k] = EPS; tm[k] = 0.0
+            return tp, tm, EPS, True
         if not (0.0 < t < 1.0):
             tp[k] += today_h; tm[k] -= today_h
             return tp, tm, 2.0 * today_h, False

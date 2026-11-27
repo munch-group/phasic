@@ -615,7 +615,7 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
 - Batch 0's census may add more; each is listed before Batch 1 starts.
 - **Batch 2 additions (gate and review), listed for the user:**
   - `inference/test_svgd_api_parity.py::test_graph_svgd_and_direct_svgd_agree`
-    (test edit). Its direct route now builds the model with
+    (test edit; approved by the user 2026-11-27). Its direct route now builds the model with
     `param_domains=['positive']`, as Graph.svgd declares for that fit, and
     the test also seeds `random`.
     - Why: the fit is chaotic. A 1e-9 change in the initial particles moves
@@ -873,10 +873,15 @@ review series ends here; the three minors are folded in:
   §4.5; the stale primal reason is removed.
 - m3: the host-site band is 0 <= theta < 1e-10.
 
-## 12. Proposed amendment A-124 (OI-124), AWAITING USER APPROVAL (2026-11-27, Batch 2)
+## 12. Amendment A-124 (OI-124): APPROVED by the user 2026-11-27, IMPLEMENTED
 
-**Not implemented.** Deferred from the Batch 1 review (m1) to Batch 2 by
-user decision; Batch 2 ships without it.
+Implemented in `_fd_steps.probes` and `host_probes_np`, with tests
+(`test_fd_domain_steps_batch2.py`, section A-124); findings §11.8. The text
+below is the proposal as approved. One addition found while implementing:
+the Batch 1 test `test_rule_selection` asserted the old behaviour ('unit' at
+0 keeps today's probe), so its assertion was updated to the new rule.
+
+Deferred from the Batch 1 review (m1) to Batch 2 by user decision.
 
 - **Defect.** A slot declared `'unit'` at exactly theta = 0 gets today's
   ±1e-7 probe, because §4.5 sends "unit outside (0, 1)" to today's probe. On

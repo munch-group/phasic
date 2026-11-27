@@ -125,7 +125,11 @@ def test_rule_selection():
     # declared domains: theta == 0 one-sided, outside the range today's probe
     assert _probe(0.0, P) == (1e-7, 0.0, True)
     assert _probe(-1.0, P)[2] is False
-    assert _probe(1.5, _fd_steps.UNIT)[2] is False and _probe(0.0, _fd_steps.UNIT)[2] is False
+    assert _probe(1.5, _fd_steps.UNIT)[2] is False
+    # amendment A-124 (OI-124, user-approved 2026-11-27): 'unit' at exactly 0
+    # takes the one-sided step too (was: today's probe, which crossed zero)
+    assert _probe(0.0, _fd_steps.UNIT) == (1e-7, 0.0, True)
+    assert _probe(0.0, _fd_steps.UNIT, log_mode=True)[2] is False
     # today's rule returns the site's own arrays (no traced selection at all)
     th = jnp.asarray([0.5, 0.3])
     a, b = th.at[1].add(1e-7), th.at[1].add(-1e-7)

@@ -614,3 +614,98 @@ def test_dnz_documentation_is_present():
         assert "including its sign" in text
         assert "positive_params=True" in text
         assert "forward tie" in text and "logged once" in text
+
+
+# ===================================================================== A-124
+# Plan §12, amendment A-124 (OI-124, user-approved 2026-11-27): a 'unit' slot
+# at exactly 0 takes the one-sided [0, 1e-7] step instead of today's probe,
+# which crossed zero and crashed refusing models.
+def test_a124_probe_helpers_at_zero():
+    info = _fd_steps.BuildInfo(refuses=True, log_mode=False, family=_fd_steps.CAPPED)
+    th = jnp.asarray([0.7, 0.0])
+    tp, tm, use = _fd_steps.probes(th, 1, th.at[1].add(1e-7), th.at[1].add(-1e-7),
+                                   _fd_steps.UNIT, info)
+    assert bool(use) and float(tp[1]) == _fd_steps.EPS and float(tm[1]) == 0.0
+    assert float(tp[0]) == 0.7 and float(tm[0]) == 0.7
+    tp, tm, use = _fd_steps.probes(th, 1, th.at[1].add(1e-7), th.at[1].add(-1e-7),
+                                   _fd_steps.UNIT, info._replace(log_mode=True))
+    assert not bool(use) and float(tm[1]) == -1e-7          # log mode: today's probe
+    tp, tm, d, alt = _fd_steps.host_probes_np(np.array([0.7, 0.0]), 1, 1e-10,
+                                              _fd_steps.UNIT, info)
+    assert alt and tp[1] == _fd_steps.EPS and tm[1] == 0.0 and d == _fd_steps.EPS
+    tp, tm, d, alt = _fd_steps.host_probes_np(np.array([0.7, 0.0]), 1, 1e-10,
+                                              _fd_steps.UNIT, info._replace(log_mode=True))
+    assert not alt and tm[1] == -1e-10
+    # exactly 1 keeps today's probe (the row-sum wall is out of scope, §4.1)
+    th1 = jnp.asarray([0.7, 1.0])
+    tp, tm, use = _fd_steps.probes(th1, 1, th1.at[1].add(1e-7), th1.at[1].add(-1e-7),
+                                   _fd_steps.UNIT, info)
+    assert not bool(use)
+
+
+def _epoch_unit_model():
+    jpg, oi = C.joint_graphs()
+    m, _, _, _ = jpg._daisy_chain_svgd_model(
+        observed_indices=list(oi), epoch_starts=np.array(EPOCHS),
+        user_prior=None, user_fixed=None,
+        param_domains=["positive", "unit", "positive", "unit"])
+    return m
+
+
+def test_a124_epoch_model_unit_slot_at_zero(probe_spy):
+    """Batch 1 review E1: the epoch model at [1, 0, 1, 0.5] with slot 1
+    declared 'unit' raised "NEGATIVE transition rate". Now finite, and slot
+    1 is the one-sided difference over [0, 1e-7], close to a finer one."""
+    m = _epoch_unit_model()
+    th = jnp.asarray([1.0, 0.0, 1.0, 0.5])
+    # a loss linear in the outputs: the FD gradient IS the one-sided quotient
+    S = lambda t: jnp.sum(m(t, None)[0])
+    g = np.asarray(jax.grad(S)(th))
+    assert np.all(np.isfinite(g))
+    # the probes are exactly [0, 1e-7] on slot 1 (the spy) ...
+    pr = [(tp, tm) for site, i, tp, tm in probe_spy if i == 1]
+    assert pr and all(np.all(tp[:, 1] == 1e-7) and np.all(tm[:, 1] == 0.0) for tp, tm in pr)
+    # ... and the value is that one-sided quotient up to forward noise (the
+    # backward's forward and a direct call differ in the last bit; /1e-7)
+    assert g[1] == pytest.approx(float((S(th.at[1].set(1e-7)) - S(th)) / 1e-7),
+                                 rel=1e-4)
+    # SVGD's log-likelihood: close to a finer one-sided difference
+    L = _loglik(lambda t: m(t, None))
+    gl = np.asarray(jax.grad(L)(th))
+    assert np.all(np.isfinite(gl))
+    assert gl[1] == pytest.approx(float((L(th.at[1].set(1e-9)) - L(th)) / 1e-9), rel=1e-3)
+
+
+def test_a124_epoch_model_fit_with_a_unit_slot_fixed_at_zero():
+    """The reachable route (plan §12): epoch_model(param_domains with 'unit')
+    and a fit-time fixed value 0 on that slot (fit-time fixed slots are
+    probed, §3)."""
+    jpg, _ = C.joint_graphs()
+    em = jpg.epoch_model(C.joint_rows(), EPOCHS, param_domains=["positive", "unit"])
+    r = em.fit(prior=[_gp(), None, _gp(), BetaPrior(2, 2)], fixed=[(1, 0.0)], **FIT)
+    assert np.all(np.isfinite(np.asarray(r.theta_mean)))
+
+
+def test_a124_native_discrete_unit_slot_at_zero():
+    """Batch 1 review E1b: native-discrete pmf_from_graph with a 'unit' slot
+    at 0 raised "negative weight". Now finite and one-sided."""
+    m = Graph.pmf_from_graph(C.beside(), discrete=True, theta_dim=2, param_domains=[None, "unit"])
+    jumps = jnp.asarray(C.JUMPS)
+    L = lambda t: jnp.sum(m(t, jumps))
+    th = jnp.asarray([0.3, 0.0])
+    gr = np.asarray(jax.grad(L)(th))
+    assert np.all(np.isfinite(gr))
+    assert gr[1] == pytest.approx(float((L(th.at[1].set(1e-7)) - L(th)) / 1e-7), rel=1e-9)
+    m0 = Graph.pmf_from_graph(C.beside(), discrete=True, theta_dim=2)
+    g0 = np.asarray(jax.grad(lambda t: jnp.sum(m0(t, jumps)))(th))
+    assert g0[1] == pytest.approx(gr[1], rel=1e-9)        # = the undeclared band's step
+
+
+def test_a124_log_mode_keeps_its_error_at_zero():
+    """Log mode refuses a product of exactly 0 itself: today's clear error
+    is the expected outcome, as for 'positive' (§4.5)."""
+    m = Graph.pmf_and_moments_from_graph(C.beside("log"), nr_moments=2, theta_dim=2,
+                                         exact_moment_grad=False, param_domains=[None, "unit"])
+    L = lambda t: jnp.sum(m(t, TIMES)[0])
+    with pytest.raises(Exception):
+        np.asarray(jax.grad(L)(jnp.asarray([0.5, 0.0])))
