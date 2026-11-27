@@ -877,6 +877,77 @@ def _fixed_mask_from_fixed(fixed, theta_dim):
     return jnp.array(fixed)
 
 
+def _svgd_fd_domains(prior, positive_params, param_transform, *, theta_dim,
+                     fixed_mask, exposure_param_index):
+    """Plan A §3: the FD domains ``Graph.svgd`` declares to a single-epoch
+    model builder, from the fit's own prior / transform settings (see
+    ``svgd._resolve_param_domains``). ``fixed_mask`` (0/1, or None) marks the
+    truly fixed slots; ``exposure_param_index`` (or None) is widened from
+    'unit' to 'positive'. None when ``theta_dim`` is unknown."""
+    if theta_dim is None:
+        return None
+    from .svgd import _resolve_param_domains
+    fixed_idx = ([] if fixed_mask is None else
+                 [int(i) for i in np.where(np.asarray(fixed_mask) == 1)[0]])
+    return _resolve_param_domains(
+        prior, positive_params, param_transform, theta_dim=int(theta_dim),
+        fixed_indices=fixed_idx,
+        exposure_slots=(() if exposure_param_index is None
+                        else (int(exposure_param_index),)))
+
+
+def _epoch_fd_domains(prior, positive_params, param_transform, *, n_epochs,
+                      param_length, user_fixed, user_tied,
+                      exposure_param_index):
+    """Plan A §3, epoch route: the flat ``n_epochs * param_length`` FD domain
+    list ``Graph.svgd(epoch_starts=...)`` declares to the daisy-chain builder.
+
+    The prior is broadcast exactly as ``_daisy_chain_svgd_model`` broadcasts
+    it (a single prior to every flat slot, a ``param_length`` list repeated
+    per epoch, a flat list as is; ``None`` means the default data-informed
+    GaussPrior, which has no transform of its own). Local fixings are fixed
+    in every epoch -> 'fixed'. A tied slave takes its master's domain. The
+    exposure slot is widened 'unit' -> 'positive' in every epoch. Returns
+    None when the prior list has a length the builder will reject (it raises
+    its own error)."""
+    from .svgd import _resolve_param_domains
+    n_epochs, P = int(n_epochs), int(param_length)
+    flat = n_epochs * P
+    if prior is None:
+        flat_prior = None
+    elif isinstance(prior, (list, tuple)):
+        if len(prior) == flat:
+            flat_prior = list(prior)
+        elif len(prior) == P:
+            flat_prior = list(prior) * n_epochs
+        else:
+            return None
+    else:
+        flat_prior = [prior] * flat
+    fixed_flat = []
+    for entry in (user_fixed or []):
+        if isinstance(entry, tuple) and len(entry) == 2:
+            k = int(entry[0])
+            if 0 <= k < P:
+                fixed_flat.extend(e * P + k for e in range(n_epochs))
+    exposure_slots = (() if exposure_param_index is None else
+                      tuple(e * P + int(exposure_param_index)
+                            for e in range(n_epochs)))
+    doms = _resolve_param_domains(
+        flat_prior, positive_params, param_transform, theta_dim=flat,
+        fixed_indices=fixed_flat, exposure_slots=exposure_slots)
+    if doms is None:
+        return None
+    doms = list(doms)
+    for entry in (user_tied or []):
+        k, epochs = entry
+        epochs = [int(e) for e in epochs]
+        master = epochs[0] * P + int(k)
+        for e in epochs[1:]:
+            doms[e * P + int(k)] = doms[master]
+    return tuple(doms)
+
+
 def _fixed_indices_set_from_mask(fixed_mask):
     """Python set of fixed-parameter indices from a 0/1 mask (empty if ``None``).
 
@@ -6076,6 +6147,7 @@ extern "C" {{
         final_read: str = 'sojourn',
         seed: int | None = None,
         verbose: bool = False,
+        param_domains: Any = 'positive',
     ) -> "FreeEpochModel":
         """Build a reusable **free** (untied) daisy-chain epoch model.
 
@@ -6122,6 +6194,29 @@ extern "C" {{
             random tie-break for outcomes with several outcome vertices;
             ``joint_prob_graph`` now merges those, so mapping is
             deterministic.
+        param_domains : str, sequence or None, default='positive'
+            The domain of each theta slot, which the model's finite-difference
+            (FD) gradients probe inside (Plan A,
+            ``plans-and-findings/fd-domain-steps-plan.md`` §3). One of
+            ``'positive'`` (0, inf), ``'unit'`` (0, 1), ``'unconstrained'``,
+            ``'fixed'`` (never probed; zero gradient) or None (undeclared:
+            today's FD step, plus crash protection near zero). A single string
+            applies to every flat slot; a sequence of length ``param_length``
+            is repeated in every epoch; a sequence of length
+            ``n_epochs * param_length`` is used as is. The default, every slot
+            ``'positive'``, suits rates. :meth:`FreeEpochModel.fit` checks that
+            each fit lies inside these domains (a BetaPrior fit on a
+            ``'positive'`` slot is fine; ``positive_params=False`` on a
+            ``'positive'`` model raises and asks you to rebuild with
+            ``param_domains='unconstrained'``).
+
+            Near-zero limit (documented, user decision D-NZ): on an
+            ``'unconstrained'`` slot the FD gradient of a RATE within ~1e-7 of
+            zero can be wrong, including its sign; fit rates with
+            ``positive_params=True`` (the default). On any declared slot, two
+            probes that give identical outputs (a forward tie, e.g. a tiny
+            slot that only offsets a large rate) give a zero FD gradient for
+            that slot, which is counted in ``model._fd_stats`` and logged once.
 
         Returns
         -------
@@ -6174,6 +6269,27 @@ extern "C" {{
             _daisy_exposure = np.full(
                 (len(mapped),), float(_daisy_exposure.item()), dtype=np.float64
             )
+        # 3b. Plan A §3: per-flat-slot FD domains (default: every slot a rate,
+        #     'positive'); fit() checks each fit against them.
+        _n_ep_d = int(np.asarray(epoch_starts, dtype=np.float64).size)
+        _plen_d = self.param_length()
+        if param_domains is None:
+            _flat_domains = None
+        elif isinstance(param_domains, str):
+            _flat_domains = (param_domains,) * (_n_ep_d * _plen_d)
+        else:
+            _pd = list(param_domains)
+            if len(_pd) == _plen_d:
+                _pd = _pd * _n_ep_d
+            elif len(_pd) != _n_ep_d * _plen_d:
+                raise ValueError(
+                    f"epoch_model: param_domains has {len(_pd)} entries; give "
+                    f"one per parameter (param_length={_plen_d}, repeated in "
+                    f"every epoch) or one per flat slot "
+                    f"(n_epochs * param_length = {_n_ep_d * _plen_d}), or a "
+                    "single string for every slot.")
+            _flat_domains = tuple(_pd)
+        _flat_domains = _fd_steps.normalize_domains(_flat_domains)
         # 4. build the FREE model (user_tied=None) with NO baked FD-skip, so ANY
         #    `fixed` set may be applied per fit at the SVGD level.
         model, theta_dim, prior_out, fixed_out = self._daisy_chain_svgd_model(
@@ -6190,6 +6306,7 @@ extern "C" {{
             exposure_param_index=exposure_param_index,
             final_read=final_read,
             bake_fd_skip=False,
+            param_domains=_flat_domains,
         )
         from .epoch_model import FreeEpochModel
         es = np.asarray(epoch_starts, dtype=np.float64).ravel()
@@ -6225,6 +6342,7 @@ extern "C" {{
             epoch_starts=es.tolist(),
             default_prior_factory=(_default_prior_factory
                                    if prior is None else None),
+            param_domains=_flat_domains,
         )
 
 
@@ -6454,6 +6572,17 @@ extern "C" {{
             A BetaPrior applies its own sigmoid instead (to its own parameter
             in a prior list; to every parameter as a single prior) and
             requires positive_params=True (or a custom param_transform).
+
+            Finite-difference gradients (Plan A): the model's FD backwards
+            probe each parameter inside the domain its transform keeps it in
+            ('positive' under softplus, 'unit' under a BetaPrior's sigmoid,
+            'unconstrained' with positive_params=False, fixed parameters not
+            at all). Near-zero limit (documented, user decision D-NZ): with
+            positive_params=False the finite-difference gradient of a RATE
+            within ~1e-7 of zero can be wrong, including its sign; fit rates
+            with positive_params=True. A forward tie (two probes giving
+            identical outputs) gives a zero gradient for that parameter,
+            counted in ``model._fd_stats`` and logged once.
         param_transform : callable, optional
             Custom parameter transformation function: transform(theta_unconstrained) -> theta_constrained.
             If provided, SVGD optimizes in unconstrained space and applies this transformation
@@ -7123,6 +7252,31 @@ extern "C" {{
                         "(e.g. a GaussPrior per parameter)."
                     ) from _prior_exc
 
+            # Plan A §3: declare each theta slot's domain to the model
+            # builder, from this fit's own transforms (softplus -> 'positive',
+            # sigmoid -> 'unit', positive_params=False -> 'unconstrained',
+            # custom param_transform -> None, fixed -> 'fixed'), so the FD
+            # backwards probe inside it. Decided BEFORE the model is built;
+            # SVGD.__init__ re-checks it (containment) against its own
+            # transforms.
+            if epoch_starts is not None:
+                _fd_domains_svgd = _epoch_fd_domains(
+                    prior, positive_params, param_transform,
+                    n_epochs=int(np.asarray(epoch_starts).size),
+                    param_length=self.param_length(),
+                    user_fixed=fixed, user_tied=tied,
+                    exposure_param_index=exposure_param_index)
+            else:
+                _fd_theta_dim = theta_dim
+                if _fd_theta_dim is None and theta_init is not None:
+                    _fd_theta_dim = int(np.shape(theta_init)[-1])
+                _fd_domains_svgd = _svgd_fd_domains(
+                    prior, positive_params, param_transform,
+                    theta_dim=_fd_theta_dim,
+                    fixed_mask=_fixed_mask_from_fixed(fixed, _fd_theta_dim),
+                    exposure_param_index=(exposure_param_index
+                                          if exposure is not None else None))
+
             # Handle joint_index mode
             if self._joint_prob_base_graph_indexer is not None:
                 logger = get_logger(__name__)
@@ -7261,6 +7415,7 @@ extern "C" {{
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
                         final_read=final_read,
+                        param_domains=_fd_domains_svgd,
                         **({} if exact_final_grad is None
                            else {'exact_final_grad': exact_final_grad}),
                     )
@@ -7382,6 +7537,7 @@ extern "C" {{
                         self, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
                         observed_indices=_bake_obs,
+                        param_domains=_fd_domains_svgd,
                         **({} if exact_grad is None
                            else {'exact_grad': exact_grad,
                                  # Batch E user decision 2026-08-14: the
@@ -7410,6 +7566,7 @@ extern "C" {{
                         self, nr_moments=nr_moments, discrete=discrete,
                         use_ffi=False, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
+                        param_domains=_fd_domains_svgd,
                         **_emg_kw_mv,
                     )
                 else:
@@ -7422,6 +7579,7 @@ extern "C" {{
                     model = Graph.pmf_and_moments_from_graph(
                         self, nr_moments=nr_moments, discrete=discrete,
                         theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                        param_domains=_fd_domains_svgd,
                         **_emg_kw_rw,
                     )
             else:
@@ -7434,6 +7592,7 @@ extern "C" {{
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
                     theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                    param_domains=_fd_domains_svgd,
                     **_emg_kw,
                 )
 

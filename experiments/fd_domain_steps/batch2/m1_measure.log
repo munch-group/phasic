@@ -1,0 +1,35 @@
+== 3. D-NZ pin: two-stage, E[T] = 1/t0 + 1/t1, slot 1 at 5e-8
+plain=1.3333333333e+14 today(clamp)=-6.6666666667e+15 exact=-4.0000000000e+14
+== 2. band rule (refusing) and plain step (non-refusing)
+log pole  t=5e-08: fd=-6.0000000000e+14 exact=-6.0000000000e+14 rel=4.23e-12 tie=0
+log pole  t=1e-09: fd=-1.5000000000e+18 exact=-1.5000000000e+18 rel=1.74e-11 tie=0
+log pole  t=1e-13: fd=-1.5000000000e+26 exact=-1.5000000000e+26 rel=1.57e-11 tie=0
+formula offset t1=5e-08: fd=-1.0000148856e+00 exact=-9.9999990000e-01 rel=1.50e-05 tie=0
+formula offset t1=1e-09: fd=-9.9920072201e-01 exact=-9.9999999800e-01 rel=7.99e-04 tie=0
+[WARNING] phasic._fd_steps: pmf_and_moments_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+formula offset t1=1e-13: fd=0.0000000000e+00 exact=-1.0000000000e+00 rel=1.00e+00 tie=1
+linear offset t1=5e-08: plain=-9.9999990011e-01 today=-9.9999984803e-01 rel plain=1.09e-10 today=5.20e-08
+linear offset t1=1e-09: plain=-9.9999999725e-01 today=-9.9999989622e-01 rel plain=7.47e-10 today=1.02e-07
+linear offset t1=1e-13: plain=-1.0000000006e+00 today=-9.9999989802e-01 rel plain=5.84e-10 today=1.02e-07
+== 1. declared vs today at fixed particles (rel diff; rel err vs Richardson)
+pam       scale=  1e+00 max rel(decl-today)=9.42e-08  err decl=9.88e-08 today=4.20e-08
+pam       scale=  1e-03 max rel(decl-today)=0.00e+00  err decl=1.21e-10 today=1.21e-10
+pam       scale=  1e-04 max rel(decl-today)=0.00e+00  err decl=1.21e-10 today=1.21e-10
+pam       scale=  1e-05 max rel(decl-today)=0.00e+00  err decl=1.21e-10 today=1.21e-10
+pam_rw    scale=  1e+00 max rel(decl-today)=2.29e-08  err decl=4.89e-08 today=2.65e-08
+pam_rw    scale=  1e-03 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+pam_rw    scale=  1e-04 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+pam_rw    scale=  1e-05 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+multivar  scale=  1e+00 max rel(decl-today)=2.27e-08  err decl=3.64e-08 today=1.37e-08
+multivar  scale=  1e-03 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+multivar  scale=  1e-04 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+multivar  scale=  1e-05 max rel(decl-today)=0.00e+00  err decl=1.10e-10 today=1.10e-10
+jix       scale=  1e+00 max rel(decl-today)=1.13e-05  err decl=1.68e-08 today=1.13e-05
+jix       scale=  1e-03 max rel(decl-today)=3.05e-08  err decl=1.61e-08 today=1.44e-08
+jix       scale=  1e-04 max rel(decl-today)=2.06e-06  err decl=1.65e-08 today=2.04e-06
+jix       scale=  1e-05 max rel(decl-today)=2.04e-04  err decl=3.37e-08 today=2.04e-04
+epoch     scale=  1e+00 max rel(decl-today)=1.78e-09  err decl=1.83e-08 today=1.65e-08
+epoch     scale=  1e-03 max rel(decl-today)=1.16e-08  err decl=5.45e-08 today=5.09e-08
+epoch     scale=  1e-04 max rel(decl-today)=1.21e-06  err decl=5.37e-06 today=5.37e-06
+epoch     scale=  1e-05 max rel(decl-today)=1.21e-04  err decl=3.53e-05 today=1.21e-04
+[runcap] exit 0, peak RSS 795 MB, 18s

@@ -133,7 +133,14 @@ def test_graph_svgd_and_direct_svgd_agree():
 
     # Path B: SVGD direct
     g_b = build_graph()
-    model_b = Graph.pmf_and_moments_from_graph(g_b, nr_moments=2, theta_dim=1)
+    # Plan A Batch 2: Graph.svgd declares each slot's FD domain from the fit
+    # ('positive' under softplus); a direct caller declares the same to get
+    # the same model. This fit is chaotic (a 1e-9 change in the initial
+    # particles moves the posterior std from 0.11 to 0.60 on the undeclared
+    # model, experiments/fd_domain_steps/batch2/p4_parity_chaos.log), so the
+    # two surfaces agree only when their numerics are identical.
+    model_b = Graph.pmf_and_moments_from_graph(g_b, nr_moments=2, theta_dim=1,
+                                               param_domains=['positive'])
     svgd_b = SVGD(model=model_b, **kw)
     svgd_b.optimize()
     mean_b = float(svgd_b.theta_mean[0])

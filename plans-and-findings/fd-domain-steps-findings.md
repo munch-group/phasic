@@ -679,3 +679,168 @@ pixi run python s2_summarise.py
 ```
 
 The other scripts (`a1`-`a5`, `d1`) each run standalone under runcap.
+
+## 11. Batch 2 (fitters declare domains, 2026-11-27)
+
+Plan v2.10 §6 Batch 2. Tests: `tests/pytest/test_fd_domain_steps_batch2.py`
+(54 tests). Measurements: `experiments/fd_domain_steps/batch2/`.
+
+### 11.1 What was built
+
+- **The resolver** (`svgd._resolve_param_domains`). It is side-effect free.
+  `_resolve_param_transform` was split into a pure decision,
+  `_param_transform_plan`, plus the wiring of `prior._transform`. SVGD and the
+  resolver both call the pure part, so the declared domains and the fitted
+  transforms cannot drift. The split is behaviour-identical: same checks, same
+  errors, same wiring order.
+  - Mapping: softplus → 'positive'; sigmoid → 'unit'; no transform
+    (`positive_params=False`) → 'unconstrained'; custom transform → None;
+    fixed → 'fixed'.
+  - The exposure slot is widened from 'unit' to 'positive'.
+  - A prior list of the wrong length gives None, so the caller raises its
+    own length error.
+- **`Graph.svgd` declares domains before the model is built.**
+  - Single-epoch (`_svgd_fd_domains`): after the default DataPrior is built.
+    The domains are passed to all five builder calls: joint index,
+    multivariate, 1-D rewards, no rewards, and the epoch route.
+  - Epoch route (`_epoch_fd_domains`): the prior is broadcast exactly as the
+    daisy builder broadcasts it. Local fixings are 'fixed' in every epoch, a
+    tied slave takes its master's domain, and the exposure slot is widened in
+    every epoch.
+  - The truly fixed set comes from the user's `fixed`, not from the
+    builder's returned list, which also contains the tied slaves.
+- **`Graph.epoch_model(param_domains='positive')`**:
+  - accepts one string for every slot, a `param_length` list repeated per
+    epoch, a flat list, or None (undeclared);
+  - is passed to the builder and stored on `FreeEpochModel._param_domains`.
+- **Containment (`svgd._check_param_domains`):**
+  - In `SVGD.__init__`: read from the model argument before the exposure
+    wrapper. Fit-side fixed slots, which include tied slaves, are 'fixed' and
+    fit any model domain.
+  - In `FreeEpochModel.fit`: read from the object, not from `.model`, and
+    checked before the default prior's reference fit. The error message asks
+    to rebuild with `param_domains`.
+  - The fit side is NOT widened at the exposure slot. A sigmoid fit there is
+    'unit', which fits a 'positive' model; a direct caller with a 'unit'
+    model and a sigmoid fit also passes.
+- **D-NZ documentation** in four places: the `positive_params` docstrings of
+  `Graph.svgd` and `SVGD`, `Graph.epoch_model`'s `param_domains`, and
+  `FreeEpochModel.fit`. A test asserts it is present.
+
+### 11.2 Evidence
+
+- **Declared vs today at fixed particles**
+  (`batch2/m1_measure_part1_loglik.log`). The loss is SVGD's likelihood term
+  (sum of log pdf); five Graph.svgd leaves; theta scale 1, 1e-3, 1e-4, 1e-5.
+  - theta >= 1e-3: at most 1.7e-7 relative (plan: within 1e-6). ✓
+  - 1e-4 and 1e-5: up to 1.65e-4 (joint index) and 9.8e-5 (epoch). That is
+    above the plan's expected "1e-7 to 1e-5", but all of it is TODAY's error
+    there:
+    - today is off the Richardson reference by the same amount;
+    - the declared rule is within 7e-7 of it everywhere (joint index 3e-10).
+    - On the Euler leaves today's large relative step is slightly better
+      (2e-9 against 3e-7), because that pdf is nearly linear in theta at
+      these values. Both are far inside 1e-6.
+  - The test asserts: declared within 1e-6 of the reference, and the move
+    from today within today's own error plus 1e-6.
+  - The first measurement (`m1_measure.log`, part 1) used a loss dominated
+    by the exact moments term and showed no difference on the
+    `pmf_and_moments` leaves; it was replaced by the log-likelihood run.
+- **Fit level** (same seed, declared vs undeclared, 8 particles × 40
+  iterations):
+  - drift 5.9e-5 single-epoch, 1.5e-4 epoch (bound 1e-3);
+  - Graph.svgd's epoch route and epoch_model drift identically, so the two
+    routes are still in parity (`test_epoch_model.py:83`, `:161` in the gate).
+- **Band trade-off and D-NZ pins** (`batch2/m1_measure.log`):
+  - log-mode pole under the band rule: exact to 2e-11 at 5e-8, 1e-9 and
+    1e-13;
+  - formula-mode offset: 1.5e-5 relative at 5e-8 and 8.0e-4 at 1e-9; at
+    1e-13 a counted, logged tie;
+  - linear (non-refusing) offset under the plain step: 1e-10 (today 1e-7);
+  - D-NZ pin: the plain step gives +1.333e14 against the closed form
+    -4.0e14 (wrong sign, as documented); today's clamp gives -6.67e15;
+  - the joint-index host site with 'unconstrained' at 5e-8 and 1e-9 is
+    bit-identical to undeclared, with the correct sign.
+  - Deviation from the plan's wording: log mode cannot express an additive
+    offset (a weight is a product of every slot), so the offset pin uses
+    formula mode, also a refusing model.
+- **positive_params=False × {log, formula, callback, discretized, linear
+  with rewards} at 5e-8:** no crash, and the value matches a positive-only
+  central difference (rel 1e-3); the discretized case also checks its
+  discretize slot.
+- **Spy through Graph.svgd** (particles near 1e-4, where the declared probe
+  ratio of 6e-5 is distinguishable from today's ~2e-3): the multivariate
+  leaf, a single-epoch exposure fit and an epoch exposure fit all probe with
+  the declared rule at every free slot.
+- **Mutation check:**
+  - Graph.svgd passing no domains, together with a disabled containment
+    check, fails 11 of the 54 tests: every resolver, declaration,
+    containment, spy, near-floor and fit-level test that depends on them.
+  - The epoch fit-level test did not fail at first (it checked only the
+    undeclared side); it now asserts the declared domains too.
+
+### 11.3 Behaviour changes (plan §7), as listed
+
+- epoch_model gradients change for every user (declared 'positive'):
+  ~1e-8 relative at theta >= 1e-3, up to ~1e-4 at 1e-5, where today's step
+  is the less accurate one.
+- `epoch_model(...).fit(positive_params=False)` on a default model raises
+  with the rebuild message.
+- With `positive_params=False` the `pmf_and_moments_from_graph` clamp sites
+  stop clamping (D-NZ).
+- Graph.svgd single-epoch fits declare 'positive' and shift at rounding
+  level (fit drift above).
+- New, small: a BetaPrior with `positive_params=False` in Graph.svgd now
+  raises before the model is built rather than inside SVGD (same message).
+
+### 11.4 OI-124
+
+Drafted as plan §12, amendment A-124, awaiting approval; not implemented.
+It also corrects the Batch 1 review's reachability claim: SVGD's sigmoid is
+clipped to [1e-9, 1 - 1e-9], so only an explicit 'unit' declaration at
+exactly 0 reaches it.
+
+### 11.5 Tooling note
+
+The worktree-isolated session may not run commands that name `.git/`
+paths, so `gate2.sh`, `gate_compare.py` and `runcap.py` were run from
+unchanged copies in the job's tmp directory. `gate2.sh` itself still calls
+the original `runcap.py` (OI-067 would remove this indirection).
+
+### 11.6 Gate (plan §8)
+
+`gate2.sh` on the Batch 2 working tree (`.gate_batch2`), compared with
+`gate_compare.py` against `.gate_master_fdsteps`, with
+`--new-file test_fd_domain_steps.py` and `--new-file test_fd_domain_steps_batch2.py`:
+
+- 3321 passed, 6 failed, 112 skipped or xfailed; 289 new tests, all passing.
+  The same 4 plot tests (OI-060) fail on both sides. Suite time 68.2 min
+  (baseline 60.3).
+- `test_log_prob_unified_bit_identity_zi` passed (OI-121, flaky).
+  `test_daisy_fd_correct_at_mixed_scale` passed (strict xfail removed in
+  Batch 1).
+- **Two flagged regressions**, each rerun three times in isolation:
+  - `inference/test_mcmc_accuracy::TestErlang2Posterior::test_two_param_recovery`:
+    passed 3 of 3. This is the OI-061 flaky test (an R-hat threshold), and
+    MCMC is gradient-free, so Batch 2 cannot affect it.
+  - `inference/test_svgd_api_parity::test_graph_svgd_and_direct_svgd_agree`:
+    failed 3 of 3 (std 0.08 vs 0.18, 0.28 vs 0.84, 0.17 vs 0.48). **Cause:**
+    Graph.svgd now declares 'positive', while the test's direct SVGD built
+    an undeclared model. The per-particle gradients differ by at most
+    4e-7 (`batch2/p2_parity_grads.log`) and the particles by 1e-9 after 5
+    iterations (`p3_parity_steps.log`). This fit, however, is chaotic: on
+    the UNDECLARED (master) model, 1e-9 noise added to the initial particles
+    alone moves the posterior std between 0.11 and 0.60
+    (`p4_parity_chaos.log`). The test passed only because both surfaces
+    ran bit-identical numerics. (Its data come from `Graph.sample` under
+    `np.random.seed` only, so they differ every run; that is the OI-061
+    class.)
+    - **Test edit (a §7 addition, for your review):** the direct route now
+      builds its model with `param_domains=['positive']`, as Graph.svgd
+      declares for that fit, which restores identical numerics. It passed
+      3 of 3 runs of the whole file after the edit. No other test file
+      changed, so the full gate was not rerun; the rerun is the composed
+      result.
+- **Fit-level strict xfails (plan §7):** `test_notebook_model_recovery.py`
+  `:484` and `:699` (not slow) were unchanged in the gate. `:553` and
+  `:659` (slow) were run explicitly and remain XFAIL. No flip to report.

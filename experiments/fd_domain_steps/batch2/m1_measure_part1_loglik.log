@@ -1,0 +1,22 @@
+== 1. declared vs today at fixed particles (rel diff; rel err vs Richardson)
+pam       scale=  1e+00 max rel(decl-today)=6.29e-08  err decl=9.61e-08 today=8.21e-08
+pam       scale=  1e-03 max rel(decl-today)=6.14e-09  err decl=1.05e-08 today=4.38e-09
+pam       scale=  1e-04 max rel(decl-today)=6.40e-08  err decl=6.33e-08 today=7.54e-10
+pam       scale=  1e-05 max rel(decl-today)=5.11e-09  err decl=7.13e-09 today=2.02e-09
+pam_rw    scale=  1e+00 max rel(decl-today)=1.67e-07  err decl=1.14e-07 today=5.22e-08
+pam_rw    scale=  1e-03 max rel(decl-today)=2.17e-08  err decl=3.64e-08 today=1.47e-08
+pam_rw    scale=  1e-04 max rel(decl-today)=1.99e-07  err decl=1.97e-07 today=1.99e-09
+pam_rw    scale=  1e-05 max rel(decl-today)=3.03e-07  err decl=2.93e-07 today=9.62e-09
+multivar  scale=  1e+00 max rel(decl-today)=1.48e-08  err decl=2.33e-08 today=8.56e-09
+multivar  scale=  1e-03 max rel(decl-today)=3.77e-08  err decl=3.85e-08 today=8.04e-10
+multivar  scale=  1e-04 max rel(decl-today)=2.60e-08  err decl=2.69e-08 today=9.30e-10
+multivar  scale=  1e-05 max rel(decl-today)=7.60e-08  err decl=9.13e-08 today=1.52e-08
+jix       scale=  1e+00 max rel(decl-today)=8.45e-10  err decl=3.42e-10 today=5.03e-10
+jix       scale=  1e-03 max rel(decl-today)=1.62e-08  err decl=3.37e-10 today=1.66e-08
+jix       scale=  1e-04 max rel(decl-today)=1.65e-06  err decl=3.39e-10 today=1.65e-06
+jix       scale=  1e-05 max rel(decl-today)=1.65e-04  err decl=3.41e-10 today=1.65e-04
+epoch     scale=  1e+00 max rel(decl-today)=7.73e-10  err decl=1.23e-08 today=1.24e-08
+epoch     scale=  1e-03 max rel(decl-today)=1.03e-08  err decl=9.34e-09 today=9.82e-09
+epoch     scale=  1e-04 max rel(decl-today)=9.76e-07  err decl=5.19e-08 today=9.77e-07
+epoch     scale=  1e-05 max rel(decl-today)=9.77e-05  err decl=7.12e-07 today=9.77e-05
+[runcap] exit 0, peak RSS 835 MB, 12s

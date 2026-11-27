@@ -5262,6 +5262,86 @@ _KNOWN_INVERSES = {
 }
 
 
+def _param_transform_plan(prior, prior_list, positive_params,
+                          param_transform, where):
+    """Side-effect-free core of :func:`_resolve_param_transform`.
+
+    Returns ``(transform, inverse, wiring)``, where ``wiring`` lists the
+    ``(prior, fn)`` pairs that ``_resolve_param_transform`` assigns to
+    ``prior._transform``. Nothing is written here, so
+    :func:`_resolve_param_domains` (Plan A) can ask for the same decision
+    before a model is built without touching the prior objects; both go
+    through this function, so they cannot drift.
+    """
+    if positive_params and param_transform is not None:
+        raise ValueError(
+            "Cannot specify both positive_params=True and param_transform. "
+            "Use positive_params=True for automatic softplus transformation, "
+            "or provide a custom param_transform function."
+        )
+    if param_transform is not None and not callable(param_transform):
+        raise ValueError("param_transform must be a callable function")
+
+    items = list(prior_list) if prior_list is not None else [prior]
+
+    def _natural(p):
+        return None if p is None else getattr(p, '_natural_transform', None)
+
+    wiring = []
+
+    def _wire(p, fn):
+        wiring.append((p, fn))
+
+    if param_transform is not None:
+        for p in items:
+            _wire(p, param_transform)
+        return param_transform, None, wiring
+
+    if not positive_params:
+        if where == "SVGD":
+            for i, p in enumerate(items):
+                if _natural(p) is not None:
+                    slot = f"prior[{i}]" if prior_list is not None else "prior"
+                    raise ValueError(
+                        f"{where}: {slot} ({type(p).__name__}) confines its "
+                        "parameter to a bounded interval, which needs its own "
+                        "transform; it cannot be used with "
+                        "positive_params=False and no param_transform. Use "
+                        "positive_params=True (the prior's own transform is "
+                        "then applied to its parameter)."
+                    )
+        for p in items:
+            _wire(p, None)
+        return None, None, wiring
+
+    if prior_list is not None:
+        if any(_natural(p) is not None for p in prior_list):
+            fns = tuple(_natural(p) if _natural(p) is not None
+                        else _softplus_transform for p in prior_list)
+
+            def _composite_transform(phi, _fns=fns):
+                # phi is (theta_dim,) or (n, theta_dim); apply each slot's
+                # transform on the last axis.
+                parts = [_fns[i](phi[..., i:i + 1]) for i in range(len(_fns))]
+                return jnp.concatenate(parts, axis=-1)
+
+            # The preconditioner's learnable-subset path and the fixed-value
+            # wrapper read the per-slot functions from here.
+            _composite_transform._per_dim_fns = fns
+            for p, fn in zip(prior_list, fns):
+                _wire(p, fn)
+            return (_composite_transform,
+                    tuple(_KNOWN_INVERSES.get(fn) for fn in fns), wiring)
+        for p in prior_list:
+            _wire(p, _softplus_transform)
+        return _softplus_transform, _inverse_softplus, wiring
+
+    natural = _natural(prior)
+    fn = natural if natural is not None else _softplus_transform
+    _wire(prior, fn)
+    return fn, _KNOWN_INVERSES.get(fn), wiring
+
+
 def _resolve_param_transform(prior, prior_list, positive_params,
                              param_transform, where):
     """Decide, for every parameter slot, the unconstrained -> parameter map.
@@ -5299,72 +5379,128 @@ def _resolve_param_transform(prior, prior_list, positive_params,
         inverse per slot (None for a slot whose transform has no known
         inverse).
     """
-    if positive_params and param_transform is not None:
-        raise ValueError(
-            "Cannot specify both positive_params=True and param_transform. "
-            "Use positive_params=True for automatic softplus transformation, "
-            "or provide a custom param_transform function."
-        )
-    if param_transform is not None and not callable(param_transform):
-        raise ValueError("param_transform must be a callable function")
-
-    items = list(prior_list) if prior_list is not None else [prior]
-
-    def _natural(p):
-        return None if p is None else getattr(p, '_natural_transform', None)
-
-    def _wire(p, fn):
+    transform, inverse, wiring = _param_transform_plan(
+        prior, prior_list, positive_params, param_transform, where)
+    for p, fn in wiring:
         if p is not None and hasattr(p, '_transform'):
             p._transform = fn
+    return transform, inverse
 
+
+# ---------------------------------------------------------------------------
+# Plan A (plans-and-findings/fd-domain-steps-plan.md §3): per-slot parameter
+# domains for the finite-difference (FD) backwards of the model builders.
+# ---------------------------------------------------------------------------
+
+def _transform_domain(fn):
+    """The FD domain a slot's transform keeps the parameter in: softplus ->
+    'positive', sigmoid -> 'unit', no transform -> 'unconstrained', anything
+    else (a custom transform) -> None (unknown)."""
+    if fn is None:
+        return 'unconstrained'
+    if fn is _softplus_transform:
+        return 'positive'
+    if fn is _sigmoid:
+        return 'unit'
+    return None
+
+
+def _prior_as_list(prior):
+    """The per-slot prior list as SVGD.__init__ sees it (``self.prior_list``),
+    or None for a single (or absent) prior."""
+    return list(prior) if isinstance(prior, (list, tuple, DataPrior)) else None
+
+
+def _resolve_param_domains(prior, positive_params, param_transform, *,
+                           theta_dim, fixed_indices=(), exposure_slots=(),
+                           where="SVGD"):
+    """Map a fitter's settings to one FD domain per theta slot (Plan A §3).
+
+    Side-effect free: the transform decision is
+    :func:`_param_transform_plan`, the same function SVGD uses, so the
+    declared domains and the fitted transforms cannot drift. Rules:
+
+    - softplus (``positive_params=True``) -> ``'positive'``;
+    - sigmoid (a BetaPrior slot) -> ``'unit'``;
+    - no transform (``positive_params=False``) -> ``'unconstrained'``;
+    - a custom ``param_transform`` -> ``None`` (unknown);
+    - ``fixed_indices`` -> ``'fixed'``;
+    - ``exposure_slots``: a ``'unit'`` slot is widened to ``'positive'``
+      (the exposure wrapper multiplies it by alpha, so values above 1 are
+      valid; plan §4.5).
+
+    Raises what :func:`_param_transform_plan` raises (e.g. a BetaPrior with
+    ``positive_params=False``). Returns a tuple of length ``theta_dim``, or
+    None when a prior list does not have ``theta_dim`` entries (the caller's
+    own length check then raises with its own message).
+    """
+    theta_dim = int(theta_dim)
+    prior_list = _prior_as_list(prior)
+    transform, _inv, _wiring = _param_transform_plan(
+        prior, prior_list, positive_params, param_transform, where)
+    if prior_list is not None and len(prior_list) != theta_dim:
+        return None
     if param_transform is not None:
-        for p in items:
-            _wire(p, param_transform)
-        return param_transform, None
+        doms = [None] * theta_dim
+    else:
+        per_dim = getattr(transform, '_per_dim_fns', None)
+        if per_dim is not None:
+            doms = [_transform_domain(f) for f in per_dim]
+        else:
+            doms = [_transform_domain(transform)] * theta_dim
+    for k in exposure_slots:
+        if 0 <= int(k) < theta_dim and doms[int(k)] == 'unit':
+            doms[int(k)] = 'positive'
+    for i in fixed_indices:
+        if 0 <= int(i) < theta_dim:
+            doms[int(i)] = 'fixed'
+    return tuple(doms)
 
-    if not positive_params:
-        if where == "SVGD":
-            for i, p in enumerate(items):
-                if _natural(p) is not None:
-                    slot = f"prior[{i}]" if prior_list is not None else "prior"
-                    raise ValueError(
-                        f"{where}: {slot} ({type(p).__name__}) confines its "
-                        "parameter to a bounded interval, which needs its own "
-                        "transform; it cannot be used with "
-                        "positive_params=False and no param_transform. Use "
-                        "positive_params=True (the prior's own transform is "
-                        "then applied to its parameter)."
-                    )
-        for p in items:
-            _wire(p, None)
-        return None, None
 
-    if prior_list is not None:
-        if any(_natural(p) is not None for p in prior_list):
-            fns = tuple(_natural(p) if _natural(p) is not None
-                        else _softplus_transform for p in prior_list)
+def _domain_contains(model_d, fit_d):
+    """Containment (plan §3): may a fit whose slot lives in ``fit_d`` use a
+    model whose FD probes were declared for ``model_d``?"""
+    if model_d is None or fit_d is None:
+        return True                      # unknown on either side: no check
+    if fit_d == 'fixed':
+        return True                      # never moved by the fit
+    if model_d == 'fixed':
+        return False                     # would silently get a zero gradient
+    if model_d == 'unconstrained':
+        return True
+    if model_d == 'positive':
+        return fit_d in ('positive', 'unit')
+    if model_d == 'unit':
+        return fit_d == 'unit'
+    return False
 
-            def _composite_transform(phi, _fns=fns):
-                # phi is (theta_dim,) or (n, theta_dim); apply each slot's
-                # transform on the last axis.
-                parts = [_fns[i](phi[..., i:i + 1]) for i in range(len(_fns))]
-                return jnp.concatenate(parts, axis=-1)
 
-            # The preconditioner's learnable-subset path and the fixed-value
-            # wrapper read the per-slot functions from here.
-            _composite_transform._per_dim_fns = fns
-            for p, fn in zip(prior_list, fns):
-                _wire(p, fn)
-            return (_composite_transform,
-                    tuple(_KNOWN_INVERSES.get(fn) for fn in fns))
-        for p in prior_list:
-            _wire(p, _softplus_transform)
-        return _softplus_transform, _inverse_softplus
+def _check_param_domains(model_domains, fit_domains, where, remedy):
+    """Raise when a fit's domains do not lie inside the model's (plan §3).
 
-    natural = _natural(prior)
-    fn = natural if natural is not None else _softplus_transform
-    _wire(prior, fn)
-    return fn, _KNOWN_INVERSES.get(fn)
+    ``model_domains`` None (an undeclared model) or ``fit_domains`` None (no
+    resolvable fit domains) pass. A length mismatch raises."""
+    if model_domains is None or fit_domains is None:
+        return
+    if len(model_domains) != len(fit_domains):
+        raise ValueError(
+            f"{where}: the model declares {len(model_domains)} parameter "
+            f"domains (param_domains) but the fit has {len(fit_domains)} "
+            "parameters.")
+    bad = [(i, m, f) for i, (m, f) in enumerate(zip(model_domains, fit_domains))
+           if not _domain_contains(m, f)]
+    if bad:
+        lines = "\n".join(
+            f"  theta[{i}]: the model was built for {m!r}, the fit uses {f!r}"
+            for i, m, f in bad[:10])
+        more = f"\n  ... and {len(bad) - 10} more" if len(bad) > 10 else ""
+        raise ValueError(
+            f"{where}: the fit's parameter domains do not lie inside the "
+            "domains the model's finite-difference gradients were built for "
+            "(param_domains):\n" + lines + more + "\n"
+            "(a 'fixed' model slot must be fixed in the fit; 'unit' only fits "
+            "a sigmoid (BetaPrior) slot; 'positive' fits softplus or sigmoid "
+            "slots; positive_params=False needs 'unconstrained'.) " + remedy)
 
 
 class SVGD:
@@ -5511,6 +5647,18 @@ class SVGD:
         instead: in a prior list to its own parameter, as a single prior to
         EVERY parameter (rates included). Such a prior requires
         ``positive_params=True`` (or a custom ``param_transform``).
+
+        Finite-difference gradients (Plan A): a model built for the fit by
+        ``Graph.svgd`` probes each parameter inside its domain ('positive'
+        under softplus, 'unit' under a BetaPrior's sigmoid, 'unconstrained'
+        with ``positive_params=False``). A model passed here directly may
+        declare ``param_domains`` itself; the fit must lie inside them
+        (checked at construction). Near-zero limit (documented, user decision
+        D-NZ): with ``positive_params=False`` the finite-difference gradient
+        of a RATE within ~1e-7 of zero can be wrong, including its sign; fit
+        rates with ``positive_params=True``. A forward tie (two probes giving
+        identical outputs) gives a zero gradient for that parameter, counted
+        in ``model._fd_stats`` and logged once.
 
         DEFAULT=True because phase-type distribution parameters (rates) must be positive.
         Set to False only if you have a specific reason to allow negative parameters
@@ -6373,6 +6521,26 @@ class SVGD:
             _fixed_idx = jnp.asarray(np.where(_mask_np)[0])
             self.theta_init = self.theta_init.at[:, _fixed_idx].set(
                 self.fixed_values[_fixed_idx])
+
+        # Plan A §3: the model's FD domains (``_param_domains``, set by the
+        # model builders and by Graph.svgd / Graph.epoch_model) must contain
+        # this fit's domains, e.g. a 'unit' model fitted with softplus would
+        # hand the model theta > 1 and its logit probes would be NaN. Read
+        # from the model argument, BEFORE the exposure wrapper (applied at the
+        # end of __init__) drops its attributes. Fixed slots (including tied
+        # slaves) are 'fixed' on the fit side and fit any model domain.
+        _model_domains = getattr(model, '_param_domains', None)
+        if _model_domains is not None:
+            _fit_fixed = ([] if self.fixed_mask is None else
+                          [int(i) for i in np.where(np.asarray(self.fixed_mask) == 1)[0]])
+            _check_param_domains(
+                _model_domains,
+                _resolve_param_domains(
+                    self.prior, positive_params, param_transform,
+                    theta_dim=self.theta_dim, fixed_indices=_fit_fixed),
+                "SVGD",
+                "Build the model with param_domains matching this fit (or "
+                "change positive_params / the prior).")
 
         # Store regularization settings and handle regularization schedule (backward compatible)
         if isinstance(regularization, RegularizationSchedule):

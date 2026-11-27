@@ -851,3 +851,61 @@ review series ends here; the three minors are folded in:
 - m2: the tie log notes it may be a genuine zero; §9 is aligned with
   §4.5; the stale primal reason is removed.
 - m3: the host-site band is 0 <= theta < 1e-10.
+
+## 12. Proposed amendment A-124 (OI-124), AWAITING USER APPROVAL (2026-11-27, Batch 2)
+
+**Not implemented.** Deferred from the Batch 1 review (m1) to Batch 2 by
+user decision; Batch 2 ships without it.
+
+- **Defect.** A slot declared `'unit'` at exactly theta = 0 gets today's
+  ±1e-7 probe, because §4.5 sends "unit outside (0, 1)" to today's probe. On
+  a REFUSING model (§4.4), the minus probe -1e-7 is refused, so the gradient
+  crashes. An undeclared slot at 0 does not crash: it takes the band's
+  one-sided step. A declared slot is therefore less protected than an
+  undeclared one, contrary to goal 1. Measured in the Batch 1 review
+  (`batch1/review/` E1, E1b):
+  - the epoch model at [1, 0, 1, 0.5] with slot 1 declared 'unit' raises
+    "NEGATIVE transition rate";
+  - native-discrete `pmf_from_graph` raises "negative weight".
+- **Reachability, corrected.** The review's route "sigmoid underflow (phi
+  below about -745)" does not exist: SVGD's `_sigmoid` clips theta to
+  [1e-9, 1 - 1e-9] (`svgd.py` `_sigmoid`), so a fit never hands the model a
+  'unit' slot at exactly 0. The defect is reachable only through an
+  EXPLICIT 'unit' declaration with a value of exactly 0:
+  - `Graph.epoch_model(..., param_domains='unit' or a list with 'unit')`,
+    then `fit(fixed=[(k, 0.0)])`. epoch_model probes fit-time fixed slots
+    (bake_fd_skip=False, §3). A 'unit' slot fixed at 0 fits the
+    containment check, since a fit-side 'fixed' fits any model domain;
+  - a direct builder call with `param_domains` and `jax.grad` at 0.
+
+  `Graph.svgd` cannot reach it: its fixed slots are declared 'fixed' and
+  never probed. Master crashes in the same cases (the slot is undeclared
+  there, and today's probe crashes at 0 on a refusing model), so this is a
+  gap, not a regression.
+- **Proposed rule (amends §4.2 and §4.5).** At theta == 0 exactly, a 'unit'
+  slot takes the one-sided [0, 1e-7] step that 'positive' already uses. Log
+  mode is the exception: it refuses a product of exactly 0 itself, so the
+  primal's clear error stays. Every other value outside (0, 1), including
+  exactly 1, keeps today's probe:
+  - the upper wall at 1 is the native-discrete row-sum wall, out of scope
+    (§4.1);
+  - exposure-scaled values above 1 are not 'unit' (§4.5 widening).
+
+  The same change applies to the numpy host variant (`host_probes_np`).
+- **Cost and bit identity.** One extra `jnp.where` term in the 'unit' branch
+  of `_fd_steps.probes`. Nothing changes for undeclared, 'positive',
+  'unconstrained' or 'fixed' slots, nor for 'unit' slots strictly inside
+  (0, 1). The Batch 1 bit-identity cells are unaffected.
+- **Tests, if approved.** A 'unit' slot at 0 does not crash, and its value
+  equals a forward difference over [0, 1e-7]:
+  - on the epoch model (fixed-at-0 fit through `epoch_model(param_domains=...)`
+    plus a direct `jax.grad`);
+  - on native-discrete `pmf_from_graph` and the host variant;
+  - on a log-mode model, where today's primal error is expected.
+
+  The Batch 1 test `test_out_of_domain_values_keep_todays_probe` keeps its
+  values strictly outside [0, 1].
+- **Gate, if approved.** Rerun `test_fd_domain_steps.py`,
+  `test_fd_domain_steps_batch2.py` and `inference/test_epoch_model.py`. The
+  change touches only a branch that crashes today, so the full suite run is
+  not repeated.

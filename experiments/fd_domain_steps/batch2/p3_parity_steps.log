@@ -1,0 +1,6 @@
+declared preconditioner: NoneType None
+undeclared preconditioner: NoneType None
+k=1: max |dphi|=1.585e-09  argmax=4 decl=1.957995 undecl=1.957995
+k=2: max |dphi|=3.211e-09  argmax=7 decl=2.141130 undecl=2.141130
+k=5: max |dphi|=2.121e-09  argmax=11 decl=0.800001 undecl=0.800001
+[runcap] exit 0, peak RSS 695 MB, 8s
