@@ -1,0 +1,27 @@
+linear    disc=False pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+linear    disc=False pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+linear    disc=False pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+linear    disc=False mfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:nonpos-weight(add_edge)
+linear    disc=True  pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:neg-weight
+linear    disc=True  pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+linear    disc=True  pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+log       disc=False pfg     fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+log       disc=False pam     fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+log       disc=False pam_rw  fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+log       disc=True  pfg     fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+log       disc=True  pam     fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+log       disc=True  pam_rw  fwd@0=RAISE:log-nonpos  fwd@1e-7=ok  todays grad@0=RAISE:log-nonpos
+formula   disc=False pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:neg(other)
+formula   disc=False pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+formula   disc=False pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+formula   disc=True  pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:neg(other)
+formula   disc=True  pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+formula   disc=True  pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+callback  disc=False pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:nonpos-weight(add_edge)
+callback  disc=False pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+callback  disc=False pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+callback  disc=True  pfg     fwd@0=ok  fwd@1e-7=ok  todays grad@0=RAISE:nonpos-weight(add_edge)
+callback  disc=True  pam     fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+callback  disc=True  pam_rw  fwd@0=ok  fwd@1e-7=ok  todays grad@0=ok
+cpp       disc=False pmf_from_cpp fwd@0=ok  todays grad@0=RAISE:nonpos-weight(add_edge)
+[runcap] exit 0, peak RSS 783 MB, 16s

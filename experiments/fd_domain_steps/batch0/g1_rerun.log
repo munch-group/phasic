@@ -1,0 +1,18 @@
+{"kind": "cont", "mode": "cpp", "site": "pmf_from_cpp", "slot": 1, "build": "ok", "P1": "ok", "G1": "ok", "P5e-8": "ok", "G5e-8": "RAISE:nonpos-weight(add_edge)", "P0": "ok", "G0": "RAISE:nonpos-weight(add_edge)", "P1-5e-8": "ok", "G1-5e-8": "ok", "N-1e-12": "RAISE:nonpos-weight(add_edge)", "N-1e-9": "RAISE:nonpos-weight(add_edge)", "N-5e-8": "RAISE:nonpos-weight(add_edge)", "N-1e-7": "RAISE:nonpos-weight(add_edge)", "pred_refuse": true} 
+[runcap] exit 0, peak RSS 518 MB, 10s
+{"kind": "dph", "mode": "cpp", "site": "pmf_from_cpp", "slot": 1, "build": "ok", "P1": "ok", "G1": "RAISE:rowsum>1", "P5e-8": "ok", "G5e-8": "RAISE:nonpos-weight(add_edge)", "P0": "ok", "G0": "RAISE:nonpos-weight(add_edge)", "P1-5e-8": "ok", "G1-5e-8": "RAISE:rowsum>1", "N-1e-12": "RAISE:nonpos-weight(add_edge)", "N-1e-9": "RAISE:nonpos-weight(add_edge)", "N-5e-8": "RAISE:nonpos-weight(add_edge)", "N-1e-7": "RAISE:nonpos-weight(add_edge)", "pred_refuse": true} 
+[runcap] exit 0, peak RSS 518 MB, 9s
+{"kind": "cont", "mode": "linear", "site": "moments_from_graph", "slot": 1, "build": "ok", "P1": "ok", "G1": "ok", "P5e-8": "ok", "G5e-8": "RAISE:nonpos-weight(add_edge)", "P0": "RAISE:nan(other)", "G0": "RAISE:nan(other)", "P1-5e-8": "ok", "G1-5e-8": "ok", "N-1e-12": "RAISE:nonpos-weight(add_edge)", "N-1e-9": "RAISE:nonpos-weight(add_edge)", "N-5e-8": "RAISE:nonpos-weight(add_edge)", "N-1e-7": "RAISE:nonpos-weight(add_edge)", "pred_refuse": false} [5.6s]
+[runcap] exit 0, peak RSS 543 MB, 9s
+{"kind": "cont", "mode": "log", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 377 MB, 3s
+{"kind": "cont", "mode": "formula_lin", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 377 MB, 3s
+{"kind": "cont", "mode": "formula_div", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 375 MB, 3s
+{"kind": "cont", "mode": "formula_sqrt", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 376 MB, 3s
+{"kind": "cont", "mode": "callback_lin", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 374 MB, 3s
+{"kind": "cont", "mode": "callback_sqrt", "site": "moments_from_graph", "slot": 1, "build": "RAISE:ValueError:ght rule implies. Use Graph.pmf_and_moments_from_graph(), which honours every weight mode.", "pred_refuse": true} [0.0s]
+[runcap] exit 0, peak RSS 376 MB, 3s

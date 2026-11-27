@@ -1,0 +1,2 @@
+{"kind": "cont", "mode": "formula_div", "site": "multivar_rw2d", "slot": 1, "build": "ok", "P1": "ok", "G1": "ok", "P5e-8": "ok", "G5e-8": "ok", "P0": "RAISE:nonpos-weight(add_edge)", "G0": "RAISE:nonpos-weight(add_edge)", "P1-5e-8": "ok", "G1-5e-8": "ok", "N-1e-12": "RAISE:nonpos-weight(add_edge)", "N-1e-9": "RAISE:nonpos-weight(add_edge)", "N-5e-8": "RAISE:nonpos-weight(add_edge)", "N-1e-7": "RAISE:nonpos-weight(add_edge)", "pred_refuse": true} [125.4s]
+[runcap] exit 0, peak RSS 5334 MB, 130s
