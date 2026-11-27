@@ -1,6 +1,6 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.10, 2026-11-27: v2.9 plus the user-approved Batch 0 amendments, folded in as they are approved (so far §4.4: `moments_from_graph` always refuses; the step size s = 3e-5 for every family is recorded in [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3). v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
+**Status: v2.10, 2026-11-27: v2.9 plus all user-approved Batch 0 amendments (§1/§5 the clamp is unconditional at three sites; §4.2 overshoot wording; §4.4 `moments_from_graph` always refuses; §6 Batch 1 test notes; §7 test list; the step size s = 3e-5 for every family is recorded in [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3). v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
 REJECT; reviews 8-12 of v2.3-v2.7 likewise); their findings are
@@ -14,7 +14,7 @@ the refactor is gated on bit identity.
 
 Decisions (user, 2026-11-26): fitters declare domains from their
 transforms, undeclared callers keep today's numbers (v5 D2); the step size
-is fixed per forward family in Batch 0, starting from s = 1e-4 (v5 D3;
+is fixed per forward family in Batch 0, starting from s = 1e-4 (DECIDED 2026-11-27 after Batch 0: s = 3e-5 for every family and both the full and the capped rule, positive and unit domains, [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3; v5 D3;
 review 3 measured s = 1e-4 as sound: 2e-9..5e-9 relative error on the
 epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
@@ -43,9 +43,13 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
   (review3/p1_daisy.log);
 - silent gradient errors where the dependence on a small rate is
   multiplicative (v5 §1: up to 4.6e15x on the default joint-graph path);
-- with `positive_params=False`, two sites clamp the minus probe at 1e-9
-  (`__init__.py:8662-8669`, `:9068-9077`), so a parameter that may be
-  negative gets a secant over [theta, 1e-9]: rate = t0 + t1 at
+- three `pmf_and_moments_from_graph` sites clamp the minus probe at 1e-9
+  (`__init__.py:8664-8679` callback cdf at zero, `:8946-8962` cdf at zero,
+  `:9069-9076` main). The clamp is unconditional: it fires whenever
+  theta < 1e-7 + 1e-9, whatever `positive_params` is, so for theta >= 0 those
+  sites never probe below zero (v2.10, Batch 0 finding). With
+  `positive_params=False` a parameter that may be negative gets a secant
+  over [theta, 1e-9]: rate = t0 + t1 at
   theta = [6, -5] gives -0.49382 instead of -0.50049 for t1
   (review2/probe_clamp.py);
 - fixed slots are probed at sites that have no fixed-slot information.
@@ -208,8 +212,10 @@ pdf's capped step (harmless; stated).
 | unconstrained | — | theta ± 1e-7; on REFUSING models only, the capped positive rule when 0 < theta <= 1e-7 and the one-sided [0, 1e-7] step at theta == 0 (crash prevention); at the joint-index host site, today's relative step (§5) | literal 2·eps for the plain step; actual difference with zero guard for the capped step (two quotients selected per §4.7) |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
-The capped up-probe is never more than 1e-7 above theta (review 1 m1
-corrected v1's formula), and no `'positive'` probe is ever negative. An
+The capped up-probe is at most 1e-7 above theta, up to rounding of 2
+ulp(theta) (review 1 m1 corrected v1's formula; v2.10: Batch 0 measured the
+float overshoot, ~1e-10 from theta ≈ 1e6 and at most 2.38e-7 near
+theta ≈ 8e8, harmless for walls and jumps), and no `'positive'` probe is ever negative. An
 `'unconstrained'` probe may be negative (that is the point of the
 domain); on refusing models the band rule keeps it non-negative near zero.
 
@@ -424,7 +430,7 @@ model is built.
 | `:5245` → loops `:5306`, `:5344` (exact_final override) | `_daisy_chain_svgd_model`, no exposure | multi-epoch |
 | `:5501` → loops `:5647`, `:5698` | `_daisy_chain_svgd_model`, exposure | multi-epoch |
 | `:8006` | `moments_from_graph` | elimination |
-| `:8661`, `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp) | `pmf_and_moments_from_graph` | Euler + elimination |
+| `:8661` (callback-mode cdf at zero, clamp), `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp); all three clamps unconditional (v2.10) | `pmf_and_moments_from_graph` | Euler + elimination |
 | `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared AND `'unconstrained'` slots keep today's RELATIVE rule bit for bit (it is correct near zero, where the plain ±1e-7 step would flip the sign: measured -4.0000e14 today vs +1.33e14 plain at theta = 5e-8, review11/p2_host_site.log), with the §4.4 band only on refusing models and only for 0 <= theta < 1e-10 (negative slots keep today's relative step; the capped rule is undefined for theta < 0) (this site can be refusing for a direct `pmf_from_graph_joint_index(..., exact_grad_decline='fd')` call on a native discrete graph, `__init__.py:9409-9470`; `Graph.svgd` cannot reach that, rule R31); ties on its declared branches are counted only, as everywhere; `'positive'` / `'unit'` slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
 | `:9888` | `pmf_from_graph_joint_index` | elimination |
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
@@ -498,7 +504,12 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
     the domain coordinate;
   - the tied-master gradient equals the sum of per-epoch partials (extend
     `test_daisy_chain_c_path.py::test_tied_gradient_sums_per_epoch_partials`);
-  - theta = 0 and fixed-0 cases;
+  - theta = 0 and fixed-0 cases, on models where 0 is a valid value (the
+    slot beside another exit; v2.10: a slot that is a vertex's only exit
+    makes the forward itself fail at 0, Batch 0 `a4_theta_zero.log`);
+  - any test that deliberately evaluates an invalid theta WITH rewards uses
+    a fresh model per assertion: the refusal is reported one call late
+    (OI-119, v2.10);
   - discrete near the row-sum wall;
   - signed parameters under `'unconstrained'`;
   - formula and log weight modes with fixed slots;
@@ -573,8 +584,16 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   `test_exact_grad_rewards.py` (`:106-111`), `test_daisy_chain_c_path.py:340`,
   `:797` (replicate the 1e-7 rule): must stay BIT EXACT; these are not
   edits (v1 §6 was wrong).
-- `test_likelihood_correctness.py`: the `log(pmf + 1e-10)` regulariser
-  artefact (v5), only if Batch 0 confirms it is affected.
+- `test_likelihood_correctness.py`: NOT affected (v2.10, Batch 0): its
+  gradient tests use a non-refusing undeclared model (linear, continuous, no
+  rewards), so today's code is kept bit for bit there.
+- `test_discrete_row_sum.py::test_gradient_at_the_lower_bound` (`:369-380`,
+  v2.10, Batch 0 finding, user-approved): it asserts that `jax.grad` at
+  theta = 5e-8 on a native discrete `pmf_from_graph` model raises "negative
+  weight". The §4.4 fallback removes that crash, so Batch 1 rewrites it to
+  assert a finite gradient (checked against a closed form or Richardson
+  reference). The neighbouring `test_gradient_at_the_bound` (upper row-sum
+  wall) is unchanged.
 - Fit-level strict xfails in `test_notebook_model_recovery.py` (`:484`,
   `:553`, `:659`, `:699`; `:699` is the "particles stuck at the 1e-9
   floor" pin) may XPASS after Batch 2. The Batch 2 gate runs them

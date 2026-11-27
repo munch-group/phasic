@@ -450,6 +450,8 @@ criterion, which ignores tails and model size.
 6. Batch 1 tests: a fresh model per rewarded invalid-theta assertion (OI-119);
    theta = 0 tests on models where 0 is valid.
 
+**All items above APPROVED by the user (2026-11-27) and folded into the plan as v2.10.**
+
 ## 8. Register changes (`OPEN-ITEMS.md`)
 
 - **OI-119** (new defect): deferred refusal with rewards.
