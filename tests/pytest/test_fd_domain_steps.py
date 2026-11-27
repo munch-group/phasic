@@ -58,6 +58,26 @@ def test_undeclared_gradients_are_bit_identical_to_master(name, theta, mode):
         assert got.tobytes() == want.tobytes(), (got, want, got - want)
 
 
+@pytest.mark.parametrize("mode", ["eager", "jitvmap"])
+@pytest.mark.parametrize("name,theta", C.CELLS, ids=[f"{n}-{','.join(map(str, t))}" for n, t in C.CELLS])
+def test_undeclared_gradients_equal_an_emulated_master(name, theta, mode, monkeypatch):
+    """Platform-independent form of goal 2 (review m5): with every undeclared
+    slot forced to today's rule -- master's traced program -- the gradient
+    equals the real rules' outside the band, in the same process, including
+    SVGD's jit(vmap(grad)) mode."""
+    if name == "cpp" and mode == "jitvmap":
+        pytest.skip("pmf_from_cpp cannot be vmapped (OI-123)")
+    real = np.ravel(C.grad_in_mode(name, list(theta), mode))
+    orig = _fd_steps.slot_rule
+    monkeypatch.setattr(_fd_steps, "slot_rule",
+                        lambda d, refuses: _fd_steps.TODAY if d is None else orig(d, refuses))
+    master = np.ravel(C.grad_in_mode(name, list(theta), mode))
+    if name in C.NON_REPRODUCIBLE:
+        np.testing.assert_allclose(real, master, rtol=C.NON_REPRODUCIBLE_RTOL, atol=0)
+    else:
+        assert real.tobytes() == master.tobytes(), (real, master)
+
+
 # ===================================================================== 2
 def _probe(t, rule, family="capped", log_mode=False):
     th = jnp.asarray([0.5, t], dtype=jnp.float64)
@@ -181,12 +201,17 @@ def _beside_model(builder, mode, disc, rewards=False, domains=None):
         m = Graph.pmf_from_graph(g, discrete=disc, theta_dim=2, param_domains=domains)
         f = lambda th: m(th, x)
     elif builder == "pam":
+        # exact_moment_grad=False: the FD loop produces the whole gradient, so
+        # the value checks see it (with the default the exact moments term
+        # dominates the loss in log mode; review m5)
         m = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=disc, theta_dim=2,
-                                             param_domains=domains)
+                                             param_domains=domains, exact_moment_grad=False)
         f = (lambda th: m(th, x, rewards=rw)) if rewards else (lambda th: m(th, x))
     elif builder == "rvp":
         from phasic.ffi_wrappers import compute_reward_visit_probability_ffi
-        tgt = jnp.asarray(np.where(np.asarray(C.REWARDS) > 0)[0], dtype=jnp.int32)
+        # reward only vertex b, visited with probability t0 / (t0 + t1): a
+        # nonzero gradient in slot 1 (with a, always visited, p would be 1)
+        tgt = jnp.asarray([2], dtype=jnp.int32)
         ipv = jnp.asarray(g._initial_probability_vector())
         sj = g.serialize()
         f = lambda th: compute_reward_visit_probability_ffi(sj, th, tgt, ipv, param_domains=domains)
@@ -236,6 +261,10 @@ def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
     assert np.all(np.isfinite(g)), g
     ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
     assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+    if not (builder == "rvp" and mode == "log"):
+        # (log mode: the visit probability is t0t1 / (t0t1 + 2t0t1) = 1/3 for
+        # every theta, so a zero gradient is right there)
+        assert abs(ref) > 1e-3, "the reference must not be trivially 0"
 
 
 def test_no_crash_on_pmf_from_cpp_in_the_band():
@@ -287,13 +316,18 @@ def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
     assert np.all(np.isfinite(g)), g
     for i, t in enumerate(theta):
         if 0.0 < t <= 1e-7:
-            # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
-            # loss units). Measured (batch1/m1_epoch_band_errors.log): the
-            # epoch models agree with Richardson to ~1e-10 relative; a slot
-            # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
-            # relative terms but within ~1e-9 here.
+            # Measured (batch1/m1_epoch_band_errors.log): the epoch models
+            # (dc_*) agree with Richardson to ~1e-10 relative on the mutation
+            # slots, and to 2-6e-3 on a coalescence rate at 1e-9 (an effect
+            # linear near 0: the §4.3 limit). daisy_chain_joint_probs' loss
+            # barely depends on the slot, so any step that keeps the probes
+            # in [0, 2e-7] is noise-dominated there (up to 4x relative at
+            # 1e-9, < 1e-9 in loss units in theta * d/dtheta): finite only.
+            if cell == "dcjp":
+                continue
             ref = _richardson_log(L, th, i)
-            assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+            rel = 2e-2 if i == 0 else 1e-6
+            assert g[i] == pytest.approx(ref, rel=rel), (i, g[i], ref)
         elif t == 0.0:
             # one-sided [0, 1e-7] step: first order; reference second order
             ref = 2 * _forward_diff(L, th, i, 5e-8) - _forward_diff(L, th, i, 1e-7)
@@ -577,7 +611,7 @@ def test_zero_probe_difference_is_counted_and_logged_once(fd_warnings):
         gr = np.asarray(jax.grad(L)(jnp.asarray([0.7, 3e9])))
         assert gr[1] == 0.0 and gr[0] != 0.0
     assert m._fd_stats.zero_difference == 2
-    assert len([w for w in fd_warnings if "collapsed onto theta" in w]) == 1
+    assert len([w for w in fd_warnings if "rounded to the same value" in w]) == 1
 
 
 def test_forward_tie_is_counted_and_logged_once(fd_warnings):
@@ -669,3 +703,57 @@ def test_exposure_band_with_small_alpha():
     g = np.asarray(jax.grad(L)(th))
     assert np.all(np.isfinite(g))
     assert g[1] == pytest.approx(_central(L, th, 1, 1e-9), rel=1e-3)
+
+
+
+# ===================================================================== review fixes
+def test_joint_index_host_fallback_at_the_site(probe_spy, monkeypatch):
+    """The exact_grad_decline='fd' host loop itself (review m5): force the C
+    adjoint to decline AFTER construction (its probe succeeded), so the
+    host-side FD runs; the 'fixed' slot is skipped there, the other matches
+    the exact gradient taken before the patch."""
+    jpg, oi = C.joint_graphs()
+    m = Graph.pmf_from_graph_joint_index(jpg, theta_dim=2, exact_grad=True,
+                                         exact_grad_decline="fd", param_domains=[None, "fixed"])
+    th = jnp.asarray([1.0, 0.5])
+    L = lambda t: jnp.sum(jnp.log(m(t, jnp.asarray(oi))[0]))
+    g_exact = np.asarray(jax.grad(L)(th))
+    monkeypatch.setattr(Graph, "_sojourn_grad_theta_subset", lambda self, idx: [])
+    probe_spy.clear()
+    g_host = np.asarray(jax.grad(lambda t: jnp.sum(jnp.log(m(t, jnp.asarray(oi))[0])))(th))
+    sites = {(s, i) for s, i, _, _ in probe_spy}
+    assert sites == {("pmf_from_graph_joint_index.host", 0)}, sites
+    assert g_host[1] == 0.0 and g_exact[1] == 0.0
+    assert g_host[0] == pytest.approx(g_exact[0], rel=1e-5)
+
+
+def test_rvp_counts_ties_per_model():
+    """§4.5 per model (review m4): two rvp callers with their own counters do
+    not share counts."""
+    from phasic import ffi_wrappers as fw
+    g = Graph(1)
+    s0 = g.starting_vertex()
+    a = g.find_or_create_vertex([2]); b = g.find_or_create_vertex([1]); c = g.find_or_create_vertex([3])
+    s0.add_edge(a, 1.0); a.add_edge(b, [1.0, 1.0]); a.add_edge(c, [1.0, 0.0])
+    g.weight_formula = "c0*t0 + c1*t1"
+    sj = g.serialize()
+    ipv = jnp.asarray(g._initial_probability_vector())
+    tgt = jnp.asarray([b.index()], dtype=jnp.int32)
+    st1, st2 = _fd_steps.FDStats("m1"), _fd_steps.FDStats("m2")
+    th = jnp.asarray([1.0, 1e-13])
+    for st in (st1, st2):
+        jax.grad(lambda t: fw.compute_reward_visit_probability_ffi(sj, t, tgt, ipv, fd_stats=st))(th)
+    assert st1.tie == 1 and st2.tie == 1
+
+
+def test_fixed_domain_is_zero_on_the_exact_final_epoch_path():
+    """Review m2: with exact_final_grad=True a 'fixed'-domain final-epoch slot
+    gets a zero gradient too (it is skipped like a truly fixed slot)."""
+    jpg, oi = C.joint_graphs()
+    m, _, _, _ = jpg._daisy_chain_svgd_model(
+        observed_indices=list(oi), epoch_starts=np.array([0.0, 0.5]),
+        user_prior=None, user_fixed=None, exact_final_grad=True,
+        param_domains=[None, None, None, "fixed"])
+    th = jnp.asarray([1.0, 0.5, 1.5, 0.3])
+    g = np.asarray(jax.grad(lambda t: jnp.sum(jnp.log(m(t, None)[0])))(th))
+    assert g[3] == 0.0 and np.all(np.isfinite(g)) and g[2] != 0.0

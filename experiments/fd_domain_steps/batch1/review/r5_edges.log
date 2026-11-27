@@ -1,0 +1,24 @@
+E1 epoch slot1=0 domains=None: OK grad=[ -3.33415784   7.70744153 -10.79748627  21.59497254]
+E1 epoch slot1=0 domains=['positive', 'unit', 'positive', 'unit']: RAISES ValueError: INVALID_ARGUMENT: DaisyChainSojournFfiImpl: theta produced a NEGATIVE transition rate (most negative edge weight: -0.000000). A rate cannot be negativ
+E1 epoch slot1=0 domains=['positive', 'positive', 'positive', 'positive']: OK grad=[ -3.33415784   7.70744153 -10.79748626  21.59497255]
+E1b dph slot1=0 domains=None: OK grad=[1.26       2.09999976]
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 3 has negative weight -9.9999999999999995e-08. Are you sure this is a discrete phase-type distribution?
+
+E1b dph slot1=0 domains=['unit', 'unit']: RAISES ValueError: INTERNAL: Expected vertex with index 1 (state 3) to have finite, non-negative outgoing weights. The edge to vertex 3 has negative weight -9.9999999999
+E2 'fixed' final-epoch slot 3, exact_final_grad=False: OK grad=[-1.80721886  9.27500031 -4.15915364  0.        ]
+E2 exposure 'fixed' final-epoch slot 3, exact_final_grad=False: OK grad=[-1.80078158  9.25516994 -4.14015142  0.        ]
+E2 'fixed' final-epoch slot 3, exact_final_grad=True: OK grad=[-1.80721886  9.27500031 -4.15915364 20.79576819]
+E2 exposure 'fixed' final-epoch slot 3, exact_final_grad=True: OK grad=[-1.80078158  9.25516994 -4.14015143 20.70075714]
+[WARNING] phasic._fd_steps: reward_visit_probability: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+E3 rvp grad: OK grad=[0. 0.]
+E3 rvp grad: OK grad=[0. 0.]
+E3 rvp global stats object: reward_visit_probability tie= 2 zero= 0 (two distinct graphs, one counter)
+E4 unit t=1-1e-12 capped: up<1? True up-dn=2.22e-16 use=True
+E4 unit t=1-1e-12 full: up<1? True up-dn=2.22e-16 use=True
+E4 unit t=1-9.99e-16 capped: up<1? True up-dn=2.22e-16 use=True
+E4 unit t=1-9.99e-16 full: up<1? True up-dn=2.22e-16 use=True
+E4 unit t=1-2.22e-16 capped: up<1? True up-dn=0 use=True
+E4 unit t=1-2.22e-16 full: up<1? True up-dn=0 use=True
+E4 unit t=1-1.11e-16 capped: up<1? False up-dn=2.22e-16 use=True
+E4 unit t=1-1.11e-16 full: up<1? False up-dn=2.22e-16 use=True
+[runcap] exit 0, peak RSS 544 MB, 8s

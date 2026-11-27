@@ -462,6 +462,181 @@ criterion, which ignores tails and model size.
 - **OI-122** (new follow-up): Euler forward memory grows with step count.
 - The Priorities section and the refactor plan's §5 row: Plan A Batch 0 done.
 
+## 10. Batch 1 (implementation, 2026-11-27)
+
+Commit `a7fa7839` on `fix/fd-domain-steps`. Plan v2.10 §6 Batch 1.
+
+### 10.1 What was built
+
+- **`src/phasic/_fd_steps.py`**, a leaf module. It holds:
+  - the per-slot rules (`slot_rule`: today, band, plain, unc_band, positive,
+    unit, skip) and the build-time refusal (`build_info`, from the serialized
+    graph's `weight_mode` / `is_discrete` / `was_dph`, or forced on);
+  - `model_refuses(info, has_rewards)`, the ONE refusal query the refactor's
+    phase 5 replaces;
+  - `probes()`, which returns probe vectors selected with `jnp.where`;
+  - `alt_ratio()` (the alternative quotient over the actual difference, with
+    the zero guard);
+  - `flags()` / `report()`: ties and zero differences, counted per model in
+    `model._fd_stats` and logged once per model, at WARNING, through one
+    `io_callback(ordered=False)` per backward (a single rolled callback under
+    vmap; the first version used `jax.debug.callback`, which vmap unrolls
+    into one callback per particle, review m3);
+  - a test-only probe hook (`set_probe_hook`), and the numpy variant
+    `host_probes_np` for the joint-index host fallback.
+- **Every FD loop** keeps today's probe and quotient lines verbatim:
+  - where another rule can apply, the probes are selected first, both
+    quotients are computed, and the QUOTIENT is selected (§4.7);
+  - on non-refusing models with undeclared slots, `probes()` returns the
+    site's own arrays, so the traced program is today's.
+- **`param_domains`** is accepted, and defaulted nowhere, on all eight
+  builders of §5 and on the multivariate wrapper (passthrough plus a copied
+  `_param_domains`). On the rvp backward it is a second nondiff argument
+  (domains, BuildInfo), and zero inflation's FFI branch passes the model's
+  domains. Builders attach `_param_domains`, `_fd_build_info` and
+  `_fd_stats`. The joint-index builder merges `'fixed'` slots into its
+  existing fixed set, so both its FD loop and its exact path zero them.
+- **Refusal per site:**
+  - from the graph: `pmf_from_graph`, `pmf_and_moments_from_graph` (plus
+    rewards at trace time), the joint index, rvp;
+  - always: `pmf_from_cpp`, `moments_from_graph` (v2.10), the two
+    cdf-at-zero closures, the epoch model, `daisy_chain_joint_probs`.
+- **Family per site:** capped for `pmf_from_graph`, `pmf_from_cpp`,
+  `pmf_and_moments_from_graph` and its cdf at zero, and the multi-epoch
+  sites with automatic granularity. Full for `moments_from_graph`, the
+  joint index (FD loop and host), rvp, and the multi-epoch sites with an
+  explicit granularity.
+
+### 10.2 Evidence
+
+- **Bit identity (`tests/pytest/test_fd_domain_steps.py` §1):** 74 golden
+  cells, 25 site/theta cells × eager / jit / vmap(grad), captured on master
+  `ff049679` before any source change (`experiments/fd_domain_steps/batch1/
+  capture_golden.sh`, one process per cell). They include refusing models
+  just above the band (2e-7) and a non-refusing clamp cell at 5e-8. All are
+  equal bit for bit on the changed code, except the four reward-transform
+  cells:
+  - master is not reproducible run to run on those (two fresh captures
+    differed by up to 9.6e-8 relative in the FD gradient, OI-022: last-bit
+    forward noise times 1/(2e-7));
+  - they compare at rtol 1e-6. A wrong rule selection would move them by
+    orders of magnitude more.
+  - The goldens are platform-tagged (`darwin-arm64`); other platforms skip
+    the cells.
+- **Crash fallback:**
+  - **every refusing site:** {`pmf_from_graph`, `pmf_and_moments_from_graph`
+    ± rewards, rvp} × weight mode × {continuous, native DPH}, plus
+    `moments_from_graph`, `pmf_from_cpp` and the discretize slot, at slot
+    values 5e-8 and 0. No crash; values match a reference whose probes stay
+    >= 0 (rel 1e-3). Log mode at exactly 0 keeps today's primal error.
+  - **the epoch model, on every route** (`Graph.svgd` with particles around
+    1e-8, `epoch_model(...).fit`, direct `SVGD(model=...)`, direct
+    `jax.grad`), at the §1 thetas, with and without exposure, with
+    `exact_final_grad`, and through `daisy_chain_joint_probs`.
+- **Measured accuracy in the band (`batch1/m1_epoch_band_errors.log`):**
+  - epoch-model slots at 1e-8 and 1e-9 agree with a Richardson reference to
+    ~1e-10 relative;
+  - a coalescence rate at 1e-9 (an effect linear near 0) to 2-6e-3, the §4.3
+    limit;
+  - on `daisy_chain_joint_probs`, whose loss barely depends on the slot, the
+    relative error is noise-dominated (up to 4x at 1e-9) but below 1e-9 in
+    loss units in the domain coordinate (theta·d/dtheta). The test asserts
+    that coordinate, as §6 prescribes.
+- **Declared-domain accuracy:**
+  - `moments_from_graph` (full rule) against closed-form moments at theta
+    scale {1e-6, 1, 1e3}: rel 1e-6 in theta·d/dtheta. Today's rule at 1e-6 is
+    more than 100x worse.
+  - `pmf_and_moments_from_graph` moments (capped) at {1e-6, 1}.
+  - `pmf_from_graph` (capped): against Richardson at scale 1; at scale 1e3
+    against the same forward at fixed granularity (see 10.3).
+- **Domains and slots:**
+  - fixed / tied: the probe spy (exposure model, 2 epochs × [unit, positive
+    exposure slot, unit tied slave, fixed]) shows only slot i changes, every
+    probe is inside its domain, the fixed slot is never probed, and the tied
+    slave is;
+  - the tied-master gradient is the sum of the free model's partials
+    (rel 1e-12);
+  - `'fixed'` skips probing on `pmf_from_graph`, `moments_from_graph` and
+    rvp.
+- **Degenerate values (§4.5):**
+  - a zero difference at theta = 3e9 is counted, gives a zero gradient and is
+    logged once;
+  - a forward tie (an offset slot at 1e-13 on a formula model) is counted
+    and logged once;
+  - 'unit' outside (0, 1) and 'positive' below 0 are bit-identical to
+    undeclared;
+  - 'positive' at 0 takes the one-sided step.
+- **Other:**
+  - signed parameter: 'unconstrained' gives d/dt1 == d/dt0 = -0.50049 at
+    [6, -5], where today's clamp gives -0.49382;
+  - row-sum wall: undeclared at 1 - 5e-8 keeps today's error, while a 'unit'
+    slot at 1 - 1e-9 stays inside.
+- **Existing tests:**
+  - the strict xfail `test_daisy_fd_correct_at_mixed_scale` is removed and
+    the test passes;
+  - `test_discrete_row_sum.py::test_gradient_at_the_lower_bound` now asserts
+    the geometric closed form at 5e-8 and 2e-7 (rel 1e-6).
+
+### 10.3 Observations made while testing (not changes)
+
+- **Euler forward at large rates:** above a max exit rate of 512 the
+  automatic granularity is int(2 × max rate). That has two consequences:
+  - (a) the forward jumps every ~2.5e-4 relative change of the max rate.
+    Any 1e-7 probe, today's or capped, straddles a jump when 2 × max rate
+    sits on an integer (theta = [1000, 500, 2000] gave -3.9e9 for -35.7);
+  - (b) at ~2 Euler steps per mean holding time the forward is far from the
+    closed form (about 2x in the log-density slope at scale 1e3).
+
+  Both are Plan B's territory (true uniformization, §9 "the cap keeps
+  today's jump behaviour"). The capped rule's job is to stay on one
+  granularity plateau, which it does.
+- **Capped moments at large theta:** with `exact_moment_grad=False` the
+  `pmf_and_moments_from_graph` moments inherit the pdf's capped step (§4.1).
+  At theta ~ 1e3 the capped step is today's 1e-7 absolute (relative 1e-10),
+  with today's noise (5.6e-4 measured). That is not a regression, and the
+  exact moments gradient (the default) is unaffected.
+- **New OI-123:** `pmf_from_cpp` models cannot be vmapped. Their
+  `pure_callback` returns one row for a batch of particles ("Expected (2, 3),
+  Actual (1, 3)"), so `vmap(grad)` over SVGD particles fails on master.
+
+### 10.4 Implementation review (Opus, one reviewer) and fixes
+
+Report: `experiments/fd_domain_steps/batch1/review/REPORT.md` (probes r1-r9 in
+the same directory). **Verdict: SIGN-OFF**, no blocker or major, six minors.
+
+- The reviewer verified bit identity independently against an emulated
+  master, including SVGD's jit(vmap(grad)) mode and mixed in-band /
+  out-of-band particle batches: 0 mismatches. It found no missed FD site.
+- **m2 fixed:** a `'fixed'`-domain slot on the exact-final-epoch path got a
+  nonzero exact gradient. `'fixed'` slots now join the epoch model's skip set,
+  so they are zero there too. Test:
+  `test_fixed_domain_is_zero_on_the_exact_final_epoch_path`.
+- **m3 fixed:** `jax.debug.callback` was unrolled to one callback per
+  particle under vmap; `io_callback(ordered=False)` makes it one rolled
+  callback. Measured with the reviewer's probe (`r2_cost_after_fix.log`):
+  1 callback in the compiled program at 8, 64 and 256 particles, against
+  8 / 64 / 256 before; steady-state time within noise of master; gradients
+  bit-identical.
+- **m4 fixed:** the rvp counter is now per caller. Zero inflation passes the
+  model's counter; a direct call gets its own. Test:
+  `test_rvp_counts_ties_per_model`.
+- **m5 fixed** (tests that could not fail):
+  - the rvp cells reward a vertex whose visit probability depends on theta,
+    and assert a nonzero reference;
+  - the pmf_and_moments crash cells use `exact_moment_grad=False`;
+  - the epoch band test asserts rel 1e-6 on the mutation slots (2e-2 on a
+    coalescence rate at 1e-9, the §4.3 limit) and marks
+    daisy_chain_joint_probs finite-only with the reason;
+  - the reason for the golden rtol is corrected;
+  - NEW: a platform-independent emulated-master bit-identity test (all 25
+    cells, eager and jit(vmap(grad))), and a test of the joint-index host
+    fallback at the site itself (a forced decline).
+- **m6 fixed:** the zero-difference message is domain-neutral.
+- **m1 open, for the user:** a slot declared 'unit' at exactly 0 falls back
+  to today's probe and so crashes on a refusing model, where an undeclared
+  slot does not. This follows §4.5's text ("unit outside (0, 1): today's
+  probe"), so changing it is a plan amendment.
+
 ## 9. Reproduce
 
 From the worktree:

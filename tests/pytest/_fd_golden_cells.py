@@ -216,9 +216,11 @@ NO_VMAP = {"cpp"}
 # Reward-transform cells are NOT reproducible run to run on master (OI-022 /
 # OI-015: address-ordered reward transform). Two fresh-process captures
 # differed by up to 9.6e-8 relative in the FD gradient (forward last-bit noise
-# times 1/(2e-7)), so these compare at rtol 1e-6 instead of bitwise. A wrong
-# rule selection outside the band would change the gradient by orders of
-# magnitude more (the step would go from 0.5 relative to 3e-5).
+# times 1/(2e-7)), so these compare at rtol 1e-6 instead of bitwise. At
+# [0.7, 1.3] that tolerance does NOT detect a wrongly applied band (review m5:
+# the gradient moves by < 1.3e-6 there); the 2e-7 cell does (the step would go
+# from 0.5 relative to 3e-5), and the platform-independent emulated-master
+# test in test_fd_domain_steps.py checks these cells within one process.
 NON_REPRODUCIBLE = {"pam_linear_rw", "multivar", "cdf_zero"}
 NON_REPRODUCIBLE_RTOL = 1e-6
 
@@ -250,6 +252,9 @@ def grad_in_mode(name, theta, mode):
     if mode == "vmap":
         P = jnp.stack([th, th * 1.1])
         return np.asarray(jax.vmap(jax.grad(L))(P), dtype=np.float64)
+    if mode == "jitvmap":        # SVGD's mode; not in the goldens
+        P = jnp.stack([th, th * 1.1])
+        return np.asarray(jax.jit(jax.vmap(jax.grad(L)))(P), dtype=np.float64)
     raise KeyError(mode)
 
 

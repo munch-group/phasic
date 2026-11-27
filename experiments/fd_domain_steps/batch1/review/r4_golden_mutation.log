@@ -1,0 +1,162 @@
+M_all pfg_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_all pfg_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_all pfg_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_all pfg_log        [0.7, 1.3]                   eager golden-test-passes=False maxrel=8.55e-09
+M_all pfg_log        [0.7, 1.3]                   jit   golden-test-passes=False maxrel=8.55e-09
+M_all pfg_log        [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=8.55e-09
+M_all pfg_formula    [0.7, 1.3]                   eager golden-test-passes=False maxrel=6.3e-08
+M_all pfg_formula    [0.7, 1.3]                   jit   golden-test-passes=False maxrel=6.3e-08
+M_all pfg_formula    [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=6.3e-08
+M_all pfg_callback   [0.7, 1.3]                   eager golden-test-passes=False maxrel=6.3e-08
+M_all pfg_callback   [0.7, 1.3]                   jit   golden-test-passes=False maxrel=6.3e-08
+M_all pfg_callback   [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=6.3e-08
+M_all pfg_dph        [0.3, 0.4]                   eager golden-test-passes=False maxrel=3.57e-11
+M_all pfg_dph        [0.3, 0.4]                   jit   golden-test-passes=False maxrel=3.57e-11
+M_all pfg_dph        [0.3, 0.4]                   vmap  golden-test-passes=False maxrel=1.16e-10
+M_all pfg_dph        [0.3, 2e-07]                 eager golden-test-passes=False maxrel=1.17e-06
+M_all pfg_dph        [0.3, 2e-07]                 jit   golden-test-passes=False maxrel=1.17e-06
+M_all pfg_dph        [0.3, 2e-07]                 vmap  golden-test-passes=False maxrel=3.52e-06
+M_all pfg_wasdph     [0.7, 1.3, 0.9]              eager golden-test-passes=False maxrel=1.82e-09
+M_all pfg_wasdph     [0.7, 1.3, 0.9]              jit   golden-test-passes=False maxrel=1.82e-09
+M_all pfg_wasdph     [0.7, 1.3, 0.9]              vmap  golden-test-passes=False maxrel=1.82e-09
+M_all pam_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_all pam_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_all pam_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_all pam_linear_ffi [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_all pam_linear_ffi [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_all pam_linear_ffi [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_all pam_linear     [0.7, 5e-08]                 eager golden-test-passes=True maxrel=0
+M_all pam_linear     [0.7, 5e-08]                 jit   golden-test-passes=True maxrel=0
+M_all pam_linear     [0.7, 5e-08]                 vmap  golden-test-passes=True maxrel=0
+M_all pam_formula    [0.7, 1.3]                   eager golden-test-passes=False maxrel=6.18e-08
+M_all pam_formula    [0.7, 1.3]                   jit   golden-test-passes=False maxrel=6.18e-08
+M_all pam_formula    [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=6.18e-08
+M_all pam_log        [0.7, 1.3]                   eager golden-test-passes=False maxrel=8.98e-09
+M_all pam_log        [0.7, 1.3]                   jit   golden-test-passes=False maxrel=8.98e-09
+M_all pam_log        [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=8.98e-09
+M_all pam_linear_rw  [0.7, 1.3]                   eager golden-test-passes=False maxrel=1.26e-06
+M_all pam_linear_rw  [0.7, 1.3]                   jit   golden-test-passes=False maxrel=1.26e-06
+M_all pam_linear_rw  [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=1.26e-06
+M_all pam_linear_rw  [0.7, 2e-07]                 eager golden-test-passes=False maxrel=1.14e-05
+M_all pam_linear_rw  [0.7, 2e-07]                 jit   golden-test-passes=False maxrel=1.14e-05
+M_all pam_linear_rw  [0.7, 2e-07]                 vmap  golden-test-passes=False maxrel=4.97e-05
+[WARNING] phasic._fd_steps: pmf_and_moments_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch1/review/r4_golden_mutation.py:42: RuntimeWarning: invalid value encountered in divide
+  maxrel = float(np.max(np.abs(got - want) / np.abs(want)))
+M_all cdf_zero       [0.7, 1.3]                   eager golden-test-passes=True maxrel=nan
+[WARNING] phasic._fd_steps: pmf_and_moments_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+M_all cdf_zero       [0.7, 1.3]                   jit   golden-test-passes=True maxrel=nan
+[WARNING] phasic._fd_steps: pmf_and_moments_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+M_all cdf_zero       [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=nan
+M_all multivar       [0.7, 1.3]                   eager golden-test-passes=True maxrel=6.51e-08
+M_all multivar       [0.7, 1.3]                   jit   golden-test-passes=True maxrel=6.97e-08
+M_all multivar       [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=6.62e-08
+M_all mfg            [0.7, 1.3]                   eager golden-test-passes=False maxrel=1.84e-09
+M_all mfg            [0.7, 1.3]                   jit   golden-test-passes=False maxrel=1.84e-09
+M_all mfg            [0.7, 1.3]                   vmap  golden-test-passes=False maxrel=1.84e-09
+M_all cpp            [0.7, 1.3]                   eager golden-test-passes=False maxrel=6.3e-08
+M_all cpp            [0.7, 1.3]                   jit   golden-test-passes=False maxrel=6.3e-08
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch1/review/r4_golden_mutation.py:45: RuntimeWarning: invalid value encountered in divide
+  maxrel = float(np.max(np.abs(got - want) / np.abs(want)))
+M_all rvp_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=nan
+M_all rvp_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=nan
+M_all rvp_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=nan
+M_all jix            [1.0, 0.5]                   eager golden-test-passes=True maxrel=0
+M_all jix            [1.0, 0.5]                   jit   golden-test-passes=True maxrel=0
+M_all jix            [1.0, 0.5]                   vmap  golden-test-passes=True maxrel=0
+M_all dc_noexp       [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=False maxrel=1.54e-09
+M_all dc_noexp       [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=False maxrel=1.54e-09
+M_all dc_noexp       [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=False maxrel=2.86e-09
+M_all dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     eager golden-test-passes=False maxrel=1.21e-09
+M_all dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     jit   golden-test-passes=False maxrel=1.91e-08
+M_all dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     vmap  golden-test-passes=False maxrel=2.23e-09
+M_all dc_exp         [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=False maxrel=1.12e-07
+M_all dc_exp         [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=False maxrel=1.12e-07
+M_all dc_exp         [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=False maxrel=2.68e-07
+M_all dc_efg         [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=False maxrel=3.83e-10
+M_all dc_efg         [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=False maxrel=3.83e-10
+M_all dc_efg         [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=False maxrel=2.86e-09
+M_all dcjp           [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=False maxrel=7.17e-07
+M_all dcjp           [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=False maxrel=7.17e-07
+M_all dcjp           [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=False maxrel=2.1e-06
+M_all: cells that would NOT detect the mutation: 24
+M_2x pfg_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pfg_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pfg_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pfg_log        [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pfg_log        [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pfg_log        [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pfg_formula    [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pfg_formula    [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pfg_formula    [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pfg_callback   [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pfg_callback   [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pfg_callback   [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pfg_dph        [0.3, 0.4]                   eager golden-test-passes=True maxrel=0
+M_2x pfg_dph        [0.3, 0.4]                   jit   golden-test-passes=True maxrel=0
+M_2x pfg_dph        [0.3, 0.4]                   vmap  golden-test-passes=True maxrel=0
+M_2x pfg_dph        [0.3, 2e-07]                 eager golden-test-passes=False maxrel=1.17e-06
+M_2x pfg_dph        [0.3, 2e-07]                 jit   golden-test-passes=False maxrel=1.17e-06
+M_2x pfg_dph        [0.3, 2e-07]                 vmap  golden-test-passes=False maxrel=1.17e-06
+M_2x pfg_wasdph     [0.7, 1.3, 0.9]              eager golden-test-passes=True maxrel=0
+M_2x pfg_wasdph     [0.7, 1.3, 0.9]              jit   golden-test-passes=True maxrel=0
+M_2x pfg_wasdph     [0.7, 1.3, 0.9]              vmap  golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pam_linear_ffi [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pam_linear_ffi [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pam_linear_ffi [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 5e-08]                 eager golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 5e-08]                 jit   golden-test-passes=True maxrel=0
+M_2x pam_linear     [0.7, 5e-08]                 vmap  golden-test-passes=True maxrel=0
+M_2x pam_formula    [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pam_formula    [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pam_formula    [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pam_log        [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x pam_log        [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x pam_log        [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x pam_linear_rw  [0.7, 1.3]                   eager golden-test-passes=True maxrel=9.56e-08
+M_2x pam_linear_rw  [0.7, 1.3]                   jit   golden-test-passes=True maxrel=9.56e-08
+M_2x pam_linear_rw  [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=4.6e-08
+M_2x pam_linear_rw  [0.7, 2e-07]                 eager golden-test-passes=False maxrel=1.14e-05
+M_2x pam_linear_rw  [0.7, 2e-07]                 jit   golden-test-passes=False maxrel=1.14e-05
+M_2x pam_linear_rw  [0.7, 2e-07]                 vmap  golden-test-passes=False maxrel=1.14e-05
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch1/review/r4_golden_mutation.py:42: RuntimeWarning: invalid value encountered in divide
+  maxrel = float(np.max(np.abs(got - want) / np.abs(want)))
+M_2x cdf_zero       [0.7, 1.3]                   eager golden-test-passes=True maxrel=nan
+M_2x cdf_zero       [0.7, 1.3]                   jit   golden-test-passes=True maxrel=nan
+M_2x cdf_zero       [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=nan
+M_2x multivar       [0.7, 1.3]                   eager golden-test-passes=True maxrel=4.58e-09
+M_2x multivar       [0.7, 1.3]                   jit   golden-test-passes=True maxrel=1.99e-09
+M_2x multivar       [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=1.2e-08
+M_2x mfg            [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x mfg            [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+M_2x mfg            [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=0
+M_2x cpp            [0.7, 1.3]                   eager golden-test-passes=True maxrel=0
+M_2x cpp            [0.7, 1.3]                   jit   golden-test-passes=True maxrel=0
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch1/review/r4_golden_mutation.py:45: RuntimeWarning: invalid value encountered in divide
+  maxrel = float(np.max(np.abs(got - want) / np.abs(want)))
+M_2x rvp_linear     [0.7, 1.3]                   eager golden-test-passes=True maxrel=nan
+M_2x rvp_linear     [0.7, 1.3]                   jit   golden-test-passes=True maxrel=nan
+M_2x rvp_linear     [0.7, 1.3]                   vmap  golden-test-passes=True maxrel=nan
+M_2x jix            [1.0, 0.5]                   eager golden-test-passes=True maxrel=0
+M_2x jix            [1.0, 0.5]                   jit   golden-test-passes=True maxrel=0
+M_2x jix            [1.0, 0.5]                   vmap  golden-test-passes=True maxrel=0
+M_2x dc_noexp       [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=True maxrel=0
+M_2x dc_noexp       [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=True maxrel=0
+M_2x dc_noexp       [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=True maxrel=0
+M_2x dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     eager golden-test-passes=False maxrel=6.43e-11
+M_2x dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     jit   golden-test-passes=False maxrel=8.94e-10
+M_2x dc_noexp       [1.0, 2e-07, 1.5, 3e-07]     vmap  golden-test-passes=False maxrel=6.43e-11
+M_2x dc_exp         [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=True maxrel=0
+M_2x dc_exp         [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=True maxrel=0
+M_2x dc_exp         [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=True maxrel=0
+M_2x dc_efg         [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=True maxrel=0
+M_2x dc_efg         [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=True maxrel=0
+M_2x dc_efg         [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=True maxrel=0
+M_2x dcjp           [1.0, 0.5, 1.5, 0.3]         eager golden-test-passes=True maxrel=0
+M_2x dcjp           [1.0, 0.5, 1.5, 0.3]         jit   golden-test-passes=True maxrel=0
+M_2x dcjp           [1.0, 0.5, 1.5, 0.3]         vmap  golden-test-passes=True maxrel=0
+M_2x: cells that would NOT detect the mutation: 65
+[runcap] exit 0, peak RSS 1044 MB, 58s

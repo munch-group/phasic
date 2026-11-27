@@ -260,9 +260,10 @@ class FDStats:
             if n_zero and "zero" not in self._logged:
                 self._logged.add("zero")
                 msgs.append(
-                    f"{self.site}: zero FD gradient for a slot whose probes "
-                    "collapsed onto theta (theta too large for the capped step, "
-                    "above ~1.8e9); counted in model._fd_stats.zero_difference")
+                    f"{self.site}: zero FD gradient for a slot whose two probes "
+                    "rounded to the same value (float resolution: e.g. a capped "
+                    "'positive' slot above ~1.8e9, or a 'unit' slot within ~1e-15 "
+                    "of 1); counted in model._fd_stats.zero_difference")
             if n_tie and "tie" not in self._logged:
                 self._logged.add("tie")
                 msgs.append(
@@ -278,13 +279,17 @@ def _host_report(stats: FDStats, zeros, ties):
 
 
 def report(stats: Optional[FDStats], zeros, ties) -> None:
-    """One host callback per backward with every slot's flags (no-op when no
-    slot had an alternative branch)."""
+    """Send every slot's flags to the host counter (no-op when no slot had an
+    alternative branch). ``io_callback(ordered=False)`` rather than
+    ``jax.debug.callback``: under vmap the latter is unrolled into one
+    callback per particle in the compiled program, while io_callback batches
+    as one rolled loop (review m3; batch1/p_io_callback.py)."""
     if stats is None or not zeros:
         return
-    import jax
     import jax.numpy as jnp
-    jax.debug.callback(partial(_host_report, stats), jnp.stack(zeros), jnp.stack(ties))
+    from jax.experimental import io_callback
+    io_callback(partial(_host_report, stats), None, jnp.stack(zeros), jnp.stack(ties),
+                ordered=False)
 
 
 # ---------------------------------------------------------------- test seam

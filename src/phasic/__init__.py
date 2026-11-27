@@ -5052,6 +5052,10 @@ extern "C" {{
             None, always_refuses=True,
             family=_fd_steps.CAPPED if int(granularity) == 0 else _fd_steps.FULL)
         _fd_stats_dc = _fd_steps.FDStats('epoch model')
+        # 'fixed' domain slots are skipped like truly fixed ones, so they also
+        # get a zero gradient on the exact_final_grad path (review m2). Empty
+        # when undeclared, so fd_skip_indices is unchanged.
+        fd_skip_indices = sorted(set(fd_skip_indices) | _fd_steps.fixed_slots(_fd_domains_dc))
 
         # Extend broadcast_fixed to also lock slave positions. The
         # sentinel value 0.0 is overwritten by _apply_tying inside the

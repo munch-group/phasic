@@ -176,6 +176,7 @@ def attach_zero_inflated_term(
         from .ffi_wrappers import compute_reward_visit_probability_ffi
         # Plan A (§4.6): the rvp FD backward uses the model's domains.
         _fd_domains = getattr(model, '_param_domains', None)
+        _fd_stats = getattr(model, '_fd_stats', None)
 
         def _zero_inflated_p_fn(theta):
             """Return p_j(theta) for each offending feature j.
@@ -193,7 +194,7 @@ def attach_zero_inflated_term(
                 ps.append(
                     compute_reward_visit_probability_ffi(
                         structure_json, theta, rewarded_j, alpha_j,
-                        param_domains=_fd_domains,
+                        param_domains=_fd_domains, fd_stats=_fd_stats,
                     )
                 )
             return jnp.stack(ps)
