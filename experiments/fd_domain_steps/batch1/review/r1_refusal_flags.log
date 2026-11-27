@@ -1,0 +1,33 @@
+linear serialize keys: {'weight_mode': 'linear', 'is_discrete': False, 'was_dph': False}
+  pfg disc=False BuildInfo(refuses=False, log_mode=False, family='capped')
+  pam disc=False BuildInfo(refuses=False, log_mode=False, family='capped')
+  pfg disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  pam disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  rvp BuildInfo(refuses=False, log_mode=False, family='full')
+log serialize keys: {'weight_mode': 'log', 'is_discrete': False, 'was_dph': False}
+  pfg disc=False BuildInfo(refuses=True, log_mode=True, family='capped')
+  pam disc=False BuildInfo(refuses=True, log_mode=True, family='capped')
+  pfg disc=True BuildInfo(refuses=True, log_mode=True, family='capped')
+  pam disc=True BuildInfo(refuses=True, log_mode=True, family='capped')
+  rvp BuildInfo(refuses=True, log_mode=True, family='full')
+formula serialize keys: {'weight_mode': 'formula', 'is_discrete': False, 'was_dph': False}
+  pfg disc=False BuildInfo(refuses=True, log_mode=False, family='capped')
+  pam disc=False BuildInfo(refuses=True, log_mode=False, family='capped')
+  pfg disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  pam disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  rvp BuildInfo(refuses=True, log_mode=False, family='full')
+callback serialize keys: {'weight_mode': 'callback', 'is_discrete': False, 'was_dph': False}
+  pfg disc=False BuildInfo(refuses=True, log_mode=False, family='capped')
+  pam disc=False BuildInfo(refuses=True, log_mode=False, family='capped')
+  pfg disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  pam disc=True BuildInfo(refuses=True, log_mode=False, family='capped')
+  rvp BuildInfo(refuses=True, log_mode=False, family='full')
+graph.is_discrete=True serialize: {'weight_mode': 'linear', 'is_discrete': True, 'was_dph': False}
+  rvp on it: BuildInfo(refuses=True, log_mode=False, family='full')
+  pfg(discrete=False) on is_discrete graph: BuildInfo(refuses=True, log_mode=False, family='capped')
+discretized serialize: {'weight_mode': 'linear', 'is_discrete': True, 'was_dph': True}
+  pfg discrete=True: BuildInfo(refuses=True, log_mode=False, family='capped')
+  pfg discrete=False: BuildInfo(refuses=True, log_mode=False, family='capped')
+  rvp: BuildInfo(refuses=True, log_mode=False, family='full')
+joint (continuous) jix: BuildInfo(refuses=False, log_mode=False, family='full')
+[runcap] exit 0, peak RSS 350 MB, 5s

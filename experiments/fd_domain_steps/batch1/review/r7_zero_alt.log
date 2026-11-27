@@ -1,0 +1,1926 @@
+........................FF..FFFFF.......F.F.FFFFFF..FFFFFFFFFFFFFFFFFFFF [ 66%]
+F.FFF.FFF.F...F....FFFFFFF...FFF....F                                    [100%]
+=================================== FAILURES ===================================
+______ test_no_crash_in_the_band_on_every_site[pam-linear-cont-rw-5e-08] _______
+
+builder = 'pam', mode = 'linear', disc = False, rw = True, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...4314751770111) == 1.13808634738...3 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: -0.0644314751770111
+E         Expected: 1.1380863473853253 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pam-linear-cont-rw-0.0] ________
+
+builder = 'pam', mode = 'linear', disc = False, rw = True, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3148688046649) == 1.13808751311...2 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: -0.06443148688046649
+E         Expected: 1.1380875131195012 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pfg-linear-dph-5e-08] _________
+
+builder = 'pfg', mode = 'linear', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.075499633795829 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.075499633795829 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[pfg-linear-dph-0.0] __________
+
+builder = 'pfg', mode = 'linear', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.0754999668627363 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0754999668627363 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pam-linear-dph-5e-08] _________
+
+builder = 'pam', mode = 'linear', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3701975309198) == 0.7051294548254816 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: -0.3703701975309198
+E         Expected: 0.7051294548254816 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[pam-linear-dph-0.0] __________
+
+builder = 'pam', mode = 'linear', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...7037037037035) == 0.7051296213589353 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: -0.37037037037037035
+E         Expected: 0.7051296213589353 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[pfg-log-cont-5e-08] __________
+
+builder = 'pfg', mode = 'log', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 4.199999143219051 ± 0.0042
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 4.199999143219051 ± 0.0042
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+__________ test_no_crash_in_the_band_on_every_site[pfg-log-dph-5e-08] __________
+
+builder = 'pfg', mode = 'log', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.799999685000017 ± 0.0018
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.799999685000017 ± 0.0018
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+__________ test_no_crash_in_the_band_on_every_site[pam-log-dph-5e-08] __________
+
+builder = 'pam', mode = 'log', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == -1.9768898375...e+20 ± 2.0e+17
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -1.976889837542959e+20 ± 2.0e+17
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pfg-formula-cont-5e-08] ________
+
+builder = 'pfg', mode = 'formula', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.04232911191...5 ± 0.00104233
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0423291119110445 ± 0.00104233
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pfg-formula-cont-0.0] _________
+
+builder = 'pfg', mode = 'formula', disc = False, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.04232966702...8 ± 0.00104233
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0423296670225568 ± 0.00104233
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pam-formula-cont-5e-08] ________
+
+builder = 'pam', mode = 'formula', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3614518950524) == 1.00909297584...7 ± 0.00100909
+E         
+E         comparison failed
+E         Obtained: -0.03323614518950524
+E         Expected: 1.0090929758455047 ± 0.00100909
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pam-formula-cont-0.0] _________
+
+builder = 'pam', mode = 'formula', disc = False, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3615160349855) == 1.00909358646...3 ± 0.00100909
+E         
+E         comparison failed
+E         Obtained: -0.03323615160349855
+E         Expected: 1.0090935864681683 ± 0.00100909
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+______ test_no_crash_in_the_band_on_every_site[pam-formula-cont-rw-5e-08] ______
+
+builder = 'pam', mode = 'formula', disc = False, rw = True, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...4314751770111) == 1.13808634738...3 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: -0.0644314751770111
+E         Expected: 1.1380863473853253 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pam-formula-cont-rw-0.0] _______
+
+builder = 'pam', mode = 'formula', disc = False, rw = True, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3148688046649) == 1.13808751311...2 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: -0.06443148688046649
+E         Expected: 1.1380875131195012 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pfg-formula-dph-5e-08] ________
+
+builder = 'pfg', mode = 'formula', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.075499633795829 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.075499633795829 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[pfg-formula-dph-0.0] _________
+
+builder = 'pfg', mode = 'formula', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.0754999668627363 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0754999668627363 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pam-formula-dph-5e-08] ________
+
+builder = 'pam', mode = 'formula', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 0.7051294548254816 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.7051294548254816 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[pam-formula-dph-0.0] _________
+
+builder = 'pam', mode = 'formula', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 0.7051296213589353 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.7051296213589353 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pfg-callback-cont-5e-08] _______
+
+builder = 'pfg', mode = 'callback', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.04232911191...5 ± 0.00104233
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0423291119110445 ± 0.00104233
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pfg-callback-cont-0.0] ________
+
+builder = 'pfg', mode = 'callback', disc = False, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.04232966702...8 ± 0.00104233
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0423296670225568 ± 0.00104233
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pam-callback-cont-5e-08] _______
+
+builder = 'pam', mode = 'callback', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...3614518950524) == 1.00909297584...7 ± 0.00100909
+E         
+E         comparison failed
+E         Obtained: -0.03323614518950524
+E         Expected: 1.0090929758455047 ± 0.00100909
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pam-callback-cont-0.0] ________
+
+builder = 'pam', mode = 'callback', disc = False, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.00909358646...3 ± 0.00100909
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0090935864681683 ± 0.00100909
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_____ test_no_crash_in_the_band_on_every_site[pam-callback-cont-rw-5e-08] ______
+
+builder = 'pam', mode = 'callback', disc = False, rw = True, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(-0...4314751770111) == 1.13808634738...3 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: -0.0644314751770111
+E         Expected: 1.1380863473853253 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+______ test_no_crash_in_the_band_on_every_site[pam-callback-cont-rw-0.0] _______
+
+builder = 'pam', mode = 'callback', disc = False, rw = True, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.13808751311...2 ± 0.00113809
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.1380875131195012 ± 0.00113809
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pfg-callback-dph-5e-08] ________
+
+builder = 'pfg', mode = 'callback', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.075499633795829 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.075499633795829 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pfg-callback-dph-0.0] _________
+
+builder = 'pfg', mode = 'callback', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 1.0754999668627363 ± 0.0010755
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0754999668627363 ± 0.0010755
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_______ test_no_crash_in_the_band_on_every_site[pam-callback-dph-5e-08] ________
+
+builder = 'pam', mode = 'callback', disc = True, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 0.7051294548254816 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.7051294548254816 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[pam-callback-dph-0.0] _________
+
+builder = 'pam', mode = 'callback', disc = True, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == 0.7051296213589353 ± 7.1e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 0.7051296213589353 ± 7.1e-04
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+________ test_no_crash_in_the_band_on_every_site[mfg-linear-cont-5e-08] ________
+
+builder = 'mfg', mode = 'linear', disc = False, rw = False, v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == -33.236146279...94 ± 0.0332361
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -33.236146279591594 ± 0.0332361
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+_________ test_no_crash_in_the_band_on_every_site[mfg-linear-cont-0.0] _________
+
+builder = 'mfg', mode = 'linear', disc = False, rw = False, v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    @pytest.mark.parametrize("builder,mode,disc,rw", _CRASH,
+                             ids=[f"{b}-{m}-{'dph' if d else 'cont'}{'-rw' if r else ''}"
+                                  for b, m, d, r in _CRASH])
+    def test_no_crash_in_the_band_on_every_site(builder, mode, disc, rw, v):
+        """§4.4: an undeclared slot at 5e-8 or 0 no longer makes a probe cross zero
+        on any refusing site; log mode at exactly 0 keeps today's primal error
+        (§4.5). The value matches a reference whose probes stay >= 0."""
+        f, L = _beside_model(builder, mode, disc, rewards=rw)
+        th = jnp.asarray([0.3 if disc else 0.7, v])
+        if mode == "log" and v == 0.0:
+            with pytest.raises(Exception, match="positive"):
+                np.asarray(jax.grad(L)(th))
+            return
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>       assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == -33.23614983230527 ± 0.0332361
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -33.23614983230527 ± 0.0332361
+
+tests/pytest/test_fd_domain_steps.py:238: AssertionError
+__________________ test_no_crash_on_pmf_from_cpp_in_the_band ___________________
+
+    def test_no_crash_on_pmf_from_cpp_in_the_band():
+        L = C.loss_of(C.build("cpp"))
+        for v in (5e-8, 0.0):
+            th = jnp.asarray([0.7, v])
+            g = np.asarray(jax.grad(L)(th))
+            assert np.all(np.isfinite(g))
+            ref = _central(L, th, 1, 1e-9) if v else _forward_diff(L, th, 1, 1e-9)
+>           assert g[1] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E           assert np.float64(0.0) == 1.04232911191...5 ± 0.00104233
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: 1.0423291119110445 ± 0.00104233
+
+tests/pytest/test_fd_domain_steps.py:248: AssertionError
+_________________ test_no_crash_on_the_discretize_slot[5e-08] __________________
+
+v = 5e-08
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    def test_no_crash_on_the_discretize_slot(v):
+        m = Graph.pmf_from_graph(C.beside().discretize(1.0), discrete=True, theta_dim=3)
+        L = C.loss_of(lambda th: m(th, jnp.asarray([1.0, 2.0, 4.0])))
+        th = jnp.asarray([0.7, 1.3, v])
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g))
+        ref = _central(L, th, 2, 1e-9) if v else _forward_diff(L, th, 2, 1e-9)
+>       assert g[2] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == -0.32499997137946934 ± 3.2e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -0.32499997137946934 ± 3.2e-04
+
+tests/pytest/test_fd_domain_steps.py:259: AssertionError
+__________________ test_no_crash_on_the_discretize_slot[0.0] ___________________
+
+v = 0.0
+
+    @pytest.mark.parametrize("v", [5e-8, 0.0])
+    def test_no_crash_on_the_discretize_slot(v):
+        m = Graph.pmf_from_graph(C.beside().discretize(1.0), discrete=True, theta_dim=3)
+        L = C.loss_of(lambda th: m(th, jnp.asarray([1.0, 2.0, 4.0])))
+        th = jnp.asarray([0.7, 1.3, v])
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g))
+        ref = _central(L, th, 2, 1e-9) if v else _forward_diff(L, th, 2, 1e-9)
+>       assert g[2] == pytest.approx(ref, rel=1e-3, abs=1e-6)
+E       assert np.float64(0.0) == -0.32500013791292304 ± 3.3e-04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: -0.32500013791292304 ± 3.3e-04
+
+tests/pytest/test_fd_domain_steps.py:259: AssertionError
+_____ test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-1e-8] ______
+
+cell = 'dc_noexp', theta = [1.0, 1e-08, 1.0, 1e-08]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 267290186.33220235)
+E               assert np.float64(2.6729018633220236) <= (1e-06 * (1.0 + 2.6729018633220236))
+E                +  where np.float64(2.6729018633220236) = abs(((1e-08 * np.float64(0.0)) - (1e-08 * 267290186.33220235)))
+E                +  and   2.6729018633220236 = abs((1e-08 * 267290186.33220235))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+_____ test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-1e-9] ______
+
+cell = 'dc_noexp', theta = [1.0, 1e-09, 1.0, 1e-09]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 2672901864.08123)
+E               assert np.float64(2.6729018640812305) <= (1e-06 * (1.0 + 2.6729018640812305))
+E                +  where np.float64(2.6729018640812305) = abs(((1e-09 * np.float64(0.0)) - (1e-09 * 2672901864.08123)))
+E                +  and   2.6729018640812305 = abs((1e-09 * 2672901864.08123))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+____ test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-rate-0] _____
+
+cell = 'dc_noexp', theta = [1.0, 0.0, 1.0, 0.5]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+                assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+            elif t == 0.0:
+                # one-sided [0, 1e-7] step: first order; reference second order
+                ref = 2 * _forward_diff(L, th, i, 5e-8) - _forward_diff(L, th, i, 1e-7)
+>               assert g[i] == pytest.approx(ref, rel=2e-2, abs=1e-6)
+E               assert np.float64(0.0) == 7.7074414406297365 ± 0.154149
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: 7.7074414406297365 ± 0.154149
+
+tests/pytest/test_fd_domain_steps.py:300: AssertionError
+______ test_epoch_model_band_gradients_are_finite_and_right[dc_exp-1e-8] _______
+
+cell = 'dc_exp', theta = [1.0, 1e-08, 1.0, 1e-08]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 267290186.31547144)
+E               assert np.float64(2.6729018631547143) <= (1e-06 * (1.0 + 2.6729018631547143))
+E                +  where np.float64(2.6729018631547143) = abs(((1e-08 * np.float64(0.0)) - (1e-08 * 267290186.31547144)))
+E                +  and   2.6729018631547143 = abs((1e-08 * 267290186.31547144))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+______ test_epoch_model_band_gradients_are_finite_and_right[dc_exp-1e-9] _______
+
+cell = 'dc_exp', theta = [1.0, 1e-09, 1.0, 1e-09]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 2672901864.074851)
+E               assert np.float64(2.672901864074851) <= (1e-06 * (1.0 + 2.672901864074851))
+E                +  where np.float64(2.672901864074851) = abs(((1e-09 * np.float64(0.0)) - (1e-09 * 2672901864.074851)))
+E                +  and   2.672901864074851 = abs((1e-09 * 2672901864.074851))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+_____ test_epoch_model_band_gradients_are_finite_and_right[dc_exp-rate-0] ______
+
+cell = 'dc_exp', theta = [1.0, 0.0, 1.0, 0.5]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+                assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+            elif t == 0.0:
+                # one-sided [0, 1e-7] step: first order; reference second order
+                ref = 2 * _forward_diff(L, th, i, 5e-8) - _forward_diff(L, th, i, 1e-7)
+>               assert g[i] == pytest.approx(ref, rel=2e-2, abs=1e-6)
+E               assert np.float64(0.0) == 7.696091159914431 ± 0.153922
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: 7.696091159914431 ± 0.153922
+
+tests/pytest/test_fd_domain_steps.py:300: AssertionError
+______ test_epoch_model_band_gradients_are_finite_and_right[dc_efg-1e-8] _______
+
+cell = 'dc_efg', theta = [1.0, 1e-08, 1.0, 1e-08]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 267290186.33220235)
+E               assert np.float64(2.6729018633220236) <= (1e-06 * (1.0 + 2.6729018633220236))
+E                +  where np.float64(2.6729018633220236) = abs(((1e-08 * np.float64(0.0)) - (1e-08 * 267290186.33220235)))
+E                +  and   2.6729018633220236 = abs((1e-08 * 267290186.33220235))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+______ test_epoch_model_band_gradients_are_finite_and_right[dc_efg-1e-9] _______
+
+cell = 'dc_efg', theta = [1.0, 1e-09, 1.0, 1e-09]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+>               assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+E               AssertionError: (np.float64(0.0), 2672901864.08123)
+E               assert np.float64(2.6729018640812305) <= (1e-06 * (1.0 + 2.6729018640812305))
+E                +  where np.float64(2.6729018640812305) = abs(((1e-09 * np.float64(0.0)) - (1e-09 * 2672901864.08123)))
+E                +  and   2.6729018640812305 = abs((1e-09 * 2672901864.08123))
+
+tests/pytest/test_fd_domain_steps.py:296: AssertionError
+_____ test_epoch_model_band_gradients_are_finite_and_right[dc_efg-rate-0] ______
+
+cell = 'dc_efg', theta = [1.0, 0.0, 1.0, 0.5]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+                assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+            elif t == 0.0:
+                # one-sided [0, 1e-7] step: first order; reference second order
+                ref = 2 * _forward_diff(L, th, i, 5e-8) - _forward_diff(L, th, i, 1e-7)
+>               assert g[i] == pytest.approx(ref, rel=2e-2, abs=1e-6)
+E               assert np.float64(0.0) == 7.7074414406297365 ± 0.154149
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: 7.7074414406297365 ± 0.154149
+
+tests/pytest/test_fd_domain_steps.py:300: AssertionError
+______ test_epoch_model_band_gradients_are_finite_and_right[dcjp-rate-0] _______
+
+cell = 'dcjp', theta = [1.0, 0.0, 1.0, 0.5]
+
+    @pytest.mark.parametrize("theta", _EPOCH_CASES, ids=["1e-8", "1e-9", "first-1e-9", "rate-0"])
+    @pytest.mark.parametrize("cell", ["dc_noexp", "dc_exp", "dc_efg", "dcjp"])
+    def test_epoch_model_band_gradients_are_finite_and_right(cell, theta):
+        """§1: these thetas raised 'NEGATIVE transition rate' on master (also with
+        exact_final_grad=True, whose earlier-epoch slots use FD); now finite, and
+        each band slot matches a reference whose probes stay >= 0 (a rate fixed
+        at 0, the nested likelihood-ratio model, uses the one-sided step)."""
+        f = C.build(cell)
+        L = lambda t: jnp.sum(jnp.log(jax.tree_util.tree_leaves(f(t))[0]))
+        th = jnp.asarray(theta)
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g)), g
+        for i, t in enumerate(theta):
+            if 0.0 < t <= 1e-7:
+                # §6: absolute tolerance in the domain coordinate (theta * d/dtheta,
+                # loss units). Measured (batch1/m1_epoch_band_errors.log): the
+                # epoch models agree with Richardson to ~1e-10 relative; a slot
+                # whose effect is linear near 0 (§4.3 limit) is noise-dominated in
+                # relative terms but within ~1e-9 here.
+                ref = _richardson_log(L, th, i)
+                assert abs(t * g[i] - t * ref) <= 1e-6 * (1.0 + abs(t * ref)), (g[i], ref)
+            elif t == 0.0:
+                # one-sided [0, 1e-7] step: first order; reference second order
+                ref = 2 * _forward_diff(L, th, i, 5e-8) - _forward_diff(L, th, i, 1e-7)
+>               assert g[i] == pytest.approx(ref, rel=2e-2, abs=1e-6)
+E               assert np.float64(0.0) == -0.0533361799...6 ± 0.00106672
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: -0.05333617991709616 ± 0.00106672
+
+tests/pytest/test_fd_domain_steps.py:300: AssertionError
+______ test_declared_positive_moments_gradient_matches_closed_form[1e-06] ______
+
+scale = 1e-06
+
+    @pytest.mark.parametrize("scale", [1e-6, 1.0, 1e3])
+    def test_declared_positive_moments_gradient_matches_closed_form(scale):
+        """Elimination family, full rule (s = 3e-5), on moments_from_graph (no
+        fixed-slot argument: slot 1 is 'fixed' through its domain): the FD
+        gradient matches the closed form in the domain coordinate."""
+        C._ensure_source_dir()
+        mfg = Graph.moments_from_graph(_three_slot_chain(), nr_moments=2,
+                                       param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0, 0.5, 2.0]) * scale
+        w = 1.0 / np.asarray(_closed_moments(th))
+        L = lambda t: jnp.sum(mfg(t) * w)
+        Lc = lambda t: jnp.sum(_closed_moments(t) * w)
+        g = np.asarray(jax.grad(L)(th)); gc = np.asarray(jax.grad(Lc)(th))
+        assert g[1] == 0.0                                    # fixed: not probed, zero
+        for i in (0, 2):
+>           assert th[i] * g[i] == pytest.approx(float(th[i] * gc[i]), rel=1e-6, abs=1e-9)
+E           assert Array(0., dtype=float64) == -1.0666666666666662 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: -1.0666666666666662 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:385: AssertionError
+_______ test_declared_positive_moments_gradient_matches_closed_form[1.0] _______
+
+scale = 1.0
+
+    @pytest.mark.parametrize("scale", [1e-6, 1.0, 1e3])
+    def test_declared_positive_moments_gradient_matches_closed_form(scale):
+        """Elimination family, full rule (s = 3e-5), on moments_from_graph (no
+        fixed-slot argument: slot 1 is 'fixed' through its domain): the FD
+        gradient matches the closed form in the domain coordinate."""
+        C._ensure_source_dir()
+        mfg = Graph.moments_from_graph(_three_slot_chain(), nr_moments=2,
+                                       param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0, 0.5, 2.0]) * scale
+        w = 1.0 / np.asarray(_closed_moments(th))
+        L = lambda t: jnp.sum(mfg(t) * w)
+        Lc = lambda t: jnp.sum(_closed_moments(t) * w)
+        g = np.asarray(jax.grad(L)(th)); gc = np.asarray(jax.grad(Lc)(th))
+        assert g[1] == 0.0                                    # fixed: not probed, zero
+        for i in (0, 2):
+>           assert th[i] * g[i] == pytest.approx(float(th[i] * gc[i]), rel=1e-6, abs=1e-9)
+E           assert Array(0., dtype=float64) == -1.0666666666666669 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: -1.0666666666666669 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:385: AssertionError
+_____ test_declared_positive_moments_gradient_matches_closed_form[1000.0] ______
+
+scale = 1000.0
+
+    @pytest.mark.parametrize("scale", [1e-6, 1.0, 1e3])
+    def test_declared_positive_moments_gradient_matches_closed_form(scale):
+        """Elimination family, full rule (s = 3e-5), on moments_from_graph (no
+        fixed-slot argument: slot 1 is 'fixed' through its domain): the FD
+        gradient matches the closed form in the domain coordinate."""
+        C._ensure_source_dir()
+        mfg = Graph.moments_from_graph(_three_slot_chain(), nr_moments=2,
+                                       param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0, 0.5, 2.0]) * scale
+        w = 1.0 / np.asarray(_closed_moments(th))
+        L = lambda t: jnp.sum(mfg(t) * w)
+        Lc = lambda t: jnp.sum(_closed_moments(t) * w)
+        g = np.asarray(jax.grad(L)(th)); gc = np.asarray(jax.grad(Lc)(th))
+        assert g[1] == 0.0                                    # fixed: not probed, zero
+        for i in (0, 2):
+>           assert th[i] * g[i] == pytest.approx(float(th[i] * gc[i]), rel=1e-6, abs=1e-9)
+E           assert Array(0., dtype=float64) == -1.0666666666666664 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: -1.0666666666666664 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:385: AssertionError
+___________ test_declared_positive_moments_on_the_capped_site[1e-06] ___________
+
+scale = 1e-06
+
+    @pytest.mark.parametrize("scale", [1e-6, 1.0])
+    def test_declared_positive_moments_on_the_capped_site(scale):
+        """pmf_and_moments_from_graph is a capped site (its pdf half has jumps);
+        with exact_moment_grad=False its moments inherit the cap (§4.1). Where the
+        cap does not shrink the relative step (theta <= ~3e-3) the moments match
+        the closed form; at large theta the capped step is today's 1e-7 absolute
+        step, with today's noise (§4.3)."""
+        m = Graph.pmf_and_moments_from_graph(
+            _three_slot_chain(), nr_moments=2, theta_dim=3, exact_moment_grad=False,
+            param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0, 0.5, 2.0]) * scale
+        w = 1.0 / np.asarray(_closed_moments(th))
+        L = lambda t: jnp.sum(m(t, jnp.asarray([1.0]))[1] * w)
+        g = np.asarray(jax.grad(L)(th))
+        gc = np.asarray(jax.grad(lambda t: jnp.sum(_closed_moments(t) * w))(th))
+        assert g[1] == 0.0
+        for i in (0, 2):
+>           assert th[i] * g[i] == pytest.approx(float(th[i] * gc[i]), rel=1e-6, abs=1e-9)
+E           assert Array(0., dtype=float64) == -1.0666666666666662 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: -1.0666666666666662 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:410: AssertionError
+____________ test_declared_positive_moments_on_the_capped_site[1.0] ____________
+
+scale = 1.0
+
+    @pytest.mark.parametrize("scale", [1e-6, 1.0])
+    def test_declared_positive_moments_on_the_capped_site(scale):
+        """pmf_and_moments_from_graph is a capped site (its pdf half has jumps);
+        with exact_moment_grad=False its moments inherit the cap (§4.1). Where the
+        cap does not shrink the relative step (theta <= ~3e-3) the moments match
+        the closed form; at large theta the capped step is today's 1e-7 absolute
+        step, with today's noise (§4.3)."""
+        m = Graph.pmf_and_moments_from_graph(
+            _three_slot_chain(), nr_moments=2, theta_dim=3, exact_moment_grad=False,
+            param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0, 0.5, 2.0]) * scale
+        w = 1.0 / np.asarray(_closed_moments(th))
+        L = lambda t: jnp.sum(m(t, jnp.asarray([1.0]))[1] * w)
+        g = np.asarray(jax.grad(L)(th))
+        gc = np.asarray(jax.grad(lambda t: jnp.sum(_closed_moments(t) * w))(th))
+        assert g[1] == 0.0
+        for i in (0, 2):
+>           assert th[i] * g[i] == pytest.approx(float(th[i] * gc[i]), rel=1e-6, abs=1e-9)
+E           assert Array(0., dtype=float64) == -1.0666666666666669 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: 0.0
+E             Expected: -1.0666666666666669 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:410: AssertionError
+_________ test_declared_positive_pdf_gradient_matches_a_reference[1.0] _________
+
+scale = 1.0
+
+    @pytest.mark.parametrize("scale", [1.0, 1e3])
+    def test_declared_positive_pdf_gradient_matches_a_reference(scale):
+        """Euler pdf family (capped rule): against a Richardson extrapolation of
+        the SAME forward in the log coordinate. The point avoids an integer
+        2 x max exit rate: above a max rate of 512 the granularity int(2 x max
+        rate) jumps there, and any 1e-7 probe (today's or capped) straddles the
+        jump (plan §9; Plan B removes it)."""
+        m = Graph.pmf_from_graph(_three_slot_chain(), theta_dim=3,
+                                 param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0137, 0.5071, 2.0293]) * scale
+        x = TIMES / scale
+        L = lambda t: jnp.sum(jnp.log(m(t, x)))
+        g = np.asarray(jax.grad(L)(th))
+        assert g[1] == 0.0
+    
+        def rich(i, s=1e-2):
+            def d(h):
+                return float(L(th.at[i].multiply(np.exp(h))) - L(th.at[i].multiply(np.exp(-h)))) / (2 * h)
+            a, b, c = d(s), d(s / 2), d(s / 4)
+            r1, r2 = (4 * b - a) / 3, (4 * c - b) / 3
+            return (16 * r2 - r1) / 15
+        if scale == 1.0:
+            # max exit rate < 512: fixed granularity, a smooth forward
+            for i in (0, 2):
+>               assert float(th[i]) * g[i] == pytest.approx(rich(i), rel=1e-5)
+E               assert np.float64(0.0) == -0.09502559675816702 ± 9.5e-07
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: -0.09502559675816702 ± 9.5e-07
+
+tests/pytest/test_fd_domain_steps.py:437: AssertionError
+_______ test_declared_positive_pdf_gradient_matches_a_reference[1000.0] ________
+
+scale = 1000.0
+
+    @pytest.mark.parametrize("scale", [1.0, 1e3])
+    def test_declared_positive_pdf_gradient_matches_a_reference(scale):
+        """Euler pdf family (capped rule): against a Richardson extrapolation of
+        the SAME forward in the log coordinate. The point avoids an integer
+        2 x max exit rate: above a max rate of 512 the granularity int(2 x max
+        rate) jumps there, and any 1e-7 probe (today's or capped) straddles the
+        jump (plan §9; Plan B removes it)."""
+        m = Graph.pmf_from_graph(_three_slot_chain(), theta_dim=3,
+                                 param_domains=["positive", "fixed", "positive"])
+        th = jnp.asarray([1.0137, 0.5071, 2.0293]) * scale
+        x = TIMES / scale
+        L = lambda t: jnp.sum(jnp.log(m(t, x)))
+        g = np.asarray(jax.grad(L)(th))
+        assert g[1] == 0.0
+    
+        def rich(i, s=1e-2):
+            def d(h):
+                return float(L(th.at[i].multiply(np.exp(h))) - L(th.at[i].multiply(np.exp(-h)))) / (2 * h)
+            a, b, c = d(s), d(s / 2), d(s / 4)
+            r1, r2 = (4 * b - a) / 3, (4 * c - b) / 3
+            return (16 * r2 - r1) / 15
+        if scale == 1.0:
+            # max exit rate < 512: fixed granularity, a smooth forward
+            for i in (0, 2):
+                assert float(th[i]) * g[i] == pytest.approx(rich(i), rel=1e-5)
+        else:
+            # max exit rate ~2029 > 512: the automatic granularity int(2 x max
+            # rate) jumps every ~2.5e-4 relative in theta (so no wide-step
+            # reference of the automatic forward is valid), and at ~2 Euler steps
+            # per holding time the forward itself is far from the closed form
+            # (Plan B's territory). The capped step stays on ONE granularity
+            # plateau: the reference is the slope of the same forward at that
+            # fixed granularity.
+            gc = _chain_graph_at(th)
+            gran = int(2 * max(512.0, float(th[0] + th[1]), float(th[2])))
+    
+            def Lfix(t):
+                gg = _chain_graph_at(t)
+                return float(np.sum(np.log([gg.pdf(float(u), gran) for u in np.asarray(x)])))
+            for i in (0, 2):
+                def d(h):
+                    return (Lfix(th.at[i].multiply(np.exp(h))) - Lfix(th.at[i].multiply(np.exp(-h)))) / (2 * h)
+                a, b, c = d(1e-6), d(5e-7), d(2.5e-7)
+                r1, r2 = (4 * b - a) / 3, (4 * c - b) / 3
+                ref = (16 * r2 - r1) / 15
+>               assert float(th[i]) * g[i] == pytest.approx(ref, rel=1e-4)
+E               assert np.float64(0.0) == -0.20267295752773862 ± 2.0e-05
+E                 
+E                 comparison failed
+E                 Obtained: 0.0
+E                 Expected: -0.20267295752773862 ± 2.0e-05
+
+tests/pytest/test_fd_domain_steps.py:458: AssertionError
+_________________ test_formula_and_log_modes_with_fixed_slots __________________
+
+    def test_formula_and_log_modes_with_fixed_slots():
+        for mode in ("formula", "log"):
+            f, L = _beside_model("pam", mode, False, domains=["positive", "fixed"])
+            g = np.asarray(jax.grad(L)(jnp.asarray([0.7, 1.3])))
+            assert g[1] == 0.0 and np.isfinite(g[0])
+            ref = float(0.7 * _central(L, jnp.asarray([0.7, 1.3]), 0, 1e-6))
+>           assert 0.7 * g[0] == pytest.approx(ref, rel=1e-5)
+E           assert np.float64(-0...5714285714294) == 0.11131887140969353 ± 1.1e-06
+E             
+E             comparison failed
+E             Obtained: -0.0029785714285714294
+E             Expected: 0.11131887140969353 ± 1.1e-06
+
+tests/pytest/test_fd_domain_steps.py:543: AssertionError
+____________ test_declared_positive_at_zero_uses_the_one_sided_step ____________
+
+    def test_declared_positive_at_zero_uses_the_one_sided_step():
+        f, L = _beside_model("pfg", "linear", False, domains=["positive", "positive"])
+        th = jnp.asarray([0.7, 0.0])
+        g = np.asarray(jax.grad(L)(th))
+>       assert g[1] == pytest.approx(float((L(th.at[1].set(1e-7)) - L(th)) / 1e-7), rel=1e-8)
+E       assert np.float64(0.0) == 1.0423285279337335 ± 1.0e-08
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 1.0423285279337335 ± 1.0e-08
+
+tests/pytest/test_fd_domain_steps.py:551: AssertionError
+____________ test_zero_probe_difference_is_counted_and_logged_once _____________
+
+fd_warnings = ['pmf_from_graph: zero FD gradient for a slot whose probes collapsed onto theta (theta too large for the capped step, above ~1.8e9); counted in model._fd_stats.zero_difference']
+
+    def test_zero_probe_difference_is_counted_and_logged_once(fd_warnings):
+        """§4.5: above ~1.8e9 the capped positive probes collapse onto theta; the
+        slot gets a zero gradient, counted, logged once per model."""
+        g = Graph(1)
+        s = g.starting_vertex()
+        a = g.find_or_create_vertex([3]); b = g.find_or_create_vertex([2]); c = g.find_or_create_vertex([1])
+        s.add_edge(a, 1.0); a.add_edge(b, [1.0, 0.0]); a.add_edge(c, [0.0, 1e-12]); b.add_edge(c, [1.0, 0.0])
+        m = Graph.pmf_from_graph(g, theta_dim=2, param_domains=["positive", "positive"])
+        L = lambda t: jnp.sum(m(t, TIMES))
+        for _ in range(2):
+            gr = np.asarray(jax.grad(L)(jnp.asarray([0.7, 3e9])))
+>           assert gr[1] == 0.0 and gr[0] != 0.0
+E           assert (np.float64(0.0) == 0.0 and np.float64(0.0) != 0.0)
+
+tests/pytest/test_fd_domain_steps.py:578: AssertionError
+----------------------------- Captured stderr call -----------------------------
+[WARNING] phasic._fd_steps: pmf_from_graph: zero FD gradient for a slot whose probes collapsed onto theta (theta too large for the capped step, above ~1.8e9); counted in model._fd_stats.zero_difference
+------------------------------ Captured log call -------------------------------
+WARNING  phasic._fd_steps:_fd_steps.py:273 pmf_from_graph: zero FD gradient for a slot whose probes collapsed onto theta (theta too large for the capped step, above ~1.8e9); counted in model._fd_stats.zero_difference
+_____________________ test_exposure_band_with_small_alpha ______________________
+
+    def test_exposure_band_with_small_alpha():
+        """An exposure model with alpha below 1 and the exposure slot in the band."""
+        jpg, oi = C.joint_graphs()
+        m, _, _, _ = jpg._daisy_chain_svgd_model(
+            observed_indices=list(oi), epoch_starts=np.array([0.0, 0.5]),
+            user_prior=None, user_fixed=None,
+            exposure_arr=np.linspace(1e-3, 0.5, len(oi)), exposure_param_index=1)
+        L = lambda t: jnp.sum(jnp.log(m(t, None)[0]))
+        th = jnp.asarray([1.0, 5e-8, 1.0, 5e-8])
+        g = np.asarray(jax.grad(L)(th))
+        assert np.all(np.isfinite(g))
+>       assert g[1] == pytest.approx(_central(L, th, 1, 1e-9), rel=1e-3)
+E       assert np.float64(0.0) == 53458766.983752064 ± 5.3e+04
+E         
+E         comparison failed
+E         Obtained: 0.0
+E         Expected: 53458766.983752064 ± 5.3e+04
+
+tests/pytest/test_fd_domain_steps.py:671: AssertionError
+=============================== warnings summary ===============================
+tests/pytest/test_fd_domain_steps.py::test_graph_svgd_epoch_route_runs_with_particles_in_the_band
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps.py:321: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=[0.0, 0.5],
+
+tests/pytest/test_fd_domain_steps.py::test_graph_svgd_epoch_route_runs_with_particles_in_the_band
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps.py:321: SvgdAssumptionWarning: svgd: no rate is fixed and none of the last epoch's rates is tied to an earlier epoch, so the data cannot determine the overall scale of the last epoch's rates and it follows the prior; fix a rate with fixed= to identify it. See .effective_options('fixed') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=[0.0, 0.5],
+
+tests/pytest/test_fd_domain_steps.py::test_graph_svgd_epoch_route_runs_with_particles_in_the_band
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps.py:321: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=[0.0, 0.5],
+
+tests/pytest/test_fd_domain_steps.py::test_epoch_model_and_direct_svgd_routes_run_with_particles_in_the_band
+  /Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/epoch_model.py:143: SvgdAssumptionWarning: FreeEpochModel.fit: none of the last epoch's rates is fixed, so the data cannot determine their overall scale and it follows the prior; fix a rate with fixed= to identify it.
+    assume(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+==================================== PASSES ====================================
+__________ test_no_crash_in_the_band_on_every_site[pfg-log-cont-0.0] ___________
+----------------------------- Captured stderr call -----------------------------
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    phasic.c:logging_config.py:207 ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+__________ test_no_crash_in_the_band_on_every_site[pam-log-cont-0.0] ___________
+----------------------------- Captured stderr call -----------------------------
+ERROR:2026-11-27 10:06:39,295:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    jax._src.callback:callback.py:94 jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+_________ test_no_crash_in_the_band_on_every_site[pam-log-cont-rw-0.0] _________
+----------------------------- Captured stderr call -----------------------------
+ERROR:2026-11-27 10:06:39,404:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    jax._src.callback:callback.py:94 jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+_________ test_no_crash_in_the_band_on_every_site[rvp-log-cont-5e-08] __________
+----------------------------- Captured stderr call -----------------------------
+[WARNING] phasic._fd_steps: reward_visit_probability: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+------------------------------ Captured log call -------------------------------
+WARNING  phasic._fd_steps:_fd_steps.py:273 reward_visit_probability: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+__________ test_no_crash_in_the_band_on_every_site[rvp-log-cont-0.0] ___________
+----------------------------- Captured stderr call -----------------------------
+ERROR:2026-11-27 10:06:39,569:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1288, in _cb
+    return _reward_visit_probability_callback(
+        structure_str,
+    ...<2 lines>...
+        np.asarray(ipv_jax),
+    )
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1257, in _reward_visit_probability_callback
+    concrete = Graph(builder.build(theta_np))
+                     ~~~~~~~~~~~~~^^^^^^^^^^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    jax._src.callback:callback.py:94 jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1288, in _cb
+    return _reward_visit_probability_callback(
+        structure_str,
+    ...<2 lines>...
+        np.asarray(ipv_jax),
+    )
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/ffi_wrappers.py", line 1257, in _reward_visit_probability_callback
+    concrete = Graph(builder.build(theta_np))
+                     ~~~~~~~~~~~~~^^^^^^^^^^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+___________ test_no_crash_in_the_band_on_every_site[pfg-log-dph-0.0] ___________
+----------------------------- Captured stderr call -----------------------------
+[ERROR] phasic.c: ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    phasic.c:logging_config.py:207 ComputePmfFfiImpl exception: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+___________ test_no_crash_in_the_band_on_every_site[pam-log-dph-0.0] ___________
+----------------------------- Captured stderr call -----------------------------
+ERROR:2026-11-27 10:06:39,715:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+------------------------------ Captured log call -------------------------------
+ERROR    jax._src.callback:callback.py:94 jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9072, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9005, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+ValueError: log weight mode requires all (coefficient * parameter) products to be positive. Got non-positive product at index 1
+_________________ test_forward_tie_is_counted_and_logged_once __________________
+----------------------------- Captured stderr call -----------------------------
+[WARNING] phasic._fd_steps: pmf_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+------------------------------ Captured log call -------------------------------
+WARNING  phasic._fd_steps:_fd_steps.py:273 pmf_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+__________________________ test_discrete_row_sum_wall __________________________
+----------------------------- Captured stderr call -----------------------------
+[ERROR] phasic.c: ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000000499999999'. Are you sure this is a discrete phase-type distribution?
+
+------------------------------ Captured log call -------------------------------
+ERROR    phasic.c:logging_config.py:207 ComputePmfFfiImpl exception: Expected vertex with index 1 (state 1) to have outgoing rate <= 1. Is '1.0000000499999999'. Are you sure this is a discrete phase-type distribution?
+=========================== short test summary info ============================
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1e-300]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1e-13]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1e-12]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1e-09]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1e-07]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[0.001]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1000000.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_positive_probes_stay_inside_the_domain[1000000000.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_unit_probes_stay_inside_zero_one[1e-12]
+PASSED tests/pytest/test_fd_domain_steps.py::test_unit_probes_stay_inside_zero_one[1e-09]
+PASSED tests/pytest/test_fd_domain_steps.py::test_unit_probes_stay_inside_zero_one[0.3]
+PASSED tests/pytest/test_fd_domain_steps.py::test_unit_probes_stay_inside_zero_one[0.999999999]
+PASSED tests/pytest/test_fd_domain_steps.py::test_unit_probes_stay_inside_zero_one[0.999999999999]
+PASSED tests/pytest/test_fd_domain_steps.py::test_rule_selection
+PASSED tests/pytest/test_fd_domain_steps.py::test_slot_rules_validation_and_refusal
+PASSED tests/pytest/test_fd_domain_steps.py::test_param_domains_length_is_checked_at_first_trace
+PASSED tests/pytest/test_fd_domain_steps.py::test_builders_attach_their_domains_and_refusal
+PASSED tests/pytest/test_fd_domain_steps.py::test_host_probes_numpy_variant
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-linear-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-linear-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-linear-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-linear-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-log-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-cont-rw-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-cont-rw-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-log-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-log-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-log-dph-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-dph-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-formula-cont-5e-08]
+PASSED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[rvp-formula-cont-0.0]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-first-1e-9]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_exp-first-1e-9]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_efg-first-1e-9]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dcjp-1e-8]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dcjp-1e-9]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dcjp-first-1e-9]
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_under_vmap_matches_per_particle
+PASSED tests/pytest/test_fd_domain_steps.py::test_graph_svgd_epoch_route_runs_with_particles_in_the_band
+PASSED tests/pytest/test_fd_domain_steps.py::test_epoch_model_and_direct_svgd_routes_run_with_particles_in_the_band
+PASSED tests/pytest/test_fd_domain_steps.py::test_mixed_scale_pin_now_passes
+PASSED tests/pytest/test_fd_domain_steps.py::test_probe_spy_heterogeneous_domains_across_epochs
+PASSED tests/pytest/test_fd_domain_steps.py::test_tied_master_gradient_is_the_sum_of_per_epoch_partials
+PASSED tests/pytest/test_fd_domain_steps.py::test_fixed_domain_is_never_probed_on_sites_without_fixed_information
+PASSED tests/pytest/test_fd_domain_steps.py::test_forward_tie_is_counted_and_logged_once
+PASSED tests/pytest/test_fd_domain_steps.py::test_out_of_domain_values_keep_todays_probe
+PASSED tests/pytest/test_fd_domain_steps.py::test_signed_parameter_under_unconstrained
+PASSED tests/pytest/test_fd_domain_steps.py::test_discrete_row_sum_wall
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-cont-rw-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-cont-rw-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-linear-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-linear-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-linear-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-log-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-log-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-log-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-formula-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-formula-cont-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-cont-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-cont-rw-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-cont-rw-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-formula-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-formula-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-formula-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-callback-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-callback-cont-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-cont-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-cont-rw-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-cont-rw-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-callback-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pfg-callback-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-dph-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[pam-callback-dph-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[mfg-linear-cont-5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_in_the_band_on_every_site[mfg-linear-cont-0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_on_pmf_from_cpp_in_the_band
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_on_the_discretize_slot[5e-08]
+FAILED tests/pytest/test_fd_domain_steps.py::test_no_crash_on_the_discretize_slot[0.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-1e-8]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-1e-9]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_noexp-rate-0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_exp-1e-8]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_exp-1e-9]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_exp-rate-0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_efg-1e-8]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_efg-1e-9]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dc_efg-rate-0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_epoch_model_band_gradients_are_finite_and_right[dcjp-rate-0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_moments_gradient_matches_closed_form[1e-06]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_moments_gradient_matches_closed_form[1.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_moments_gradient_matches_closed_form[1000.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_moments_on_the_capped_site[1e-06]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_moments_on_the_capped_site[1.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_pdf_gradient_matches_a_reference[1.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_pdf_gradient_matches_a_reference[1000.0]
+FAILED tests/pytest/test_fd_domain_steps.py::test_formula_and_log_modes_with_fixed_slots
+FAILED tests/pytest/test_fd_domain_steps.py::test_declared_positive_at_zero_uses_the_one_sided_step
+FAILED tests/pytest/test_fd_domain_steps.py::test_zero_probe_difference_is_counted_and_logged_once
+FAILED tests/pytest/test_fd_domain_steps.py::test_exposure_band_with_small_alpha
+55 failed, 54 passed, 74 deselected, 4 warnings in 56.90s
+[runcap] exit 1, peak RSS 1187 MB, 62s

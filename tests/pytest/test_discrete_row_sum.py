@@ -367,18 +367,20 @@ def test_gradient_at_the_bound():
 
 
 def test_gradient_at_the_lower_bound():
-    """The finite-difference probe (theta - 1e-7) crosses 0 below 1e-7, so a
-    native discrete fit with a parameter there now raises (plan §5 risk,
-    measured in the implementation review); it worked before, with a
-    negative weight inside the probe."""
+    """The finite-difference probe (theta - 1e-7) crosses 0 below 1e-7. A
+    native discrete forward refuses a negative weight, so this used to raise;
+    since Plan A Batch 1 (fd-domain-steps-plan.md v2.10 §4.4, §7) a refusing
+    model probes a slot in [0, 1e-7] with the capped positive rule, so the
+    gradient is finite and matches the geometric closed form."""
     import jax
     import jax.numpy as jnp
     m = Graph.pmf_from_graph(pgeom(), discrete=True)
     k = jnp.array([1.0, 2.0, 3.0])
     loss = lambda t: jnp.sum(jnp.log(m(t, k)))
-    with pytest.raises(Exception, match=WEIGHT_MSG + ".*negative weight"):
-        np.asarray(jax.grad(loss)(jnp.array([5e-8])))
-    assert np.all(np.isfinite(np.asarray(jax.grad(loss)(jnp.array([2e-7])))))
+    for th in (5e-8, 2e-7):
+        g = float(np.asarray(jax.grad(loss)(jnp.array([th])))[0])
+        exact = float(np.sum(1.0 / th - (np.asarray(k) - 1.0) / (1.0 - th)))
+        assert g == pytest.approx(exact, rel=1e-6)
     assert np.all(np.isfinite(np.asarray(m(jnp.array([5e-8]), k))))
 
 

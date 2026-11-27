@@ -1,0 +1,28 @@
+(a) capped positive rule, s=1e-4: where do the probes collapse onto theta?
+  numpy    first theta with up==theta: 9.016e+08; dn==theta: 1.782e+09; both: 1.782e+09; up-dn==0 from 1.782e+09
+           above 2e9: 1.000 of points have a zero difference; between 1e9 and 2e9: 0.169
+           u at 2e9 = 5.000e-17; ulp(1)/2 = 1.110e-16
+  jnp+jit  first theta with up==theta: 9.016e+08; dn==theta: 1.803e+09; both: 1.803e+09; up-dn==0 from 1.803e+09
+           above 2e9: 1.000 of points have a zero difference; between 1e9 and 2e9: 0.152
+           u at 2e9 = 5.000e-17; ulp(1)/2 = 1.110e-16
+(b) full positive rule (u = s = 1e-4) never collapses: max theta tested 1e300 -> diff 2.000e+296
+(c) near-zero / near-one probes
+  positive capped theta=1e-300: u=1.000e-04 up=1.000e-300 dn=9.999e-301 (dn>0: True; up-theta=1.00e-304)
+  positive capped theta=1e-30: u=1.000e-04 up=1.000e-30 dn=9.999e-31 (dn>0: True; up-theta=1.00e-34)
+  positive capped theta=1e-13: u=1.000e-04 up=1.000e-13 dn=9.999e-14 (dn>0: True; up-theta=1.00e-17)
+  positive capped theta=1e-12: u=1.000e-04 up=1.000e-12 dn=9.999e-13 (dn>0: True; up-theta=1.00e-16)
+  positive capped theta=1e-09: u=1.000e-04 up=1.000e-09 dn=9.999e-10 (dn>0: True; up-theta=1.00e-13)
+  positive capped theta=5e-08: u=1.000e-04 up=5.001e-08 dn=5.000e-08 (dn>0: True; up-theta=5.00e-12)
+  positive capped theta=1e-07: u=1.000e-04 up=1.000e-07 dn=9.999e-08 (dn>0: True; up-theta=1.00e-11)
+  unit capped theta=1e-12: h=9.999e-05 up=np.float64(1.0000999950001667e-12) dn=np.float64(9.99900014997832e-13) inside(0,1): True; up-theta=1.00e-16; diff==0: False
+  unit capped theta=1e-09: h=9.999e-05 up=np.float64(1.0000999950000684e-09) dn=np.float64(9.999000149979335e-10) inside(0,1): True; up-theta=1.00e-13; diff==0: False
+  unit capped theta=0.5: h=4.000e-07 up=np.float64(0.5000000999900011) dn=np.float64(0.49999990000999905) inside(0,1): True; up-theta=1.00e-07; diff==0: False
+  unit capped theta=0.999999999: h=9.999e-05 up=np.float64(0.9999999990001001) dn=np.float64(0.9999999989999) inside(0,1): True; up-theta=1.00e-13; diff==0: False
+  unit capped theta=0.999999999999: h=9.999e-05 up=np.float64(0.9999999999990001) dn=np.float64(0.9999999999989999) inside(0,1): True; up-theta=1.11e-16; diff==0: False
+  unit capped theta=0.999999999999999: h=9.999e-05 up=np.float64(0.9999999999999991) dn=np.float64(0.9999999999999989) inside(0,1): True; up-theta=1.11e-16; diff==0: False
+(d) max up-probe overshoot of the capped positive rule over theta in [1e-12, 1e12]:
+  max(up - theta) = 2.384186e-07 (bound 1e-7); argmax theta = 8.055e+08
+  unit rule: max(up - theta) = 9.999497e-08 (bound ~1e-7)
+(e) where the capped up-probe first exceeds theta + 1e-7 (rounding: ulp(theta) ~ 1e-7)
+  first theta with up - theta > 1e-7: 1.0002e+06 (ulp there 1.164e-10); fraction of grid points in [that, 2e9] over the bound: 0.532
+[runcap] exit 0, peak RSS 157 MB, 1s

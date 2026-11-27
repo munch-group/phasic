@@ -226,17 +226,15 @@ def test_daisy_fd_accurate_at_moderate_scale(_daisy):
     np.testing.assert_allclose(fd, ref, rtol=1e-3)
 
 
-@pytest.mark.xfail(strict=True, reason="daisy-chain FD gradient broken at mixed "
-                   "scale (B3): abs eps=1e-7 drives mu~1e-8 to a NEGATIVE "
-                   "transition -> DaisyChainSojournFfiImpl aborts the backward")
 def test_daisy_fd_correct_at_mixed_scale(_daisy):
-    """At theta=[1, 1e-8, 1, 1e-8] the production daisy FD backward HARD-CRASHES
-    (the -1e-7 step drives mu = 1e-8 negative and the FFI rejects it), even
-    though the true gradient is finite and computable (the scale-matched
-    reference returns it). A scale-aware / analytic fix would compute it."""
+    """At theta=[1, 1e-8, 1, 1e-8] the production daisy FD backward used to
+    HARD-CRASH (the -1e-7 step drove mu = 1e-8 negative and the FFI rejected
+    it). Since Plan A Batch 1 (fd-domain-steps-plan.md §4.4) a refusing model
+    probes a slot in [0, 1e-7] with the capped positive rule, so the gradient
+    is finite and matches the scale-matched reference (strict xfail removed)."""
     loglik, grad_fd = _daisy
     theta = [1.0, 1e-8, 1.0, 1e-8]
-    fd = np.array(grad_fd(jnp.array(theta)))          # currently raises ValueError
+    fd = np.array(grad_fd(jnp.array(theta)))
     ref = _scale_matched_ref(loglik, theta)
     assert np.all(np.isfinite(fd))
     np.testing.assert_allclose(fd, ref, rtol=1e-2)

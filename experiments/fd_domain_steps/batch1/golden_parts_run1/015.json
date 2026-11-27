@@ -1,0 +1,1 @@
+{"multivar|0.7,1.3|eager": ["-0x1.f0c9cb35f1397p-4", "0x1.64a2fa549bae2p-3"], "multivar|0.7,1.3|jit": ["-0x1.f0c9cb0fcb997p-4", "0x1.64a2fa785ef42p-3"], "multivar|0.7,1.3|vmap": ["-0x1.f0c9cb1955017p-4", "0x1.64a2fa48afec2p-3", "-0x1.455d11f595160p-4", "0x1.9a3fdea94aea9p-4"]}

@@ -1,0 +1,107 @@
+
+## discretized / ordinary  (models wasdph_coal; n=4 slot-points; reference richardson; max Richardson spread 8.3e-09; today's rule median 5.2e-10)
+  full  median: 0.001:1.8e-06  0.0003:1.6e-07  0.0001:1.8e-08  3e-05:1.6e-09  1e-05:1.9e-10  3e-06:1.6e-11  1e-06:6.3e-11
+        max:    0.001:3.2e-06  0.0003:2.9e-07  0.0001:3.2e-08  3e-05:2.9e-09  1e-05:3.1e-10  3e-06:1.2e-10  1e-06:1.2e-10
+        best 1.6e-11 at s=3e-06; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 1.8e-08 (1178.8x best)
+  cap   median: 0.001:2.0e-10  0.0003:2.0e-10  0.0001:2.0e-10  3e-05:2.0e-10  1e-05:2.0e-10  3e-06:2.0e-10  1e-06:2.0e-10
+        max:    0.001:6.6e-10  0.0003:6.6e-10  0.0001:6.6e-10  3e-05:6.6e-10  1e-05:6.6e-10  3e-06:6.6e-10  1e-06:6.6e-10
+        best 2.0e-10 at s=0.001; PICK (smallest s within 2x of best) = 1e-06; s=1e-4 median 2.0e-10 (1.0x best)
+
+## discretized / popgen  (models wasdph_coal; n=4 slot-points; reference richardson; max Richardson spread 4.7e-10; today's rule median 4.4e-06)
+  full  median: 0.001:9.0e-07  0.0003:8.1e-08  0.0001:9.0e-09  3e-05:8.2e-10  1e-05:8.6e-11  3e-06:3.6e-11  1e-06:2.2e-10
+        max:    0.001:9.8e-07  0.0003:8.8e-08  0.0001:9.8e-09  3e-05:8.9e-10  1e-05:9.8e-11  3e-06:6.7e-11  1e-06:5.0e-10
+        best 3.6e-11 at s=3e-06; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 9.0e-09 (252.9x best)
+  cap   median: 0.001:9.0e-07  0.0003:8.1e-08  0.0001:9.0e-09  3e-05:8.2e-10  1e-05:8.6e-11  3e-06:3.6e-11  1e-06:2.2e-10
+        max:    0.001:9.8e-07  0.0003:8.8e-08  0.0001:9.8e-09  3e-05:8.9e-10  1e-05:9.8e-11  3e-06:6.7e-11  1e-06:5.0e-10
+        best 3.6e-11 at s=3e-06; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 9.0e-09 (252.9x best)
+
+## elimination / ordinary  (models elim_jix, elim_moments_coal, elim_moments_island, elim_moments_split; n=13 slot-points; reference exact; max Richardson spread 2.1e-10; today's rule median 9.0e-10)
+  full  median: 0.001:2.0e-07  0.0003:1.8e-08  0.0001:2.7e-09  3e-05:2.7e-10  1e-05:3.8e-11  3e-06:5.0e-11  1e-06:8.8e-11
+        max:    0.001:3.6e-07  0.0003:3.3e-08  0.0001:5.7e-09  3e-05:5.6e-09  1e-05:5.5e-09  3e-06:5.2e-09  1e-06:3.8e-09
+        best 3.8e-11 at s=1e-05; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 2.7e-09 (71.6x best)
+  cap   median: 0.001:5.9e-10  0.0003:5.9e-10  0.0001:5.9e-10  3e-05:5.9e-10  1e-05:5.9e-10  3e-06:5.9e-10  1e-06:5.9e-10
+        max:    0.001:2.0e-07  0.0003:2.0e-07  0.0001:2.0e-07  3e-05:2.0e-07  1e-05:2.0e-07  3e-06:2.0e-07  1e-06:2.0e-07
+        best 5.9e-10 at s=0.001; PICK (smallest s within 2x of best) = 1e-06; s=1e-4 median 5.9e-10 (1.0x best)
+
+## elimination / popgen  (models elim_jix, elim_moments_coal, elim_moments_island, elim_moments_split; n=13 slot-points; reference exact; max Richardson spread 2.1e-10; today's rule median 1.7e-06)
+  full  median: 0.001:2.5e-07  0.0003:2.3e-08  0.0001:2.5e-09  3e-05:2.6e-10  1e-05:3.0e-11  3e-06:5.9e-11  1e-06:1.9e-10
+        max:    0.001:4.4e-07  0.0003:4.0e-08  0.0001:4.4e-09  3e-05:5.5e-10  1e-05:7.6e-09  3e-06:4.7e-09  1e-06:9.1e-08
+        best 3.0e-11 at s=1e-05; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 2.5e-09 (84.2x best)
+  cap   median: 0.001:1.7e-07  0.0003:1.5e-08  0.0001:1.7e-09  3e-05:2.3e-10  1e-05:2.7e-11  3e-06:5.9e-11  1e-06:1.9e-10
+        max:    0.001:4.4e-07  0.0003:4.0e-08  0.0001:4.4e-09  3e-05:5.5e-10  1e-05:7.6e-09  3e-06:4.7e-09  1e-06:9.1e-08
+        best 2.7e-11 at s=1e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 1.7e-09 (61.3x best)
+
+## epoch / ordinary  (models epoch; n=8 slot-points; reference exact+richardson; max Richardson spread 2.0e-10; today's rule median 3.3e-09)
+  full  median: 0.001:1.2e-07  0.0003:1.1e-08  0.0001:1.2e-09  3e-05:1.3e-10  1e-05:2.5e-11  3e-06:1.2e-10  1e-06:5.2e-10
+        max:    0.001:4.0e-07  0.0003:3.6e-08  0.0001:4.0e-09  3e-05:4.0e-10  1e-05:8.9e-10  3e-06:4.7e-10  1e-06:4.0e-09
+        best 2.5e-11 at s=1e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 1.2e-09 (50.4x best)
+  cap   median: 0.001:2.4e-09  0.0003:2.4e-09  0.0001:2.4e-09  3e-05:2.4e-09  1e-05:2.4e-09  3e-06:2.4e-09  1e-06:2.4e-09
+        max:    0.001:1.4e-08  0.0003:1.4e-08  0.0001:1.4e-08  3e-05:1.4e-08  1e-05:1.4e-08  3e-06:1.4e-08  1e-06:1.4e-08
+        best 2.4e-09 at s=0.001; PICK (smallest s within 2x of best) = 1e-06; s=1e-4 median 2.4e-09 (1.0x best)
+
+## epoch / popgen  (models epoch; n=4 slot-points; reference exact+richardson; max Richardson spread 1.2e-10; today's rule median 1.5e-08)
+  full  median: 0.001:2.3e-07  0.0003:2.1e-08  0.0001:1.9e-09  3e-05:2.9e-10  1e-05:4.0e-09  3e-06:4.7e-09  1e-06:2.1e-08
+        max:    0.001:2.4e-07  0.0003:2.2e-08  0.0001:2.4e-09  3e-05:1.2e-09  1e-05:8.1e-09  3e-06:2.4e-08  1e-06:4.8e-08
+        best 2.9e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 1.9e-09 (6.7x best)
+  cap   median: 0.001:2.3e-07  0.0003:2.1e-08  0.0001:1.9e-09  3e-05:2.9e-10  1e-05:4.0e-09  3e-06:4.7e-09  1e-06:2.1e-08
+        max:    0.001:2.4e-07  0.0003:2.2e-08  0.0001:2.4e-09  3e-05:1.2e-09  1e-05:8.1e-09  3e-06:2.4e-08  1e-06:4.8e-08
+        best 2.9e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 1.9e-09 (6.7x best)
+
+## epoch_granularity / ordinary  (models epoch_gran; n=8 slot-points; reference richardson; max Richardson spread 2.0e-10; today's rule median 1.3e-09)
+  full  median: 0.001:1.2e-07  0.0003:1.1e-08  0.0001:1.2e-09  3e-05:1.2e-10  1e-05:3.4e-11  3e-06:7.4e-11  1e-06:6.2e-10
+        max:    0.001:4.0e-07  0.0003:3.6e-08  0.0001:4.0e-09  3e-05:3.5e-10  1e-05:1.1e-10  3e-06:8.4e-10  1e-06:2.1e-09
+        best 3.4e-11 at s=1e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 1.2e-09 (36.4x best)
+  cap   median: 0.001:1.0e-09  0.0003:1.0e-09  0.0001:1.0e-09  3e-05:1.0e-09  1e-05:1.0e-09  3e-06:1.0e-09  1e-06:1.0e-09
+        max:    0.001:3.9e-09  0.0003:3.9e-09  0.0001:3.9e-09  3e-05:3.9e-09  1e-05:3.9e-09  3e-06:3.9e-09  1e-06:3.9e-09
+        best 1.0e-09 at s=0.001; PICK (smallest s within 2x of best) = 1e-06; s=1e-4 median 1.0e-09 (1.0x best)
+
+## euler / ordinary  (models euler_coal, euler_island, euler_reward, euler_split; n=11 slot-points; reference richardson; max Richardson spread 2.5e-09; today's rule median 4.2e-09)
+  full  median: 0.001:1.9e-07  0.0003:1.7e-08  0.0001:2.0e-09  3e-05:3.2e-10  1e-05:2.0e-10  3e-06:5.6e-10  1e-06:8.0e-10
+        max:    0.001:2.1e-06  0.0003:1.9e-07  0.0001:2.1e-08  3e-05:1.9e-09  1e-05:2.7e-09  3e-06:9.2e-09  1e-06:8.5e-09
+        best 2.0e-10 at s=1e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 2.0e-09 (9.8x best)
+  cap   median: 0.001:8.6e-09  0.0003:8.6e-09  0.0001:8.6e-09  3e-05:8.6e-09  1e-05:8.6e-09  3e-06:8.6e-09  1e-06:8.6e-09
+        max:    0.001:1.2e-07  0.0003:1.2e-07  0.0001:1.2e-07  3e-05:1.2e-07  1e-05:1.2e-07  3e-06:1.2e-07  1e-06:1.2e-07
+        best 8.6e-09 at s=0.001; PICK (smallest s within 2x of best) = 1e-06; s=1e-4 median 8.6e-09 (1.0x best)
+
+## euler / popgen  (models euler_coal, euler_island, euler_reward, euler_split; n=10 slot-points; reference richardson; max Richardson spread 4.0e-09; today's rule median 6.3e-07)
+  full  median: 0.001:2.4e-07  0.0003:2.2e-08  0.0001:6.6e-09  3e-05:6.0e-09  1e-05:7.3e-09  3e-06:3.0e-08  1e-06:8.3e-08
+        max:    0.001:2.0e-06  0.0003:1.8e-07  0.0001:1.5e-07  3e-05:7.9e-08  1e-05:9.3e-07  3e-06:1.3e-06  1e-06:9.9e-06
+        best 6.0e-09 at s=3e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 6.6e-09 (1.1x best)
+  cap   median: 0.001:2.4e-07  0.0003:2.2e-08  0.0001:6.6e-09  3e-05:6.0e-09  1e-05:7.3e-09  3e-06:3.0e-08  1e-06:8.3e-08
+        max:    0.001:2.0e-06  0.0003:1.8e-07  0.0001:1.5e-07  3e-05:7.9e-08  1e-05:9.3e-07  3e-06:1.3e-06  1e-06:9.9e-06
+        best 6.0e-09 at s=3e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 6.6e-09 (1.1x best)
+
+## native_discrete / ordinary  (models dph_island; n=4 slot-points; reference richardson; max Richardson spread 4.1e-10; today's rule median 8.0e-10)
+  full  median: 0.001:1.2e-07  0.0003:1.0e-08  0.0001:1.2e-09  3e-05:1.1e-10  1e-05:4.2e-11  3e-06:1.3e-10  1e-06:1.1e-09
+        max:    0.001:4.8e-07  0.0003:4.3e-08  0.0001:4.9e-09  3e-05:7.2e-10  1e-05:3.3e-10  3e-06:1.3e-09  1e-06:8.3e-09
+        best 4.2e-11 at s=1e-05; PICK (smallest s within 2x of best) = 1e-05; s=1e-4 median 1.2e-09 (27.8x best)
+  cap   median: 0.001:3.6e-10  0.0003:3.6e-10  0.0001:3.6e-10  3e-05:3.6e-10  1e-05:3.6e-10  3e-06:3.6e-10  1e-06:7.7e-10
+        max:    0.001:2.7e-09  0.0003:2.7e-09  0.0001:2.7e-09  3e-05:2.7e-09  1e-05:2.7e-09  3e-06:1.3e-09  1e-06:8.3e-09
+        best 3.6e-10 at s=0.001; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 3.6e-10 (1.0x best)
+  ufull median: 0.001:7.0e-08  0.0003:6.3e-09  0.0001:7.0e-10  3e-05:8.6e-11  1e-05:5.3e-11  3e-06:4.6e-11  1e-06:8.0e-10
+        max:    0.001:4.7e-07  0.0003:4.2e-08  0.0001:4.8e-09  3e-05:1.2e-10  1e-05:1.7e-09  3e-06:4.8e-09  1e-06:1.3e-08
+        best 4.6e-11 at s=3e-06; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 7.0e-10 (15.2x best)
+  ucap  median: 0.001:8.1e-10  0.0003:6.7e-10  0.0001:5.3e-10  3e-05:2.2e-10  1e-05:5.0e-10  3e-06:1.9e-10  1e-06:4.2e-10
+        max:    0.001:3.7e-09  0.0003:3.2e-09  0.0001:2.9e-09  3e-05:6.0e-10  1e-05:1.8e-09  3e-06:3.0e-09  1e-06:1.1e-08
+        best 1.9e-10 at s=3e-06; PICK (smallest s within 2x of best) = 3e-06; s=1e-4 median 5.3e-10 (2.8x best)
+
+## native_discrete / popgen  (models dph_island; n=4 slot-points; reference richardson; max Richardson spread 5.7e-10; today's rule median 4.7e-06)
+  full  median: 0.001:2.0e-07  0.0003:1.8e-08  0.0001:1.2e-09  3e-05:2.6e-10  1e-05:2.4e-09  3e-06:1.7e-08  1e-06:5.8e-09
+        max:    0.001:6.1e-07  0.0003:5.5e-08  0.0001:2.4e-09  3e-05:2.5e-08  1e-05:3.7e-08  3e-06:1.0e-07  1e-06:3.2e-07
+        best 2.6e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 1.2e-09 (4.6x best)
+  cap   median: 0.001:2.0e-07  0.0003:1.8e-08  0.0001:1.2e-09  3e-05:2.6e-10  1e-05:2.4e-09  3e-06:1.7e-08  1e-06:5.8e-09
+        max:    0.001:6.1e-07  0.0003:5.5e-08  0.0001:2.4e-09  3e-05:2.5e-08  1e-05:3.7e-08  3e-06:1.0e-07  1e-06:3.2e-07
+        best 2.6e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 1.2e-09 (4.6x best)
+  ufull median: 0.001:2.0e-07  0.0003:1.8e-08  0.0001:1.9e-09  3e-05:4.2e-10  1e-05:2.3e-09  3e-06:5.8e-09  1e-06:2.3e-08
+        max:    0.001:6.1e-07  0.0003:5.4e-08  0.0001:7.1e-09  3e-05:1.4e-09  1e-05:3.8e-08  3e-06:3.3e-08  1e-06:1.9e-07
+        best 4.2e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 1.9e-09 (4.5x best)
+  ucap  median: 0.001:2.0e-07  0.0003:1.8e-08  0.0001:2.0e-09  3e-05:2.1e-10  1e-05:1.5e-09  3e-06:3.9e-09  1e-06:1.1e-08
+        max:    0.001:6.1e-07  0.0003:5.5e-08  0.0001:1.0e-08  3e-05:7.8e-09  1e-05:1.7e-08  3e-06:3.9e-08  1e-06:3.4e-07
+        best 2.1e-10 at s=3e-05; PICK (smallest s within 2x of best) = 3e-05; s=1e-4 median 2.0e-09 (9.3x best)
+
+## Reference check: exact vs Richardson where both exist
+  elim_jix: median 8.0e-14, max 1.8e-13 (n=8)
+  elim_moments_coal: median 3.9e-14, max 8.7e-14 (n=4)
+  elim_moments_island: median 2.3e-13, max 5.2e-12 (n=8)
+  elim_moments_split: median 5.2e-11, max 5.6e-09 (n=6)
+  epoch: median 9.9e-10, max 1.1e-08 (n=12)

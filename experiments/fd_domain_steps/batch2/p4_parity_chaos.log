@@ -1,0 +1,10 @@
+declared vs undeclared k= 10: max|dphi|=1.04e-08 std 0.4764 vs 0.4764
+declared vs undeclared k= 25: max|dphi|=1.40e-02 std 0.6666 vs 0.6644
+declared vs undeclared k= 50: max|dphi|=4.41e-01 std 0.1573 vs 0.0775
+declared vs undeclared k=100: max|dphi|=4.39e-01 std 0.1980 vs 0.0595
+declared vs undeclared k=150: max|dphi|=1.16e+00 std 0.1477 vs 0.2669
+undeclared, init + 1e-9 noise #0: mean 2.9539 std 0.5962
+undeclared, init + 1e-9 noise #1: mean 2.9825 std 0.5909
+undeclared, init + 1e-9 noise #2: mean 2.8397 std 0.1101
+undeclared, init + 1e-9 noise #3: mean 2.8718 std 0.1555
+[runcap] exit 0, peak RSS 882 MB, 27s

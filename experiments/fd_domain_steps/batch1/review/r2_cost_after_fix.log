@@ -1,0 +1,4 @@
+P=   8 master: first=0.15s steady=19.4ms hlo'callback'=0 | branch: first=0.27s steady=23.6ms hlo'callback'=1 | bit-identical=True
+P=  64 master: first=0.22s steady=101.6ms hlo'callback'=0 | branch: first=0.38s steady=106.0ms hlo'callback'=1 | bit-identical=True
+P= 256 master: first=0.54s steady=467.8ms hlo'callback'=0 | branch: first=0.74s steady=458.1ms hlo'callback'=1 | bit-identical=True
+[runcap] exit 0, peak RSS 481 MB, 11s

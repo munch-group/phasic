@@ -1,0 +1,6 @@
+today grad: [1.66704456e+00 5.99999978e+07]
+next forward at a valid theta [1, 0.5]: [0.0919079  0.13696934 0.15710216]
+positive-only central difference h=2e-08: 6.354734e+07
+positive-only central difference h=1e-08: 6.081977e+07
+positive-only central difference h=5e-09: 6.020121e+07
+[runcap] exit 0, peak RSS 431 MB, 4s

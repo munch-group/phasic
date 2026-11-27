@@ -72,6 +72,7 @@ from .exceptions import (
     PTDFeatureError,
     PTDJAXError
 )
+from . import _fd_steps
 from .logging_config import (
     set_log_level,
     get_logger,
@@ -874,6 +875,77 @@ def _fixed_mask_from_fixed(fixed, theta_dim):
             m = m.at[idx].set(1)
         return m
     return jnp.array(fixed)
+
+
+def _svgd_fd_domains(prior, positive_params, param_transform, *, theta_dim,
+                     fixed_mask, exposure_param_index):
+    """Plan A §3: the FD domains ``Graph.svgd`` declares to a single-epoch
+    model builder, from the fit's own prior / transform settings (see
+    ``svgd._resolve_param_domains``). ``fixed_mask`` (0/1, or None) marks the
+    truly fixed slots; ``exposure_param_index`` (or None) is widened from
+    'unit' to 'positive'. None when ``theta_dim`` is unknown."""
+    if theta_dim is None:
+        return None
+    from .svgd import _resolve_param_domains
+    fixed_idx = ([] if fixed_mask is None else
+                 [int(i) for i in np.where(np.asarray(fixed_mask) == 1)[0]])
+    return _resolve_param_domains(
+        prior, positive_params, param_transform, theta_dim=int(theta_dim),
+        fixed_indices=fixed_idx,
+        exposure_slots=(() if exposure_param_index is None
+                        else (int(exposure_param_index),)))
+
+
+def _epoch_fd_domains(prior, positive_params, param_transform, *, n_epochs,
+                      param_length, user_fixed, user_tied,
+                      exposure_param_index):
+    """Plan A §3, epoch route: the flat ``n_epochs * param_length`` FD domain
+    list ``Graph.svgd(epoch_starts=...)`` declares to the daisy-chain builder.
+
+    The prior is broadcast exactly as ``_daisy_chain_svgd_model`` broadcasts
+    it (a single prior to every flat slot, a ``param_length`` list repeated
+    per epoch, a flat list as is; ``None`` means the default data-informed
+    GaussPrior, which has no transform of its own). Local fixings are fixed
+    in every epoch -> 'fixed'. A tied slave takes its master's domain. The
+    exposure slot is widened 'unit' -> 'positive' in every epoch. Returns
+    None when the prior list has a length the builder will reject (it raises
+    its own error)."""
+    from .svgd import _resolve_param_domains
+    n_epochs, P = int(n_epochs), int(param_length)
+    flat = n_epochs * P
+    if prior is None:
+        flat_prior = None
+    elif isinstance(prior, (list, tuple)):
+        if len(prior) == flat:
+            flat_prior = list(prior)
+        elif len(prior) == P:
+            flat_prior = list(prior) * n_epochs
+        else:
+            return None
+    else:
+        flat_prior = [prior] * flat
+    fixed_flat = []
+    for entry in (user_fixed or []):
+        if isinstance(entry, tuple) and len(entry) == 2:
+            k = int(entry[0])
+            if 0 <= k < P:
+                fixed_flat.extend(e * P + k for e in range(n_epochs))
+    exposure_slots = (() if exposure_param_index is None else
+                      tuple(e * P + int(exposure_param_index)
+                            for e in range(n_epochs)))
+    doms = _resolve_param_domains(
+        flat_prior, positive_params, param_transform, theta_dim=flat,
+        fixed_indices=fixed_flat, exposure_slots=exposure_slots)
+    if doms is None:
+        return None
+    doms = list(doms)
+    for entry in (user_tied or []):
+        k, epochs = entry
+        epochs = [int(e) for e in epochs]
+        master = epochs[0] * P + int(k)
+        for e in epochs[1:]:
+            doms[e * P + int(k)] = doms[master]
+    return tuple(doms)
 
 
 def _fixed_indices_set_from_mask(fixed_mask):
@@ -3925,7 +3997,8 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: Graph, discrete: bool = False, use_cache: bool = True, theta_dim: int | None = None) -> Callable:
+    def pmf_from_graph(cls, graph: Graph, discrete: bool = False, use_cache: bool = True, theta_dim: int | None = None,
+                       param_domains: Any = None) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
@@ -3952,6 +4025,16 @@ class Graph(_Graph):
             If True, uses symbolic DAG cache to avoid re-computing expensive symbolic
             elimination for graphs with the same structure. Default: True
             Set to False to disable caching (useful for testing).
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each theta slot, used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that on a model whose forward refuses a
+            negative edge weight a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
 
         Returns
         -------
@@ -4022,6 +4105,10 @@ class Graph(_Graph):
         # constant graph, but an explicit theta_dim overrides that, so
         # serialized['param_length'] is not used to pick the dispatch path.
         has_param_edges = bool(graph.parameterized())
+        # Plan A: per-slot FD domains and the build-time refusal (§4.4).
+        _fd_domains = _fd_steps.normalize_domains(param_domains)
+        _fd_info = _fd_steps.build_info(serialized, discrete=discrete, family=_fd_steps.CAPPED)
+        _fd_stats = _fd_steps.FDStats('pmf_from_graph')
 
         # Generate C++ build_model() code from the serialized graph
         cpp_code = _generate_cpp_from_graph(serialized)
@@ -4087,19 +4174,37 @@ class Graph(_Graph):
                 theta, times = res
                 n_params = theta.shape[0]
                 eps = 1e-7
+                _fd_steps.check_length(_fd_domains, n_params, 'pmf_from_graph')
                 theta_bar = []
+                _fd_z, _fd_t = [], []
                 for i in range(n_params):
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info.refuses)
+                    if _rule == _fd_steps.SKIP:
+                        theta_bar.append(jnp.zeros((), dtype=theta.dtype))
+                        continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].add(-eps)
+                    theta_plus, theta_minus, _use = _fd_steps.probes(
+                        theta, i, theta_plus, theta_minus, _rule, _fd_info)
+                    _fd_steps.record('pmf_from_graph', i, theta_plus, theta_minus)
                     pdf_plus = model_pure(theta_plus, times)
                     pdf_minus = model_pure(theta_minus, times)
                     grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    if _use is not None:
+                        _d = theta_plus[i] - theta_minus[i]
+                        grad_i = jnp.where(_use, jnp.sum(g * _fd_steps.alt_ratio(pdf_plus, pdf_minus, _d)), grad_i)
+                        _z, _t = _fd_steps.flags(_use, _d, [pdf_plus], [pdf_minus])
+                        _fd_z.append(_z); _fd_t.append(_t)
                     theta_bar.append(grad_i)
+                _fd_steps.report(_fd_stats, _fd_z, _fd_t)
                 return jnp.array(theta_bar), None
 
             jax_model.defvjp(jax_model_fwd, jax_model_bwd)
             # Source graph reference (see ``pmf_and_moments_from_graph``).
             jax_model._source_graph = graph
+            jax_model._param_domains = _fd_domains
+            jax_model._fd_build_info = _fd_info
+            jax_model._fd_stats = _fd_stats
             return jax_model
 
         elif has_param_edges:
@@ -4210,23 +4315,42 @@ class Graph(_Graph):
                 n_params = theta.shape[0]
                 eps = 1e-7
 
+                _fd_steps.check_length(_fd_domains, n_params, 'pmf_from_graph')
+
                 # Finite difference gradients
                 theta_bar = []
+                _fd_z, _fd_t = [], []
                 for i in range(n_params):
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info.refuses)
+                    if _rule == _fd_steps.SKIP:
+                        theta_bar.append(jnp.zeros((), dtype=theta.dtype))
+                        continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].add(-eps)
+                    theta_plus, theta_minus, _use = _fd_steps.probes(
+                        theta, i, theta_plus, theta_minus, _rule, _fd_info)
+                    _fd_steps.record('pmf_from_graph', i, theta_plus, theta_minus)
 
                     pdf_plus = model_pure(theta_plus, times)
                     pdf_minus = model_pure(theta_minus, times)
 
                     grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    if _use is not None:
+                        _d = theta_plus[i] - theta_minus[i]
+                        grad_i = jnp.where(_use, jnp.sum(g * _fd_steps.alt_ratio(pdf_plus, pdf_minus, _d)), grad_i)
+                        _z, _t = _fd_steps.flags(_use, _d, [pdf_plus], [pdf_minus])
+                        _fd_z.append(_z); _fd_t.append(_t)
                     theta_bar.append(grad_i)
 
+                _fd_steps.report(_fd_stats, _fd_z, _fd_t)
                 return jnp.array(theta_bar), None
 
             jax_model.defvjp(jax_model_fwd, jax_model_bwd)
             # Source graph reference (see ``pmf_and_moments_from_graph``).
             jax_model._source_graph = graph
+            jax_model._param_domains = _fd_domains
+            jax_model._fd_build_info = _fd_info
+            jax_model._fd_stats = _fd_stats
             return jax_model
 
         else:
@@ -4426,7 +4550,8 @@ extern "C" {
         return _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete)
 
     @classmethod
-    def pmf_from_cpp(cls, cpp_file: str | pathlib.Path, discrete: bool = False) -> Callable:
+    def pmf_from_cpp(cls, cpp_file: str | pathlib.Path, discrete: bool = False,
+                     param_domains: Any = None) -> Callable:
         """
         Load a phase-type model from a user's C++ file and return a JAX-compatible function.
 
@@ -4446,6 +4571,16 @@ extern "C" {
         discrete : bool
             If True, uses discrete phase-type distribution (DPH) computation.
             If False, uses continuous phase-type distribution (PDF).
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each theta slot, used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that because this model's forward refuses a
+            negative edge weight (any user C++ model) a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
 
         Raises
         ------
@@ -4584,6 +4719,11 @@ extern "C" {{
                 vmap_method='expand_dims'
             )
 
+        # Plan A: a user C++ model ALWAYS refuses a negative probe (§4.4).
+        _fd_domains = _fd_steps.normalize_domains(param_domains)
+        _fd_info = _fd_steps.build_info(None, family=_fd_steps.CAPPED, always_refuses=True)
+        _fd_stats = _fd_steps.FDStats('pmf_from_cpp')
+
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
         def jax_model(theta, times):
@@ -4599,22 +4739,41 @@ extern "C" {{
             n_params = theta.shape[0]
             eps = 1e-7
 
+            _fd_steps.check_length(_fd_domains, n_params, 'pmf_from_cpp')
+
             # Finite differences for gradient
             theta_bar = []
+            _fd_z, _fd_t = [], []
             for i in range(n_params):
+                _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info.refuses)
+                if _rule == _fd_steps.SKIP:
+                    theta_bar.append(jnp.zeros((), dtype=theta.dtype))
+                    continue
                 theta_plus = theta.at[i].add(eps)
                 theta_minus = theta.at[i].add(-eps)
+                theta_plus, theta_minus, _use = _fd_steps.probes(
+                    theta, i, theta_plus, theta_minus, _rule, _fd_info)
+                _fd_steps.record('pmf_from_cpp', i, theta_plus, theta_minus)
 
                 # Call underlying computation, not jax_model
                 pmf_plus = _compute_pmf_pure(theta_plus, times)
                 pmf_minus = _compute_pmf_pure(theta_minus, times)
 
                 grad_i = jnp.sum(g * (pmf_plus - pmf_minus) / (2 * eps))
+                if _use is not None:
+                    _d = theta_plus[i] - theta_minus[i]
+                    grad_i = jnp.where(_use, jnp.sum(g * _fd_steps.alt_ratio(pmf_plus, pmf_minus, _d)), grad_i)
+                    _z, _t = _fd_steps.flags(_use, _d, [pmf_plus], [pmf_minus])
+                    _fd_z.append(_z); _fd_t.append(_t)
                 theta_bar.append(grad_i)
 
+            _fd_steps.report(_fd_stats, _fd_z, _fd_t)
             return jnp.array(theta_bar), None
 
         jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+        jax_model._param_domains = _fd_domains
+        jax_model._fd_build_info = _fd_info
+        jax_model._fd_stats = _fd_stats
         return jax_model
 
 
@@ -4679,6 +4838,7 @@ extern "C" {{
         final_read: str = 'sojourn',
         bake_fd_skip: bool = True,
         exact_final_grad: bool = False,
+        param_domains=None,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4955,6 +5115,18 @@ extern "C" {{
             list(fixed_indices)
             if (bake_fd_skip and fixed_indices is not None) else []
         )
+        # Plan A: per-flat-slot FD domains. A multi-epoch forward ALWAYS
+        # refuses a negative probe (§4.4); automatic granularity has jumps
+        # (capped rule), an explicit granularity does not (full rule, §4.1).
+        _fd_domains_dc = _fd_steps.normalize_domains(param_domains)
+        _fd_info_dc = _fd_steps.build_info(
+            None, always_refuses=True,
+            family=_fd_steps.CAPPED if int(granularity) == 0 else _fd_steps.FULL)
+        _fd_stats_dc = _fd_steps.FDStats('epoch model')
+        # 'fixed' domain slots are skipped like truly fixed ones, so they also
+        # get a zero gradient on the exact_final_grad path (review m2). Empty
+        # when undeclared, so fd_skip_indices is unchanged.
+        fd_skip_indices = sorted(set(fd_skip_indices) | _fd_steps.fixed_slots(_fd_domains_dc))
 
         # Extend broadcast_fixed to also lock slave positions. The
         # sentinel value 0.0 is overwritten by _apply_tying inside the
@@ -5293,18 +5465,31 @@ extern "C" {{
 
             def _autodiff_bwd(theta_flat, cotangent):
                 n_params = theta_flat.shape[0]
+                _fd_steps.check_length(_fd_domains_dc, n_params, 'epoch model')
+                _fd_z, _fd_t = [], []
                 grads = []
                 for i in range(n_params):
                     if i in fixed_set_local:
                         grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                         continue
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains_dc, i), _fd_info_dc.refuses)
+                    if _rule == _fd_steps.SKIP:
+                        grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                        continue
                     tp = theta_flat.at[i].add(eps_local)
                     tm = theta_flat.at[i].add(-eps_local)
+                    tp, tm, _use = _fd_steps.probes(theta_flat, i, tp, tm, _rule, _fd_info_dc)
+                    _fd_steps.record('epoch model', i, tp, tm)
                     jp = _forward(tp)
                     jm = _forward(tm)
-                    grads.append(
-                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                    )
+                    _g = jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                    if _use is not None:
+                        _d = tp[i] - tm[i]
+                        _g = jnp.where(_use, jnp.sum(cotangent * _fd_steps.alt_ratio(jp, jm, _d)), _g)
+                        _z, _t = _fd_steps.flags(_use, _d, [jp], [jm])
+                        _fd_z.append(_z); _fd_t.append(_t)
+                    grads.append(_g)
+                _fd_steps.report(_fd_stats_dc, _fd_z, _fd_t)
                 return (jnp.stack(grads),)
 
             if _efg_block_np is not None:
@@ -5319,6 +5504,8 @@ extern "C" {{
                     (the _apply_tying scatter-VJP sums slave->master).
                     """
                     n_params = theta_flat.shape[0]
+                    _fd_steps.check_length(_fd_domains_dc, n_params, 'epoch model')
+                    _fd_z, _fd_t = [], []
                     J_final = jax.pure_callback(
                         _efg_block_np,
                         jax.ShapeDtypeStruct(
@@ -5336,13 +5523,24 @@ extern "C" {{
                         if i >= _efg_final_lo:
                             grads.append(exact_final[i - _efg_final_lo])
                             continue
+                        _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains_dc, i), _fd_info_dc.refuses)
+                        if _rule == _fd_steps.SKIP:
+                            grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                            continue
                         tp = theta_flat.at[i].add(eps_local)
                         tm = theta_flat.at[i].add(-eps_local)
+                        tp, tm, _use = _fd_steps.probes(theta_flat, i, tp, tm, _rule, _fd_info_dc)
+                        _fd_steps.record('epoch model', i, tp, tm)
                         jp = _forward(tp)
                         jm = _forward(tm)
-                        grads.append(
-                            jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                        )
+                        _g = jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                        if _use is not None:
+                            _d = tp[i] - tm[i]
+                            _g = jnp.where(_use, jnp.sum(cotangent * _fd_steps.alt_ratio(jp, jm, _d)), _g)
+                            _z, _t = _fd_steps.flags(_use, _d, [jp], [jm])
+                            _fd_z.append(_z); _fd_t.append(_t)
+                        grads.append(_g)
+                    _fd_steps.report(_fd_stats_dc, _fd_z, _fd_t)
                     return (jnp.stack(grads),)
 
             _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
@@ -5634,18 +5832,31 @@ extern "C" {{
                 stays 2D, never 3D.
                 """
                 n_params = theta_flat.shape[0]
+                _fd_steps.check_length(_fd_domains_dc, n_params, 'epoch model')
+                _fd_z, _fd_t = [], []
                 grads = []
                 for i in range(n_params):
                     if i in fixed_set_local:
                         grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                         continue
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains_dc, i), _fd_info_dc.refuses)
+                    if _rule == _fd_steps.SKIP:
+                        grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                        continue
                     tp = theta_flat.at[i].add(eps_local)
                     tm = theta_flat.at[i].add(-eps_local)
+                    tp, tm, _use = _fd_steps.probes(theta_flat, i, tp, tm, _rule, _fd_info_dc)
+                    _fd_steps.record('epoch model', i, tp, tm)
                     jp = _per_obs_core(tp)
                     jm = _per_obs_core(tm)
-                    grads.append(
-                        jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                    )
+                    _g = jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                    if _use is not None:
+                        _d = tp[i] - tm[i]
+                        _g = jnp.where(_use, jnp.sum(cotangent * _fd_steps.alt_ratio(jp, jm, _d)), _g)
+                        _z, _t = _fd_steps.flags(_use, _d, [jp], [jm])
+                        _fd_z.append(_z); _fd_t.append(_t)
+                    grads.append(_g)
+                _fd_steps.report(_fd_stats_dc, _fd_z, _fd_t)
                 return (jnp.stack(grads),)
 
             if _efg_block_exp_np is not None:
@@ -5657,6 +5868,8 @@ extern "C" {{
                     the no-exposure override (fixed wins; tied slaves
                     exact)."""
                     n_params = theta_flat.shape[0]
+                    _fd_steps.check_length(_fd_domains_dc, n_params, 'epoch model')
+                    _fd_z, _fd_t = [], []
                     raw_rows, Jb = jax.pure_callback(
                         _efg_block_exp_np,
                         (jax.ShapeDtypeStruct(
@@ -5690,13 +5903,24 @@ extern "C" {{
                         if i >= _efg_final_lo:
                             grads.append(exact_final[i - _efg_final_lo])
                             continue
+                        _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains_dc, i), _fd_info_dc.refuses)
+                        if _rule == _fd_steps.SKIP:
+                            grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                            continue
                         tp = theta_flat.at[i].add(eps_local)
                         tm = theta_flat.at[i].add(-eps_local)
+                        tp, tm, _use = _fd_steps.probes(theta_flat, i, tp, tm, _rule, _fd_info_dc)
+                        _fd_steps.record('epoch model', i, tp, tm)
                         jp = _per_obs_core(tp)
                         jm = _per_obs_core(tm)
-                        grads.append(
-                            jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
-                        )
+                        _g = jnp.sum(cotangent * (jp - jm) / (2.0 * eps_local))
+                        if _use is not None:
+                            _d = tp[i] - tm[i]
+                            _g = jnp.where(_use, jnp.sum(cotangent * _fd_steps.alt_ratio(jp, jm, _d)), _g)
+                            _z, _t = _fd_steps.flags(_use, _d, [jp], [jm])
+                            _fd_z.append(_z); _fd_t.append(_t)
+                        grads.append(_g)
+                    _fd_steps.report(_fd_stats_dc, _fd_z, _fd_t)
                     return (jnp.stack(grads),)
 
             _per_obs_autodiff.defvjp(_per_obs_fwd, _per_obs_bwd)
@@ -5760,6 +5984,9 @@ extern "C" {{
         # return-tuple shape. The attribute is always set, including
         # when no tying is active (slave_to_master is empty).
         model._tying_info = tying_info
+        model._param_domains = _fd_domains_dc
+        model._fd_build_info = _fd_info_dc
+        model._fd_stats = _fd_stats_dc
         # Preconditioner source: the daisy-chain model returns DUMMY zeros as its
         # second (moments) output, so precondition on the FIRST (probability)
         # output (ProbabilityJacobianPreconditioner). Set for BOTH the exposure
@@ -5920,6 +6147,7 @@ extern "C" {{
         final_read: str = 'sojourn',
         seed: int | None = None,
         verbose: bool = False,
+        param_domains: Any = 'positive',
     ) -> "FreeEpochModel":
         """Build a reusable **free** (untied) daisy-chain epoch model.
 
@@ -5966,6 +6194,32 @@ extern "C" {{
             random tie-break for outcomes with several outcome vertices;
             ``joint_prob_graph`` now merges those, so mapping is
             deterministic.
+        param_domains : str, sequence or None, default='positive'
+            The domain of each theta slot, which the model's finite-difference
+            (FD) gradients probe inside (Plan A,
+            ``plans-and-findings/fd-domain-steps-plan.md`` §3). One of
+            ``'positive'`` (0, inf), ``'unit'`` (0, 1), ``'unconstrained'``,
+            ``'fixed'`` (never probed; zero gradient) or None (undeclared:
+            today's FD step, plus crash protection near zero). A single string
+            applies to every flat slot; a sequence of length ``param_length``
+            is repeated in every epoch; a sequence of length
+            ``n_epochs * param_length`` is used as is. The default, every slot
+            ``'positive'``, suits rates. :meth:`FreeEpochModel.fit` checks that
+            each fit lies inside these domains (a BetaPrior fit on a
+            ``'positive'`` slot is fine; ``positive_params=False`` on a
+            ``'positive'`` model raises and asks you to rebuild with
+            ``param_domains='unconstrained'``).
+            ``Graph.svgd(epoch_starts=...)`` declares the domains of its own
+            fit (e.g. ``'unit'`` for a BetaPrior slot), so a fit of this model
+            reproduces it bit for bit only when ``param_domains`` matches.
+
+            Near-zero limit (documented, user decision D-NZ): on an
+            ``'unconstrained'`` slot the FD gradient of a RATE within ~1e-7 of
+            zero can be wrong, including its sign; fit rates with
+            ``positive_params=True`` (the default). On any declared slot, two
+            probes that give identical outputs (a forward tie, e.g. a tiny
+            slot that only offsets a large rate) give a zero FD gradient for
+            that slot, which is counted in ``model._fd_stats`` and logged once.
 
         Returns
         -------
@@ -6018,6 +6272,27 @@ extern "C" {{
             _daisy_exposure = np.full(
                 (len(mapped),), float(_daisy_exposure.item()), dtype=np.float64
             )
+        # 3b. Plan A §3: per-flat-slot FD domains (default: every slot a rate,
+        #     'positive'); fit() checks each fit against them.
+        _n_ep_d = int(np.asarray(epoch_starts, dtype=np.float64).size)
+        _plen_d = self.param_length()
+        if param_domains is None:
+            _flat_domains = None
+        elif isinstance(param_domains, str):
+            _flat_domains = (param_domains,) * (_n_ep_d * _plen_d)
+        else:
+            _pd = list(param_domains)
+            if len(_pd) == _plen_d:
+                _pd = _pd * _n_ep_d
+            elif len(_pd) != _n_ep_d * _plen_d:
+                raise ValueError(
+                    f"epoch_model: param_domains has {len(_pd)} entries; give "
+                    f"one per parameter (param_length={_plen_d}, repeated in "
+                    f"every epoch) or one per flat slot "
+                    f"(n_epochs * param_length = {_n_ep_d * _plen_d}), or a "
+                    "single string for every slot.")
+            _flat_domains = tuple(_pd)
+        _flat_domains = _fd_steps.normalize_domains(_flat_domains)
         # 4. build the FREE model (user_tied=None) with NO baked FD-skip, so ANY
         #    `fixed` set may be applied per fit at the SVGD level.
         model, theta_dim, prior_out, fixed_out = self._daisy_chain_svgd_model(
@@ -6034,6 +6309,7 @@ extern "C" {{
             exposure_param_index=exposure_param_index,
             final_read=final_read,
             bake_fd_skip=False,
+            param_domains=_flat_domains,
         )
         from .epoch_model import FreeEpochModel
         es = np.asarray(epoch_starts, dtype=np.float64).ravel()
@@ -6069,6 +6345,7 @@ extern "C" {{
             epoch_starts=es.tolist(),
             default_prior_factory=(_default_prior_factory
                                    if prior is None else None),
+            param_domains=_flat_domains,
         )
 
 
@@ -6298,6 +6575,17 @@ extern "C" {{
             A BetaPrior applies its own sigmoid instead (to its own parameter
             in a prior list; to every parameter as a single prior) and
             requires positive_params=True (or a custom param_transform).
+
+            Finite-difference gradients (Plan A): the model's FD backwards
+            probe each parameter inside the domain its transform keeps it in
+            ('positive' under softplus, 'unit' under a BetaPrior's sigmoid,
+            'unconstrained' with positive_params=False, fixed parameters not
+            at all). Near-zero limit (documented, user decision D-NZ): with
+            positive_params=False the finite-difference gradient of a RATE
+            within ~1e-7 of zero can be wrong, including its sign; fit rates
+            with positive_params=True. A forward tie (two probes giving
+            identical outputs) gives a zero gradient for that parameter,
+            counted in ``model._fd_stats`` and logged once.
         param_transform : callable, optional
             Custom parameter transformation function: transform(theta_unconstrained) -> theta_constrained.
             If provided, SVGD optimizes in unconstrained space and applies this transformation
@@ -6967,6 +7255,31 @@ extern "C" {{
                         "(e.g. a GaussPrior per parameter)."
                     ) from _prior_exc
 
+            # Plan A §3: declare each theta slot's domain to the model
+            # builder, from this fit's own transforms (softplus -> 'positive',
+            # sigmoid -> 'unit', positive_params=False -> 'unconstrained',
+            # custom param_transform -> None, fixed -> 'fixed'), so the FD
+            # backwards probe inside it. Decided BEFORE the model is built;
+            # SVGD.__init__ re-checks it (containment) against its own
+            # transforms.
+            if epoch_starts is not None:
+                _fd_domains_svgd = _epoch_fd_domains(
+                    prior, positive_params, param_transform,
+                    n_epochs=int(np.asarray(epoch_starts).size),
+                    param_length=self.param_length(),
+                    user_fixed=fixed, user_tied=tied,
+                    exposure_param_index=exposure_param_index)
+            else:
+                _fd_theta_dim = theta_dim
+                if _fd_theta_dim is None and theta_init is not None:
+                    _fd_theta_dim = int(np.shape(theta_init)[-1])
+                _fd_domains_svgd = _svgd_fd_domains(
+                    prior, positive_params, param_transform,
+                    theta_dim=_fd_theta_dim,
+                    fixed_mask=_fixed_mask_from_fixed(fixed, _fd_theta_dim),
+                    exposure_param_index=(exposure_param_index
+                                          if exposure is not None else None))
+
             # Handle joint_index mode
             if self._joint_prob_base_graph_indexer is not None:
                 logger = get_logger(__name__)
@@ -7105,6 +7418,7 @@ extern "C" {{
                         exposure_arr=_daisy_exposure,
                         exposure_param_index=exposure_param_index,
                         final_read=final_read,
+                        param_domains=_fd_domains_svgd,
                         **({} if exact_final_grad is None
                            else {'exact_final_grad': exact_final_grad}),
                     )
@@ -7226,6 +7540,7 @@ extern "C" {{
                         self, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
                         observed_indices=_bake_obs,
+                        param_domains=_fd_domains_svgd,
                         **({} if exact_grad is None
                            else {'exact_grad': exact_grad,
                                  # Batch E user decision 2026-08-14: the
@@ -7254,6 +7569,7 @@ extern "C" {{
                         self, nr_moments=nr_moments, discrete=discrete,
                         use_ffi=False, theta_dim=theta_dim,
                         fixed_mask=fixed_mask_for_model,
+                        param_domains=_fd_domains_svgd,
                         **_emg_kw_mv,
                     )
                 else:
@@ -7266,6 +7582,7 @@ extern "C" {{
                     model = Graph.pmf_and_moments_from_graph(
                         self, nr_moments=nr_moments, discrete=discrete,
                         theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                        param_domains=_fd_domains_svgd,
                         **_emg_kw_rw,
                     )
             else:
@@ -7278,6 +7595,7 @@ extern "C" {{
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
                     theta_dim=theta_dim, fixed_mask=fixed_mask_for_model,
+                    param_domains=_fd_domains_svgd,
                     **_emg_kw,
                 )
 
@@ -7769,7 +8087,8 @@ extern "C" {{
         )
 
     @classmethod
-    def moments_from_graph(cls, graph: Graph, nr_moments: int = 2, use_ffi: bool = False) -> Callable:
+    def moments_from_graph(cls, graph: Graph, nr_moments: int = 2, use_ffi: bool = False,
+                           param_domains: Any = None) -> Callable:
         """
         Convert a parameterized Graph to a JAX-compatible function that computes moments.
 
@@ -7790,6 +8109,16 @@ extern "C" {{
             - 3: Returns [E[T], E[T^2], E[T^3]]
         use_ffi : bool, default=False
             If True, uses Foreign Function Interface approach.
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each theta slot, used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that because this builder's generated C++
+            refuses a negative edge weight a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
 
         Returns
         -------
@@ -7990,6 +8319,12 @@ extern "C" {{
             result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
             return jax.pure_callback(_compute_moments_pure, result_shape, theta, vmap_method='expand_dims')
 
+        # Plan A: the generated-C++ channel ALWAYS refuses a negative probe
+        # (plan v2.10 §4.4); elimination has no jumps (full rule).
+        _fd_domains = _fd_steps.normalize_domains(param_domains)
+        _fd_info = _fd_steps.build_info(None, family=_fd_steps.FULL, always_refuses=True)
+        _fd_stats = _fd_steps.FDStats('moments_from_graph')
+
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
         def moments_fn(theta):
@@ -8005,22 +8340,41 @@ extern "C" {{
             n_params = theta.shape[0]
             eps = 1e-7
 
+            _fd_steps.check_length(_fd_domains, n_params, 'moments_from_graph')
+
             # Finite differences for gradient
             theta_bar = []
+            _fd_z, _fd_t = [], []
             for i in range(n_params):
+                _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info.refuses)
+                if _rule == _fd_steps.SKIP:
+                    theta_bar.append(jnp.zeros((), dtype=theta.dtype))
+                    continue
                 theta_plus = theta.at[i].add(eps)
                 theta_minus = theta.at[i].add(-eps)
+                theta_plus, theta_minus, _use = _fd_steps.probes(
+                    theta, i, theta_plus, theta_minus, _rule, _fd_info)
+                _fd_steps.record('moments_from_graph', i, theta_plus, theta_minus)
 
                 # Call underlying computation, not moments_fn
                 moments_plus = _compute_pure(theta_plus)
                 moments_minus = _compute_pure(theta_minus)
 
                 grad_i = jnp.sum(g * (moments_plus - moments_minus) / (2 * eps))
+                if _use is not None:
+                    _d = theta_plus[i] - theta_minus[i]
+                    grad_i = jnp.where(_use, jnp.sum(g * _fd_steps.alt_ratio(moments_plus, moments_minus, _d)), grad_i)
+                    _z, _t = _fd_steps.flags(_use, _d, [moments_plus], [moments_minus])
+                    _fd_z.append(_z); _fd_t.append(_t)
                 theta_bar.append(grad_i)
 
+            _fd_steps.report(_fd_stats, _fd_z, _fd_t)
             return (jnp.array(theta_bar),)
 
         moments_fn.defvjp(moments_fn_fwd, moments_fn_bwd)
+        moments_fn._param_domains = _fd_domains
+        moments_fn._fd_build_info = _fd_info
+        moments_fn._fd_stats = _fd_stats
         return moments_fn
 
     @classmethod
@@ -8028,7 +8382,8 @@ extern "C" {{
                                    discrete: bool = False, use_ffi: bool = False,
                                    theta_dim: int | None = None,
                                    fixed_mask: Any = None,
-                                   exact_moment_grad: bool = True) -> Callable:
+                                   exact_moment_grad: bool = True,
+                                   param_domains: Any = None) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -8089,6 +8444,17 @@ extern "C" {{
             gradient method is never silent. Set ``PHASIC_LOG_LEVEL=INFO`` (or
             ``logging.getLogger('phasic').setLevel(logging.INFO)``) to see
             these; the default log level (WARNING) suppresses them.
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each theta slot, used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that on a model whose forward refuses a
+            negative edge weight (non-linear weight mode, discrete, or called
+            with rewards) a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
 
         Returns
         -------
@@ -8165,6 +8531,14 @@ extern "C" {{
         # skipped (their gradient is 0 and SVGD discards it). Threaded from
         # Graph.svgd via fixed_mask; empty set ⇒ no skip (unchanged behavior).
         _fixed_dims = _fixed_indices_set_from_mask(fixed_mask)
+        # Plan A: per-slot FD domains; the build-time refusal (§4.4), to which
+        # the main backward adds "called with rewards" at trace time. The two
+        # cdf-at-zero closures evaluate on reward rows, so they always refuse.
+        _fd_domains = _fd_steps.normalize_domains(param_domains)
+        _fd_info = _fd_steps.build_info(serialized, discrete=discrete,
+                                        family=_fd_steps.CAPPED)
+        _fd_info_cz = _fd_info._replace(refuses=True)
+        _fd_stats = _fd_steps.FDStats('pmf_and_moments_from_graph')
 
         # B3 (default-on, additive): replace the finite-difference d(moments)/dθ
         # with the EXACT reverse-mode θ-adjoint Jacobian over the elimination
@@ -8661,22 +9035,38 @@ extern "C" {{
                 eps = 1e-7
                 min_theta = 1e-9
                 grads = []
+                _fd_steps.check_length(_fd_domains, n_params, 'pmf_and_moments_from_graph')
+                _fd_z, _fd_t = [], []
                 for i in range(n_params):
                     if i in _fixed_dims:
+                        grads.append(0.0)
+                        continue
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info_cz.refuses)
+                    if _rule == _fd_steps.SKIP:
                         grads.append(0.0)
                         continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].set(
                         jnp.maximum(theta[i] - eps, min_theta)
                     )
-                    actual_diff = theta_plus[i] - theta_minus[i]
+                    theta_plus, theta_minus, _use = _fd_steps.probes(
+                        theta, i, theta_plus, theta_minus, _rule, _fd_info_cz)
+                    _fd_steps.record('pmf_and_moments_from_graph.cdf_zero', i, theta_plus, theta_minus)
+                    actual_diff = ((2 * eps) if _fd_steps.plain_divisor(_rule)
+                                   else theta_plus[i] - theta_minus[i])
                     cz_plus = _cdf_zero_pure_cb(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure_cb(theta_minus, rewards)
                     # Guard actual_diff == 0 at extreme theta (see model_bwd).
                     _ok = actual_diff != 0.0
                     grad_i = jnp.sum(g_cz * jnp.where(
                         _ok, (cz_plus - cz_minus) / jnp.where(_ok, actual_diff, 1.0), 0.0))
+                    if _use is not None:
+                        _d = theta_plus[i] - theta_minus[i]
+                        grad_i = jnp.where(_use, jnp.sum(g_cz * _fd_steps.alt_ratio(cz_plus, cz_minus, _d)), grad_i)
+                        _z, _t = _fd_steps.flags(_use, _d, [cz_plus], [cz_minus])
+                        _fd_z.append(_z); _fd_t.append(_t)
                     grads.append(grad_i)
+                _fd_steps.report(_fd_stats, _fd_z, _fd_t)
                 return jnp.array(grads), None
 
             cdf_zero_fn_cb.defvjp(cdf_zero_fwd_cb, cdf_zero_bwd_cb)
@@ -8943,15 +9333,25 @@ extern "C" {{
                 eps = 1e-7
                 min_theta = 1e-9
                 grads = []
+                _fd_steps.check_length(_fd_domains, n_params, 'pmf_and_moments_from_graph')
+                _fd_z, _fd_t = [], []
                 for i in range(n_params):
                     if i in _fixed_dims:
+                        grads.append(0.0)
+                        continue
+                    _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info_cz.refuses)
+                    if _rule == _fd_steps.SKIP:
                         grads.append(0.0)
                         continue
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].set(
                         jnp.maximum(theta[i] - eps, min_theta)
                     )
-                    actual_diff = theta_plus[i] - theta_minus[i]
+                    theta_plus, theta_minus, _use = _fd_steps.probes(
+                        theta, i, theta_plus, theta_minus, _rule, _fd_info_cz)
+                    _fd_steps.record('pmf_and_moments_from_graph.cdf_zero', i, theta_plus, theta_minus)
+                    actual_diff = ((2 * eps) if _fd_steps.plain_divisor(_rule)
+                                   else theta_plus[i] - theta_minus[i])
                     cz_plus = _cdf_zero_pure(theta_plus, rewards)
                     cz_minus = _cdf_zero_pure(theta_minus, rewards)
                     # Guard actual_diff == 0 at extreme (diverged) theta (see
@@ -8959,7 +9359,13 @@ extern "C" {{
                     _ok = actual_diff != 0.0
                     grad_i = jnp.sum(g_cz * jnp.where(
                         _ok, (cz_plus - cz_minus) / jnp.where(_ok, actual_diff, 1.0), 0.0))
+                    if _use is not None:
+                        _d = theta_plus[i] - theta_minus[i]
+                        grad_i = jnp.where(_use, jnp.sum(g_cz * _fd_steps.alt_ratio(cz_plus, cz_minus, _d)), grad_i)
+                        _z, _t = _fd_steps.flags(_use, _d, [cz_plus], [cz_minus])
+                        _fd_z.append(_z); _fd_t.append(_t)
                     grads.append(grad_i)
+                _fd_steps.report(_fd_stats, _fd_z, _fd_t)
                 return jnp.array(grads), None
 
             cdf_zero_fn.defvjp(cdf_zero_fwd, cdf_zero_bwd)
@@ -9066,6 +9472,9 @@ extern "C" {{
             # softplus which can be as small as 1e-9, smaller than eps)
             min_theta = 1e-9
             theta_bar = []
+            _fd_steps.check_length(_fd_domains, n_params, 'pmf_and_moments_from_graph')
+            _fd_ref = _fd_steps.model_refuses(_fd_info, _rewards_provided)
+            _fd_z, _fd_t = [], []
             for i in range(n_params):
                 # Skip fixed parameters: their gradient is 0 and SVGD discards
                 # it (mirrors the daisy / joint_index paths). Value-preserving
@@ -9073,9 +9482,17 @@ extern "C" {{
                 if i in _fixed_dims:
                     theta_bar.append(0.0)
                     continue
+                _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_ref)
+                if _rule == _fd_steps.SKIP:
+                    theta_bar.append(0.0)
+                    continue
                 theta_plus = theta.at[i].add(eps)
                 theta_minus = theta.at[i].set(jnp.maximum(theta[i] - eps, min_theta))
-                actual_diff = theta_plus[i] - theta_minus[i]
+                theta_plus, theta_minus, _use = _fd_steps.probes(
+                    theta, i, theta_plus, theta_minus, _rule, _fd_info)
+                _fd_steps.record('pmf_and_moments_from_graph', i, theta_plus, theta_minus)
+                actual_diff = ((2 * eps) if _fd_steps.plain_divisor(_rule)
+                               else theta_plus[i] - theta_minus[i])
 
                 # Call underlying computation, not model
                 pmf_plus, moments_plus = _compute_pure(theta_plus, times, rewards)
@@ -9105,9 +9522,24 @@ extern "C" {{
                     # path was not applicable for this θ (NaN sentinel).
                     grad_moments_i = jnp.where(_exact_ok, _exact_tbm[i], grad_moments_i)
                 grad_i = grad_pmf_i + grad_moments_i
+                if _use is not None:
+                    # Plan A alternative quotient over the actual probe
+                    # difference; the exact moments swap applies as above.
+                    _d = theta_plus[i] - theta_minus[i]
+                    _a_pmf = jnp.nansum(g_pmf * _fd_steps.alt_ratio(pmf_plus, pmf_minus, _d))
+                    _a_mom = jnp.sum(g_moments * _fd_steps.alt_ratio(moments_plus, moments_minus, _d))
+                    if _exact_tbm is not None:
+                        _a_mom = jnp.where(_exact_ok, _exact_tbm[i], _a_mom)
+                    grad_i = jnp.where(_use, _a_pmf + _a_mom, grad_i)
+                    _mmask = (None if _exact_tbm is None
+                              else jnp.broadcast_to(~_exact_ok, jnp.shape(moments_plus)))
+                    _z, _t = _fd_steps.flags(_use, _d, [pmf_plus, moments_plus],
+                                             [pmf_minus, moments_minus], [None, _mmask])
+                    _fd_z.append(_z); _fd_t.append(_t)
 
                 theta_bar.append(grad_i)
 
+            _fd_steps.report(_fd_stats, _fd_z, _fd_t)
             return jnp.array(theta_bar), None, None  # gradients for theta, times, rewards
 
         model.defvjp(model_fwd, model_bwd)
@@ -9128,6 +9560,9 @@ extern "C" {{
             model._cdf_zero_fn = _callback_mode_cdf_zero_fn
         elif not use_ffi:
             model._cdf_zero_fn = cdf_zero_fn
+        model._param_domains = _fd_domains
+        model._fd_build_info = _fd_info
+        model._fd_stats = _fd_stats
         # Source graph reference for direct ``SVGD(model=...)``
         # callers; enables auto-attachment of the zero-inflated
         # likelihood term (see ``zero_inflation.py``).
@@ -9143,7 +9578,8 @@ extern "C" {{
                                     exclude_vertices: list[int] | None = None,
                                     observed_indices: Any = None,
                                     exact_grad: bool = False,
-                                    exact_grad_decline: str = 'raise') -> Callable:
+                                    exact_grad_decline: str = 'raise',
+                                    param_domains: Any = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -9249,6 +9685,20 @@ extern "C" {{
             defect (the reason this feature exists) matters more than the
             P-scaled cost -- accepting that a committed model RAISES on a
             per-theta decline instead of falling back.
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each theta slot, used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that on a model whose forward refuses a
+            negative edge weight (discrete, or a non-linear weight mode) a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
+            The host-side fallback of ``exact_grad_decline='fd'`` keeps its
+            relative step for ``None`` / ``'unconstrained'`` slots (band:
+            0 <= theta < 1e-10 on refusing models), and skips ``'fixed'``
+            slots.
 
         Returns
         -------
@@ -9318,6 +9768,11 @@ extern "C" {{
 
         # Keep serialized dict for FFI (it handles JSON conversion internally)
         structure_dict = serialized
+        # Plan A: per-slot FD domains; elimination has no jumps (full rule);
+        # refusal from weight mode and discreteness (§4.4).
+        _fd_domains_jx = _fd_steps.normalize_domains(param_domains)
+        _fd_info_jx = _fd_steps.build_info(serialized, family=_fd_steps.FULL)
+        _fd_stats_jx = _fd_steps.FDStats('pmf_from_graph_joint_index')
 
         # Find ALL terminal vertex indices at model construction time
         # Terminal vertices are those with an edge to an absorbing state (no outgoing edges)
@@ -9548,10 +10003,20 @@ extern "C" {{
                     )
                     J_union = np.empty(
                         (union_idx.shape[0], _jix_param_length))
+                    _fd_steps.check_length(_fd_domains_jx, _jix_param_length,
+                                           'pmf_from_graph_joint_index')
                     for _k in range(_jix_param_length):
                         _h = max(abs(float(th[_k])) * 1e-6, 1e-10)
-                        _tp = th.copy(); _tp[_k] += _h
-                        _tm = th.copy(); _tm[_k] -= _h
+                        _rule = _fd_steps.slot_rule(
+                            _fd_steps.domain_of(_fd_domains_jx, _k), _fd_info_jx.refuses)
+                        if _rule == _fd_steps.SKIP:
+                            J_union[:, _k] = 0.0
+                            continue
+                        # Plan A host rule: today's relative step unless a
+                        # declared domain or the refusing band applies.
+                        _tp, _tm, _div, _alt = _fd_steps.host_probes_np(
+                            th, _k, _h, _rule, _fd_info_jx)
+                        _fd_steps.record_np('pmf_from_graph_joint_index.host', _k, _tp, _tm)
                         _jix_exact_graph.update_weights(_tp.tolist())
                         _sp = np.asarray(
                             _jix_exact_graph.expected_sojourn_time(
@@ -9560,7 +10025,15 @@ extern "C" {{
                         _sm = np.asarray(
                             _jix_exact_graph.expected_sojourn_time(
                                 union_idx.tolist()))
-                        J_union[:, _k] = (_sp - _sm) / (2.0 * _h)
+                        if not _alt:
+                            J_union[:, _k] = (_sp - _sm) / (2.0 * _h)
+                        else:
+                            _fin = np.isfinite(_sp) & np.isfinite(_sm)
+                            _tie = bool(_div != 0.0 and _fin.any()
+                                        and np.all(_sp[_fin] == _sm[_fin]))
+                            _fd_stats_jx.add(int(_div == 0.0), int(_tie))
+                            J_union[:, _k] = ((_sp - _sm) / _div if _div != 0.0
+                                              else 0.0)
                     if _baked:
                         return (J_union[_baked_obs_pos_np],
                                 J_union[_baked_all_pos_np])
@@ -9879,6 +10352,9 @@ extern "C" {{
         if fixed_mask is not None:
             fixed_mask_np = np.asarray(fixed_mask)
             fixed_indices_set = set(np.where(fixed_mask_np == 1)[0].tolist())
+        # Plan A: 'fixed' domain slots are never probed and get a zero
+        # gradient on the exact path too (empty when undeclared).
+        fixed_indices_set = fixed_indices_set | _fd_steps.fixed_slots(_fd_domains_jx)
 
         def model_bwd(res, g):
             theta, vertex_indices = res
@@ -9886,6 +10362,7 @@ extern "C" {{
 
             n_params = theta.shape[0]
             eps = 1e-7
+            _fd_steps.check_length(_fd_domains_jx, n_params, 'pmf_from_graph_joint_index')
 
             def _fd_theta_bar():
                 # Finite differences for gradient (unchanged from before this
@@ -9893,17 +10370,29 @@ extern "C" {{
                 # is zero; critical for correct chain rule when using
                 # compiled_grad_reduced.
                 tb = []
+                _fd_z, _fd_t = [], []
                 for i in range(n_params):
                     if i in fixed_indices_set:
                         tb.append(jnp.zeros((), dtype=theta.dtype))
                         continue
+                    _rule = _fd_steps.slot_rule(
+                        _fd_steps.domain_of(_fd_domains_jx, i), _fd_info_jx.refuses)
                     theta_plus = theta.at[i].add(eps)
                     theta_minus = theta.at[i].add(-eps)
+                    theta_plus, theta_minus, _use = _fd_steps.probes(
+                        theta, i, theta_plus, theta_minus, _rule, _fd_info_jx)
+                    _fd_steps.record('pmf_from_graph_joint_index', i, theta_plus, theta_minus)
                     visits_plus, _ = _compute_pure(theta_plus, vertex_indices)
                     visits_minus, _ = _compute_pure(theta_minus, vertex_indices)
                     # Gradient only from visits (moments are dummy zeros)
                     grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / (2 * eps))
+                    if _use is not None:
+                        _d = theta_plus[i] - theta_minus[i]
+                        grad_i = jnp.where(_use, jnp.sum(g_visits * _fd_steps.alt_ratio(visits_plus, visits_minus, _d)), grad_i)
+                        _z, _t = _fd_steps.flags(_use, _d, [visits_plus], [visits_minus])
+                        _fd_z.append(_z); _fd_t.append(_t)
                     tb.append(grad_i)
+                _fd_steps.report(_fd_stats_jx, _fd_z, _fd_t)
                 return jnp.stack(tb)
 
             if _exact_sojourn_jac_np is None or not _jix_probed_ok:
@@ -9976,6 +10465,9 @@ extern "C" {{
         model.defvjp(model_fwd, model_bwd)
         # Source graph reference (see ``pmf_and_moments_from_graph``).
         model._source_graph = graph
+        model._param_domains = _fd_domains_jx
+        model._fd_build_info = _fd_info_jx
+        model._fd_stats = _fd_stats_jx
         # Preconditioner source: this joint-index model returns DUMMY zeros as
         # its second (moments) output, so the moment Jacobian would degenerate.
         # Precondition on the theta-dependent FIRST (probability) output instead
@@ -9988,7 +10480,8 @@ extern "C" {{
                                                 discrete: bool = False, use_ffi: bool = False,
                                                 theta_dim: int | None = None,
                                                 fixed_mask: Any = None,
-                                                exact_moment_grad: bool = True) -> Callable:
+                                                exact_moment_grad: bool = True,
+                                                param_domains: Any = None) -> Callable:
         """
         Create a multivariate phase-type model that handles 2D observations and rewards.
 
@@ -10019,6 +10512,9 @@ extern "C" {{
             (weight-mode scope, static declines, per-theta declines --
             all INFO-logged; construction-time declines log once, not
             per feature).
+        param_domains : sequence, optional
+            Per-slot finite-difference domains, forwarded to the internal
+            1-D model (see ``pmf_and_moments_from_graph``).
 
         Returns
         -------
@@ -10098,7 +10594,7 @@ extern "C" {{
         model_1d = cls.pmf_and_moments_from_graph(
             graph, nr_moments=nr_moments, discrete=discrete,
             use_ffi=use_ffi, theta_dim=theta_dim, fixed_mask=fixed_mask,
-            exact_moment_grad=exact_moment_grad
+            exact_moment_grad=exact_moment_grad, param_domains=param_domains
         )
 
         def model_multivariate(theta, times, rewards=None):
@@ -10196,6 +10692,10 @@ extern "C" {{
 
         # Source graph reference (see ``pmf_and_moments_from_graph``).
         model_multivariate._source_graph = graph
+        # Plan A: FD domains travel with the wrapper (zero inflation reads them).
+        model_multivariate._param_domains = model_1d._param_domains
+        model_multivariate._fd_build_info = model_1d._fd_build_info
+        model_multivariate._fd_stats = model_1d._fd_stats
         # Preconditioner source: real moments output (see pmf_and_moments_from_graph).
         model_multivariate._precondition_output = 'moments'
         return model_multivariate
@@ -11779,6 +12279,7 @@ extern "C" {{
         fixed_indices=None,
         granularity: int = 0,
         final_read: str = 'sojourn',
+        param_domains=None,
     ):
         """JAX-traceable model: joint-probs at the t-states after a daisy chain.
 
@@ -11841,6 +12342,16 @@ extern "C" {{
             discretisation (slower, more accurate); smaller positive
             values trade accuracy for speed. The same granularity is
             used for every epoch's ``stop_probability`` call.
+        param_domains : sequence of {None, 'positive', 'unit', 'unconstrained', 'fixed'}, optional
+            Domain of each FLAT theta slot (epoch-major), used only by the finite-difference
+            gradient (Plan A, ``plans-and-findings/fd-domain-steps-plan.md``):
+            ``'positive'`` and ``'unit'`` keep every probe inside (0, inf) or
+            (0, 1) with a relative step; ``'unconstrained'`` uses the plain
+            +-1e-7 step; ``'fixed'`` slots are not probed (zero gradient).
+            ``None`` (the default, and any ``None`` entry) keeps today's
+            absolute 1e-7 step, except that because a multi-epoch forward refuses a
+            negative edge weight a slot with 0 <= theta <= 1e-7 is probed
+            inside [0, 2e-7] instead of crashing. Forward values never change.
 
         Returns
         -------
@@ -12033,18 +12544,41 @@ extern "C" {{
         def _autodiff_fwd(theta_flat):
             return _forward(theta_flat), theta_flat
 
+        # Plan A: a multi-epoch forward ALWAYS refuses a negative probe
+        # (§4.4); automatic granularity has jumps (capped), explicit does not.
+        _fd_domains = _fd_steps.normalize_domains(param_domains)
+        _fd_info = _fd_steps.build_info(
+            None, always_refuses=True,
+            family=_fd_steps.CAPPED if int(granularity) == 0 else _fd_steps.FULL)
+        _fd_stats = _fd_steps.FDStats('daisy_chain_joint_probs')
+
         def _autodiff_bwd(theta_flat, cotangent):
             n_params = theta_flat.shape[0]
+            _fd_steps.check_length(_fd_domains, n_params, 'daisy_chain_joint_probs')
             grads = []
+            _fd_z, _fd_t = [], []
             for i in range(n_params):
                 if i in fixed_set:
                     grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
                     continue
+                _rule = _fd_steps.slot_rule(_fd_steps.domain_of(_fd_domains, i), _fd_info.refuses)
+                if _rule == _fd_steps.SKIP:
+                    grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                    continue
                 tp = theta_flat.at[i].add(eps)
                 tm = theta_flat.at[i].add(-eps)
+                tp, tm, _use = _fd_steps.probes(theta_flat, i, tp, tm, _rule, _fd_info)
+                _fd_steps.record('daisy_chain_joint_probs', i, tp, tm)
                 jp = _forward(tp)
                 jm = _forward(tm)
-                grads.append(jnp.sum(cotangent * (jp - jm) / (2.0 * eps)))
+                _g = jnp.sum(cotangent * (jp - jm) / (2.0 * eps))
+                if _use is not None:
+                    _d = tp[i] - tm[i]
+                    _g = jnp.where(_use, jnp.sum(cotangent * _fd_steps.alt_ratio(jp, jm, _d)), _g)
+                    _z, _t = _fd_steps.flags(_use, _d, [jp], [jm])
+                    _fd_z.append(_z); _fd_t.append(_t)
+                grads.append(_g)
+            _fd_steps.report(_fd_stats, _fd_z, _fd_t)
             return (jnp.stack(grads),)
 
         _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)

@@ -1,6 +1,6 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
+**Status: v2.10, 2026-11-27: v2.9 plus all user-approved Batch 0 amendments (§1/§5 the clamp is unconditional at three sites; §4.2 overshoot wording; §4.4 `moments_from_graph` always refuses; §6 Batch 1 test notes; §7 test list; the step size s = 3e-5 for every family is recorded in [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3). v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
 REJECT; reviews 8-12 of v2.3-v2.7 likewise); their findings are
@@ -14,7 +14,7 @@ the refactor is gated on bit identity.
 
 Decisions (user, 2026-11-26): fitters declare domains from their
 transforms, undeclared callers keep today's numbers (v5 D2); the step size
-is fixed per forward family in Batch 0, starting from s = 1e-4 (v5 D3;
+is fixed per forward family in Batch 0, starting from s = 1e-4 (DECIDED 2026-11-27 after Batch 0: s = 3e-5 for every family and both the full and the capped rule, positive and unit domains, [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3; v5 D3;
 review 3 measured s = 1e-4 as sound: 2e-9..5e-9 relative error on the
 epoch model, `experiments/fd_domain_steps/review3/p1_daisy.log`).
 
@@ -43,9 +43,13 @@ theta ± 1e-7 in absolute terms (one site uses max(|theta|·1e-6, 1e-10)):
   (review3/p1_daisy.log);
 - silent gradient errors where the dependence on a small rate is
   multiplicative (v5 §1: up to 4.6e15x on the default joint-graph path);
-- with `positive_params=False`, two sites clamp the minus probe at 1e-9
-  (`__init__.py:8662-8669`, `:9068-9077`), so a parameter that may be
-  negative gets a secant over [theta, 1e-9]: rate = t0 + t1 at
+- three `pmf_and_moments_from_graph` sites clamp the minus probe at 1e-9
+  (`__init__.py:8664-8679` callback cdf at zero, `:8946-8962` cdf at zero,
+  `:9069-9076` main). The clamp is unconditional: it fires whenever
+  theta < 1e-7 + 1e-9, whatever `positive_params` is, so for theta >= 0 those
+  sites never probe below zero (v2.10, Batch 0 finding). With
+  `positive_params=False` a parameter that may be negative gets a secant
+  over [theta, 1e-9]: rate = t0 + t1 at
   theta = [6, -5] gives -0.49382 instead of -0.50049 for t1
   (review2/probe_clamp.py);
 - fixed slots are probed at sites that have no fixed-slot information.
@@ -155,7 +159,7 @@ drift.
   on a default (positive) `epoch_model` is a listed behaviour change (§7).
   The epoch_model default is introduced in Batch 2, together with the
   `Graph.svgd` resolver, so the two routes keep their parity
-  (`tests/pytest/inference/test_epoch_model.py:83`, `:161`, rtol 1e-9). Fit-time fixed slots stay probed; that is
+  (`tests/pytest/inference/test_epoch_model.py:83`, `:161`, rtol 1e-9). (Batch 2 review m2: that parity holds for priors without a transform of their own; with a BetaPrior slot Graph.svgd declares 'unit' while the default epoch_model declares 'positive', learnable-slot gradients then differ by ~1e-8, so bit parity needs a matching `param_domains`; documented in the epoch_model and fit docstrings.) Fit-time fixed slots stay probed; that is
   harmless because of §4.5 (declared-positive slots at theta <= 0, such as
   a rate fixed at 0 for the nested likelihood-ratio model, get a one-sided
   step).
@@ -208,8 +212,10 @@ pdf's capped step (harmless; stated).
 | unconstrained | — | theta ± 1e-7; on REFUSING models only, the capped positive rule when 0 < theta <= 1e-7 and the one-sided [0, 1e-7] step at theta == 0 (crash prevention); at the joint-index host site, today's relative step (§5) | literal 2·eps for the plain step; actual difference with zero guard for the capped step (two quotients selected per §4.7) |
 | `None` | — | today's code at that site, unchanged | today's (2·eps, or actual difference at the clamp sites) |
 
-The capped up-probe is never more than 1e-7 above theta (review 1 m1
-corrected v1's formula), and no `'positive'` probe is ever negative. An
+The capped up-probe is at most 1e-7 above theta, up to rounding of 2
+ulp(theta) (review 1 m1 corrected v1's formula; v2.10: Batch 0 measured the
+float overshoot, ~1e-10 from theta ≈ 1e6 and at most 2.38e-7 near
+theta ≈ 8e8, harmless for walls and jumps), and no `'positive'` probe is ever negative. An
 `'unconstrained'` probe may be negative (that is the point of the
 domain); on refusing models the band rule keeps it non-negative near zero.
 
@@ -253,6 +259,16 @@ refuses when ANY of these holds:
   arbitrarily; the add-edge check refuses a negative weight,
   `phasic.c:4938`; measured, review7/p1_cpp.log): ALWAYS refusing,
   continuous and discrete;
+- it is built by `moments_from_graph` (v2.10, user-approved 2026-11-27,
+  Batch 0 finding): ALWAYS refusing. It computes through the generated-C++
+  channel, whose rebuild rejects any edge weight <= 0 (add-edge check, now
+  `phasic.c:4957`). Measured on a linear continuous graph: every negative
+  probe in {-1e-12, -1e-9, -5e-8, -1e-7} is refused, today's gradient
+  crashes at a slot of 5e-8, and a slot of exactly 0 is accepted, so the
+  §4.5 one-sided step applies (batch0/g1_refusal_grid.jsonl,
+  batch0/a4_theta_zero.log). The builder accepts only linear continuous
+  graphs. The refactor's phase 4 retires this channel (R4), a refusal move
+  it must reproduce or list, updating `model_refuses()` in the same commit;
 - it is CALLED WITH REWARDS (the existing `_rewards_provided` test,
   `rewards is not None and rewards.size > 0`, `__init__.py:9021` on HEAD `003559ed`, Batch 0 re-confirms; an empty
   array triggers no reward transform): the reward-transform
@@ -271,7 +287,7 @@ broken" tests at `test_fd_gradient_mixed_scale.py:112`, `:132`, goal 6).
 Only linear-weight continuous models accept a slightly negative probe (the
 check is commented out, `phasic.c:5767-5790`; the Euler pdf path is then
 ~1e-8 accurate, review3/p3_nearzero.log), when called without rewards and
-not built by `pmf_from_cpp`. The model builder computes the build-time part
+not built by `pmf_from_cpp` or `moments_from_graph`. The model builder computes the build-time part
 of this flag once and passes it to `_fd_steps` with the domains; the
 rewards part is added at trace time. For the direct
 `Graph.reward_visit_probability` call, which has no model, the rvp backward
@@ -281,8 +297,8 @@ The flag is exposed through ONE named function, `_fd_steps.model_refuses(
 build_info, has_rewards)`, which every site calls. The refactor plan
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md), phase 5) later
 replaces its implementation with a C++ query on the graph-state record
-(`refuses(record, has_rewards)`, with `pmf_from_cpp` refusing by
-constant), so the swap happens in one place. The Batch 0 refusal grid is
+(`refuses(record, has_rewards)`, with `pmf_from_cpp` and, until phase 4,
+`moments_from_graph` refusing by constant), so the swap happens in one place. The Batch 0 refusal grid is
 the starting point of the refactor's phase-1 refusal matrix, and the two
 must agree.
 
@@ -414,7 +430,7 @@ model is built.
 | `:5245` → loops `:5306`, `:5344` (exact_final override) | `_daisy_chain_svgd_model`, no exposure | multi-epoch |
 | `:5501` → loops `:5647`, `:5698` | `_daisy_chain_svgd_model`, exposure | multi-epoch |
 | `:8006` | `moments_from_graph` | elimination |
-| `:8661`, `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp) | `pmf_and_moments_from_graph` | Euler + elimination |
+| `:8661` (callback-mode cdf at zero, clamp), `:8943` (cdf at zero, clamp), `:8998` → `:9068-9108` (main, clamp); all three clamps unconditional (v2.10) | `pmf_and_moments_from_graph` | Euler + elimination |
 | `:9545-9570` (step max(abs(theta)·1e-6, 1e-10), numpy, probes all slots; goes negative below 1e-10) | joint-index host fallback for `exact_grad_decline='fd'` (forwarded by `Graph.svgd` at `:7229-7237`) | elimination; undeclared AND `'unconstrained'` slots keep today's RELATIVE rule bit for bit (it is correct near zero, where the plain ±1e-7 step would flip the sign: measured -4.0000e14 today vs +1.33e14 plain at theta = 5e-8, review11/p2_host_site.log), with the §4.4 band only on refusing models and only for 0 <= theta < 1e-10 (negative slots keep today's relative step; the capped rule is undefined for theta < 0) (this site can be refusing for a direct `pmf_from_graph_joint_index(..., exact_grad_decline='fd')` call on a native discrete graph, `__init__.py:9409-9470`; `Graph.svgd` cannot reach that, rule R31); ties on its declared branches are counted only, as everywhere; `'positive'` / `'unit'` slots use the numpy variant of §4.2; only `'fixed'` slots are skipped |
 | `:9888` | `pmf_from_graph_joint_index` | elimination |
 | `:12018` | `daisy_chain_joint_probs` | multi-epoch |
@@ -488,7 +504,12 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
     the domain coordinate;
   - the tied-master gradient equals the sum of per-epoch partials (extend
     `test_daisy_chain_c_path.py::test_tied_gradient_sums_per_epoch_partials`);
-  - theta = 0 and fixed-0 cases;
+  - theta = 0 and fixed-0 cases, on models where 0 is a valid value (the
+    slot beside another exit; v2.10: a slot that is a vertex's only exit
+    makes the forward itself fail at 0, Batch 0 `a4_theta_zero.log`);
+  - any test that deliberately evaluates an invalid theta WITH rewards uses
+    a fresh model per assertion: the refusal is reported one call late
+    (OI-119, v2.10);
   - discrete near the row-sum wall;
   - signed parameters under `'unconstrained'`;
   - formula and log weight modes with fixed slots;
@@ -563,8 +584,16 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   `test_exact_grad_rewards.py` (`:106-111`), `test_daisy_chain_c_path.py:340`,
   `:797` (replicate the 1e-7 rule): must stay BIT EXACT; these are not
   edits (v1 §6 was wrong).
-- `test_likelihood_correctness.py`: the `log(pmf + 1e-10)` regulariser
-  artefact (v5), only if Batch 0 confirms it is affected.
+- `test_likelihood_correctness.py`: NOT affected (v2.10, Batch 0): its
+  gradient tests use a non-refusing undeclared model (linear, continuous, no
+  rewards), so today's code is kept bit for bit there.
+- `test_discrete_row_sum.py::test_gradient_at_the_lower_bound` (`:369-380`,
+  v2.10, Batch 0 finding, user-approved): it asserts that `jax.grad` at
+  theta = 5e-8 on a native discrete `pmf_from_graph` model raises "negative
+  weight". The §4.4 fallback removes that crash, so Batch 1 rewrites it to
+  assert a finite gradient (checked against a closed form or Richardson
+  reference). The neighbouring `test_gradient_at_the_bound` (upper row-sum
+  wall) is unchanged.
 - Fit-level strict xfails in `test_notebook_model_recovery.py` (`:484`,
   `:553`, `:659`, `:699`; `:699` is the "particles stuck at the 1e-9
   floor" pin) may XPASS after Batch 2. The Batch 2 gate runs them
@@ -584,6 +613,27 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   correct gradients; an unconstrained rate within 1e-7 of zero can get a
   wrong-sign gradient (today: right sign, wrong size).
 - Batch 0's census may add more; each is listed before Batch 1 starts.
+- **Batch 2 additions (gate and review), listed for the user:**
+  - `inference/test_svgd_api_parity.py::test_graph_svgd_and_direct_svgd_agree`
+    (test edit; approved by the user 2026-11-27). Its direct route now builds the model with
+    `param_domains=['positive']`, as Graph.svgd declares for that fit, and
+    the test also seeds `random`.
+    - Why: the fit is chaotic. A 1e-9 change in the initial particles moves
+      the posterior std from 0.11 to 0.60, so the two surfaces agree only
+      with identical numerics. A direct caller must declare
+      `param_domains` to reproduce Graph.svgd.
+    - Evidence: findings §11.6.
+  - **Behaviour change** (review m1). Reusing a model built by Graph.svgd
+    (`svgd.model`) in a direct `SVGD(model=...)` call whose fit is WIDER
+    than the first fit now raises. Two cases:
+    - `positive_params=False`, or a softplus prior where the first fit had
+      a BetaPrior slot;
+    - a nested model reused for the full fit with its fixed slot freed.
+      Before, that slot's gradient was silently zero, because the FD skip
+      was baked in; so this raise is an improvement.
+
+    Fixing more slots on reuse still works (the model-selection notebook
+    pattern).
 
 ## 8. Gate per batch
 
@@ -822,3 +872,66 @@ review series ends here; the three minors are folded in:
 - m2: the tie log notes it may be a genuine zero; §9 is aligned with
   §4.5; the stale primal reason is removed.
 - m3: the host-site band is 0 <= theta < 1e-10.
+
+## 12. Amendment A-124 (OI-124): APPROVED by the user 2026-11-27, IMPLEMENTED
+
+Implemented in `_fd_steps.probes` and `host_probes_np`, with tests
+(`test_fd_domain_steps_batch2.py`, section A-124); findings §11.8. The text
+below is the proposal as approved. One addition found while implementing:
+the Batch 1 test `test_rule_selection` asserted the old behaviour ('unit' at
+0 keeps today's probe), so its assertion was updated to the new rule.
+
+Deferred from the Batch 1 review (m1) to Batch 2 by user decision.
+
+- **Defect.** A slot declared `'unit'` at exactly theta = 0 gets today's
+  ±1e-7 probe, because §4.5 sends "unit outside (0, 1)" to today's probe. On
+  a REFUSING model (§4.4), the minus probe -1e-7 is refused, so the gradient
+  crashes. An undeclared slot at 0 does not crash: it takes the band's
+  one-sided step. A declared slot is therefore less protected than an
+  undeclared one, contrary to goal 1. Measured in the Batch 1 review
+  (`batch1/review/` E1, E1b):
+  - the epoch model at [1, 0, 1, 0.5] with slot 1 declared 'unit' raises
+    "NEGATIVE transition rate";
+  - native-discrete `pmf_from_graph` raises "negative weight".
+- **Reachability, corrected.** The review's route "sigmoid underflow (phi
+  below about -745)" does not exist: SVGD's `_sigmoid` clips theta to
+  [1e-9, 1 - 1e-9] (`svgd.py` `_sigmoid`), so a fit never hands the model a
+  'unit' slot at exactly 0. The defect is reachable only through an
+  EXPLICIT 'unit' declaration with a value of exactly 0:
+  - `Graph.epoch_model(..., param_domains='unit' or a list with 'unit')`,
+    then `fit(fixed=[(k, 0.0)])`. epoch_model probes fit-time fixed slots
+    (bake_fd_skip=False, §3). A 'unit' slot fixed at 0 fits the
+    containment check, since a fit-side 'fixed' fits any model domain;
+  - a direct builder call with `param_domains` and `jax.grad` at 0.
+
+  `Graph.svgd` cannot reach it: its fixed slots are declared 'fixed' and
+  never probed. Master crashes in the same cases (the slot is undeclared
+  there, and today's probe crashes at 0 on a refusing model), so this is a
+  gap, not a regression.
+- **Proposed rule (amends §4.2 and §4.5).** At theta == 0 exactly, a 'unit'
+  slot takes the one-sided [0, 1e-7] step that 'positive' already uses. Log
+  mode is the exception: it refuses a product of exactly 0 itself, so the
+  primal's clear error stays. Every other value outside (0, 1), including
+  exactly 1, keeps today's probe:
+  - the upper wall at 1 is the native-discrete row-sum wall, out of scope
+    (§4.1);
+  - exposure-scaled values above 1 are not 'unit' (§4.5 widening).
+
+  The same change applies to the numpy host variant (`host_probes_np`).
+- **Cost and bit identity.** One extra `jnp.where` term in the 'unit' branch
+  of `_fd_steps.probes`. Nothing changes for undeclared, 'positive',
+  'unconstrained' or 'fixed' slots, nor for 'unit' slots strictly inside
+  (0, 1). The Batch 1 bit-identity cells are unaffected.
+- **Tests, if approved.** A 'unit' slot at 0 does not crash, and its value
+  equals a forward difference over [0, 1e-7]:
+  - on the epoch model (fixed-at-0 fit through `epoch_model(param_domains=...)`
+    plus a direct `jax.grad`);
+  - on native-discrete `pmf_from_graph` and the host variant;
+  - on a log-mode model, where today's primal error is expected.
+
+  The Batch 1 test `test_out_of_domain_values_keep_todays_probe` keeps its
+  values strictly outside [0, 1].
+- **Gate, if approved.** Rerun `test_fd_domain_steps.py`,
+  `test_fd_domain_steps_batch2.py` and `inference/test_epoch_model.py`. The
+  change touches only a branch that crashes today, so the full suite run is
+  not repeated.

@@ -1,0 +1,64 @@
+pfg_log      eager    bit-identical=True
+pfg_log      jit      bit-identical=True
+pfg_log      vmap     bit-identical=True
+pfg_log      jitvmap  bit-identical=True
+pfg_formula  eager    bit-identical=True
+pfg_formula  jit      bit-identical=True
+pfg_formula  vmap     bit-identical=True
+pfg_formula  jitvmap  bit-identical=True
+pfg_dph      eager    bit-identical=True
+pfg_dph      jit      bit-identical=True
+pfg_dph      vmap     bit-identical=True
+pfg_dph      jitvmap  bit-identical=True
+pam_log      eager    bit-identical=True
+pam_log      jit      bit-identical=True
+pam_log      vmap     bit-identical=True
+pam_log      jitvmap  bit-identical=True
+pam_formula  eager    bit-identical=True
+pam_formula  jit      bit-identical=True
+pam_formula  vmap     bit-identical=True
+pam_formula  jitvmap  bit-identical=True
+dc_noexp     eager    bit-identical=True
+dc_noexp     jit      bit-identical=True
+dc_noexp     vmap     bit-identical=True
+dc_noexp     jitvmap  bit-identical=True
+dc_exp       eager    bit-identical=True
+dc_exp       jit      bit-identical=True
+dc_exp       vmap     bit-identical=True
+dc_exp       jitvmap  bit-identical=True
+dc_efg       eager    bit-identical=True
+dc_efg       jit      bit-identical=True
+dc_efg       vmap     bit-identical=True
+dc_efg       jitvmap  bit-identical=True
+dcjp         eager    bit-identical=True
+dcjp         jit      bit-identical=True
+dcjp         vmap     bit-identical=True
+dcjp         jitvmap  bit-identical=True
+mfg          eager    bit-identical=True
+mfg          jit      bit-identical=True
+mfg          vmap     bit-identical=True
+mfg          jitvmap  bit-identical=True
+pfg_linear   eager    bit-identical=True
+pfg_linear   jit      bit-identical=True
+pfg_linear   vmap     bit-identical=True
+pfg_linear   jitvmap  bit-identical=True
+pam_linear   eager    bit-identical=True
+pam_linear   jit      bit-identical=True
+pam_linear   vmap     bit-identical=True
+pam_linear   jitvmap  bit-identical=True
+jix          eager    bit-identical=True
+jix          jit      bit-identical=True
+jix          vmap     bit-identical=True
+jix          jitvmap  bit-identical=True
+rvp_linear   eager    bit-identical=True
+rvp_linear   jit      bit-identical=True
+rvp_linear   vmap     bit-identical=True
+rvp_linear   jitvmap  bit-identical=True
+MIXED dc_noexp     vmap     out-of-band rows bit-identical=True; in-band row finite=True
+MIXED dc_noexp     jitvmap  out-of-band rows bit-identical=True; in-band row finite=True
+MIXED pfg_log      vmap     out-of-band rows bit-identical=True; in-band row finite=True
+MIXED pfg_log      jitvmap  out-of-band rows bit-identical=True; in-band row finite=True
+MIXED pam_formula  vmap     out-of-band rows bit-identical=True; in-band row finite=True
+MIXED pam_formula  jitvmap  out-of-band rows bit-identical=True; in-band row finite=True
+TOTAL mismatches/errors: 0
+[runcap] exit 0, peak RSS 1059 MB, 65s

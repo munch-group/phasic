@@ -1,0 +1,5 @@
+eager grad: [ 0.16328205 -0.07563021]
+jit grad:   [ 0.16328205 -0.07563021]
+vmap grad RAISES: 3/site-packages/jax/_src/callback.py", line 793, in _wrapped_callback RuntimeError: Incorrect output shape for return value #0: Expected: (2, 3), Actual: (1, 3)
+vmap fwd RAISES: 3/site-packages/jax/_src/callback.py", line 793, in _wrapped_callback RuntimeError: Incorrect output shape for return value #0: Expected: (2, 3), Actual: (1, 3)
+[runcap] exit 0, peak RSS 465 MB, 11s

@@ -1,0 +1,35 @@
+=== use_ffi=False
+  (1) valid call 0 [ 0.17215841935   0.238693694589  0.232634019373  3.
+ 14.            ]
+  (1) valid call 1 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) valid call 2 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) valid call 3 [ 0.17215841935   0.238693694589  0.232634019373  3.
+ 14.            ]
+  (1) valid call 4 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) no-rewards calls identical: True | rewards calls identical: True
+  (2) refused call: NOT refused [0.60697525 0.36805917 0.13533526 1.         2.        ]
+  (2) after, round 0: rewards same as before: False  RAISE ge weight evaluates to non-positive value '-0.000000'. Vertex index 2 (state 2). Weight must be strictly larger than 0.  | no-rewards same: True 
+  (2) after, round 1: rewards same as before: True   | no-rewards same: True 
+  (2) after, round 2: rewards same as before: True   | no-rewards same: True 
+  (2) after, round 3: rewards same as before: True   | no-rewards same: True 
+=== use_ffi=True
+  (1) valid call 0 [ 0.17215841935   0.238693694589  0.232634019373  3.
+ 14.            ]
+  (1) valid call 1 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) valid call 2 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) valid call 3 [ 0.17215841935   0.238693694589  0.232634019373  3.
+ 14.            ]
+  (1) valid call 4 [ 0.091907895167  0.136969339264  0.157102159771  5.
+ 42.            ]
+  (1) no-rewards calls identical: True | rewards calls identical: True
+  (2) refused call: NOT refused [0.60697525 0.36805917 0.13533526 1.         2.        ]
+  (2) after, round 0: rewards same as before: False  RAISE ge weight evaluates to non-positive value '-0.000000'. Vertex index 2 (state 2). Weight must be strictly larger than 0.  | no-rewards same: True 
+  (2) after, round 1: rewards same as before: True   | no-rewards same: True 
+  (2) after, round 2: rewards same as before: True   | no-rewards same: True 
+  (2) after, round 3: rewards same as before: True   | no-rewards same: True 
+[runcap] exit 0, peak RSS 375 MB, 3s

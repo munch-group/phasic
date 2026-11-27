@@ -1,0 +1,21 @@
+dc_noexp  theta=[1.0, 1e-08, 1.0, 1e-08] slot 1: grad  2.6729018636e+08 rich  2.6729018633e+08 (spread 1.9e-12) rel-vs-rich 9.69e-11  central(t/2) rel 8.64e-03
+dc_noexp  theta=[1.0, 1e-08, 1.0, 1e-08] slot 3: grad  8.3270981343e+08 rich  8.3270981319e+08 (spread 4.0e-13) rel-vs-rich 2.88e-10  central(t/2) rel 5.70e-02
+dc_noexp  theta=[1.0, 1e-09, 1.0, 1e-09] slot 1: grad  2.6729018644e+09 rich  2.6729018641e+09 (spread 5.3e-12) rel-vs-rich 1.14e-10  central(t/2) rel 8.64e-03
+dc_noexp  theta=[1.0, 1e-09, 1.0, 1e-09] slot 3: grad  8.3270981378e+09 rich  8.3270981354e+09 (spread 3.4e-13) rel-vs-rich 2.89e-10  central(t/2) rel 5.70e-02
+dc_noexp  theta=[1e-09, 0.0001, 0.0001, 0.0001] slot 0: grad -2.8800465002e+00 rich -2.8628714214e+00 (spread 7.4e-04) rel-vs-rich 6.00e-03  central(t/2) rel 5.25e-04
+dc_exp    theta=[1.0, 1e-08, 1.0, 1e-08] slot 1: grad  2.6729018635e+08 rich  2.6729018632e+08 (spread 5.1e-12) rel-vs-rich 1.13e-10  central(t/2) rel 8.64e-03
+dc_exp    theta=[1.0, 1e-08, 1.0, 1e-08] slot 3: grad  8.3270981327e+08 rich  8.3270981304e+08 (spread 2.8e-13) rel-vs-rich 2.86e-10  central(t/2) rel 5.70e-02
+dc_exp    theta=[1.0, 1e-09, 1.0, 1e-09] slot 1: grad  2.6729018643e+09 rich  2.6729018641e+09 (spread 1.4e-12) rel-vs-rich 9.84e-11  central(t/2) rel 8.64e-03
+dc_exp    theta=[1.0, 1e-09, 1.0, 1e-09] slot 3: grad  8.3270981377e+09 rich  8.3270981353e+09 (spread 5.7e-13) rel-vs-rich 2.86e-10  central(t/2) rel 5.70e-02
+dc_exp    theta=[1e-09, 0.0001, 0.0001, 0.0001] slot 0: grad -2.8488310491e+00 rich -2.8424709500e+00 (spread 3.3e-04) rel-vs-rich 2.24e-03  central(t/2) rel 4.41e-04
+dc_efg    theta=[1.0, 1e-08, 1.0, 1e-08] slot 1: grad  2.6729018636e+08 rich  2.6729018633e+08 (spread 1.9e-12) rel-vs-rich 9.69e-11  central(t/2) rel 8.64e-03
+dc_efg    theta=[1.0, 1e-08, 1.0, 1e-08] slot 3: grad  8.3270981319e+08 rich  8.3270981319e+08 (spread 4.0e-13) rel-vs-rich 1.02e-12  central(t/2) rel 5.70e-02
+dc_efg    theta=[1.0, 1e-09, 1.0, 1e-09] slot 1: grad  2.6729018644e+09 rich  2.6729018641e+09 (spread 5.3e-12) rel-vs-rich 1.14e-10  central(t/2) rel 8.64e-03
+dc_efg    theta=[1.0, 1e-09, 1.0, 1e-09] slot 3: grad  8.3270981354e+09 rich  8.3270981354e+09 (spread 3.4e-13) rel-vs-rich 1.03e-12  central(t/2) rel 5.70e-02
+dc_efg    theta=[1e-09, 0.0001, 0.0001, 0.0001] slot 0: grad -2.8800465002e+00 rich -2.8628714214e+00 (spread 7.4e-04) rel-vs-rich 6.00e-03  central(t/2) rel 5.25e-04
+dcjp      theta=[1.0, 1e-08, 1.0, 1e-08] slot 1: grad -5.5097130559e-02 rich -5.5289698745e-02 (spread 4.1e-02) rel-vs-rich 3.48e-03  central(t/2) rel 4.11e-02
+dcjp      theta=[1.0, 1e-08, 1.0, 1e-08] slot 3: grad -6.5813095716e-02 rich -5.8213976849e-02 (spread 1.1e-02) rel-vs-rich 1.31e-01  central(t/2) rel 1.82e-02
+dcjp      theta=[1.0, 1e-09, 1.0, 1e-09] slot 1: grad -2.3186313976e-01 rich -4.5601053797e-02 (spread 4.2e-02) rel-vs-rich 4.08e+00  central(t/2) rel 1.62e-01
+dcjp      theta=[1.0, 1e-09, 1.0, 1e-09] slot 3: grad -3.2716884753e-02 rich -5.6843418861e-02 (spread 0.0e+00) rel-vs-rich 4.24e-01  central(t/2) rel 5.00e-03
+dcjp      theta=[1e-09, 0.0001, 0.0001, 0.0001] slot 0: grad  2.4202437927e-02 rich  7.9580786405e-02 (spread 0.0e+00) rel-vs-rich 6.96e-01  central(t/2) rel 7.86e-03
+[runcap] exit 0, peak RSS 494 MB, 8s
