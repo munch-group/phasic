@@ -6209,6 +6209,9 @@ extern "C" {{
             ``'positive'`` slot is fine; ``positive_params=False`` on a
             ``'positive'`` model raises and asks you to rebuild with
             ``param_domains='unconstrained'``).
+            ``Graph.svgd(epoch_starts=...)`` declares the domains of its own
+            fit (e.g. ``'unit'`` for a BetaPrior slot), so a fit of this model
+            reproduces it bit for bit only when ``param_domains`` matches.
 
             Near-zero limit (documented, user decision D-NZ): on an
             ``'unconstrained'`` slot the FD gradient of a RATE within ~1e-7 of

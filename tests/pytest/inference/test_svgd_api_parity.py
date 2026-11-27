@@ -16,6 +16,7 @@ The shared-defaults check is structural (reads the function
 signatures via :mod:`inspect`); the parity check is end-to-end.
 """
 import inspect
+import random
 
 import jax.numpy as jnp
 import numpy as np
@@ -100,6 +101,7 @@ def test_graph_svgd_and_direct_svgd_agree():
         return g
 
     np.random.seed(0)
+    random.seed(0)  # Graph.sample() seeds phasic's sampler from Python's random
     g_data = build_graph()
     g_data.update_weights([3.0])
     data = np.array(g_data.sample(80))

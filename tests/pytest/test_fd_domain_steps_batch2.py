@@ -191,6 +191,43 @@ def test_svgd_init_containment_passes():
           exposure=2.0, exposure_param_index=0)
 
 
+def test_svgd_init_checks_before_the_exposure_wrapper():
+    """Review m4: the check reads the model's domains BEFORE the exposure
+    wrapper drops its attributes, so a widening with exposure still raises."""
+    with pytest.raises(ValueError, match="built for 'unit', the fit uses 'positive'"):
+        _svgd(_pam(["unit", "positive"]), exposure=2.0, exposure_param_index=1)
+
+
+def test_graph_svgd_widens_a_beta_exposure_slot_on_the_real_path(monkeypatch):
+    """Review m4: a BetaPrior on the exposure slot reaches the builder as
+    'positive' through Graph.svgd itself (the SVGD exposure wrapper hides the
+    model's attributes, so the builder call is spied)."""
+    seen = []
+    orig = Graph.pmf_and_moments_from_graph
+
+    def spy(cls, *a, **k):
+        seen.append(k.get("param_domains"))
+        return orig(*a, **k)
+    monkeypatch.setattr(Graph, "pmf_and_moments_from_graph", classmethod(spy))
+    C.beside().svgd(DATA, prior=[BetaPrior(2, 2), BetaPrior(2, 2)], exposure=2.0,
+                    exposure_param_index=1, **FIT)
+    assert seen == [("unit", "positive")]
+
+
+def test_fit_raises_before_the_default_prior_reference_fit():
+    """Review m4: a containment failure is raised before the default prior's
+    reference fit runs (the factory is never called)."""
+    jpg, _ = C.joint_graphs()
+    em = jpg.epoch_model(C.joint_rows(), EPOCHS, fixed=[(1, 1e-2)])
+    assert em._default_prior_factory is not None
+
+    def boom(*a, **k):
+        raise AssertionError("default prior factory called before the check")
+    em._default_prior_factory = boom
+    with pytest.raises(ValueError, match="FreeEpochModel.fit"):
+        em.fit(positive_params=False, **FIT)
+
+
 def test_epoch_model_param_domains_forms():
     jpg, _ = C.joint_graphs()
     rows = C.joint_rows()
@@ -284,8 +321,10 @@ def test_gradients_at_fixed_particles_match_master(name, scale):
     1e-6 relative (measured <= 1.7e-7). At 1e-4 and 1e-5 today's absolute
     step is itself up to 1.7e-4 off a Richardson reference (joint index,
     epoch; batch2/m1_measure_part1_loglik.log), so there the declared
-    gradient must be within 1e-6 of the reference and the move from today
-    must be explained by today's own error (+1e-6)."""
+    gradient must be within 1e-6 of the reference (tightest measured: epoch
+    at 1e-5, 7.1e-7) and no worse than today's error + 1e-6 (review m3: a
+    bound on |declared - today| would follow from the first by the triangle
+    inequality)."""
     P = 4 if name == "epoch" else 2
     th = jnp.asarray(np.array([1.0, 0.6, 1.3, 0.8][:P]) * scale)
     Ld = _loglik(_leaf(name, ["positive"] * 2))
@@ -296,7 +335,7 @@ def test_gradients_at_fixed_particles_match_master(name, scale):
     else:
         ref = np.array([_richardson(Lu, th, i) for i in range(P)])
         np.testing.assert_allclose(gd, ref, rtol=1e-6)
-        assert np.all(np.abs(gd - gu) <= np.abs(gu - ref) + 1e-6 * np.abs(ref))
+        assert np.all(np.abs(gd - ref) <= np.abs(gu - ref) + 1e-6 * np.abs(ref))
 
 
 # ===================================================================== 5
@@ -574,4 +613,4 @@ def test_dnz_documentation_is_present():
         assert "D-NZ" in text
         assert "including its sign" in text
         assert "positive_params=True" in text
-        assert "tie" in text and "logged once" in text
+        assert "forward tie" in text and "logged once" in text

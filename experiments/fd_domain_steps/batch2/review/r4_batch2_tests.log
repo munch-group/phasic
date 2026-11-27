@@ -1,0 +1,106 @@
+....[ERROR] phasic.c: Computation produced NaN at vertex 0 (command 0: from=0 to=0 multiplier=-1.000000000000000e+00 result[to]=nan) - numerical catastrophe
+ERROR:2026-11-27 15:44:42,277:jax._src.callback:94: jax.pure_callback failed
+Traceback (most recent call last):
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 92, in pure_callback_impl
+    return tree_util.tree_map(np.asarray, callback(*args))
+                                          ~~~~~~~~^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/jax/_src/callback.py", line 70, in __call__
+    return tree_util.tree_leaves(self.callback_func(*args, **kwargs))
+                                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9235, in callback_fn
+    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+  File "/Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/__init__.py", line 9168, in _compute_pmf_and_moments_cached
+    pmf, moments = builder.compute_pmf_and_moments(
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        theta_np,
+        ^^^^^^^^^
+    ...<4 lines>...
+        rewards=rewards_np  # Pass optional rewards
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+RuntimeError: Computation produced NaN at vertex 0 (command 0) - numerical catastrophe
+...........................fit-level drift, Graph.svgd single epoch: 5.929752591459997e-05
+.fit-level drift, Graph.svgd epoch: 0.00015289143122383948
+.fit-level drift, epoch_model: 0.00015289143122383948
+fit-level drift, direct SVGD: 5.929752591459997e-05
+...........[WARNING] phasic._fd_steps: pmf_and_moments_from_graph: zero FD gradient (forward tie; may be a genuine zero) for a slot whose two probes gave identical outputs; counted in model._fd_stats.tie
+....[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 5e-08] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 5e-08] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 5e-08] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+.[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 1e-09] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 1e-09] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+[WARNING] phasic: pmf_from_graph_joint_index: exact sojourn gradient declined at theta=[1.0, 1e-09] -- using a host-side finite-difference fallback for THIS particle only (exact_grad_decline='fd').
+.....                   [100%]
+=============================== warnings summary ===============================
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_every_single_epoch_leaf
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:142: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), prior=[_gp(), LogGaussPrior(ci=[1e-3, 1e-1])], **FIT)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:148: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS,
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:148: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS,
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:152: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, fixed=[(1, 1e-2)], **FIT)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:152: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, fixed=[(1, 1e-2)], **FIT)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:154: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, fixed=[(1, 1e-2)],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_graph_svgd_declares_on_the_epoch_route
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:154: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, fixed=[(1, 1e-2)],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_fit_level_graph_svgd_epoch
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:326: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    sd = jpg.svgd(C.joint_rows(), **kw)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_fit_level_graph_svgd_epoch
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:326: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    sd = jpg.svgd(C.joint_rows(), **kw)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_fit_level_graph_svgd_epoch
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:328: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    su = jpg.svgd(C.joint_rows(), **kw)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_fit_level_graph_svgd_epoch
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:328: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    su = jpg.svgd(C.joint_rows(), **kw)
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_near_floor_epoch_fits_complete_with_declared_domains
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:356: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, prior=[small, small],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_near_floor_epoch_fits_complete_with_declared_domains
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:356: SvgdAssumptionWarning: svgd: no rate is fixed and none of the last epoch's rates is tied to an earlier epoch, so the data cannot determine the overall scale of the last epoch's rates and it follows the prior; fix a rate with fixed= to identify it. See .effective_options('fixed') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, prior=[small, small],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_near_floor_epoch_fits_complete_with_declared_domains
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:356: SvgdAssumptionWarning: svgd: prior applied to each of 2 epochs. See .effective_options('prior') on the returned SVGD object.
+    s = jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, prior=[small, small],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_near_floor_epoch_fits_complete_with_declared_domains
+  /Users/kmt/phasic-fdsteps/.pixi/envs/default/lib/python3.13/site-packages/phasic/epoch_model.py:185: SvgdAssumptionWarning: FreeEpochModel.fit: none of the last epoch's rates is fixed, so the data cannot determine their overall scale and it follows the prior; fix a rate with fixed= to identify it.
+    assume(
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_spy_exposure_fit_epoch_carries_domains
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:559: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+    jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, prior=[_tiny_prior(), None],
+
+tests/pytest/test_fd_domain_steps_batch2.py::test_spy_exposure_fit_epoch_carries_domains
+  /Users/kmt/phasic-fdsteps/tests/pytest/test_fd_domain_steps_batch2.py:559: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+    jpg.svgd(C.joint_rows(), epoch_starts=EPOCHS, prior=[_tiny_prior(), None],
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+54 passed, 17 warnings in 63.73s (0:01:03)
+[runcap] exit 0, peak RSS 2407 MB, 70s

@@ -159,7 +159,7 @@ drift.
   on a default (positive) `epoch_model` is a listed behaviour change (§7).
   The epoch_model default is introduced in Batch 2, together with the
   `Graph.svgd` resolver, so the two routes keep their parity
-  (`tests/pytest/inference/test_epoch_model.py:83`, `:161`, rtol 1e-9). Fit-time fixed slots stay probed; that is
+  (`tests/pytest/inference/test_epoch_model.py:83`, `:161`, rtol 1e-9). (Batch 2 review m2: that parity holds for priors without a transform of their own; with a BetaPrior slot Graph.svgd declares 'unit' while the default epoch_model declares 'positive', learnable-slot gradients then differ by ~1e-8, so bit parity needs a matching `param_domains`; documented in the epoch_model and fit docstrings.) Fit-time fixed slots stay probed; that is
   harmless because of §4.5 (declared-positive slots at theta <= 0, such as
   a rate fixed at 0 for the nested likelihood-ratio model, get a one-sided
   step).
@@ -613,6 +613,27 @@ at `:6558`) drops all attributes, so `SVGD.__init__` reads
   correct gradients; an unconstrained rate within 1e-7 of zero can get a
   wrong-sign gradient (today: right sign, wrong size).
 - Batch 0's census may add more; each is listed before Batch 1 starts.
+- **Batch 2 additions (gate and review), listed for the user:**
+  - `inference/test_svgd_api_parity.py::test_graph_svgd_and_direct_svgd_agree`
+    (test edit). Its direct route now builds the model with
+    `param_domains=['positive']`, as Graph.svgd declares for that fit, and
+    the test also seeds `random`.
+    - Why: the fit is chaotic. A 1e-9 change in the initial particles moves
+      the posterior std from 0.11 to 0.60, so the two surfaces agree only
+      with identical numerics. A direct caller must declare
+      `param_domains` to reproduce Graph.svgd.
+    - Evidence: findings §11.6.
+  - **Behaviour change** (review m1). Reusing a model built by Graph.svgd
+    (`svgd.model`) in a direct `SVGD(model=...)` call whose fit is WIDER
+    than the first fit now raises. Two cases:
+    - `positive_params=False`, or a softplus prior where the first fit had
+      a BetaPrior slot;
+    - a nested model reused for the full fit with its fixed slot freed.
+      Before, that slot's gradient was silently zero, because the FD skip
+      was baked in; so this raise is an improvement.
+
+    Fixing more slots on reuse still works (the model-selection notebook
+    pattern).
 
 ## 8. Gate per batch
 

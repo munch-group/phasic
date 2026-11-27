@@ -793,6 +793,19 @@ Plan v2.10 §6 Batch 2. Tests: `tests/pytest/test_fd_domain_steps_batch2.py`
 - New, small: a BetaPrior with `positive_params=False` in Graph.svgd now
   raises before the model is built rather than inside SVGD (same message).
 
+- Added after the review (m1):
+  - Reusing a Graph.svgd model (`svgd.model`) in a direct
+    `SVGD(model=...)` call with a WIDER fit now raises:
+    - `positive_params=False`, or a softplus prior in place of a BetaPrior;
+    - a nested model reused with its fixed slot freed. Before, that slot's
+      gradient was silently zero.
+  - The error message now explains that such a model carries the domains of
+    the fit it was built for.
+- Added after the review (m2): with a BetaPrior slot,
+  `Graph.svgd(epoch_starts=...)` (declares 'unit') and the default
+  `epoch_model` ('positive') are no longer bit-identical. Learnable-slot
+  gradients differ by ~1e-8 relative; this is documented.
+
 ### 11.4 OI-124
 
 Drafted as plan §12, amendment A-124, awaiting approval; not implemented.
@@ -844,3 +857,38 @@ the original `runcap.py` (OI-067 would remove this indirection).
 - **Fit-level strict xfails (plan §7):** `test_notebook_model_recovery.py`
   `:484` and `:699` (not slow) were unchanged in the gate. `:553` and
   `:659` (slow) were run explicitly and remain XFAIL. No flip to report.
+
+### 11.7 Implementation review (Opus, one reviewer) and fixes
+
+Report: `experiments/fd_domain_steps/batch2/review/REPORT.md` (probes r1-r4
+in the same directory). **Verdict: SIGN-OFF**, no blocker or major, six
+minors, all folded in:
+
+- **m1:** reusing a Graph.svgd model with a wider fit now raises. Listed in
+  §11.3 and plan §7; the SVGD error message now explains it.
+- **m2:** epoch_model and Graph.svgd parity with a BetaPrior needs a
+  matching `param_domains`. Documented in the epoch_model and fit
+  docstrings and in plan §3.
+- **m3:** the redundant assertion is replaced by "declared no worse than
+  today + 1e-6"; the epoch margin (7.1e-7 against 1e-6) is stated.
+- **m4:** three new real-path tests:
+  - a BetaPrior exposure slot reaches the builder as 'positive' through
+    Graph.svgd (spied builder);
+  - a widening with exposure raises, so the check runs before the
+    wrapper;
+  - fit() raises before the default prior factory runs.
+- **m5:** the parity test also calls `random.seed(0)`.
+- **m6:** the domain and D-NZ text in FreeEpochModel.fit moved to a Notes
+  section; the doc test asserts "forward tie".
+
+Rerun after the fixes:
+
+| File | Result |
+|---|---|
+| `test_fd_domain_steps_batch2.py` | 57 passed |
+| `test_fd_domain_steps.py` | 235 passed |
+| `inference/test_svgd_api_parity.py` | 3 passed |
+| `inference/test_epoch_model.py` | 7 passed (route parity) |
+
+The fixes are docstrings, one error message and tests, so the full gate was
+not repeated.

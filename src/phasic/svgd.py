@@ -6540,7 +6540,10 @@ class SVGD:
                     theta_dim=self.theta_dim, fixed_indices=_fit_fixed),
                 "SVGD",
                 "Build the model with param_domains matching this fit (or "
-                "change positive_params / the prior).")
+                "change positive_params / the prior). A model taken from "
+                "Graph.svgd (svgd.model) or Graph.epoch_model carries the "
+                "domains of the fit it was built for: rebuild it with the "
+                "builder's param_domains=..., or refit with Graph.svgd.")
 
         # Store regularization settings and handle regularization schedule (backward compatible)
         if isinstance(regularization, RegularizationSchedule):

@@ -98,22 +98,8 @@ class FreeEpochModel:
         prior : optional
             Overrides the builder's prior for this fit. A per-slot list is
             re-masked to ``None`` at every fixed index; a scalar callable is
-            auto-masked by SVGD; ``None`` disables re-masking.
-
-            The fit must lie inside the domains the model was built for
-            (``Graph.epoch_model(param_domains=...)``, default every slot
-            ``'positive'``): a BetaPrior (sigmoid) slot or a softplus slot
-            fits a ``'positive'`` model, but ``positive_params=False``
-            (``'unconstrained'``) on a ``'positive'`` model raises; rebuild
-            with ``epoch_model(..., param_domains='unconstrained')``. A model
-            slot declared ``'fixed'`` must be fixed in the fit.
-
-            Near-zero limit (documented, user decision D-NZ): on an
-            ``'unconstrained'`` slot the finite-difference gradient of a RATE
-            within ~1e-7 of zero can be wrong, including its sign; fit rates
-            with ``positive_params=True`` (the default). A forward tie (two
-            probes giving identical outputs) gives a zero gradient for that
-            slot, counted in ``model._fd_stats`` and logged once.
+            auto-masked by SVGD; ``None`` disables re-masking. See Notes for
+            the parameter-domain check.
         **svgd_kwargs
             Forwarded to :class:`phasic.SVGD` (``n_particles``, ``n_iterations``,
             ``optimizer``, ``seed``, ``learning_rate``, ...). ``exposure`` /
@@ -126,6 +112,27 @@ class FreeEpochModel:
             The fitted instance (``.optimize()`` already run). Reusing the SAME
             ``FreeEpochModel`` for ``full`` and ``nested`` gives ``full.model is
             nested.model`` → the same-model LRT fast path.
+
+        Notes
+        -----
+        **Parameter domains (Plan A).** The fit must lie inside the domains the
+        model's finite-difference gradients were built for
+        (``Graph.epoch_model(param_domains=...)``, default every slot
+        ``'positive'``): a BetaPrior (sigmoid) slot or a softplus slot fits a
+        ``'positive'`` model, but ``positive_params=False``
+        (``'unconstrained'``) on a ``'positive'`` model raises; rebuild with
+        ``epoch_model(..., param_domains='unconstrained')``. A model slot
+        declared ``'fixed'`` must be fixed in the fit. This fit reproduces
+        ``Graph.svgd(epoch_starts=...)`` bit for bit only when the model's
+        domains match what that fit declares, e.g. ``'unit'`` for a
+        BetaPrior slot.
+
+        **Near-zero limit (documented, user decision D-NZ).** On an
+        ``'unconstrained'`` slot the finite-difference gradient of a RATE
+        within ~1e-7 of zero can be wrong, including its sign; fit rates with
+        ``positive_params=True`` (the default). A forward tie (two probes
+        giving identical outputs) gives a zero gradient for that slot,
+        counted in ``model._fd_stats`` and logged once.
         """
         from .svgd import SVGD
 

@@ -1,0 +1,27 @@
+[reuse_graph_svgd_model_positive_params_False] RAISE ValueError: SVGD: the fit's parameter domains do not lie inside the domains the model's finite-difference gradients were built for (param_domains):
+  theta[0]: the model was built for 'positive', the fit uses 'unconstrained'
+  theta[1]: the model was built for 'positive', the fit uses 'unconstrained'
+(a 'fixed' model slot must be fixed in the fit; 'unit' only fits a sigmoid (BetaPrior) slot; 'positive' fits s
+[reuse_nested_model_for_full] RAISE ValueError: SVGD: the fit's parameter domains do not lie inside the domains the model's finite-difference gradients were built for (param_domains):
+  theta[1]: the model was built for 'fixed', the fit uses 'positive'
+(a 'fixed' model slot must be fixed in the fit; 'unit' only fits a sigmoid (BetaPrior) slot; 'positive' fits softplus or sigmoid slots; positive_params=False needs 'unconstrained'.) Build the mod
+[single_epoch_exposure_beta_declared] OK: {'d': ('positive', 'positive')}
+[fixed_as_mask] OK: {'d': ('positive', 'fixed')}
+[theta_init_only] RAISE TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
+[custom_transform_fixed] OK: {'d': (None, 'fixed')}
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch2/review/r1_scenarios.py:90: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+  s = jpg.svgd(rows, epoch_starts=[0.0, 0.5], prior=[BetaPrior(2, 2), None],
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch2/review/r1_scenarios.py:90: SvgdAssumptionWarning: svgd: prior and fixed applied to each of 2 epochs. See .effective_options('prior', 'fixed') on the returned SVGD object.
+  s = jpg.svgd(rows, epoch_starts=[0.0, 0.5], prior=[BetaPrior(2, 2), None],
+[epoch_parity_betaprior] OK: (('unit', 'fixed', 'unit', 'fixed'), ('positive', 'positive', 'positive', 'positive'), array([ -2.52960117,   0.        , -15.84583415,   0.        ]), array([ -2.52960119, 148.39364702, -15.84583416, 950.75004898]), array([-9.10156923e-09, -4.19233346e-10]))
+[epoch_model_pp_false_default_prior] RAISE ValueError: FreeEpochModel.fit: the fit's parameter domains do not lie inside the domains the model's finite-difference gradients were built for (param_domains):
+  theta[0]: the model was built for 'positive', the fit uses 'unconstrained'
+  theta[2]: the model was built for 'positive', the fit uses 'unconstrained'
+(a 'fixed' model slot must be fixed in the fit; 'unit' only fits a sigmoid (BetaPrior) slot; 'po
+[epoch_model_unit_on_exposure_slot] OK: (('unit', 'positive', 'unit', 'positive'), array([0.62206378, 0.01      , 0.47788082, 0.01      ]))
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch2/review/r1_scenarios.py:117: SvgdAssumptionWarning: svgd: preconditioner='auto' resolved to 'jacobian'. See .effective_options('preconditioner') on the returned SVGD object.
+  s = jpg.svgd(rows, epoch_starts=[0.0, 0.5], prior=flat, fixed=[(1, 1e-2)],
+/Users/kmt/phasic-fdsteps/experiments/fd_domain_steps/batch2/review/r1_scenarios.py:117: SvgdAssumptionWarning: svgd: fixed applied to each of 2 epochs. See .effective_options('fixed') on the returned SVGD object.
+  s = jpg.svgd(rows, epoch_starts=[0.0, 0.5], prior=flat, fixed=[(1, 1e-2)],
+[tied_flat_prior_slave_beta] OK: ('positive', 'fixed', 'positive', 'fixed')
+[runcap] exit 0, peak RSS 1128 MB, 18s
