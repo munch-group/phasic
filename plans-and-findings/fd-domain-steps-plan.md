@@ -1,6 +1,6 @@
 # Plan A: domain-aware finite-difference steps
 
-**Status: v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
+**Status: v2.10, 2026-11-27: v2.9 plus the user-approved Batch 0 amendments, folded in as they are approved (so far §4.4: `moments_from_graph` always refuses; the step size s = 3e-5 for every family is recorded in [fd-domain-steps-findings.md](fd-domain-steps-findings.md) §4.3). v2.9, 2026-11-26 (v2.8 + review 13, which SIGNED OFF with no blocker or major; review series closed under the user's stopping rule). v1 (`b9178dab`) went through three independent
 adversarial reviews, v2 (`a4d2b3ad`) a fourth, v2.1 (`f27561fa`) a fifth and
 sixth, v2.2 (`74ef880b`) a seventh (Opus; all CHANGES REQUIRED, no
 REJECT; reviews 8-12 of v2.3-v2.7 likewise); their findings are
@@ -253,6 +253,16 @@ refuses when ANY of these holds:
   arbitrarily; the add-edge check refuses a negative weight,
   `phasic.c:4938`; measured, review7/p1_cpp.log): ALWAYS refusing,
   continuous and discrete;
+- it is built by `moments_from_graph` (v2.10, user-approved 2026-11-27,
+  Batch 0 finding): ALWAYS refusing. It computes through the generated-C++
+  channel, whose rebuild rejects any edge weight <= 0 (add-edge check, now
+  `phasic.c:4957`). Measured on a linear continuous graph: every negative
+  probe in {-1e-12, -1e-9, -5e-8, -1e-7} is refused, today's gradient
+  crashes at a slot of 5e-8, and a slot of exactly 0 is accepted, so the
+  §4.5 one-sided step applies (batch0/g1_refusal_grid.jsonl,
+  batch0/a4_theta_zero.log). The builder accepts only linear continuous
+  graphs. The refactor's phase 4 retires this channel (R4), a refusal move
+  it must reproduce or list, updating `model_refuses()` in the same commit;
 - it is CALLED WITH REWARDS (the existing `_rewards_provided` test,
   `rewards is not None and rewards.size > 0`, `__init__.py:9021` on HEAD `003559ed`, Batch 0 re-confirms; an empty
   array triggers no reward transform): the reward-transform
@@ -271,7 +281,7 @@ broken" tests at `test_fd_gradient_mixed_scale.py:112`, `:132`, goal 6).
 Only linear-weight continuous models accept a slightly negative probe (the
 check is commented out, `phasic.c:5767-5790`; the Euler pdf path is then
 ~1e-8 accurate, review3/p3_nearzero.log), when called without rewards and
-not built by `pmf_from_cpp`. The model builder computes the build-time part
+not built by `pmf_from_cpp` or `moments_from_graph`. The model builder computes the build-time part
 of this flag once and passes it to `_fd_steps` with the domains; the
 rewards part is added at trace time. For the direct
 `Graph.reward_visit_probability` call, which has no model, the rvp backward
@@ -281,8 +291,8 @@ The flag is exposed through ONE named function, `_fd_steps.model_refuses(
 build_info, has_rewards)`, which every site calls. The refactor plan
 ([core-engine-ssot-plan.md](core-engine-ssot-plan.md), phase 5) later
 replaces its implementation with a C++ query on the graph-state record
-(`refuses(record, has_rewards)`, with `pmf_from_cpp` refusing by
-constant), so the swap happens in one place. The Batch 0 refusal grid is
+(`refuses(record, has_rewards)`, with `pmf_from_cpp` and, until phase 4,
+`moments_from_graph` refusing by constant), so the swap happens in one place. The Batch 0 refusal grid is
 the starting point of the refactor's phase-1 refusal matrix, and the two
 must agree.
 

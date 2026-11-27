@@ -29,7 +29,7 @@ sample of items against current master (`a857b112`).
 
 ## Priorities toward goal 1: a stable refactored core engine with the full API in C++ and Python
 
-Set 2026-11-26 at your request. **Plan A Batch 0 (census, step sizes, master baseline) DONE 2026-11-27** on branch `fix/fd-domain-steps`: [plans-and-findings/fd-domain-steps-findings.md](plans-and-findings/fd-domain-steps-findings.md); step size decided 2026-11-27: s = 3e-5 for every family (findings §4.3); Batch 1 waits for your approval of the listed plan amendments (findings §7). **Plans written and SIGNED OFF 2026-11-26** (Plan A v2.9 after thirteen
+Set 2026-11-26 at your request. **Plan A Batch 0 (census, step sizes, master baseline) DONE 2026-11-27** on branch `fix/fd-domain-steps`: [plans-and-findings/fd-domain-steps-findings.md](plans-and-findings/fd-domain-steps-findings.md); step size decided 2026-11-27: s = 3e-5 for every family (findings §4.3); amendment 1 (`moments_from_graph` always refuses) approved and folded into the plan (v2.10); Batch 1 waits for your approval of the remaining amendments (findings §7, items 2, 3, 5, 6). **Plans written and SIGNED OFF 2026-11-26** (Plan A v2.9 after thirteen
 adversarial reviews, the refactor master plan v2.16 after twenty; each phase
 still gets its own reviewed sub-plan; decision D19 made: `load_cpp_builder` disabled from phase 0d until phase 12): [plans-and-findings/fd-domain-steps-plan.md](plans-and-findings/fd-domain-steps-plan.md) (Plan A,
 done first) and [plans-and-findings/core-engine-ssot-plan.md](plans-and-findings/core-engine-ssot-plan.md) (the

@@ -438,7 +438,8 @@ criterion, which ignores tails and model size.
 ## 7. What Batch 1 needs from this (proposed plan amendments)
 
 1. §4.4: add `moments_from_graph` to the always-refusing class beside
-   `pmf_from_cpp`. Note that rvp on discrete graphs and the joint index on
+   `pmf_from_cpp`. **APPROVED (user, 2026-11-27); folded into the plan as
+   v2.10.** Note that rvp on discrete graphs and the joint index on
    discrete joint graphs over-predict, harmlessly.
 2. §1, §5: the clamp is unconditional, at three sites (section 2).
 3. §4.2: the overshoot wording (section 5).
