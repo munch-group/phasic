@@ -632,10 +632,39 @@ the same directory). **Verdict: SIGN-OFF**, no blocker or major, six minors.
     cells, eager and jit(vmap(grad))), and a test of the joint-index host
     fallback at the site itself (a forced decline).
 - **m6 fixed:** the zero-difference message is domain-neutral.
-- **m1 open, for the user:** a slot declared 'unit' at exactly 0 falls back
-  to today's probe and so crashes on a refusing model, where an undeclared
-  slot does not. This follows §4.5's text ("unit outside (0, 1): today's
-  probe"), so changing it is a plan amendment.
+- **m1 DEFERRED to Batch 2 (user decision 2026-11-27), OI-124:** a slot
+  declared 'unit' at exactly 0 falls back to today's probe and so crashes on a
+  refusing model, where an undeclared slot does not. This follows §4.5's
+  text ("unit outside (0, 1): today's probe"), so changing it is a plan
+  amendment.
+
+### 10.5 Gate (plan §8)
+
+Compared with `gate_compare.py` against Batch 0's master baseline
+(`.gate_master_fdsteps`, with `--new-file tests/pytest/test_fd_domain_steps.py`):
+
+- **First run (`.gate_batch1`, commit a7fa7839):** one real regression,
+  `test_graph_cache_key::test_14_import_order` (3/3 in isolation).
+  `_fd_steps` created its logger at import time, and `get_logger()` imports
+  `phasic_pybind`, so the native module loaded before `OMP_NUM_THREADS` was
+  set. Fixed in dd972b31 (lazy logger); reproducer
+  `batch1/p_import_order.py`.
+- **Final run (`.gate_batch1_final`):** the full run `.gate_batch1b` on commit
+  59b9aac7, with `test_fd_domain_steps.py` replaced by a rerun after a
+  test-only change (the cpp × jit(vmap) cell is no longer generated instead
+  of skipped); `COMPOSED.txt` records this.
+  - 3268 passed. The same 4 plot tests fail on both sides (OI-060).
+  - 235 new tests, all passing.
+  - `test_daisy_fd_correct_at_mixed_scale` went from skipped (strict xfail)
+    to passed, as planned.
+  - **One flagged regression, accepted under the gate rule:**
+    `inference/test_svgd_correctness::test_positive_constraint` failed once
+    and passed 3/3 in isolation (min phi 3.18, 4.61, 3.21). Its data come
+    from `Graph.sample` under `np.random.seed` only, so they differ every
+    run, and its model (linear, continuous, no rewards, undeclared) runs
+    today's FD code bit for bit. Added to OI-061.
+- Suite time: 70.9 min against the baseline's 60.3; the new file accounts
+  for ~2 min.
 
 ## 9. Reproduce
 

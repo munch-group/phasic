@@ -58,15 +58,18 @@ def test_undeclared_gradients_are_bit_identical_to_master(name, theta, mode):
         assert got.tobytes() == want.tobytes(), (got, want, got - want)
 
 
-@pytest.mark.parametrize("mode", ["eager", "jitvmap"])
-@pytest.mark.parametrize("name,theta", C.CELLS, ids=[f"{n}-{','.join(map(str, t))}" for n, t in C.CELLS])
+# pmf_from_cpp cannot be vmapped (OI-123): that combination is not generated
+_EMUL = [(n, t, m) for n, t in C.CELLS for m in ("eager", "jitvmap")
+         if not (n == "cpp" and m == "jitvmap")]
+
+
+@pytest.mark.parametrize("name,theta,mode", _EMUL,
+                         ids=[f"{n}-{','.join(map(str, t))}-{m}" for n, t, m in _EMUL])
 def test_undeclared_gradients_equal_an_emulated_master(name, theta, mode, monkeypatch):
     """Platform-independent form of goal 2 (review m5): with every undeclared
     slot forced to today's rule -- master's traced program -- the gradient
     equals the real rules' outside the band, in the same process, including
     SVGD's jit(vmap(grad)) mode."""
-    if name == "cpp" and mode == "jitvmap":
-        pytest.skip("pmf_from_cpp cannot be vmapped (OI-123)")
     real = np.ravel(C.grad_in_mode(name, list(theta), mode))
     orig = _fd_steps.slot_rule
     monkeypatch.setattr(_fd_steps, "slot_rule",
